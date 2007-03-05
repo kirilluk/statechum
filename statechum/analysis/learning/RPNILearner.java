@@ -9,7 +9,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
-public class RPNILearner implements Learner {
+public class RPNILearner extends Observable implements Learner {
 	
 	private HashSet<List> sPlus, sMinus;
 	private Graph currentGraph;
@@ -21,7 +21,7 @@ public class RPNILearner implements Learner {
 	}
 	
 	public void updateGraph(Graph g){
-		currentGraph = g;
+		currentGraph = g;setChanged();
 		notifyObservers();
 	}
 	
@@ -30,22 +30,6 @@ public class RPNILearner implements Learner {
 		consolidated = new HashSet<StatePair>();
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
-	}
-	
-	public void addObserver(Observer o){
-		observers.add(o);
-	}
-	
-	public void removeObserver(Observer o){
-		observers.remove(o);
-	}
-	
-	private void notifyObservers() {
-	    Iterator i = observers.iterator();
-	    while( i.hasNext() ) {
-	          Observer o = ( Observer ) i.next();
-	          o.update( this );
-	    }
 	}
 	
 	public DirectedSparseGraph learnMachine(){

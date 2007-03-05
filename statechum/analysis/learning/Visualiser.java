@@ -9,20 +9,35 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
 
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
 import javax.swing.*;
 
 public class Visualiser extends JFrame implements Observer  {
-	
-	
-	
+
 	public Visualiser(HashSet sPlus, HashSet sMinus, boolean blueFringe){
-		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.addKeyListener(new KeyListener() {
+
+			public void keyPressed(KeyEvent arg0) {
+			}
+
+			public void keyReleased(KeyEvent arg0) {
+			}
+
+			public void keyTyped(KeyEvent key) {
+				if (key.getKeyChar() == KeyEvent.VK_ESCAPE)
+					dispose();
+			}
+			
+		});
         setSize(new Dimension(800,600));
         setVisible(true);
         if(blueFringe){
         	RPNIBlueFringeLearner l = new RPNIBlueFringeLearner();
         	l.addObserver(this);
-        	l.learnMachine(l.initialise(), sPlus, sMinus);
+        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
         }
         else{
         	RPNILearner l = new RPNILearner(sPlus, sMinus);
@@ -32,7 +47,7 @@ public class Visualiser extends JFrame implements Observer  {
 		
 	}
 	
-	public void update(Subject s){
+	public void update(Observable s, Object arg){
 		Learner learner = (Learner)s;
 		Graph g = learner.getGraph();
 		Layout l = new KKLayout(g);
@@ -60,17 +75,73 @@ public class Visualiser extends JFrame implements Observer  {
             	if(e.containsUserDatumKey("label")){
             		HashSet<String> labels = (HashSet<String>)e.getUserDatum("label");
             		Iterator labelIt = labels.iterator();
-            		String label = new String();
+            		String label = "[ ";
             		while(labelIt.hasNext()){
             			label = label.concat(labelIt.next()+" ");
             		}
-            		return label;
+            		return label+" ]";
             	}
             	else return "";
             }
         };
         render.setEdgeStringer(stringer);
         return render;
+	}
+	
+	static class VertexShape extends AbstractVertexShapeFunction
+	{
+
+		public VertexShape() {
+			super(  new ConstantVertexSizeFunction(25),
+	                new ConstantVertexAspectRatioFunction(1.0f));
+		}
+		
+		public Shape getShape(Vertex v) {
+			if (v.getUserDatum("property") != null &&
+					v.getUserDatum("property").equals("init"))
+				return factory.getRegularStar(v, 7);
+			else
+				if ( !(new Boolean(v.getUserDatum("accepted").toString())).booleanValue() )
+					return factory.getRectangle(v);
+			return factory.getEllipse(v);
+		}
+	}
+	
+	static class VertexPaint implements VertexPaintFunction
+	{
+		protected final PickedInfo picked;
+		
+		public VertexPaint(PickedInfo p) {
+			picked = p;
+		}
+		
+		public Paint getDrawPaint(Vertex v) {
+			if (v.getUserDatum("pair") != null)
+				return Color.MAGENTA;
+			
+			return Color.BLACK;
+		}
+
+		public Paint getFillPaint(Vertex v) {
+			Color col = Color.BLACK;
+			
+			if (picked.isPicked(v))
+				col = Color.LIGHT_GRAY;
+			else
+			if (v.getUserDatum("colour") == null)
+				col = Color.GREEN;
+			else
+			{
+				String c = (String)v.getUserDatum("colour");
+				if (c == "red")
+					col = Color.PINK;
+				else
+					if (c == "blue")
+						col = Color.BLUE;
+			}		
+			return col;
+		}
+		
 	}
 	
 	private  PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
@@ -80,16 +151,16 @@ public class Visualiser extends JFrame implements Observer  {
 			Vertex v = (Vertex)labelIt.next();
 			try{
 				String label = v.getUserDatum("label").toString();
-				if(v.getUserDatum("colour")!=null)
-					label = label.concat(" "+ v.getUserDatum("colour").toString().substring(0,1).toUpperCase());
 				labeller.setLabel(v,label);
 			}
 			catch(Exception e){
 				System.out.println(e);
 			}
 		}
-		r.setVertexStringer(labeller);
+		r.setVertexStringer(labeller);		
+		r.setVertexShapeFunction(new VertexShape());
+		r.setVertexPaintFunction(new VertexPaint(r));
+		r.setVertexStrokeFunction(new ConstantVertexStrokeFunction(2.0f));
 		return r;
 	}
-
 }

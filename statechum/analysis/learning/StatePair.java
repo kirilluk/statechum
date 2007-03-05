@@ -2,7 +2,7 @@ package statechum.analysis.learning;
 
 import edu.uci.ics.jung.graph.*;
 
-public class StatePair {
+public class StatePair implements Comparable {
 	
 	private Vertex q, r;
 	
@@ -16,20 +16,23 @@ public class StatePair {
 		return Integer.valueOf(vLabel);
 	}
 	
-	public boolean greaterThan(StatePair p){
-		int qInt = intLabel(q);
-		int rInt = intLabel(r);
-		int pQLabel = intLabel(p.getQ());
-		int pRLabel = intLabel(p.getR());
-		if(qInt>pQLabel)
-			return true;
-		else if(pQLabel == qInt && rInt>pRLabel)
-			return true;
-		else{
-			//System.out.println(this + " <= "+ p);
-			return false;
-		}
+	public int compareTo(Object b){
+		StatePair pB = (StatePair)b;
+		int aQLabel = intLabel(q);
+		int aRLabel = intLabel(r);
+		int bQLabel = intLabel(pB.getQ());
+		int bRLabel = intLabel(pB.getR());
 		
+		if(aQLabel<bQLabel)
+			return -1;
+		else if (aQLabel>bQLabel)
+			return 1;			
+		else if(aRLabel<bRLabel)
+			return -1;
+		else if(aRLabel>bRLabel)
+			return 1;
+		
+		return 0;
 	}
 	
 	public Vertex getQ(){
@@ -62,5 +65,4 @@ public class StatePair {
 		}
 		return false;
 	}
-
 }

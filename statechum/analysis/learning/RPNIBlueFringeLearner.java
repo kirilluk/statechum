@@ -10,15 +10,15 @@ import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 public class RPNIBlueFringeLearner extends Observable implements Learner {
-	private Graph currentGraph;
-	private HashSet doneEdges;
+	protected Graph currentGraph;
+	protected HashSet doneEdges;
 	
 	public Graph getGraph(){
 		//return removeNegatives(currentGraph);
 		return currentGraph;
 	}
 	
-	private Graph removeNegatives(Graph g){
+	protected Graph removeNegatives(Graph g){
 		Iterator vertexIt = g.getVertices().iterator();
 		HashSet remove = new HashSet();
 		while(vertexIt.hasNext()){
@@ -51,7 +51,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param model
 	 * @return the set of blue nodes.
 	 */ 
-	private Set<Vertex> computeBlue(DirectedSparseGraph model){
+	protected Set<Vertex> computeBlue(DirectedSparseGraph model){
 		Set<Vertex> blues = new HashSet<Vertex>();
 		Set reds = findVertices("colour", "red", model);
 		Iterator<Vertex> redIt = reds.iterator();
@@ -75,7 +75,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return blues;
 	}
 	
-	private DirectedSparseGraph mergeAndDeterminize(Graph original, StatePair pair){
+	protected DirectedSparseGraph mergeAndDeterminize(Graph original, StatePair pair){
 		Vertex q = findVertex("label", pair.getQ().getUserDatum("label"),original);
 		Vertex qDash = findVertex("label", pair.getR().getUserDatum("label"),original);
 		pair = new StatePair(q,qDash);
@@ -137,7 +137,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return model;
 	}
 	
-	private boolean compatible(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	protected boolean compatible(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		boolean returnValue = true;
 		Iterator<List<String>> negativeIt = sMinus.iterator();
 		while(negativeIt.hasNext()){
@@ -169,7 +169,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param questions
 	 * @return a set of questions which are not prefixes of other questions.
 	 */
-	private Set<List<String>> trimSet(Set<List<String>> questions){
+	protected Set<List<String>> trimSet(Set<List<String>> questions){
 		Set<String> done = new HashSet<String>();
 		Set<List<String>> trimmedSet = new HashSet<List<String>>();
 		Iterator<List<String>> questionIt = questions.iterator();
@@ -203,7 +203,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			return false;
 	}
 	
-	private Set<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
+	protected Set<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
@@ -264,7 +264,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param accepted labelling requested.
 	 * @return the list of paths.
 	 */
-	private Set<List<String>> getSuffixes(DirectedSparseGraph graph, Vertex r, String accepted){
+	protected Set<List<String>> getSuffixes(DirectedSparseGraph graph, Vertex r, String accepted){
 		Set<List<String>> setOfPaths = new HashSet<List<String>>();
 		Iterator<Vertex> vertexIt = graph.getVertices().iterator();
 		Set<Vertex> endVertices = new HashSet<Vertex>();
@@ -297,7 +297,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param l path
 	 * @return
 	 */
-	private static Set<List<String>> getPaths(List<Edge> l){
+	protected static Set<List<String>> getPaths(List<Edge> l){
 		TreeMap<Integer,Set<List<String>>> returnSet = new TreeMap<Integer,Set<List<String>>>();// KIRR: this should not be done in this way since access to this map is not random - you only need the last element in which case simply storing the last set of lists is best
 		for(int i=0;i<l.size();i++){// for each element of the source list
 			Edge e = l.get(i);
@@ -328,7 +328,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */
-	private static List<String> getShortPrefix(DirectedSparseGraph model, Vertex q){
+	protected static List<String> getShortPrefix(DirectedSparseGraph model, Vertex q){
 		Vertex init = findVertex("property", "init",model);
 		UnweightedShortestPath p = new UnweightedShortestPath(model);
 		Iterator<Edge> pathIt =  ShortestPathUtils.getPath(p, init, q).iterator();
@@ -344,7 +344,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 
 	
-	private DirectedSparseGraph merge(DirectedSparseGraph model, StatePair pair){
+	protected DirectedSparseGraph merge(DirectedSparseGraph model, StatePair pair){
 		Vertex q = pair.getQ();
 		Vertex qDash = pair.getR();
 		Iterator<DirectedSparseEdge> inEdges = q.getInEdges().iterator();
@@ -384,7 +384,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 	
 	
-	private static List<Vertex> getBFSList(Graph g){
+	protected static List<Vertex> getBFSList(Graph g){
 		List<Vertex> queue = new LinkedList<Vertex>();
 		Vertex init = findVertex("property", "init",g);
 		queue.add(0,init);
@@ -414,7 +414,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param model
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
-	private static StatePair findMergablePair(DirectedSparseGraph model){
+	protected static StatePair findMergablePair(DirectedSparseGraph model){
 		List<Vertex> queue = getBFSList(model);
 		Iterator<Vertex> queueIt = queue.iterator();
 		while(queueIt.hasNext()){
@@ -507,7 +507,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return createOrderedStack(scoreToPair);
 	}
 	
-	private static Stack createOrderedStack(TreeMap<Integer,Vector<StatePair> > sets){
+	protected static Stack createOrderedStack(TreeMap<Integer,Vector<StatePair> > sets){
 		Iterator<Vector<StatePair> > valueIt = sets.values().iterator();
 		Stack<StatePair> allValues = new Stack<StatePair>();
 		while(valueIt.hasNext()){
@@ -522,7 +522,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param pair a pair states to check for compatibility. 
 	 * @return whether the two are different.
 	 */
-	private  static boolean different(StatePair pair){
+	protected  static boolean different(StatePair pair){
 		Object qAcceptedO = pair.getQ().getUserDatum("accepted");
 		Object rAcceptedO = pair.getR().getUserDatum("accepted");
 		if(rAcceptedO==null || qAcceptedO == null)
@@ -543,7 +543,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param blueRed the pair of states
 	 * @return
 	 */
-	private int computeScore(DirectedSparseGraph original, StatePair blueRed){
+	protected int computeScore(DirectedSparseGraph original, StatePair blueRed){
 		int returnValue = 0;
 		if(different(blueRed))
 				return -1;
@@ -580,7 +580,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 	
 	/** Creates a graph with a single accept-vertex. */
-	public static DirectedSparseGraph initialise(){
+	protected static DirectedSparseGraph initialise(){
 		DirectedSparseGraph pta = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
 		init.addUserDatum("property", "init", UserData.SHARED);
@@ -597,7 +597,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	private DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
+	protected DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();
@@ -644,7 +644,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * 
 	 * @param pta the graph to operate on.
 	 */
-	private static void numberVertices(DirectedSparseGraph pta){
+	protected static void numberVertices(DirectedSparseGraph pta){
 		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
@@ -652,7 +652,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		}
 	}
 	
-	private static Vertex getVertex (DirectedSparseGraph g,Vertex v, List<String> string){
+	protected static Vertex getVertex (DirectedSparseGraph g,Vertex v, List<String> string){
 		Vertex current = v;
 		for(int i = 0;i<string.size();i++){
 			String label = string.get(i);
@@ -664,7 +664,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return current;
 	}
 	
-	private static Vertex getVertex (DirectedSparseGraph g, List<String> string){
+	protected static Vertex getVertex (DirectedSparseGraph g, List<String> string){
 		Vertex init = findVertex("property", "init",g);
 		Vertex current = init;
 		for(int i = 0;i<string.size();i++){
@@ -677,7 +677,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return current;
 	}
 	
-	private static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
+	protected static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
 		Iterator edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = (DirectedSparseEdge)edgeIt.next();
@@ -688,7 +688,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return null;
 	}
 	
-	private static Vertex findVertex(String property, Object value, Graph g){
+	protected static Vertex findVertex(String property, Object value, Graph g){
 		Iterator vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
 			DirectedSparseVertex v = (DirectedSparseVertex)vertexIt.next();
@@ -700,7 +700,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return null;
 	}
 	
-	private static Set<Vertex> findVertices(String property, Object value, Graph g){
+	protected static Set<Vertex> findVertices(String property, Object value, Graph g){
 		Set<Vertex> vertices = new HashSet<Vertex>();
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
@@ -713,7 +713,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return vertices;
 	}
 	
-	private static Edge findEdge(Vertex from, Vertex to){
+	protected static Edge findEdge(Vertex from, Vertex to){
 		Iterator<DirectedSparseEdge> edgesOut = from.getOutEdges().iterator();
 		while(edgesOut.hasNext()){
 			DirectedSparseEdge current = edgesOut.next();

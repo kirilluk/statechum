@@ -43,6 +43,23 @@ public class StackHandler extends DefaultHandler {
 		return returnString;
 	}
 	
+	public ArrayList getArrayListFunctionString(int maxLoopSize){
+		ArrayList string = new ArrayList();
+		int counter=0;
+		for(int i=0;i<functionString.size();i++){
+			String s = (String)functionString.get(i);
+			if(i>0){
+				if(s.equals(functionString.get(i-1)))
+					counter++;
+				else
+					counter = 0;
+				}
+			if(counter<maxLoopSize)
+				string.add(s);
+		}
+	return string;
+	}
+	
 	public void startElement(String uri, String localName, String qName, Attributes attributes){
 		
 		if(qName.equals("methodEntry")){

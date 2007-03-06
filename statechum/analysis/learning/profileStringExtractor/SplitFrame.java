@@ -13,7 +13,9 @@ import javax.swing.tree.TreePath;
 public class SplitFrame extends JFrame implements ActionListener{
 	private List list; 
 	private JList methodList;
+	private JScrollPane treePanel;
 	private AbstractFunctionFrame frame;
+	private HashMap filesToHandlers;
 
 	private static final long serialVersionUID = 1L;
 
@@ -21,9 +23,9 @@ public class SplitFrame extends JFrame implements ActionListener{
 	/**
 	 * This is the default constructor
 	 */
-	public SplitFrame(JTree methodTree, HashMap filesToHandlers) {
+	public SplitFrame() {
 		super();
-		initialize(methodTree, filesToHandlers);
+		initialize();
 	}
 
 	/**
@@ -31,13 +33,13 @@ public class SplitFrame extends JFrame implements ActionListener{
 	 * 
 	 * @return void
 	 */
-	private void initialize(JTree methodTree, HashMap filesToHandlers) {
+	private void initialize() {
 		list = new ArrayList();
-		frame = new AbstractFunctionFrame(filesToHandlers);
+		frame = new AbstractFunctionFrame(filesToHandlers, this);
 		this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-		this.setContentPane(getJContentPane(methodTree));
-		this.setTitle("Profiled Methods");
-		this.setResizable(false);
+		this.setContentPane(getJContentPane());
+		this.setTitle("Trace Methods");
+		this.setResizable(true);
 		this.pack();
 		this.setSize(800, 600);
 		this.setVisible(true);
@@ -48,11 +50,11 @@ public class SplitFrame extends JFrame implements ActionListener{
 	 * 
 	 * @return javax.swing.JPanel
 	 */
-	private JPanel getJContentPane(JTree methodTree) {
+	private JPanel getJContentPane() {
 		JPanel contentPanel = new JPanel();
 		contentPanel = new JPanel();
 		contentPanel.setLayout(new BorderLayout());
-		contentPanel.add(getJSplitPane(methodTree), BorderLayout.CENTER);
+		contentPanel.add(getJSplitPane(), BorderLayout.CENTER);
 		return contentPanel;
 	}
 
@@ -61,12 +63,12 @@ public class SplitFrame extends JFrame implements ActionListener{
 	 * 	
 	 * @return javax.swing.JSplitPane	
 	 */
-	private JSplitPane getJSplitPane(JTree methodTree) {
+	private JSplitPane getJSplitPane() {
 		JSplitPane splitPane = new JSplitPane();
 		splitPane = new JSplitPane();
 		splitPane.setDividerLocation(300);
 		splitPane.setRightComponent(getMethodList());
-		splitPane.setLeftComponent(getTreeScrollPane(methodTree));
+		splitPane.setLeftComponent(getTreeScrollPane());
 		return splitPane;
 	}
 
@@ -75,12 +77,14 @@ public class SplitFrame extends JFrame implements ActionListener{
 	 * 	
 	 * @return javax.swing.JScrollPane	
 	 */
-	private JScrollPane getTreeScrollPane(JTree methodTree) {
-		JScrollPane scrollPane = new JScrollPane();
-		scrollPane = new JScrollPane();
+	private JScrollPane getTreeScrollPane() {
+		treePanel = new JScrollPane();
+		return treePanel;
+	}
+	
+	private void setTree(JTree methodTree){
 		methodTree.addTreeSelectionListener(new TreeSelectionHandler());
-		scrollPane.setViewportView(methodTree);
-		return scrollPane;
+		treePanel.setViewportView(methodTree);
 	}
 
 	/**
@@ -105,8 +109,11 @@ public class SplitFrame extends JFrame implements ActionListener{
 		load.addActionListener(this);
 		JButton save = new JButton("Save");
 		save.addActionListener(this);
+		JButton addTraces = new JButton("Set Traces");
+		addTraces.addActionListener(this);
 		buttonPanel.add(remove);
 		buttonPanel.add(asFunction);
+		buttonPanel.add(addTraces);
 		buttonPanel.add(load);
 		buttonPanel.add(save);
 		panel.add(buttonPanel);
@@ -169,9 +176,50 @@ public class SplitFrame extends JFrame implements ActionListener{
 			if(choice == JFileChooser.APPROVE_OPTION){
 				File file = fc.getSelectedFile();
 				frame.readFromFile(file);
-				
+				this.filesToHandlers = frame.getFilesToHandlers();
+				JTree methodTree = Extractor.getTree(filesToHandlers);
+				this.setTree(methodTree);
 			}
 		}
+		else if(e.getActionCommand().equals("Set Traces")){
+			JFileChooser fc = new JFileChooser();
+			fc.setMultiSelectionEnabled(true);
+			fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			JFrame frame = new JFrame();
+			frame.setVisible(true);
+			int choice = fc.showDialog(frame, "Select XML files");
+			if(choice == JFileChooser.APPROVE_OPTION){
+				File[] file = fc.getSelectedFiles();
+				Extractor ex = new Extractor(file);
+				HashMap fileToHandler = ex.getFileToHandler();
+				JTree methodTree = Extractor.getTree(fileToHandler);
+				this.setTree(methodTree);
+			}
+		}
+	}
+	
+	public Set<String[]> addTest(Set sPlus){
+		Set<String[]> set = null;
+		JFileChooser fc = new JFileChooser();
+		fc.setMultiSelectionEnabled(false);
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		int choice = fc.showDialog(this, "Select File");
+		if(choice == JFileChooser.APPROVE_OPTION){
+			File file = fc.getSelectedFile();
+			HashSet<File> files = new HashSet();
+			files.add(file);
+			files.addAll(filesToHandlers.keySet());
+			Extractor extractor = new Extractor((File[])files.toArray());
+			this.filesToHandlers = extractor.getFileToHandler();
+			JTree methodTree = Extractor.getTree(filesToHandlers);
+			setTree(methodTree);
+			frame.dispose();
+			frame = new AbstractFunctionFrame(filesToHandlers, this);
+			set=frame.getStrings(sPlus);
+		}
+		else if(choice == JFileChooser.CANCEL_OPTION)
+			return null;
+		return set;
 	}
 	
 	private void abstractFrame(){

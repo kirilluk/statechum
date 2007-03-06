@@ -4,7 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
-
+import statechum.analysis.learning.*;
 import javax.xml.parsers.*;
 import javax.swing.*;
 import javax.swing.event.*;
@@ -17,14 +17,16 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	private HashMap namesToMethods, filesToHandlers;
 	private JList names, methods;
 	private List nameList;
+	private SplitFrame split;
 	private static final long serialVersionUID = 1L;
 
 
 	/**
 	 * This is the default constructor
 	 */
-	public AbstractFunctionFrame(HashMap filesToHandlers) {
+	public AbstractFunctionFrame(HashMap filesToHandlers, SplitFrame reference) {
 		super();
+		this.split = reference;
 		this.filesToHandlers = filesToHandlers;
 		initialize();
 	}
@@ -152,7 +154,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		JButton remove = new JButton("Remove");
 		remove.addActionListener(this);
 		buttonPanel.add(remove);
-		JButton extractStrings = new JButton("Extract Strings from Trace");
+		JButton extractStrings = new JButton("Infer Machine from Traces");
 		extractStrings.addActionListener(this);
 		buttonPanel.add(extractStrings);
 		panel.add(buttonPanel);
@@ -167,8 +169,9 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			methods.setListData(new Vector());
 			updateContents();
 		}
-		else if(e.getActionCommand().equals("Extract Strings from Trace")){
+		else if(e.getActionCommand().equals("Infer Machine from Traces")){
 			SAXParserFactory factory = SAXParserFactory.newInstance();
+			HashSet sPlus = new HashSet();
 			try{
 				Object[] files = filesToHandlers.keySet().toArray();
 				for(int i=0;i<files.length;i++){
@@ -177,13 +180,35 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					StackHandler stackHandler = new StackHandler(namesToMethods, (ClassMethodDefsHandler)filesToHandlers.get(files[i]));
 					parser.parse((File)files[i], stackHandler);
 					System.out.println(stackHandler.getFunctionString(3));
+					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
+				Visualiser v = new Visualiser(sPlus, new HashSet(), true, split);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
 				return;
 			}
 		}
+	}
+	
+	public Set<String[]> getStrings(Set sPlus){
+		SAXParserFactory factory = SAXParserFactory.newInstance();
+		try{
+			Object[] files = filesToHandlers.keySet().toArray();
+			for(int i=0;i<files.length;i++){
+				SAXParser parser = factory.newSAXParser();
+				
+				StackHandler stackHandler = new StackHandler(namesToMethods, (ClassMethodDefsHandler)filesToHandlers.get(files[i]));
+				parser.parse((File)files[i], stackHandler);
+				System.out.println(stackHandler.getFunctionString(3));
+				sPlus.add(stackHandler.getArrayListFunctionString(3));
+			}
+		}
+		catch(Exception ex){
+			ex.printStackTrace();
+		}
+		System.out.println();
+		return sPlus;
 	}
 	
 	private String[] pathToStrings(List list){
@@ -214,6 +239,11 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			methods.setListData(pathToStrings(functionMethods));
 			update(getGraphics());
 		}
+	}
+
+
+	public HashMap getFilesToHandlers() {
+		return filesToHandlers;
 	}
 
 

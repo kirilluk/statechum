@@ -8,6 +8,8 @@ import javax.swing.*;
 
 public class Extractor {
 	
+	private HashMap fileToHandler;
+	
 	public Extractor(File[] xmlFiles){
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try{
@@ -22,9 +24,10 @@ public class Extractor {
 		}
 		
 	}
+
 	
 	private void process(SAXParser parser, File[] xmlFiles){
-		HashMap fileToHandler = new HashMap();
+		fileToHandler = new HashMap();
 		ClassMethodDefsHandler classDefsHandler = null;
 		try{
 			for(int i = 0;i<xmlFiles.length;i++){
@@ -32,12 +35,15 @@ public class Extractor {
 				fileToHandler.put(xmlFiles[i], classDefsHandler);
 				parser.parse(xmlFiles[i], classDefsHandler);
 			}
-			SplitFrame frame = new SplitFrame(getTree(fileToHandler), fileToHandler);
 		}
 		catch(Exception e){System.out.println(e);}
 	}
 	
-	private JTree getTree(HashMap fileToHandler){
+	public HashMap getFileToHandler(){
+		return fileToHandler;
+	}
+	
+	public static JTree getTree(HashMap fileToHandler){
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode();
 		Iterator handlerIt = fileToHandler.values().iterator();
 		while(handlerIt.hasNext()){
@@ -66,7 +72,7 @@ public class Extractor {
 		return new JTree(root);
 	}
 	
-	private boolean hasChildWithName(DefaultMutableTreeNode node, String name){
+	private static boolean hasChildWithName(DefaultMutableTreeNode node, String name){
 		for(int i=0;i<node.getChildCount();i++){
 			DefaultMutableTreeNode current = (DefaultMutableTreeNode)node.getChildAt(i);
 			if(current.getUserObject().toString().equals(name)){
@@ -76,7 +82,7 @@ public class Extractor {
 		return false;
 	}
 	
-	private DefaultMutableTreeNode getNodeForClassName(String className, DefaultMutableTreeNode root){
+	private static DefaultMutableTreeNode getNodeForClassName(String className, DefaultMutableTreeNode root){
 		StringTokenizer tokenizer = new StringTokenizer(className, ".");
 		DefaultMutableTreeNode currentNode = root;
 		while(tokenizer.hasMoreTokens()){

@@ -170,23 +170,21 @@ public class SplitFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getActionCommand().equals("Load")){
 			JFileChooser fc = new JFileChooser();
+			fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
 			fc.setMultiSelectionEnabled(false);
 			fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 			int choice = fc.showDialog(this, "Select File");
 			if(choice == JFileChooser.APPROVE_OPTION){
-				File file = fc.getSelectedFile();
+				File file = new File(fc.getSelectedFile().getPath());
+				System.out.println(file.getPath());
 				frame.readFromFile(file);
-				this.filesToHandlers = frame.getFilesToHandlers();
-				JTree methodTree = Extractor.getTree(filesToHandlers);
-				this.setTree(methodTree);
 			}
 		}
 		else if(e.getActionCommand().equals("Set Traces")){
 			JFileChooser fc = new JFileChooser();
+			fc.setCurrentDirectory(new File(System.getProperty("user.dir")));
 			fc.setMultiSelectionEnabled(true);
 			fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			JFrame frame = new JFrame();
-			frame.setVisible(true);
 			int choice = fc.showDialog(frame, "Select XML files");
 			if(choice == JFileChooser.APPROVE_OPTION){
 				File[] file = fc.getSelectedFiles();
@@ -194,6 +192,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 				HashMap fileToHandler = ex.getFileToHandler();
 				JTree methodTree = Extractor.getTree(fileToHandler);
 				this.setTree(methodTree);
+				frame.setFilesToHandlers(ex.getFileToHandler());
 			}
 		}
 	}

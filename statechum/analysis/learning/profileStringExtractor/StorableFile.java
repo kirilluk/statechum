@@ -9,15 +9,10 @@ public class StorableFile implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -7986277390493548791L;
-	HashMap filesToHandlers, namesToMethods;
+	HashMap namesToMethods;
 	
-	public StorableFile(HashMap names, HashMap files){
+	public StorableFile(HashMap names){
 		this.namesToMethods = names;
-		this.filesToHandlers = files;
-	}
-
-	public HashMap getFilesToHandlers() {
-		return filesToHandlers;
 	}
 
 

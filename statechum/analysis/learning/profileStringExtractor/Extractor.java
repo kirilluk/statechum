@@ -31,7 +31,12 @@ public class Extractor {
 		ClassMethodDefsHandler classDefsHandler = null;
 		try{
 			for(int i = 0;i<xmlFiles.length;i++){
-				classDefsHandler = new ClassMethodDefsHandler(xmlFiles[i]);
+				String workingDir = System.getProperty("user.dir");
+				String filePath = xmlFiles[i].getPath();
+				filePath = filePath.substring(workingDir.length());
+				File f = new File(filePath);
+				System.out.println(filePath);
+				classDefsHandler = new ClassMethodDefsHandler(f);
 				fileToHandler.put(xmlFiles[i], classDefsHandler);
 				parser.parse(xmlFiles[i], classDefsHandler);
 			}

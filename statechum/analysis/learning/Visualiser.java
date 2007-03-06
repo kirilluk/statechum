@@ -97,9 +97,6 @@ public class Visualiser extends JFrame implements Observer  {
 		getContentPane().removeAll();
 		getContentPane().add(panel);
 		this.validate();
-		//this.getContentPane().update(this.getGraphics());
-		//repaint();
-		//JOptionPane.showMessageDialog(this, "click OK to continue");
 	}
 
 	

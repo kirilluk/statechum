@@ -33,7 +33,8 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	
 	public void writeToFile(String fileName){
 		try {
-			StorableFile sf = new StorableFile(namesToMethods, filesToHandlers);
+			
+			StorableFile sf = new StorableFile(namesToMethods);
 		    FileOutputStream fo = new FileOutputStream(fileName);
 		    ObjectOutputStream so = new ObjectOutputStream(fo);
 		    so.writeObject(sf);
@@ -50,7 +51,6 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		    FileInputStream fi = new FileInputStream(f);
 		    ObjectInputStream si = new ObjectInputStream(fi);  
 		    StorableFile sf = (StorableFile) si.readObject();
-		    this.filesToHandlers = sf.getFilesToHandlers();
 		    this.namesToMethods = sf.getNamesToMethods();
 		    updateContents();
 	        si.close();
@@ -173,6 +173,10 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			HashSet sPlus = new HashSet();
 			try{
+				if(filesToHandlers == null){
+					JOptionPane.showMessageDialog(this, "No traces loaded");
+					return;
+				}
 				Object[] files = filesToHandlers.keySet().toArray();
 				for(int i=0;i<files.length;i++){
 					SAXParser parser = factory.newSAXParser();
@@ -244,6 +248,10 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 
 	public HashMap getFilesToHandlers() {
 		return filesToHandlers;
+	}
+	
+	public void setFilesToHandlers(HashMap filesToHandlers){
+		this.filesToHandlers = filesToHandlers;
 	}
 
 

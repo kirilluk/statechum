@@ -7,7 +7,7 @@ import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
-
+import statechum.analysis.learning.profileStringExtractor.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -15,7 +15,41 @@ import java.awt.event.KeyListener;
 import javax.swing.*;
 
 public class Visualiser extends JFrame implements Observer  {
+	
+	
+	
+	public Visualiser(HashSet sPlus, HashSet sMinus, boolean blueFringe, SplitFrame split){
+		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.addKeyListener(new KeyListener() {
 
+			public void keyPressed(KeyEvent arg0) {
+			}
+
+			public void keyReleased(KeyEvent arg0) {
+			}
+
+			public void keyTyped(KeyEvent key) {
+				if (key.getKeyChar() == KeyEvent.VK_ESCAPE)
+					dispose();
+			}
+			
+		});
+        this.setTitle("Hypothesis Machine");
+        setSize(new Dimension(800,600));
+        setVisible(true);
+        if(blueFringe){
+        	RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(split);
+        	l.addObserver(this);
+        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
+        }
+        else{
+        	RPNILearner l = new RPNILearner(sPlus, sMinus);
+        	l.addObserver(this);
+        	l.learnMachine();
+        }
+		
+	}
+	
 	public Visualiser(HashSet sPlus, HashSet sMinus, boolean blueFringe){
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {

@@ -13,6 +13,8 @@ public class StatePair implements Comparable {
 	
 	private int intLabel(Vertex v){
 		String vLabel = v.getUserDatum("label").toString();
+		if(vLabel.charAt(0) == 'V')
+			vLabel = vLabel.substring(1); //to make label parsable into an integer if label starts with "V"
 		return Integer.valueOf(vLabel);
 	}
 	

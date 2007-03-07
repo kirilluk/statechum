@@ -186,7 +186,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				Visualiser v = new Visualiser(sPlus, new HashSet(), true, split);
+				Visualiser v = new Visualiser(sPlus, new HashSet(), split);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

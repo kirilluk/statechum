@@ -18,7 +18,7 @@ public class Visualiser extends JFrame implements Observer  {
 	
 	
 	
-	public Visualiser(HashSet sPlus, HashSet sMinus, boolean blueFringe, SplitFrame split){
+	public Visualiser(HashSet sPlus, HashSet sMinus, SplitFrame split){
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
 
@@ -37,20 +37,12 @@ public class Visualiser extends JFrame implements Observer  {
         this.setTitle("Hypothesis Machine");
         setSize(new Dimension(800,600));
         setVisible(true);
-        if(blueFringe){
-        	RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(split);
-        	l.addObserver(this);
-        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
-        }
-        else{
-        	RPNILearner l = new RPNILearner(sPlus, sMinus);
-        	l.addObserver(this);
-        	l.learnMachine();
-        }
-		
+    	RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(split);
+    	l.addObserver(this);
+    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
 	}
 	
-	public Visualiser(HashSet sPlus, HashSet sMinus, boolean blueFringe){
+	public Visualiser(HashSet sPlus, HashSet sMinus){
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
 
@@ -68,17 +60,9 @@ public class Visualiser extends JFrame implements Observer  {
 		});
         setSize(new Dimension(800,600));
         setVisible(true);
-        if(blueFringe){
-        	RPNIBlueFringeLearner l = new RPNIBlueFringeLearner();
-        	l.addObserver(this);
-        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
-        }
-        else{
-        	RPNILearner l = new RPNILearner(sPlus, sMinus);
-        	l.addObserver(this);
-        	l.learnMachine();
-        }
-		
+    	RPNIBlueFringeLearner l = new RPNIBlueFringeLearner();
+    	l.addObserver(this);
+    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 	}
 	
 	public void update(Observable s, Object arg){

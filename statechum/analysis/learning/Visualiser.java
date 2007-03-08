@@ -39,7 +39,7 @@ public class Visualiser extends JFrame implements Observer  {
         setVisible(true);
     	RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(split);
     	l.addObserver(this);
-    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
+    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
 	}
 	
 	public Visualiser(HashSet sPlus, HashSet sMinus){

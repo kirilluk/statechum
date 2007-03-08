@@ -8,18 +8,20 @@ import javax.swing.tree.TreePath;
 
 public class StackHandler extends DefaultHandler {
 	
-	private HashMap functions, ticketToString;
-	private HashSet doneTickets;
+	private Map<Integer,String> ticketToString;
+	private Map<String,List<TreePath>> functions;
+	private Set<Integer> doneTickets;
 	private ClassMethodDefsHandler classMethods;
-	private List functionString, methodStack;
+	private List<Integer> methodStack;
+	private List<String> functionString;
 	
-	public StackHandler(HashMap functions, ClassMethodDefsHandler classMethods){
-		this.functionString = new ArrayList();
+	public StackHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
+		this.functionString = new ArrayList<String>();
 		this.classMethods = classMethods;
 		this.functions = functions;
-		this.ticketToString = new HashMap();
-		this.methodStack = new ArrayList<String>();
-		this.doneTickets = new HashSet();
+		this.ticketToString = new HashMap<Integer,String>();
+		this.methodStack = new ArrayList<Integer>();
+		this.doneTickets = new HashSet<Integer>();
 	}
 	
 	public String getFunctionString(int maxLoopSize){
@@ -29,7 +31,7 @@ public class StackHandler extends DefaultHandler {
 			if(i==functionString.size()-1)
 				returnString = returnString.concat("\""+functionString.get(i)+"\"}");
 			else if(i>0){
-				String s = (String)functionString.get(i);
+				String s = functionString.get(i);
 				if(s.equals(functionString.get(i-1)))
 					counter++;
 				else
@@ -43,11 +45,11 @@ public class StackHandler extends DefaultHandler {
 		return returnString;
 	}
 	
-	public ArrayList getArrayListFunctionString(int maxLoopSize){
-		ArrayList string = new ArrayList();
+	public ArrayList<String> getArrayListFunctionString(int maxLoopSize){
+		ArrayList<String> string = new ArrayList<String>();
 		int counter=0;
 		for(int i=0;i<functionString.size();i++){
-			String s = (String)functionString.get(i);
+			String s = functionString.get(i);
 			if(i>0){
 				if(s.equals(functionString.get(i-1)))
 					counter++;
@@ -61,7 +63,8 @@ public class StackHandler extends DefaultHandler {
 	}
 	
 	public void startElement(String uri, String localName, String qName, Attributes attributes){
-		
+		// KIRR: why are we checking at method exit rather than entry? 
+		// Are we not getting the sequence of calls in reverse if calls are nested?
 		if(qName.equals("methodEntry")){
 			String methodIdRef = attributes.getValue("methodIdRef");
 			String classIdRef = attributes.getValue("classIdRef");
@@ -81,7 +84,7 @@ public class StackHandler extends DefaultHandler {
 			Integer ticket = Integer.valueOf(attributes.getValue("ticket"));
 			if(methodStack.size()>0){
 				int index = methodStack.indexOf(ticket);
-				if(index == methodStack.size()-1){
+				if(index == methodStack.size()-1){// KIRR: if this is true, so is the next if statement					
 					if(ticket.equals(methodStack.get(methodStack.size()-1)))
 						checkStackForFunction(methodStack);
 					methodStack.remove(ticket);
@@ -97,11 +100,11 @@ public class StackHandler extends DefaultHandler {
 		}
 	}
 	
-	private void checkStackForFunction(List methodStack){
-		Iterator functionIt =  functions.keySet().iterator();
+	private void checkStackForFunction(List<Integer> methodStack){
+		Iterator<String> functionIt =  functions.keySet().iterator();
 		while(functionIt.hasNext()){
-			String key = (String)functionIt.next();
-			List l = (List)functions.get(key);
+			String key = functionIt.next();
+			List<TreePath> l = functions.get(key);
 			if(containsString(methodStack, pathToStrings(l)))
 				functionString.add(key);
 		}
@@ -112,7 +115,7 @@ public class StackHandler extends DefaultHandler {
 			Integer ticket = stack.get(index);
 			if(doneTickets.contains(ticket))
 				continue;
-			String methodString = (String)ticketToString.get(ticket);
+			String methodString = ticketToString.get(ticket);
 			if(methodString.equals(list.get(0).trim())){
 				if(list.size() == 1){
 					doneTickets.addAll(stack);
@@ -127,9 +130,10 @@ public class StackHandler extends DefaultHandler {
 	}
 
 	
-	private List pathToStrings(List list){
+	/** Given a list of paths, this function returns a list of textual representations of those paths. */
+	private static List<String> pathToStrings(List<TreePath> list){
 		Iterator<TreePath> listIt = list.iterator();
-		ArrayList returnList = new ArrayList();
+		List<String> returnList = new ArrayList<String>();
 		for(int i=0;i<list.size();i++){
 			TreePath current = listIt.next();
 			String pathString = new String();
@@ -144,27 +148,28 @@ public class StackHandler extends DefaultHandler {
 		}
 		return returnList;
 	}
-	
+
+	/** Every method has a unique id, this function finds a class corresponding 
+	 * to this method and returns a full name of this method. 
+	 */
 	private String convertToString(Integer methodId){
-		HashMap classDefs = classMethods.getClassDefs();
-		HashMap methodDefs = classMethods.getMethodDefs();
-		HashMap classesToMethods = classMethods.getClassesToMethods();
+		Map<Integer, String> classDefs = classMethods.getClassDefs();
+		Map<Integer, String> methodDefs = classMethods.getMethodDefs();
+		Map<Integer, Set<Integer>> classesToMethods = classMethods.getClassesToMethods();
 		Integer classId = findKeyFor(classesToMethods,methodId);
 		String className = (String)classDefs.get(classId);
 		String methodName = (String)methodDefs.get(methodId);
 		return className+"."+methodName;
 	}
 	
-	private Integer findKeyFor(HashMap classesToMethods, Integer method){
+	private Integer findKeyFor(Map<Integer, Set<Integer>> classesToMethods, Integer method){
 		Iterator keyIt = classesToMethods.keySet().iterator();
 		while(keyIt.hasNext()){
 			Integer nextKey = (Integer)keyIt.next();
-			Collection methods = (Collection)classesToMethods.get(nextKey);
+			Collection methods = classesToMethods.get(nextKey);
 			if(methods.contains(method))
 				return nextKey;
 		}
 		return null;
 	}
-	
-
 }

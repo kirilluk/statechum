@@ -29,18 +29,18 @@ public class RPNITester {
 		String[] string2 = {"load", "edit", "save", "close"};
 		String[] string3 = {"load", "close", "load"};
 		String[] string4 = {"close"};
-		//sPlus.add(Arrays.asList(string1));
-		//sPlus.add(Arrays.asList(string2));
-		//sPlus.add(Arrays.asList(string3));
-		//sMinus.add(Arrays.asList(string4));
+		sPlus.add(Arrays.asList(string1));
+		sPlus.add(Arrays.asList(string2));
+		sPlus.add(Arrays.asList(string3));
+		sMinus.add(Arrays.asList(string4));
 		//sMinus.add(Arrays.asList(new String[]{"load","save","close"}));
 		
-		sPlus.add(Arrays.asList(new String[]{"m","a","z"}));
-		sPlus.add(Arrays.asList(new String[]{"m","z"}));
-		sPlus.add(Arrays.asList(new String[]{"m","a","z","u"}));
-		sPlus.add(Arrays.asList(new String[]{"m","z","u"}));
-		sPlus.add(Arrays.asList(new String[]{"n","o","p","q","a","z"}));
-		sMinus.add(Arrays.asList(new String[]{"n","o","p","q","z"}));
+		//sPlus.add(Arrays.asList(new String[]{"m","a","z"}));
+		//sPlus.add(Arrays.asList(new String[]{"m","z"}));
+		//sPlus.add(Arrays.asList(new String[]{"m","a","z","u"}));
+		//sPlus.add(Arrays.asList(new String[]{"m","z","u"}));
+		//sPlus.add(Arrays.asList(new String[]{"n","o","p","q","a","z"}));
+		//sMinus.add(Arrays.asList(new String[]{"n","o","p","q","z"}));
 		//sMinus.add(Arrays.asList(new String[]{"a"}));
 		Visualiser v = new Visualiser(sPlus, sMinus);
 		

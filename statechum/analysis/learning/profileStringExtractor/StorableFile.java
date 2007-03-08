@@ -3,20 +3,23 @@ package statechum.analysis.learning.profileStringExtractor;
 import java.io.Serializable;
 import java.util.*;
 
+import javax.swing.tree.TreePath;
+
 public class StorableFile implements Serializable {
 	
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -7986277390493548791L;
-	HashMap namesToMethods;
 	
-	public StorableFile(HashMap names){
+	private Map<String, List<TreePath>> namesToMethods;
+	
+	public StorableFile(Map<String, List<TreePath>> names){
 		this.namesToMethods = names;
 	}
 
 
-	public HashMap getNamesToMethods() {
+	public Map<String, List<TreePath>> getNamesToMethods() {
 		return namesToMethods;
 	}
 

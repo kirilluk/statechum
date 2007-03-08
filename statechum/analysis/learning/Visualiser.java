@@ -1,12 +1,15 @@
 package statechum.analysis.learning;
 
 import java.util.*;
+import java.util.List;
+
 import edu.uci.ics.jung.visualization.*;
 import edu.uci.ics.jung.visualization.contrib.*;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.analysis.learning.profileStringExtractor.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -16,33 +19,21 @@ import javax.swing.*;
 
 public class Visualiser extends JFrame implements Observer  {
 	
+	/**
+	 * The version ID for serialization.
+	 */
+	private static final long serialVersionUID = -6382530787840924374L;
 	
+	protected VisualizationViewer viewer = null;
 	
-	public Visualiser(HashSet sPlus, HashSet sMinus, SplitFrame split){
-		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		this.addKeyListener(new KeyListener() {
-
-			public void keyPressed(KeyEvent arg0) {
-			}
-
-			public void keyReleased(KeyEvent arg0) {
-			}
-
-			public void keyTyped(KeyEvent key) {
-				if (key.getKeyChar() == KeyEvent.VK_ESCAPE)
-					dispose();
-			}
-			
-		});
-        this.setTitle("Hypothesis Machine");
-        setSize(new Dimension(800,600));
-        setVisible(true);
-    	RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(split);
-    	l.addObserver(this);
-    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
+	public Visualiser(Set<List<String>> sPlus, Set<List<String>> sMinus){
+		construct(sPlus,sMinus,null);
 	}
 	
-	public Visualiser(HashSet sPlus, HashSet sMinus){
+	public Visualiser(Set<List<String>> sPlus, Set<List<String>> sMinus, SplitFrame split){
+		construct(sPlus,sMinus,split);
+	}
+	protected void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus, final SplitFrame split){
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
 
@@ -54,42 +45,70 @@ public class Visualiser extends JFrame implements Observer  {
 
 			public void keyTyped(KeyEvent key) {
 				if (key.getKeyChar() == KeyEvent.VK_ESCAPE)
-					dispose();
+				{
+					setVisible(false);dispose();
+				}
 			}
 			
 		});
+        this.setTitle("Hypothesis Machine");
         setSize(new Dimension(800,600));
+
+        DirectedSparseGraph g = RPNIBlueFringeLearner.initialise();
+
+		viewer = new VisualizationViewer( new DefaultVisualizationModel(new KKLayout(g)), constructRenderer(g) );
+		viewer.setBackground(Color.WHITE);
+		final DefaultModalGraphMouse graphMouse = new DefaultModalGraphMouse();
+		graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
+        viewer.setGraphMouse(graphMouse);
+		final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
+		//getContentPane().removeAll();
+		getContentPane().add(panel);
         setVisible(true);
-    	RPNIBlueFringeLearner l = new RPNIBlueFringeLearner();
-    	l.addObserver(this);
-    	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+
+		new Thread(new Runnable()
+		{
+			public void run()
+			{
+					RPNIBlueFringeLearner l = null;
+		        	if (split != null) 
+		        		l = new RPNIBlueFringeLearnerTestComponent(Visualiser.this);
+		        	else
+		        		l = new RPNIBlueFringeLearner(Visualiser.this);
+		        		
+		        	l.addObserver(Visualiser.this);
+		        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
+			}
+		},"RPNI learner thread").start();
+		
 	}
 	
-	public void update(Observable s, Object arg){
-		Learner learner = (Learner)s;
-		Graph g = learner.getGraph();
-		Layout l = new KKLayout(g);
+	protected static PluggableRenderer constructRenderer(Graph g)
+	{
 		PluggableRenderer r = new PluggableRenderer();
 		r = labelEdges(r);
 		r = labelVertices(r,g);
-		VisualizationViewer v = new VisualizationViewer( l, r, new Dimension(800,600));
-		v.setBackground(Color.WHITE);
-		final DefaultModalGraphMouse graphMouse = new DefaultModalGraphMouse();
-		graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
-        v.setGraphMouse(graphMouse);
-		final GraphZoomScrollPane panel = new GraphZoomScrollPane(v);
-		getContentPane().removeAll();
-		getContentPane().add(panel);
-		this.validate();
+		return r;
+	}
+	
+	public void update(final Observable s, Object arg){
+		SwingUtilities.invokeLater(new Runnable(){
+			public void run()
+			{
+				Graph g = (Graph) (((Learner)s).getGraph()).copy();
+				viewer.getModel().setGraphLayout( new KKLayout( g ) );
+				viewer.setRenderer(constructRenderer(g));
+			}
+		});
 	}
 
 	
-	private  PluggableRenderer labelEdges(PluggableRenderer render){
+	private static PluggableRenderer labelEdges(PluggableRenderer render){
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
             	if(e.containsUserDatumKey("label")){
             		HashSet<String> labels = (HashSet<String>)e.getUserDatum("label");
-            		Iterator labelIt = labels.iterator();
+            		Iterator<String> labelIt = labels.iterator();
             		String label = "[ ";
             		while(labelIt.hasNext()){
             			label = label.concat(labelIt.next()+" ");
@@ -159,7 +178,7 @@ public class Visualiser extends JFrame implements Observer  {
 		
 	}
 	
-	private  PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
+	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
 		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
 		Iterator labelIt = graph.getVertices().iterator();
 		while(labelIt.hasNext()){
@@ -170,6 +189,7 @@ public class Visualiser extends JFrame implements Observer  {
 			}
 			catch(Exception e){
 				System.out.println(e);
+				e.printStackTrace();
 			}
 		}
 		r.setVertexStringer(labeller);		

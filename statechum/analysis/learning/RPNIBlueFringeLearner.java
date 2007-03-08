@@ -1,8 +1,17 @@
 package statechum.analysis.learning;
 
+import java.awt.Frame;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.*;
+
+import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -10,7 +19,7 @@ import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 public class RPNIBlueFringeLearner extends Observable implements Learner {
-	protected Graph currentGraph;
+	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	
 	public Graph getGraph(){
@@ -37,12 +46,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	
 	public synchronized void updateGraph(Graph g){
 		setChanged();
-		currentGraph = (Graph)g.copy();
+		currentGraph = g;
 		notifyObservers();
 	}
 	
-	public RPNIBlueFringeLearner(){
-		super();
+	private Frame parentFrame;
+
+	public RPNIBlueFringeLearner(Frame parentFrame){
+	this.parentFrame = parentFrame;
 	}
 	
 	/** Takes all red-labelled nodes; non-red nodes which can be reached by a single transition from any 
@@ -88,14 +99,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return temp;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
 		model = augmentPTA(model, sMinus, false);
 		model = augmentPTA(model, sPlus, true);
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
 		updateGraph(model);
-		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
+		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
@@ -110,26 +121,26 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					List<String> question = questionIt.next();
 					String accepted = pair.getQ().getUserDatum("accepted").toString();// Q is the blue vertex
 					updateGraph(model);
-					boolean response = checkWithEndUser(question);
+					boolean response = checkWithEndUser(question,new Object[0]) == 0;// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum("pair");
 					pair.getR().removeUserDatum("pair");
 					if(response){
 						sPlus.add(question);
 						System.out.println(question+ " <yes>");
 						if(accepted.equals("false"))// KIRR: how can this be true? If it were so, there would be no questions to ask
-							return learnMachine(initialise(), sPlus, sMinus);
+							return learnMachine(initialise(), sPlus, sMinus, threshold);
 					}
 					else{
 						sMinus.add(question);
 						System.out.println(question+ " <no>");
 						if(accepted.equals("true")){// KIRR: this cannot be false either
-							return learnMachine(initialise(), sPlus, sMinus);
+							return learnMachine(initialise(), sPlus, sMinus, threshold);
 						}
 					}
 				}
 				model = temp;
 			}
-			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
+			possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 			
 			updateGraph(model);
 		}
@@ -186,21 +197,94 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		}
 		return trimmedSet;
 	}
-	
-	private boolean checkWithEndUser(List question){
+
+	protected String getShortenedQuestion(List<String> question){
 		String questionString = new String();
-		Iterator questionIt = question.iterator();
-		while(questionIt.hasNext()){
-			questionString = questionString.concat(", "+(String)questionIt.next());
+		int counter=1;
+		String lastQuestion = question.get(0);
+		for(int i=1;i<question.size();i++){
+				String current = question.get(i);
+				if(current.equals(lastQuestion))
+					counter++;
+				else{
+					questionString = questionString.concat(lastQuestion).concat( (counter>1)? "(*"+counter+")":"").concat("\n");
+					counter = 1;lastQuestion = current;					
+				}
 		}
-		JFrame jf = new JFrame();
-		int answer;
-		answer = JOptionPane.showConfirmDialog(jf,
-                questionString, "Valid input?",JOptionPane.YES_NO_OPTION);
-		if(answer==0)
-			return true;
-		else
-			return false;
+		questionString = questionString.concat(lastQuestion).concat( (counter>1)? "(*"+counter+")":"");
+		return questionString;
+	}
+
+	public static final int DIALOG_CANCELLED = -1;
+	
+	protected int checkWithEndUser(List<String> question, final Object [] moreOptions){
+		final String questionString = getShortenedQuestion(question);
+		final AtomicInteger answer = new AtomicInteger(DIALOG_CANCELLED-2);
+		
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					final Object[] options = new Object[2+moreOptions.length];
+					options[0]="Yes";options[1]="No";System.arraycopy(moreOptions, 0, options, 2, moreOptions.length);
+					final JOptionPane jop = new JOptionPane(questionString,
+			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
+					final JDialog dialog = new JDialog(parentFrame,"Valid input string?",false);
+					dialog.setContentPane(jop);
+					
+					// the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
+					dialog.setDefaultCloseOperation(
+						    JDialog.DO_NOTHING_ON_CLOSE);
+					dialog.addWindowListener(new WindowAdapter() {
+					    public void windowClosing(WindowEvent we) {
+					    	System.out.println("window closing");
+							synchronized(answer)
+							{
+								answer.getAndSet( DIALOG_CANCELLED );
+								answer.notifyAll();
+							}
+							dialog.setVisible(false);dialog.dispose();
+					    }
+					});
+					jop.addPropertyChangeListener(
+						    new PropertyChangeListener() {
+						        public void propertyChange(PropertyChangeEvent e) {
+						            String prop = e.getPropertyName();
+
+						            if (dialog.isVisible() 
+						             && (e.getSource() == jop)
+						             && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
+						                // one of the choices was made, determine which one and close the window
+										Object value = e.getNewValue();
+										int i=0;for(;i < options.length && options[i] != value;++i);
+										if (i == options.length)
+											i = DIALOG_CANCELLED;// nothing was chosen
+										answer.getAndSet( i );
+										synchronized(answer)
+										{
+											answer.notifyAll();
+										}
+
+										dialog.setVisible(false);dialog.dispose();
+						            }
+						        }
+						    });					
+					dialog.pack();
+					dialog.setVisible(true);
+				}
+			});
+			synchronized (answer) {
+				while(answer.get() < DIALOG_CANCELLED)
+						answer.wait();// wait for a user to make a response			
+			}
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+			// if we cannot make a call, return a negative number - nothing do not know what else to do about it.
+		}
+		catch (InterruptedException e) {
+			e.printStackTrace();
+			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
+		}		
+		return answer.get();
 	}
 	
 	protected Set<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
@@ -446,8 +530,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return null;
 	}
 
-	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
-		int threshold = 1;
+	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores
@@ -586,6 +669,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		init.addUserDatum("property", "init", UserData.SHARED);
 		init.addUserDatum("accepted", "true", UserData.SHARED);
 		pta.addVertex(init);
+		numberVertices(pta);
 		return pta;
 	}
 	
@@ -645,6 +729,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
+			v.removeUserDatum("label");// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
 			v.addUserDatum("label", v.toString(), UserData.SHARED);
 		}
 	}

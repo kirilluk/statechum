@@ -2,13 +2,14 @@ package statechum.analysis.learning.profileStringExtractor;
 
 import java.util.*;
 import java.io.*;
+
 import javax.xml.parsers.*;
 import javax.swing.tree.*;
 import javax.swing.*;
 
 public class Extractor {
 	
-	private HashMap fileToHandler;
+	private Map<File, ClassMethodDefsHandler> fileToHandler;
 	
 	public Extractor(File[] xmlFiles){
 		SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -22,12 +23,10 @@ public class Extractor {
 			System.out.println(e);
 			return;
 		}
-		
 	}
 
-	
 	private void process(SAXParser parser, File[] xmlFiles){
-		fileToHandler = new HashMap();
+		fileToHandler = new HashMap<File, ClassMethodDefsHandler>();
 		ClassMethodDefsHandler classDefsHandler = null;
 		try{
 			for(int i = 0;i<xmlFiles.length;i++){
@@ -44,25 +43,26 @@ public class Extractor {
 		catch(Exception e){System.out.println(e);}
 	}
 	
-	public HashMap getFileToHandler(){
+	public Map<File, ClassMethodDefsHandler> getFileToHandler(){
 		return fileToHandler;
 	}
 	
-	public static JTree getTree(HashMap fileToHandler){
+	/** Builds a tree from classes/methods stored in the supplied XML file. */
+	public JTree getTree(){
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode();
 		Iterator handlerIt = fileToHandler.values().iterator();
 		while(handlerIt.hasNext()){
 			ClassMethodDefsHandler current = (ClassMethodDefsHandler)handlerIt.next();
-			HashMap classesToMethods = current.getClassesToMethods();
-			HashMap methodDefs = current.getMethodDefs();
-			HashMap classDefs = current.getClassDefs();
+			Map<Integer,Set<Integer>> classesToMethods = current.getClassesToMethods();
+			Map<Integer,String> methodDefs = current.getMethodDefs();
+			Map<Integer,String> classDefs = current.getClassDefs();
 			Iterator<Integer> methodKeyIt = classesToMethods.keySet().iterator();
 			while(methodKeyIt.hasNext()){
 				Integer classId = methodKeyIt.next();
 				String className = classDefs.get(classId).toString();
 				DefaultMutableTreeNode classNameNode = getNodeForClassName(className, root);
 				root = (DefaultMutableTreeNode)classNameNode.getRoot();
-				HashSet methods = (HashSet)classesToMethods.get(classId);
+				Set<Integer> methods = classesToMethods.get(classId);
 				Iterator<Integer> methodIt = methods.iterator();
 				while(methodIt.hasNext()){
 					Integer methodId = methodIt.next();
@@ -109,6 +109,4 @@ public class Extractor {
 		}
 		return currentNode;
 	}
-	
-
 }

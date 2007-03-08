@@ -4,19 +4,20 @@ import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+
 import statechum.analysis.learning.*;
 import javax.xml.parsers.*;
 import javax.swing.*;
 import javax.swing.event.*;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import javax.xml.parsers.SAXParser;
 
 public class AbstractFunctionFrame extends JFrame implements ActionListener{
 
-	private HashMap namesToMethods, filesToHandlers;
+	private Map<String, List<TreePath>> namesToMethods;
+	private Map<File,ClassMethodDefsHandler> filesToHandlers;
 	private JList names, methods;
-	private List nameList;
+	private List<String> nameList;
 	private SplitFrame split;
 	private static final long serialVersionUID = 1L;
 
@@ -24,7 +25,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	/**
 	 * This is the default constructor
 	 */
-	public AbstractFunctionFrame(HashMap filesToHandlers, SplitFrame reference) {
+	public AbstractFunctionFrame(Map<File,ClassMethodDefsHandler> filesToHandlers, SplitFrame reference) {
 		super();
 		this.split = reference;
 		this.filesToHandlers = filesToHandlers;
@@ -33,7 +34,6 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	
 	public void writeToFile(String fileName){
 		try {
-			
 			StorableFile sf = new StorableFile(namesToMethods);
 		    FileOutputStream fo = new FileOutputStream(fileName);
 		    ObjectOutputStream so = new ObjectOutputStream(fo);
@@ -66,8 +66,8 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	 * @return void
 	 */
 	private void initialize() {
-		this.namesToMethods = new HashMap();
-		nameList = new ArrayList();
+		this.namesToMethods = new HashMap<String, List<TreePath>>();
+		nameList = new ArrayList<String>();
 		this.setLocation(0, 700);
 		this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		this.setContentPane(getJContentPane());
@@ -78,7 +78,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		this.setVisible(true);
 	}
 	
-	public void addAbstractFunction(List methods){
+	public void addAbstractFunction(List<TreePath> methods){
 		String name = (String)JOptionPane.showInputDialog(
                 this, "Enter name of abstract function",
                 "Customized Dialog",JOptionPane.PLAIN_MESSAGE,
@@ -171,7 +171,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getActionCommand().equals("Infer Machine from Traces")){
 			SAXParserFactory factory = SAXParserFactory.newInstance();
-			HashSet sPlus = new HashSet();
+			HashSet<List<String>> sPlus = new HashSet<List<String>>();
 			try{
 				if(filesToHandlers == null){
 					JOptionPane.showMessageDialog(this, "No traces loaded");
@@ -181,12 +181,12 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 				for(int i=0;i<files.length;i++){
 					SAXParser parser = factory.newSAXParser();
 					
-					StackHandler stackHandler = new StackHandler(namesToMethods, (ClassMethodDefsHandler)filesToHandlers.get(files[i]));
+					StackHandler stackHandler = new StackHandler(namesToMethods, filesToHandlers.get(files[i]));
 					parser.parse((File)files[i], stackHandler);
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				Visualiser v = new Visualiser(sPlus, new HashSet(), split);
+				new Visualiser(sPlus, new HashSet<List<String>>(), split);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
@@ -202,7 +202,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			for(int i=0;i<files.length;i++){
 				SAXParser parser = factory.newSAXParser();
 				
-				StackHandler stackHandler = new StackHandler(namesToMethods, (ClassMethodDefsHandler)filesToHandlers.get(files[i]));
+				StackHandler stackHandler = new StackHandler(namesToMethods, filesToHandlers.get(files[i]));
 				parser.parse((File)files[i], stackHandler);
 				System.out.println(stackHandler.getFunctionString(3));
 				sPlus.add(stackHandler.getArrayListFunctionString(3));
@@ -215,7 +215,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		return sPlus;
 	}
 	
-	private String[] pathToStrings(List list){
+	private String[] pathToStrings(List<TreePath> list){
 		Iterator<TreePath> listIt = list.iterator();
 		String[] returnArray = new String[list.size()];
 		for(int i=0;i<list.size();i++){
@@ -239,20 +239,18 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			Object selected = names.getSelectedValue();
 			if(selected == null)
 				return;
-			List functionMethods = (List)namesToMethods.get(selected);
+			List<TreePath> functionMethods = namesToMethods.get(selected);
 			methods.setListData(pathToStrings(functionMethods));
 			update(getGraphics());
 		}
 	}
 
 
-	public HashMap getFilesToHandlers() {
+	public Map<File,ClassMethodDefsHandler> getFilesToHandlers() {
 		return filesToHandlers;
 	}
 	
-	public void setFilesToHandlers(HashMap filesToHandlers){
+	public void setFilesToHandlers(Map<File,ClassMethodDefsHandler> filesToHandlers){
 		this.filesToHandlers = filesToHandlers;
 	}
-
-
 }

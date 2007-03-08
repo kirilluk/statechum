@@ -11,11 +11,11 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
 public class SplitFrame extends JFrame implements ActionListener{
-	private List list; 
+	private List<TreePath> list; 
 	private JList methodList;
 	private JScrollPane treePanel;
 	private AbstractFunctionFrame frame;
-	private HashMap filesToHandlers;
+	private Map<File,ClassMethodDefsHandler> filesToHandlers;
 
 	private static final long serialVersionUID = 1L;
 
@@ -34,7 +34,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 	 * @return void
 	 */
 	private void initialize() {
-		list = new ArrayList();
+		list = new ArrayList<TreePath>();
 		frame = new AbstractFunctionFrame(filesToHandlers, this);
 		this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		this.setContentPane(getJContentPane());
@@ -151,7 +151,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 	public void actionPerformed(ActionEvent e){
 		if(e.getActionCommand().equals("Remove")){
 			int[] selected = methodList.getSelectedIndices();
-			Vector removeValues = new Vector();
+			Vector<TreePath> removeValues = new Vector<TreePath>();
 			for(int i=0;i<selected.length;i++){
 				removeValues.add(list.get(selected[i]));
 			}
@@ -189,8 +189,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 			if(choice == JFileChooser.APPROVE_OPTION){
 				File[] file = fc.getSelectedFiles();
 				Extractor ex = new Extractor(file);
-				HashMap fileToHandler = ex.getFileToHandler();
-				JTree methodTree = Extractor.getTree(fileToHandler);
+				JTree methodTree = ex.getTree();
 				this.setTree(methodTree);
 				frame.setFilesToHandlers(ex.getFileToHandler());
 			}
@@ -205,12 +204,12 @@ public class SplitFrame extends JFrame implements ActionListener{
 		int choice = fc.showDialog(this, "Select File");
 		if(choice == JFileChooser.APPROVE_OPTION){
 			File file = fc.getSelectedFile();
-			HashSet<File> files = new HashSet();
+			Set<File> files = new HashSet<File>();
 			files.add(file);
 			files.addAll(filesToHandlers.keySet());
 			Extractor extractor = new Extractor((File[])files.toArray());
 			this.filesToHandlers = extractor.getFileToHandler();
-			JTree methodTree = Extractor.getTree(filesToHandlers);
+			JTree methodTree = extractor.getTree();
 			setTree(methodTree);
 			frame.dispose();
 			frame = new AbstractFunctionFrame(filesToHandlers, this);
@@ -222,7 +221,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 	}
 	
 	private void abstractFrame(){
-		ArrayList abstractFunction = new ArrayList();
+		List<TreePath> abstractFunction = new ArrayList<TreePath>();
 		abstractFunction.addAll(list);
 		frame.addAbstractFunction(abstractFunction);
 		list.clear();

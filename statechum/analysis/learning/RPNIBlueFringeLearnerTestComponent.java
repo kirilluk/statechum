@@ -1,25 +1,20 @@
 package statechum.analysis.learning;
 
+import java.awt.Frame;
 import java.util.*;
 
-import javax.swing.*;
-import statechum.analysis.learning.profileStringExtractor.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
-import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner implements Learner {
-	private SplitFrame parentFrame;
-	private HashSet scoreDistributions = new HashSet();
-	
-	
-	public RPNIBlueFringeLearnerTestComponent(SplitFrame parentFrame){
-		super();
-		this.parentFrame = parentFrame;
+	private HashSet<ArrayList> scoreDistributions = new HashSet<ArrayList>();
+
+	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
+		super(parentFrame);
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set sPlus, Set sMinus, int threshold){
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
 		model = augmentPTA(model, sMinus, false);
 		model = augmentPTA(model, sPlus, true);
 		numberVertices(model);
@@ -29,41 +24,38 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
-			if(compatible(temp, sPlus, sMinus)){
-				pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
-				pair.getR().setUserDatum("pair", pair, UserData.SHARED);
+			assert(compatible(temp, sPlus, sMinus));
+			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
+			pair.getR().setUserDatum("pair", pair, UserData.SHARED);
+			Set<List<String>> questions = generateQuestions(model, pair);
+			questions = trimSet(questions);
+			Iterator<List<String>> questionIt = questions.iterator();
+			while(questionIt.hasNext()){
+				List<String> question = questionIt.next();
+				String accepted = pair.getQ().getUserDatum("accepted").toString();
 				updateGraph(model);
-				Set<List<String>> questions = generateQuestions(model, pair);
-				questions = trimSet(questions);
-				Iterator<List<String>> questionIt = questions.iterator();
-				while(questionIt.hasNext()){
-					List<String> question = questionIt.next();
-					String accepted = pair.getQ().getUserDatum("accepted").toString();
-					updateGraph(model);
-					int answer = checkWithEndUser(question);
-					pair.getQ().removeUserDatum("pair");
-					pair.getR().removeUserDatum("pair");
-					if(answer == 0){
-						sPlus.add(question);
-						System.out.println(getShortenedQuestion(question)+ " <yes>");
-					}
-					else if(answer == 1){
-						sMinus.add(question);
-						System.out.println(getShortenedQuestion(question)+ " <no>");
-						if(accepted.equals("true")){
-							return learnMachine(initialise(), sPlus, sMinus, threshold);
-						}
-					}
-					else if (answer == 2){
-						sPlus = this.parentFrame.addTest(sPlus);
-						if(sPlus == null)
-							return model;
-						if(!containsSubString(sPlus, question))
-							return learnMachine(initialise(), sPlus, sMinus, threshold);
-					}
+				int answer = checkWithEndUser(question, new Object [] {"Test"});
+				pair.getQ().removeUserDatum("pair");
+				pair.getR().removeUserDatum("pair");
+				if(answer == 0){
+					sPlus.add(question);
+					System.out.println(getShortenedQuestion(question).replace("\n", ",")+ " <yes>");
 				}
-				model = temp;
+				else if(answer == 1){
+					sMinus.add(question);
+					System.out.println(getShortenedQuestion(question).replace("\n", ",")+ " <no>");
+					assert(accepted.equals("true"));
+					return learnMachine(initialise(), sPlus, sMinus, threshold);
+				}
+				else if (answer == 2){
+					// sPlus = this.parentFrame.addTest(sPlus);
+					if(sPlus == null)
+						return model;
+					if(!containsSubString(sPlus, question))
+						return learnMachine(initialise(), sPlus, sMinus, threshold);
+				}
 			}
+			model = temp;
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 		}
 		updateGraph(model);
@@ -73,9 +65,9 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 	}
 	
 	private void printScoreDistributions(){
-		Iterator listIt = scoreDistributions.iterator();
+		Iterator<ArrayList> listIt = scoreDistributions.iterator();
 		while(listIt.hasNext()){
-			List l = (List)listIt.next();
+			List l = listIt.next();
 			for(int i=0;i<l.size();i++){
 				Integer score = (Integer)l.get(i);
 				System.out.print(score);
@@ -86,8 +78,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 		}
 	}
 	
-	private boolean containsSubString(Set sPlus, List<String> question){
-		Iterator stringIt = sPlus.iterator();
+	private boolean containsSubString(Set<List<String>> sPlus, List<String> question){
+		Iterator<List<String>> stringIt = sPlus.iterator();
 		String first = question.get(0);
 		int length = question.size();
 		while(stringIt.hasNext()){
@@ -101,50 +93,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 		}
 		return false;
 	}
-	
-	
-	private String getShortenedQuestion(List question){
-		String questionString = new String();
-		int counter=1;
-		for(int i=0;i<question.size();i++){
-			if(i==0){
-				questionString = questionString.concat((String)question.get(i)+", ");
-			}
-			else{
-				String current = (String)question.get(i);
-				if(current.equals(question.get(i-1))){
-					counter++;
-					continue;
-				}
-				else{
-					if(counter>1){
-						questionString = questionString.substring(0, questionString.length()-2);
-						questionString = questionString.concat("(*"+counter+"), ");
-						counter = 1;
-					}
-					questionString = questionString.concat(question.get(i)+", ");
-				}
-			}
-		}
-		return questionString;
-	}
-	
-	private int checkWithEndUser(List question){
-		String questionString = getShortenedQuestion(question);
-		JFrame jf = new JFrame();
-		int answer;
-		Object[] options = {"Yes",
-                "No",
-                "Test"};
-		answer = JOptionPane.showOptionDialog(jf,
-                questionString, "Valid input string?",
-                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                null,options, options[0]);
-		return answer;
-	}
-
-	
-	private Stack chooseStatePairs(DirectedSparseGraph g, Set sPlus, Set sMinus, int threshold){
+		
+	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
 		ArrayList scores = new ArrayList();
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
@@ -185,7 +135,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 				blueStack.addAll(computeBlue(g));
 			}
 			else{
-				Iterator keyIt = singleSet.keySet().iterator();
+				Iterator<Integer> keyIt = singleSet.keySet().iterator();
 				while(keyIt.hasNext()){
 					Object key = keyIt.next();
 					Vector<StatePair> s = scoreToPair.get(key);

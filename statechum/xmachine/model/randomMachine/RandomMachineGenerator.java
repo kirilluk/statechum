@@ -3,7 +3,6 @@ package statechum.xmachine.model.randomMachine;
 import edu.uci.ics.jung.random.generators.*;
 import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.*;
-import edu.uci.ics.jung.graph.impl.*;
 import statechum.xmachine.model.*;
 import java.util.*;
 

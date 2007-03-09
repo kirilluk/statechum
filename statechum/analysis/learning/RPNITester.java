@@ -1,4 +1,4 @@
-package statechum.analysis.learning;
+ package statechum.analysis.learning;
 
 import java.util.*;
 

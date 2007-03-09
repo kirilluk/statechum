@@ -37,17 +37,18 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 				int answer = checkWithEndUser(question, new Object [] {"Test"});
 				pair.getQ().removeUserDatum("pair");
 				pair.getR().removeUserDatum("pair");
-				if(answer == 0){
+				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
-					System.out.println(getShortenedQuestion(question).replace("\n", ",")+ " <yes>");
+					System.out.println(question.toString()+ " <yes>");
 				}
-				else if(answer == 1){
+				else if(answer >= 0){
+					assert(answer < question.size());
 					sMinus.add(question);
-					System.out.println(getShortenedQuestion(question).replace("\n", ",")+ " <no>");
+					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 					assert(accepted.equals("true"));
 					return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
-				else if (answer == 2){
+				else if (answer == USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);
 					if(sPlus == null)
 						return model;

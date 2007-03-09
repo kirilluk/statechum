@@ -1,5 +1,6 @@
 package statechum.analysis.learning;
 
+import java.awt.Color;
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -10,6 +11,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 
@@ -121,7 +124,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					List<String> question = questionIt.next();
 					String accepted = pair.getQ().getUserDatum("accepted").toString();// Q is the blue vertex
 					updateGraph(model);
-					boolean response = checkWithEndUser(question,new Object[0]) == 0;// zero means "yes", everything else is "no"
+					boolean response = checkWithEndUser(question,new Object[0]) == USER_ACCEPTED;// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum("pair");
 					pair.getR().removeUserDatum("pair");
 					if(response){
@@ -198,35 +201,56 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return trimmedSet;
 	}
 
-	protected String getShortenedQuestion(List<String> question){
-		String questionString = new String();
+	final String questionPrefix="<html><font color=green>";
+	
+	protected List<String> getShortenedQuestion(List<String> question){
+		List<String> questionList = new LinkedList<String>();
+		assert(question.size()>=1);
 		int counter=1;
-		String lastQuestion = question.get(0);
-		for(int i=1;i<question.size();i++){
-				String current = question.get(i);
+		Iterator<String> questionIter = question.iterator();
+		String lastQuestion = questionIter.next();
+		
+		while(questionIter.hasNext())
+		{
+				String current = questionIter.next();
 				if(current.equals(lastQuestion))
 					counter++;
 				else{
-					questionString = questionString.concat(lastQuestion).concat( (counter>1)? "(*"+counter+")":"").concat("\n");
+					questionList.add(lastQuestion.concat( (counter>1)? "(*"+counter+")":""));// in the string case, I could add "\n" at the end
 					counter = 1;lastQuestion = current;					
 				}
 		}
-		questionString = questionString.concat(lastQuestion).concat( (counter>1)? "(*"+counter+")":"");
-		return questionString;
+		questionList.add(lastQuestion.concat( (counter>1)? "(*"+counter+")":""));
+		return questionList;
 	}
 
-	public static final int DIALOG_CANCELLED = -1;
+	protected List<String> beautifyQuestionList(List<String> question)
+	{
+		List<String> questionList = new LinkedList<String>();
+		Iterator<String> questionIter = question.iterator();
+		
+		while(questionIter.hasNext())
+				questionList.add(questionPrefix+questionIter.next());
+		
+		return questionList;
+	}
+	
+	public static final int USER_CANCELLED = -2;
+	public static final int USER_ACCEPTED = -3;
+	public static final int USER_WAITINGFORSELECTION = -1;
 	
 	protected int checkWithEndUser(List<String> question, final Object [] moreOptions){
-		final String questionString = getShortenedQuestion(question);
-		final AtomicInteger answer = new AtomicInteger(DIALOG_CANCELLED-2);
+		final List<String> questionList = beautifyQuestionList(question);
+		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 		
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
-					final Object[] options = new Object[2+moreOptions.length];
-					options[0]="Yes";options[1]="No";System.arraycopy(moreOptions, 0, options, 2, moreOptions.length);
-					final JOptionPane jop = new JOptionPane(questionString,
+					final Object[] options = new Object[1+moreOptions.length];
+					final JList rejectElements = new JList(questionList.toArray());
+					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
+					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", JLabel.CENTER);
+					final JOptionPane jop = new JOptionPane(new Object[] {label,rejectElements},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
 					final JDialog dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
@@ -236,44 +260,59 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 						    JDialog.DO_NOTHING_ON_CLOSE);
 					dialog.addWindowListener(new WindowAdapter() {
 					    public void windowClosing(WindowEvent we) {
-					    	System.out.println("window closing");
-							synchronized(answer)
-							{
-								answer.getAndSet( DIALOG_CANCELLED );
-								answer.notifyAll();
-							}
-							dialog.setVisible(false);dialog.dispose();
+					    	jop.setValue(new Integer(
+                                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
 					    }
 					});
-					jop.addPropertyChangeListener(
-						    new PropertyChangeListener() {
-						        public void propertyChange(PropertyChangeEvent e) {
-						            String prop = e.getPropertyName();
+					jop.addPropertyChangeListener(new PropertyChangeListener() {
+				        public void propertyChange(PropertyChangeEvent e) {
+				            String prop = e.getPropertyName();
+				            
+							Object value = e.getNewValue();
 
-						            if (dialog.isVisible() 
-						             && (e.getSource() == jop)
-						             && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
-						                // one of the choices was made, determine which one and close the window
-										Object value = e.getNewValue();
-										int i=0;for(;i < options.length && options[i] != value;++i);
-										if (i == options.length)
-											i = DIALOG_CANCELLED;// nothing was chosen
-										answer.getAndSet( i );
-										synchronized(answer)
-										{
-											answer.notifyAll();
-										}
+							if (dialog.isVisible() && e.getSource() == jop
+					            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
+							{
+								int i = 0;for(;i < options.length && options[i] != value;++i);
+									if (i == options.length)
+										i = USER_CANCELLED;// nothing was chosen
+									else
+										i = USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
+									
+								// one of the choices was made, determine which one and close the window
+								answer.getAndSet( i );
+								synchronized(answer)
+								{
+									answer.notifyAll();
+								}
 
-										dialog.setVisible(false);dialog.dispose();
-						            }
-						        }
-						    });					
+								dialog.setVisible(false);dialog.dispose();
+				            }
+				        }
+				    });
+					rejectElements.addListSelectionListener(new ListSelectionListener() {
+
+						public void valueChanged(ListSelectionEvent e) {
+							if (dialog.isVisible() && e.getSource() == rejectElements &&
+									!e.getValueIsAdjusting() && !rejectElements.isSelectionEmpty())
+							{
+								answer.getAndSet( rejectElements.getLeadSelectionIndex() );
+								synchronized(answer)
+								{
+									answer.notifyAll();
+								}
+								
+								dialog.setVisible(false);dialog.dispose();
+							}
+						}
+						
+					});				
 					dialog.pack();
 					dialog.setVisible(true);
 				}
 			});
 			synchronized (answer) {
-				while(answer.get() < DIALOG_CANCELLED)
+				while(answer.get() == USER_WAITINGFORSELECTION)
 						answer.wait();// wait for a user to make a response			
 			}
 		} catch (InvocationTargetException e) {

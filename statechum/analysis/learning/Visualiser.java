@@ -77,7 +77,7 @@ public class Visualiser extends JFrame implements Observer  {
 		        		l = new RPNIBlueFringeLearner(Visualiser.this);
 		        		
 		        	l.addObserver(Visualiser.this);
-		        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 2);
+		        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
 			}
 		},"RPNI learner thread").start();
 		

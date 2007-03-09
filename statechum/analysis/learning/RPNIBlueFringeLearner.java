@@ -102,9 +102,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return temp;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
-		model = augmentPTA(model, sMinus, false);
+	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		model = augmentPTA(model, sPlus, true);
+		model = augmentPTA(model, sMinus, false);
+		return model;
+	}
+	
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
+		model = createAugmentedPTA(model, sPlus, sMinus);
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
@@ -720,7 +725,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	protected DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
+	private DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();

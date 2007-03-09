@@ -15,8 +15,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 	}
 	
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
-		model = augmentPTA(model, sMinus, false);
-		model = augmentPTA(model, sPlus, true);
+		model = createAugmentedPTA(model, sPlus, sMinus);
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);

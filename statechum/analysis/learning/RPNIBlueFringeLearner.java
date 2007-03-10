@@ -103,8 +103,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 	
 	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
-		model = augmentPTA(model, sPlus, true);
 		model = augmentPTA(model, sMinus, false);
+		model = augmentPTA(model, sPlus, true);
 		return model;
 	}
 	
@@ -734,8 +734,11 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 				Vertex existing = getVertex(pta,current);
 
 				Vertex newVertex = new DirectedSparseVertex();
-				//nw: if the prefix of a negative is not explicitly accepted, it is presumed not to be accepted
-				newVertex.setUserDatum("accepted", accepted, UserData.SHARED);
+				if (i == string.size())// KIRR: every prefix of a reject sequence is an accept sequence.
+					newVertex.setUserDatum("accepted", accepted, UserData.SHARED);
+				else
+					newVertex.setUserDatum("accepted", "true", UserData.SHARED);
+				
 				if(existing == null){
 					pta.addVertex(newVertex);
 					Vertex previous;

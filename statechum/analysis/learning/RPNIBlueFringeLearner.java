@@ -343,37 +343,27 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Set<List<String>> w = getSuffixes(model,q, accepted);
 		Iterator<List<String>> wIt;
 		Set<List<String>> questions = new HashSet<List<String>>();
-		/*if(r.getSuccessors().contains(q)){
-			wIt = w.iterator();
-			while(wIt.hasNext()){
-				ArrayList suffix = new ArrayList();
-				List newQuestion = new ArrayList();
-				List path = wIt.next();
-				Iterator pathIt = path.iterator();
-				while(pathIt.hasNext()){
-					String label = (String)pathIt.next();
-					suffix.add(label);
-				}
-				HashSet labels = (HashSet)findEdge(r,q).getUserDatum("label");
-				Object[] labelArray = labels.toArray();
-				newQuestion.addAll(sp);
-				newQuestion.add(labelArray[0]);
-				newQuestion.addAll(suffix);
-				Vertex v = getVertex(model, newQuestion);
-				if(v==null)
-					questions.add(newQuestion);
-			}
-		}*/
+		Set<String>loopLabels = new HashSet<String>();
+		if(r.getSuccessors().contains(r)){
+			Edge e = findEdge(r, r);
+			loopLabels = (HashSet<String>)e.getUserDatum("label");
+		}
 		wIt = w.iterator();
 		while(wIt.hasNext()){
-			List<String> suffix = new ArrayList<String>();
-			List<String> newQuestion = new ArrayList<String>();
-			List<String> path = wIt.next();
-			Iterator<String> pathIt = path.iterator();
-			while(pathIt.hasNext()){
-				String label = pathIt.next();
-				suffix.add(label);
+			List<String> suffix = wIt.next();
+			Iterator<String> labelIt = loopLabels.iterator();
+			if(!loopLabels.isEmpty()){
+				while(labelIt.hasNext()){
+					List<String> newQuestion = new ArrayList<String>();
+					newQuestion.addAll(sp);
+					newQuestion.add(labelIt.next());
+					newQuestion.addAll(suffix);
+					Vertex v = getVertex(model, newQuestion);
+					if(v==null)
+						questions.add(newQuestion);
+				}
 			}
+			List<String> newQuestion = new ArrayList<String>();
 			newQuestion.addAll(sp);
 			newQuestion.addAll(suffix);
 			Vertex v = getVertex(model, newQuestion);
@@ -408,11 +398,6 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			List l = p.getPath(r, v);
 			if(!l.isEmpty())
 				setOfPaths.addAll(getPaths(l));
-		}
-		if(r.getSuccessors().contains(r)){
-			ArrayList l = new ArrayList();
-			l.add(findEdge(r,r));
-			setOfPaths.addAll(getPaths(l));
 		}
 		return setOfPaths;
 	}

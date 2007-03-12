@@ -42,7 +42,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 				}
 				else if(answer >= 0){
 					assert(answer < question.size());
-					sMinus.add(question);
+					sMinus.add(question.subList(0, answer+1));
 					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 					assert(accepted.equals("true"));
 					return learnMachine(initialise(), sPlus, sMinus, threshold);

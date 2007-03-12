@@ -129,17 +129,17 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					List<String> question = questionIt.next();
 					String accepted = pair.getQ().getUserDatum("accepted").toString();// Q is the blue vertex
 					updateGraph(model);
-					boolean response = checkWithEndUser(question,new Object[0]) == USER_ACCEPTED;// zero means "yes", everything else is "no"
+					int response = checkWithEndUser(question,new Object[0]);// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum("pair");
 					pair.getR().removeUserDatum("pair");
-					if(response){
+					if(response == USER_ACCEPTED){
 						sPlus.add(question);
 						System.out.println(question+ " <yes>");
 						if(accepted.equals("false"))// KIRR: how can this be true? If it were so, there would be no questions to ask
 							return learnMachine(initialise(), sPlus, sMinus, threshold);
 					}
 					else{
-						sMinus.add(question);
+						sMinus.add(question.subList(0, response));
 						System.out.println(question+ " <no>");
 						if(accepted.equals("true")){// KIRR: this cannot be false either
 							return learnMachine(initialise(), sPlus, sMinus, threshold);

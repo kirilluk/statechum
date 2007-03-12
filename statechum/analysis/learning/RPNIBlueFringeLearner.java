@@ -331,6 +331,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return answer.get();
 	}
 	
+	/*
+	 * needs to be refactored into smaller methods
+	 */
 	protected Set<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
@@ -339,8 +342,16 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		String accepted = q.getUserDatum("accepted").toString();
 		if(accepted.equals("false"))
 			return new HashSet<List<String>>();
-		List<String> sp = getShortPrefix(model, r);// shortest sequence to the red state 
-		Set<List<String>> w = getSuffixes(model,q, accepted);
+		List<String> sp = null;
+		Set<List<String>> w =null;
+		if(!hasAcceptedNeighbours(q)){
+			sp = getShortPrefix(model, q);
+			w = getShortSuffixes(model, r);
+		}
+		else{
+			sp = getShortPrefix(model, r);// shortest sequence to the red state 
+			w = getSuffixes(model,q, accepted);
+		}
 		Iterator<List<String>> wIt;
 		Set<List<String>> questions = new HashSet<List<String>>();
 		Set<String>loopLabels = new HashSet<String>();
@@ -370,8 +381,48 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			if(v==null)
 				questions.add(newQuestion);
 		}
-		
+		if(r.getNeighbors().contains(q)){
+			List<String> newQuestion = new ArrayList<String>();
+			newQuestion.addAll(sp);
+			HashSet<String> labels = (HashSet<String>)findEdge(r,q).getUserDatum("label");
+			String current = labels.iterator().next();
+			newQuestion.add(current);
+			newQuestion.add(current);
+			Vertex v = getVertex(model, newQuestion);
+			if(v==null)
+				questions.add(newQuestion);
+		}
 		return questions;
+	}
+	
+	/*
+	 * The conventional approach to computing suffixes presumes that the source vertex is the root
+	 * of a tree. This method does not make that presumption, but simply returns the direct successors
+	 * of the source vertex that are accepted.
+	 */
+	private static HashSet<List<String>> getShortSuffixes(DirectedSparseGraph g, Vertex v){
+		HashSet<List<String>> returnStrings = new HashSet<List<String>>();
+		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
+		while(outEdgeIt.hasNext()){
+			Edge e = outEdgeIt.next();
+			if(e.getOpposite(v).getUserDatum("accepted").toString().equals("true")){
+				ArrayList l = new ArrayList();
+				l.add(e);
+				returnStrings.addAll(getPaths(l));
+			}
+		}
+		return returnStrings;
+	}
+	
+	private static boolean hasAcceptedNeighbours(Vertex v){
+		Iterator<DirectedSparseEdge> neighbourIt = v.getOutEdges().iterator();
+		while (neighbourIt.hasNext()){
+			DirectedSparseEdge e = neighbourIt.next();
+			Vertex to = e.getDest();
+			if(to.getUserDatum("accepted").toString().equals("true"))
+				return true;
+		}
+		return false;
 	}
 	
 	/** Returns shortest paths from the given vertex to states at the end of the 

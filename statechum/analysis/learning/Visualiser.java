@@ -23,17 +23,19 @@ public class Visualiser extends JFrame implements Observer  {
 	 * The version ID for serialization.
 	 */
 	private static final long serialVersionUID = -6382530787840924374L;
-	
+
 	protected VisualizationViewer viewer = null;
 	
-	public Visualiser(Set<List<String>> sPlus, Set<List<String>> sMinus){
-		construct(sPlus,sMinus,null);
+	public Visualiser()
+	{	
 	}
 	
-	public Visualiser(Set<List<String>> sPlus, Set<List<String>> sMinus, SplitFrame split){
-		construct(sPlus,sMinus,split);
-	}
-	protected void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus, final SplitFrame split){
+	public void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus, final SplitFrame split){
+		boolean assertsEnabled = false;
+		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
+		if (!assertsEnabled)
+			System.err.println("Pass the -ea argument to JVM to enable assertions");
+
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
 
@@ -92,10 +94,10 @@ public class Visualiser extends JFrame implements Observer  {
 	}
 	
 	public void update(final Observable s, Object arg){
+		final Graph g = (Graph) (((Learner)s).getGraph()).copy();
 		SwingUtilities.invokeLater(new Runnable(){
 			public void run()
 			{
-				Graph g = (Graph) (((Learner)s).getGraph()).copy();
 				viewer.getModel().setGraphLayout( new KKLayout( g ) );
 				viewer.setRenderer(constructRenderer(g));
 			}
@@ -184,8 +186,9 @@ public class Visualiser extends JFrame implements Observer  {
 		while(labelIt.hasNext()){
 			Vertex v = (Vertex)labelIt.next();
 			try{
-				String label = v.getUserDatum("label").toString();
-				labeller.setLabel(v,label);
+				Object label = v.getUserDatum("label");
+				if (label != null)
+					labeller.setLabel(v,label.toString());
 			}
 			catch(Exception e){
 				System.out.println(e);

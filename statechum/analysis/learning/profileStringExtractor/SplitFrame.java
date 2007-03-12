@@ -58,6 +58,23 @@ public class SplitFrame extends JFrame implements ActionListener{
 		return contentPanel;
 	}
 
+	/** This method executes a pre-set series of operations to permit loading files and running 
+	 * experiments without having to manually click buttons on the interface.
+	 * 
+	 *  @param args command-line args passed to this instance of an application.
+	 */
+	public void runAnExperiment(String [] args)
+	{
+		String resourcesDir = System.getProperty("user.dir")+"/resources/";
+		File[] traceFiles = new File[] {new File(resourcesDir+"part1.xml"),new File(resourcesDir+"part2.xml")};
+		Extractor ex = new Extractor(traceFiles);
+		JTree methodTree = ex.getTree();
+		this.setTree(methodTree);
+		frame.setFilesToHandlers(ex.getFileToHandler());
+		frame.readFromFile(new File(resourcesDir+"jhotdraw"));
+		frame.actionPerformed(new ActionEvent(this,ActionEvent.ACTION_PERFORMED,AbstractFunctionFrame.buttonInferMachine));
+	}
+	
 	/**
 	 * This method initializes jSplitPane	
 	 * 	

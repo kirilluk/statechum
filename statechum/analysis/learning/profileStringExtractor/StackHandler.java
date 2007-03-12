@@ -82,21 +82,10 @@ public class StackHandler extends DefaultHandler {
 		}
 		else if(qName.equals("methodExit")){
 			Integer ticket = Integer.valueOf(attributes.getValue("ticket"));
-			if(methodStack.size()>0){
-				int index = methodStack.indexOf(ticket);
-				if(index == methodStack.size()-1){// KIRR: if this is true, so is the next if statement					
-					if(ticket.equals(methodStack.get(methodStack.size()-1)))
-						checkStackForFunction(methodStack);
-					methodStack.remove(ticket);
-					ticketToString.remove(ticket);
-				}
-				else if(index<0)
-					return;
-				else{
-					System.out.println("inconsistent");
-				}
-				
-			}
+			assert methodStack.size() > 0 && ticket.equals(methodStack.get(methodStack.size()-1)): "inconsistent xml trace file";
+			checkStackForFunction(methodStack);
+			methodStack.remove(ticket);
+			ticketToString.remove(ticket);
 		}
 	}
 	
@@ -128,7 +117,6 @@ public class StackHandler extends DefaultHandler {
 		}
 		return false;
 	}
-
 	
 	/** Given a list of paths, this function returns a list of textual representations of those paths. */
 	private static List<String> pathToStrings(List<TreePath> list){

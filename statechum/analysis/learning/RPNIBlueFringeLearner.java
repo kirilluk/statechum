@@ -47,7 +47,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		return g;
 	}
 	
-	public synchronized void updateGraph(Graph g){
+	public void updateGraph(Graph g){
 		setChanged();
 		currentGraph = g;
 		notifyObservers();
@@ -233,9 +233,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	{
 		List<String> questionList = new LinkedList<String>();
 		Iterator<String> questionIter = question.iterator();
-		
+		int i=0;
 		while(questionIter.hasNext())
-				questionList.add(questionPrefix+questionIter.next());
+				questionList.add(questionPrefix+"("+i++ +") "+questionIter.next());
 		
 		return questionList;
 	}
@@ -252,10 +252,11 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					final Object[] options = new Object[1+moreOptions.length];
+					final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
 					final JList rejectElements = new JList(questionList.toArray());
 					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", JLabel.CENTER);
-					final JOptionPane jop = new JOptionPane(new Object[] {label,rejectElements},
+					final JOptionPane jop = new JOptionPane(new Object[] {label,nonrejectElements,rejectElements},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
 					final JDialog dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
@@ -318,7 +319,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			});
 			synchronized (answer) {
 				while(answer.get() == USER_WAITINGFORSELECTION)
-						answer.wait();// wait for a user to make a response			
+						answer.wait();// wait for a user to make a response
 			}
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
@@ -327,7 +328,10 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		catch (InterruptedException e) {
 			e.printStackTrace();
 			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
-		}		
+		}
+		if (answer.get() == USER_WAITINGFORSELECTION // this one if an exception was thrown
+				|| answer.get() == USER_CANCELLED)
+			answer.getAndSet(USER_ACCEPTED);
 		return answer.get();
 	}
 	
@@ -786,7 +790,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					pta.addEdge(e);
 				}
 				else
-					if (i == string.size() && different(new StatePair(existing,newVertex)))
+					if (different(new StatePair(existing,newVertex)))
 					{
 						existing.addUserDatum("pair", "whatever", UserData.SHARED);
 						updateGraph(pta);

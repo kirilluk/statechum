@@ -14,13 +14,19 @@ import javax.xml.parsers.SAXParser;
 
 public class AbstractFunctionFrame extends JFrame implements ActionListener{
 
+	/**
+	 * The ID for serialization.
+	 */
+	private static final long serialVersionUID = 2716853779702531560L;
+	
 	private Map<String, List<TreePath>> namesToMethods;
 	private Map<File,ClassMethodDefsHandler> filesToHandlers;
 	private JList names, methods;
 	private List<String> nameList;
 	private SplitFrame split;
-	private static final long serialVersionUID = 1L;
-
+	
+	public static final String buttonInferMachine = "Infer Machine from Traces";
+	public static final String buttonRemove = "Remove";
 
 	/**
 	 * This is the default constructor
@@ -28,7 +34,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	public AbstractFunctionFrame(Map<File,ClassMethodDefsHandler> filesToHandlers, SplitFrame reference) {
 		super();
 		this.split = reference;
-		this.filesToHandlers = filesToHandlers;
+		setFilesToHandlers(filesToHandlers);
 		initialize();
 	}
 	
@@ -151,25 +157,24 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		panel.add(scrollPane);
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.LINE_AXIS));
-		JButton remove = new JButton("Remove");
+		JButton remove = new JButton(buttonRemove);
 		remove.addActionListener(this);
 		buttonPanel.add(remove);
-		JButton extractStrings = new JButton("Infer Machine from Traces");
+		JButton extractStrings = new JButton(buttonInferMachine);
 		extractStrings.addActionListener(this);
 		buttonPanel.add(extractStrings);
 		panel.add(buttonPanel);
 		return panel;
 	}
-
 	
 	public void actionPerformed(ActionEvent e){
-		if(e.getActionCommand().equals("Remove")){
+		if(e.getActionCommand().equals(buttonRemove)){
 			String name = names.getSelectedValue().toString();
 			namesToMethods.remove(name);
 			methods.setListData(new Vector());
 			updateContents();
 		}
-		else if(e.getActionCommand().equals("Infer Machine from Traces")){
+		else if(e.getActionCommand().equals(buttonInferMachine)){
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			HashSet<List<String>> sPlus = new HashSet<List<String>>();
 			try{
@@ -186,7 +191,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				new Visualiser(sPlus, new HashSet<List<String>>(), split);
+				new Visualiser().construct(sPlus, new HashSet<List<String>>(), split);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

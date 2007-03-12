@@ -23,7 +23,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
-			assert(compatible(temp, sPlus, sMinus));
+			assert compatible(temp, sPlus, sMinus);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);
 			Set<List<String>> questions = generateQuestions(model, pair);
@@ -41,10 +41,10 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 					System.out.println(question.toString()+ " <yes>");
 				}
 				else if(answer >= 0){
-					assert(answer < question.size());
+					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
 					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-					assert(accepted.equals("true"));
+					assert accepted.equals("true");
 					return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
 				else if (answer == USER_ACCEPTED-1){

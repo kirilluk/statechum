@@ -354,9 +354,19 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Iterator<List<String>> wIt;
 		ArrayList<List<String>> questions = new ArrayList<List<String>>();
 		Set<String>loopLabels = new HashSet<String>();
-		if(r.getSuccessors().contains(r)){
-			Edge e = findEdge(r, r);
-			loopLabels = (HashSet<String>)e.getUserDatum("label");
+		boolean loopToR = r.getSuccessors().contains(r);
+		boolean redAndBlueNeighbours = r.getNeighbors().contains(q);
+		if(loopToR||redAndBlueNeighbours){ //there either exists a loop to r or will do if r and b merge
+			if(loopToR){
+				Edge e = findEdge(r, r);
+				HashSet labels = (HashSet<String>)e.getUserDatum("label");
+				loopLabels.addAll(labels);
+			}
+			if(redAndBlueNeighbours){
+				Edge e = findEdge(r,q);
+				HashSet labels = (HashSet<String>)e.getUserDatum("label");
+				loopLabels.addAll(labels);
+			}
 		}
 		wIt = w.iterator();
 		while(wIt.hasNext()){
@@ -376,17 +386,6 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			List<String> newQuestion = new ArrayList<String>();
 			newQuestion.addAll(sp);
 			newQuestion.addAll(suffix);
-			Vertex v = getVertex(model, newQuestion);
-			if(v==null)
-				questions.add(newQuestion);
-		}
-		if(r.getNeighbors().contains(q)){
-			List<String> newQuestion = new ArrayList<String>();
-			newQuestion.addAll(sp);
-			HashSet<String> labels = (HashSet<String>)findEdge(r,q).getUserDatum("label");
-			String current = labels.iterator().next();
-			newQuestion.add(current);
-			newQuestion.add(current);
 			Vertex v = getVertex(model, newQuestion);
 			if(v==null)
 				questions.add(newQuestion);

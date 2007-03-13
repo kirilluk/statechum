@@ -67,10 +67,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 */ 
 	protected Set<Vertex> computeBlue(DirectedSparseGraph model){
 		Set<Vertex> blues = new HashSet<Vertex>();
-		Set reds = findVertices("colour", "red", model);
-		Iterator<Vertex> redIt = reds.iterator();
-		while(redIt.hasNext()){
-			Vertex v = redIt.next();
+		for(Vertex v: findVertices("colour", "red", model))
+		{
 			Iterator<DirectedSparseEdge>neighbourIt = v.getOutEdges().iterator();
 			while(neighbourIt.hasNext()){
 				DirectedSparseEdge next = neighbourIt.next();
@@ -158,9 +156,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	
 	protected boolean compatible(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		boolean returnValue = true;
-		Iterator<List<String>> negativeIt = sMinus.iterator();
-		while(negativeIt.hasNext()){
-			List<String> string = negativeIt.next();
+		for(List<String> string:sMinus)
+		{
 			Vertex v = getVertex(model,string);
 			if(v != null){
 				Object accepted = v.getUserDatum("accepted");
@@ -168,9 +165,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					returnValue = false;
 			}
 		}
-		Iterator<List<String>> positiveIt = sPlus.iterator();
-		while(positiveIt.hasNext()){
-			List<String> string = positiveIt.next();
+		for(List<String> string:sPlus)
+		{
 			Vertex v = getVertex(model,string);
 			if(v == null)
 				returnValue = false;
@@ -232,10 +228,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	protected List<String> beautifyQuestionList(List<String> question)
 	{
 		List<String> questionList = new LinkedList<String>();
-		Iterator<String> questionIter = question.iterator();
 		int i=0;
-		while(questionIter.hasNext())
-				questionList.add(questionPrefix+"("+i++ +") "+questionIter.next());
+		for(String q:question)
+				questionList.add(questionPrefix+"("+i++ +") "+q);
 		
 		return questionList;
 	}
@@ -447,9 +442,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			if(v.getSuccessors().isEmpty()&& v.getUserDatum("accepted").toString().equals(accepted))
 				endVertices.add(v);
 		}
-		Iterator<Vertex> endVertexIt = endVertices.iterator();
-		while(endVertexIt.hasNext()){
-			Vertex v = endVertexIt.next();
+		for(Vertex v:endVertices)
+		{
 			List l = p.getPath(r, v);
 			if(!l.isEmpty())
 				setOfPaths.addAll(getPaths(l));
@@ -470,10 +464,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		for(int i=0;i<l.size();i++){// for each element of the source list
 			Edge e = l.get(i);
 			Set<String> labels = (Set<String>)e.getUserDatum("label");
-			Iterator<String> labelIt = labels.iterator();
 			Set<List<String>> strings = new HashSet<List<String>>();
-			while(labelIt.hasNext()){
-				String s = labelIt.next();
+			for(String s:labels)
+			{
 				if(i==0){
 					List<String> string = new ArrayList<String>();
 					string.add(s);

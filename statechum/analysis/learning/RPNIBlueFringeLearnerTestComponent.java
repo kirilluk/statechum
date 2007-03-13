@@ -26,7 +26,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 			assert compatible(temp, sPlus, sMinus);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);
-			Set<List<String>> questions = generateQuestions(model, pair);
+			List<List<String>> questions = generateQuestions(model, pair);
 			questions = trimSet(questions);
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){

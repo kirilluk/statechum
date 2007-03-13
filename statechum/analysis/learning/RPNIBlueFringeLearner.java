@@ -120,7 +120,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 				pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 				pair.getR().setUserDatum("pair", pair, UserData.SHARED);
 				updateGraph(model);
-				Set<List<String>> questions = generateQuestions(model, pair);
+				List<List<String>> questions = generateQuestions(model, pair);
 				questions = trimSet(questions);
 				Iterator<List<String>> questionIt = questions.iterator();
 				while(questionIt.hasNext()){
@@ -184,9 +184,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @param questions
 	 * @return a set of questions which are not prefixes of other questions.
 	 */
-	protected Set<List<String>> trimSet(Set<List<String>> questions){
+	protected List<List<String>> trimSet(List<List<String>> questions){
 		Set<String> done = new HashSet<String>();
-		Set<List<String>> trimmedSet = new HashSet<List<String>>();
+		List<List<String>> trimmedSet = new ArrayList<List<String>>();
 		Iterator<List<String>> questionIt = questions.iterator();
 		while(questionIt.hasNext()){
 			List<String> question = questionIt.next();
@@ -333,14 +333,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	/*
 	 * needs to be refactored into smaller methods
 	 */
-	protected Set<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
+	protected List<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
-			return new HashSet<List<String>>();
+			return new ArrayList<List<String>>();
 		String accepted = q.getUserDatum("accepted").toString();
 		if(accepted.equals("false"))
-			return new HashSet<List<String>>();
+			return new ArrayList<List<String>>();
 		List<String> sp = null;
 		Set<List<String>> w =null;
 		if(!hasAcceptedNeighbours(q)){
@@ -352,7 +352,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			w = getSuffixes(model,q, accepted);
 		}
 		Iterator<List<String>> wIt;
-		Set<List<String>> questions = new HashSet<List<String>>();
+		ArrayList<List<String>> questions = new ArrayList<List<String>>();
 		Set<String>loopLabels = new HashSet<String>();
 		if(r.getSuccessors().contains(r)){
 			Edge e = findEdge(r, r);

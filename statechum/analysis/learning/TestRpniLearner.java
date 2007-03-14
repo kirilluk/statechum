@@ -2,6 +2,7 @@ package statechum.analysis.learning;
 
 import static org.junit.Assert.assertTrue;
 
+import java.awt.Point;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -107,7 +108,8 @@ public class TestRpniLearner
 		final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
 		final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
-		new Visualiser().update(null, g);
+		Visualiser v=new Visualiser();v.update(null, g);
+		Point newLoc = visFrame.getLocation();newLoc.move(0, visFrame.getHeight());v.setLocation(newLoc);
 		final String expectedInit = TestFSMAlgo.getGraphData(g, expectedTrans, expectedAccept);
 		
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)

@@ -10,6 +10,7 @@ import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.JUConstants;
 import statechum.analysis.learning.profileStringExtractor.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -17,7 +18,7 @@ import java.awt.event.KeyListener;
 
 import javax.swing.*;
 
-public class Visualiser extends JFrame implements Observer  {
+public class Visualiser extends JFrame implements Observer,Runnable  {
 	
 	/**
 	 * The version ID for serialization.
@@ -26,11 +27,8 @@ public class Visualiser extends JFrame implements Observer  {
 
 	protected VisualizationViewer viewer = null;
 	
-	public Visualiser()
-	{	
-	}
-	
-	public void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus, final SplitFrame split){
+	protected void construct(Graph g)
+	{
 		boolean assertsEnabled = false;
 		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 		if (!assertsEnabled)
@@ -53,10 +51,7 @@ public class Visualiser extends JFrame implements Observer  {
 			}
 			
 		});
-        this.setTitle("Hypothesis Machine");
         setSize(new Dimension(800,600));
-
-        DirectedSparseGraph g = RPNIBlueFringeLearner.initialise();
 
 		viewer = new VisualizationViewer( new DefaultVisualizationModel(new KKLayout(g)), constructRenderer(g) );
 		viewer.setBackground(Color.WHITE);
@@ -67,22 +62,6 @@ public class Visualiser extends JFrame implements Observer  {
 		//getContentPane().removeAll();
 		getContentPane().add(panel);
         setVisible(true);
-
-		new Thread(new Runnable()
-		{
-			public void run()
-			{
-					RPNIBlueFringeLearner l = null;
-		        	if (split != null) 
-		        		l = new RPNIBlueFringeLearnerTestComponent(Visualiser.this);
-		        	else
-		        		l = new RPNIBlueFringeLearner(Visualiser.this);
-		        		
-		        	l.addObserver(Visualiser.this);
-		        	l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
-			}
-		},"RPNI learner thread").start();
-		
 	}
 	
 	protected static PluggableRenderer constructRenderer(Graph g)
@@ -93,23 +72,40 @@ public class Visualiser extends JFrame implements Observer  {
 		return r;
 	}
 	
+	/** Until the first update, Jung window is not shown. */
+	protected boolean wasInitialised = false;
+	
+	/** The graph currently being displayed, null if none is being displayed. */
+	protected Graph graph = null;
+	
+	public void run()
+	{
+		assert(graph != null);
+		if (!wasInitialised)
+		{
+			construct(graph);
+			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
+			wasInitialised = true;
+		}
+		else
+		{
+			viewer.getModel().setGraphLayout( new KKLayout( graph ) );
+			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
+			viewer.setRenderer(constructRenderer(graph));
+		}
+	}
+
 	public void update(final Observable s, Object arg){
-		final Graph g = (Graph) (((Learner)s).getGraph()).copy();
-		SwingUtilities.invokeLater(new Runnable(){
-			public void run()
-			{
-				viewer.getModel().setGraphLayout( new KKLayout( g ) );
-				viewer.setRenderer(constructRenderer(g));
-			}
-		});
+		graph = (Graph)((Graph)arg).copy();
+		SwingUtilities.invokeLater(this);
 	}
 
 	
 	private static PluggableRenderer labelEdges(PluggableRenderer render){
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
-            	if(e.containsUserDatumKey("label")){
-            		HashSet<String> labels = (HashSet<String>)e.getUserDatum("label");
+            	if(e.containsUserDatumKey(JUConstants.LABEL)){
+            		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
             		Iterator<String> labelIt = labels.iterator();
             		String label = "[ ";
             		while(labelIt.hasNext()){
@@ -137,7 +133,7 @@ public class Visualiser extends JFrame implements Observer  {
 					v.getUserDatum("property").equals("init"))
 				return factory.getRegularStar(v, 7);
 			else
-				if ( !(new Boolean(v.getUserDatum("accepted").toString())).booleanValue() )
+				if ( !(new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString())).booleanValue() )
 					return factory.getRectangle(v);
 			return factory.getEllipse(v);
 		}
@@ -182,11 +178,12 @@ public class Visualiser extends JFrame implements Observer  {
 	
 	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
 		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
+		labeller.clear();
 		Iterator labelIt = graph.getVertices().iterator();
 		while(labelIt.hasNext()){
 			Vertex v = (Vertex)labelIt.next();
 			try{
-				Object label = v.getUserDatum("label");
+				Object label = v.getUserDatum(JUConstants.LABEL);
 				if (label != null)
 					labeller.setLabel(v,label.toString());
 			}

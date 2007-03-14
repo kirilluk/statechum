@@ -3,11 +3,13 @@ package statechum.analysis.learning;
 import java.awt.Frame;
 import java.util.*;
 
+import statechum.JUConstants;
+
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 
-public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner implements Learner {
+public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	private HashSet<ArrayList> scoreDistributions = new HashSet<ArrayList>();
 
 	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
@@ -31,7 +33,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner im
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
-				String accepted = pair.getQ().getUserDatum("accepted").toString();
+				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
 				updateGraph(model);
 				int answer = checkWithEndUser(question, new Object [] {"Test"});
 				pair.getQ().removeUserDatum("pair");

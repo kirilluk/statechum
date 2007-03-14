@@ -1,5 +1,6 @@
 package statechum.analysis.learning;
 
+import statechum.JUConstants;
 import edu.uci.ics.jung.graph.*;
 
 public class StatePair implements Comparable {
@@ -11,30 +12,19 @@ public class StatePair implements Comparable {
 		this.r = r;
 	}
 	
-	private int intLabel(Vertex v){
-		String vLabel = v.getUserDatum("label").toString();
-		if(vLabel.charAt(0) == 'V')
-			vLabel = vLabel.substring(1); //to make label parsable into an integer if label starts with "V"
-		return Integer.valueOf(vLabel);
+	private String strLabel(Vertex v){
+		String vLabel = v.getUserDatum(JUConstants.LABEL).toString();
+		return vLabel;
 	}
 	
 	public int compareTo(Object b){
 		StatePair pB = (StatePair)b;
-		int aQLabel = intLabel(q);
-		int aRLabel = intLabel(r);
-		int bQLabel = intLabel(pB.getQ());
-		int bRLabel = intLabel(pB.getR());
+		int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
+		int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));
 		
-		if(aQLabel<bQLabel)
-			return -1;
-		else if (aQLabel>bQLabel)
-			return 1;			
-		else if(aRLabel<bRLabel)
-			return -1;
-		else if(aRLabel>bRLabel)
-			return 1;
-		
-		return 0;
+		if(qLabels != 0)
+			return qLabels; 
+		return rLabels;
 	}
 	
 	public Vertex getQ(){
@@ -46,11 +36,11 @@ public class StatePair implements Comparable {
 	}
 	
 	public String toString(){
-		return q.getUserDatum("label")+", "+r.getUserDatum("label");
+		return q.getUserDatum(JUConstants.LABEL)+", "+r.getUserDatum(JUConstants.LABEL);
 	}
 	
 	public int hashCode(){
-		return q.getUserDatum("label").hashCode()+r.getUserDatum("label").hashCode();
+		return q.getUserDatum(JUConstants.LABEL).hashCode()+r.getUserDatum(JUConstants.LABEL).hashCode();
 	}
 	
 	public boolean equals(Object o){
@@ -58,10 +48,10 @@ public class StatePair implements Comparable {
 			return false;
 		if(o instanceof StatePair){
 			StatePair other = (StatePair)o;
-			Object otherQ = (Object)other.getQ().getUserDatum("label");
-			Object otherR = (Object)other.getR().getUserDatum("label");
-			Object thisQ = (Object)q.getUserDatum("label");
-			Object thisR = (Object)r.getUserDatum("label");
+			Object otherQ = (Object)other.getQ().getUserDatum(JUConstants.LABEL);
+			Object otherR = (Object)other.getR().getUserDatum(JUConstants.LABEL);
+			Object thisQ = (Object)q.getUserDatum(JUConstants.LABEL);
+			Object thisR = (Object)r.getUserDatum(JUConstants.LABEL);
 			if(thisQ.equals(otherQ)&&thisR.equals(otherR))
 				return true;
 		}

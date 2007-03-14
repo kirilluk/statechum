@@ -42,7 +42,7 @@ public class RPNITester {
 		//sPlus.add(Arrays.asList(new String[]{"n","o","p","q","a","z"}));
 		//sMinus.add(Arrays.asList(new String[]{"n","o","p","q","z"}));
 		//sMinus.add(Arrays.asList(new String[]{"a"}));
-		Visualiser v = new Visualiser();
+		LearningVisualiser v = new LearningVisualiser();
 		v.construct(sPlus, sMinus,null);
 		
 	}

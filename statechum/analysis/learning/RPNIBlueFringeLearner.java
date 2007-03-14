@@ -1,6 +1,5 @@
 package statechum.analysis.learning;
 
-import java.awt.Color;
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -14,30 +13,26 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import statechum.analysis.learning.profileStringExtractor.SplitFrame;
+import statechum.JUConstants;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
-public class RPNIBlueFringeLearner extends Observable implements Learner {
+public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	
-	public Graph getGraph(){
-		//return removeNegatives(currentGraph);
-		return currentGraph;
-	}
 	
 	protected Graph removeNegatives(Graph g){
 		Iterator vertexIt = g.getVertices().iterator();
 		HashSet remove = new HashSet();
 		while(vertexIt.hasNext()){
 			Vertex v = (Vertex)vertexIt.next();
-			if(v.getUserDatum("accepted")==null)
+			if(v.getUserDatum(JUConstants.ACCEPTED)==null)
 				continue;
-			if(v.getUserDatum("accepted").toString().equals("false")&&!v.equals(findVertex("property", "init",g)))
+			if(v.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")&&!v.equals(findVertex("property", "init",g)))
 				remove.add(v);
 		}
 		Iterator<Vertex> removeIt = remove.iterator();
@@ -49,8 +44,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	
 	public void updateGraph(Graph g){
 		setChanged();
-		currentGraph = g;
-		notifyObservers();
+		notifyObservers(g);
 	}
 	
 	private Frame parentFrame;
@@ -88,8 +82,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	}
 	
 	protected DirectedSparseGraph mergeAndDeterminize(Graph original, StatePair pair){
-		Vertex q = findVertex("label", pair.getQ().getUserDatum("label"),original);
-		Vertex qDash = findVertex("label", pair.getR().getUserDatum("label"),original);
+		Vertex q = findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
+		Vertex qDash = findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
 		pair = new StatePair(q,qDash);
 		DirectedSparseGraph temp = merge((DirectedSparseGraph)original, pair);
 		StatePair mergable = findMergablePair(temp);
@@ -125,7 +119,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 				Iterator<List<String>> questionIt = questions.iterator();
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
-					String accepted = pair.getQ().getUserDatum("accepted").toString();// Q is the blue vertex
+					String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();// Q is the blue vertex
 					updateGraph(model);
 					int response = checkWithEndUser(question,new Object[0]);// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum("pair");
@@ -160,7 +154,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		{
 			Vertex v = getVertex(model,string);
 			if(v != null){
-				Object accepted = v.getUserDatum("accepted");
+				Object accepted = v.getUserDatum(JUConstants.ACCEPTED);
 				if(accepted.toString().equals("true"))
 					returnValue = false;
 			}
@@ -171,7 +165,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			if(v == null)
 				returnValue = false;
 			else{
-				Object accepted = v.getUserDatum("accepted");
+				Object accepted = v.getUserDatum(JUConstants.ACCEPTED);
 				if(accepted.toString().equals("false"))
 					returnValue = false;
 			}
@@ -338,7 +332,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
 			return new ArrayList<List<String>>();
-		String accepted = q.getUserDatum("accepted").toString();
+		String accepted = q.getUserDatum(JUConstants.ACCEPTED).toString();
 		if(accepted.equals("false"))
 			return new ArrayList<List<String>>();
 		List<String> sp = null;
@@ -359,12 +353,12 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		if(loopToR||redAndBlueNeighbours){ //there either exists a loop to r or will do if r and b merge
 			if(loopToR){
 				Edge e = findEdge(r, r);
-				HashSet labels = (HashSet<String>)e.getUserDatum("label");
+				HashSet labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 			if(redAndBlueNeighbours){
 				Edge e = findEdge(r,q);
-				HashSet labels = (HashSet<String>)e.getUserDatum("label");
+				HashSet labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 		}
@@ -403,7 +397,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
-			if(e.getOpposite(v).getUserDatum("accepted").toString().equals("true")){
+			if(e.getOpposite(v).getUserDatum(JUConstants.ACCEPTED).toString().equals("true")){
 				ArrayList l = new ArrayList();
 				l.add(e);
 				returnStrings.addAll(getPaths(l));
@@ -417,7 +411,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		while (neighbourIt.hasNext()){
 			DirectedSparseEdge e = neighbourIt.next();
 			Vertex to = e.getDest();
-			if(to.getUserDatum("accepted").toString().equals("true"))
+			if(to.getUserDatum(JUConstants.ACCEPTED).toString().equals("true"))
 				return true;
 		}
 		return false;
@@ -438,7 +432,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		DijkstraShortestPath p = new DijkstraShortestPath(graph);
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
-			if(v.getSuccessors().isEmpty()&& v.getUserDatum("accepted").toString().equals(accepted))
+			if(v.getSuccessors().isEmpty()&& v.getUserDatum(JUConstants.ACCEPTED).toString().equals(accepted))
 				endVertices.add(v);
 		}
 		for(Vertex v:endVertices)
@@ -462,7 +456,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		TreeMap<Integer,Set<List<String>>> returnSet = new TreeMap<Integer,Set<List<String>>>();// KIRR: this should not be done in this way since access to this map is not random - you only need the last element in which case simply storing the last set of lists is best
 		for(int i=0;i<l.size();i++){// for each element of the source list
 			Edge e = l.get(i);
-			Set<String> labels = (Set<String>)e.getUserDatum("label");
+			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 			Set<List<String>> strings = new HashSet<List<String>>();
 			for(String s:labels)
 			{
@@ -495,7 +489,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		List<String> list = new ArrayList<String>();
 		while(pathIt.hasNext()){
 			Edge e = pathIt.next();
-			Set s = (HashSet)e.getUserDatum("label");
+			Set s = (HashSet)e.getUserDatum(JUConstants.LABEL);
 			Object[] strings = s.toArray();
 			list.add(strings[0].toString());
 		}
@@ -512,14 +506,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		while(inEdges.hasNext()){
 			DirectedSparseEdge e = inEdges.next();
 			DirectedSparseEdge eDash = new DirectedSparseEdge(e.getSource(), qDash);
-			eDash.addUserDatum("label", e.getUserDatum("label"), UserData.CLONE);
+			eDash.addUserDatum(JUConstants.LABEL, e.getUserDatum(JUConstants.LABEL), UserData.CLONE);
 			if(!e.getSource().getSuccessors().contains(qDash)) 
 				model.addEdge(eDash);
 			else{
 				Edge existing = findEdge(e.getSource(), qDash);
-				Set<String> labels = (Set<String>)existing.getUserDatum("label");// KIRR: if you use UserData.SHARED, you do not need to copy the result back using put
-				labels.addAll((Set)e.getUserDatum("label"));
-				existing.setUserDatum("label", labels, UserData.CLONE);
+				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);// KIRR: if you use UserData.SHARED, you do not need to copy the result back using put
+				labels.addAll((Set)e.getUserDatum(JUConstants.LABEL));
+				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
 		}
@@ -527,14 +521,14 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		while(outEdges.hasNext()){
 			DirectedSparseEdge e = (DirectedSparseEdge)outEdges.next();
 			DirectedSparseEdge eDash = new DirectedSparseEdge(qDash, e.getDest());
-			eDash.addUserDatum("label", e.getUserDatum("label"), UserData.CLONE);
+			eDash.addUserDatum(JUConstants.LABEL, e.getUserDatum(JUConstants.LABEL), UserData.CLONE);
 			if(!qDash.getSuccessors().contains(e.getDest())) 
 				model.addEdge(eDash);
 			else{
 				Edge existing = findEdge(qDash, e.getDest());
-				Set<String> labels = (Set<String>)existing.getUserDatum("label");
-				labels.addAll((Set)e.getUserDatum("label"));
-				existing.setUserDatum("label", labels, UserData.CLONE);
+				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);
+				labels.addAll((Set)e.getUserDatum(JUConstants.LABEL));
+				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
 		}
@@ -584,7 +578,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 			Map<String,DirectedSparseEdge> doneLabels = new HashMap<String,DirectedSparseEdge>();
 			while(edgeIt.hasNext()){
 				DirectedSparseEdge e = edgeIt.next();
-				Set<String> labels = (Set<String>)e.getUserDatum("label");
+				Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 				Iterator<String> labelIt = labels.iterator();
 				while(labelIt.hasNext()){
 					String label = labelIt.next();
@@ -682,8 +676,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 	 * @return whether the two are different.
 	 */
 	protected  static boolean different(StatePair pair){
-		Object qAcceptedO = pair.getQ().getUserDatum("accepted");
-		Object rAcceptedO = pair.getR().getUserDatum("accepted");
+		Object qAcceptedO = pair.getQ().getUserDatum(JUConstants.ACCEPTED);
+		Object rAcceptedO = pair.getR().getUserDatum(JUConstants.ACCEPTED);
 		if(rAcceptedO==null || qAcceptedO == null)
 			return false;
 		Boolean qAccepted = new Boolean(qAcceptedO.toString());
@@ -714,7 +708,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 				continue;
 			else
 				doneEdges.add(e);
-			HashSet<String> labels = (HashSet<String>)e.getUserDatum("label");
+			HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 			Iterator<String> labelIt = labels.iterator();
 			while(labelIt.hasNext()){
 				List string = new ArrayList();
@@ -743,7 +737,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		DirectedSparseGraph pta = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
 		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum("accepted", "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		pta.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
 		pta.addVertex(init);
 		numberVertices(pta);
 		return pta;
@@ -767,9 +762,9 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 
 				Vertex newVertex = new DirectedSparseVertex();
 				if (i == string.size())// KIRR: every prefix of a reject sequence is an accept sequence.
-					newVertex.setUserDatum("accepted", accepted, UserData.SHARED);
+					newVertex.setUserDatum(JUConstants.ACCEPTED, accepted, UserData.SHARED);
 				else
-					newVertex.setUserDatum("accepted", "true", UserData.SHARED);
+					newVertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 				
 				if(existing == null){
 					pta.addVertex(newVertex);
@@ -778,7 +773,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 					DirectedSparseEdge e = new DirectedSparseEdge(previous, newVertex);
 					Set<String> labels = new HashSet<String>();
 					labels.add(string.get(i-1));
-					e.addUserDatum("label", labels, UserData.CLONE);
+					e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 					pta.addEdge(e);
 				}
 				else
@@ -808,8 +803,8 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
-			v.removeUserDatum("label");// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
-			v.addUserDatum("label", v.toString(), UserData.SHARED);
+			v.removeUserDatum(JUConstants.LABEL);// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
+			v.addUserDatum(JUConstants.LABEL, v.toString(), UserData.SHARED);
 		}
 	}
 	
@@ -842,7 +837,7 @@ public class RPNIBlueFringeLearner extends Observable implements Learner {
 		Iterator edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = (DirectedSparseEdge)edgeIt.next();
-			Set<String> labels = (Set<String>)e.getUserDatum("label");
+			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 			if(labels.contains(label))
 				return e;
 		}

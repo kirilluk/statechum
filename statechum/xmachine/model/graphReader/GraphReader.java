@@ -2,9 +2,9 @@ package statechum.xmachine.model.graphReader;
 
 import java.io.File;
 import java.util.*;
-import javax.swing.JFileChooser;
 import javax.swing.*;
 
+import statechum.JUConstants;
 import statechum.xmachine.model.*;
 
 import edu.uci.ics.jung.graph.impl.*;
@@ -36,7 +36,7 @@ public class GraphReader {
 			String toLabel = String.valueOf(e.getDest().getUserDatum("name"));
 			Transition t = new Transition(fromLabel,toLabel);
 			TransitionFunction f = new TransitionFunction();
-			f.setLabel(String.valueOf(e.getUserDatum("label")));
+			f.setLabel(String.valueOf(e.getUserDatum(JUConstants.LABEL)));
 			t.addFunction(f);
 			machine.addTransition(t);
 			machine.attachGraph(g);

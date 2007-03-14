@@ -5,6 +5,8 @@ import java.awt.*;
 
 import javax.swing.*;
 
+import statechum.JUConstants;
+
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -97,7 +99,7 @@ public class WMethodFrame extends JFrame {
 		HashSet stimuli = new HashSet();
 		while(edgeIt.hasNext()){
 			Edge e = (Edge)edgeIt.next();
-			String stimulus = (String)e.getUserDatum("label");
+			String stimulus = (String)e.getUserDatum(JUConstants.LABEL);
 			stimuli.add(stimulus);
 		}
 		Object[] stimArray = stimuli.toArray();
@@ -243,7 +245,7 @@ public class WMethodFrame extends JFrame {
 			Object next = listIt.next();
 			if(next instanceof Edge){
 				Edge e = (Edge)next;
-				path = path.concat(String.valueOf(e.getUserDatum("label"))+", ");
+				path = path.concat(String.valueOf(e.getUserDatum(JUConstants.LABEL))+", ");
 			}
 			else{
 				String s = (String)next;

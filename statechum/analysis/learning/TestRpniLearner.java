@@ -19,36 +19,8 @@ import org.junit.Test;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-public class TestRpniLearner {
-
-	@Test
-	public void testPTAconstruction1() // only two traces, both accept
-	{
-		RPNIBlueFringeLearner l=new RPNIBlueFringeLearner(null);
-		Set<List<String>> plusStrings = new HashSet<List<String>>();
-		plusStrings.add(Arrays.asList(new String[]{"a","b","c"}));
-		plusStrings.add(Arrays.asList(new String[]{"a","d","c"}));
-		DirectedSparseGraph g = l.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true);
-		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g);
-		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1\nB--d->C2-c->End2");
-	}
-
-	@Test
-	public void testPTAconstruction2()// two accept traces and one reject one
-	{
-		RPNIBlueFringeLearner l=new RPNIBlueFringeLearner(null);
-		Set<List<String>> plusStrings = new HashSet<List<String>>();
-		plusStrings.add(Arrays.asList(new String[]{"a","b","c"}));
-		plusStrings.add(Arrays.asList(new String[]{"a","d","c"}));
-		Set<List<String>> minusStrings = new HashSet<List<String>>();
-		minusStrings.add(Arrays.asList(new String[]{"a","b","c","d"}));
-		DirectedSparseGraph g = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g);
-		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
-	}
-
+public class TestRpniLearner 
+{
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data
@@ -105,6 +77,29 @@ public class TestRpniLearner {
 		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
 		assertTrue(expectedResult.equals(buildSet(new String[] []{
 				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
+	}
+
+	@Test
+	public void testPTAconstruction1() // only two traces, both accept
+	{
+		RPNIBlueFringeLearner l=new RPNIBlueFringeLearner(null);
+		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
+		DirectedSparseGraph g = l.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true);
+		RPNIBlueFringeLearner.numberVertices(g);
+		updateFrame(g);
+		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1\nB--d->C2-c->End2");
+	}
+
+	@Test
+	public void testPTAconstruction2()// two accept traces and one reject one
+	{
+		RPNIBlueFringeLearner l=new RPNIBlueFringeLearner(null);
+		Set<List<String>> plusStrings = buildSet(new String[][] { new String[]{"a","b","c"}, new String[]{"a","d","c"}});
+		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"} });
+		DirectedSparseGraph g = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
+		RPNIBlueFringeLearner.numberVertices(g);
+		updateFrame(g);
+		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
 	}
 
 	protected static void checkLearner(String fsmString, String [][] plus, String [][] minus, int threshold)

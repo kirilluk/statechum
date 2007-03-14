@@ -5,21 +5,25 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import junit.framework.AssertionFailedError;
 import org.junit.Test;
+import org.junit.BeforeClass;
 
 import statechum.JUConstants;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
-import edu.uci.ics.jung.utils.Pair;
 import edu.uci.ics.jung.utils.UserData;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -27,8 +31,8 @@ import java.util.regex.Pattern;
 
 public class TestFSMAlgo {
 
-	/** Used to receive state transitions extracted from parsed test sequences. */
-	private interface pairReceiver
+	/** Used to receive state transitions extracted from textual FSM representation. */
+	private interface TransitionReceiver
 	{
 		public void accept(String from, String to, String label);
 		public void reject(String from, String to, String label);
@@ -84,7 +88,7 @@ public class TestFSMAlgo {
 			return lastMatch;
 		}
 		
-		public void parse(pairReceiver receiver)
+		public void parse(TransitionReceiver receiver)
 		{
 			String currentState = null;
 			do {					
@@ -138,7 +142,7 @@ public class TestFSMAlgo {
 		}
 	}
 	
-	protected static class bufferMatcher implements pairReceiver {
+	protected static class bufferMatcher implements TransitionReceiver {
 		final String [] elements;
 		final String text;
 		
@@ -299,7 +303,7 @@ public class TestFSMAlgo {
 		boolean exceptionThrown = false;
 		try
 		{
-			new fsmParser(whatToParse).parse(new pairReceiver()
+			new fsmParser(whatToParse).parse(new TransitionReceiver()
 			{
 				public void accept(String from, String to, String label) {
 					// do nothing at all
@@ -531,7 +535,7 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = new DirectedSparseGraph();
 		g.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 
-		new fsmParser(fsm).parse(new pairReceiver()
+		new fsmParser(fsm).parse(new TransitionReceiver()
 		{
 			public void put(String from, String to, String label, boolean accept) {
 				DirectedSparseVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
@@ -591,11 +595,11 @@ public class TestFSMAlgo {
 	 * to use the populated arrays for comparison of different graphs.
 	 * 
 	 * @param g graph from which to extract data
-	 * @param transitions stores the transition diagram
+	 * @param transitions stores the transition diagram, in which every state is mapped to a map between an input (label) and a target state
 	 * @param accept maps accept states to true and reject ones to false
 	 * @return the name of the initial state
 	 */
-	protected static String getGraphData(DirectedSparseGraph g, Map<StatePair,Set<String>> transitions, Map<String,Boolean> accept)
+	protected static String getGraphData(DirectedSparseGraph g, Map<String,Map<String,String>> transitions, Map<String,Boolean> accept)
 	{
 		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
 		transitions.clear();accept.clear();
@@ -603,15 +607,14 @@ public class TestFSMAlgo {
 		{
 			DirectedSparseEdge edge = edgeIt.next();
 			Vertex fromVertex = edge.getSource(), toVertex = edge.getDest();
-			
-			StatePair pair = new StatePair(fromVertex,toVertex);
-			Set<String> labels = transitions.get(pair);
-			if (labels == null)
+			String from = (String)fromVertex.getUserDatum(JUConstants.LABEL),
+				to = (String)toVertex.getUserDatum(JUConstants.LABEL);
+			Map<String,String> labelToTargetState = transitions.get(from);
+			if (labelToTargetState == null)
 			{
-				labels = new HashSet<String>();transitions.put(pair, labels);
+				labelToTargetState = new HashMap<String,String>();transitions.put(from, labelToTargetState);
 			}
-			Set<String> edgeLabels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
-			labels.addAll(edgeLabels);
+			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);
 		}
 		
 		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
@@ -620,8 +623,9 @@ public class TestFSMAlgo {
 		{
 			Vertex v = vertexIt.next();
 			String name = (String)v.getUserDatum(JUConstants.LABEL);
+			
 			accept.put(name, 
-					new Boolean((String)v.getUserDatum(JUConstants.ACCEPTED)));
+					new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString()));
 			Object initp = v.getUserDatum("property");
 			if (initp != null)
 			{
@@ -634,12 +638,125 @@ public class TestFSMAlgo {
 		return initState;
 	}
 	
-	protected Set<String> createLabelSet(String [] labels)
+	/** Given a set of labels and a target state, this method adds to a supplied map an association 
+	 * of every label with the specified target state.
+	 * 
+	 * @param labels labels
+	 * @param to target state
+	 * @param map a map associating state <i>to</i> with each of the labels. If this is <i>null</i>, a new map is created.
+	 * @return an updated map.
+	 */ 
+	protected static Map<String,String> createLabelToStateMap(Collection<String> labels,String to,Map<String,String> map)
 	{
-		Set<String> result = new HashSet<String>();result.addAll(Arrays.asList(labels));
+		Map<String,String> result = (map == null)? new HashMap<String,String>() : map;
+		for(String label:labels)
+		{
+			if (result.containsKey(label))
+				throw new IllegalArgumentException("nondeterminism detected for label "+label);
+			result.put(label,to);
+		}
 		return result;
 	}
 	
+	@Test 
+	public void testCreateLabelToStateMap1() // test with empty data
+	{
+		assertTrue(createLabelToStateMap(new LinkedList<String>(), "junk", null).isEmpty());
+		Map<String,String> map = new HashMap<String,String>();
+		assertSame(map,createLabelToStateMap(new LinkedList<String>(), "junk", map));assertTrue(map.isEmpty());
+	}
+	
+	@Test 
+	public void testCreateLabelToStateMap2() // test for no changes
+	{
+		Map<String,String> trans = new HashMap<String,String>();
+		trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
+		Map<String,String> expected = new HashMap<String,String>();expected.putAll(trans);
+		assertSame(trans,createLabelToStateMap(new LinkedList<String>(), "junk",trans));
+		assertTrue(expected.equals(trans));
+	}
+	
+	@Test 
+	public void testCreateLabelToStateMap3() // test for correct data being added
+	{
+		Map<String,String> trans = new HashMap<String,String>();
+		trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
+		Map<String,String> expected = new HashMap<String,String>();expected.putAll(trans);expected.put("e", "A");expected.put("g", "A");
+		assertSame(trans,createLabelToStateMap(Arrays.asList(new String[] {"g","e"}), "A",trans));
+		assertTrue(expected.equals(trans));
+	}
+	
+	@Test 
+	public void testCreateLabelToStateMap4() // test for correct data being added
+	{
+		Map<String,String> trans = new HashMap<String,String>();
+		trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
+		Map<String,String> expected = new HashMap<String,String>();expected.putAll(trans);expected.put("e", "D");expected.put("f", "D");
+		assertSame(trans,createLabelToStateMap(Arrays.asList(new String[] {"f","e"}), "D",trans));
+		assertTrue(expected.equals(trans));
+	}
+	
+	@Test 
+	public void testCreateLabelToStateMap5() // test for correct data being added
+	{
+		Map<String,String> trans = new HashMap<String,String>();
+		trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
+		Map<String,String> expected = new HashMap<String,String>();expected.putAll(trans);expected.put("e", "B");expected.put("g", "B");
+		assertSame(trans,createLabelToStateMap(Arrays.asList(new String[] {"g","e"}), "B",trans));
+		assertTrue(expected.equals(trans));
+	}
+	
+	@Test 
+	public void testCreateLabelToStateMap6() // test for correct data being added when an empty collection is passed
+	{
+		Map<String,String> trans = new HashMap<String,String>();
+		Map<String,String> expected = new HashMap<String,String>();expected.put("e","A");expected.put("b","A");
+		assertSame(trans,createLabelToStateMap(Arrays.asList(new String[] {"b","e"}), "A",trans));
+		assertTrue(expected.equals(trans));
+	}
+
+	@Test 
+	public void testCreateLabelToStateMap7() // test for correct data being added when null is passed
+	{
+		Map<String,String> expected = new HashMap<String,String>();expected.put("e","A");expected.put("b","A");
+		assertTrue(expected.equals(createLabelToStateMap(Arrays.asList(new String[] {"b","e"}), "A",null)));
+	}
+
+	@Test 
+	public void testCreateLabelToStateMap8() // test for correct detection of nondeterminism
+	{
+		Map<String,String> trans = new HashMap<String,String>();trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
+		boolean exceptionThrown = false;
+		try
+		{
+			createLabelToStateMap(Arrays.asList(new String[] {"b","e"}), "A",trans);
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("incorrect exception thrown",e.getMessage().contains("nondeterminism"));
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+
+	@Test 
+	public void testCreateLabelToStateMap9() // test for correct detection of nondeterminism
+	{
+		boolean exceptionThrown = false;
+		try
+		{
+			createLabelToStateMap(Arrays.asList(new String[] {"b","b"}), "A",null);
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("incorrect exception thrown",e.getMessage().contains("nondeterminism"));
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+
 	/** Displays the graph passed as an argument in the Jung window.
 	 * @param g the graph to display 
 	 */
@@ -651,14 +768,14 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction1()
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A","testConstruction1");
 		updateFrame(g);
 		String init = getGraphData(g,trans,accept);
-		expectedTrans.put(constructPair("A", "B"), createLabelSet(new String[] {"a"}));
-		expectedTrans.put(constructPair("B", "C"), createLabelSet(new String[] {"b"}));
-		expectedTrans.put(constructPair("C", "A"), createLabelSet(new String[] {"c"}));
+		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null));
+		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",null));
+		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
 		expectedAccept.put("A", true);
 		expectedAccept.put("B", true);
 		expectedAccept.put("C", true);
@@ -671,16 +788,15 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction2()
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A-b->B-a-#D","testConstruction2");
 		g.setUserDatum(JUConstants.TITLE, "testConstruction2",UserData.SHARED);
 		updateFrame(g);
 		String init = getGraphData(g,trans,accept);
-		expectedTrans.put(constructPair("A", "B"), createLabelSet(new String[] {"a","b"}));
-		expectedTrans.put(constructPair("B", "C"), createLabelSet(new String[] {"b"}));
-		expectedTrans.put(constructPair("C", "A"), createLabelSet(new String[] {"c"}));
-		expectedTrans.put(constructPair("B", "D"), createLabelSet(new String[] {"a"}));
+		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),"B",null));
+		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"D",null)));
+		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
 		expectedAccept.put("A", true);
 		expectedAccept.put("B", true);
 		expectedAccept.put("C", true);
@@ -694,17 +810,14 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction3()
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--C-c->A-b->A-c->A\nB-d->B-p->C\nB-q->C\nB-r->C\n","testConstruction3");
 		updateFrame(g);
 		String init = getGraphData(g,trans,accept);
-		expectedTrans.put(constructPair("A", "A"), createLabelSet(new String[] {"b","c"}));
-		expectedTrans.put(constructPair("A", "B"), createLabelSet(new String[] {"a"}));
-		expectedTrans.put(constructPair("B", "B"), createLabelSet(new String[] {"d"}));
-		expectedTrans.put(constructPair("B", "C"), createLabelSet(new String[] {"r","p","q"}));
-		expectedTrans.put(constructPair("C", "B"), createLabelSet(new String[] {"b"}));
-		expectedTrans.put(constructPair("C", "A"), createLabelSet(new String[] {"c"}));
+		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
+		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
 		expectedAccept.put("A", true);
 		expectedAccept.put("B", true);
 		expectedAccept.put("C", true);
@@ -717,17 +830,14 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction4()
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--D-c->A-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction4");
 		updateFrame(g);
 		String init = getGraphData(g,trans,accept);
-		expectedTrans.put(constructPair("A", "A"), createLabelSet(new String[] {"b","c"}));
-		expectedTrans.put(constructPair("A", "B"), createLabelSet(new String[] {"a"}));
-		expectedTrans.put(constructPair("B", "B"), createLabelSet(new String[] {"d"}));
-		expectedTrans.put(constructPair("B", "C"), createLabelSet(new String[] {"r","p","q"}));
-		expectedTrans.put(constructPair("D", "B"), createLabelSet(new String[] {"b"}));
-		expectedTrans.put(constructPair("D", "A"), createLabelSet(new String[] {"c"}));
+		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
+		expectedTrans.put("D", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
 		expectedAccept.put("A", true);
 		expectedAccept.put("B", true);
 		expectedAccept.put("C", false);
@@ -741,15 +851,13 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction5()
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b-#C\nA-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction5");
 		visFrame.update(null, g);
 		String init = getGraphData(g,trans,accept);
-		expectedTrans.put(constructPair("A", "A"), createLabelSet(new String[] {"b","c"}));
-		expectedTrans.put(constructPair("A", "B"), createLabelSet(new String[] {"a"}));
-		expectedTrans.put(constructPair("B", "B"), createLabelSet(new String[] {"d"}));
-		expectedTrans.put(constructPair("B", "C"), createLabelSet(new String[] {"b","r","p","q"}));
+		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),"C",null)));
 		expectedAccept.put("A", true);
 		expectedAccept.put("B", true);
 		expectedAccept.put("C", false);
@@ -783,7 +891,7 @@ public class TestFSMAlgo {
 	 */
 	public void checkEq(DirectedSparseGraph g, String fsm)
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		String init = getGraphData(g,trans,accept);
@@ -801,16 +909,150 @@ public class TestFSMAlgo {
 		checkEq(g,"P-c->P<-b-Q_State<-a-P");
 	}
 	
-	public void checkM(DirectedSparseGraph g, String fsm)
+	/** This one is used to indicate that a two machines are not accepting the same language - 
+	 * I need to check that it is the incompatibility exception thrown by the <i>checkM</i> 
+	 * method and not any other <i>IllegalArgumentException</i>.
+	 */
+	public static class DifferentFSMException extends IllegalArgumentException 
 	{
-		Map<StatePair,Set<String>> trans = new HashMap<StatePair,Set<String>>(), expectedTrans=new HashMap<StatePair,Set<String>>();
+		public DifferentFSMException(String arg)
+		{
+			super(arg);
+		}
+	}
+	
+	public static void checkM(DirectedSparseGraph g, String fsm)
+	{
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
 		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		String init = getGraphData(g,trans,accept);
-		
 		String expectedInit = getGraphData(buildGraph(fsm,"expected graph"),expectedTrans,expectedAccept);
+		List<String> currentExplorationBoundary = new LinkedList<String>();
+		assertEquals(expectedTrans.size(), trans.size());
+
+		Map<String,String> morphism = new HashMap<String,String>();
+		Set<String> statesAddedToBoundary = new HashSet<String>();
+		currentExplorationBoundary.add(init);statesAddedToBoundary.add(init);
+		morphism.put(init,expectedInit);
+		
+		for(int i=0;i < currentExplorationBoundary.size();++i)
+		{
+			String state = currentExplorationBoundary.get(i);
+			String mappedState = morphism.get(state);assert(mappedState != null);
+			if (!accept.get(state).equals(expectedAccept.get(mappedState)))
+				throw new DifferentFSMException("state "+mappedState+" has a different acceptance labelling between the machines");
+						
+			Map<String,String> targets = trans.get(state), expectedTargets = expectedTrans.get(mappedState);
+			if (expectedTargets == null)
+			{
+				if (targets != null)
+					throw new DifferentFSMException("not expecting any transitions from "+mappedState+" state");
+			}
+			else
+			{
+				if (targets == null)
+					throw new DifferentFSMException("expected transitions from "+mappedState+" state but there were none");
+				
+				if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
+					throw new DifferentFSMException("different number of transitions from state "+mappedState);
+					
+				for(String label:targets.keySet())
+				{
+					if (!expectedTargets.containsKey(label))
+						throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+mappedState);
+					String tState = targets.get(label);// the original one
+					String targetMappedState = morphism.get(tState); // the state which corresponds to this state
+					String expectedState = expectedTargets.get(label);
+					if (targetMappedState != null) // we've already mapped this state
+					{
+						if (!expectedState.equals(targetMappedState))
+							throw new DifferentFSMException("transition "+mappedState+" -- "+label+" leads to the wrong state");
+					}
+					else
+						morphism.put(tState,expectedState);// record the mapping
+					
+					if (!statesAddedToBoundary.contains(tState))
+					{
+						currentExplorationBoundary.add(tState);
+						statesAddedToBoundary.add(tState);
+					}
+				}
+			}
+		}
 		
 	}
 	
+	@Test
+	public void testCheckM1()
+	{
+		checkM(buildGraph("A-a->B-b->C", "testCheck1"), "B-a->C-b->D");
+	}
+	
+	@Test
+	public void testCheckM2()
+	{
+		checkM(buildGraph("A-a->B-b->C-d-#F#-b-A", "testCheck2"), "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ");
+	}
+
+	@Test
+	public void testCheckM3()
+	{
+		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String expected = "A-a->B-b->C-b-#F#-d-A";
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck3"), expected);
+	}
+
+	@Test
+	public void testCheckM4() // multiple reject states
+	{
+		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3";
+		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), expected);
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD1()
+	{
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD1"), "B-a->C-b->B");		
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD2() // different reject states
+	{
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD2"), "B-a->C-b-#D");
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD3() // missing transition
+	{
+		checkM(buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3"), "B-a->C-b->D");
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD4() // extra transition
+	{
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD4"), "B-a->C-b->D\nB-b->C");
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD5() // missing transition
+	{
+		checkM(buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5"), "B-a->C-b->D");
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD6() // extra transition
+	{
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD6"), "B-a->C-b->D\nC-c->C");
+	}
+
+	@Test(expected = DifferentFSMException.class)
+	public void testCheckMD7() // swapped transitions
+	{
+		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
+		String expected = "A-a->B-b->C-d-#F#-b-A";
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), expected);
+	}
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
@@ -818,5 +1060,11 @@ public class TestFSMAlgo {
 	 * </pre>
 	 * where <i>g</i> is the graph to be displayed.
 	 */
-	protected static Visualiser visFrame = new Visualiser(); 
+	protected static Visualiser visFrame = null;
+	
+	@BeforeClass
+	public static void initJungViewer() // initialisation - once only for all tests in this class
+	{
+		visFrame = new Visualiser();
+	}
 }

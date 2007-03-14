@@ -50,7 +50,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	private Frame parentFrame;
 
 	public RPNIBlueFringeLearner(Frame parentFrame){
-	this.parentFrame = parentFrame;
+		this.parentFrame = parentFrame;
 	}
 	
 	/** Takes all red-labelled nodes; non-red nodes which can be reached by a single transition from any 
@@ -752,7 +752,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	private DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
+	DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();

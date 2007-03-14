@@ -21,6 +21,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
+		updateGraph(model);
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();

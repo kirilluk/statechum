@@ -7,6 +7,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import junit.framework.AssertionFailedError;
+
+import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
@@ -17,6 +19,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,6 +31,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.swing.SwingUtilities;
 
 public class TestFSMAlgo {
 
@@ -915,6 +920,11 @@ public class TestFSMAlgo {
 	 */
 	public static class DifferentFSMException extends IllegalArgumentException 
 	{
+		/**
+		 *  Serialization ID.
+		 */
+		private static final long serialVersionUID = 6126662147586264877L;
+
 		public DifferentFSMException(String arg)
 		{
 			super(arg);
@@ -1054,6 +1064,96 @@ public class TestFSMAlgo {
 		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), expected);
 	}
 	
+	public static int tracePath(String init, Map<String,Map<String,String>> trans,Map<String,Boolean> accept, List<String> path)
+	{
+		String current = init;
+		int pos = -1;
+		for(String label:path)
+		{
+			++pos;
+			Map<String,String> exitingTrans = trans.get(current);
+			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+				return pos;
+		}
+		return accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
+	}
+
+	/** Given an FSM and a sequence of labels to follow, this one checks whether the sequence is correctly
+	 * accepted or not, and if not whether it is rejected at the correct element.
+	 * 
+	 * @param fsmString a description of an FSM
+	 * @param path a sequence of labels to follow
+	 * @param ExpectedResult the result to check
+	 */
+	public static void checkPath(String fsmString, String []path, int ExpectedResult)
+	{
+		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>();
+		Map<String,Boolean> accept = new HashMap<String,Boolean>();
+		String init = getGraphData(buildGraph(fsmString, "sample FSM"), trans, accept);
+		assertEquals(ExpectedResult, tracePath(init, trans, accept, Arrays.asList(path)));
+	}
+	
+	@Test
+	public void testTracePath()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{}, RPNIBlueFringeLearner.USER_ACCEPTED);
+	}
+	
+	@Test
+	public void testTracePath1()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, RPNIBlueFringeLearner.USER_ACCEPTED);
+	}
+	
+	@Test
+	public void testTracePath2()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, RPNIBlueFringeLearner.USER_ACCEPTED);
+	}
+	
+	@Test
+	public void testTracePath3()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"b"}, 0);
+	}
+	
+	@Test
+	public void testTracePath4()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","d"}, 2);
+	}
+	
+	@Test
+	public void testTracePath5()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"b","a","c"}, 0);
+	}
+	
+	@Test
+	public void testTracePath6()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","a","c","b"}, 1);
+	}
+	
+	@Test
+	public void testTracePath7()
+	{
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c"}, 2);
+	}
+	
+	@Test
+	public void testTracePath8()
+	{
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d"}, 3);
+	}
+	
+	@Test
+	public void testTracePath9()
+	{
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3);
+	}
+
+	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
 	 * 		updateFrame(g);// a public method
@@ -1067,4 +1167,25 @@ public class TestFSMAlgo {
 	{
 		visFrame = new Visualiser();
 	}
+
+	@AfterClass
+	public static void cleanUp()
+	{
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() 
+			{
+				public void run()
+				{
+					visFrame.setVisible(false);
+					visFrame.dispose();
+				}
+			});
+		} catch (InterruptedException e) {
+			// cannot do anything with this
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// cannot do anything with this
+			e.printStackTrace();
+		}
+	}	
 }

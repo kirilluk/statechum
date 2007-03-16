@@ -5,6 +5,7 @@ import java.util.*;
 
 import statechum.JUConstants;
 
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
@@ -29,24 +30,29 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			assert compatible(temp, sPlus, sMinus);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);
-			List<List<String>> questions = generateQuestions(model, pair);
+			updateGraph(model);
+			List<List<String>> questions = generateQuestions(model, temp, pair);
 			questions = trimSet(questions);
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
-				updateGraph(model);
 				int answer = checkWithEndUser(question, new Object [] {"Test"});
 				pair.getQ().removeUserDatum("pair");
 				pair.getR().removeUserDatum("pair");
 				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
 					System.out.println(question.toString()+ " <yes>");
+					Vertex tempVertex = getVertex(temp, question);
+					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+							return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
 				else if(answer >= 0){
 					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
 					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+						continue;
 					assert accepted.equals("true");
 					return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
@@ -57,6 +63,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					if(!containsSubString(sPlus, question))
 						return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
+				
 			}
 			model = temp;
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
@@ -66,6 +73,127 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		//printScoreDistributions();
 		return model;
 	}
+	
+	private Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
+		DijkstraShortestPath p = new DijkstraShortestPath(model);
+		List<Edge> pathToRed = p.getPath(findVertex("property", "init",model), r);
+		Set<List<String>> pathToRedStrings = new HashSet<List<String>>();
+		Vertex tempRed = null;
+		if(!pathToRed.isEmpty()){
+			pathToRedStrings = getPaths(pathToRed);
+			List<String> prefixString = (List<String>)pathToRedStrings.toArray()[0];
+			tempRed = getVertex(temp, prefixString);
+		}
+		else
+			tempRed = findVertex("property", "init", temp);
+		return tempRed;
+	}
+	
+	protected List<List<String>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, StatePair pair){
+		Vertex q = pair.getQ();
+		Vertex r = pair.getR();
+		if(q==null || r ==null)
+			return new ArrayList<List<String>>();
+		DijkstraShortestPath p = new DijkstraShortestPath(temp);
+		Vertex tempRed = getTempRed(model, r, temp);
+		Vertex tempInit = findVertex("property", "init", temp);
+		Set<List<String>> prefixes = new HashSet<List<String>>();
+		if(!tempRed.equals(tempInit)){
+			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
+			prefixes = getPaths(prefixEdges);
+		}
+		Set<List<String>> suffixes = computeSuffixes(tempRed, temp);
+		List<List<String>> questions =new ArrayList<List<String>>();
+		questions.addAll(mergePrefixWithSuffixes(prefixes, suffixes));
+		
+		DirectedSparseGraph questionPrefixes = augmentPTA(initialise(), questions, true);
+		Iterator<Vertex> questionIt = getEndPoints(questionPrefixes).iterator();
+		p = new DijkstraShortestPath(questionPrefixes);
+		questions =new ArrayList<List<String>>();
+		Vertex init = findVertex("property", "init",questionPrefixes);
+		while(questionIt.hasNext()){
+			List<Edge> edgePath = p.getPath(init, questionIt.next());
+			List<String> pathToPoint = (List<String>)getPaths(edgePath).toArray()[0];
+			Vertex tempV = getVertex(temp, pathToPoint);
+			if(tempV == null)
+				continue;
+			Vertex v = getVertex(model, pathToPoint);
+			if(v == null)
+				questions.add(pathToPoint);
+			else if(different(new StatePair(v, tempV)))
+				questions.add(pathToPoint);
+		}
+		
+		//Collections.sort(finalQuestions, ListStringComparator);
+		return questions;
+	}
+	
+	protected List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<List<String>> suffixes){
+		ArrayList<List<String>> questions = new ArrayList<List<String>>();
+		Object[] prefixArray = null;
+		int iterations = sp.size();
+		if(sp.isEmpty()){
+			iterations++;
+		}
+		else
+			prefixArray = sp.toArray();
+		for(int i=0;i<iterations;i++){
+			List<String> prefix = null;
+			if(!sp.isEmpty())
+				prefix = (List<String>)prefixArray[i];
+			Iterator<List<String>> suffixIt = suffixes.iterator();
+			while(suffixIt.hasNext()){
+				List<String> suffix = suffixIt.next();
+				List<String> newQuestion = new ArrayList<String>();
+				if(prefix != null)
+					newQuestion.addAll(prefix);
+				newQuestion.addAll(suffix);
+				questions.add(newQuestion);
+			}
+		}
+		return questions;
+	}
+	
+	private Set<List<String>> computeSuffixes(Vertex v, DirectedSparseGraph model){
+		Set<List<String>> returnSet = new HashSet<List<String>>();
+		DijkstraShortestPath p = new DijkstraShortestPath(model);
+		Iterator<DirectedSparseEdge> edgeIt = model.getEdges().iterator();
+		while(edgeIt.hasNext()){
+			DirectedSparseEdge e = edgeIt.next();
+			List<Edge> sp = null;
+			sp = p.getPath(v, e.getSource());
+			if(sp!=null){
+				sp.add(e);
+				Set<List<String>> paths = getPaths(sp);
+				returnSet.addAll(paths);
+			}
+		}
+		return returnSet;
+	}
+	
+	private static Set<Vertex> getEndPoints(DirectedSparseGraph g){
+		Set<Vertex> returnSet = new HashSet<Vertex>();
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			if(v.getSuccessors().isEmpty())
+				returnSet.add(v);
+		}
+		return returnSet;
+	}
+	
+	private static Comparator<List> ListStringComparator = new Comparator<List>(){
+		public int compare(List a, List b){
+			int ret = 0;
+			if(a.size()>b.size())
+				ret =  1;
+			else if(a.size()<b.size())
+				ret =  -1;
+			else if(a.size() == b.size())
+				ret = 0;
+			return ret;
+		}
+	};
 	
 	private void printScoreDistributions(){
 		Iterator<ArrayList> listIt = scoreDistributions.iterator();
@@ -81,7 +209,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		}
 	}
 	
-	private boolean containsSubString(Set<List<String>> sPlus, List<String> question){
+	private boolean containsSubString(Collection<List<String>> sPlus, List<String> question){
 		Iterator<List<String>> stringIt = sPlus.iterator();
 		String first = question.get(0);
 		int length = question.size();

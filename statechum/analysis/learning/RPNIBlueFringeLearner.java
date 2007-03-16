@@ -752,7 +752,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Set<List<String>> strings, boolean accepted){
+	DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted){
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();

@@ -51,8 +51,9 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
 					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
+					}
 					assert accepted.equals("true");
 					return learnMachine(initialise(), sPlus, sMinus, threshold);
 				}
@@ -102,9 +103,15 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
 			prefixes = getPaths(prefixEdges);
 		}
+
 		Set<List<String>> suffixes = computeSuffixes(tempRed, temp);
 		List<List<String>> questions =new ArrayList<List<String>>();
 		questions.addAll(mergePrefixWithSuffixes(prefixes, suffixes));
+		Edge loopEdge = findEdge(tempRed, tempRed);
+		if(loopEdge!=null){
+			Collection<String> looplabels = (Collection<String>)loopEdge.getUserDatum(JUConstants.LABEL);
+			questions.addAll(mergePrefixWithSuffixes(prefixes, looplabels,suffixes));
+		}
 		
 		DirectedSparseGraph questionPrefixes = augmentPTA(initialise(), questions, true);
 		Iterator<Vertex> questionIt = getEndPoints(questionPrefixes).iterator();
@@ -113,18 +120,20 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		Vertex init = findVertex("property", "init",questionPrefixes);
 		while(questionIt.hasNext()){
 			List<Edge> edgePath = p.getPath(init, questionIt.next());
+			Set<List<String>> pathsToPoint = getPaths(edgePath);
+			if(pathsToPoint.isEmpty())
+				continue;
 			List<String> pathToPoint = (List<String>)getPaths(edgePath).toArray()[0];
 			Vertex tempV = getVertex(temp, pathToPoint);
-			if(tempV == null)
-				continue;
 			Vertex v = getVertex(model, pathToPoint);
 			if(v == null)
 				questions.add(pathToPoint);
 			else if(different(new StatePair(v, tempV)))
 				questions.add(pathToPoint);
+			
 		}
 		
-		//Collections.sort(finalQuestions, ListStringComparator);
+		//Collections.sort(questions, ListStringComparator);
 		return questions;
 	}
 	
@@ -154,6 +163,37 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return questions;
 	}
 	
+	protected List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<String> loopLabels, Collection<List<String>> suffixes){
+		ArrayList<List<String>> questions = new ArrayList<List<String>>();
+		Object[] prefixArray = null;
+		int iterations = sp.size();
+		if(sp.isEmpty()){
+			iterations++;
+		}
+		else
+			prefixArray = sp.toArray();
+		for(int i=0;i<iterations;i++){
+			List<String> prefix = null;
+			if(!sp.isEmpty())
+				prefix = (List<String>)prefixArray[i];
+			Iterator<List<String>> suffixIt = suffixes.iterator();
+			while(suffixIt.hasNext()){
+				List<String> suffix = suffixIt.next();
+				Iterator<String> loopLabelIt = loopLabels.iterator();
+				while(loopLabelIt.hasNext()){
+					String loopLabel = loopLabelIt.next();
+					List<String> newQuestion = new ArrayList<String>();
+					if(prefix != null)
+						newQuestion.addAll(prefix);
+					newQuestion.add(loopLabel);
+					newQuestion.addAll(suffix);
+					questions.add(newQuestion);
+				}
+			}
+		}
+		return questions;
+	}
+	
 	private Set<List<String>> computeSuffixes(Vertex v, DirectedSparseGraph model){
 		Set<List<String>> returnSet = new HashSet<List<String>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
@@ -163,10 +203,13 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			List<Edge> sp = null;
 			sp = p.getPath(v, e.getSource());
 			if(sp!=null){
-				sp.add(e);
-				Set<List<String>> paths = getPaths(sp);
-				returnSet.addAll(paths);
+				if(!sp.isEmpty()){
+					sp.add(e);
+					Set<List<String>> paths = getPaths(sp);
+					returnSet.addAll(paths);
+				}
 			}
+			
 		}
 		return returnSet;
 	}
@@ -185,9 +228,9 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	private static Comparator<List> ListStringComparator = new Comparator<List>(){
 		public int compare(List a, List b){
 			int ret = 0;
-			if(a.size()>b.size())
+			if(a.size()<b.size())
 				ret =  1;
-			else if(a.size()<b.size())
+			else if(a.size()>b.size())
 				ret =  -1;
 			else if(a.size() == b.size())
 				ret = 0;

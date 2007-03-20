@@ -66,7 +66,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 	public void runAnExperiment(String [] args)
 	{
 		String resourcesDir = System.getProperty("user.dir")+"/resources/";
-		File[] traceFiles = new File[] {new File(resourcesDir+"part1.xml"),new File(resourcesDir+"part2.xml")};
+		File[] traceFiles = new File[] {new File(resourcesDir+"part1.xml"),new File(resourcesDir+"part2.xml"),new File(resourcesDir+"part3.xml"), new File(resourcesDir+"part4.xml")};
 		Extractor ex = new Extractor(traceFiles);
 		JTree methodTree = ex.getTree();
 		this.setTree(methodTree);

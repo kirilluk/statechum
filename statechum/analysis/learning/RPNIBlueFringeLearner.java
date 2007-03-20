@@ -478,7 +478,10 @@ public class RPNIBlueFringeLearner extends Observable {
 			}
 			returnSet.put(i, strings);
 		}
-		return returnSet.get(returnSet.lastKey());
+		if(!returnSet.isEmpty())
+			return returnSet.get(returnSet.lastKey());
+		else
+			return new HashSet<List<String>>();
 	}
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */

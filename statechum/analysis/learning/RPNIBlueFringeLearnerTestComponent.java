@@ -103,7 +103,6 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
 			prefixes = getPaths(prefixEdges);
 		}
-
 		Set<List<String>> suffixes = computeSuffixes(tempRed, temp);
 		List<List<String>> questions =new ArrayList<List<String>>();
 		questions.addAll(mergePrefixWithSuffixes(prefixes, suffixes));

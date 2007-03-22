@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.analysis.learning.*;
+
 import javax.xml.parsers.*;
 import javax.swing.*;
 import javax.swing.event.*;
@@ -191,7 +192,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				new LearningVisualiser().construct(sPlus, new HashSet<List<String>>(), split);
+				new LearningVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>());
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
@@ -199,7 +200,22 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			}
 		}
 	}
+
+	/** Stores recorded answers. */
+	protected StoredAnswers ans = null;
 	
+	/** Makes it possible to answer questions automatically. 
+	 * @throws IOException if thrown by the StoredAnswers
+	 * @throws FileNotFoundException if file requested was not found.
+	 */
+	public void loadAnswers(File file) throws FileNotFoundException, IOException
+	{
+		if (ans == null)
+			ans = new StoredAnswers();
+		
+		ans.setAnswers(new FileReader(file));
+	}
+
 	public Set<String[]> getStrings(Set sPlus){
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try{

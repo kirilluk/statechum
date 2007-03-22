@@ -137,13 +137,13 @@ public class RPNIBlueFringeLearner extends Observable {
 					pair.getR().removeUserDatum("pair");
 					if(response == USER_ACCEPTED){
 						sPlus.add(question);
-						System.out.println(question+ " <yes>");
+						System.out.println(setByAuto+question+ " <yes>");
 						if(accepted.equals("false"))// KIRR: how can this be true? If it were so, there would be no questions to ask
 							return learnMachine(initialise(), sPlus, sMinus, threshold);
 					}
 					else{
 						sMinus.add(question.subList(0, response));
-						System.out.println(question+ " <no>");
+						System.out.println(setByAuto+question+ " <no>");
 						if(accepted.equals("true")){// KIRR: this cannot be false either
 							return learnMachine(initialise(), sPlus, sMinus, threshold);
 						}
@@ -240,11 +240,54 @@ public class RPNIBlueFringeLearner extends Observable {
 		return questionList;
 	}
 	
+	/** The dialog to be displayed to a user with questions to select. */
+	protected JDialog dialog = null;
+	
+	/** the option pane. */
+	JOptionPane jop = null;	
+	
+	/** Cancels a dialog, if present. With no dialog, learner thread will terminate within a reasonable amount of time.
+	 */
+	public void terminateLearner()
+	{
+		assert(SwingUtilities.isEventDispatchThread());
+		if (dialog != null && jop != null && dialog.isVisible())
+			jop.setValue(new Integer(
+                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
+	}
+	
+	/** Stores recorded answers. */
+	protected StoredAnswers ans = null;
+	
+	/** Makes it possible to answer questions automatically.
+	 *  
+	 * @param a the class holding stored answers.
+	 */
+	public void setAnswers(StoredAnswers a)
+	{
+		ans = a;
+	}
+	
 	public static final int USER_CANCELLED = -2;
 	public static final int USER_ACCEPTED = -3;
 	public static final int USER_WAITINGFORSELECTION = -1;
 	
+	public final static String QUESTION_AUTO = "<auto> "; 
+	protected String setByAuto = "";
+	
 	protected int checkWithEndUser(List<String> question, final Object [] moreOptions){
+		if (ans != null)
+		{
+			int AutoAnswer = ans.getAnswer(question);
+			if (AutoAnswer != USER_CANCELLED)
+			{
+				setByAuto = QUESTION_AUTO;
+				return AutoAnswer;
+			}
+			else
+				setByAuto = "";
+		}
+		
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 		
@@ -256,9 +299,9 @@ public class RPNIBlueFringeLearner extends Observable {
 					final JList rejectElements = new JList(questionList.toArray());
 					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", JLabel.CENTER);
-					final JOptionPane jop = new JOptionPane(new Object[] {label,nonrejectElements,rejectElements},
+					jop = new JOptionPane(new Object[] {label,nonrejectElements,rejectElements},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
-					final JDialog dialog = new JDialog(parentFrame,"Valid input string?",false);
+					dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
 					
 					// the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
@@ -314,6 +357,7 @@ public class RPNIBlueFringeLearner extends Observable {
 						
 					});				
 					dialog.pack();
+					//rejectElements.setListData(questionList.toArray());
 					dialog.setVisible(true);
 				}
 			});
@@ -329,9 +373,8 @@ public class RPNIBlueFringeLearner extends Observable {
 			
 			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
 		}
-		if (answer.get() == USER_WAITINGFORSELECTION // this one if an exception was thrown
-				|| answer.get() == USER_CANCELLED)
-			answer.getAndSet(USER_ACCEPTED);
+		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an exception was thrown
+			answer.getAndSet(USER_CANCELLED);
 		return answer.get();
 	}
 	

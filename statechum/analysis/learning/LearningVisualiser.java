@@ -2,6 +2,10 @@ package statechum.analysis.learning;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 import javax.swing.*;
 import edu.uci.ics.jung.graph.*;
@@ -17,15 +21,29 @@ public class LearningVisualiser extends Visualiser{
 	 */
 	private static final long serialVersionUID = 4842027206398108774L;
 	
-	Thread learnerThread;
 	RPNIBlueFringeLearner l =  null;
-	SplitFrame split = null;
+	
+	protected SplitFrame split = null;
+	protected StoredAnswers ans = null;
+	
+	public LearningVisualiser()
+	{
+		super();
+	}
+	
+	
+	public LearningVisualiser(SplitFrame frm, StoredAnswers an)
+	{
+		super();
+		split = frm;ans = an;
+	}
+	
+	/** The learner thread. */
+	Thread learnerThread = null;
 	
 	//"Hypothesis Machine"
-	public void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus, final SplitFrame split)
+	public void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus)
     {
-		if(split!=null)
-			this.split = split;
 	   	learnerThread = new Thread(new Runnable()
 		{
 			public void run()
@@ -37,6 +55,7 @@ public class LearningVisualiser extends Visualiser{
 		        		l = new RPNIBlueFringeLearner(LearningVisualiser.this);
 		        		
 		        	l.addObserver(LearningVisualiser.this);
+		        	l.setAnswers(ans);
 		        	try{
 		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
 		        	}
@@ -48,15 +67,29 @@ public class LearningVisualiser extends Visualiser{
     }
 	
 	public void mouseReleased(MouseEvent e) {
-		Set edges = viewer.getPickedState().getPickedEdges();
+		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
 		else {
-				Set<List<String>> sPlus = l.getSPlus();
-				Set<List<String>> sMinus = l.getSMinus();
-				sMinus.add(pickNegativeStrings((Edge)edges.toArray()[0]));
-				learnerThread.interrupt();
-				construct(sPlus, sMinus, split);
+				final Set<List<String>> sPlus = l.getSPlus();
+				final Set<List<String>> sMinus = l.getSMinus();
+				l.terminateLearner();
+				new Thread(new Runnable() {// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
+					// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
+					public void run()
+					{
+						try
+						{
+							learnerThread.join();
+							sMinus.add(pickNegativeStrings((Edge)edges.toArray()[0]));
+							construct(sPlus, sMinus);
+						}
+						catch(InterruptedException ex)
+						{// cannot stop a worker thread
+							ex.printStackTrace();
+						}
+					}
+				},"learner restarter").start();
 		}
 		
 		

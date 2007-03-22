@@ -3,6 +3,8 @@ package statechum.analysis.learning.profileStringExtractor;
 import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 
 import javax.swing.*;
@@ -72,6 +74,14 @@ public class SplitFrame extends JFrame implements ActionListener{
 		this.setTree(methodTree);
 		frame.setFilesToHandlers(ex.getFileToHandler());
 		frame.readFromFile(new File(resourcesDir+"jhotdraw"));
+		if (args.length > 1)
+		{
+				try {
+					frame.loadAnswers(new File(resourcesDir+args[1]));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+		}
 		frame.actionPerformed(new ActionEvent(this,ActionEvent.ACTION_PERFORMED,AbstractFunctionFrame.buttonInferMachine));
 	}
 	

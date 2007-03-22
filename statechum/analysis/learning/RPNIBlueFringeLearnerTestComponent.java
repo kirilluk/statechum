@@ -2,7 +2,6 @@ package statechum.analysis.learning;
 
 import java.awt.Frame;
 import java.util.*;
-import javax.swing.*;
 
 import statechum.JUConstants;
 
@@ -17,6 +16,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
 		super(parentFrame);
 	}
+	
+	
 	
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold)throws InterruptedException{
 		this.sPlus = sPlus;
@@ -41,11 +42,16 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
 				int answer = checkWithEndUser(question, new Object [] {"Test"});
+				if (answer == USER_CANCELLED)
+				{
+					System.out.println("CANCELLED");
+					return null;
+				}
 				pair.getQ().removeUserDatum("pair");
 				pair.getR().removeUserDatum("pair");
 				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
-					System.out.println(question.toString()+ " <yes>");
+					System.out.println(setByAuto+question.toString()+ " <yes>");
 					Vertex tempVertex = getVertex(temp, question);
 					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
 							return learnMachine(initialise(), sPlus, sMinus, threshold);
@@ -53,7 +59,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				else if(answer >= 0){
 					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
-					System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+					System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
 					}

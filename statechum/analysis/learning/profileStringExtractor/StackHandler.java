@@ -90,9 +90,7 @@ public class StackHandler extends DefaultHandler {
 	}
 	
 	private void checkStackForFunction(List<Integer> methodStack){
-		Iterator<String> functionIt =  functions.keySet().iterator();
-		while(functionIt.hasNext()){
-			String key = functionIt.next();
+		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			if(containsString(methodStack, pathToStrings(l)))
 				functionString.add(key);

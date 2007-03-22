@@ -2,6 +2,7 @@ package statechum.analysis.learning;
 
 import java.awt.Frame;
 import java.util.*;
+import javax.swing.*;
 
 import statechum.JUConstants;
 
@@ -17,7 +18,9 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		super(parentFrame);
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold)throws InterruptedException{
+		this.sPlus = sPlus;
+		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
@@ -74,6 +77,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		//printScoreDistributions();
 		return model;
 	}
+	
+	
 	
 	private Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
@@ -136,7 +141,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return questions;
 	}
 	
-	protected List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<List<String>> suffixes){
+	public static List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<List<String>> suffixes){
 		ArrayList<List<String>> questions = new ArrayList<List<String>>();
 		Object[] prefixArray = null;
 		int iterations = sp.size();
@@ -162,7 +167,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return questions;
 	}
 	
-	protected List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<String> loopLabels, Collection<List<String>> suffixes){
+	public static List<List<String>> mergePrefixWithSuffixes(Collection<List<String>> sp, Collection<String> loopLabels, Collection<List<String>> suffixes){
 		ArrayList<List<String>> questions = new ArrayList<List<String>>();
 		Object[] prefixArray = null;
 		int iterations = sp.size();
@@ -193,7 +198,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return questions;
 	}
 	
-	private Set<List<String>> computeSuffixes(Vertex v, DirectedSparseGraph model){
+	public static Set<List<String>> computeSuffixes(Vertex v, DirectedSparseGraph model){
 		Set<List<String>> returnSet = new HashSet<List<String>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		Iterator<DirectedSparseEdge> edgeIt = model.getEdges().iterator();

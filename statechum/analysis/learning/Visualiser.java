@@ -7,18 +7,20 @@ import edu.uci.ics.jung.visualization.*;
 import edu.uci.ics.jung.visualization.contrib.*;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
+import edu.uci.ics.jung.visualization.control.PickingGraphMousePlugin;
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
+import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.profileStringExtractor.*;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 
 import javax.swing.*;
 
-public class Visualiser extends JFrame implements Observer,Runnable  {
+public class Visualiser extends JFrame implements Observer,Runnable, MouseListener  {
 	
 	/**
 	 * The version ID for serialization.
@@ -57,7 +59,11 @@ public class Visualiser extends JFrame implements Observer,Runnable  {
 		viewer.setBackground(Color.WHITE);
 		final DefaultModalGraphMouse graphMouse = new DefaultModalGraphMouse();
 		graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
+		PickingGraphMousePlugin picker = new PickingGraphMousePlugin();
+		graphMouse.add(new PickingGraphMousePlugin());
         viewer.setGraphMouse(graphMouse);
+        viewer.setPickSupport(new ShapePickSupport());
+        viewer.addMouseListener(this);
 		final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
 		//getContentPane().removeAll();
 		getContentPane().add(panel);
@@ -197,5 +203,29 @@ public class Visualiser extends JFrame implements Observer,Runnable  {
 		r.setVertexPaintFunction(new VertexPaint(r));
 		r.setVertexStrokeFunction(new ConstantVertexStrokeFunction(2.0f));
 		return r;
+	}
+	
+	
+	
+	public void mouseClicked(MouseEvent e) {
+		
+	}
+
+	public void mouseEntered(MouseEvent e) {
+
+		
+	}
+
+	public void mouseExited(MouseEvent e) {
+
+		
+	}
+
+	public void mousePressed(MouseEvent e) {
+
+		
+	}
+
+	public void mouseReleased(MouseEvent e) {
 	}
 }

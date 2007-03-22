@@ -23,8 +23,17 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
+	protected Set<List<String>> sPlus, sMinus;
 	
 	
+	public Set<List<String>> getSMinus() {
+		return sMinus;
+	}
+
+	public Set<List<String>> getSPlus() {
+		return sPlus;
+	}
+
 	protected Graph removeNegatives(Graph g){
 		Iterator vertexIt = g.getVertices().iterator();
 		HashSet remove = new HashSet();
@@ -100,7 +109,9 @@ public class RPNIBlueFringeLearner extends Observable {
 		return model;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold)throws InterruptedException{
+		this.sPlus = sPlus;
+		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
@@ -315,7 +326,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			// if we cannot make a call, return a negative number - nothing do not know what else to do about it.
 		}
 		catch (InterruptedException e) {
-			e.printStackTrace();
+			
 			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
 		}
 		if (answer.get() == USER_WAITINGFORSELECTION // this one if an exception was thrown

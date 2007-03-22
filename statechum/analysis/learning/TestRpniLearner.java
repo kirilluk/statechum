@@ -120,11 +120,13 @@ public class TestRpniLearner
 			}
 		};
 		l.addObserver(visFrame);
-		
+		try{
 		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus), threshold);
 		TestFSMAlgo.checkM(
 				learningOutcome,
 				fsmString);
+		}
+		catch(InterruptedException e){return;};
 	}
 	
 	@Test

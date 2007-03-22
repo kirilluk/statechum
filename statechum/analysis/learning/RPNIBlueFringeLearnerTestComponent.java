@@ -26,29 +26,27 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
-		updateGraph(model);
+		setChanged();
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
 			assert compatible(temp, sPlus, sMinus);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
-			pair.getR().setUserDatum("pair", pair, UserData.SHARED);
-			updateGraph(model);
+			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
+			setChanged();
 			List<List<String>> questions = generateQuestions(model, temp, pair);
 			questions = trimSet(questions);
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
-				int answer = checkWithEndUser(question, new Object [] {"Test"});
+				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
 				if (answer == USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
 				}
-				pair.getQ().removeUserDatum("pair");
-				pair.getR().removeUserDatum("pair");
 				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
 					System.out.println(setByAuto+question.toString()+ " <yes>");

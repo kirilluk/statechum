@@ -51,9 +51,15 @@ public class RPNIBlueFringeLearner extends Observable {
 		return g;
 	}
 	
-	public void updateGraph(Graph g){
-		setChanged();
-		notifyObservers(g);
+	/** Updates listeners only if this object has been modified, by calling
+	 * <pre>
+	 * setChanged()
+	 * </pre>
+	 * @param g the graph to display in the associated view
+	 */
+	public void updateGraph(Graph g)
+	{
+			notifyObservers(g);
 	}
 	
 	private Frame parentFrame;
@@ -116,7 +122,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		numberVertices(model);
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
-		updateGraph(model);
+		setChanged();
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
@@ -124,7 +130,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
 				pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 				pair.getR().setUserDatum("pair", pair, UserData.SHARED);
-				updateGraph(model);
+				setChanged();
 				List<List<String>> questions = generateQuestions(model, pair);
 				questions = trimSet(questions);
 				Iterator<List<String>> questionIt = questions.iterator();
@@ -132,7 +138,7 @@ public class RPNIBlueFringeLearner extends Observable {
 					List<String> question = questionIt.next();
 					String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();// Q is the blue vertex
 					updateGraph(model);
-					int response = checkWithEndUser(question,new Object[0]);// zero means "yes", everything else is "no"
+					int response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum("pair");
 					pair.getR().removeUserDatum("pair");
 					if(response == USER_ACCEPTED){
@@ -275,7 +281,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	public final static String QUESTION_AUTO = "<auto> "; 
 	protected String setByAuto = "";
 	
-	protected int checkWithEndUser(List<String> question, final Object [] moreOptions){
+	protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions){
 		if (ans != null)
 		{
 			int AutoAnswer = ans.getAnswer(question);
@@ -287,7 +293,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			else
 				setByAuto = "";
 		}
-		
+		updateGraph(model);
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 		

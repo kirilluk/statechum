@@ -22,8 +22,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import statechum.analysis.learning.TestFSMAlgo.DifferentFSMException;
-
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class TestRpniLearner 
@@ -118,6 +116,12 @@ public class TestRpniLearner
 		Point newLoc = visFrame.getLocation();newLoc.move(0, visFrame.getHeight());v.setLocation(newLoc);
 		final String expectedInit = TestFSMAlgo.getGraphData(g, expectedTrans, expectedAccept);
 		
+		// now sanity checking on the plus and minus sets
+		for(String [] path:plus)
+			assert RPNIBlueFringeLearner.USER_ACCEPTED == TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, Arrays.asList(path));
+		for(String [] path:minus)
+			assert RPNIBlueFringeLearner.USER_ACCEPTED != TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, Arrays.asList(path));
+		
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
 		{
 			protected int checkWithEndUser(List<String> question, final Object [] moreOptions)
@@ -135,9 +139,15 @@ public class TestRpniLearner
 		catch(InterruptedException e){return;};
 	}
 	
-	@Ignore("the learner does not work yet")
 	@Test
 	public void testLearner1()
+	{
+		checkLearner("A-a->B<-a-A-b->A\nA-b->A",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, new String[][]{},1);
+	}
+	
+	@Ignore("the learner does not work yet")
+	@Test
+	public void testLearner2()
 	{
 		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}},1);
 	}

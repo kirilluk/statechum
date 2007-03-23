@@ -124,7 +124,7 @@ public class TestRpniLearner
 		
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
 		{
-			protected int checkWithEndUser(List<String> question, final Object [] moreOptions)
+			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
 				return TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, question);
 			}
@@ -150,7 +150,7 @@ public class TestRpniLearner
 	@Test
 	public void testLearner2()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}},1);
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}},0);
 	}
 	
 	

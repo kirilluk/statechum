@@ -78,7 +78,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		}
 		updateGraph(model);
 		System.out.println("finished");
-		//printScoreDistributions();
+		printScoreDistributions();
 		return model;
 	}
 	
@@ -216,6 +216,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					Set<List<String>> paths = getPaths(sp);
 					returnSet.addAll(paths);
 				}
+				else if(e.getSource().equals(v)&&(e.getDest().equals(v))){
+					sp.add(e);
+					Set<List<String>> paths = getPaths(sp);
+					returnSet.addAll(paths);
+				}
 			}
 			
 		}
@@ -334,6 +339,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				}
 			}
 		}
+		scores.addAll(scoreToPair.keySet());
 		scoreDistributions.add(scores);
 		return createOrderedStack(scoreToPair);
 	}

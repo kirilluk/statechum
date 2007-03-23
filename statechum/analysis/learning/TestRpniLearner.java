@@ -143,10 +143,11 @@ public class TestRpniLearner
 	@Test
 	public void testLearner1()
 	{
-		checkLearner("A-a->B<-a-A-b->A\nA-b->A",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, new String[][]{},1);
+		checkLearner("A-a->B<-a-A\nA-b->A",
+				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
+				new String[][]{new String[]{"a","b"}},0);
 	}
 	
-	//@Ignore("the learner does not work yet")
 	@Test
 	public void testLearner2()
 	{

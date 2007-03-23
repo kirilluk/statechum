@@ -22,6 +22,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import samples.preview_new_graphdraw.iter.UpdatableIterableLayout;
+
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class TestRpniLearner 
@@ -91,7 +93,7 @@ public class TestRpniLearner
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph g = l.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true);
 		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g);
+		updateFrame(g,null);
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1\nB--d->C2-c->End2");
 	}
 
@@ -103,17 +105,15 @@ public class TestRpniLearner
 		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"} });
 		DirectedSparseGraph g = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
 		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g);
+		updateFrame(g,null);
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
 	}
 
-	protected static void checkLearner(String fsmString, String [][] plus, String [][] minus, int threshold)
+	protected void checkLearner(String fsmString, String [][] plus, String [][] minus, int threshold)
 	{
 		final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
 		final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
-		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
-		Visualiser v=new Visualiser();v.update(null, g);
-		Point newLoc = visFrame.getLocation();newLoc.move(0, visFrame.getHeight());v.setLocation(newLoc);
+		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
 		final String expectedInit = TestFSMAlgo.getGraphData(g, expectedTrans, expectedAccept);
 		
 		// now sanity checking on the plus and minus sets
@@ -132,6 +132,7 @@ public class TestRpniLearner
 		l.addObserver(visFrame);
 		try{
 		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus), threshold);
+		updateFrame(learningOutcome,g);
 		TestFSMAlgo.checkM(
 				learningOutcome,
 				fsmString);
@@ -145,7 +146,7 @@ public class TestRpniLearner
 		checkLearner("A-a->B<-a-A-b->A\nA-b->A",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, new String[][]{},1);
 	}
 	
-	@Ignore("the learner does not work yet")
+	//@Ignore("the learner does not work yet")
 	@Test
 	public void testLearner2()
 	{
@@ -161,12 +162,34 @@ public class TestRpniLearner
 	 */
 	protected static Visualiser visFrame = null;
 	
-	/** Displays the graph passed as an argument in the Jung window.
+	/** Displays twos graphs passed as arguments in the Jung window.
 	 * @param g the graph to display 
+	 * @param lowerGraph the graph to display below it
 	 */
-	public void updateFrame(DirectedSparseGraph g)
+	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
 	{
 		visFrame.update(null, g);
+		if (lowerGraph != null)
+		{
+			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
+				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
+				// I rely on the results of execution of the above thread below in order to position the window.
+				SwingUtilities.invokeAndWait(new Runnable() 
+				{
+					public void run()
+					{
+						Visualiser v=new Visualiser();v.update(null, lowerGraph);
+						Point newLoc = visFrame.getLocation();newLoc.move(0, visFrame.getHeight());v.setLocation(newLoc);
+					}
+				});
+			} catch (InterruptedException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			}
+		}
 	}
 
 

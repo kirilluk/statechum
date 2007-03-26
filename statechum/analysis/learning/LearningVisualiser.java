@@ -50,6 +50,7 @@ public class LearningVisualiser extends Visualiser{
 			{
 					if (split != null) {
 		        		l = new RPNIBlueFringeLearnerTestComponent(LearningVisualiser.this);
+		        		l.setPairsMergedPerHypothesis(2);
 		        	}
 		        	else
 		        		l = new RPNIBlueFringeLearner(LearningVisualiser.this);
@@ -57,7 +58,7 @@ public class LearningVisualiser extends Visualiser{
 		        	l.addObserver(LearningVisualiser.this);
 		        	l.setAnswers(ans);
 		        	try{
-		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus, 0);
+		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 		        	}
 		        	catch (InterruptedException e){return;};
 			}

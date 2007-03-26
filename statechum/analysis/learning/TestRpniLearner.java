@@ -109,7 +109,7 @@ public class TestRpniLearner
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
 	}
 
-	protected void checkLearner(String fsmString, String [][] plus, String [][] minus, int threshold)
+	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
 	{
 		final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
 		final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
@@ -129,9 +129,10 @@ public class TestRpniLearner
 				return TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, question);
 			}
 		};
+		l.setPairsMergedPerHypothesis(0);
 		l.addObserver(visFrame);
 		try{
-		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus), threshold);
+		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 		updateFrame(learningOutcome,g);
 		TestFSMAlgo.checkM(
 				learningOutcome,
@@ -145,15 +146,21 @@ public class TestRpniLearner
 	{
 		checkLearner("A-a->B<-a-A\nA-b->A",
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
-				new String[][]{new String[]{"a","b"}},0);
+				new String[][]{new String[]{"a","b"}});
 	}
 	
 	@Test
 	public void testLearner2()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}},0);
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}});
 	}
 	
+	@Test
+	public void testLearner3()
+	{
+		checkLearner("A-text->B-text->B\nA-figure->C-figure->C\nB-figure->C\nC-text->B\nB-set_position->F\nF-edit->G\nG-finalize->A\nC-set_position->D\nD-set_dimensions->E-set_dimensions->E-figure->C\nE-text->B",
+				new String[][]{new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","set_dimensions", "figure", "set_position", "set_dimensions"}, new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","text", "set_position", "edit"}, new String[]{"text","text","set_position","edit","finalize","text"}, new String[]{"text","text","set_position","edit","finalize","figure"}}, new String[][]{new String[]{"text","set_position","edit","finalize","set_dimensions"},new String[]{"text","set_position","edit","finalize","set_position"}});
+	}
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>

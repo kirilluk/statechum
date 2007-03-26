@@ -19,7 +19,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 	
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold)throws InterruptedException{
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus)throws InterruptedException{
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
@@ -27,7 +27,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
 		setChanged();
-		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
+		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
@@ -52,7 +52,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					System.out.println(setByAuto+question.toString()+ " <yes>");
 					Vertex tempVertex = getVertex(temp, question);
 					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
-							return learnMachine(initialise(), sPlus, sMinus, threshold);
+							return learnMachine(initialise(), sPlus, sMinus);
 				}
 				else if(answer >= 0){
 					assert answer < question.size();
@@ -62,19 +62,19 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 						continue;
 					}
 					assert accepted.equals("true");
-					return learnMachine(initialise(), sPlus, sMinus, threshold);
+					return learnMachine(initialise(), sPlus, sMinus);
 				}
 				else if (answer == USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);
 					if(sPlus == null)
 						return model;
 					if(!containsSubString(sPlus, question))
-						return learnMachine(initialise(), sPlus, sMinus, threshold);
+						return learnMachine(initialise(), sPlus, sMinus);
 				}
 				
 			}
 			model = temp;
-			possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
+			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
 		updateGraph(model);
 		System.out.println("finished");
@@ -281,7 +281,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return false;
 	}
 		
-	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
+	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		ArrayList scores = new ArrayList();
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
@@ -296,7 +296,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				StatePair pair = new StatePair(blueVertex, redVertex);
 				doneEdges = new HashSet();
 				Integer score = new Integer(computeScore(g,pair));
-				if(score.intValue()<threshold)
+				if(score.intValue()<this.generalisationThreshold)
 					continue;
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){

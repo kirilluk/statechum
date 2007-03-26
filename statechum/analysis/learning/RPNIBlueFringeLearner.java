@@ -24,6 +24,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	protected Set<List<String>> sPlus, sMinus;
+	protected int generalisationThreshold, pairsMergedPerHypothesis;
 	
 	
 	public Set<List<String>> getSMinus() {
@@ -65,6 +66,8 @@ public class RPNIBlueFringeLearner extends Observable {
 	private Frame parentFrame;
 
 	public RPNIBlueFringeLearner(Frame parentFrame){
+		this.pairsMergedPerHypothesis = 0;
+		this.generalisationThreshold = 0;
 		this.parentFrame = parentFrame;
 	}
 	
@@ -115,7 +118,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return model;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold)throws InterruptedException{
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus)throws InterruptedException{
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
@@ -123,7 +126,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
 		setChanged();
-		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
+		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
@@ -145,19 +148,19 @@ public class RPNIBlueFringeLearner extends Observable {
 						sPlus.add(question);
 						System.out.println(setByAuto+question+ " <yes>");
 						if(accepted.equals("false"))// KIRR: how can this be true? If it were so, there would be no questions to ask
-							return learnMachine(initialise(), sPlus, sMinus, threshold);
+							return learnMachine(initialise(), sPlus, sMinus);
 					}
 					else{
 						sMinus.add(question.subList(0, response));
 						System.out.println(setByAuto+question+ " <no>");
 						if(accepted.equals("true")){// KIRR: this cannot be false either
-							return learnMachine(initialise(), sPlus, sMinus, threshold);
+							return learnMachine(initialise(), sPlus, sMinus);
 						}
 					}
 				}
 				model = temp;
 			}
-			possibleMerges = chooseStatePairs(model, sPlus, sMinus, threshold);
+			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 			
 			updateGraph(model);
 		}
@@ -663,7 +666,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 
-	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus, int threshold){
+	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores
@@ -677,7 +680,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				StatePair pair = new StatePair(blueVertex, redVertex);
 				doneEdges = new HashSet();
 				Integer score = new Integer(computeScore(g,pair));
-				if(score.intValue()<threshold)
+				if(score.intValue()<this.generalisationThreshold)
 					continue;
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){
@@ -723,14 +726,22 @@ public class RPNIBlueFringeLearner extends Observable {
 		return createOrderedStack(scoreToPair);
 	}
 	
-	protected static Stack createOrderedStack(TreeMap<Integer,Vector<StatePair> > sets){
-		Iterator<Vector<StatePair> > valueIt = sets.values().iterator();
-		Stack<StatePair> allValues = new Stack<StatePair>();
-		while(valueIt.hasNext()){
-			Vector<StatePair> s = valueIt.next();
-			allValues.addAll(s);
+	protected Stack createOrderedStack(TreeMap<Integer,Vector<StatePair> > sets){
+		Stack<StatePair> values = new Stack<StatePair>();
+		if(this.pairsMergedPerHypothesis>0){
+			Stack<Integer> keys = new Stack<Integer>();
+			keys.addAll(sets.keySet());
+			for(int i = 0;i< this.pairsMergedPerHypothesis; i++){
+				if(keys.isEmpty())
+					continue;
+				Vector<StatePair> pairs = sets.get(keys.pop());
+				values.addAll(pairs);
+			}
 		}
-		return allValues;
+		else for(Vector<StatePair> v:sets.values()){
+			values.addAll(v);
+		}
+		return values;
 	}
 	
 	/** Checks for shallow compatibility between states, in other words if the two are both accept or both reject states
@@ -940,6 +951,14 @@ public class RPNIBlueFringeLearner extends Observable {
 				return current;
 		}
 		return null;
+	}
+
+	public void setGeneralisationThreshold(int generalisationThreshold) {
+		this.generalisationThreshold = generalisationThreshold;
+	}
+
+	public void setPairsMergedPerHypothesis(int pairsMergedPerHypothesis) {
+		this.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
 	}
 
 }

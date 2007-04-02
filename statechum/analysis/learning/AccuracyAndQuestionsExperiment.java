@@ -13,6 +13,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.*;
 
 
@@ -26,9 +27,7 @@ public class AccuracyAndQuestionsExperiment {
 		Set<List<String>> fullTestSet = wm.getFullTestSetStrings();
 		String fsmString = getFSMString(g);
 		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
-		final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
-		final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
-		final String expectedInit = TestFSMAlgo.getGraphData(testMachine, expectedTrans, expectedAccept);
+		final FSMStructure expected = TestFSMAlgo.getGraphData(testMachine);
 		for(int i=10;i<=100;i=i+10){
 			Set<List<String>> samples = randomHalf(fullTestSet);
 			Set<List<String>> tests = fullTestSet;
@@ -41,7 +40,7 @@ public class AccuracyAndQuestionsExperiment {
 			{
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 				{
-					return TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, question);
+					return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
 				}
 			};
 			l.addObserver(viz);
@@ -61,10 +60,8 @@ public class AccuracyAndQuestionsExperiment {
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
 		while(sMinusIt.hasNext()){
 			List<String> currentString = sMinusIt.next();
-			final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
-			final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
-			final String expectedInit = TestFSMAlgo.getGraphData(g, expectedTrans, expectedAccept);
-			int reject = TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, currentString);
+			final FSMStructure expected = TestFSMAlgo.getGraphData(g);
+			int reject = TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, currentString);
 			returnSet.add(currentString.subList(0, reject+1));
 		}
 		return returnSet;

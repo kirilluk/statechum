@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import junit.framework.Assert;
 import junit.framework.AssertionFailedError;
 
 import org.junit.AfterClass;
@@ -292,6 +293,7 @@ public class TestFSMAlgo {
 				"B", "U", "a",	 	"ACCEPT",
 			}).match();
 	}
+
 	@Test
 	public void testFsmParse10() {
 		new bufferMatcher(" A_string-b-#C1#-d0-P----a-#C\n A- b -#B-a-#U",
@@ -303,6 +305,17 @@ public class TestFSMAlgo {
 				"B", "U", "a",	 	"REJECT",
 			}).match();
 	}
+
+	@Test
+	public void testFsmParse11() {
+		new bufferMatcher("P-c->P<-b-Q_State<-a-P",
+			new String [] {
+				"P", "P", "c", "ACCEPT",
+				"Q_State", "P", "b",	 "ACCEPT",
+				"P", "Q_State", "a",	 	"ACCEPT"
+			}).match();
+	}
+		
 	protected static void checkEx(String whatToParse, String exceptionSubString)
 	{
 		boolean exceptionThrown = false;
@@ -558,19 +571,22 @@ public class TestFSMAlgo {
 				else
 					if (!Boolean.valueOf(fromVertex.getUserDatum(JUConstants.ACCEPTED).toString()))
 						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+from);
-				
-				if (toVertex == null)
-				{
-					toVertex = new DirectedSparseVertex();
-					toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
-					toVertex.addUserDatum(JUConstants.ACCEPTED, Boolean.toString(accept), UserData.SHARED);
-					toVertex.addUserDatum(JUConstants.LABEL, to, UserData.SHARED);
-					existingVertices.put(to, toVertex);
-					g.addVertex(toVertex);
-				}
+
+				if (from.equals(to))
+					toVertex = fromVertex;
 				else
-					if (Boolean.valueOf(toVertex.getUserDatum(JUConstants.ACCEPTED).toString()) != accept)
-						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
+					if (toVertex == null)
+					{
+						toVertex = new DirectedSparseVertex();
+						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
+						toVertex.addUserDatum(JUConstants.ACCEPTED, Boolean.toString(accept), UserData.SHARED);
+						toVertex.addUserDatum(JUConstants.LABEL, to, UserData.SHARED);
+						existingVertices.put(to, toVertex);
+						g.addVertex(toVertex);
+					}
+					else
+						if (Boolean.valueOf(toVertex.getUserDatum(JUConstants.ACCEPTED).toString()) != accept)
+							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 				
 				StatePair pair = new StatePair(fromVertex,toVertex);
 				DirectedSparseEdge edge = existingEdges.get(pair);
@@ -596,51 +612,81 @@ public class TestFSMAlgo {
 		return g;
 	}
 
-	/** Populates the supplied collections with data corresponding to the Jung graph passed as an argument. The aim is
-	 * to use the populated arrays for comparison of different graphs.
+	/** This data store represents an FSM and is used by tests. */
+	public static class FSMStructure
+	{
+		/** The transition transition diagram, in which every state is mapped to a map between an input (label) and a target state. */
+		public Map<String,Map<String,String>> trans;
+		
+		/** All states of the machine should be in the domain of this function; 
+		 * for a given state, this function will return <pre>true</pre> if it is an accept state and <pre>false</pre> for a reject one.
+		 */ 
+		public Map<String,Boolean> accept;
+		
+		/** The initial state. */
+		public String init;
+		
+		public FSMStructure(Map<String,Map<String,String>> transitions,Map<String,Boolean> a,String initState)
+		{
+			trans = transitions;accept = a;init = initState;
+		}
+		
+		public FSMStructure()
+		{
+			trans = new HashMap<String,Map<String,String>>();accept = new HashMap<String,Boolean>();
+		}
+	}
+
+	/** Builds fsm structures corresponding to the Jung graph passed as an argument. The aim is
+	 * to use the constructed structure for the comparison of different Jung graphs.
 	 * 
 	 * @param g graph from which to extract data
-	 * @param transitions stores the transition diagram, in which every state is mapped to a map between an input (label) and a target state
-	 * @param accept maps accept states to true and reject ones to false
-	 * @return the name of the initial state
+	 * @return the class storing transition information.
 	 */
-	public static String getGraphData(DirectedSparseGraph g, Map<String,Map<String,String>> transitions, Map<String,Boolean> accept)
+	public static FSMStructure getGraphData(DirectedSparseGraph g)
 	{
 		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
-		transitions.clear();accept.clear();
+		FSMStructure extractedFSM = new FSMStructure();
 		while(edgeIt.hasNext())
 		{
 			DirectedSparseEdge edge = edgeIt.next();
 			Vertex fromVertex = edge.getSource(), toVertex = edge.getDest();
 			String from = (String)fromVertex.getUserDatum(JUConstants.LABEL),
 				to = (String)toVertex.getUserDatum(JUConstants.LABEL);
-			Map<String,String> labelToTargetState = transitions.get(from);
+			Map<String,String> labelToTargetState = extractedFSM.trans.get(from);
 			if (labelToTargetState == null)
 			{
-				labelToTargetState = new HashMap<String,String>();transitions.put(from, labelToTargetState);
+				labelToTargetState = new HashMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
 			}
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);
 		}
 		
 		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		String initState = null;
 		while(vertexIt.hasNext())
 		{
 			Vertex v = vertexIt.next();
 			String name = (String)v.getUserDatum(JUConstants.LABEL);
+			if (extractedFSM.accept.containsKey(name))
+				throw new IllegalArgumentException("multiple states with the same name "+name);
 			
-			accept.put(name, 
+			extractedFSM.accept.put(name, 
 					new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString()));
 			Object initp = v.getUserDatum("property");
 			if (initp != null)
 			{
-				assertNull(initState);
-				assertEquals("init",initp.toString());
-				initState = name;
+				if (!"init".equals(initp.toString()))
+					throw new IllegalArgumentException("invalid init property");
+
+				if (extractedFSM.init != null)
+					throw new IllegalArgumentException("duplicate initial state "+name);
+
+				extractedFSM.init = name;
 			}
 		}
-		assertNotNull(initState);
-		return initState;
+		if (extractedFSM.init == null)
+			throw new IllegalArgumentException("missing initial state");
+		
+		return extractedFSM;
 	}
 	
 	/** Given a set of labels and a target state, this method adds to a supplied map an association 
@@ -773,112 +819,124 @@ public class TestFSMAlgo {
 	@Test
 	public void testGraphConstruction1()
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
+		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A","testConstruction1");
 		updateFrame(g);
-		String init = getGraphData(g,trans,accept);
-		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null));
-		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",null));
-		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
-		expectedAccept.put("A", true);
-		expectedAccept.put("B", true);
-		expectedAccept.put("C", true);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null));
+		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",null));
+		expected.trans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
+		expected.accept.put("A", true);
+		expected.accept.put("B", true);
+		expected.accept.put("C", true);
 		
-		assertEquals("A", init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));
+		assertEquals("A", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,graph.trans.equals(expected.trans));
 	}
 
 	@Test
 	public void testGraphConstruction2()
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
+		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A-b->B-a-#D","testConstruction2");
 		g.setUserDatum(JUConstants.TITLE, "testConstruction2",UserData.SHARED);
 		updateFrame(g);
-		String init = getGraphData(g,trans,accept);
-		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),"B",null));
-		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"D",null)));
-		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
-		expectedAccept.put("A", true);
-		expectedAccept.put("B", true);
-		expectedAccept.put("C", true);
-		expectedAccept.put("D", false);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),"B",null));
+		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"D",null)));
+		expected.trans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
+		expected.accept.put("A", true);
+		expected.accept.put("B", true);
+		expected.accept.put("C", true);
+		expected.accept.put("D", false);
 		
-		assertEquals("A", init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));
+		assertEquals("A", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));
 	}
 
 	@Test
 	public void testGraphConstruction3()
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
+		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--C-c->A-b->A-c->A\nB-d->B-p->C\nB-q->C\nB-r->C\n","testConstruction3");
 		updateFrame(g);
-		String init = getGraphData(g,trans,accept);
-		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
-		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
-		expectedTrans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
-		expectedAccept.put("A", true);
-		expectedAccept.put("B", true);
-		expectedAccept.put("C", true);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
+		expected.trans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
+		expected.accept.put("A", true);
+		expected.accept.put("B", true);
+		expected.accept.put("C", true);
 		
-		assertEquals("A", init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));
+		assertEquals("A", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));
 	}
 
 	@Test
 	public void testGraphConstruction4()
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
+		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--D-c->A-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction4");
 		updateFrame(g);
-		String init = getGraphData(g,trans,accept);
-		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
-		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
-		expectedTrans.put("D", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
-		expectedAccept.put("A", true);
-		expectedAccept.put("B", true);
-		expectedAccept.put("C", false);
-		expectedAccept.put("D", true);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
+		expected.trans.put("D", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
+		expected.accept.put("A", true);
+		expected.accept.put("B", true);
+		expected.accept.put("C", false);
+		expected.accept.put("D", true);
 		
-		assertEquals("A", init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));
+		assertEquals("A", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));
 	}
 
 	@Test
 	public void testGraphConstruction5()
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
+		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b-#C\nA-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction5");
 		visFrame.update(null, g);
-		String init = getGraphData(g,trans,accept);
-		expectedTrans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
-		expectedTrans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),"C",null)));
-		expectedAccept.put("A", true);
-		expectedAccept.put("B", true);
-		expectedAccept.put("C", false);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
+		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),"C",null)));
+		expected.accept.put("A", true);
+		expected.accept.put("B", true);
+		expected.accept.put("C", false);
 		
-		assertEquals("A", init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));
+		assertEquals("A", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));
 	}
 	
 	@Test
-	public void testGraphConstruction6()
+	public void testGraphConstruction6() // checks loop support
+	{
+		FSMStructure expected = new FSMStructure();
+		DirectedSparseGraph g = buildGraph("P-c->P<-b-Q_State<-a-P-b->P\nQ_State-a->Q_State","testConstruction6");
+		visFrame.update(null, g);
+		FSMStructure graph = getGraphData(g);
+		expected.trans.put("P", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"P",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"Q_State",null)));
+		expected.trans.put("Q_State", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"Q_State",createLabelToStateMap(Arrays.asList(new String[] {"b"}),"P",null)));
+		expected.accept.put("P", true);
+		expected.accept.put("Q_State", true);
+		
+		assertEquals("P", graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));
+	}
+
+	@Test
+	public void testGraphConstructionFail1()
 	{
 		boolean exceptionThrown = false;
 		try
 		{
-			buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p-#CONFL","testGraphConstruction6");
+			buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p-#CONFL","testGraphConstructionFail1");
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -889,6 +947,59 @@ public class TestFSMAlgo {
 		assertTrue("exception not thrown",exceptionThrown);
 	}
 	
+	/** Checks if adding a vertex to a graph causes an exception to be thrown. */
+	public static void checkWithVertex(Vertex v,String expectedExceptionString, String testName)
+	{
+		final DirectedSparseGraph g = buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p->CONFL",testName);
+		getGraphData(g);// without the vertex being added, everything should be fine.
+		g.addVertex(v);// add the vertex
+		
+		boolean exceptionThrown = false;
+		try
+		{
+			getGraphData(g);// now getGraphData should choke.			
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("correct exception not thrown",e.getMessage().contains(expectedExceptionString) );
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+	
+	@Test
+	public void testGraphConstructionFail2()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
+		checkWithVertex(v, "multiple", "testGraphConstructionFail2");
+	}
+	
+	@Test
+	public void testGraphConstructionFail3()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "CONFL", UserData.SHARED);
+		checkWithVertex(v, "multiple", "testGraphConstructionFail3");
+	}
+	
+	@Test
+	public void testGraphConstructionFail4()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum("property", "init", UserData.SHARED);
+		checkWithVertex(v, "duplicate", "testGraphConstructionFail4");
+	}
+	
+	@Test
+	public void testGraphConstructionFail5()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum("property", "aa", UserData.SHARED);
+		checkWithVertex(v, "property", "testGraphConstructionFail5");
+	}
+	
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
 	 * @param g graph to check
@@ -896,21 +1007,19 @@ public class TestFSMAlgo {
 	 */
 	public void checkEq(DirectedSparseGraph g, String fsm)
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
 		DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
-		String init = getGraphData(g,trans,accept);
-		String expectedInit = getGraphData(expectedGraph,expectedTrans,expectedAccept);
-		assertEquals("incorrect initial state",expectedInit, init);
-		assertEquals("incorrect vertice set",true,expectedAccept.equals(accept));
-		assertEquals("incorrect transition set",true,trans.equals(expectedTrans));		
+		final FSMStructure graph = getGraphData(g);
+		updateFrame(expectedGraph);
+		final FSMStructure expected = getGraphData(expectedGraph);
+		assertEquals("incorrect initial state",expected.init, graph.init);
+		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
+		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));		
 	}
 
 	@Test
 	public void testCheckEq()
 	{
 		DirectedSparseGraph g=buildGraph("P-a->Q_State-b->P-c->P","testCheckEq");
-		updateFrame(g);
 		checkEq(g,"P-c->P<-b-Q_State<-a-P");
 	}
 	
@@ -931,28 +1040,35 @@ public class TestFSMAlgo {
 		}
 	}
 	
-	public static void checkM(DirectedSparseGraph g, String fsm)
+	
+	public static void checkM(DirectedSparseGraph g,String fsm)
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>(), expectedTrans=new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>(), expectedAccept = new HashMap<String,Boolean>();
-		String init = getGraphData(g,trans,accept);
-		String expectedInit = getGraphData(buildGraph(fsm,"expected graph"),expectedTrans,expectedAccept);
+		final FSMStructure graph = getGraphData(g);
+		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
+		final FSMStructure expected = getGraphData(expectedGraph);
+		checkM(graph,expected,graph.init,expected.init);
+	}
+	
+	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
+	 * Unreachable states are ignored. 
+	 */
+	public static void checkM(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
+	{
 		List<String> currentExplorationBoundary = new LinkedList<String>();
-		assertEquals(expectedTrans.size(), trans.size());
 
 		Map<String,String> morphism = new HashMap<String,String>();
 		Set<String> statesAddedToBoundary = new HashSet<String>();
-		currentExplorationBoundary.add(init);statesAddedToBoundary.add(init);
-		morphism.put(init,expectedInit);
+		currentExplorationBoundary.add(stateGraph);statesAddedToBoundary.add(stateGraph);
+		morphism.put(stateGraph,stateExpected);
 		
 		for(int i=0;i < currentExplorationBoundary.size();++i)
 		{
 			String state = currentExplorationBoundary.get(i);
 			String mappedState = morphism.get(state);assert(mappedState != null);
-			if (!accept.get(state).equals(expectedAccept.get(mappedState)))
+			if (!graph.accept.get(state).equals(expected.accept.get(mappedState)))
 				throw new DifferentFSMException("state "+mappedState+" has a different acceptance labelling between the machines");
 						
-			Map<String,String> targets = trans.get(state), expectedTargets = expectedTrans.get(mappedState);
+			Map<String,String> targets = graph.trans.get(state), expectedTargets = expected.trans.get(mappedState);
 			if (expectedTargets == null)
 			{
 				if (targets != null)
@@ -1019,6 +1135,50 @@ public class TestFSMAlgo {
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
 		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), expected);
 	}
+
+	@Test
+	public void testCheckM5()
+	{
+		checkM(buildGraph("A-a->B-b->B-a->C", "testCheck5"), "S-a->U<-b-U\nQ<-a-U");
+	}
+
+	@Test
+	public void testCheckM6()
+	{
+		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->B-a->C", "testCheck6"));
+		final FSMStructure expected = getGraphData(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"));
+		checkM(graph,expected,"A","S");
+		checkM(graph,expected,"B","U");
+		checkM(graph,expected,"C","Q");
+	}
+
+	/** Same as checkM, but returns a boolean false instead of an exception. */
+	public static boolean checkMBoolean(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
+	{
+		try
+		{
+			checkM(graph,expected,stateGraph,stateExpected);
+		}
+		catch(DifferentFSMException ex)
+		{
+			return false;
+		}
+		return true;
+	}
+	
+	@Test
+	public void testCheckM6_f1()
+	{
+		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->B-a->C", "testCheck6"));
+		final FSMStructure expected = getGraphData(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"A","Q"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"A","U"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"B","Q"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"B","S"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"C","U"));
+		Assert.assertFalse(checkMBoolean(graph,expected,"C","S"));
+	}
+	
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD1()
@@ -1087,10 +1247,8 @@ public class TestFSMAlgo {
 	 */
 	public static void checkPath(String fsmString, String []path, int ExpectedResult)
 	{
-		Map<String,Map<String,String>> trans = new HashMap<String,Map<String,String>>();
-		Map<String,Boolean> accept = new HashMap<String,Boolean>();
-		String init = getGraphData(buildGraph(fsmString, "sample FSM"), trans, accept);
-		assertEquals(ExpectedResult, tracePath(init, trans, accept, Arrays.asList(path)));
+		final FSMStructure graph = getGraphData(buildGraph(fsmString, "sample FSM"));
+		assertEquals(ExpectedResult, tracePath(graph.init, graph.trans, graph.accept, Arrays.asList(path)));
 	}
 	
 	@Test
@@ -1153,6 +1311,145 @@ public class TestFSMAlgo {
 		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3);
 	}
 
+	
+	/** Computes an alphabet of a given graph and adds transitions to a 
+	 * reject state from all states A and inputs a from which there is no B such that A-a->B
+	 * (A-a-#REJECT) gets added. Note: such transitions are even added to reject vertices.
+	 * 
+	 * @param g the graph to add transitions to
+	 * @param reject the name of the reject state, to be added to the graph.
+	 * @return true if any transitions have been added
+	 */   
+	public static boolean completeGraph(DirectedSparseGraph g, String reject)
+	{
+		DirectedSparseVertex rejectVertex = new DirectedSparseVertex();
+		boolean transitionsToBeAdded = false;// whether and new transitions have to be added.
+		rejectVertex.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
+		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
+		
+		HashSet<String> alphabet = new HashSet<String>();
+
+		// first pass - computing an alphabet
+		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+		while(vertexIt.hasNext())
+		{
+			Vertex v = vertexIt.next();
+			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
+			while(outEdgeIt.hasNext()){
+				DirectedSparseEdge outEdge = outEdgeIt.next();
+				alphabet.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+			}
+		}
+		
+		// second pass - checking if any transitions need to be added.
+		Set<String> outLabels = new HashSet<String>();
+		vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+		while(vertexIt.hasNext() && !transitionsToBeAdded)
+		{
+			Vertex v = vertexIt.next();
+			outLabels.clear();
+			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
+			while(outEdgeIt.hasNext()){
+				DirectedSparseEdge outEdge = outEdgeIt.next();
+				outLabels.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+			}
+			transitionsToBeAdded = !alphabet.equals(outLabels);
+		}
+		
+		if (transitionsToBeAdded)
+		{
+			// third pass - adding transitions
+			g.addVertex(rejectVertex);
+			vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+			while(vertexIt.hasNext())
+			{
+				Vertex v = vertexIt.next();
+				if (v != rejectVertex)
+				{// no transitions should start from the reject vertex
+					Set<String> outgoingLabels = (Set<String>)alphabet.clone();
+					
+					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
+					while(outEdgeIt.hasNext()){
+						DirectedSparseEdge outEdge = outEdgeIt.next();
+						outgoingLabels.removeAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+					}
+					if (!outgoingLabels.isEmpty())
+					{
+						// add a transition
+						DirectedSparseEdge edge = new DirectedSparseEdge(v,rejectVertex);
+						edge.addUserDatum(JUConstants.LABEL, outgoingLabels, UserData.CLONE);
+						g.addEdge(edge);
+					}
+				}
+			}
+		}
+		
+		return transitionsToBeAdded;
+	}
+
+	@Test
+	public void completeGraphTest1()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
+		checkM(g, "A-a->A");		
+	}
+	
+	@Test
+	public void completeGraphTest2()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->B-a->A", "completeGraphTest2");Assert.assertFalse(completeGraph(g,"REJECT"));
+		checkM(g, "A-a->A");		
+	}
+	
+	@Test
+	public void completeGraphTest3()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeGraphTest3");Assert.assertFalse(completeGraph(g,"REJECT"));
+		checkM(g, "A-b->A-a->A");		
+	}
+	
+	@Test
+	public void completeGraphTest4()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->B-b->A", "completeGraphTest4");Assert.assertTrue(completeGraph(g,"REJECT"));
+		checkM(g, "A-a->B-b->A\nA-b-#REJECT#-a-B");		
+	}
+	
+	@Test
+	public void completeGraphTest4b()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->B-b->A-b->A", "completeGraphTest4b");Assert.assertTrue(completeGraph(g,"REJECT"));
+		checkM(g, "A-a->B-b->A-b->A\nREJECT#-a-B");		
+	}
+
+	@Test
+	public void completeGraphTest5()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B", "completeGraphTest5");Assert.assertTrue(completeGraph(g,"REJECT"));
+		checkM(g, "A-a->A-b->B-c->B\nA-c-#REJECT#-a-B-b-#REJECT");		
+	}	
+	
+	@Test
+	public void completeGraphTest6()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C", "completeGraphTest6");Assert.assertTrue(completeGraph(g,"REJECT"));
+		updateFrame(g);
+		checkM(g, "A-a->A-b->B-c->B-a->C\nA-c-#REJECT#-b-B\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT");		
+	}	
+	
+	@Test
+	public void completeGraphTest7()
+	{
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeGraphTest7");Assert.assertTrue(completeGraph(g,"REJECT"));
+		updateFrame(g);
+		final FSMStructure graph = getGraphData(g);
+		final FSMStructure expected = getGraphData(buildGraph("A-a->A-b->B-c->B-a->C\nA-c-#REJECT\nA-d-#REJECT\nB-b-#REJECT\nB-d-#REJECT\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT\nC-d-#REJECT\nS-a-#REJECT\nS-b-#REJECT\nS-c-#REJECT\nS-d-#REJECT\nQ-a-#REJECT\nQ-b-#REJECT\nQ-c-#REJECT\nQ-d->S","expected graph"));
+		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));
+		Assert.assertTrue(checkMBoolean(graph,expected,"B","B"));
+		Assert.assertTrue(checkMBoolean(graph,expected,"Q","Q"));
+		Assert.assertTrue(checkMBoolean(graph,expected,"S","S"));
+		Assert.assertTrue(checkMBoolean(graph,expected,"REJECT","REJECT"));
+	}	
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>

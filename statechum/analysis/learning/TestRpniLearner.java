@@ -16,6 +16,8 @@ import java.util.Set;
 
 import javax.swing.SwingUtilities;
 
+import junit.framework.AssertionFailedError;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -23,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import samples.preview_new_graphdraw.iter.UpdatableIterableLayout;
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -111,35 +114,36 @@ public class TestRpniLearner
 
 	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
 	{
-		final Map<String,Map<String,String>> expectedTrans = new HashMap<String,Map<String,String>>();
-		final Map<String,Boolean> expectedAccept = new HashMap<String,Boolean>();
-		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
-		final String expectedInit = TestFSMAlgo.getGraphData(g, expectedTrans, expectedAccept);
-		
+		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");TestFSMAlgo.completeGraph(g, "REJECT");
+		final FSMStructure expected = TestFSMAlgo.getGraphData(g);
+
+		updateFrame(g, g);
+
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED == TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, Arrays.asList(path));
+			assert RPNIBlueFringeLearner.USER_ACCEPTED == TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, Arrays.asList(path));
 		for(String [] path:minus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED != TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, Arrays.asList(path));
+			assert RPNIBlueFringeLearner.USER_ACCEPTED != TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, Arrays.asList(path));
 		
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
-				return TestFSMAlgo.tracePath(expectedInit, expectedTrans, expectedAccept, question);
+				return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
 			}
 		};
 		l.setPairsMergedPerHypothesis(0);
 		//l.setGeneralisationThreshold(1);
 		l.addObserver(visFrame);
 		try{
-		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
-		updateFrame(learningOutcome,g);
-		//TestFSMAlgo.checkM(
-			//	learningOutcome,
-				//fsmString);
+			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
+			updateFrame(learningOutcome,g);
+			FSMStructure learntStructure = TestFSMAlgo.getGraphData(learningOutcome);
+			TestFSMAlgo.checkM(learntStructure,expected,learntStructure.init,expected.init);
 		}
-		catch(InterruptedException e){return;};
+		catch(InterruptedException e){
+			AssertionFailedError th = new AssertionFailedError("interrupted exception received");th.initCause(e);throw th;
+		};
 	}
 	
 	@Test
@@ -147,13 +151,13 @@ public class TestRpniLearner
 	{
 		checkLearner("A-a->B<-a-A\nA-b->A",
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
-				new String[][]{new String[]{"a","b"}});
+				new String[][]{new String[]{"a","b"},new String[]{"a","a"}});
 	}
 	
 	@Test
 	public void testLearner2()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}});
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"},new String[]{"b","b","c"}});
 	}
 	
 	@Test

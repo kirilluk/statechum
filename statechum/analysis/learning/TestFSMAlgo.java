@@ -604,7 +604,7 @@ public class TestFSMAlgo {
 	 * @param accept maps accept states to true and reject ones to false
 	 * @return the name of the initial state
 	 */
-	protected static String getGraphData(DirectedSparseGraph g, Map<String,Map<String,String>> transitions, Map<String,Boolean> accept)
+	public static String getGraphData(DirectedSparseGraph g, Map<String,Map<String,String>> transitions, Map<String,Boolean> accept)
 	{
 		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
 		transitions.clear();accept.clear();

@@ -894,7 +894,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return current;
 	}
 	
-	protected static Vertex getVertex (DirectedSparseGraph g, List<String> string){
+	public static Vertex getVertex (DirectedSparseGraph g, List<String> string){
 		Vertex init = findVertex("property", "init",g);
 		Vertex current = init;
 		for(int i = 0;i<string.size();i++){

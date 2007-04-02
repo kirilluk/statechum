@@ -1,11 +1,8 @@
 package statechum.xmachine.model.testset;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Vector;
+import java.util.*;
+
+import statechum.JUConstants;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
@@ -29,6 +26,26 @@ public class WMethod {
 	
 	public Vector getFullTestSet(){
 		return fullTestSet;
+	}
+	
+	public Set<List<String>> getFullTestSetStrings(){
+		Iterator<Collection> testSetIt = fullTestSet.iterator();
+		HashSet<List<String>> testSet = new HashSet<List<String>>();
+		while(testSetIt.hasNext()){
+			Collection test = testSetIt.next();
+			ArrayList<String> string = new ArrayList<String>();
+			for(Object element:test){
+				if(element instanceof Edge){
+					Edge e = (Edge)element;
+					Set labelSet = (Set)e.getUserDatum(JUConstants.LABEL);
+					string.add(labelSet.toArray()[0].toString());
+				}
+				else 
+					string.add((String)element);
+			}
+			testSet.add(string);
+		}
+		return testSet;
 	}
 	
 	public Vector getCharacterisationSet() {

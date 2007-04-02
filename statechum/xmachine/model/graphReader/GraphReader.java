@@ -4,11 +4,12 @@ import java.io.File;
 import java.util.*;
 import javax.swing.*;
 
-import statechum.JUConstants;
 import statechum.xmachine.model.*;
 
 import edu.uci.ics.jung.graph.impl.*;
+import edu.uci.ics.jung.utils.*;
 import edu.uci.ics.jung.io.*;
+import edu.uci.ics.jung.graph.*;
 
 public class GraphReader {
 
@@ -32,11 +33,14 @@ public class GraphReader {
 		Iterator edgeIt = g.getEdges().iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = (DirectedSparseEdge)edgeIt.next();
-			String fromLabel = String.valueOf(e.getSource().getUserDatum("name"));
-			String toLabel = String.valueOf(e.getDest().getUserDatum("name"));
+			Vertex src = e.getSource();
+			String fromLabel = String.valueOf(e.getSource().getUserDatum("VERTEX"));
+			if(fromLabel.startsWith("Initial"))
+				src.setUserDatum("startOrTerminal", "start", UserData.SHARED);
+			String toLabel = String.valueOf(e.getDest().getUserDatum("VERTEX"));
 			Transition t = new Transition(fromLabel,toLabel);
 			TransitionFunction f = new TransitionFunction();
-			f.setLabel(String.valueOf(e.getUserDatum(JUConstants.LABEL)));
+			f.setLabel(String.valueOf(e.getUserDatum("EDGE")));
 			t.addFunction(f);
 			machine.addTransition(t);
 			machine.attachGraph(g);

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns/graphml"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
+<graph edgedefault="directed"  >
+<node id="1" VERTEX="Initial State 0" />
+<node id="2" VERTEX="1" />
+<node id="3" VERTEX="3" />
+<node id="4" VERTEX="4" />
+<node id="5" VERTEX="5" />
+<node id="6" VERTEX="6" />
+<node id="7" VERTEX="10" />
+<node id="8" VERTEX="11" />
+<node id="9" VERTEX="12" />
+<node id="10" VERTEX="13" />
+<node id="11" VERTEX="14" />
+<node id="12" VERTEX="15" />
+<node id="13" VERTEX="16" />
+<node id="14" VERTEX="17" />
+<node id="15" VERTEX="20" />
+<node id="16" VERTEX="21" />
+<node id="17" VERTEX="22" />
+<node id="18" VERTEX="23" />
+<node id="19" VERTEX="24" />
+<edge source="5" target="5" directed="true"EDGE="a4" />
+<edge source="19" target="8" directed="true"EDGE="a0" />
+<edge source="3" target="17" directed="true"EDGE="a4" />
+<edge source="6" target="5" directed="true"EDGE="a4" />
+<edge source="14" target="16" directed="true"EDGE="a2" />
+<edge source="1" target="2" directed="true"EDGE="a0" />
+<edge source="2" target="8" directed="true"EDGE="a3" />
+<edge source="12" target="9" directed="true"EDGE="a0" />
+<edge source="13" target="14" directed="true"EDGE="a4" />
+<edge source="8" target="3" directed="true"EDGE="a2" />
+<edge source="12" target="1" directed="true"EDGE="a1" />
+<edge source="10" target="14" directed="true"EDGE="a1" />
+<edge source="6" target="4" directed="true"EDGE="a1" />
+<edge source="18" target="4" directed="true"EDGE="a4" />
+<edge source="4" target="15" directed="true"EDGE="a5" />
+<edge source="16" target="16" directed="true"EDGE="a4" />
+<edge source="15" target="10" directed="true"EDGE="a0" />
+<edge source="15" target="15" directed="true"EDGE="a2" />
+<edge source="7" target="7" directed="true"EDGE="a0" />
+<edge source="11" target="3" directed="true"EDGE="a2" />
+<edge source="16" target="6" directed="true"EDGE="a5" />
+<edge source="1" target="9" directed="true"EDGE="a2" />
+<edge source="17" target="4" directed="true"EDGE="a3" />
+<edge source="4" target="1" directed="true"EDGE="a2" />
+<edge source="6" target="11" directed="true"EDGE="a5" />
+<edge source="8" target="7" directed="true"EDGE="a3" />
+<edge source="3" target="19" directed="true"EDGE="a5" />
+<edge source="19" target="11" directed="true"EDGE="a1" />
+<edge source="18" target="19" directed="true"EDGE="a0" />
+<edge source="14" target="13" directed="true"EDGE="a5" />
+<edge source="7" target="16" directed="true"EDGE="a5" />
+<edge source="13" target="18" directed="true"EDGE="a2" />
+<edge source="9" target="12" directed="true"EDGE="a2" />
+<edge source="8" target="12" directed="true"EDGE="a0" />
+<edge source="18" target="3" directed="true"EDGE="a5" />
+<edge source="2" target="12" directed="true"EDGE="a5" />
+<edge source="11" target="19" directed="true"EDGE="a5" />
+<edge source="9" target="7" directed="true"EDGE="a5" />
+<edge source="5" target="7" directed="true"EDGE="a5" />
+<edge source="14" target="2" directed="true"EDGE="a4" />
+<edge source="10" target="3" directed="true"EDGE="a5" />
+<edge source="17" target="7" directed="true"EDGE="a2" />
+</graph>
+</graphml>

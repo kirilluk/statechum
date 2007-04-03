@@ -156,6 +156,7 @@ public class AccuracyAndQuestionsExperiment {
         		continue;
         	String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
         	GraphMLFile graphmlFile = new GraphMLFile();
+        	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
         	DirectedSparseGraph dg = new DirectedSparseGraph();
         	dg.getEdgeConstraints().clear();
         	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+graphFileList[i]);
@@ -166,13 +167,6 @@ public class AccuracyAndQuestionsExperiment {
         			v.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         			break;
         		}
-        	}
-        	Iterator<Edge> edgeIt = dg.getEdges().iterator();
-        	while(edgeIt.hasNext()){
-        		Edge e = edgeIt.next();
-        		HashSet set = new HashSet();
-        		set.add(e.getUserDatum("EDGE").toString());
-        		e.setUserDatum(JUConstants.LABEL, set, UserData.SHARED);
         	}
         	experiment.evaluate(dg);
         		

@@ -6,12 +6,12 @@ xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
 <node id="2" VERTEX="1" />
 <node id="3" VERTEX="3" />
 <node id="4" VERTEX="4" />
-<edge source="2" target="4" directed="true"EDGE="a1" />
-<edge source="4" target="1" directed="true"EDGE="a0" />
-<edge source="4" target="4" directed="true"EDGE="a1" />
-<edge source="1" target="3" directed="true"EDGE="a1" />
-<edge source="1" target="2" directed="true"EDGE="a0" />
-<edge source="2" target="4" directed="true"EDGE="a0" />
-<edge source="3" target="1" directed="true"EDGE="a0" />
+<edge source="2" target="4" directed="true" EDGE="a1" />
+<edge source="4" target="1" directed="true" EDGE="a0" />
+<edge source="4" target="4" directed="true" EDGE="a1" />
+<edge source="1" target="3" directed="true" EDGE="a1" />
+<edge source="1" target="2" directed="true" EDGE="a0" />
+<edge source="2" target="4" directed="true" EDGE="a0" />
+<edge source="3" target="1" directed="true" EDGE="a0" />
 </graph>
 </graphml>

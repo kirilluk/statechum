@@ -1,6 +1,7 @@
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertTrue;
+import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.awt.Point;
 import java.io.IOException;
@@ -26,69 +27,12 @@ import org.junit.Test;
 
 import samples.preview_new_graphdraw.iter.UpdatableIterableLayout;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class TestRpniLearner 
 {
-	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
-	 * 
-	 * @param data source data
-	 * @return a set of sequences to apply to an RPNI learner
-	 */
-	public static Set<List<String>> buildSet(String [][] data)
-	{
-		Set<List<String>> result = new HashSet<List<String>>();
-		for(String []seq:data)
-		{
-			result.add(Arrays.asList(seq));
-		}
-		return result;
-	}
-	
-	@Test
-	public void testBuildSet1()
-	{
-		assertTrue(buildSet(new String[] []{}).isEmpty());
-	}
-
-	@Test
-	public void testBuildSet2()
-	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(new LinkedList<String>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{}})));
-	}
-
-	@Test
-	public void testBuildSet3A()
-	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<String>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}})));
-	}
-
-	@Test
-	public void testBuildSet3B()
-	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}})));
-	}
-
-	@Test
-	public void testBuildSet4()
-	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<String>());
-		expectedResult.add(Arrays.asList(new String[]{"g","t"}));
-		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
-		assertTrue(expectedResult.equals(buildSet(new String[] []{
-				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
-	}
-
 	@Test
 	public void testPTAconstruction1() // only two traces, both accept
 	{
@@ -115,21 +59,21 @@ public class TestRpniLearner
 	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
 	{
 		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");TestFSMAlgo.completeGraph(g, "REJECT");
-		final FSMStructure expected = TestFSMAlgo.getGraphData(g);
+		final FSMStructure expected = WMethod.getGraphData(g);
 
 		updateFrame(g, g);
 
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED == TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, Arrays.asList(path));
+			assert RPNIBlueFringeLearner.USER_ACCEPTED == WMethod.tracePath(expected, Arrays.asList(path));
 		for(String [] path:minus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED != TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, Arrays.asList(path));
+			assert RPNIBlueFringeLearner.USER_ACCEPTED != WMethod.tracePath(expected, Arrays.asList(path));
 		
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
-				return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
+				return WMethod.tracePath(expected, question);
 			}
 		};
 		l.setPairsMergedPerHypothesis(0);
@@ -138,7 +82,7 @@ public class TestRpniLearner
 		try{
 			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 			updateFrame(learningOutcome,g);
-			FSMStructure learntStructure = TestFSMAlgo.getGraphData(learningOutcome);
+			FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
 			TestFSMAlgo.checkM(learntStructure,expected,learntStructure.init,expected.init);
 		}
 		catch(InterruptedException e){
@@ -157,9 +101,15 @@ public class TestRpniLearner
 	@Test
 	public void testLearner2()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"},new String[]{"b","b","c"}});
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}});
 	}
-	
+
+	@Test
+	public void testLearner2b()
+	{
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"},new String[]{"b","b","c"}	});
+	}
+
 	@Test
 	public void testLearner3()
 	{

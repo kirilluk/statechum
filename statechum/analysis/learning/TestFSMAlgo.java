@@ -6,6 +6,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+
+import static statechum.xmachine.model.testset.WMethod.createLabelToStateMap;
+import static statechum.xmachine.model.testset.WMethod.getGraphData;
+
 import junit.framework.Assert;
 import junit.framework.AssertionFailedError;
 
@@ -14,6 +18,7 @@ import org.junit.Test;
 import org.junit.BeforeClass;
 
 import statechum.JUConstants;
+import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -29,7 +34,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -562,7 +569,7 @@ public class TestFSMAlgo {
 				{
 					fromVertex = new DirectedSparseVertex();
 					if (existingVertices.isEmpty())
-						fromVertex.addUserDatum("property", "init", UserData.SHARED);
+						fromVertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
 					fromVertex.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 					fromVertex.addUserDatum(JUConstants.LABEL, from, UserData.SHARED);
 					existingVertices.put(from, fromVertex);
@@ -636,78 +643,6 @@ public class TestFSMAlgo {
 			trans = new HashMap<String,Map<String,String>>();accept = new HashMap<String,Boolean>();
 		}
 	}
-
-	/** Builds fsm structures corresponding to the Jung graph passed as an argument. The aim is
-	 * to use the constructed structure for the comparison of different Jung graphs.
-	 * 
-	 * @param g graph from which to extract data
-	 * @return the class storing transition information.
-	 */
-	public static FSMStructure getGraphData(DirectedSparseGraph g)
-	{
-		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
-		FSMStructure extractedFSM = new FSMStructure();
-		while(edgeIt.hasNext())
-		{
-			DirectedSparseEdge edge = edgeIt.next();
-			Vertex fromVertex = edge.getSource(), toVertex = edge.getDest();
-			String from = (String)fromVertex.getUserDatum(JUConstants.LABEL),
-				to = (String)toVertex.getUserDatum(JUConstants.LABEL);
-			Map<String,String> labelToTargetState = extractedFSM.trans.get(from);
-			if (labelToTargetState == null)
-			{
-				labelToTargetState = new HashMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
-			}
-			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);
-		}
-		
-		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		while(vertexIt.hasNext())
-		{
-			Vertex v = vertexIt.next();
-			String name = (String)v.getUserDatum(JUConstants.LABEL);
-			if (extractedFSM.accept.containsKey(name))
-				throw new IllegalArgumentException("multiple states with the same name "+name);
-			
-			extractedFSM.accept.put(name, 
-					new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString()));
-			Object initp = v.getUserDatum("property");
-			if (initp != null)
-			{
-				if (!"init".equals(initp.toString()))
-					throw new IllegalArgumentException("invalid init property");
-
-				if (extractedFSM.init != null)
-					throw new IllegalArgumentException("duplicate initial state "+name);
-
-				extractedFSM.init = name;
-			}
-		}
-		if (extractedFSM.init == null)
-			throw new IllegalArgumentException("missing initial state");
-		
-		return extractedFSM;
-	}
-	
-	/** Given a set of labels and a target state, this method adds to a supplied map an association 
-	 * of every label with the specified target state.
-	 * 
-	 * @param labels labels
-	 * @param to target state
-	 * @param map a map associating state <i>to</i> with each of the labels. If this is <i>null</i>, a new map is created.
-	 * @return an updated map.
-	 */ 
-	protected static Map<String,String> createLabelToStateMap(Collection<String> labels,String to,Map<String,String> map)
-	{
-		Map<String,String> result = (map == null)? new HashMap<String,String>() : map;
-		for(String label:labels)
-		{
-			if (result.containsKey(label))
-				throw new IllegalArgumentException("nondeterminism detected for label "+label);
-			result.put(label,to);
-		}
-		return result;
-	}
 	
 	@Test 
 	public void testCreateLabelToStateMap1() // test with empty data
@@ -723,7 +658,7 @@ public class TestFSMAlgo {
 		Map<String,String> trans = new HashMap<String,String>();
 		trans.put("a", "A");trans.put("b", "A");trans.put("c", "B");
 		Map<String,String> expected = new HashMap<String,String>();expected.putAll(trans);
-		assertSame(trans,createLabelToStateMap(new LinkedList<String>(), "junk",trans));
+		assertSame(trans,WMethod.createLabelToStateMap(new LinkedList<String>(), "junk",trans));
 		assertTrue(expected.equals(trans));
 	}
 	
@@ -988,7 +923,7 @@ public class TestFSMAlgo {
 	public void testGraphConstructionFail4()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum("property", "init", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
 		checkWithVertex(v, "duplicate", "testGraphConstructionFail4");
 	}
 	
@@ -996,10 +931,27 @@ public class TestFSMAlgo {
 	public void testGraphConstructionFail5()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum("property", "aa", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.PROPERTY, "aa", UserData.SHARED);
 		checkWithVertex(v, "property", "testGraphConstructionFail5");
 	}
 	
+	@Test
+	public void testGraphConstructionFail6() // missing initial state in an empty graph
+	{
+		boolean exceptionThrown = false;
+		try
+		{
+			getGraphData(new DirectedSparseGraph());// now getGraphData should choke.			
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("correct exception not thrown",e.getMessage().contains("missing initial") );
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
 	 * @param g graph to check
@@ -1054,16 +1006,16 @@ public class TestFSMAlgo {
 	 */
 	public static void checkM(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
 	{
-		List<String> currentExplorationBoundary = new LinkedList<String>();
+		Queue<String> currentExplorationBoundary = new LinkedList<String>();// FIFO queue
 
 		Map<String,String> morphism = new HashMap<String,String>();
 		Set<String> statesAddedToBoundary = new HashSet<String>();
 		currentExplorationBoundary.add(stateGraph);statesAddedToBoundary.add(stateGraph);
 		morphism.put(stateGraph,stateExpected);
 		
-		for(int i=0;i < currentExplorationBoundary.size();++i)
+		while(!currentExplorationBoundary.isEmpty())
 		{
-			String state = currentExplorationBoundary.get(i);
+			String state = currentExplorationBoundary.remove();
 			String mappedState = morphism.get(state);assert(mappedState != null);
 			if (!graph.accept.get(state).equals(expected.accept.get(mappedState)))
 				throw new DifferentFSMException("state "+mappedState+" has a different acceptance labelling between the machines");
@@ -1082,11 +1034,12 @@ public class TestFSMAlgo {
 				if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
 					throw new DifferentFSMException("different number of transitions from state "+mappedState);
 					
-				for(String label:targets.keySet())
+				for(Entry<String,String> labelstate:targets.entrySet())
 				{
+					String label = labelstate.getKey();
 					if (!expectedTargets.containsKey(label))
 						throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+mappedState);
-					String tState = targets.get(label);// the original one
+					String tState = labelstate.getValue();// the original one
 					String targetMappedState = morphism.get(tState); // the state which corresponds to this state
 					String expectedState = expectedTargets.get(label);
 					if (targetMappedState != null) // we've already mapped this state
@@ -1099,7 +1052,7 @@ public class TestFSMAlgo {
 					
 					if (!statesAddedToBoundary.contains(tState))
 					{
-						currentExplorationBoundary.add(tState);
+						currentExplorationBoundary.offer(tState);
 						statesAddedToBoundary.add(tState);
 					}
 				}
@@ -1171,6 +1124,12 @@ public class TestFSMAlgo {
 	{
 		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->B-a->C", "testCheck6"));
 		final FSMStructure expected = getGraphData(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"));
+		Assert.assertTrue(checkMBoolean(graph,graph,"A","A"));
+		Assert.assertTrue(checkMBoolean(graph,graph,"B","B"));
+		Assert.assertTrue(checkMBoolean(graph,graph,"C","C"));
+		Assert.assertTrue(checkMBoolean(expected,expected,"Q","Q"));
+		Assert.assertTrue(checkMBoolean(expected,expected,"S","S"));
+		
 		Assert.assertFalse(checkMBoolean(graph,expected,"A","Q"));
 		Assert.assertFalse(checkMBoolean(graph,expected,"A","U"));
 		Assert.assertFalse(checkMBoolean(graph,expected,"B","Q"));
@@ -1224,20 +1183,6 @@ public class TestFSMAlgo {
 		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), expected);
 	}
 	
-	public static int tracePath(String init, Map<String,Map<String,String>> trans,Map<String,Boolean> accept, List<String> path)
-	{
-		String current = init;
-		int pos = -1;
-		for(String label:path)
-		{
-			++pos;
-			Map<String,String> exitingTrans = trans.get(current);
-			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
-				return pos;
-		}
-		return accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
-	}
-
 	/** Given an FSM and a sequence of labels to follow, this one checks whether the sequence is correctly
 	 * accepted or not, and if not whether it is rejected at the correct element.
 	 * 
@@ -1248,7 +1193,7 @@ public class TestFSMAlgo {
 	public static void checkPath(String fsmString, String []path, int ExpectedResult)
 	{
 		final FSMStructure graph = getGraphData(buildGraph(fsmString, "sample FSM"));
-		assertEquals(ExpectedResult, tracePath(graph.init, graph.trans, graph.accept, Arrays.asList(path)));
+		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
 	}
 	
 	@Test
@@ -1310,7 +1255,6 @@ public class TestFSMAlgo {
 	{
 		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3);
 	}
-
 	
 	/** Computes an alphabet of a given graph and adds transitions to a 
 	 * reject state from all states A and inputs a from which there is no B such that A-a->B
@@ -1327,23 +1271,12 @@ public class TestFSMAlgo {
 		rejectVertex.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
 		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
-		HashSet<String> alphabet = new HashSet<String>();
-
 		// first pass - computing an alphabet
-		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		while(vertexIt.hasNext())
-		{
-			Vertex v = vertexIt.next();
-			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-			while(outEdgeIt.hasNext()){
-				DirectedSparseEdge outEdge = outEdgeIt.next();
-				alphabet.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
-			}
-		}
+		HashSet<String> alphabet = WMethod.computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
 		Set<String> outLabels = new HashSet<String>();
-		vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
 		while(vertexIt.hasNext() && !transitionsToBeAdded)
 		{
 			Vertex v = vertexIt.next();
@@ -1385,6 +1318,38 @@ public class TestFSMAlgo {
 		}
 		
 		return transitionsToBeAdded;
+	}
+
+	@Test
+	public void completeComputeAlphabet0()
+	{
+		Set<String> alphabet = WMethod.computeAlphabet(new DirectedSparseGraph());
+		Assert.assertTrue(alphabet.isEmpty());
+	}
+
+	@Test
+	public void completeComputeAlphabet1()
+	{
+		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A", "completeComputeAlphabet1"));
+		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a"}));
+		Assert.assertTrue(alphabet.equals(expected));
+		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
+	}
+
+	public void completeComputeAlphabet2()
+	{
+		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A<-b-A", "completeComputeAlphabet2"));
+		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a","b"}));
+		Assert.assertTrue(alphabet.equals(expected));
+		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
+	}
+
+	public void completeComputeAlphabet3()
+	{
+		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeComputeAlphabet3"));
+		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a","b","c","d"}));
+		Assert.assertTrue(alphabet.equals(expected));
+		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
 	}
 
 	@Test
@@ -1450,6 +1415,119 @@ public class TestFSMAlgo {
 		Assert.assertTrue(checkMBoolean(graph,expected,"S","S"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"REJECT","REJECT"));
 	}	
+
+	@Test
+	public void testFindVertex1()
+	{
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex("aa", "bb", new DirectedSparseGraph()));
+	}
+	
+	@Test
+	public void testFindVertex2()
+	{
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex("aa", "bb", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2")));
+	}
+		
+	@Test
+	public void testFindVertex3()
+	{
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3")));
+	}
+
+	@Test
+	public void testFindVertex4()
+	{
+		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4"));
+		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public void testFindVertex5()
+	{
+		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
+		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public void testFindVertex6()
+	{
+		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "C", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
+		Assert.assertEquals("C", v.getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public void testFindVertex7()
+	{
+		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
+		Assert.assertEquals("S", v.getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public void testFindVertex8()
+	{
+		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "Q", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
+		Assert.assertEquals("Q", v.getUserDatum(JUConstants.LABEL));
+	}
+
+	
+	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
+	 * 
+	 * @param data source data
+	 * @return a set of sequences to apply to an RPNI learner
+	 */
+	public static Set<List<String>> buildSet(String [][] data)
+	{
+		Set<List<String>> result = new HashSet<List<String>>();
+		for(String []seq:data)
+		{
+			result.add(Arrays.asList(seq));
+		}
+		return result;
+	}
+	
+	@Test
+	public void testBuildSet1()
+	{
+		assertTrue(buildSet(new String[] []{}).isEmpty());
+	}
+
+	@Test
+	public void testBuildSet2()
+	{
+		Set<List<String>> expectedResult = new HashSet<List<String>>();
+		expectedResult.add(new LinkedList<String>());
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{}})));
+	}
+
+	@Test
+	public void testBuildSet3A()
+	{
+		Set<List<String>> expectedResult = new HashSet<List<String>>();
+		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
+		expectedResult.add(new LinkedList<String>());
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}})));
+	}
+
+	@Test
+	public void testBuildSet3B()
+	{
+		Set<List<String>> expectedResult = new HashSet<List<String>>();
+		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}})));
+	}
+
+	// TODO to add the machine with looping "a" transtions
+	@Test
+	public void testBuildSet4()
+	{
+		Set<List<String>> expectedResult = new HashSet<List<String>>();
+		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
+		expectedResult.add(new LinkedList<String>());
+		expectedResult.add(Arrays.asList(new String[]{"g","t"}));
+		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
+		assertTrue(expectedResult.equals(buildSet(new String[] []{
+				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
+	}
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>

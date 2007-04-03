@@ -1,6 +1,7 @@
 package statechum.xmachine.model.testset;
 
 import java.util.*;
+import java.util.List;
 import java.awt.*;
 
 import javax.swing.*;
@@ -30,9 +31,9 @@ public class WMethodFrame extends JFrame {
                 this.getParent(),
                 "Number of extra states","0")).intValue();
 		WMethod wm = new WMethod(g, numberOfExtraStates);
-		Vector transitionCover = wm.getTransitionCover();
-		Vector characterisationSet = wm.getCharacterisationSet();
-		Vector fullTestSet = wm.getFullTestSet();
+		Set<List<String>> transitionCover = wm.getTransitionCover();
+		Set<List<String>> characterisationSet = wm.getCharacterisationSet();
+		Set<List<String>> fullTestSet = wm.getFullTestSet();
 		JComponent transitionCoverPanel = makeTextPanel(transitionCover);
 		JComponent characteisationPanel = makeTextPanel(characterisationSet);
 		JComponent fullTestSetPanel = makeTextPanel(fullTestSet);
@@ -45,7 +46,7 @@ public class WMethodFrame extends JFrame {
 		pane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 	}
 	
-	private JComponent makeStatsTab(Vector transitionCover, Vector wSet, Vector fullTestSet){
+	private JComponent makeStatsTab(Set<List<String>> transitionCover, Set<List<String>> wSet, Set<List<String>> fullTestSet){
 		JTextArea area = new JTextArea();
 		JScrollPane scrollPane = new JScrollPane(area);
 		area.insert("Transition Cover:\n"+getStats(transitionCover)+"\n", area.getCaretPosition());
@@ -57,7 +58,7 @@ public class WMethodFrame extends JFrame {
 		return panel;
 	}
 	
-	private String getStats(Vector paths){
+	private String getStats(Set<List<String>> paths){
 		String returnString = new String();
 		returnString = "size: "+paths.size()+"\n";
 		Iterator pathIt = paths.iterator();
@@ -70,7 +71,7 @@ public class WMethodFrame extends JFrame {
 		return returnString;
 	}
 	
-	private JComponent makeTextPanel(Vector paths){
+	private JComponent makeTextPanel(Set<List<String>> paths){
 		JTextArea area = new JTextArea();
 		JScrollPane scrollPane = new JScrollPane(area);
 		Iterator pathIt = paths.iterator();

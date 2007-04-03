@@ -15,7 +15,8 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.*;
-
+import static statechum.xmachine.model.testset.WMethod.getGraphData;
+import static statechum.xmachine.model.testset.WMethod.tracePath;
 
 public class AccuracyAndQuestionsExperiment {
 
@@ -24,15 +25,15 @@ public class AccuracyAndQuestionsExperiment {
 	public void evaluate(DirectedSparseGraph g){
 		Visualiser viz = new Visualiser();
 		WMethod wm = new WMethod(g,0);
-		Set<List<String>> fullTestSet = wm.getFullTestSetStrings();
+		Set<List<String>> fullTestSet = wm.getFullTestSet();
 		String fsmString = getFSMString(g);
 		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
-		final FSMStructure expected = TestFSMAlgo.getGraphData(testMachine);
+		final FSMStructure expected = getGraphData(testMachine);
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(viz)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
-				return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
+				return tracePath(expected, question);
 			}
 		};
 		l.addObserver(viz);
@@ -91,8 +92,8 @@ public class AccuracyAndQuestionsExperiment {
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
 		while(sMinusIt.hasNext()){
 			List<String> currentString = sMinusIt.next();
-			final FSMStructure expected = TestFSMAlgo.getGraphData(g);
-			int reject = TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, currentString);
+			final FSMStructure expected = getGraphData(g);
+			int reject = tracePath(expected, currentString);
 			returnSet.add(currentString.subList(0, reject+1));
 		}
 		return returnSet;

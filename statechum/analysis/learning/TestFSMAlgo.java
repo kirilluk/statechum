@@ -1,8 +1,6 @@
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -27,7 +25,6 @@ import edu.uci.ics.jung.utils.UserData;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -952,6 +949,27 @@ public class TestFSMAlgo {
 		assertTrue("exception not thrown",exceptionThrown);
 	}
 
+	@Test
+	public final void testGraphConstructionFail7() // unlabelled states
+	{
+		DirectedSparseGraph g = new DirectedSparseGraph();
+		DirectedSparseVertex init = new DirectedSparseVertex();
+		init.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);g.addVertex(init);
+		boolean exceptionThrown = false;
+		try
+		{
+			getGraphData(g);// now getGraphData should choke.			
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("correct exception not thrown",e.getMessage().contains("unlabelled") );
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+	
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
 	 * @param g graph to check
@@ -1001,59 +1019,125 @@ public class TestFSMAlgo {
 		checkM(graph,expected,graph.init,expected.init);
 	}
 	
+	public static class StringPair implements Comparable
+	{
+		public final String a,b;
+		
+		public StringPair(String aStr,String bStr)
+		{
+			a=aStr;b=bStr;
+		}
+
+		@Override
+		public boolean equals(Object arg0) {
+			if (arg0 == null || !(arg0 instanceof StringPair))
+				return false;
+			StringPair arg = (StringPair)arg0;
+			return a.equals(arg.a) && b.equals(arg.b);
+		}
+
+		@Override
+		public int hashCode() {
+			return a.hashCode() ^ b.hashCode();
+		}
+
+		@Override
+		public String toString() {
+			return "( "+a+","+b+" )";
+		}
+
+		public int compareTo(Object o) {
+			StringPair pB = (StringPair)o;
+			int aStr = a.compareTo(pB.a);
+			int bStr = b.compareTo(pB.b);
+			
+			if(aStr != 0)
+				return aStr; 
+			return bStr;
+		}
+		
+		
+	}
+	
+	static protected void checkStatePairLess(String a, String b, String c, String d)
+	{
+		StringPair p = new StringPair(a,b), q=new StringPair(c,d);
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+	
+	@Test
+	public void testStringPairEquality()
+	{
+		StringPair p = new StringPair("a","b"), q=new StringPair("a","b");
+		assertTrue(p.equals(p));
+		assertTrue(p.equals(q));
+		assertFalse(p.equals(null));
+		assertFalse(p.equals("test"));
+		assertFalse(p.equals(new StringPair("a","c")));
+		assertFalse(p.equals(new StringPair("b","b")));
+		
+		assertTrue(p.hashCode() != 0);
+		assertTrue(q.hashCode() != 0);
+	}
+	
+	@Test
+	public void testStringPairComparison()
+	{
+		checkStatePairLess("a","b","c","d");
+		checkStatePairLess("a","b","a","c");
+		checkStatePairLess("a","b","c","b");
+	}
+	
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states are ignored. 
 	 */
 	public static void checkM(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
 	{
-		Queue<String> currentExplorationBoundary = new LinkedList<String>();// FIFO queue
+		Queue<StringPair> currentExplorationBoundary = new LinkedList<StringPair>();// FIFO queue
 
-		Map<String,String> morphism = new HashMap<String,String>();
-		Set<String> statesAddedToBoundary = new HashSet<String>();
-		currentExplorationBoundary.add(stateGraph);statesAddedToBoundary.add(stateGraph);
-		morphism.put(stateGraph,stateExpected);
+		Set<StringPair> statesAddedToBoundary = new HashSet<StringPair>();
+		currentExplorationBoundary.add(new StringPair(stateGraph,stateExpected));statesAddedToBoundary.add(new StringPair(stateGraph,stateExpected));
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			String state = currentExplorationBoundary.remove();
-			String mappedState = morphism.get(state);assert(mappedState != null);
-			if (!graph.accept.get(state).equals(expected.accept.get(mappedState)))
-				throw new DifferentFSMException("state "+mappedState+" has a different acceptance labelling between the machines");
+			StringPair statePair = currentExplorationBoundary.remove();
+			assert graph.accept.containsKey(statePair.a) : "state "+statePair.a+" is not known to the first graph";
+			assert expected.accept.containsKey(statePair.b) : "state "+statePair.b+" is not known to the second graph";
+			if (!graph.accept.get(statePair.a).equals(expected.accept.get(statePair.b)))
+				throw new DifferentFSMException("states "+statePair.a+" and " + statePair.b+" have a different acceptance labelling between the machines");
 						
-			Map<String,String> targets = graph.trans.get(state), expectedTargets = expected.trans.get(mappedState);
+			Map<String,String> targets = graph.trans.get(statePair.a), expectedTargets = expected.trans.get(statePair.b);
 			if (expectedTargets == null)
 			{
 				if (targets != null)
-					throw new DifferentFSMException("not expecting any transitions from "+mappedState+" state");
+					throw new DifferentFSMException("not expecting any transitions from "+statePair.b+" state");
 			}
 			else
 			{
 				if (targets == null)
-					throw new DifferentFSMException("expected transitions from "+mappedState+" state but there were none");
+					throw new DifferentFSMException("expected transitions from "+statePair.a+" state but there were none");
 				
 				if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
-					throw new DifferentFSMException("different number of transitions from state "+mappedState);
+					throw new DifferentFSMException("different number of transitions from state "+statePair);
 					
 				for(Entry<String,String> labelstate:targets.entrySet())
 				{
 					String label = labelstate.getKey();
 					if (!expectedTargets.containsKey(label))
-						throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+mappedState);
+						throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.b);
 					String tState = labelstate.getValue();// the original one
-					String targetMappedState = morphism.get(tState); // the state which corresponds to this state
 					String expectedState = expectedTargets.get(label);
-					if (targetMappedState != null) // we've already mapped this state
-					{
-						if (!expectedState.equals(targetMappedState))
-							throw new DifferentFSMException("transition "+mappedState+" -- "+label+" leads to the wrong state");
-					}
-					else
-						morphism.put(tState,expectedState);// record the mapping
 					
-					if (!statesAddedToBoundary.contains(tState))
+					StringPair nextPair = new StringPair(tState,expectedState);
+					if (!statesAddedToBoundary.contains(nextPair))
 					{
-						currentExplorationBoundary.offer(tState);
-						statesAddedToBoundary.add(tState);
+						currentExplorationBoundary.offer(nextPair);
+						statesAddedToBoundary.add(nextPair);
 					}
 				}
 			}
@@ -1105,6 +1189,63 @@ public class TestFSMAlgo {
 		checkM(graph,expected,"C","Q");
 	}
 
+	@Test
+	public final void testCheckM_multipleEq1() // equivalent states
+	{
+		final FSMStructure graph = getGraphData(buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1"));
+		assertTrue(checkMBoolean(graph,graph,"D","C2"));
+		assertTrue(checkMBoolean(graph,graph,"C2","D"));
+		
+		assertTrue(checkMBoolean(graph,graph,"D1","D2"));
+		assertTrue(checkMBoolean(graph,graph,"D2","D1"));
+
+		assertTrue(checkMBoolean(graph,graph,"D2","K2"));
+		assertTrue(checkMBoolean(graph,graph,"K2","D2"));
+
+		assertFalse(checkMBoolean(graph,graph,"D2","A1"));
+		assertFalse(checkMBoolean(graph,graph,"A1","D2"));
+
+		assertFalse(checkMBoolean(graph,graph,"D2","F1"));
+		assertFalse(checkMBoolean(graph,graph,"F1","D2"));
+	}
+
+	@Test
+	public final void testCheckM_multipleEq2() // equivalent states
+	{
+		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->N-b->N","testCheckM_multipleEq2");
+		final FSMStructure graph = getGraphData(g);
+		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
+		for(String stA:states)
+			for(String stB:states)
+				assertTrue("states "+stA+"and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+	}
+	
+	@Test
+	public final void testCheckM_multipleEq3() // equivalent states
+	{
+		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N","testCheckM_multipleEq3");
+		final FSMStructure graph = getGraphData(g);
+		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
+		for(String stA:states)
+			for(String stB:states)
+				assertTrue("states "+stA+"and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+	}
+	
+	@Test
+	public final void testCheckM_multipleEq4() // non-equivalent states
+	{
+		final DirectedSparseGraph g = buildGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4");
+		final FSMStructure graph = getGraphData(g);
+		updateFrame(g);
+		List<String> states = Arrays.asList(new String[]{"A","B","C"});
+		for(String stA:states)
+			for(String stB:states)
+				if (stA.equals(stB))
+					assertTrue("states "+stA+" and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+				else
+					assertFalse("states "+stA+" and "+stB+" should not be equivalent",checkMBoolean(graph,graph,stA,stB));
+	}
+	
 	/** Same as checkM, but returns a boolean false instead of an exception. */
 	public static boolean checkMBoolean(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
 	{
@@ -1336,6 +1477,7 @@ public class TestFSMAlgo {
 		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
 	}
 
+	@Test
 	public void completeComputeAlphabet2()
 	{
 		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A<-b-A", "completeComputeAlphabet2"));
@@ -1344,6 +1486,7 @@ public class TestFSMAlgo {
 		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
 	}
 
+	@Test
 	public void completeComputeAlphabet3()
 	{
 		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeComputeAlphabet3"));

@@ -5,14 +5,11 @@ package statechum.xmachine.model.testset;
 
 import static org.junit.Assert.*;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -25,8 +22,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
+import edu.uci.ics.jung.utils.UserData;
 
-import samples.preview_new_graphdraw.iter.UpdatableIterableLayout;
+import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
@@ -459,13 +458,15 @@ public class TestWMethod {
 		Assert.assertTrue(expected.equals(sequences));
 	}
 
-	public static void testWsetconstruction(String machine)
+	public static void testWsetconstruction(String machine, boolean equivalentExpected)
 	{
 		DirectedSparseGraph g = buildGraph(machine,"testWset");
 		FSMStructure fsm = getGraphData(g);visFrame.update(null, g);
 		try
 		{
 			Set<List<String>> wset = WMethod.computeWSet(fsm);
+			Assert.assertEquals(false, equivalentExpected);
+			//System.out.println("states: "+fsm.accept.size()+" Wset has "+wset.size()+" elements");
 			for(Entry<String,Boolean> stateA:fsm.accept.entrySet())
 			{
 				for(Entry<String,Boolean> stateB:fsm.accept.entrySet())
@@ -491,6 +492,7 @@ public class TestWMethod {
 		}
 		catch(EquivalentStatesException e)
 		{
+			Assert.assertEquals(true, equivalentExpected);
 			TestFSMAlgo.checkM(fsm,fsm,e.getA(),e.getB());
 		}
 		
@@ -499,19 +501,19 @@ public class TestWMethod {
 	@Test
 	public final void testWset1()
 	{
-		testWsetconstruction("A-p->A-b->B-c->B-a->C");
+		testWsetconstruction("A-p->A-b->B-c->B-a->C",false);
 	}
 	
 	@Test
 	public final void testWset2()
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q");
+		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q",false);
 	}
 	
 	@Test
 	public final void testWset3() // equivalent states
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q");
+		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q",true);
 	}
 
 	@Test
@@ -524,19 +526,125 @@ public class TestWMethod {
 	@Test
 	public final void testWset5a() // equivalent states
 	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3");
+		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
+				true);
 	}
 	
 	@Test
 	public final void testWset5b() // equivalent states
 	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3");
+		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
+				true);
 	}
 	
 	@Test
 	public final void testWset6() // no equivalent states
 	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3");
+		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
+				false);
+	}
+
+	@Test
+	public final void testWset7()
+	{
+		testWsetconstruction("A-a->B-a->C-a->A-b->C-b->B",false);
+	}
+	
+	@Test
+	public final void testWset8()
+	{
+		testWsetconstruction("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N",true);
+	}
+	
+	@Test
+	public final void testWset9()
+	{
+		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false);
+	}
+	
+	
+	@Test
+	public final void testTestGeneration1()
+	{
+		DirectedSparseGraph g = new DirectedSparseGraph();
+		DirectedSparseVertex init = new DirectedSparseVertex();
+		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
+		init.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		g.addVertex(init);
+		WMethod wm = new WMethod(g,0);
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {}
+			}),
+			actual = wm.getFullTestSet();
+		assertTrue(actual.equals(expected));
+	}
+	
+	@Test
+	public final void testTestGeneration2()
+	{
+		WMethod wm = new WMethod(buildGraph("A-a->A", "testTestGeneration2"),0);
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a"}
+			}),
+			actual = wm.getFullTestSet();
+		assertTrue(actual.equals(expected));
+	}
+	
+	@Test
+	public final void testTestGeneration3()
+	{
+		WMethod wm = new WMethod(buildGraph("A-a->A", "testTestGeneration3"),1);
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a","a"}
+			}),
+			actual = wm.getFullTestSet();
+		assertTrue(actual.equals(expected));
+	}
+	
+	@Test
+	public final void testTestGeneration4()
+	{
+		WMethod wm = new WMethod(buildGraph("A-a->A-b->B", "testTestGeneration4"),0);
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a","a"},
+				new String[] {"b","a"},
+				new String[] {"b","b"}
+			}),
+			actual = wm.getFullTestSet();
+		assertTrue(actual.equals(expected));
+	}
+	
+	@Test
+	public final void testTestGeneration5()
+	{
+		WMethod wm = new WMethod(buildGraph("A-a->A-b->B", "testTestGeneration5"),1);
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a","a","a"},
+				new String[] {"a","b","a"},
+				new String[] {"b","a"},
+				new String[] {"b","b"}
+			}),
+			actual = wm.getFullTestSet();
+		assertTrue(actual.equals(expected));
+	}
+
+	@Test
+	public final void testCheckUnreachable1()
+	{
+		assertFalse(WMethod.checkUnreachableStates(WMethod.getGraphData(buildGraph("A-a->A", "testCheckUnreachable1"))));	
+	}
+	
+	@Test
+	public final void testCheckUnreachable2()
+	{
+		assertFalse(WMethod.checkUnreachableStates(WMethod.getGraphData(buildGraph("A-a->A-c->C\nB-a->A\nC-b->B", "testCheckUnreachable2"))));	
+	}
+	
+	@Test
+	public final void testCheckUnreachable3()
+	{
+		assertTrue(WMethod.checkUnreachableStates(WMethod.getGraphData(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"))));	
 	}
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
@@ -572,5 +680,5 @@ public class TestWMethod {
 			// cannot do anything with this
 			e.printStackTrace();
 		}
-	}	
+	}
 }

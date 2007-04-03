@@ -8,8 +8,6 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo.DifferentFSMException;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 
-import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
-import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -90,6 +88,9 @@ public class WMethod {
 		{
 			Vertex v = vertexIt.next();
 			String name = (String)v.getUserDatum(JUConstants.LABEL);
+			if (name == null)
+				throw new IllegalArgumentException("unlabelled state encountered");
+			
 			if (extractedFSM.accept.containsKey(name))
 				throw new IllegalArgumentException("multiple states with the same name "+name);
 			
@@ -211,8 +212,8 @@ public class WMethod {
 	{
 		FSMStructure fsm = getGraphData(machineGraph);Set<String> alphabet =  computeAlphabet(machineGraph);
 		Set<List<String>> partialSet = computeStateCover(fsm), Phi = makeSingleton(alphabet);
-		characterisationSet = computeWSet(fsm);
-		transitionCover = cross(partialSet,Phi);
+		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		transitionCover = cross(partialSet,Phi);transitionCover.addAll(partialSet);
 
 		fullTestSet = new HashSet<List<String>>();
 		
@@ -222,6 +223,16 @@ public class WMethod {
 			partialSet=cross(partialSet,Phi);
 			appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		}
+	}
+
+	/** Checks if the supplied FSM has unreachable states.
+	 * 
+	 * @param fsm the machine to check
+	 * @return true if there are any unreachable states.
+	 */
+	public static boolean checkUnreachableStates(FSMStructure fsm)
+	{
+		return computeStateCover(fsm).size() != fsm.accept.size();
 	}
 	
 	public static Set<List<String>> cross(Set<List<String>> a, Set<List<String>> b){
@@ -332,11 +343,14 @@ public class WMethod {
 		
 		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
 		{
-			equivalenceClasses.put(stateEntry.getKey(), 0);Map<String,List<String>> row = new HashMap<String,List<String>>();
+			equivalenceClasses.put(stateEntry.getKey(), 0);
+			Map<String,List<String>> row = new HashMap<String,List<String>>();
 			Wdata.put(stateEntry.getKey(), row);
-			for(Entry<String,Boolean> stateEn2:fsm.accept.entrySet()) 
+			Iterator<Entry<String,Boolean>> stateB_It = fsm.accept.entrySet().iterator();
+			while(stateB_It.hasNext())
 			{
-				row.put(stateEn2.getKey(), new LinkedList<String>());
+				Entry<String,Boolean> stateB = stateB_It.next();if (stateB.getKey().equals(stateEntry.getKey())) break; // we only process a triangular subset.
+				row.put(stateB.getKey(), new LinkedList<String>());
 			}
 		}
 		
@@ -366,12 +380,23 @@ public class WMethod {
 
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				for(Entry<String,Integer> stateB:equivalenceClasses.entrySet())
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
 				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+
 					if (stateA.getValue().equals(stateB.getValue()) &&
-							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())) &&
-							Wdata.get(stateA.getKey()).get(stateB.getKey()).isEmpty()) // for states A,B , I wish to add data both for (A,B) and (B,A) 
-					{
+							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
+						
+						List<String> Wsequence = null;
+						if (Wdata.get(stateA.getKey()).containsKey(stateB.getKey()))
+							Wsequence = Wdata.get(stateA.getKey()).get(stateB.getKey());// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+						else
+							Wsequence = Wdata.get(stateB.getKey()).get(stateA.getKey());
+						assert Wsequence != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is null";
+						assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
+						
 						// the two states used to be equivalent but not any more, find the different element
 						Map<String,Integer> mapA = newMap.get(stateA.getKey()), mapB = newMap.get(stateB.getKey());
 						Iterator<Entry<String,Integer>> mapAiter = mapA.entrySet().iterator();
@@ -393,12 +418,19 @@ public class WMethod {
 						assert label != null;
 						String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(label);
 						String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(label);
-						List<String> distSeq = Wdata.get(stateA.getKey()).get(stateB.getKey());
-						distSeq.add(label);
-						if (toA != null && toB != null) // these can be null at the first iteration.
-							distSeq.addAll(Wdata.get(toA).get(toB));
-						assert Wdata.get(stateB.getKey()).get(stateA.getKey()).isEmpty();
-						Wdata.get(stateB.getKey()).get(stateA.getKey()).addAll(distSeq);
+						Wsequence.add(label);
+						if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
+						{
+							List<String> Wprevious = null;
+							if (Wdata.get(toA).containsKey(toB))
+								Wprevious = Wdata.get(toA).get(toB);// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+							else
+								Wprevious = Wdata.get(toB).get(toA);
+							assert Wprevious != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
+							assert !Wprevious.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") was not separated";
+							
+							Wsequence.addAll(Wprevious);
+						}
 					}
 				}			
 			}			
@@ -412,8 +444,10 @@ public class WMethod {
 		{
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				for(Entry<String,Integer> stateB:equivalenceClasses.entrySet())
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
 				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					List<String> seq = Wdata.get(stateA.getKey()).get(stateB.getKey());
 					if (!seq.isEmpty()) 
 						result.add(seq);
@@ -423,9 +457,16 @@ public class WMethod {
 		else
 		{// report equivalent states
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
-				for(Entry<String,Integer> stateB:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
 						throw new EquivalentStatesException(stateA.getKey(),stateB.getKey());
+				}
+			}
+			assert false: "equivalent states were not found";
 		}
 		return result;
 	}

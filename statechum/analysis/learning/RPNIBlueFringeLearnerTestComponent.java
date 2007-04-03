@@ -12,7 +12,7 @@ import edu.uci.ics.jung.utils.*;
 
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	private HashSet<ArrayList> scoreDistributions = new HashSet<ArrayList>();
-	private int certaintyThreshold = 1;
+	private int certaintyThreshold = 100;
 
 	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
 		super(parentFrame);
@@ -46,6 +46,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
 				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
+				this.questionCounter++;
 				if (answer == USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
@@ -53,7 +54,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				}
 				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
-					System.out.println(setByAuto+question.toString()+ " <yes>");
+					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					Vertex tempVertex = getVertex(temp, question);
 					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
 							return learnMachine(initialise(), sPlus, sMinus);
@@ -61,7 +62,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				else if(answer >= 0){
 					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
-					System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
 					}
@@ -81,8 +82,6 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
 		updateGraph(model);
-		System.out.println("finished");
-		printScoreDistributions();
 		return model;
 	}
 	
@@ -144,8 +143,6 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				questions.add(pathToPoint);
 			
 		}
-		
-		//Collections.sort(questions, ListStringComparator);
 		return questions;
 	}
 	
@@ -242,19 +239,6 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return returnSet;
 	}
 	
-	private static Comparator<List> ListStringComparator = new Comparator<List>(){
-		public int compare(List a, List b){
-			int ret = 0;
-			if(a.size()<b.size())
-				ret =  1;
-			else if(a.size()>b.size())
-				ret =  -1;
-			else if(a.size() == b.size())
-				ret = 0;
-			return ret;
-		}
-	};
-	
 	private void printScoreDistributions(){
 		Iterator<ArrayList> listIt = scoreDistributions.iterator();
 		while(listIt.hasNext()){
@@ -346,5 +330,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		scores.addAll(scoreToPair.keySet());
 		scoreDistributions.add(scores);
 		return createOrderedStack(scoreToPair);
+	}
+
+
+
+	public void setCertaintyThreshold(int certaintyThreshold) {
+		this.certaintyThreshold = certaintyThreshold;
 	}
 }

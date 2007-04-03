@@ -25,6 +25,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected HashSet doneEdges;
 	protected Set<List<String>> sPlus, sMinus;
 	protected int generalisationThreshold, pairsMergedPerHypothesis;
+	protected int questionCounter = 0;
 	
 	
 	public Set<List<String>> getSMinus() {
@@ -142,6 +143,7 @@ public class RPNIBlueFringeLearner extends Observable {
 					String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();// Q is the blue vertex
 					updateGraph(model);
 					int response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
+					questionCounter++;
 					pair.getQ().removeUserDatum("pair");
 					pair.getR().removeUserDatum("pair");
 					if(response == USER_ACCEPTED){
@@ -959,6 +961,14 @@ public class RPNIBlueFringeLearner extends Observable {
 
 	public void setPairsMergedPerHypothesis(int pairsMergedPerHypothesis) {
 		this.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
+	}
+
+	public int getQuestionCounter() {
+		return questionCounter;
+	}
+
+	public void setQuestionCounter(int questionCounter) {
+		this.questionCounter = questionCounter;
 	}
 
 }

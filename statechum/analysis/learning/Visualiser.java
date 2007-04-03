@@ -33,8 +33,8 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 	{
 		boolean assertsEnabled = false;
 		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
-		if (!assertsEnabled)
-			System.err.println("Pass the -ea argument to JVM to enable assertions");
+		//if (!assertsEnabled)
+			//System.err.println("Pass the -ea argument to JVM to enable assertions");
 
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {

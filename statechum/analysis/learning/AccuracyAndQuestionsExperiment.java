@@ -28,31 +28,62 @@ public class AccuracyAndQuestionsExperiment {
 		String fsmString = getFSMString(g);
 		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
 		final FSMStructure expected = TestFSMAlgo.getGraphData(testMachine);
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(viz)
+		{
+			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+			{
+				return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
+			}
+		};
+		l.addObserver(viz);
+		Set<List<String>> samples = randomHalf(fullTestSet);
+		Set<List<String>> tests = fullTestSet;
+		tests.removeAll(samples);
 		for(int i=10;i<=100;i=i+10){
-			Set<List<String>> samples = randomHalf(fullTestSet);
-			Set<List<String>> tests = fullTestSet;
-			tests.removeAll(samples);
-			Set<List<String>> sPlus = getPositiveStrings(testMachine,samples);
-			Set<List<String>> sMinus = samples;
+			System.out.println("-------");
+			System.out.println(i + "%");
+			Set<List<String>> currentSamples = reduceToPercentage(samples, i);
+			Set<List<String>> sPlus = getPositiveStrings(testMachine,currentSamples);
+			Set<List<String>> sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
 			sMinus = trimToNegatives(testMachine, sMinus);
-			RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(viz)
-			{
-				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
-				{
-					return TestFSMAlgo.tracePath(expected.init, expected.trans, expected.accept, question);
-				}
-			};
-			l.addObserver(viz);
+			System.out.println(l.getQuestionCounter());
+			l.setQuestionCounter(0);
 			try{
-			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
-
-			//TestFSMAlgo.checkM(
-				//	learningOutcome,
-					//fsmString);
+				DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+				System.out.println(computeAccuracy(learningOutcome, testMachine,tests));
 			}
 			catch(InterruptedException e){return;};
 		}
+	}
+	
+	private double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Set<List<String>> tests){
+		int failed = 0;
+		for (List<String> list : tests) {
+			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
+			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
+			if((hypVertex == null)&(correctVertex != null))
+				if(!(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")))
+					failed ++;
+			else if(hypVertex !=null){
+				if(hypVertex.getUserDatum(JUConstants.ACCEPTED)!=correctVertex.getUserDatum(JUConstants.ACCEPTED))
+					failed ++;
+			}
+				
+		}
+		double accuracy = 1-((double)failed/(double)tests.size());
+		return accuracy;
+	}
+	
+	private Set<List<String>> reduceToPercentage(Set<List<String>> samples, double percent){
+		Set<List<String>> returnSet = new HashSet<List<String>>();
+		double size = samples.size();
+		double number = (size/100)*percent;
+		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
+		for(int i=0;i<number;i++){
+			returnSet.add(sampleArray[i]);
+		}
+		return returnSet;
 	}
 	
 	private Set<List<String>> trimToNegatives(DirectedSparseGraph g, Set<List<String>> sMinus ){
@@ -98,8 +129,19 @@ public class AccuracyAndQuestionsExperiment {
 		Object[]samples = v.toArray();
 		HashSet<List<String>> returnSet = new HashSet<List<String>>();
 		Random generator = new Random();
+		Set<Integer> done = new HashSet();
 		for(int i=0;i<v.size()/2;i++){
-			returnSet.add((List<String>)samples[(generator.nextInt(v.size()))]);
+			int randomIndex = 0;
+			boolean newInteger = false;
+			while(!newInteger){
+				randomIndex = generator.nextInt(v.size());
+				Integer current = new Integer(randomIndex);
+				if(!done.contains(current)){
+					done.add(current);
+					newInteger = true;
+				}
+			}
+			returnSet.add((List<String>)samples[randomIndex]);
 		}
 		return returnSet;
 	}
@@ -110,10 +152,14 @@ public class AccuracyAndQuestionsExperiment {
 				System.getProperty("file.separator")+"5-2"+System.getProperty("file.separator")+"Format");
         String[] graphFileList = graphDir.list();
         for(int i=0;i<graphFileList.length;i++){
+        	if(!graphFileList[i].startsWith("N"))
+        		continue;
         	String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
         	GraphMLFile graphmlFile = new GraphMLFile();
-        	DirectedSparseGraph g = (DirectedSparseGraph)graphmlFile.load(wholePath+graphFileList[i]);
-        	Iterator<Vertex> vIt = g.getVertices().iterator();
+        	DirectedSparseGraph dg = new DirectedSparseGraph();
+        	dg.getEdgeConstraints().clear();
+        	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+graphFileList[i]);
+        	Iterator<Vertex> vIt = dg.getVertices().iterator();
         	while(vIt.hasNext()){
         		Vertex v = vIt.next();
         		if(v.getUserDatum("VERTEX").toString().startsWith("Initial")){
@@ -121,14 +167,14 @@ public class AccuracyAndQuestionsExperiment {
         			break;
         		}
         	}
-        	Iterator<Edge> edgeIt = g.getEdges().iterator();
+        	Iterator<Edge> edgeIt = dg.getEdges().iterator();
         	while(edgeIt.hasNext()){
         		Edge e = edgeIt.next();
         		HashSet set = new HashSet();
         		set.add(e.getUserDatum("EDGE").toString());
         		e.setUserDatum(JUConstants.LABEL, set, UserData.SHARED);
         	}
-        	experiment.evaluate(g);
+        	experiment.evaluate(dg);
         		
         }
 	}

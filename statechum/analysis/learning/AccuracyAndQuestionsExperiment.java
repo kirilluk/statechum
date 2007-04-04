@@ -24,8 +24,9 @@ public class AccuracyAndQuestionsExperiment {
 	
 	public void evaluate(DirectedSparseGraph g){
 		Visualiser viz = new Visualiser();
-		WMethod wm = new WMethod(g,2);
+		WMethod wm = new WMethod(g,0);
 		Set<List<String>> fullTestSet = wm.getFullTestSet();
+		fullTestSet.addAll(wm.getTransitionCover());
 		String fsmString = getFSMString(g);
 		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
 		final FSMStructure expected = getGraphData(testMachine);
@@ -37,13 +38,16 @@ public class AccuracyAndQuestionsExperiment {
 			}
 		};
 		l.addObserver(viz);
-		Set<List<String>> samples = randomHalf(fullTestSet);
+		Set<List<String>> sampleSet = randomHalf(fullTestSet);
+		Vector<List<String>> samples = new Vector<List<String>>();
+		samples.addAll(sampleSet);
 		Set<List<String>> tests = fullTestSet;
 		tests.removeAll(samples);
+		Set<List<String>> currentSamples = new HashSet<List<String>>();
 		for(int i=10;i<=100;i=i+10){
 			System.out.println("-------");
 			System.out.println(i + "%");
-			Set<List<String>> currentSamples = reduceToPercentage(samples, i);
+			currentSamples = addPercentageFromSamples(currentSamples, samples, i);
 			Set<List<String>> sPlus = getPositiveStrings(testMachine,currentSamples);
 			Set<List<String>> sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
@@ -63,12 +67,17 @@ public class AccuracyAndQuestionsExperiment {
 		for (List<String> list : tests) {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
 			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
-			if((hypVertex == null)&(correctVertex != null))
-				if(!(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")))
+			if((hypVertex == null)&(correctVertex != null)){
+				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true"))
 					failed ++;
-			else if(hypVertex !=null){
+			}
+			else if(hypVertex !=null & correctVertex!=null){
 				if(hypVertex.getUserDatum(JUConstants.ACCEPTED)!=correctVertex.getUserDatum(JUConstants.ACCEPTED))
 					failed ++;
+			}
+			else if(hypVertex!=null & correctVertex == null){
+				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true"))
+					failed++;
 			}
 				
 		}
@@ -76,15 +85,15 @@ public class AccuracyAndQuestionsExperiment {
 		return accuracy;
 	}
 	
-	private Set<List<String>> reduceToPercentage(Set<List<String>> samples, double percent){
-		Set<List<String>> returnSet = new HashSet<List<String>>();
+	private Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Vector<List<String>> samples, double percent){
 		double size = samples.size();
 		double number = (size/100)*percent;
+		//samples.removeAll(current);
 		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
 		for(int i=0;i<(int)number;i++){
-			returnSet.add(sampleArray[i]);
+			current.add(sampleArray[i]);
 		}
-		return returnSet;
+		return current;
 	}
 	
 	private Set<List<String>> trimToNegatives(DirectedSparseGraph g, Set<List<String>> sMinus ){
@@ -130,7 +139,7 @@ public class AccuracyAndQuestionsExperiment {
 		Object[]samples = v.toArray();
 		HashSet<List<String>> returnSet = new HashSet<List<String>>();
 		Random generator = new Random();
-		Set<Integer> done = new HashSet();
+		Set<Integer> done = new HashSet<Integer>();
 		for(int i=0;i<v.size()/2;i++){
 			int randomIndex = 0;
 			boolean newInteger = false;

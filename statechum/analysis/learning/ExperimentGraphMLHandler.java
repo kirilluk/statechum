@@ -56,4 +56,40 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         return e;
     }
 	
+	protected ArchetypeVertex createVertex(Map attributeMap) {
+		Graph mGraph = getGraph();
+		StringLabeller mLabeller = getLabeller();
+        if (mGraph == null) {
+            throw new FatalException("Error parsing graph. Graph element must be specified before node element.");
+        }
+
+        ArchetypeVertex vertex = mGraph.addVertex(new SparseVertex());
+        String idString = (String) attributeMap.remove("id");
+
+        try {
+            mLabeller.setLabel((Vertex) vertex,idString);
+        } catch (StringLabeller.UniqueLabelException ule) {
+            throw new FatalException("Ids must be unique");
+
+        }
+
+        for (Iterator keyIt = attributeMap.keySet().iterator();
+             keyIt.hasNext();
+                ) {
+            Object key = keyIt.next();
+            Object value = attributeMap.get(key);
+            vertex.setUserDatum(key, value, UserData.SHARED);
+        }
+        String label = attributeMap.get("VERTEX").toString();
+        vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
+        if(label.startsWith("Initial")){
+        	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
+        	vertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
+        }
+        vertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+        return vertex;
+    }
+
+
+	
 }

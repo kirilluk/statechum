@@ -24,7 +24,7 @@ public class AccuracyAndQuestionsExperiment {
 	
 	public void evaluate(DirectedSparseGraph g){
 		Visualiser viz = new Visualiser();
-		WMethod wm = new WMethod(g,0);
+		WMethod wm = new WMethod(g,2);
 		Set<List<String>> fullTestSet = wm.getFullTestSet();
 		String fsmString = getFSMString(g);
 		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
@@ -81,7 +81,7 @@ public class AccuracyAndQuestionsExperiment {
 		double size = samples.size();
 		double number = (size/100)*percent;
 		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
-		for(int i=0;i<number;i++){
+		for(int i=0;i<(int)number;i++){
 			returnSet.add(sampleArray[i]);
 		}
 		return returnSet;
@@ -162,13 +162,6 @@ public class AccuracyAndQuestionsExperiment {
         	dg.getEdgeConstraints().clear();
         	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+graphFileList[i]);
         	Iterator<Vertex> vIt = dg.getVertices().iterator();
-        	while(vIt.hasNext()){
-        		Vertex v = vIt.next();
-        		if(v.getUserDatum("VERTEX").toString().startsWith("Initial")){
-        			v.addUserDatum("startOrTerminal", "start", UserData.SHARED);
-        			break;
-        		}
-        	}
         	experiment.evaluate(dg);
         		
         }

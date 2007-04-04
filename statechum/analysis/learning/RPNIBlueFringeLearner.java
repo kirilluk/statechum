@@ -921,9 +921,9 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 	
 	public static Vertex findVertex(String property, Object value, Graph g){
-		Iterator vertexIt = g.getVertices().iterator();
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
-			DirectedSparseVertex v = (DirectedSparseVertex)vertexIt.next();
+			Vertex v = vertexIt.next();
 			if(v.getUserDatum(property) == null)
 				continue;
 			if(v.getUserDatum(property).equals(value))

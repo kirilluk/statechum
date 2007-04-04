@@ -5,8 +5,12 @@
 package statechum.analysis.learning;
 
 
+import java.awt.Point;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+
+import javax.swing.SwingUtilities;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -20,45 +24,71 @@ import static statechum.xmachine.model.testset.WMethod.tracePath;
 
 public class AccuracyAndQuestionsExperiment {
 
-	
+	Visualiser v = new Visualiser();
 	
 	public void evaluate(DirectedSparseGraph g){
-		Visualiser viz = new Visualiser();
-		WMethod wm = new WMethod(g,0);
-		Set<List<String>> fullTestSet = wm.getFullTestSet();
-		fullTestSet.addAll(wm.getTransitionCover());
-		String fsmString = getFSMString(g);
-		DirectedSparseGraph testMachine = TestFSMAlgo.buildGraph(fsmString, "test machine");
-		final FSMStructure expected = getGraphData(testMachine);
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(viz)
+		RandomPathGenerator rpg = new RandomPathGenerator(g);
+		Set<List<String>> fullSet = rpg.getAllPaths();
+		final FSMStructure expected = getGraphData(g);
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(v)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
 				return tracePath(expected, question);
 			}
 		};
-		l.addObserver(viz);
-		Set<List<String>> sampleSet = randomHalf(fullTestSet);
+		Set<List<String>> sampleSet = randomHalf(fullSet);
 		Vector<List<String>> samples = new Vector<List<String>>();
 		samples.addAll(sampleSet);
-		Set<List<String>> tests = fullTestSet;
+		Set<List<String>> tests = fullSet;
 		tests.removeAll(samples);
 		Set<List<String>> currentSamples = new HashSet<List<String>>();
 		for(int i=10;i<=100;i=i+10){
 			System.out.println("-------");
 			System.out.println(i + "%");
 			currentSamples = addPercentageFromSamples(currentSamples, samples, i);
-			Set<List<String>> sPlus = getPositiveStrings(testMachine,currentSamples);
+			Set<List<String>> sPlus = getPositiveStrings(g,currentSamples);
 			Set<List<String>> sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
-			sMinus = trimToNegatives(testMachine, sMinus);
+			sMinus = trimToNegatives(g, sMinus);
 			System.out.println(l.getQuestionCounter());
 			l.setQuestionCounter(0);
 			try{
 				DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
-				System.out.println(computeAccuracy(learningOutcome, testMachine,tests));
+				//updateFrame(g,learningOutcome);
+				System.out.println(computeAccuracy(learningOutcome, g,tests));
 			}
 			catch(InterruptedException e){return;};
+		}
+	}
+	
+	/** Displays twos graphs passed as arguments in the Jung window.
+	 * @param g the graph to display 
+	 * @param lowerGraph the graph to display below it
+	 */
+	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
+	{
+		v.update(null, g);
+		if (lowerGraph != null)
+		{
+			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
+				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
+				// I rely on the results of execution of the above thread below in order to position the window.
+				SwingUtilities.invokeAndWait(new Runnable() 
+				{
+					public void run()
+					{
+						Visualiser viz=new Visualiser();viz.update(null, lowerGraph);
+						Point newLoc = viz.getLocation();newLoc.move(0, v.getHeight());v.setLocation(newLoc);
+					}
+				});
+			} catch (InterruptedException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			}
 		}
 	}
 	
@@ -68,16 +98,22 @@ public class AccuracyAndQuestionsExperiment {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
 			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex != null)){
-				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true"))
+				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+					//updateFrame(learned, correct);
 					failed ++;
+				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED)!=correctVertex.getUserDatum(JUConstants.ACCEPTED))
+				if(!(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals(correctVertex.getUserDatum(JUConstants.ACCEPTED).toString()))){
+					//updateFrame(learned, correct);
 					failed ++;
+				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true"))
+				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+					//updateFrame(learned, correct);
 					failed++;
+				}
 			}
 				
 		}
@@ -115,6 +151,8 @@ public class AccuracyAndQuestionsExperiment {
 			List<String> v = sampleIt.next();
 			if(RPNIBlueFringeLearner.getVertex(graph, v) != null)
 				positiveStrings.add(v);
+			else
+				System.out.println(v);
 		}
 		return positiveStrings;
 	}
@@ -122,6 +160,8 @@ public class AccuracyAndQuestionsExperiment {
 	private String getFSMString(DirectedSparseGraph g){
 		String fsmString = "";
 		for(DirectedSparseEdge e:(Collection<DirectedSparseEdge>)g.getEdges()){
+			if(e.getDest().getUserDatum(JUConstants.ACCEPTED).equals("false"))
+				continue;
 			String sourceLabel = e.getSource().getUserDatum("VERTEX").toString();
 			String targetLabel = e.getDest().getUserDatum("VERTEX").toString();
 			if(targetLabel.startsWith("Initial"))

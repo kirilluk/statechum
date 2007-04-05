@@ -7,17 +7,17 @@ xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
 <node id="3" VERTEX="2" />
 <node id="4" VERTEX="3" />
 <node id="5" VERTEX="4" />
-<edge source="2" target="4" directed="true"EDGE="a0" />
-<edge source="1" target="1" directed="true"EDGE="a3" />
-<edge source="3" target="1" directed="true"EDGE="a1" />
-<edge source="5" target="3" directed="true"EDGE="a3" />
-<edge source="2" target="2" directed="true"EDGE="a3" />
-<edge source="1" target="2" directed="true"EDGE="a0" />
-<edge source="2" target="2" directed="true"EDGE="a2" />
-<edge source="4" target="2" directed="true"EDGE="a1" />
-<edge source="4" target="2" directed="true"EDGE="a0" />
-<edge source="3" target="2" directed="true"EDGE="a0" />
-<edge source="4" target="5" directed="true"EDGE="a3" />
-<edge source="5" target="3" directed="true"EDGE="a1" />
+<edge source="2" target="4" directed="true" EDGE="a0" />
+<edge source="1" target="1" directed="true" EDGE="a3" />
+<edge source="3" target="1" directed="true" EDGE="a1" />
+<edge source="5" target="3" directed="true" EDGE="a3" />
+<edge source="2" target="2" directed="true" EDGE="a3" />
+<edge source="1" target="2" directed="true" EDGE="a0" />
+<edge source="2" target="2" directed="true" EDGE="a2" />
+<edge source="4" target="2" directed="true" EDGE="a1" />
+<edge source="4" target="2" directed="true" EDGE="a0" />
+<edge source="3" target="2" directed="true" EDGE="a0" />
+<edge source="4" target="5" directed="true" EDGE="a3" />
+<edge source="5" target="3" directed="true" EDGE="a1" />
 </graph>
 </graphml>

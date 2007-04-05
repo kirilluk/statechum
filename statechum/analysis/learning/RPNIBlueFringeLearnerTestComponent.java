@@ -52,10 +52,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					System.out.println("CANCELLED");
 					return null;
 				}
+				Vertex tempVertex = getVertex(temp, question);
 				if(answer == USER_ACCEPTED){
 					sPlus.add(question);
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
-					Vertex tempVertex = getVertex(temp, question);
+					
 					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
 							return learnMachine(initialise(), sPlus, sMinus);
 				}
@@ -63,7 +64,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					assert answer < question.size();
 					sMinus.add(question.subList(0, answer+1));
 					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-					if(getVertex(temp, question).getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
+					if((answer==question.size()-1)&&tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
 					}
 					assert accepted.equals("true");

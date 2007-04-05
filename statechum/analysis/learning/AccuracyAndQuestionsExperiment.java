@@ -44,19 +44,18 @@ public class AccuracyAndQuestionsExperiment {
 		tests.removeAll(samples);
 		Set<List<String>> currentSamples = new HashSet<List<String>>();
 		for(int i=10;i<=100;i=i+10){
-			System.out.println("-------");
-			System.out.println(i + "%");
+			System.out.print(i + "%");
 			currentSamples = addPercentageFromSamples(currentSamples, samples, i);
 			Set<List<String>> sPlus = getPositiveStrings(g,currentSamples);
 			Set<List<String>> sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
 			sMinus = trimToNegatives(g, sMinus);
-			System.out.println(l.getQuestionCounter());
+			System.out.print(","+l.getQuestionCounter());
 			l.setQuestionCounter(0);
 			try{
 				DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 				//updateFrame(g,learningOutcome);
-				System.out.println(computeAccuracy(learningOutcome, g,tests));
+				System.out.println(", "+computeAccuracy(learningOutcome, g,tests));
 			}
 			catch(InterruptedException e){return;};
 		}
@@ -199,7 +198,7 @@ public class AccuracyAndQuestionsExperiment {
 	public static void main(String[] args){
 		AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
 		File graphDir = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-				System.getProperty("file.separator")+"5-2"+System.getProperty("file.separator")+"Format");
+				System.getProperty("file.separator")+"5-6");
         String[] graphFileList = graphDir.list();
         for(int i=0;i<graphFileList.length;i++){
         	if(!graphFileList[i].startsWith("N"))

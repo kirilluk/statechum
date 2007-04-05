@@ -8,6 +8,7 @@ import static org.junit.Assert.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -218,6 +219,26 @@ public class TestWMethod {
 						new String[]{"c"},
 						new String[]{"a"}
 				})));
+	}
+
+	@Test
+	public final void testComputeFSMAlphabet1()
+	{
+		Set<String> expected = new HashSet<String>();
+		expected.add("p");
+		Assert.assertTrue(WMethod.computeAlphabet(getGraphData(buildGraph("A-p->A","testComputeFSMAlphabet1"))).
+				equals(expected));
+				
+	}
+	
+	@Test
+	public final void testComputeFSMAlphabet2()
+	{
+		Set<String> expected = new HashSet<String>();
+		expected.add("p");expected.add("d");expected.add("b");expected.add("c");expected.add("a");
+		Assert.assertTrue(WMethod.computeAlphabet(getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testComputeFSMAlphabet2"))).
+				equals(expected));
+				
 	}
 	
 	@Test
@@ -461,7 +482,7 @@ public class TestWMethod {
 	public static void testWsetconstruction(String machine, boolean equivalentExpected)
 	{
 		DirectedSparseGraph g = buildGraph(machine,"testWset");
-		FSMStructure fsm = getGraphData(g);visFrame.update(null, g);
+		FSMStructure fsm = getGraphData(g);//visFrame.update(null, g);
 		try
 		{
 			Set<List<String>> wset = WMethod.computeWSet(fsm);
@@ -562,7 +583,44 @@ public class TestWMethod {
 		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false);
 	}
 	
+	@Test
+	public final void testCheckEquivalentStates1() // equivalent states
+	{
+		DirectedSparseGraph g = buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1");
+		FSMStructure fsm = getGraphData(g);
+		Assert.assertEquals(true, WMethod.checkEquivalentStates(fsm));
+	}
 	
+	@Test
+	public final void testCheckEquivalentStates2() // no equivalent states
+	{
+		DirectedSparseGraph g = buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates2");
+		FSMStructure fsm = getGraphData(g);
+		Assert.assertEquals(false, WMethod.checkEquivalentStates(fsm));
+	}
+
+	@Test
+	public final void testCheckEquivalentStates3() // no equivalent states
+	{
+		int [][]table = new int[][] {
+				{1,-1},
+				{-1,1}
+			};
+		FSMStructure fsm = TestFSMAlgo.convertTableToFSMStructure(table, new int[]{0,1}, -1);
+		Assert.assertEquals(false, WMethod.checkEquivalentStates(fsm));
+	}
+
+	@Test
+	public final void testCheckEquivalentStates4() // equivalent states
+	{
+		int [][]table = new int[][] {
+				{1,-1},
+				{1,-1}
+			};
+		FSMStructure fsm = TestFSMAlgo.convertTableToFSMStructure(table, new int[]{0,1}, -1);
+		Assert.assertEquals(true, WMethod.checkEquivalentStates(fsm));
+	}
+		
 	@Test
 	public final void testTestGeneration1()
 	{

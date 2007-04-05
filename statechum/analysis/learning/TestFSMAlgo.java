@@ -25,6 +25,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -620,12 +621,12 @@ public class TestFSMAlgo {
 	public static class FSMStructure
 	{
 		/** The transition transition diagram, in which every state is mapped to a map between an input (label) and a target state. */
-		public Map<String,Map<String,String>> trans;
+		public final Map<String,Map<String,String>> trans;
 		
 		/** All states of the machine should be in the domain of this function; 
 		 * for a given state, this function will return <pre>true</pre> if it is an accept state and <pre>false</pre> for a reject one.
 		 */ 
-		public Map<String,Boolean> accept;
+		public final Map<String,Boolean> accept;
 		
 		/** The initial state. */
 		public String init;
@@ -1659,7 +1660,6 @@ public class TestFSMAlgo {
 		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}})));
 	}
 
-	// TODO to add the machine with looping "a" transtions
 	@Test
 	public void testBuildSet4()
 	{
@@ -1671,7 +1671,131 @@ public class TestFSMAlgo {
 		assertTrue(expectedResult.equals(buildSet(new String[] []{
 				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
 	}
+
+	/** Converts a given number to a state name. */
+	private static String intToState(int s)
+	{
+		return "S"+s;
+	}
 	
+	/** Converts a transition into an FSM structure, by taking a copy.
+	 * 
+	 * @param tTable table, where tTable[source][input]=targetstate
+	 * @param vFrom the order in which elements from tTable are to be used.
+	 * @param rejectNumber the value of an entry in a tTable which is used to denote an absence of a transition.
+	 * @return the constructed transition structure.
+	 */
+	public static FSMStructure convertTableToFSMStructure(final int [][]tTable, final int []vFrom, int rejectNumber)
+	{
+		if (vFrom.length == 0 || tTable.length == 0) throw new IllegalArgumentException("array is zero-sized");
+		FSMStructure fsm = new FSMStructure();
+		fsm.init = intToState(vFrom[0]);
+		int alphabetSize = tTable[vFrom[0]].length;
+		Set<String> statesUsed = new HashSet<String>();
+		for(int i=0;i<vFrom.length;++i)
+		{
+			int currentState = vFrom[i];
+			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
+			if (tTable[currentState].length != alphabetSize) throw new IllegalArgumentException("rows of inconsistent size");
+			Map<String,String> row = new HashMap<String,String>();
+			fsm.accept.put(intToState(currentState), true);
+			for(int input=0;input < tTable[currentState].length;++input)
+				if (tTable[currentState][input] != rejectNumber)
+				{
+					row.put("i"+input, intToState(tTable[currentState][input]));
+					statesUsed.add(intToState(tTable[currentState][input]));
+				}
+			if (!row.isEmpty())
+				fsm.trans.put(intToState(currentState), row);
+		}
+		statesUsed.removeAll(fsm.accept.keySet());
+		if (!statesUsed.isEmpty())
+			throw new IllegalArgumentException("Some states in the transition table are not included in vFrom");
+		return fsm;
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure1()
+	{
+		int [][]table = new int[][] {
+			{4,5,1,6}, 
+			{7,7}
+		};
+		convertTableToFSMStructure(table, new int[0], -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure2()
+	{
+		int [][]table = new int[][] {
+				{4,5,1,6}, 
+				{7,7}
+			};
+			convertTableToFSMStructure(table, new int[]{0,1}, -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure3()
+	{
+		int [][]table = new int[][] {
+				{4,5,1,6}, 
+				{7,7,3,2}
+			};
+			convertTableToFSMStructure(table, new int[]{0,-1}, -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure4()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	2}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+	
+	@Test
+	public final void testConvertTableToFSMStructure5()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	3}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,3}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+	
+	@Test
+	public final void testConvertTableToFSMStructure6()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	3}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{1,0,3}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+
+	@Test
+	public final void testConvertTableToFSMStructure7()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	3}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{3,0,1}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
 	 * 		updateFrame(g);// a public method

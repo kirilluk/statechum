@@ -17,11 +17,19 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 public class WMethod {
 
 	private DirectedSparseGraph machineGraph;
+	private FSMStructure fsm;
 	private int numberOfExtraStates;
 	private Set<List<String>> fullTestSet, transitionCover, characterisationSet;
 	
 	public WMethod(DirectedSparseGraph g, int numberOfExtraStates){
 		this.machineGraph = g;
+		this.fsm = null;
+		this.numberOfExtraStates = numberOfExtraStates;
+	}
+	
+	public WMethod(FSMStructure fsm, int numberOfExtraStates){
+		this.machineGraph = null;
+		this.fsm = fsm;
 		this.numberOfExtraStates = numberOfExtraStates;
 	}
 	
@@ -210,7 +218,9 @@ public class WMethod {
 	
 	private void computeTestSet()
 	{
-		FSMStructure fsm = getGraphData(machineGraph);Set<String> alphabet =  computeAlphabet(machineGraph);
+		if (fsm == null)
+			fsm = getGraphData(machineGraph);
+		Set<String> alphabet =  computeAlphabet(fsm);
 		Set<List<String>> partialSet = computeStateCover(fsm), Phi = makeSingleton(alphabet);
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = cross(partialSet,Phi);transitionCover.addAll(partialSet);
@@ -224,7 +234,7 @@ public class WMethod {
 			appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		}
 	}
-
+	
 	/** Checks if the supplied FSM has unreachable states.
 	 * 
 	 * @param fsm the machine to check
@@ -233,6 +243,20 @@ public class WMethod {
 	public static boolean checkUnreachableStates(FSMStructure fsm)
 	{
 		return computeStateCover(fsm).size() != fsm.accept.size();
+	}
+	
+	/** Checks if the supplied FSM has equivalent states. */
+	public static boolean checkEquivalentStates(FSMStructure fsm)
+	{
+		try
+		{
+			computeWSet(fsm);
+		}
+		catch(EquivalentStatesException e)
+		{
+			return true;
+		}
+		return false;
 	}
 	
 	public static Set<List<String>> cross(Set<List<String>> a, Set<List<String>> b){
@@ -262,6 +286,14 @@ public class WMethod {
 				alphabet.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
 			}
 		}
+		return alphabet;
+	}
+
+	public static HashSet<String> computeAlphabet(FSMStructure fsm)
+	{
+		HashSet<String> alphabet = new HashSet<String>();
+		for(Entry<String,Map<String,String>> row:fsm.trans.entrySet())
+			alphabet.addAll(row.getValue().keySet());
 		return alphabet;
 	}
 	

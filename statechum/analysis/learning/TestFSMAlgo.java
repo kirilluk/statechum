@@ -1672,12 +1672,6 @@ public class TestFSMAlgo {
 				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
 	}
 
-	/** Converts a given number to a state name. */
-	private static String intToState(int s)
-	{
-		return "S"+s;
-	}
-	
 	/** Converts a transition into an FSM structure, by taking a copy.
 	 * 
 	 * @param tTable table, where tTable[source][input]=targetstate
@@ -1688,9 +1682,12 @@ public class TestFSMAlgo {
 	public static FSMStructure convertTableToFSMStructure(final int [][]tTable, final int []vFrom, int rejectNumber)
 	{
 		if (vFrom.length == 0 || tTable.length == 0) throw new IllegalArgumentException("array is zero-sized");
-		FSMStructure fsm = new FSMStructure();
-		fsm.init = intToState(vFrom[0]);
 		int alphabetSize = tTable[vFrom[0]].length;
+		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
+		String stateName[] = new String[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]="S"+i;
+		String inputName[] = new String[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
+		FSMStructure fsm = new FSMStructure();
+		fsm.init = stateName[vFrom[0]];
 		Set<String> statesUsed = new HashSet<String>();
 		for(int i=0;i<vFrom.length;++i)
 		{
@@ -1698,15 +1695,18 @@ public class TestFSMAlgo {
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
 			if (tTable[currentState].length != alphabetSize) throw new IllegalArgumentException("rows of inconsistent size");
 			Map<String,String> row = new HashMap<String,String>();
-			fsm.accept.put(intToState(currentState), true);
+			fsm.accept.put(stateName[currentState], true);
 			for(int input=0;input < tTable[currentState].length;++input)
 				if (tTable[currentState][input] != rejectNumber)
 				{
-					row.put("i"+input, intToState(tTable[currentState][input]));
-					statesUsed.add(intToState(tTable[currentState][input]));
+					int nextState = tTable[currentState][input];
+					if (nextState < 0 || nextState > tTable.length)
+						throw new IllegalArgumentException("transition from state "+currentState+" leads to an invalid state "+nextState);
+					row.put(inputName[input], stateName[nextState]);
+					statesUsed.add(stateName[nextState]);
 				}
 			if (!row.isEmpty())
-				fsm.trans.put(intToState(currentState), row);
+				fsm.trans.put(stateName[currentState], row);
 		}
 		statesUsed.removeAll(fsm.accept.keySet());
 		if (!statesUsed.isEmpty())
@@ -1715,7 +1715,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
-	public final void testConvertTableToFSMStructure1()
+	public final void testConvertTableToFSMStructure1a()
 	{
 		int [][]table = new int[][] {
 			{4,5,1,6}, 
@@ -1725,11 +1725,21 @@ public class TestFSMAlgo {
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure1b()
+	{
+		int [][]table = new int[][] {
+			{}, 
+			{1,1}
+		};
+		convertTableToFSMStructure(table, new int[]{1,0}, -1);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
 	public final void testConvertTableToFSMStructure2()
 	{
 		int [][]table = new int[][] {
-				{4,5,1,6}, 
-				{7,7}
+				{1,0,1,0}, 
+				{0,1}
 			};
 			convertTableToFSMStructure(table, new int[]{0,1}, -1);
 	}
@@ -1738,19 +1748,32 @@ public class TestFSMAlgo {
 	public final void testConvertTableToFSMStructure3()
 	{
 		int [][]table = new int[][] {
-				{4,5,1,6}, 
-				{7,7,3,2}
+				{1,0,1,0}, 
+				{0,1,0,1}
 			};
 			convertTableToFSMStructure(table, new int[]{0,-1}, -1);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
-	public final void testConvertTableToFSMStructure4()
+	public final void testConvertTableToFSMStructure4a()
 	{
 		int [][]table = new int[][] {
 			{0,	1,	-1,	2}, 
 			{0, 3,	0,	-1},
 			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testConvertTableToFSMStructure4b()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	2}, 
+			{0, 3,	0,	-1},
+			{0,0,0,-4},
 			{-1,-1,-1,-1}
 		};
 		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1);

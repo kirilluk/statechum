@@ -198,7 +198,7 @@ public class AccuracyAndQuestionsExperiment {
 	public static void main(String[] args){
 		AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
 		File graphDir = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-				System.getProperty("file.separator")+"5-6");
+				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"25-2");
         String[] graphFileList = graphDir.list();
         for(int i=0;i<graphFileList.length;i++){
         	if(!graphFileList[i].startsWith("N"))

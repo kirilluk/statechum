@@ -318,21 +318,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		private final DijkstraShortestPath shortestPath;
 
 		private final Map<Vertex,Map<String,Vertex>> transitionMatrix = new HashMap<Vertex,Map<String,Vertex>>();
-		
-		/** Adds the target state and the input associated with the given edge, to the appropriate entry of the transition matrix.
-		 * 
-		 * @param e the edge to add to the transition matrix.
-		 */
-		private void populateTransitionMatrixWithVertex(DirectedSparseEdge e)
-		{
-			Map<String,Vertex> outgoing = transitionMatrix.get(e.getSource());
-			if (outgoing == null)
-			{
-				outgoing = new HashMap<String,Vertex>();transitionMatrix.put(e.getSource(),outgoing);
-			}
-			outgoing.put((String)e.getUserDatum(JUConstants.LABEL), e.getDest());			
-		}
-		
+				
 		/** Initialises the class used to compute scores between states.
 		 * 
 		 * @param g the graph it will be used on 
@@ -542,23 +528,17 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 	@Test
 	public final void testNewLearner5()
 	{
-		testNewLearner("A-a->A1-b->A1"+PTA1);
-	}
-	
-	@Test
-	public final void testNewLearner6()
-	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b-#A2"+PTA1);
 	}
 
 	@Test
-	public final void testNewLearner7()
+	public final void testNewLearner6()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A2-b-#A3"+PTA1);
 	}
 	
 	@Test
-	public final void testNewLearner8()
+	public final void testNewLearner7()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A2-b->A3"+PTA1);
 	}
@@ -566,25 +546,25 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 	public static final String PTA2 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\nB1-c->BB1-c->BB2\n";
 	
 	@Test
-	public final void testNewLearner9()
+	public final void testNewLearner8()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c->A1"+PTA2);
 	}
 	
 	@Test
-	public final void testNewLearner10()
+	public final void testNewLearner9()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c-#A3"+PTA2);
 	}
 	
 	@Test
-	public final void testNewLearner11()
+	public final void testNewLearner10()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c->A3"+PTA2);
 	}
 	
 	@Test
-	public final void testNewLearner12()
+	public final void testNewLearner11()
 	{
 		testNewLearner("A-a->A1-a-#A1\nA1-b->A1\nA1-c->A3"+PTA2);
 	}

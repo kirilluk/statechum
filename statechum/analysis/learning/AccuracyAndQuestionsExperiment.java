@@ -27,6 +27,7 @@ public class AccuracyAndQuestionsExperiment {
 	Visualiser v = new Visualiser();
 	
 	public void evaluate(DirectedSparseGraph g){
+		updateFrame(g,g);
 		RandomPathGenerator rpg = new RandomPathGenerator(g);
 		Set<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(g);
@@ -198,7 +199,7 @@ public class AccuracyAndQuestionsExperiment {
 	public static void main(String[] args){
 		AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
 		File graphDir = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"25-2");
+				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"25-4");
         String[] graphFileList = graphDir.list();
         for(int i=0;i<graphFileList.length;i++){
         	if(!graphFileList[i].startsWith("N"))

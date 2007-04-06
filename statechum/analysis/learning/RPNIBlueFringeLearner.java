@@ -471,7 +471,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return returnStrings;
 	}
 	
-	private static boolean hasAcceptedNeighbours(Vertex v){
+	public static boolean hasAcceptedNeighbours(Vertex v){
 		Iterator<DirectedSparseEdge> neighbourIt = v.getOutEdges().iterator();
 		while (neighbourIt.hasNext()){
 			DirectedSparseEdge e = neighbourIt.next();

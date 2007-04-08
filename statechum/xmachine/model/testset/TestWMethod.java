@@ -7,6 +7,7 @@ import static org.junit.Assert.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,6 +35,7 @@ import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.WMethod.EquivalentStatesException;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.TestFSMAlgo.buildList;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.isPrefix;
 import static statechum.xmachine.model.testset.WMethod.cross;
@@ -51,7 +53,8 @@ public class TestWMethod {
 	@Test
 	public final void computeStateCover1() {
 		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
-			actual = WMethod.computeStateCover(getGraphData(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1")));
+			actual = new HashSet<List<String>>();
+			actual.addAll(WMethod.computeStateCover(getGraphData(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1"))));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -60,8 +63,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover2() {
-		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
-			actual = WMethod.computeStateCover(getGraphData(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2")));
+		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
+			actual = new HashSet<List<String>>();
+			actual.addAll(WMethod.computeStateCover(getGraphData(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"))));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -70,8 +74,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover3() {
-		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
-			actual = WMethod.computeStateCover(getGraphData(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3")));
+		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
+			actual = new HashSet<List<String>>();
+			actual.addAll(WMethod.computeStateCover(getGraphData(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"))));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -80,8 +85,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover4() {
-		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
-			actual = WMethod.computeStateCover(getGraphData(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3")));
+		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
+			actual = new HashSet<List<String>>();
+			actual.addAll(WMethod.computeStateCover(getGraphData(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"))));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -122,9 +128,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross1a() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
-				buildSet(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})),
-				expected = buildSet(new String[][] {
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
+		buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})));
+		Set<List<String>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"a","b","q","w"},
 						new String[]{"z","x","c","d"},
@@ -137,9 +144,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross1b() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {new String[]{},new String[]{"a","b"},new String[]{"z","x"}}), 
-				buildSet(new String[][] {new String[]{},new String[]{"c","d"}, new String[]{"q","w"}})),
-				expected = buildSet(new String[][] {
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {new String[]{},new String[]{"a","b"},new String[]{"z","x"}}), 
+				buildList(new String[][] {new String[]{},new String[]{"c","d"}, new String[]{"q","w"}})));
+		Set<List<String>> expected = buildSet(new String[][] {
 						new String[]{},
 						new String[]{"a","b"},new String[]{"z","x"},
 						new String[]{"c","d"},new String[]{"q","w"},
@@ -155,9 +163,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross2() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {new String[]{"a","b"}}), 
-				buildSet(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})),
-				expected = buildSet(new String[][] {
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"}}), 
+				buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})));
+		Set<List<String>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"a","b","q","w"}});
 		Assert.assertTrue(expected.equals(actual));
@@ -168,9 +177,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross3() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
-				buildSet(new String[][] {new String[]{"c","d"}})),
-				expected = buildSet(new String[][] {
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
+				buildList(new String[][] {new String[]{"c","d"}})));
+		Set<List<String>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"z","x","c","d"}});
 		Assert.assertTrue(expected.equals(actual));
@@ -181,8 +191,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross4() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {}), 
-				buildSet(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}}));
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {}), 
+				buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})));
 				
 		Assert.assertTrue(actual.isEmpty());		
 	}				
@@ -192,8 +203,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross5() {
-		Set<List<String>> actual = cross(buildSet(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
-				buildSet(new String[][] {}));
+		Set<List<String>> actual = new HashSet<List<String>>();
+		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
+				buildList(new String[][] {})));
 				
 		Assert.assertTrue(actual.isEmpty());		
 	}
@@ -211,7 +223,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testGetStimuli2() {
-		Assert.assertTrue(WMethod.makeSingleton(WMethod.computeAlphabet(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testGetStimuli2")))
+		Set<List<String>> singleton = new HashSet<List<String>>();
+		singleton.addAll(WMethod.makeSingleton(WMethod.computeAlphabet(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testGetStimuli2"))));
+		Assert.assertTrue(singleton
 				.equals(buildSet(new String[][]{
 						new String[]{"p"},
 						new String[]{"d"},
@@ -304,9 +318,9 @@ public class TestWMethod {
 	public final void testAppendSequence0() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence0"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
+		List<List<String>> sequences = buildList(new String[][]{ 
 			}),
-		expected = buildSet(new String[][]{
+		expected = buildList(new String[][]{
 				new String[]{}
 			});
 		
@@ -321,10 +335,10 @@ public class TestWMethod {
 	public final void testAppendSequence0b() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence0b"));
-		Set<List<String>> sequences = Collections.unmodifiableSet(buildSet(new String[][]{ 
+		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
 				new String[]{} 
 			})),
-		expected = buildSet(new String[][]{
+		expected = buildList(new String[][]{
 				new String[]{}
 			});
 		
@@ -339,10 +353,10 @@ public class TestWMethod {
 	public final void testAppendSequence1() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence1"));
-		Set<List<String>> sequences = Collections.unmodifiableSet(buildSet(new String[][]{ 
+		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
 				new String[]{"p","b"} 
 			})),
-		expected = buildSet(new String[][]{
+		expected = buildList(new String[][]{
 				new String[]{"p","b"}
 			});
 		
@@ -357,10 +371,10 @@ public class TestWMethod {
 	public final void testAppendSequence2() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence2"));
-		Set<List<String>> sequences = Collections.unmodifiableSet(buildSet(new String[][]{ 
+		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
 				new String[]{"p","b"} 
 			})),
-		expected = buildSet(new String[][]{
+		expected = buildList(new String[][]{
 				new String[]{"p","b"}
 			});
 		
@@ -375,10 +389,10 @@ public class TestWMethod {
 	public final void testAppendSequence3() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence3"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
+		List<List<String>> sequences = buildList(new String[][]{ 
 				new String[]{"p","b"} 
 			}),
-		expected = buildSet(new String[][]{
+		expected = buildList(new String[][]{
 				new String[]{"p","b","c"}
 			});
 		
@@ -393,16 +407,17 @@ public class TestWMethod {
 	public final void testAppendSequence4() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence4"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
+		List<List<String>> sequences = buildList(new String[][]{ 
 				new String[]{"p","b"} 
-			}),
-		expected = buildSet(new String[][]{
+			});
+		Set<List<String>>  expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"p","p"}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p"}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
+		Assert.assertTrue(expected.equals(actual));
 	}
 
 	/**
@@ -412,10 +427,10 @@ public class TestWMethod {
 	public final void testAppendSequence5() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence5"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
+		List<List<String>> sequences = buildList(new String[][]{ 
 				new String[]{"p","b"} 
-			}),
-		expected = buildSet(new String[][]{
+			});
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"p","p","p"}
 			});
@@ -423,7 +438,8 @@ public class TestWMethod {
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p"}));
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p"}));
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p","p"}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
+		Assert.assertTrue(expected.equals(actual));
 	}
 
 	/**
@@ -432,16 +448,17 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences0() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences0"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
-			}),
-		expected = buildSet(new String[][]{
+		List<List<String>> sequences = buildList(new String[][]{ 
+			});
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","p","p"},
 				new String[]{"g"}
 			});
 		
-		WMethod.appendAllSequences(fsm, sequences, buildSet(new String[][] {
+		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {
 				new String[]{"p"},new String[]{"p","p"},new String[] {}, new String [] {"g"},new String[]{"p","p","p"}}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
+		Assert.assertTrue(expected.equals(actual));
 	}
 
 	/**
@@ -450,13 +467,14 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences0b() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences0b"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
-			}),
-		expected = buildSet(new String[][]{
+		List<List<String>> sequences = buildList(new String[][]{ 
+			});
+		Set<List<String>> expected = buildSet(new String[][]{
 			});
 		
-		WMethod.appendAllSequences(fsm, sequences, buildSet(new String[][] {}));
-		Assert.assertTrue(expected.equals(sequences));
+		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {}));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
+		Assert.assertTrue(expected.equals(actual));
 	}
 
 	/**
@@ -465,18 +483,19 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences1() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences1"));
-		Set<List<String>> sequences = buildSet(new String[][]{ 
+		List<List<String>> sequences = buildList(new String[][]{ 
 				new String[]{"p","b"} 
-			}),
-		expected = buildSet(new String[][]{
+			});
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"g"},
 				new String[]{"p","p","p"}
 			});
 		
-		WMethod.appendAllSequences(fsm, sequences, buildSet(new String[][] {
+		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {
 				new String[]{"p"},new String[]{"p","p"},new String[] {}, new String [] {"g"},new String[]{"p","p","p"}}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
+		Assert.assertTrue(expected.equals(actual));
 	}
 
 	public static void testWsetconstruction(String machine, boolean equivalentExpected)
@@ -485,7 +504,7 @@ public class TestWMethod {
 		FSMStructure fsm = getGraphData(g);//visFrame.update(null, g);
 		try
 		{
-			Set<List<String>> wset = WMethod.computeWSet(fsm);
+			List<List<String>> wset = WMethod.computeWSet(fsm);
 			Assert.assertEquals(false, equivalentExpected);
 			//System.out.println("states: "+fsm.accept.size()+" Wset has "+wset.size()+" elements");
 			for(Entry<String,Boolean> stateA:fsm.accept.entrySet())
@@ -634,7 +653,7 @@ public class TestWMethod {
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {}
 			}),
-			actual = wm.getFullTestSet();
+			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
 		assertTrue(actual.equals(expected));
 	}
 	
@@ -645,7 +664,7 @@ public class TestWMethod {
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a"}
 			}),
-			actual = wm.getFullTestSet();
+			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
 		assertTrue(actual.equals(expected));
 	}
 	
@@ -656,7 +675,7 @@ public class TestWMethod {
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","a"}
 			}),
-			actual = wm.getFullTestSet();
+			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
 		assertTrue(actual.equals(expected));
 	}
 	
@@ -669,7 +688,7 @@ public class TestWMethod {
 				new String[] {"b","a"},
 				new String[] {"b","b"}
 			}),
-			actual = wm.getFullTestSet();
+		actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
 		assertTrue(actual.equals(expected));
 	}
 	
@@ -683,7 +702,7 @@ public class TestWMethod {
 				new String[] {"b","a"},
 				new String[] {"b","b"}
 			}),
-			actual = wm.getFullTestSet();
+			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
 		assertTrue(actual.equals(expected));
 	}
 

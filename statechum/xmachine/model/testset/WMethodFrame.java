@@ -31,9 +31,9 @@ public class WMethodFrame extends JFrame {
                 this.getParent(),
                 "Number of extra states","0")).intValue();
 		WMethod wm = new WMethod(g, numberOfExtraStates);
-		Set<List<String>> transitionCover = wm.getTransitionCover();
-		Set<List<String>> characterisationSet = wm.getCharacterisationSet();
-		Set<List<String>> fullTestSet = wm.getFullTestSet();
+		Collection<List<String>> transitionCover = wm.getTransitionCover();
+		Collection<List<String>> characterisationSet = wm.getCharacterisationSet();
+		Collection<List<String>> fullTestSet = wm.getFullTestSet();
 		JComponent transitionCoverPanel = makeTextPanel(transitionCover);
 		JComponent characteisationPanel = makeTextPanel(characterisationSet);
 		JComponent fullTestSetPanel = makeTextPanel(fullTestSet);
@@ -46,7 +46,7 @@ public class WMethodFrame extends JFrame {
 		pane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 	}
 	
-	private JComponent makeStatsTab(Set<List<String>> transitionCover, Set<List<String>> wSet, Set<List<String>> fullTestSet){
+	private JComponent makeStatsTab(Collection<List<String>> transitionCover, Collection<List<String>> wSet, Collection<List<String>> fullTestSet){
 		JTextArea area = new JTextArea();
 		JScrollPane scrollPane = new JScrollPane(area);
 		area.insert("Transition Cover:\n"+getStats(transitionCover)+"\n", area.getCaretPosition());
@@ -58,7 +58,7 @@ public class WMethodFrame extends JFrame {
 		return panel;
 	}
 	
-	private String getStats(Set<List<String>> paths){
+	private String getStats(Collection<List<String>> paths){
 		String returnString = new String();
 		returnString = "size: "+paths.size()+"\n";
 		Iterator pathIt = paths.iterator();
@@ -71,7 +71,7 @@ public class WMethodFrame extends JFrame {
 		return returnString;
 	}
 	
-	private JComponent makeTextPanel(Set<List<String>> paths){
+	private JComponent makeTextPanel(Collection<List<String>> paths){
 		JTextArea area = new JTextArea();
 		JScrollPane scrollPane = new JScrollPane(area);
 		Iterator pathIt = paths.iterator();

@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.TestFSMAlgo.DifferentFSMException;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 
 import edu.uci.ics.jung.graph.Vertex;
@@ -19,7 +18,8 @@ public class WMethod {
 	private DirectedSparseGraph machineGraph;
 	private FSMStructure fsm;
 	private int numberOfExtraStates;
-	private Set<List<String>> fullTestSet, transitionCover, characterisationSet;
+	private Collection<List<String>> fullTestSet;
+	private List<List<String>> transitionCover, characterisationSet;
 	
 	public WMethod(DirectedSparseGraph g, int numberOfExtraStates){
 		this.machineGraph = g;
@@ -33,7 +33,7 @@ public class WMethod {
 		this.numberOfExtraStates = numberOfExtraStates;
 	}
 	
-	public Set<List<String>> getFullTestSet(){
+	public Collection<List<String>> getFullTestSet(){
 		if (fullTestSet == null)
 			computeTestSet();
 		return fullTestSet;
@@ -59,11 +59,11 @@ public class WMethod {
 		return testSet;
 	}
 	*/
-	public Set<List<String>> getCharacterisationSet() {
+	public List<List<String>> getCharacterisationSet() {
 		return characterisationSet;
 	}
 
-	public Set<List<String>> getTransitionCover() {
+	public List<List<String>> getTransitionCover() {
 		return transitionCover;
 	}
 
@@ -193,10 +193,10 @@ public class WMethod {
 	 * a fundamental test sequence and appends a the result to the <em>sequences</em> set 
 	 * if the fundamental test sequence is not a prefix of an existing sequence in that set.  
 	 */
-	public static void appendSequence(FSMStructure fsm, Set<List<String>> sequences, List<String> path)
+	public static void appendSequence(FSMStructure fsm, Collection<List<String>> sequences, List<String> path)
 	{
 		List<String> seq = truncateSequence(fsm, path);
-		Set<List<String>> seqToRemove = new HashSet<List<String>>();
+		List<List<String>> seqToRemove = new LinkedList<List<String>>();
 		for(List<String> s:sequences)
 		{
 			if (isPrefix(s, seq))
@@ -210,7 +210,7 @@ public class WMethod {
 		sequences.add(seq);sequences.removeAll(seqToRemove);
 	}
 	
-	public static void appendAllSequences(FSMStructure fsm, Set<List<String>> sequences, Set<List<String>> paths)
+	public static void appendAllSequences(FSMStructure fsm, Collection<List<String>> sequences, List<List<String>> paths)
 	{
 		for(List<String> path:paths)
 			appendSequence(fsm, sequences, path);
@@ -221,11 +221,11 @@ public class WMethod {
 		if (fsm == null)
 			fsm = getGraphData(machineGraph);
 		Set<String> alphabet =  computeAlphabet(fsm);
-		Set<List<String>> partialSet = computeStateCover(fsm), Phi = makeSingleton(alphabet);
+		List<List<String>> partialSet = computeStateCover(fsm), Phi = makeSingleton(alphabet);
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = cross(partialSet,Phi);transitionCover.addAll(partialSet);
 
-		fullTestSet = new HashSet<List<String>>();
+		fullTestSet = new LinkedHashSet<List<String>>();
 		
 		appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		for(int i=0;i<=this.numberOfExtraStates;i++)
@@ -259,8 +259,8 @@ public class WMethod {
 		return false;
 	}
 	
-	public static Set<List<String>> cross(Set<List<String>> a, Set<List<String>> b){
-		Set<List<String>> returnVect = new HashSet<List<String>>();
+	public static List<List<String>> cross(List<List<String>> a, List<List<String>> b){
+		List<List<String>> returnVect = new LinkedList<List<String>>();
 		for(List<String> elemA:a){
 			for(List<String> elemB:b) {
 				List<String> cross = new LinkedList<String>();
@@ -272,9 +272,9 @@ public class WMethod {
 		return returnVect;
 	}
 
-	public static HashSet<String> computeAlphabet(DirectedSparseGraph g)
+	public static LinkedHashSet<String> computeAlphabet(DirectedSparseGraph g)
 	{
-		HashSet<String> alphabet = new HashSet<String>();
+		LinkedHashSet<String> alphabet = new LinkedHashSet<String>();
 
 		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
 		while(vertexIt.hasNext())
@@ -289,16 +289,16 @@ public class WMethod {
 		return alphabet;
 	}
 
-	public static HashSet<String> computeAlphabet(FSMStructure fsm)
+	public static Set<String> computeAlphabet(FSMStructure fsm)
 	{
-		HashSet<String> alphabet = new HashSet<String>();
+		LinkedHashSet<String> alphabet = new LinkedHashSet<String>();
 		for(Entry<String,Map<String,String>> row:fsm.trans.entrySet())
 			alphabet.addAll(row.getValue().keySet());
 		return alphabet;
 	}
 	
-	public static Set<List<String>> makeSingleton(Set<String> stimuli){
-		Set<List<String>> functionList = new HashSet<List<String>>();
+	public static List<List<String>> makeSingleton(Set<String> stimuli){
+		List<List<String>> functionList = new LinkedList<List<String>>();
 		for(String stim:stimuli){
 			List<String> path = new LinkedList<String>();
 			path.add(stim);
@@ -307,7 +307,7 @@ public class WMethod {
 		return functionList;
 	}
 	
-	public static Set<List<String>> computeStateCover(FSMStructure fsm){
+	public static List<List<String>> computeStateCover(FSMStructure fsm){
 		Queue<String> fringe = new LinkedList<String>();
 		Set<String> statesInFringe = new HashSet<String>();// in order not to iterate through the list all the time.
 		Map<String,LinkedList<String>> stateToPath = new HashMap<String,LinkedList<String>>();stateToPath.put(fsm.init, new LinkedList<String>());
@@ -330,7 +330,7 @@ public class WMethod {
 					}
 				}
 		}
-		Set<List<String>> outcome = new HashSet<List<String>>();outcome.addAll(stateToPath.values());
+		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(stateToPath.values());
 		return outcome;
 	}
 	
@@ -366,22 +366,24 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static Set<List<String>> computeWSet(FSMStructure fsm) throws EquivalentStatesException
+	public static List<List<String>> computeWSet(FSMStructure fsm) throws EquivalentStatesException
 	{
 		
-		Map<String,Integer> equivalenceClasses = new HashMap<String,Integer>(), newEquivClasses = new HashMap<String,Integer>();
+		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
 		Map<String,Map<String,List<String>>> Wdata = new HashMap<String,Map<String,List<String>>>();
 		
 		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
-		{
 			equivalenceClasses.put(stateEntry.getKey(), 0);
+		for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+		{
 			Map<String,List<String>> row = new HashMap<String,List<String>>();
-			Wdata.put(stateEntry.getKey(), row);
-			Iterator<Entry<String,Boolean>> stateB_It = fsm.accept.entrySet().iterator();
+			Wdata.put(stateA.getKey(), row);
+
+			Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
-				Entry<String,Boolean> stateB = stateB_It.next();if (stateB.getKey().equals(stateEntry.getKey())) break; // we only process a triangular subset.
+				Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 				row.put(stateB.getKey(), new LinkedList<String>());
 			}
 		}
@@ -467,11 +469,11 @@ public class WMethod {
 				}			
 			}			
 
-			equivalenceClasses = newEquivClasses;newEquivClasses = new HashMap<String,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<String,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
-		Set<List<String>> result = new HashSet<List<String>>();
+		List<List<String>> result = new LinkedList<List<String>>();
 		if (oldEquivalenceClassNumber == fsm.accept.entrySet().size() )
 		{
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())

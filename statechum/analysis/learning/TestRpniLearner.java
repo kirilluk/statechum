@@ -1,21 +1,32 @@
 package statechum.analysis.learning;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
-import java.awt.Frame;
 import java.awt.Point;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import javax.swing.SwingUtilities;
@@ -28,16 +39,16 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.sun.corba.se.spi.legacy.connection.GetEndPointInfoAgainException;
-
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.TestFSMAlgo.StringPair;
+import statechum.analysis.learning.TestRpniLearner.computeStateScores.PairScore;
 import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
+import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
+import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
 import edu.uci.ics.jung.graph.Edge;
-import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -57,7 +68,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph g = l.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true);
 		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g,null);
+		//updateFrame(g,null);
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1\nB--d->C2-c->End2");
 	}
 
@@ -69,7 +80,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"} });
 		DirectedSparseGraph g = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
 		RPNIBlueFringeLearner.numberVertices(g);
-		updateFrame(g,null);
+		//updateFrame(g,null);
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
 	}
 
@@ -86,7 +97,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		for(String [] path:minus)
 			assert RPNIBlueFringeLearner.USER_ACCEPTED != WMethod.tracePath(expected, Arrays.asList(path));
 		
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
+		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
@@ -315,9 +326,12 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		private final Vertex sinkVertex = new DirectedSparseVertex();
 		private final Set<String> alphabet;
 		private final DirectedSparseGraph graph;
-		private final DijkstraShortestPath shortestPath;
-
-		private final Map<Vertex,Map<String,Vertex>> transitionMatrix = new HashMap<Vertex,Map<String,Vertex>>();
+		private final UnweightedShortestPath shortestPath;
+		private final DijkstraShortestPath shortestPathDijkstra;
+		/** The initial vertex. */
+		private final Vertex init;
+		
+		private final Map<Vertex,Map<String,Vertex>> transitionMatrix = new LinkedHashMap<Vertex,Map<String,Vertex>>();
 				
 		/** Initialises the class used to compute scores between states.
 		 * 
@@ -326,88 +340,106 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 		 */
 		public computeStateScores(DirectedSparseGraph g,String sinkVertexName)
 		{
-			graph = g;shortestPath = new DijkstraShortestPath(graph);
-			Iterator<Vertex> vIt = g.getVertices().iterator();
-			while(vIt.hasNext())
+			graph = g;
+			shortestPath = new UnweightedShortestPath(graph);shortestPathDijkstra = new DijkstraShortestPath(graph);
+			init = findVertex(JUConstants.PROPERTY, JUConstants.INIT, graph);
+			
+			Set<Vertex> graphVertices = graph.getVertices();
+			pairsAndScores = new ArrayList<PairScore>(graphVertices.size()*graphVertices.size());
+			for(Vertex v:graphVertices)
 			{
-				Vertex v = vIt.next(); 
 				assert !sinkVertexName.equals(v);
-				transitionMatrix.put(v,new HashMap<String,Vertex>());
+				transitionMatrix.put(v,new TreeMap<String,Vertex>());// using TreeMap makes everything more predictable
 			}
 			alphabet = WMethod.computeAlphabet(g);
 			sinkVertex.addUserDatum(JUConstants.LABEL, sinkVertexName, UserData.SHARED);
 			sinkVertex.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
-			Map<String,Vertex> outgoingSink = new HashMap<String,Vertex>();
+			Map<String,Vertex> outgoingSink = new TreeMap<String,Vertex>();
 			for(String input:alphabet)
 				outgoingSink.put(input, sinkVertex);
 			transitionMatrix.put(sinkVertex, outgoingSink);
 			
 			Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
 			while(edgeIter.hasNext())
-			{
+			{	
 				DirectedSparseEdge e = edgeIter.next();
 				Map<String,Vertex> outgoing = transitionMatrix.get(e.getSource());
+				// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
 				for(String label:(HashSet<String>)e.getUserDatum(JUConstants.LABEL))
 					outgoing.put(label, e.getDest());			
 			}
 		}
-		
-		public Set<List<String>> computeQuestionPrefix(StatePair pair)
-		{
-			Vertex init = findVertex(JUConstants.PROPERTY, JUConstants.INIT, graph);
-			Set<List<String>> result = new HashSet<List<String>>();
-			List<String> sp = new LinkedList<String>();
 
-			for(Vertex e: (List<Vertex>)shortestPath.getPath(init, pair.getR()))
-			{
-				HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
-				sp.add(labels.iterator().next());
-			}
+
+		
+		public List<List<String>> computeQS(StatePair pair)
+		{
+			List<List<String>> questions = new LinkedList<List<String>>();
+			List<List<String>> suffixes = new LinkedList<List<String>>();
+			int score = computeStateQuestions(pair,suffixes);
+			assert score >= 0;
 			
+			List<String> sp = new LinkedList<String>();
 			// A1
+			// in this case, a path to Q is appended to outgoing edges from R; 
+			// note that due to determinism the considered path to Q enters exactly the same state
+			// and since there are no accept-states on edges from Q, any  
 			if ( !hasAcceptedNeighbours(pair.getQ()) )
 			{
-				List<String> newSequence = new LinkedList<String>();newSequence.addAll(sp);
-				for(Vertex v: (List<Vertex>)shortestPath.getPath(pair.getR(),pair.getQ()))
-					sp.add((String)v.getUserDatum(JUConstants.LABEL));
-				result.add(newSequence);result.add(newSequence);
+				for(Edge v: (List<Edge>)ShortestPathUtils.getPath(shortestPath,init,pair.getQ()))
+					sp.add( ((Set<String>)v.getUserDatum(JUConstants.LABEL)).iterator().next());
+				for(Entry<String,Vertex> entry:transitionMatrix.get(pair.getR()).entrySet())
+				{
+					List<String> sequence = new LinkedList<String>();
+					sequence.addAll(sp);sequence.add(entry.getKey());questions.add(sequence);
+				}
 			}
+			else
+			{// normal processing
+				for(Vertex e: (List<Vertex>)shortestPathDijkstra.getPath(init, pair.getR()))
+				{
+					HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+					sp.add(labels.iterator().next());
+				}
+				questions.add(sp);
 
-			// A2
-			Edge connectingEdge = findEdge(pair.getR(),pair.getQ());
-			if ( connectingEdge != null )
-			{
-				List<String> newSequence = new LinkedList<String>();newSequence.addAll(sp);
-				HashSet<String> labels = (HashSet<String>)connectingEdge.getUserDatum(JUConstants.LABEL);
-				newSequence.addAll(labels);result.add(newSequence);
+				// A2 - does not really work since any prefix added in this way would cause suffixes to be executable right now, not only after merging
+		/*		Edge connectingEdge = findEdge(pair.getR(),pair.getQ());
+				if ( connectingEdge != null )
+				{
+					List<String> newSequence = new LinkedList<String>();newSequence.addAll(sp);
+					HashSet<String> labels = (HashSet<String>)connectingEdge.getUserDatum(JUConstants.LABEL);
+					newSequence.addAll(labels);result.add(newSequence);
+				}
+	*/
+				// B
+				Edge loopEdge = findEdge(pair.getR(),pair.getR());
+				if ( loopEdge != null )
+				{
+					List<List<String>> prefs = WMethod.makeSingleton( (HashSet<String>)loopEdge.getUserDatum(JUConstants.LABEL) );
+					prefs.add(new LinkedList<String>());// a singleton sequence
+					questions = WMethod.cross(questions, prefs);
+				}
+				questions = WMethod.cross(questions, suffixes);				
 			}
-
-			// B
-			Edge loopEdge = findEdge(pair.getR(),pair.getR());
-			if ( loopEdge != null )
-			{
-				List<String> newSequence = new LinkedList<String>();newSequence.addAll(sp);
-				HashSet<String> labels = (HashSet<String>)loopEdge.getUserDatum(JUConstants.LABEL);
-				newSequence.addAll(labels);result.add(newSequence);
-			}
-
 			
-			result.add(new LinkedList<String>());// a singleton sequence
-			return result;
+			return questions;
 		}
 		
-		public int computeStateScoreAndQuestions(StatePair pair, Set<List<String>> questions)
+		protected int computeStateQuestions(StatePair pair, Collection<List<String>> questions)
 		{
 			int score = 0;
 			
 			questions.clear();
 			assert pair.getQ() != pair.getR();
 			assert pair.getQ().getGraph() == graph && pair.getR().getGraph() == graph; 
-			
+
+			if (isAccept(pair.getR()) != isAccept(pair.getQ()))
+				return -1;
+
 			Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 			Queue<List<String>> questionQueue = new LinkedList<List<String>>(); // partial sequences, associated with traversed state pairs. These grow whenever the two states make a transition and when a terminal state is reached by the blue part, the resulting sequences are questions.
-			Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
-			currentExplorationBoundary.add(pair);statesAddedToBoundary.add(pair);questionQueue.add(new LinkedList<String>());
+			currentExplorationBoundary.add(pair);questionQueue.add(new LinkedList<String>());
 			
 			while(!currentExplorationBoundary.isEmpty())
 			{
@@ -440,11 +472,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 						else
 						{
 							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
-							if (!statesAddedToBoundary.contains(nextStatePair))
-							{
-								currentExplorationBoundary.offer(nextStatePair);questionQueue.add(newQuestion);
-								statesAddedToBoundary.add(nextStatePair);
-							}
+							currentExplorationBoundary.offer(nextStatePair);questionQueue.add(newQuestion);
 						}
 					}
 					// if the red can make a move, but the blue one cannot, ignore this case.
@@ -462,85 +490,323 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 						else
 						{
 							StatePair nextStatePair = new StatePair(blueEntry.getValue(),sinkVertex);
-							if (!statesAddedToBoundary.contains(nextStatePair))
-							{
-								currentExplorationBoundary.offer(nextStatePair);questionQueue.add(newQuestion);
-								statesAddedToBoundary.add(nextStatePair);
-							}
+							currentExplorationBoundary.offer(nextStatePair);questionQueue.add(newQuestion);
 						}
 					}// we've already handled the case when both states can make a move.
 
 			}		
 			return score;
 		}
+
+		// a heavily-reduced version of the above, tailured for score computation only
+		protected int computeStateScore(StatePair pair)
+		{
+			if (isAccept(pair.getR()) != isAccept(pair.getQ()))
+				return -1;
+			//System.out.println("computing scores for "+pair);
+			int score = 0;
+			
+			assert pair.getQ() != pair.getR();
+			assert pair.getQ().getGraph() == graph && pair.getR().getGraph() == graph; 
+			
+			Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+			//Map<Vertex,Set<String>> visited = new HashMap<Vertex,Set<String>>();
+			currentExplorationBoundary.add(pair);
+			
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				StatePair currentPair = currentExplorationBoundary.remove();
+				Map<String,Vertex> targetRed = transitionMatrix.get(currentPair.getR()),
+					targetBlue = transitionMatrix.get(currentPair.getQ());
+				//System.out.println("processing state pair "+currentPair);
+				//Set<String> visitedSet = visited.get(currentPair.getQ());
+				//if (visitedSet == null) { visitedSet = new HashSet<String>();visited.put(currentPair.getQ(), visitedSet); } 
+				for(Entry<String,Vertex> redEntry:targetRed.entrySet())
+				{
+					Vertex nextBlueState = targetBlue.get(redEntry.getKey());
+					if (nextBlueState != null)
+							//&& !visitedSet.contains(redEntry.getKey()))
+					{// both states can make a transition
+						// if the red side is currently in the sink vertex, i.e. we are effectively calculating a set of questions, do not report inconsistency or increment the score
+							if (isAccept(redEntry.getValue()) != isAccept(nextBlueState))
+								return -1;// incompatible states
+						
+						++score;
+						//System.out.println("\t "+redEntry.getKey()+"->"+nextBlueState.getUserDatum(JUConstants.LABEL)+" score "+score+" descend = "+(((DirectedSparseVertex)nextBlueState).numSuccessors() > 0));
+						//visitedSet.add(redEntry.getKey());// KIRR: this (and the whole visitedSet thing) is actually an emulation of a bug in computeScore, but not a full-blown emulation since the two evaluate machines in a different order and hence some tests comparing the two fail.
+
+						if (((DirectedSparseVertex)nextBlueState).numSuccessors() > 0)
+						{
+							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+							currentExplorationBoundary.offer(nextStatePair);
+						}
+					}
+					// if the red can make a move, but the blue one cannot, ignore this case.
+				}
+			}		
+			return score;
+		}
+		
+		public static class PairScore extends StatePair implements Comparable
+		{
+			protected final int score;
+
+			public PairScore(Vertex q, Vertex r, int sc) {
+				super(q, r);
+				score = sc;
+			}
+			
+			public int getScore() {
+				return score;
+			}
+
+			/* (non-Javadoc)
+			 * @see java.lang.Object#hashCode()
+			 */
+			@Override
+			public int hashCode() {
+				final int PRIME = 31;
+				int result = super.hashCode();
+				result = PRIME * result + score;
+				return result;
+			}
+
+			public int compareTo(Object b){
+				PairScore pB = (PairScore)b;
+				if (score != pB.score)
+					return score < pB.score? -1:1;
+				return super.compareTo(b);
+			}
+
+			/* (non-Javadoc)
+			 * @see java.lang.Object#equals(java.lang.Object)
+			 */
+			@Override
+			public boolean equals(Object obj) {
+				if (this == obj)
+					return true;
+				if (!super.equals(obj))
+					return false;
+				if (getClass() != obj.getClass())
+					return false;
+				final PairScore other = (PairScore) obj;
+				if (score != other.score)
+					return false;
+				return true;
+			}
+			
+			public String toString(){
+				return "[ "+getQ().getUserDatum(JUConstants.LABEL)+", "+getR().getUserDatum(JUConstants.LABEL)+" : "+score+" ]";
+			}
+		}
+		
+		/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
+		protected final List<PairScore> pairsAndScores;
+		
+		protected int generalisationThreshold;
+		protected int pairsMergedPerHypothesis;
+		
+		protected Stack<StatePair> chooseStatePairs()
+		{
+			pairsAndScores.clear();
+			Set<Vertex> reds = new LinkedHashSet<Vertex>();reds.addAll(RPNIBlueFringeLearner.findVertices("colour", "red", graph));
+			Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
+			currentExplorationBoundary.addAll(reds);
+			List<Vertex> BlueStatesConsideredSoFar = new LinkedList<Vertex>();
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				Vertex currentRed = currentExplorationBoundary.remove();
+				for(Entry<String,Vertex> BlueEntry:transitionMatrix.get(currentRed).entrySet())
+					if (!BlueEntry.getValue().containsUserDatumKey("colour") || BlueEntry.getValue().getUserDatum("colour").equals("blue"))
+					{// the next vertex is not marked red, hence it has to become blue
+						
+						Vertex currentBlueState = BlueEntry.getValue();
+						int numberOfCompatiblePairs = 0;
+						for(Vertex oldRed:reds)
+						{
+							PairScore pair = new PairScore(currentBlueState,oldRed,computeStateScore(new StatePair(currentBlueState,oldRed)));
+							if (pair.getScore() >= generalisationThreshold)
+							{
+								pairsAndScores.add(pair);
+								++numberOfCompatiblePairs;
+							}
+						}
+						if (numberOfCompatiblePairs == 0)
+						{// mark this blue node as red. 
+							currentBlueState.setUserDatum("colour", "red", UserData.SHARED);
+							reds.add(BlueEntry.getValue());currentExplorationBoundary.add(BlueEntry.getValue());
+
+							// All future blue nodes will use this revised set of red states; the fact that
+							// it is added to the exploration boundary ensures that it is considered when looking for more blue states.
+							// Note that previously-considered blue states were not compared to this one,
+							// however previously-introduced red were - we're using the up-to-date reds set above.
+							// For this reason, all we have to do is iterate over the old blue states and compare them to the
+							// current one; none of those states may become red as a consequence since they are not red already, i.e. there is an entry about them in PairsAndScores
+							for(Vertex oldBlue:BlueStatesConsideredSoFar)
+							{
+								PairScore pair = new PairScore(currentBlueState, oldBlue,computeStateScore(new StatePair(currentBlueState,oldBlue)));
+								if (pair.getScore() >= generalisationThreshold)
+									pairsAndScores.add(pair);
+							}
+						}
+						else
+						{
+							BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
+							currentBlueState.setUserDatum("colour", "blue", UserData.SHARED);
+						}							
+					}
+			}
+			Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
+					//, new Comparator(){	public int compare(Object o1, Object o2) { return ((PairScore)o2).compareTo(o1); }
+			Stack<StatePair> result = new Stack<StatePair>();
+			if (pairsMergedPerHypothesis > 0)
+			{
+				int numberOfElements = Math.min(pairsAndScores.size(),pairsMergedPerHypothesis);
+				result.addAll(pairsAndScores.subList(0, numberOfElements));
+			}
+			else result.addAll(pairsAndScores);
+			return result;
+		}		
 	}
 		
-	public final void testNewLearner(String fsm)
+	static protected PairScore constructPairScore(String a,String b, int score)
+	{
+		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
+		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
+		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
+		return new computeStateScores.PairScore(aV,bV, score);
+	}
+
+	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS)
+	{
+		StatePair p = constructPairScore(a,b,abS), q=constructPairScore(c,d,cdS);
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+	
+	@Test
+	public void testPairScoreEquality()
+	{
+		StatePair p = constructPairScore("a","b",4), q=constructPairScore("a","b",4);
+		assertTrue(p.equals(p));
+		assertTrue(p.equals(q));
+		assertFalse(p.equals(null));
+		assertFalse(p.equals("test"));
+		assertFalse(p.equals(constructPairScore("a","c",4)));
+		assertFalse(p.equals(constructPairScore("a","b",6)));
+		assertFalse(p.equals(constructPairScore("b","b",4)));
+	}
+	
+	@Test
+	public void testStatePairScoreComparison()
+	{
+		checkLess("a","b",4,"a","b",6);
+		checkLess("z","z",4,"a","b",6);
+		checkLess("a","b",4,"z","z",6);
+
+		checkLess("a","b",4,"c","d",4);
+		checkLess("a","b",4,"a","c",4);
+		checkLess("a","b",4,"c","b",4);
+	}
+
+	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
+	public final void testNewLearnerIncompatible(String fsm)
 	{
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
 		computeStateScores s = new computeStateScores(g,"SINK");
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
-		Set<List<String>> questions = new HashSet<List<String>>();
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pair),
-			newScore = s.computeStateScoreAndQuestions(pair, questions);
-		Assert.assertEquals(origScore, newScore);
+			newScoreA = s.computeStateScore(pair),
+			newScoreB = s.computeStateQuestions(pair, new HashSet<List<String>>());
+		Assert.assertEquals(-1, origScore);
+		Assert.assertEquals(-1, newScoreA);
+		Assert.assertEquals(-1, newScoreB);
+	}
+	
+	/** Checks that both the old and the new algorithm report the same score for a pair of states and ask the same questions. */
+	public final void testNewLearnerQuestions(String fsm, int expectedScore)
+	{
+		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
+		computeStateScores s = new computeStateScores(g,"SINK");
+		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
+		doneEdges = new HashSet();
+		int origScore = computeScore(g, pair),
+			newScoreA = s.computeStateScore(pair);
+		Collection<List<String>> questions = s.computeQS(pair);
+		int newScoreB = s.computeStateQuestions(pair,new LinkedList<List<String>>());
+		//updateFrame(g,null);
+		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
+		//System.out.println("computed scores, orig: "+origScore+" and the new one is "+newScoreA);
+		Assert.assertEquals(expectedScore, newScoreA);
+		Assert.assertEquals(expectedScore, newScoreB);
 		if (origScore != -1)
 		{
-			Set<List<String>> newQuestions = WMethod.cross(s.computeQuestionPrefix(pair), questions);
-			Set<List<String>> q = new HashSet<List<String>>();q.addAll(generateQuestions(g, pair));
-			Assert.assertTrue(q.equals(newQuestions));
+			Set<List<String>> oldQuestions = new HashSet<List<String>>();oldQuestions.addAll(generateQuestions(g, pair));
+			Set<List<String>> newQuestions = new HashSet<List<String>>();newQuestions.addAll(questions);
+			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questions,oldQuestions.equals(newQuestions));
 		}
 	}
 	
 	public static final String PTA1 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\n";
 
 	@Test
-	public final void testNewLearner1a()
+	public final void testNewLearner0()
 	{
-		testNewLearner("A-a->A"+PTA1);
+		testNewLearnerIncompatible("A-a->A1\nA-p->P1-q-#B");
 	}
 	
 	@Test
+	public final void testNewLearner1a()
+	{
+		testNewLearnerIncompatible("A-a->A"+PTA1);
+	}
+
+	@Test
 	public final void testNewLearner1b()
 	{
-		testNewLearner("A-a->A"+"\nA-p->I-q->B"+"\nB-a->B1-a->B2\nB1-b->B3-b->B4\n");
+		testNewLearnerQuestions("A-a->A"+"\nA-p->I-q->B"+"\nB-a->B1-a->B2\nB1-b->B3-b->B4\n",2);
 	}
 	
 	@Test
 	public final void testNewLearner2()
 	{
-		testNewLearner("A-a->A1-a->A2"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a->A2"+PTA1);
 	}
-	
+
+	@Ignore("BUG in generatequestions")
 	@Test
 	public final void testNewLearner3()
 	{
-		testNewLearner("A-a->A1-b->A1"+PTA1);
+		testNewLearnerQuestions("A-a->A1-b->A1"+PTA1,3);
 	}
 	
 	@Test
 	public final void testNewLearner4()
 	{
-		testNewLearner("A-a->A1-b->A1-a-#A2"+PTA1);
+		testNewLearnerQuestions("A-a->A1-b->A1-a-#A2"+PTA1,4);
 	}
 	
 	@Test
 	public final void testNewLearner5()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b-#A2"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b-#A2"+PTA1);
 	}
 
 	@Test
 	public final void testNewLearner6()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A2-b-#A3"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2-b-#A3"+PTA1);
 	}
 	
 	@Test
 	public final void testNewLearner7()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A2-b->A3"+PTA1);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2-b->A3"+PTA1,4);
 	}
 	
 	public static final String PTA2 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\nB1-c->BB1-c->BB2\n";
@@ -548,31 +814,258 @@ public class TestRpniLearner extends RPNIBlueFringeLearner
 	@Test
 	public final void testNewLearner8()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c->A1"+PTA2);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A1"+PTA2,5);
 	}
 	
 	@Test
 	public final void testNewLearner9()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c-#A3"+PTA2);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2\nA1-c-#A3"+PTA2);
 	}
 	
 	@Test
 	public final void testNewLearner10()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A2\nA1-c->A3"+PTA2);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A3"+PTA2,4);
 	}
 	
 	@Test
 	public final void testNewLearner11()
 	{
-		testNewLearner("A-a->A1-a-#A1\nA1-b->A1\nA1-c->A3"+PTA2);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A1\nA1-c->A3"+PTA2,5);
 	}
 	
+	public static final String PTA3 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-d->B3-d->B4\nB1-c->B3-c->B4-c->B5-c->B6\n";
+	
+	@Test
+	public final void testNewLearner_3_1()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8);
+	}
+	
+	@Test
+	public final void testNewLearner_3_2()
+	{
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3);
+	}
+	
+	@Test
+	public final void testNewLearner_3_3()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4);
+	}
+	
+	@Test
+	public final void testNewLearner_3_4()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7);
+	}
+	
+	@Test
+	public final void testNewLearner_3_5a()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A3"+PTA3,13);
+	}
+	
+	@Test
+	public final void testNewLearner_3_5b()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A4"+PTA3,10);
+	}
+	
+	@Test
+	public final void testNewLearner_3_6()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16);
+	}
+	
+	@Test
+	public final void testNewLearner_3_7()
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8);
+	}
+
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
 		visFrame = new Visualiser();
+	}
+	
+	@Test
+	public final void testNewLearner_4_1() // red and blue are adjacent
+	{
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+"\nA-p->B"+"\nB-a->B1-a-#B2\nB1-d->B3-d->B4\nB1-c->B3-c->B4-c->B5-c->B6\n",8);
+	}
+	
+	@Test
+	public final void testNewLearner_4_2() // blue node has no access successors
+	{
+		testNewLearnerQuestions("A-d->A1\nA1-d->A2\nA1-c->A1"+"\nA-p->Atmp-q->B"+"\nB2#-c-B-a-#B1\n",0);
+	}
+	
+	protected interface InterfaceChooserToTest {
+		Stack<StatePair> choosePairs();
+	}
+
+	/**
+	 *  Tests the pair selection function of both the original and the optimized implementation.
+	 *  <p>
+	 * Important: the improved and the original versions of score computation are only compatible if 
+	 * the machine has no parallel edges - these are the only allowed machines in testss of
+	 * the choice of states.
+	 * 
+	 * @param fsm the graph to choose states in
+	 * @param initialReds the initial set of reds
+	 * @param expectedReds the expected reds
+	 * @param expectedPairs a set of pairs which has to be returned
+	 */
+	public final void testChooseStatePairs(String fsm, String [] initialReds, String [] expectedReds, List<PairScore> expectedPairs)
+	{
+		final DirectedSparseGraph gB = TestFSMAlgo.buildGraph(fsm, "testChooseStatePairs_Ref");
+		// check how the reference pair selection function performs
+		testChooseStatePairsInternal(gB, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
+			public Stack<StatePair> choosePairs() {
+				return chooseStatePairs(gB, new HashSet<List<String>>(), new HashSet<List<String>>());
+			}
+		});
+
+		final DirectedSparseGraph gA = TestFSMAlgo.buildGraph(fsm, "testChooseStatePairs_Opt");
+
+		// check how the revised pair selection function performs
+		final computeStateScores s = new computeStateScores(gA,"SINK");
+		testChooseStatePairsInternal(gA, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
+			public Stack<StatePair> choosePairs() {
+				return s.chooseStatePairs();
+			}
+		});
+	}
+	
+	private final void testChooseStatePairsInternal(DirectedSparseGraph g, String [] initialReds, String [] expectedReds, List<PairScore> expectedPairs,InterfaceChooserToTest chooser)
+	{
+		for(String red:initialReds)
+			findVertex(JUConstants.LABEL, red, g).addUserDatum("colour", "red", UserData.SHARED);
+		Stack<StatePair> pairs = chooser.choosePairs();
+		Map<Integer,Set<PairScore>> distribution = new HashMap<Integer,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
+
+		Set<String> expectedRedsAsSet = new HashSet<String>();expectedRedsAsSet.addAll(Arrays.asList(expectedReds));
+		Set<String> finalReds = new HashSet<String>();
+		for(Vertex red:findVertices("colour", "red", g))
+				finalReds.add((String)red.getUserDatum(JUConstants.LABEL));
+		Assert.assertTrue("expected red states: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.equals(finalReds));
+		for(PairScore ps:expectedPairs)
+		{
+			Set<PairScore> currScore = distribution.get(ps.getScore()); 
+			if (currScore == null)
+			{
+				currScore = new HashSet<PairScore>();distribution.put(ps.getScore(),currScore);
+			}
+			currScore.add(ps);
+		}
+		int lastScore = -1;
+		for(StatePair elem:pairs)
+		{
+			doneEdges = new HashSet();
+			int currentScore = computeScore(g, elem);
+			PairScore elA = new PairScore(elem.getQ(),elem.getR(),currentScore);
+			PairScore elB = new PairScore(elem.getR(),elem.getQ(),currentScore);
+			Assert.assertTrue(currentScore >= 0);
+			Assert.assertTrue(distribution.containsKey(currentScore));
+			Set<PairScore> ps = distribution.get(currentScore);
+			Assert.assertTrue("unexpected state pair "+elem+" with score "+currentScore,
+					ps.contains(elA) || ps.contains(elB));
+			ps.remove(elA);ps.remove(elB);if (ps.isEmpty()) distribution.remove(currentScore);
+			
+			if (lastScore >= 0)
+				Assert.assertTrue("elements were returned in the wrong order, current is "+currentScore+" previous was "+lastScore,lastScore <= currentScore);
+			lastScore = currentScore;
+		}
+		
+		Assert.assertEquals("unused entries : "+distribution,0, distribution.size());
+	}
+	
+	@Test
+	public final void testNewchooseStatePairs1()
+	{
+		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		pairsAndScores.add(constructPairScore("A2", "A", 0));
+		pairsAndScores.add(constructPairScore("U1", "A", 2));
+		pairsAndScores.add(constructPairScore("S1", "A", 3));
+		pairsAndScores.add(constructPairScore("R1", "A", 2));
+		pairsAndScores.add(constructPairScore("Q1", "A", 1));
+		pairsAndScores.add(constructPairScore("P2", "A", 0));
+		for(String state:new String[]{"A2","U1","S1","R1","Q1","P2"})
+			pairsAndScores.add(constructPairScore(state, "P1", 0));
+
+		testChooseStatePairs(
+				"A-a-#Arej\nA-d->A2-c->A2\n"+
+				"A-p->P1-a->P2\n"+
+				"A-s->S1-d->S2-c->S3-c->S4\n"+
+				"A-r->R1-d->R2-c->R3\n"+
+				"A-u->U1-d->U2-c->U3\n"+
+				"A-q->Q1-d->Q2",
+				new String[]{"A"},
+				new String[]{"A","P1","Arej"},
+				pairsAndScores);
+	}
+	
+	@Test
+	public final void testNewchooseStatePairs2()
+	{
+		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		pairsAndScores.add(constructPairScore("A2", "A", 0));
+		pairsAndScores.add(constructPairScore("U1", "A", 2));
+		pairsAndScores.add(constructPairScore("S1", "A", 3));
+		pairsAndScores.add(constructPairScore("R1", "A", 2));
+		pairsAndScores.add(constructPairScore("Q1", "A", 1));
+		pairsAndScores.add(constructPairScore("P2", "A", 0));
+		for(String state:new String[]{"A2","U1","S1","R1","Q1","P2"})
+			pairsAndScores.add(constructPairScore(state, "P1", 0));
+		pairsAndScores.add(constructPairScore("P3", "Arej", 0));
+
+		testChooseStatePairs(
+				"A-a-#Arej\nA-d->A2-c->A2\n"+
+				"A-p->P1-a->P2\n"+"P1-b-#P3\n"+
+				"A-s->S1-d->S2-c->S3-c->S4\n"+
+				"A-r->R1-d->R2-c->R3\n"+
+				"A-u->U1-d->U2-c->U3\n"+
+				"A-q->Q1-d->Q2",
+				new String[]{"A"},
+				new String[]{"A","P1","Arej"},
+				pairsAndScores);
+	}
+	
+	@Test
+	public final void testNewchooseStatePairs3()
+	{
+		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		pairsAndScores.add(constructPairScore("REJ1", "REJ2", 0));
+		pairsAndScores.add(constructPairScore("A1", "A", 3));
+
+		testChooseStatePairs(
+				"A-a->B1-a-#REJ1\nB1-b-#REJ2\n"+
+				"A-b->A1-a->B2\n"+
+				"A1-a->B2\n"+
+				"A1-b->A2-a->B3\n",
+				new String[]{"A"},
+				new String[]{"A","B1","REJ2"},
+				pairsAndScores);
+	}
+
+	@Ignore("only used occasionally")
+	@Test 
+	public final void testPerformanceOfCross()
+	{
+		List<List<String>> partA = new LinkedList<List<String>>(), partB = new LinkedList<List<String>>();
+		for(int i=0;i < 1000;++i)
+		{
+			List<String> seqA = new LinkedList<String>(),seqB = new LinkedList<String>();
+			for(int j=0;j < 2;++j)
+			{
+				seqA.add("A"+i+"_"+j);seqB.add("B"+i+"_"+j);
+			}
+			partA.add(seqA);partB.add(seqB);
+		}
+		WMethod.cross(partA, partB);
 	}
 	
 	@AfterClass

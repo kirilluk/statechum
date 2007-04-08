@@ -457,7 +457,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * of a tree. This method does not make that presumption, but simply returns the direct successors
 	 * of the source vertex that are accepted.
 	 */
-	private static HashSet<List<String>> getShortSuffixes(DirectedSparseGraph g, Vertex v){
+	protected static HashSet<List<String>> getShortSuffixes(DirectedSparseGraph g, Vertex v){
 		HashSet<List<String>> returnStrings = new HashSet<List<String>>();
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
@@ -668,7 +668,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 
-	private Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	protected Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores
@@ -932,7 +932,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 	
-	protected static Set<Vertex> findVertices(String property, Object value, Graph g){
+	public static Set<Vertex> findVertices(String property, Object value, Graph g){
 		Set<Vertex> vertices = new HashSet<Vertex>();
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){

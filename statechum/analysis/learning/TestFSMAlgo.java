@@ -29,6 +29,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -578,7 +580,10 @@ public class TestFSMAlgo {
 						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+from);
 
 				if (from.equals(to))
+				{
+					if (!accept) throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 					toVertex = fromVertex;
+				}
 				else
 					if (toVertex == null)
 					{
@@ -638,7 +643,7 @@ public class TestFSMAlgo {
 		
 		public FSMStructure()
 		{
-			trans = new HashMap<String,Map<String,String>>();accept = new HashMap<String,Boolean>();
+			trans = new LinkedHashMap<String,Map<String,String>>();accept = new LinkedHashMap<String,Boolean>();
 		}
 	}
 	
@@ -864,12 +869,29 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testGraphConstructionFail1()
+	public void testGraphConstructionFail1a()
 	{
 		boolean exceptionThrown = false;
 		try
 		{
-			buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p-#CONFL","testGraphConstructionFail1");
+			buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p-#CONFL","testGraphConstructionFail1a");
+		}
+		catch(IllegalArgumentException e)
+		{
+			assertTrue("correct exception not thrown",e.getMessage().contains("conflicting") && e.getMessage().contains("CONFL"));
+			exceptionThrown = true;
+		}
+		
+		assertTrue("exception not thrown",exceptionThrown);
+	}
+	
+	@Test
+	public void testGraphConstructionFail1b()
+	{
+		boolean exceptionThrown = false;
+		try
+		{
+			buildGraph("A--a-->CONFL-b-#CONFL","testGraphConstructionFail1b");
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -1414,7 +1436,7 @@ public class TestFSMAlgo {
 		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
 		// first pass - computing an alphabet
-		HashSet<String> alphabet = WMethod.computeAlphabet(g);
+		LinkedHashSet<String> alphabet = WMethod.computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
 		Set<String> outLabels = new HashSet<String>();
@@ -1626,6 +1648,17 @@ public class TestFSMAlgo {
 		{
 			result.add(Arrays.asList(seq));
 		}
+		return result;
+	}
+	
+	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
+	 * 
+	 * @param data source data
+	 * @return a set of sequences to apply to an RPNI learner
+	 */
+	public static List<List<String>> buildList(String [][] data)
+	{
+		List<List<String>> result = new LinkedList<List<String>>();result.addAll(buildSet(data));
 		return result;
 	}
 	

@@ -38,11 +38,20 @@ public class StatePair implements Comparable {
 	public String toString(){
 		return q.getUserDatum(JUConstants.LABEL)+", "+r.getUserDatum(JUConstants.LABEL);
 	}
-	
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
 	public int hashCode(){
-		return q.getUserDatum(JUConstants.LABEL).hashCode()+r.getUserDatum(JUConstants.LABEL).hashCode();
+		final int PRIME = 31;
+		return q.getUserDatum(JUConstants.LABEL).hashCode()+PRIME*r.getUserDatum(JUConstants.LABEL).hashCode();
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
 	public boolean equals(Object o){
 		if(o == null)
 			return false;

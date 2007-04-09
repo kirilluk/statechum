@@ -156,7 +156,7 @@ public class WMethod {
 			++pos;
 			Map<String,String> exitingTrans = fsm.trans.get(current);
 			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
-				return pos;
+				return pos-1;
 		}
 		return fsm.accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
 	}

@@ -87,13 +87,15 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
-				return WMethod.tracePath(expected, question);
+				int answer = WMethod.tracePath(expected, question);
+				System.out.println(answer);
+				return answer>0?answer-1:answer;
 			}
 		};
 		l.setDebugMode(true);
 		//l.setPairsMergedPerHypothesis(0);
 		//l.setGeneralisationThreshold(1);
-		l.setCertaintyThreshold(5);
+		//l.setCertaintyThreshold(5);
 		l.addObserver(visFrame);
 		try{
 			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));

@@ -12,7 +12,7 @@ import edu.uci.ics.jung.utils.*;
 
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	private HashSet<ArrayList> scoreDistributions = new HashSet<ArrayList>();
-	private int certaintyThreshold = 100;
+	private int certaintyThreshold = 10000;
 
 	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
 		super(parentFrame);
@@ -36,7 +36,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
-			doneEdges = new HashSet();if(computeScore(model, pair)<=this.certaintyThreshold){
+			doneEdges = new HashSet();if(computeScore(model, pair)<this.certaintyThreshold){
 				questions = generateQuestions(model, temp, pair);
 				questions = trimSet(questions);
 			}

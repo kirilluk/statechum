@@ -19,32 +19,12 @@ public class RandomPathGenerator {
 	public RandomPathGenerator(DirectedSparseGraph baseGraph) {
 		sPlus = new HashSet<List<String>>();
 		g = baseGraph;
-		//addNegativeSinkState();
 		DijkstraDistance dd = new DijkstraDistance(baseGraph);
 		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g)).values();
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		int diameter = distancesList.get(distancesList.size()-1).intValue();
 		this.populateRandomWalks((int)Math.pow(g.getVertices().size(),2), diameter+5);
-	}
-	
-	private void addNegativeSinkState(){
-		Vertex sink = new DirectedSparseVertex();
-		sink.setUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
-		g.addVertex(sink);
-		HashSet<String> alphabet = WMethod.computeAlphabet(g);
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
-		while (vertexIt.hasNext()) {
-			Vertex v = vertexIt.next();
-			Set<String> outgoingSymbols = getOutgoingSymbols(v);
-			Set<String> rejectLabels = alphabet;
-			rejectLabels.removeAll(outgoingSymbols);
-			if(!rejectLabels.isEmpty()){
-				DirectedSparseEdge e = new DirectedSparseEdge(v, sink);
-				e.setUserDatum(JUConstants.LABEL, rejectLabels, UserData.SHARED);
-				g.addEdge(e);
-			}
-		}
 	}
 	
 	private Set<String> getOutgoingSymbols(Vertex v){

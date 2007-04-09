@@ -1,10 +1,13 @@
 package statechum.analysis.learning;
 
 import java.awt.Frame;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+
+import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class RPNIBlueFringeLearnerTestComponentOpt extends
@@ -17,8 +20,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	@Override
 	protected int computeScore(DirectedSparseGraph original, StatePair blueRed)
 	{
+		//return super.computeScore(original, blueRed);
 		return scoreComputer.computeStateScore(blueRed);
 	}
+	
+	protected int runCount = 40;
 	
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#chooseStatePairs(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
@@ -26,14 +32,21 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	@Override
 	protected Stack chooseStatePairs(DirectedSparseGraph g,
 			Set<List<String>> plus, Set<List<String>> minus) {
-		
-		if (scoreComputer == null)
+/*		
+		if (runCount -- < 0) // used for profiling
 		{
-			scoreComputer = new TestRpniLearner.computeStateScores(g,"SINK");
-			scoreComputer.generalisationThreshold = generalisationThreshold;
-			scoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
+			System.out.println("FORCED TERMINATION");
+			return new Stack();
 		}
-		return scoreComputer.chooseStatePairs();
+*/		
+		System.out.println("vertices: "+g.numVertices()+" edges: "+g.numEdges());
+		Stack result = null;
+		scoreComputer = new computeStateScores(g,"SINK");
+		scoreComputer.generalisationThreshold = generalisationThreshold;
+		scoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
+
+		result = scoreComputer.chooseStatePairs();
+		return result;
 	}
 
 	/* (non-Javadoc)
@@ -42,16 +55,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	@Override
 	protected List<List<String>> generateQuestions(DirectedSparseGraph model,
 			DirectedSparseGraph temp, StatePair pair) {
-/*		setChanged();updateGraph(temp);
-		TestRpniLearner.computeStateScores tmpScoreComputer = new TestRpniLearner.computeStateScores(temp,"SINK");
-		tmpScoreComputer.generalisationThreshold = generalisationThreshold;
-		tmpScoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
-		return tmpScoreComputer.computeQS(pair);
-		-*/
-		return super.generateQuestions(model, temp, pair);
+		scoreComputer.generalisationThreshold = generalisationThreshold;
+		scoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
+		return scoreComputer.computeQS(pair,temp);
+		
+		//return super.generateQuestions(model, temp, pair);
 	}
 
-	protected TestRpniLearner.computeStateScores scoreComputer = null;
+	protected computeStateScores scoreComputer = null;
 
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#learnMachine(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
@@ -63,6 +74,4 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		scoreComputer = null;// to rebuild the transition diagram each time learnMachine is called (the rebuild is done when chooseStatePairs is called.
 		return super.learnMachine(model, plus, minus);
 	}
-
-	
 }

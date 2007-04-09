@@ -53,7 +53,11 @@ public class RPNIBlueFringeLearner extends Observable {
 		return g;
 	}
 	
-	/** Updates listeners only if this object has been modified, by calling
+	/** Determines whether the interface pops up during test execution - the interface helps debugging but slows down execution termendously.
+	 */
+	protected boolean debugMode = false;
+
+	/** Updates listeners only if this object has been modified and debug mode is on, by calling
 	 * <pre>
 	 * setChanged()
 	 * </pre>
@@ -61,6 +65,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 */
 	public void updateGraph(Graph g)
 	{
+		if (debugMode)
 			notifyObservers(g);
 	}
 	
@@ -566,7 +571,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 
 	
-	protected DirectedSparseGraph merge(DirectedSparseGraph model, StatePair pair){
+	protected static DirectedSparseGraph merge(DirectedSparseGraph model, StatePair pair){
 		Vertex q = pair.getQ();
 		Vertex qDash = pair.getR();
 		Iterator<DirectedSparseEdge> inEdges = q.getInEdges().iterator();

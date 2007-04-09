@@ -32,12 +32,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
-			assert compatible(temp, sPlus, sMinus);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
-			if(computeScore(model, pair)<=this.certaintyThreshold){
+			doneEdges = new HashSet();if(computeScore(model, pair)<=this.certaintyThreshold){
 				questions = generateQuestions(model, temp, pair);
 				questions = trimSet(questions);
 			}
@@ -88,7 +87,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 	
 	
-	private Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
+	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(findVertex("property", "init",model), r);
 		Set<List<String>> pathToRedStrings = new HashSet<List<String>>();

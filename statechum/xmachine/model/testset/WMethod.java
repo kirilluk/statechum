@@ -18,7 +18,7 @@ public class WMethod {
 	private DirectedSparseGraph machineGraph;
 	private FSMStructure fsm;
 	private int numberOfExtraStates;
-	private Collection<List<String>> fullTestSet;
+	private PrefixFreeCollection fullTestSet;
 	private List<List<String>> transitionCover, characterisationSet;
 	
 	public WMethod(DirectedSparseGraph g, int numberOfExtraStates){
@@ -36,7 +36,7 @@ public class WMethod {
 	public Collection<List<String>> getFullTestSet(){
 		if (fullTestSet == null)
 			computeTestSet();
-		return fullTestSet;
+		return fullTestSet.getData();
 	}
 	/*
 	public Set<List<String>> getFullTestSetStrings(){
@@ -161,18 +161,7 @@ public class WMethod {
 		return fsm.accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
 	}
 
-	/** Returns true if what is a prefix of str.
-	 * 
-	 * @param str string from a database
-	 * @param what what to check against <em>str</em>
-	 * @return true if <em>what</em> is a prefix of <em>str</em>.
-	 */
-	public static boolean isPrefix(List<String> str, List<String> what)
-	{
-		if (what.size() > str.size()) return false;
-		return str.subList(0, what.size()).equals(what);
-	}	
-	
+
 	/** converts a given sequence into
 	 * a fundamental test sequence.
 	 * 
@@ -188,29 +177,17 @@ public class WMethod {
 		return seq;
 	}
 	
-	
 	/** Given a database of sequences and a test sequence, converts a given sequence into
 	 * a fundamental test sequence and appends a the result to the <em>sequences</em> set 
 	 * if the fundamental test sequence is not a prefix of an existing sequence in that set.  
 	 */
-	public static void appendSequence(FSMStructure fsm, Collection<List<String>> sequences, List<String> path)
+	public static void appendSequence(FSMStructure fsm, PrefixFreeCollection sequences, List<String> path)
 	{
 		List<String> seq = truncateSequence(fsm, path);
-		List<List<String>> seqToRemove = new LinkedList<List<String>>();
-		for(List<String> s:sequences)
-		{
-			if (isPrefix(s, seq))
-			{
-				assert(seqToRemove.isEmpty());// no sequences are prefixes of the current one - an internal consistency invariant of this procedure.
-				return; // the sequence to add is already a prefix of another one
-			}
-			if (isPrefix(seq, s))
-				seqToRemove.add(s);
-		}	
-		sequences.add(seq);sequences.removeAll(seqToRemove);
+		sequences.addSequence(seq);
 	}
 	
-	public static void appendAllSequences(FSMStructure fsm, Collection<List<String>> sequences, List<List<String>> paths)
+	public static void appendAllSequences(FSMStructure fsm, PrefixFreeCollection sequences, List<List<String>> paths)
 	{
 		for(List<String> path:paths)
 			appendSequence(fsm, sequences, path);
@@ -225,7 +202,7 @@ public class WMethod {
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = cross(partialSet,Phi);transitionCover.addAll(partialSet);
 
-		fullTestSet = new LinkedHashSet<List<String>>();
+		fullTestSet = new SlowPrefixFreeCollection();
 		
 		appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		for(int i=0;i<=this.numberOfExtraStates;i++)
@@ -259,7 +236,7 @@ public class WMethod {
 		return false;
 	}
 	
-	public static List<List<String>> cross(List<List<String>> a, List<List<String>> b){
+	public static List<List<String>> cross(Collection<List<String>> a, Collection<List<String>> b){
 		List<List<String>> returnVect = new LinkedList<List<String>>();
 		for(List<String> elemA:a){
 			for(List<String> elemB:b) {
@@ -297,7 +274,7 @@ public class WMethod {
 		return alphabet;
 	}
 	
-	public static List<List<String>> makeSingleton(Set<String> stimuli){
+	public static List<List<String>> makeSingleton(Collection<String> stimuli){
 		List<List<String>> functionList = new LinkedList<List<String>>();
 		for(String stim:stimuli){
 			List<String> path = new LinkedList<String>();

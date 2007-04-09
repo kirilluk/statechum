@@ -37,8 +37,8 @@ import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.TestFSMAlgo.buildList;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
-import static statechum.xmachine.model.testset.WMethod.isPrefix;
 import static statechum.xmachine.model.testset.WMethod.cross;
+import static statechum.xmachine.model.testset.PrefixFreeCollection.isPrefix;
 
 /**
  * @author kirr
@@ -318,14 +318,14 @@ public class TestWMethod {
 	public final void testAppendSequence0() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence0"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-			}),
-		expected = buildList(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -335,15 +335,16 @@ public class TestWMethod {
 	public final void testAppendSequence0b() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence0b"));
-		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
-				new String[]{} 
-			})),
-		expected = buildList(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{}));
+
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -353,15 +354,15 @@ public class TestWMethod {
 	public final void testAppendSequence1() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence1"));
-		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			})),
-		expected = buildList(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -371,15 +372,15 @@ public class TestWMethod {
 	public final void testAppendSequence2() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence2"));
-		List<List<String>> sequences = Collections.unmodifiableList(buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			})),
-		expected = buildList(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","b"}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -389,15 +390,15 @@ public class TestWMethod {
 	public final void testAppendSequence3() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence3"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			}),
-		expected = buildList(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b","c"}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","b","c"}));
-		Assert.assertTrue(expected.equals(sequences));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -407,17 +408,16 @@ public class TestWMethod {
 	public final void testAppendSequence4() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence4"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			});
-		Set<List<String>>  expected = buildSet(new String[][]{
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
+		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"p","p"}
 			});
 		
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p"}));
-		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
-		Assert.assertTrue(expected.equals(actual));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -427,9 +427,8 @@ public class TestWMethod {
 	public final void testAppendSequence5() 
 	{
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendSequence5"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			});
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
 		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"p","p","p"}
@@ -438,8 +437,8 @@ public class TestWMethod {
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p"}));
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p"}));
 		WMethod.appendSequence(fsm, sequences, Arrays.asList(new String[]{"p","p","p"}));
-		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
-		Assert.assertTrue(expected.equals(actual));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -448,8 +447,7 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences0() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences0"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-			});
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
 		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","p","p"},
 				new String[]{"g"}
@@ -457,8 +455,8 @@ public class TestWMethod {
 		
 		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {
 				new String[]{"p"},new String[]{"p","p"},new String[] {}, new String [] {"g"},new String[]{"p","p","p"}}));
-		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
-		Assert.assertTrue(expected.equals(actual));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -467,14 +465,13 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences0b() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences0b"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-			});
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
 		Set<List<String>> expected = buildSet(new String[][]{
 			});
 		
 		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {}));
-		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
-		Assert.assertTrue(expected.equals(actual));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	/**
@@ -483,9 +480,8 @@ public class TestWMethod {
 	@Test
 	public final void testAppendAllSequences1() {
 		FSMStructure fsm = getGraphData(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testAppendAllSequences1"));
-		List<List<String>> sequences = buildList(new String[][]{ 
-				new String[]{"p","b"} 
-			});
+		PrefixFreeCollection sequences = new SlowPrefixFreeCollection();
+		sequences.addSequence(Arrays.asList(new String[]{"p","b"}));
 		Set<List<String>> expected = buildSet(new String[][]{
 				new String[]{"p","b"},
 				new String[]{"g"},
@@ -494,8 +490,8 @@ public class TestWMethod {
 		
 		WMethod.appendAllSequences(fsm, sequences, buildList(new String[][] {
 				new String[]{"p"},new String[]{"p","p"},new String[] {}, new String [] {"g"},new String[]{"p","p","p"}}));
-		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences);
-		Assert.assertTrue(expected.equals(actual));
+		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(sequences.getData());
+		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
 	public static void testWsetconstruction(String machine, boolean equivalentExpected)

@@ -1,53 +1,59 @@
  package statechum.analysis.learning;
 
+import static statechum.analysis.learning.TestFSMAlgo.buildSet;
+import static statechum.xmachine.model.testset.WMethod.getGraphData;
+import static statechum.xmachine.model.testset.WMethod.tracePath;
+
+import java.io.File;
 import java.util.*;
+
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.xmachine.model.testset.WMethod;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.io.GraphMLFile;
 
 
 
 public class RPNITester {
 
 	public static void main(String[] args){
-		HashSet sPlus = new HashSet();
-		HashSet sMinus = new HashSet();
-		
-		/*String[] string1 = {"text_tool","set_position","edit_text","text_tool","get_textbox","edit_text","delete_text"};
-		String[] string2 = {"figure_tool","set_position","set_dimensions","set_dimensions","set_dimensions","figure_tool","set_position","set_dimensions","set_dimensions","set_dimensions","figure_tool","set_position","set_dimensions","set_dimensions","set_dimensions","set_dimensions"};
-		String[] string3 = {"text_tool","set_position","edit_text","figure_tool","set_position","set_dimensions","set_dimensions","set_dimensions","figure_tool","set_position","set_dimensions","set_dimensions","set_dimensions","text_tool","get_textbox","edit_text","text_tool","get_textbox","edit_text","delete_text"};
-		
-		sPlus.add(Arrays.asList(string1));
-		sPlus.add(Arrays.asList(string2));
-		sPlus.add(Arrays.asList(string3));*/
-		/*String[] string1 = {"open", "close", "start", "stop", "start"};
-		String[] string2 = {"start", "alarm", "propagated", "emergency stop", "emergency open"};
-		String[] string3 = {"start", "stop", "alarm", "propagated", "emergency open", "close"};
-		sPlus.add(Arrays.asList(string1));
-		sPlus.add(Arrays.asList(string2));
-		sPlus.add(Arrays.asList(string3));
-		String[] string4 = {"start", "open"};
-		sMinus.add(Arrays.asList(string4));*/
-		String[] string1 = {"load", "edit", "edit", "save", "close"};
-		String[] string2 = {"load", "edit", "save", "close"};
-		String[] string3 = {"load", "close", "load"};
-		String[] string4 = {"close"};
-		sPlus.add(Arrays.asList(string1));
-		sPlus.add(Arrays.asList(string2));
-		sPlus.add(Arrays.asList(string3));
-		sMinus.add(Arrays.asList(string4));
-		//sMinus.add(Arrays.asList(new String[]{"load","save","close"}));
-		
-		//sPlus.add(Arrays.asList(new String[]{"m","a","z"}));
-		//sPlus.add(Arrays.asList(new String[]{"m","z"}));
-		//sPlus.add(Arrays.asList(new String[]{"m","a","z","u"}));
-		//sPlus.add(Arrays.asList(new String[]{"m","z","u"}));
-		//sPlus.add(Arrays.asList(new String[]{"n","o","p","q","a","z"}));
-		//sMinus.add(Arrays.asList(new String[]{"n","o","p","q","z"}));
-		//sMinus.add(Arrays.asList(new String[]{"a"}));
-		LearningVisualiser v = new LearningVisualiser();
-		v.construct(sPlus, sMinus);
-		
+		File graphDir = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
+				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
+    	String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
+    	GraphMLFile graphmlFile = new GraphMLFile();
+    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+    	DirectedSparseGraph dg = new DirectedSparseGraph();
+    	dg.getEdgeConstraints().clear();
+    	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
+		RandomPathGenerator rpg = new RandomPathGenerator(dg);
+		Set<List<String>> fullSet = rpg.getAllPaths();
+		final FSMStructure expected = getGraphData(dg);
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(null) // CHOOSE non-Opt for original version
+		{
+			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+			{
+				return tracePath(expected, question);
+			}
+		};
+		Set<List<String>> sampleSet = AccuracyAndQuestionsExperiment.randomHalf(fullSet);
+		Vector<List<String>> samples = new Vector<List<String>>();
+		samples.addAll(sampleSet);
+		Set<List<String>> tests = fullSet;
+		tests.removeAll(samples);
+		Set<List<String>> currentSamples = new HashSet<List<String>>();
+		currentSamples = AccuracyAndQuestionsExperiment.addPercentageFromSamples(currentSamples, samples, 10);
+		Set<List<String>> sPlus = AccuracyAndQuestionsExperiment.getPositiveStrings(dg,currentSamples);
+		Set<List<String>> sMinus = currentSamples;
+		sMinus.removeAll(sPlus);
+		sMinus = AccuracyAndQuestionsExperiment.trimToNegatives(dg, sMinus);
+		System.out.print(","+l.getQuestionCounter());
+		l.setQuestionCounter(0);
+		try{
+			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+			//updateFrame(g,learningOutcome);
+			//System.out.println(", "+computeAccuracy(learningOutcome, dg,tests));
+		}
+		catch(InterruptedException e){return;};
 	}
-	
-	
-	
-	
 }

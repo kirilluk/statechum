@@ -121,7 +121,7 @@ public class AccuracyAndQuestionsExperiment {
 		return accuracy;
 	}
 	
-	private Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Vector<List<String>> samples, double percent){
+	public static Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Vector<List<String>> samples, double percent){
 		double size = samples.size();
 		double number = (size/100)*percent;
 		//samples.removeAll(current);
@@ -132,7 +132,7 @@ public class AccuracyAndQuestionsExperiment {
 		return current;
 	}
 	
-	private Set<List<String>> trimToNegatives(DirectedSparseGraph g, Set<List<String>> sMinus ){
+	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Set<List<String>> sMinus ){
 		Set<List<String>> returnSet = new HashSet<List<String>>();
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
 		while(sMinusIt.hasNext()){
@@ -144,7 +144,7 @@ public class AccuracyAndQuestionsExperiment {
 		return returnSet;
 	}
 
-	private static Set<List<String>> getPositiveStrings(DirectedSparseGraph graph, Set<List<String>> samples){
+	public static Set<List<String>> getPositiveStrings(DirectedSparseGraph graph, Set<List<String>> samples){
 		Iterator<List<String>> sampleIt = samples.iterator();
 		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
 		while(sampleIt.hasNext()){
@@ -175,7 +175,7 @@ public class AccuracyAndQuestionsExperiment {
 		return fsmString;
 	}
 	
-	private Set<List<String>> randomHalf(Set<List<String>> v){
+	public static Set<List<String>> randomHalf(Set<List<String>> v){
 		Object[]samples = v.toArray();
 		HashSet<List<String>> returnSet = new HashSet<List<String>>();
 		Random generator = new Random();

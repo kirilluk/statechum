@@ -173,22 +173,17 @@ public class computeStateScores {
 			StatePair currentPair = currentExplorationBoundary.remove();
 			Map<String,Vertex> targetRed = transitionMatrix.get(currentPair.getR()),
 				targetBlue = transitionMatrix.get(currentPair.getQ());
-			//System.out.println("processing state pair "+currentPair);
-			//Set<String> visitedSet = visited.get(currentPair.getQ());
-			//if (visitedSet == null) { visitedSet = new HashSet<String>();visited.put(currentPair.getQ(), visitedSet); } 
+
 			for(Entry<String,Vertex> redEntry:targetRed.entrySet())
 			{
 				Vertex nextBlueState = targetBlue.get(redEntry.getKey());
 				if (nextBlueState != null)
-						//&& !visitedSet.contains(redEntry.getKey()))
 				{// both states can make a transition
 					// if the red side is currently in the sink vertex, i.e. we are effectively calculating a set of questions, do not report inconsistency or increment the score
 						if (TestRpniLearner.isAccept(redEntry.getValue()) != TestRpniLearner.isAccept(nextBlueState))
 							return -1;// incompatible states
 					
 					++score;
-					//System.out.println("\t "+redEntry.getKey()+"->"+nextBlueState.getUserDatum(JUConstants.LABEL)+" score "+score+" descend = "+(((DirectedSparseVertex)nextBlueState).numSuccessors() > 0));
-					//visitedSet.add(redEntry.getKey());// KIRR: this (and the whole visitedSet thing) is actually an emulation of a bug in computeScore, but not a full-blown emulation since the two evaluate machines in a different order and hence some tests comparing the two fail.
 
 					if (((DirectedSparseVertex)nextBlueState).numSuccessors() > 0)
 					{

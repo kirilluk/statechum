@@ -39,7 +39,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			return new Stack();
 		}
 */		
-		System.out.println("vertices: "+g.numVertices()+" edges: "+g.numEdges());
+		//System.out.println("vertices: "+g.numVertices()+" edges: "+g.numEdges());
 		Stack result = null;
 		scoreComputer = new computeStateScores(g,"SINK");
 		scoreComputer.generalisationThreshold = generalisationThreshold;

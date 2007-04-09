@@ -83,21 +83,24 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		for(String [] path:minus)
 			assert RPNIBlueFringeLearner.USER_ACCEPTED != WMethod.tracePath(expected, Arrays.asList(path));
 		
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
 				return WMethod.tracePath(expected, question);
 			}
 		};
-		l.setPairsMergedPerHypothesis(0);
+		l.setDebugMode(true);
+		//l.setPairsMergedPerHypothesis(0);
 		//l.setGeneralisationThreshold(1);
+		l.setCertaintyThreshold(5);
 		l.addObserver(visFrame);
 		try{
 			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 			updateFrame(learningOutcome,g);
 			FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
-			TestFSMAlgo.checkM(learntStructure,expected,learntStructure.init,expected.init);
+			System.out.println(l.getQuestionCounter());
+			//TestFSMAlgo.checkM(learntStructure,expected,learntStructure.init,expected.init);
 		}
 		catch(InterruptedException e){
 			AssertionFailedError th = new AssertionFailedError("interrupted exception received");th.initCause(e);throw th;

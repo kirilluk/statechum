@@ -11,8 +11,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
-	private HashSet<ArrayList> scoreDistributions = new HashSet<ArrayList>();
-	private int certaintyThreshold = 10000;
+	
 
 	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
 		super(parentFrame);
@@ -239,20 +238,6 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return returnSet;
 	}
 	
-	private void printScoreDistributions(){
-		Iterator<ArrayList> listIt = scoreDistributions.iterator();
-		while(listIt.hasNext()){
-			List l = listIt.next();
-			for(int i=0;i<l.size();i++){
-				Integer score = (Integer)l.get(i);
-				System.out.print(score);
-				if(i<l.size()-1)
-					System.out.print(",");
-			}
-			System.out.println();
-		}
-	}
-	
 	private boolean containsSubString(Collection<List<String>> sPlus, List<String> question){
 		Iterator<List<String>> stringIt = sPlus.iterator();
 		String first = question.get(0);
@@ -269,72 +254,5 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return false;
 	}
 		
-	protected Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
-		ArrayList scores = new ArrayList();
-		Stack<Vertex> blueStack = new Stack<Vertex>();
-		blueStack.addAll(computeBlue(g));
-		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores
-		while(!blueStack.isEmpty()){
-			TreeMap<Integer,Vector<StatePair> > singleSet = new TreeMap<Integer,Vector<StatePair> >();
-			Vertex blueVertex = blueStack.pop();
-			Stack<Vertex> redStack = new Stack<Vertex>();
-			redStack.addAll(findVertices("colour", "red", g));
-			while(!redStack.isEmpty()){
-				Vertex redVertex = redStack.pop();
-				StatePair pair = new StatePair(blueVertex, redVertex);
-				doneEdges = new HashSet();
-				Integer score = new Integer(computeScore(g,pair));
-				if(score.intValue()<this.generalisationThreshold)
-					continue;
-				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
-				if(compatible(temp, sPlus, sMinus)){
-					// singleSet maps scores to pairs which have those scores
-					if(singleSet.get(score) == null){
-						// nothing yet with this score
-						Vector<StatePair> s = new Vector<StatePair>();
-						s.add(pair);
-						singleSet.put(score, s);
-					}
-					else{
-						// already some pairs with this score
-						Vector<StatePair> s = singleSet.get(score);
-						s.add(pair);
-						singleSet.put(score, s);
-					}	
-				}
-			}
-			if(singleSet.isEmpty()){// no new pairs found, marking the current blue vertex as red.
-				blueVertex.setUserDatum("colour", "red", UserData.SHARED);
-				blueStack.clear();
-				scoreToPair.clear();
-				blueStack.addAll(computeBlue(g));
-			}
-			else{
-				Iterator<Integer> keyIt = singleSet.keySet().iterator();
-				while(keyIt.hasNext()){
-					Object key = keyIt.next();
-					Vector<StatePair> s = scoreToPair.get(key);
-					if(s!=null){
-						s.addAll(singleSet.get(key));
-						Collections.sort(s);
-					}
-					else
-					{
-						Vector<StatePair> value = singleSet.get(key);
-						Collections.sort(value);
-						scoreToPair.put((Integer)key, value);
-					}
-				}
-			}
-		}
-		scores.addAll(scoreToPair.keySet());
-		scoreDistributions.add(scores);
-		return createOrderedStack(scoreToPair);
-	}
-
-
-
-	public void setCertaintyThreshold(int certaintyThreshold) {
-		this.certaintyThreshold = certaintyThreshold;
-	}
+	
 }

@@ -50,7 +50,9 @@ public class LearningVisualiser extends Visualiser{
 			{
 					if (split != null) {
 		        		l = new RPNIBlueFringeLearnerTestComponent(LearningVisualiser.this);
-		        		l.setPairsMergedPerHypothesis(2);
+		        		l.setDebugMode(true);
+		        		//l.setPairsMergedPerHypothesis(2);
+		        		
 		        	}
 		        	else
 		        		l = new RPNIBlueFringeLearner(LearningVisualiser.this);

@@ -155,8 +155,11 @@ public class WMethod {
 		{
 			++pos;
 			Map<String,String> exitingTrans = fsm.trans.get(current);
-			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+			if (exitingTrans == null)
 				return pos-1;
+			else current = exitingTrans.get(label);
+			if(current == null)
+				return pos;
 		}
 		return fsm.accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
 	}

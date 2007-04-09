@@ -24,7 +24,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	protected Set<List<String>> sPlus, sMinus;
-	protected int generalisationThreshold, pairsMergedPerHypothesis;
+	protected int generalisationThreshold, pairsMergedPerHypothesis, certaintyThreshold=100000;
 	protected int questionCounter = 0;
 	
 	
@@ -35,6 +35,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	public Set<List<String>> getSPlus() {
 		return sPlus;
 	}
+	
 
 	protected Graph removeNegatives(Graph g){
 		Iterator vertexIt = g.getVertices().iterator();
@@ -974,6 +975,14 @@ public class RPNIBlueFringeLearner extends Observable {
 
 	public void setQuestionCounter(int questionCounter) {
 		this.questionCounter = questionCounter;
+	}
+
+	public void setCertaintyThreshold(int certaintyThreshold) {
+		this.certaintyThreshold = certaintyThreshold;
+	}
+
+	public void setDebugMode(boolean debugMode) {
+		this.debugMode = debugMode;
 	}
 
 }

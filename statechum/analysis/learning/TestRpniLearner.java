@@ -70,12 +70,32 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		TestFSMAlgo.checkM(g,"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2");
 	}
 
+	protected int checkPath(FSMStructure expected, DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+	{
+		int answer = WMethod.tracePath(expected, question);
+		System.out.print(question+" answer is "+answer);
+		int lastElement = 0;
+		while(lastElement < question.size() &&
+			RPNIBlueFringeLearner.getVertex(model, question.subList(0, lastElement+1)) != null)
+			lastElement++;
+		RPNIBlueFringeLearner.getVertex(model, question);
+		if ((answer >= 0 && answer != lastElement) ||
+				answer < 0 && lastElement != question.size())
+			System.out.println(" ERROR");
+		else
+			System.out.println();
+		return answer;//answer>0?answer-1:answer;
+	}
+
 	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
 	{
-		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");TestFSMAlgo.completeGraph(g, "REJECT");
+		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
+		final DirectedSparseGraph completedGraph = (DirectedSparseGraph)g.copy();TestFSMAlgo.completeGraph(completedGraph, "REJECT");
 		final FSMStructure expected = WMethod.getGraphData(g);
 
-		updateFrame(g, g);
+		checkPath(expected, g, Arrays.asList(new String[]{"text", "set_position", "set_dimensions"}), null);
+		
+		debugMode = true;updateFrame(g, g);
 
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
@@ -87,9 +107,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
-				int answer = WMethod.tracePath(expected, question);
-				System.out.println(answer);
-				return answer>0?answer-1:answer;
+				return checkPath(expected, g, question, moreOptions);
 			}
 		};
 		l.setDebugMode(true);
@@ -102,7 +120,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			updateFrame(learningOutcome,g);
 			FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
 			System.out.println(l.getQuestionCounter());
-			//TestFSMAlgo.checkM(learntStructure,expected,learntStructure.init,expected.init);
+			//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 		}
 		catch(InterruptedException e){
 			AssertionFailedError th = new AssertionFailedError("interrupted exception received");th.initCause(e);throw th;

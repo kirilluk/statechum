@@ -24,7 +24,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return scoreComputer.computeStateScore(blueRed);
 	}
 	
-	protected int runCount = 40;
+	protected int runCount = 80;
 	
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#chooseStatePairs(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
@@ -32,13 +32,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	@Override
 	protected Stack chooseStatePairs(DirectedSparseGraph g,
 			Set<List<String>> plus, Set<List<String>> minus) {
-/*		
+		
 		if (runCount -- < 0) // used for profiling
 		{
 			System.out.println("FORCED TERMINATION");
 			return new Stack();
 		}
-*/		
+		
 		//System.out.println("vertices: "+g.numVertices()+" edges: "+g.numEdges());
 		Stack result = null;
 		scoreComputer = new computeStateScores(g,"SINK");

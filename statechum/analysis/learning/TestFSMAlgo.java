@@ -1367,15 +1367,28 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testTracePath1()
+	public void testTracePath1a()
 	{
 		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, RPNIBlueFringeLearner.USER_ACCEPTED);
 	}
 	
 	@Test
-	public void testTracePath2()
+	public void testTracePath1b()
+	{
+		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
+		assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, WMethod.tracePath(graph, Arrays.asList(new String[]{"b"}),"B"));
+	}
+	
+	@Test
+	public void testTracePath2a()
 	{
 		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, RPNIBlueFringeLearner.USER_ACCEPTED);
+	}
+	
+	@Test
+	public void testTracePath2b()
+	{
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c","d"}, 3);
 	}
 	
 	@Test
@@ -1391,9 +1404,23 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testTracePath5()
+	public void testTracePath5a()
 	{
 		checkPath("A-a->B-b->C-c->D", new String[]{"b","a","c"}, 0);
+	}
+	
+	@Test
+	public void testTracePath5b()
+	{
+		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
+		assertEquals(0, WMethod.tracePath(graph, Arrays.asList(new String[]{"c"}),"B"));
+	}
+	
+	@Test
+	public void testTracePath5c()
+	{
+		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
+		assertEquals(0, WMethod.tracePath(graph, Arrays.asList(new String[]{"c"}),"Q"));
 	}
 	
 	@Test

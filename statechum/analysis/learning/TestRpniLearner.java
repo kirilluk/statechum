@@ -73,18 +73,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	protected int checkPath(FSMStructure expected, DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 	{
 		int answer = WMethod.tracePath(expected, question);
-		System.out.print(question+" answer is "+answer);
-		int lastElement = 0;
-		while(lastElement < question.size() &&
-			RPNIBlueFringeLearner.getVertex(model, question.subList(0, lastElement+1)) != null)
-			lastElement++;
-		RPNIBlueFringeLearner.getVertex(model, question);
-		if ((answer >= 0 && answer != lastElement) ||
-				answer < 0 && lastElement != question.size())
-			System.out.println(" ERROR");
-		else
-			System.out.println();
-		return answer;//answer>0?answer-1:answer;
+		return answer;
 	}
 
 	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
@@ -103,7 +92,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		for(String [] path:minus)
 			assert RPNIBlueFringeLearner.USER_ACCEPTED != WMethod.tracePath(expected, Arrays.asList(path));
 		
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(visFrame)
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{

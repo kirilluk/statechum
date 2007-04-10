@@ -24,7 +24,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return scoreComputer.computeStateScore(blueRed);
 	}
 	
-	protected int runCount = 80;
+	protected int runCount = 1000;
 	
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#chooseStatePairs(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)

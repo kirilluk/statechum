@@ -35,7 +35,7 @@ public class AccuracyAndQuestionsExperiment {
 		Set<List<String>> tests = randomHalf(fullTestSet);
 		Set<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(g);
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponent(v)
+		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(v)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{

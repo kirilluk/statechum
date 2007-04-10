@@ -35,7 +35,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
-			doneEdges = new HashSet();if(computeScore(model, pair)<this.certaintyThreshold){
+			doneEdges = new HashSet();
+			if(computeScore(model, pair)<this.certaintyThreshold){
 				questions = generateQuestions(model, temp, pair);
 				questions = trimSet(questions);
 			}
@@ -65,8 +66,10 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					if((answer==question.size()-1)&&tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
 					}
-					assert accepted.equals("true");
-					return learnMachine(initialise(), sPlus, sMinus);
+					else{
+						assert accepted.equals("true");
+						return learnMachine(initialise(), sPlus, sMinus);
+					}
 				}
 				else if (answer == USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);

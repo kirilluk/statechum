@@ -15,7 +15,7 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.*;
 
-public class LearningVisualiser extends Visualiser{
+public class PickNegativesVisualiser extends Visualiser{
     /**
 	 *  ID for serialization.
 	 */
@@ -26,13 +26,13 @@ public class LearningVisualiser extends Visualiser{
 	protected SplitFrame split = null;
 	protected StoredAnswers ans = null;
 	
-	public LearningVisualiser()
+	public PickNegativesVisualiser()
 	{
 		super();
 	}
 	
 	
-	public LearningVisualiser(SplitFrame frm, StoredAnswers an)
+	public PickNegativesVisualiser(SplitFrame frm, StoredAnswers an)
 	{
 		super();
 		split = frm;ans = an;
@@ -49,15 +49,15 @@ public class LearningVisualiser extends Visualiser{
 			public void run()
 			{
 					if (split != null) {
-		        		l = new RPNIBlueFringeLearnerTestComponent(LearningVisualiser.this);
+		        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this);
 		        		l.setDebugMode(true);
 		        		//l.setPairsMergedPerHypothesis(2);
 		        		
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearner(LearningVisualiser.this);
+		        		l = new RPNIBlueFringeLearner(PickNegativesVisualiser.this);
 		        		
-		        	l.addObserver(LearningVisualiser.this);
+		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);
 		        	try{
 		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);

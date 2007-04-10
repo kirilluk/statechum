@@ -15,6 +15,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
@@ -567,7 +568,7 @@ public class TestFSMAlgo {
 				
 				if (fromVertex == null)
 				{
-					fromVertex = new DirectedSparseVertex();
+					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 					if (existingVertices.isEmpty())
 						fromVertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
 					fromVertex.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
@@ -587,7 +588,7 @@ public class TestFSMAlgo {
 				else
 					if (toVertex == null)
 					{
-						toVertex = new DirectedSparseVertex();
+						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
 						toVertex.addUserDatum(JUConstants.ACCEPTED, Boolean.toString(accept), UserData.SHARED);
 						toVertex.addUserDatum(JUConstants.LABEL, to, UserData.SHARED);
@@ -602,7 +603,7 @@ public class TestFSMAlgo {
 				DirectedSparseEdge edge = existingEdges.get(pair);
 				if (edge == null)
 				{
-					edge = new DirectedSparseEdge(fromVertex,toVertex);
+					edge = new DeterministicDirectedSparseGraph.DeterministicEdge(fromVertex,toVertex);
 					edge.addUserDatum(JUConstants.LABEL, new HashSet<String>(), UserData.CLONE);
 					g.addEdge(edge);existingEdges.put(pair,edge);
 				}
@@ -645,7 +646,64 @@ public class TestFSMAlgo {
 		{
 			trans = new LinkedHashMap<String,Map<String,String>>();accept = new LinkedHashMap<String,Boolean>();
 		}
+		
+		public boolean equals(Object o)
+		{
+			if (this == o)
+				return true;
+			if (o == null || !(o instanceof FSMStructure))
+				return false;
+			
+			FSMStructure otherStruct= (FSMStructure)o;
+			return 
+				accept.equals(otherStruct.accept) &&
+				trans.equals(otherStruct.trans) &&
+				init.equals(otherStruct.init);		
+		}
+		
 	}
+	
+	@Test
+	public final void testFSMStructureEquals1()
+	{
+		FSMStructure a=new FSMStructure(),b=new FSMStructure();
+		a.init = "A";b.init = "A";
+		Assert.assertTrue(a.equals(a));
+		Assert.assertTrue(a.equals(b));
+
+		Assert.assertFalse(a.equals(null));
+		Assert.assertFalse(a.equals("hello"));
+		b.init = "B";Assert.assertFalse(a.equals(b));
+	}
+	
+	@Test
+	public final void testFSMStructureEquals2()
+	{
+		FSMStructure a=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		FSMStructure b=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		Assert.assertTrue(a.equals(b));
+	}
+	
+	@Test
+	public final void testFSMStructureEquals3()
+	{
+		FSMStructure a=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		FSMStructure b=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		
+		b.trans.clear();
+		Assert.assertFalse(a.equals(b));
+	}
+	
+	@Test
+	public final void testFSMStructureEquals4()
+	{
+		FSMStructure a=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		FSMStructure b=getGraphData(buildGraph("A-a->A-b->B", "testFSMStructureEquals2"));
+		
+		b.accept.clear();
+		Assert.assertFalse(a.equals(b));
+	}
+	
 	
 	@Test 
 	public void testCreateLabelToStateMap1() // test with empty data

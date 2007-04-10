@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.JUConstants;
+import statechum.xmachine.model.testset.HashBucketPrefixFreeCollection;
 import statechum.xmachine.model.testset.PrefixFreeCollection;
 import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
 import statechum.xmachine.model.testset.WMethod;
@@ -79,7 +80,7 @@ public class computeStateScores {
 		}
 	}
 
-	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
+	public static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,model), r);
 		Vertex tempRed = null;
@@ -94,6 +95,34 @@ public class computeStateScores {
 		return tempRed;
 	}
 	
+	public Vertex getTempRed_internal(Vertex r, DirectedSparseGraph temp){
+		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
+		HashSet<Vertex> visitedVertices = new HashSet<Vertex>();visitedVertices.add(init);
+		currentExplorationBoundary.add(init);
+		Vertex tempInit = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp);
+		Queue<Vertex> currentTempExploration = new LinkedList<Vertex>();currentTempExploration.add(tempInit);
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			Vertex currentVertex = currentExplorationBoundary.remove();Vertex currentTemp = currentTempExploration.remove();
+			if (currentVertex == r)
+				return currentTemp;
+			Set<Edge> tempOutgoing = (Set<Edge>)currentTemp.getOutEdges();
+
+			for(DirectedSparseEdge outgoing:(Set<DirectedSparseEdge>)currentVertex.getOutEdges())
+			{// after merging, the languages increases and transitions are not split, 
+			 // hence for every transition in the original graph, there would be the same or bigger transition in the temp graph 
+				Vertex nextVertex = outgoing.getDest();
+				if (!visitedVertices.contains(nextVertex))
+				{// now find the corresponding transition in the temp graph
+					Vertex tempNextVertex = RPNIBlueFringeLearner.getEdgeWithLabel(tempOutgoing, 
+							((Set<String>)outgoing.getUserDatum(JUConstants.LABEL)).iterator().next()).getDest();
+					currentExplorationBoundary.offer(nextVertex);visitedVertices.add(nextVertex);currentTempExploration.offer(tempNextVertex);
+				}
+			}
+		}
+		throw new IllegalArgumentException("failed to find a red vertex");
+	}
+	
 	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
 	public List<List<String>> computeQS(StatePair pair, DirectedSparseGraph temp)
@@ -102,7 +131,7 @@ public class computeStateScores {
 		List<List<String>> sp = new LinkedList<List<String>>();sp.add(new LinkedList<String>());
 
 		Vertex tempInit = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp),
-		tempRed = getTempRed(graph, pair.getR(), temp);
+		tempRed = getTempRed_internal(pair.getR(), temp);
 		for(Edge e: (List<Edge>)shortestPathDijkstra.getPath(tempInit, tempRed))
 			sp = WMethod.cross(sp, WMethod.makeSingleton((HashSet<String>)e.getUserDatum(JUConstants.LABEL)));
 		Edge loopEdge = TestRpniLearner.findEdge(tempRed, tempRed);
@@ -318,20 +347,66 @@ public class computeStateScores {
 		return result;
 	}		
 
-	public static boolean pairCompatible(Graph g, StatePair pair){
-		DirectedSparseGraph original = (DirectedSparseGraph)g.copy();
+	/** If the supplied vertex is already known (its label is stored in the map), the one from the map is returned;
+	 * otherwise a reasonable copy is made, it is then both returned and stored in the map.
+	 * 
+	 * @param newVertices the map from labels to new vertices
+	 * @param g the graph which will have the new vertex added to it
+	 * @param origVertex the vertex to copy
+	 * @return a copy of the vertex
+	 */
+	private static Vertex copyVertex(Map<String,Vertex> newVertices, DirectedSparseGraph g,Vertex origVertex)
+	{
+		String vertName = (String)origVertex.getUserDatum(JUConstants.LABEL);
+		Vertex newVertex = newVertices.get(vertName);
+		if (newVertex == null) { 
+			newVertex = new DirectedSparseVertex();
+			newVertex.addUserDatum(JUConstants.LABEL, vertName, UserData.SHARED);
+			newVertex.addUserDatum(JUConstants.ACCEPTED, TestRpniLearner.isAccept(origVertex)? "true":"false", UserData.SHARED);
+			Object property = origVertex.getUserDatum(JUConstants.PROPERTY);
+			if (property != null) newVertex.addUserDatum(JUConstants.PROPERTY, property, UserData.SHARED);
+			newVertices.put(vertName,newVertex);g.addVertex(newVertex);
+		}
+		return newVertex;
+	}
+	
+	/** A fast graph copy, which only copies labels and accept labelling. Transition labels are cloned.
+	 * This one only copies vertices which participate in transitions. 
+	 */
+	public static DirectedSparseGraph copy(Graph g)
+	{
+		DirectedSparseGraph result = new DirectedSparseGraph();
+		Map<String,Vertex> newVertices = new HashMap<String,Vertex>();
+		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		{
+			Vertex newSrc = copyVertex(newVertices,result,e.getSource()),
+				newDst = copyVertex(newVertices, result, e.getDest());
+			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
+			newEdge.addUserDatum(JUConstants.LABEL, ((HashSet)e.getUserDatum(JUConstants.LABEL)).clone(), UserData.SHARED);
+			result.addEdge(newEdge);
+		}
+		return result;
+	}
+	
+	public static DirectedSparseGraph mergeAndDeterminize(Graph g, StatePair pair) throws IncompatibleMergeException{
+		DirectedSparseGraph original = copy(g);
 		Vertex q = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
 		Vertex qDash = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
 		assert q != null && qDash != null;
 		pair = new StatePair(q,qDash);
 		DirectedSparseGraph temp = RPNIBlueFringeLearner.merge((DirectedSparseGraph)original, pair);
+		StatePair mergable = findMergablePair(temp);
+		while(mergable!=null){
+			temp=RPNIBlueFringeLearner.merge(temp, mergable);
+			mergable = findMergablePair(temp);
+		}
+		return temp;
+	}
+	
+	public static boolean pairCompatible(Graph g, StatePair pair){
 		try
 		{
-			StatePair mergable = findMergablePair(temp);
-			while(mergable!=null){
-				temp=RPNIBlueFringeLearner.merge(temp, mergable);
-				mergable = findMergablePair(temp);
-			}
+			mergeAndDeterminize(g, pair);
 		}
 		catch(IncompatibleMergeException e)
 		{
@@ -342,7 +417,7 @@ public class computeStateScores {
 	}
 
 	/** Thrown when a positive node is being merged with a negative one. */
-	public static class IncompatibleMergeException extends Exception
+	public static class IncompatibleMergeException extends Error
 	{
 
 		/**

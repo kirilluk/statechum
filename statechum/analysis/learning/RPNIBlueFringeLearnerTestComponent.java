@@ -30,7 +30,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
-			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
+			DirectedSparseGraph temp = mergeAndDeterminize(model, pair);
 			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
 			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();

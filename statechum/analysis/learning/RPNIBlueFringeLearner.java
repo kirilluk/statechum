@@ -106,7 +106,9 @@ public class RPNIBlueFringeLearner extends Observable {
 		return blues;
 	}
 	
-	protected DirectedSparseGraph mergeAndDeterminize(Graph original, StatePair pair){
+	/** Makes a copy of the graph given to it and merges states in the pair supplied. */
+	protected DirectedSparseGraph mergeAndDeterminize(Graph model, StatePair pair){
+		Graph original = (Graph)model.copy();
 		Vertex q = findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
 		Vertex qDash = findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
 		pair = new StatePair(q,qDash);
@@ -915,7 +917,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return current;
 	}
 	
-	protected static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
+	public static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
 		Iterator edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = (DirectedSparseEdge)edgeIt.next();

@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Map.Entry;
@@ -718,6 +719,134 @@ public class TestWMethod {
 	public final void testCheckUnreachable3()
 	{
 		assertTrue(WMethod.checkUnreachableStates(WMethod.getGraphData(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"))));	
+	}
+	
+	
+	@Test 
+	public final void testBucketCollection0()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		Assert.assertEquals(0, c.getData().size());
+	}
+	
+	@Test 
+	public final void testBucketCollection1()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection2()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(new LinkedList<String>());
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection3()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a"}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection4()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{"a","a"}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a","a"}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection5()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a","a"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a","a"}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection6()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{}));
+		c.addSequence(Arrays.asList(new String[]{"a","a"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a","a"}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection7()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{}));
+		c.addSequence(Arrays.asList(new String[]{"a","b"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a","b"},
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(1, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
+	}
+	
+	@Test 
+	public final void testBucketCollection8()
+	{
+		HashBucketPrefixFreeCollection c = new HashBucketPrefixFreeCollection();
+		c.addSequence(new LinkedList<String>());
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{}));
+		c.addSequence(Arrays.asList(new String[]{"a","b"}));
+		c.addSequence(Arrays.asList(new String[]{"a","c","d"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		c.addSequence(Arrays.asList(new String[]{"a"}));
+		Set<List<String>> expected = buildSet(new String[][]{
+				new String[]{"a","b"},
+				new String[]{"a","c","d"}
+		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		Assert.assertEquals(2, c.getData().size());
+		Assert.assertTrue(expected.equals(actual));
 	}
 	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:

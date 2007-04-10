@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
+import statechum.analysis.learning.computeStateScores.IncompatibleMergeException;
+
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -33,12 +35,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	protected Stack chooseStatePairs(DirectedSparseGraph g,
 			Set<List<String>> plus, Set<List<String>> minus) {
 		
-		if (runCount -- < 0) // used for profiling
-		{
-			System.out.println("FORCED TERMINATION");
-			return new Stack();
-		}
-		
 		//System.out.println("vertices: "+g.numVertices()+" edges: "+g.numEdges());
 		Stack result = null;
 		scoreComputer = new computeStateScores(g,"SINK");
@@ -62,6 +58,12 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		//return super.generateQuestions(model, temp, pair);
 	}
 
+	@Override
+	protected DirectedSparseGraph mergeAndDeterminize(Graph model, StatePair pair){
+		DirectedSparseGraph result = computeStateScores.mergeAndDeterminize(model, pair);
+		return result;
+	}
+	
 	protected computeStateScores scoreComputer = null;
 
 	/* (non-Javadoc)

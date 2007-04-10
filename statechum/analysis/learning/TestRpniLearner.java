@@ -35,6 +35,7 @@ import statechum.analysis.learning.computeStateScores.IncompatibleMergeException
 import statechum.analysis.learning.computeStateScores.PairScore;
 import statechum.xmachine.model.testset.WMethod;
 
+import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -81,10 +82,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
 		final DirectedSparseGraph completedGraph = (DirectedSparseGraph)g.copy();TestFSMAlgo.completeGraph(completedGraph, "REJECT");
 		final FSMStructure expected = WMethod.getGraphData(g);
-
-		checkPath(expected, g, Arrays.asList(new String[]{"text", "set_position", "set_dimensions"}), null);
 		
-		debugMode = true;updateFrame(g, g);
+		updateFrame(g, g);
 
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
@@ -99,7 +98,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				return checkPath(expected, g, question, moreOptions);
 			}
 		};
-		l.setDebugMode(true);
+		l.setDebugMode(false);
 		//l.setPairsMergedPerHypothesis(0);
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
@@ -592,10 +591,12 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		DirectedSparseGraph a=TestFSMAlgo.buildGraph("A-a->B", "testGetTempRed1 model"),
 			temp=TestFSMAlgo.buildGraph("C-d->Q", "testGetTempRed1 temp");
-		Vertex foundA = computeStateScores.getTempRed(a, findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
+		Vertex foundA = computeStateScores.getTempRed_DijkstraShortestPath(a, findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
 		Vertex foundB =RPNIBlueFringeLearnerTestComponent.getTempRed(a, findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
+		Vertex foundC = new computeStateScores(a,"SINK").getTempRed_internal(findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
 		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundA));
 		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundB));
+		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundC));
 	}
 	
 	@Test
@@ -603,10 +604,51 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		DirectedSparseGraph a=TestFSMAlgo.buildGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model"),
 			temp=TestFSMAlgo.buildGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp");
-		Vertex foundA = computeStateScores.getTempRed(a, findVertex(JUConstants.LABEL, "D", a), temp);
+		Vertex foundA = computeStateScores.getTempRed_DijkstraShortestPath(a, findVertex(JUConstants.LABEL, "D", a), temp);
 		Vertex foundB = RPNIBlueFringeLearnerTestComponent.getTempRed(a, findVertex(JUConstants.LABEL, "D", a), temp);
+		Vertex foundC = new computeStateScores(a,"SINK").getTempRed_internal( findVertex(JUConstants.LABEL, "D", a), temp);
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundA));
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundB));
+		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundC));
+	}
+	
+	@Test
+	public final void testCopyGraph0()
+	{
+		DirectedSparseGraph g=new DirectedSparseGraph();
+		g.addVertex(new DirectedSparseVertex());
+		g.addVertex(new DirectedSparseVertex());
+		DirectedSparseGraph copy = computeStateScores.copy(g);
+		Assert.assertTrue(copy.getEdges().isEmpty() && copy.getVertices().isEmpty());
+	}
+	
+	// TODO to test FSMStructure's equals
+	@Test
+	public final void testCopyGraph1()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-a->S1", "testCopyGraph");
+		DirectedSparseGraph copy=computeStateScores.copy(g);
+		FSMStructure gS = WMethod.getGraphData(g),gC = WMethod.getGraphData(copy);
+		
+		Assert.assertTrue(gS.equals(gC));
+	}
+	
+	@Test
+	public final void testCopyGraph2()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3, "testCopyGraph");
+		DirectedSparseGraph copy=computeStateScores.copy(g);
+		FSMStructure gS = WMethod.getGraphData(g),gCopy = WMethod.getGraphData(copy);
+		
+		Assert.assertTrue(gS.equals(gCopy));
+		
+		// now test if all clones are faithful
+		for(Edge e:(Set<Edge>)g.getEdges())
+			((Set<String>)e.getUserDatum(JUConstants.LABEL)).add("junk");
+		
+		FSMStructure gS_Modified = WMethod.getGraphData(copy);
+		
+		Assert.assertTrue(gS_Modified.equals(gCopy));
 	}
 	
 	@Test
@@ -641,8 +683,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		StatePair expected = new StatePair(d,s),
 		actualA = RPNIBlueFringeLearner.findMergablePair(g),
 		actualB = computeStateScores.findMergablePair(g);
-	Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
-	Assert.assertTrue("expected: "+expected+" got: "+actualB,expected.equals(actualB));
+		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
+		Assert.assertTrue("expected: "+expected+" got: "+actualB,expected.equals(actualB));
 	}
 
 	@Test
@@ -655,8 +697,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		StatePair expected = new StatePair(b,s),
 		actualA = RPNIBlueFringeLearner.findMergablePair(g),
 		actualB = computeStateScores.findMergablePair(g);
-	Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
-	Assert.assertTrue("expected: "+expected+" got: "+actualB,expected.equals(actualB));
+		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
+		Assert.assertTrue("expected: "+expected+" got: "+actualB,expected.equals(actualB));
 	}
 
 	@Test
@@ -679,6 +721,57 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g),
 			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
 		computeStateScores.findMergablePair(g);
+	}
+
+	@Test
+	public final void testMerge1()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge");
+		Vertex 
+			s = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", g),
+			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "U", g);
+		StatePair pair = new StatePair(d,s);
+
+		FSMStructure 
+			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
+			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
+			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->S", "expected"));
+		Assert.assertTrue(expectedResult.equals(mergeResultA));
+		Assert.assertTrue(expectedResult.equals(mergeResultB));
+	}
+	
+	@Test
+	public final void testMerge2()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge");
+		Vertex 
+			s = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", g),
+			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
+		StatePair pair = new StatePair(d,s);
+
+		FSMStructure 
+			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
+			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
+			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U", "expected"));
+		Assert.assertTrue(expectedResult.equals(mergeResultA));
+		Assert.assertTrue(expectedResult.equals(mergeResultB));
+	}
+
+	@Test
+	public final void testMerge3()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge");
+		Vertex 
+			s = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", g),
+			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
+		StatePair pair = new StatePair(d,s);
+
+		FSMStructure 
+			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
+			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
+			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U", "expected"));
+		Assert.assertTrue(expectedResult.equals(mergeResultA));
+		Assert.assertTrue(expectedResult.equals(mergeResultB));
 	}
 
 	protected interface InterfaceChooserToTest {

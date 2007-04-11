@@ -1,6 +1,7 @@
 package statechum.xmachine.model.testset;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 /** Makes it possible to construct a collection of sequences of strings where no string is a prefix of another one.
@@ -24,7 +25,12 @@ public abstract class PrefixFreeCollection {
 	public static boolean isPrefix(List<String> str, List<String> what)
 	{
 		if (what.size() > str.size()) return false;
-		return str.subList(0, what.size()).equals(what);
+		Iterator<String> strIt=str.iterator(), whatIt=what.iterator();
+		while(whatIt.hasNext() && strIt.hasNext())
+			if (!strIt.next().equals(whatIt.next()))
+				return false;
+		
+		return true;
 	}	
 
 	

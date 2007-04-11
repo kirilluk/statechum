@@ -26,6 +26,7 @@ import statechum.xmachine.model.testset.HashBucketPrefixFreeCollection;
 import statechum.xmachine.model.testset.PrefixFreeCollection;
 import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
 import statechum.xmachine.model.testset.WMethod;
+import sun.util.calendar.JulianCalendar;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
@@ -59,7 +60,7 @@ public class computeStateScores {
 		for(Vertex v:graphVertices)
 		{
 			assert !sinkVertexName.equals(v);
-			transitionMatrix.put(v,new TreeMap<String,Vertex>());// using TreeMap makes everything more predictable
+			transitionMatrix.put(v,new TreeMap<String,Vertex>());// using TreeMap makes everything predictable  
 		}
 		alphabet = WMethod.computeAlphabet(g);
 		sinkVertex.addUserDatum(JUConstants.LABEL, sinkVertexName, UserData.SHARED);
@@ -133,11 +134,11 @@ public class computeStateScores {
 		Vertex tempInit = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp),
 		tempRed = getTempRed_internal(pair.getR(), temp);
 		for(Edge e: (List<Edge>)shortestPathDijkstra.getPath(tempInit, tempRed))
-			sp = WMethod.cross(sp, WMethod.makeSingleton((HashSet<String>)e.getUserDatum(JUConstants.LABEL)));
+			sp = WMethod.crossWithSet_One(sp, (HashSet<String>)e.getUserDatum(JUConstants.LABEL));
 		Edge loopEdge = TestRpniLearner.findEdge(tempRed, tempRed);
 		List<List<String>> prefixOfAllPathsFromRedState = new LinkedList<List<String>>();prefixOfAllPathsFromRedState.add(new LinkedList<String>());
 		if(loopEdge!=null)
-			prefixOfAllPathsFromRedState.addAll(WMethod.makeSingleton((HashSet<String>)loopEdge.getUserDatum(JUConstants.LABEL)));
+			prefixOfAllPathsFromRedState.addAll(WMethod.makeSingleton((Collection<String>)loopEdge.getUserDatum(JUConstants.LABEL)));
 
 		PrefixFreeCollection partialQuestions = new SlowPrefixFreeCollection(); 
 
@@ -151,7 +152,7 @@ public class computeStateScores {
 			{
 				for(List<String> loopPrefix:prefixOfAllPathsFromRedState)
 				{
-					List<List<String>> fullPath = new LinkedList<List<String>>();fullPath.add(loopPrefix);
+					List<List<String>> fullPath = new LinkedList<List<String>>();LinkedList<String> fullPathInitialSeq = new LinkedList<String>();fullPathInitialSeq.addAll(loopPrefix);fullPath.add(fullPathInitialSeq);
 					Vertex origState = loopPrefix.isEmpty()?pair.getR():transitionMatrix.get(pair.getR()).get(loopPrefix.get(0));// the first element always exists
 					Iterator<Edge> pathIt = pathInTemp.iterator();
 					// Now we trace this path in the original machine, following the existing matrix
@@ -159,11 +160,11 @@ public class computeStateScores {
 					{
 						Collection<String> labels = (Collection<String>)pathIt.next().getUserDatum(JUConstants.LABEL);
 						String input = labels.iterator().next();
-						fullPath = WMethod.cross(fullPath, WMethod.makeSingleton(labels));
+						fullPath = WMethod.crossWithSet_One(fullPath, labels);
 						origState = transitionMatrix.get(origState).get(input);
 					}
 					while(pathIt.hasNext())
-						fullPath = WMethod.cross(fullPath, WMethod.makeSingleton(((Collection<String>)pathIt.next().getUserDatum(JUConstants.LABEL))));
+						fullPath = WMethod.crossWithSet_One(fullPath, (Collection<String>)pathIt.next().getUserDatum(JUConstants.LABEL));
 					
 					Map<String,Vertex> row = origState == null? null:transitionMatrix.get(origState);
 					// now we know the state in the original graph which corresponds to v
@@ -194,7 +195,6 @@ public class computeStateScores {
 		assert pair.getQ().getGraph() == graph && pair.getR().getGraph() == graph; 
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		//Map<Vertex,Set<String>> visited = new HashMap<Vertex,Set<String>>();
 		currentExplorationBoundary.add(pair);
 		
 		while(!currentExplorationBoundary.isEmpty())
@@ -303,8 +303,13 @@ public class computeStateScores {
 					int numberOfCompatiblePairs = 0;
 					for(Vertex oldRed:reds)
 					{
-						computeStateScores.PairScore pair = new PairScore(currentBlueState,oldRed,computeStateScore(new StatePair(currentBlueState,oldRed)));
-						if (pair.getScore() >= generalisationThreshold && pairCompatible(graph, pair))
+						StatePair pairToComputeFrom = new StatePair(currentBlueState,oldRed);
+						int computedScore = computeStateScore(pairToComputeFrom);
+						if (computedScore > 0 &&
+								computePairCompatibilityScore(pairToComputeFrom) < 0)
+									computedScore = -1;
+						computeStateScores.PairScore pair = new PairScore(currentBlueState,oldRed,computedScore);
+						if (pair.getScore() >= generalisationThreshold)
 						{
 							pairsAndScores.add(pair);
 							++numberOfCompatiblePairs;
@@ -324,7 +329,7 @@ public class computeStateScores {
 						for(Vertex oldBlue:BlueStatesConsideredSoFar)
 						{
 							computeStateScores.PairScore pair = new PairScore(currentBlueState, oldBlue,computeStateScore(new StatePair(currentBlueState,oldBlue)));
-							if (pair.getScore() >= generalisationThreshold && pairCompatible(graph, pair))
+							if (pair.getScore() >= generalisationThreshold)
 								pairsAndScores.add(pair);
 						}
 					}
@@ -388,100 +393,281 @@ public class computeStateScores {
 		return result;
 	}
 	
-	public static DirectedSparseGraph mergeAndDeterminize(Graph g, StatePair pair) throws IncompatibleMergeException{
-		DirectedSparseGraph original = copy(g);
-		Vertex q = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
-		Vertex qDash = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
-		assert q != null && qDash != null;
-		pair = new StatePair(q,qDash);
-		DirectedSparseGraph temp = RPNIBlueFringeLearner.merge((DirectedSparseGraph)original, pair);
-		StatePair mergable = findMergablePair(temp);
-		while(mergable!=null){
-			temp=RPNIBlueFringeLearner.merge(temp, mergable);
-			mergable = findMergablePair(temp);
+	/** Takes states associated with red in mergedVertices and finds a target state for a given input
+	 * 
+	 * @param mergedVertices vertices linked to r
+	 * @param r the red state
+	 * @param input the input to consider
+	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
+	 * using mergedVertices. 
+	 */
+	private Vertex findNextRed(Map<Vertex,List<Vertex>> mergedVertices, Vertex r, String input)
+	{
+		Vertex target = null;
+		List<Vertex> associatedVertices = mergedVertices.get(r);
+		if (associatedVertices != null)
+		{
+			Iterator<Vertex> associatedIt = associatedVertices.iterator();
+			while(associatedIt.hasNext() && target == null)
+				target = transitionMatrix.get(associatedIt.next()).get(input);
 		}
-		return temp;
+		return target;
+	}
+
+	public int computePairCompatibilityScore(StatePair origPair)
+	{
+		Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
+		// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
+		return computePairCompatibilityScore_internal(origPair, mergedVertices);
 	}
 	
-	public static boolean pairCompatible(Graph g, StatePair pair){
-		try
-		{
-			mergeAndDeterminize(g, pair);
-		}
-		catch(IncompatibleMergeException e)
-		{
-			return false;
-		}
-		
-		return true;
-	}
-
-	/** Thrown when a positive node is being merged with a negative one. */
-	public static class IncompatibleMergeException extends Error
+	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair)
 	{
+			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
+			Vertex newBlue = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),g);
+			Vertex newRed = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),g);
+			pair = new StatePair(newBlue,newRed);
+			Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();
+			computeStateScores s=new computeStateScores(g,"SINK");
+			if (s.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
+				throw new IllegalArgumentException("elements of the pair are incompatible");
 
-		/**
-		 *  ID for serialization.
-		 */
-		private static final long serialVersionUID = -5237773645955967247L;
-		
-		public IncompatibleMergeException(StatePair pair)
-		{
-			super("two states "+pair+"should not be merged");
-		}
+			// make a loop
+			Set<String> usedInputs = new HashSet<String>();
+			for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)newBlue.getInEdges())
+			{
+				Vertex source = e.getSource();
+				Collection<String> existingLabels = (Collection<String>)e.getUserDatum(JUConstants.LABEL);
+				g.removeEdge(e);
+
+				// It is possible that there is already an edge between g.getSource Blue and newRed
+				Iterator<DirectedSparseEdge> sourceOutIt = source.getOutEdges().iterator();
+				Edge fromSourceToNewRed = null;
+				while(sourceOutIt.hasNext() && fromSourceToNewRed == null)
+				{
+					DirectedSparseEdge out = sourceOutIt.next();if (out.getDest() == newRed) fromSourceToNewRed = out;
+				}
+				if (fromSourceToNewRed == null)
+				{
+					fromSourceToNewRed = new DirectedSparseEdge(source,newRed);
+					fromSourceToNewRed.setUserDatum(JUConstants.LABEL, existingLabels, UserData.CLONE);// no need to clone this one since I'll delete the edge in a bit
+					g.addEdge(fromSourceToNewRed);
+				}
+				else
+					// there is already a transition from source to newRed, hence all we have to do is merge the new labels into it.
+					((Collection<String>)fromSourceToNewRed.getUserDatum(JUConstants.LABEL)).addAll( existingLabels );
+					
+			}
+
+			// now the elements of mergedVertices are in terms of the copied graph.
+			for(Vertex vert:(Set<Vertex>)g.getVertices())
+				if (mergedVertices.containsKey(vert))
+				{// there are some vertices to merge with this one.
+					usedInputs.clear();usedInputs.addAll(s.transitionMatrix.get(vert).keySet());
+					for(Vertex toMerge:mergedVertices.get(vert))
+					{// for every input, I'll have a unique target state - this is a feature of PTA
+					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
+					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state.
+						Set<String> inputsFrom_toMerge = s.transitionMatrix.get(toMerge).keySet();
+						for(String input:inputsFrom_toMerge)
+							if (!usedInputs.contains(input))
+							{
+								Set<String> labels = new HashSet<String>();labels.add(input);
+								Vertex targetVert = s.transitionMatrix.get(toMerge).get(input);
+								DirectedSparseEdge newEdge = new DirectedSparseEdge(vert,targetVert);
+								newEdge.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
+								g.removeEdges(targetVert.getInEdges());g.addEdge(newEdge);
+							}
+						usedInputs.addAll(inputsFrom_toMerge);
+					}
+				}
+			
+			// now remove everything related to the PTA
+			Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue containing pairs to be explored
+			currentExplorationBoundary.add( newBlue );
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				Vertex currentVert = currentExplorationBoundary.remove();
+				Set<DirectedSparseEdge> outEdges = (Set<DirectedSparseEdge>)currentVert.getOutEdges();
+				for(DirectedSparseEdge e:outEdges)
+					currentExplorationBoundary.add(e.getDest());
+				g.removeEdges(outEdges);
+				g.removeVertex(currentVert);
+			}
+			return g;
 	}
 	
 	/** After merging, a graph may exhibit non-determinism, in which case it is made deterministic
 	 * by merging nodes. For instance, for A->B and A->C being a non-deterministic choice at node A, 
 	 * nodes B and C are to
-	 * be merged. This function identifies such a (B,C).
+	 * be merged. This function keeps merging such states until it either has to do a contradictory merge (accept and reject states)
+	 * or no merged states exhibit non-determinism.
+	 * 
+	 * The scores computed are different from what computeScore returns since in the situation when a graph
+	 * is a straight line, computeScore happily matches PTA with itself while this one has to know
+	 * when we've looped (so as to effectively check for compatibility) and hence it cannot do that. 
 	 * 
 	 * @param model
+	 * @param mergedVertices records which vertices have to be merged.
 	 * @return a pair of states to be merged or null if the graph is deterministic.
-	 * @throws IncompatibleMergeException if states being merged are not compatible.
 	 */
-	public static StatePair findMergablePair(DirectedSparseGraph model) throws IncompatibleMergeException{
-		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
-		Vertex initVertex = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, model);
-		HashSet<Vertex> visitedVertices = new HashSet<Vertex>();visitedVertices.add(initVertex);
-		currentExplorationBoundary.add(initVertex);
-		Map<String,DirectedSparseEdge> doneLabels = new HashMap<String,DirectedSparseEdge>();
-
+	private int computePairCompatibilityScore_internal(StatePair origPair,Map<Vertex,List<Vertex>> mergedVertices) 
+	{
+		mergedVertices.clear();// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
+			// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.
+		
+		int score = -1;// compatibility score between states in the pair
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
+		Queue<Boolean> currentRedFromPta = new LinkedList<Boolean>();// FIFO queue containing true if the red node comes from a branch of a PTA which has been previously already merged into the machine
+		currentExplorationBoundary.add(origPair);currentRedFromPta.add(false);
+		
+		
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Vertex currentVertex = currentExplorationBoundary.remove();
-			doneLabels.clear();
-			Set<DirectedSparseEdge> edges = currentVertex.getOutEdges();
-			Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
-			while(edgeIt.hasNext())
-			{
-				DirectedSparseEdge e = edgeIt.next();// for every edge ...
-				Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-				Iterator<String> labelIt = labels.iterator();
-				while(labelIt.hasNext()){
-					String label = labelIt.next();// ... and every label on it
-					DirectedSparseEdge eDash = doneLabels.get(label); 
-					if(eDash==null)
-						doneLabels.put(label, e);
-					else {
-						StatePair p = null;
-						if(eDash.getDest().getUserDatum("property")!=null)
-							p = new StatePair(e.getDest(), eDash.getDest());
-						else
-							p = new StatePair(eDash.getDest(),e.getDest());
+			StatePair currentPair = currentExplorationBoundary.remove();Boolean redFromPta = currentRedFromPta.remove();
+			boolean RedAndBlueToBeMerged = false;// this one is set to true if states in the current pair have to be merged. 
+			// This will be so for all state pairs where a blue node can 
+			// make moves which the red one cannot match. The aim is to avoid unnecessary mergers such as
+			// when a blue state can make multiple moves which the red node cannot match.
+			
+			if (TestRpniLearner.isAccept(currentPair.getQ()) != TestRpniLearner.isAccept(currentPair.getR()))
+				return -1;// incompatible states
+			if (!redFromPta.booleanValue())
+				++score;
+			Map<String,Vertex> targetBlue = transitionMatrix.get(currentPair.getQ());
 
-						if(TestRpniLearner.isAccept(e.getDest()) != TestRpniLearner.isAccept(eDash.getDest())) // KIRR: strange - the two should never be different if the original pair to choose was selected properly
-							throw new IncompatibleMergeException(p);
-						else
-							return p;
+			for(Entry<String,Vertex> blueEntry:targetBlue.entrySet())
+			{
+				Vertex nextRedState = transitionMatrix.get(currentPair.getR()).get(blueEntry.getKey());
+				if (nextRedState != null)
+				{// both states can make a transition - this would be the case of "non-determinism" for Merge&Determinize
+					
+					// PTA does not have loops, but the original automaton has
+					// and one of those loops is not on the transition diagram, namely the one related to B=A
+					if (nextRedState == origPair.getQ())
+					{
+						nextRedState = origPair.getR(); // emulates the new loop
+						redFromPta = true; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
+					}
+
+					StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
+					currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(redFromPta);
+				}
+				else
+				{// the current state cannot make a transition, perhaps PTA states associated with it can
+					nextRedState = findNextRed(mergedVertices,currentPair.getR(),blueEntry.getKey());
+					if (nextRedState != null)
+					{// both states can make a transition - this would be the case of "non-determinism" for Merge&Determinize
+					 // The red state is the one originally from a previosly-merged PTA branch
+						
+						// PTA does not have loops, but the original automaton has
+						// and one of those loops is not on the transition diagram, namely the one related to B=A
+						if (nextRedState == origPair.getQ())
+							nextRedState = origPair.getR(); // emulates the new loop
+						
+						StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
+						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(true);// from now on, no increments to the score
+					}
+					else
+					{
+						// If the blue can make a move, but the red one cannot, it means that the blue vertex has 
+						// transitions with labels which are not contained in the set of labels on 
+						// transitions from the red state. For this reason, we have to merge the current blue vertex with the current red one.
+						RedAndBlueToBeMerged = true;
+						
+						// there is no point exploring further since the transition leaving the blue state is not matched to any red one.
 					}
 				}
-				if (!visitedVertices.contains(e.getDest()))
+			}
+			
+			if (RedAndBlueToBeMerged)
+			{// if the current pair of states is to be merged, do it (i.e. record them as merged).
+				List<Vertex> redMerged = mergedVertices.get(currentPair.getR());
+				if (redMerged == null)
 				{
-					visitedVertices.add(e.getDest());currentExplorationBoundary.offer(e.getDest());
+					redMerged = new LinkedList<Vertex>();mergedVertices.put(currentPair.getR(), redMerged);
 				}
+				redMerged.add(currentPair.getQ());
 			}
 		}
-		return null;
+		return score;
+	}
+
+
+	/** Creates a new vertex and an edge and and adds both to the graph. 
+	 * 
+	 * @param g the graph to modify
+	 * @param prevState the state from which to start the new edge
+	 * @param accepted whether the vertex to add should be an accept one
+	 * @param input the label of the edge
+	 * @return
+	 */
+	private static Vertex addVertex(DirectedSparseGraph g, Vertex prevState, boolean accepted, String input)
+	{
+		Vertex newVertex = new DirectedSparseVertex();newVertex.addUserDatum(JUConstants.LABEL, newVertex.toString(), UserData.SHARED);
+		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
+		g.addVertex(newVertex);
+		DirectedSparseEdge e = new DirectedSparseEdge(prevState, newVertex);
+		Set<String> labels = new HashSet<String>();labels.add(input);
+		e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
+		g.addEdge(e);
+		return newVertex;
+	}
+	
+	/** Adds a given set of sequences to a PTA, with a specific accept-reject labelling.
+	 * 
+	 * @param pta
+	 * @param strings sequences to be added
+	 * @param accepted whether sequences are accept or reject ones.
+	 * @return the result of adding.
+	 */ 
+	public static DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted)
+	{
+		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,pta);
+		
+		Iterator<List<String>> stringsIt = strings.iterator();
+		for(List<String> sequence:strings)
+		{
+			Vertex currentState = init, prevState = null;
+			Iterator<String> inputIt = sequence.iterator();
+			String lastInput = null;
+			int position = 0;
+			while(inputIt.hasNext() && currentState != null)
+			{
+				if (!TestRpniLearner.isAccept(currentState))
+				{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
+					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+				}
+				prevState = currentState;lastInput = inputIt.next();++position;
+				DirectedSparseEdge followingEdge = RPNIBlueFringeLearner.getEdgeWithLabel(currentState.getOutEdges(),lastInput);
+				if (followingEdge != null)
+					currentState = followingEdge.getDest();
+				else
+					currentState = null;
+			}
+			
+			if (currentState == null)
+			{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
+				while(inputIt.hasNext())
+				{
+					prevState = addVertex(pta, prevState, true, lastInput);
+					lastInput = inputIt.next();
+				}
+				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+				addVertex(pta, prevState, accepted, lastInput);
+			}
+			else
+			{// we reached the end of the PTA
+				if (TestRpniLearner.isAccept(currentState) != accepted)
+				{
+					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+				}
+				
+			}
+		}
+		return pta;
 	}
 }
+

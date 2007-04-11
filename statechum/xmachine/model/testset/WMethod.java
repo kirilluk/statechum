@@ -198,16 +198,16 @@ public class WMethod {
 		if (fsm == null)
 			fsm = getGraphData(machineGraph);
 		Set<String> alphabet =  computeAlphabet(fsm);
-		List<List<String>> partialSet = computeStateCover(fsm), Phi = makeSingleton(alphabet);
+		List<List<String>> partialSet = computeStateCover(fsm);
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
-		transitionCover = cross(partialSet,Phi);transitionCover.addAll(partialSet);
+		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
 		fullTestSet = new SlowPrefixFreeCollection();
 		
 		appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		for(int i=0;i<=this.numberOfExtraStates;i++)
 		{
-			partialSet=cross(partialSet,Phi);
+			partialSet=crossWithSet(partialSet,alphabet);
 			appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
 		}
 	}
@@ -243,6 +243,33 @@ public class WMethod {
 				List<String> cross = new LinkedList<String>();
 				cross.addAll(elemA);
 				cross.addAll(elemB);
+				returnVect.add( cross );
+			}
+		}
+		return returnVect;
+	}
+
+	/** Important: this one destroys the first operand. */
+	public static List<List<String>> crossWithSet_One(List<List<String>> a, Collection<String> b)
+	{
+		if (b.size() == 1)
+		{
+			String element = b.iterator().next();
+			for(List<String> elemA:a)
+				elemA.add(element);
+			return a;
+		}
+		else
+			return crossWithSet(a, b);
+	}
+	
+	public static List<List<String>> crossWithSet(Collection<List<String>> a, Collection<String> b){
+		List<List<String>> returnVect = new LinkedList<List<String>>();
+		for(List<String> elemA:a){
+			for(String elemB:b) {
+				List<String> cross = new LinkedList<String>();
+				cross.addAll(elemA);
+				cross.add(elemB);
 				returnVect.add( cross );
 			}
 		}

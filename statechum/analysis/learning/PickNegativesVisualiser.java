@@ -41,8 +41,17 @@ public class PickNegativesVisualiser extends Visualiser{
 	/** The learner thread. */
 	Thread learnerThread = null;
 	
-	//"Hypothesis Machine"
-	public void construct(final Set<List<String>> sPlus, final Set<List<String>> sMinus)
+	public interface ThreadStartedInterface {
+		public void threadStarted();
+	}
+	
+	/** Starts the learning thread with the supplied sets of positive and negative examples.
+	 * 
+	 * @param sPlus positives
+	 * @param sMinus negatives
+	 * @param whomToNotify this one is called just before learning commences.
+	 */
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
@@ -59,6 +68,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		        		
 		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);
+		        	if (whomToNotify != null) whomToNotify.threadStarted();
 		        	try{
 		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 		        	}
@@ -69,30 +79,62 @@ public class PickNegativesVisualiser extends Visualiser{
 		
     }
 	
+	public class LearnerRestarter implements Runnable, ThreadStartedInterface
+	{
+		/** Set to true by the callback from the learner thread. */
+		private boolean learnerStarted = false;
+		
+		final List<String> negatives;
+		
+		public LearnerRestarter(List<String> negs)
+		{
+			negatives = negs;
+		}
+		
+		public void run() {
+			synchronized (PickNegativesVisualiser.this) { 
+				// to make sure that even if a user clicks on the edge multiple times, 
+				// only one learner terminator will be active.
+				
+				final Collection<List<String>> sPlus = l.getSPlus();
+				final Collection<List<String>> sMinus = l.getSMinus();
+				try
+				{
+					learnerThread.join();
+					sMinus.add(negatives);
+					construct(sPlus, sMinus, this);
+					synchronized (this) {
+						while(!learnerStarted)
+							wait();// here we wait for the learner thread to start - if we do not wait for this, 
+							// multiple thread terminators might try to start learner at the same time - I'm not 
+							// sure what join does on a thread which was created and started with start() 
+							// but which did not yet start running.
+					}
+				}
+				catch(InterruptedException ex)
+				{// cannot stop a worker thread
+					ex.printStackTrace();
+				}				
+			}
+		}
+
+		public synchronized void threadStarted() {
+			learnerStarted = true;
+			notify();
+		}
+		
+	}
+	
 	public void mouseReleased(MouseEvent e) {
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
 		else {
-				final Set<List<String>> sPlus = l.getSPlus();
-				final Set<List<String>> sMinus = l.getSMinus();
-				l.terminateLearner();
-				new Thread(new Runnable() {// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
-					// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
-					public void run()
-					{
-						try
-						{
-							learnerThread.join();
-							sMinus.add(pickNegativeStrings((Edge)edges.toArray()[0]));
-							construct(sPlus, sMinus);
-						}
-						catch(InterruptedException ex)
-						{// cannot stop a worker thread
-							ex.printStackTrace();
-						}
-					}
-				},"learner restarter").start();
+			final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
+			l.terminateLearner();
+			// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
+			// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
+			new Thread(new LearnerRestarter(negatives),"learner restarter").start();
 		}
 		
 		

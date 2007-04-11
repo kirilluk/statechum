@@ -4,7 +4,11 @@ import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
+import java.beans.XMLDecoder;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.*;
 
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
@@ -31,10 +35,10 @@ public class RPNITester {
     	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
 		
 		RandomPathGenerator rpg = new RandomPathGenerator(dg);
-		Set<List<String>> fullSet = rpg.getAllPaths();
+		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(dg);
 		
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(null) // CHOOSE non-Opt for original version
+		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null) // CHOOSE non-Opt for original version
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
@@ -42,23 +46,56 @@ public class RPNITester {
 			}
 		};
 		
-		Set<List<String>> sampleSet = AccuracyAndQuestionsExperiment.randomHalf(fullSet);
+		Collection<List<String>> sampleSet = AccuracyAndQuestionsExperiment.randomHalf(fullSet);
 		Vector<List<String>> samples = new Vector<List<String>>();
 		samples.addAll(sampleSet);
-		Set<List<String>> tests = fullSet;
+		Collection<List<String>> tests = fullSet;
 		tests.removeAll(samples);
 		Set<List<String>> currentSamples = new HashSet<List<String>>();
 		currentSamples = AccuracyAndQuestionsExperiment.addPercentageFromSamples(currentSamples, samples, 10);
-		Set<List<String>> sPlus = AccuracyAndQuestionsExperiment.getPositiveStrings(dg,currentSamples);
-		Set<List<String>> sMinus = currentSamples;
+		Collection<List<String>> sPlus = AccuracyAndQuestionsExperiment.getPositiveStrings(dg,currentSamples);
+		Collection<List<String>> sMinus = currentSamples;
 		sMinus.removeAll(sPlus);
 		sMinus = AccuracyAndQuestionsExperiment.trimToNegatives(dg, sMinus);
 		l.setQuestionCounter(0);
-		
-		for(int i=0;i< 1;++i)
+/*
+		for(int i=0;i< 20;++i)
+		{
+			dg.copy();
+			computeStateScores.copy(dg);
+		}
+*/		
+		/*
+		DirectedSparseGraph g= l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+		RPNIBlueFringeLearner.numberVertices(g);
+		Vertex init = RPNIBlueFringeLearner.findVertex("property", "init",g);
+		init.setUserDatum("colour", "red", UserData.SHARED);
+		System.out.println("computing pairs");
+		for(int i=0;i< 5;++i)
+		{
+			System.out.println("computing pairs, iteration "+i);
+			l.chooseStatePairs(g, sPlus, sMinus);
+			l.scoreComputer.chooseStatePairs();
+		}
+		*/
+/*
+ 		StatePair pair=(StatePair)l.chooseStatePairs(g, sPlus, sMinus).peek();
+		DirectedSparseGraph temp = l.mergeAndDeterminize(g, pair);
+		for(int i=0;i< 5;++i)
+		{
+			System.out.println("generating questions, iteration "+i);
+			l.generateQuestions(g, temp, pair);
+			l.scoreComputer.computeQS(pair, temp);
+		}
+*/		
+		/*
+		for(int i=0;i< 5;++i)
 		{
 			System.out.println("iteration "+i+" building PTA");
-			DirectedSparseGraph g= l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+			//DirectedSparseGraph g= 
+			l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+			l.scoreComputer.augmentPTA(l.scoreComputer.augmentPTA(RPNIBlueFringeLearner.initialise(), sPlus, true), sMinus, false);
+			
 			RPNIBlueFringeLearner.numberVertices(g);
 			Vertex init = RPNIBlueFringeLearner.findVertex("property", "init",g);
 			init.setUserDatum("colour", "red", UserData.SHARED);
@@ -69,13 +106,37 @@ public class RPNITester {
 			System.out.println("generating questions");
 			l.generateQuestions(g, temp, pair);
 		}
-		/*
-		try{
-			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
-			//updateFrame(g,learningOutcome);
-			//System.out.println(", "+computeAccuracy(learningOutcome, dg,tests));
+			*/
+
+		try {
+			XMLDecoder decoder = new XMLDecoder(new BufferedInputStream(new FileInputStream("strings_4k.xml")));
+			sPlus = (Collection<List<String>>)decoder.readObject();
+			sMinus = (Collection<List<String>>)decoder.readObject();
+			decoder.close();
+			
+			DirectedSparseGraph model = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+			l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+
+			System.out.println("computing pairs");
+			StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
+			System.out.println("merging");
+			DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
+			System.out.println("generating questions");
+			l.generateQuestions(model, temp, pair);
+			
+
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();return;
 		}
-		catch(InterruptedException e){return;};
-		*/
+		/*
+		 
+		try
+		{
+			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+		}
+		catch (InterruptedException e2) {
+			e2.printStackTrace();
+		}
+	*/
 	}
 }

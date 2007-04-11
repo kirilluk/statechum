@@ -23,16 +23,16 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
-	protected Set<List<String>> sPlus, sMinus;
+	protected Collection<List<String>> sPlus, sMinus;
 	protected int generalisationThreshold, pairsMergedPerHypothesis, certaintyThreshold=100000;
 	protected int questionCounter = 0;
 	
 	
-	public Set<List<String>> getSMinus() {
+	public Collection<List<String>> getSMinus() {
 		return sMinus;
 	}
 
-	public Set<List<String>> getSPlus() {
+	public Collection<List<String>> getSPlus() {
 		return sPlus;
 	}
 	
@@ -121,17 +121,18 @@ public class RPNIBlueFringeLearner extends Observable {
 		return temp;
 	}
 	
-	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 		model = augmentPTA(model, sMinus, false);
 		model = augmentPTA(model, sPlus, true);
+		numberVertices(model);
 		return model;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus)throws InterruptedException{
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus)throws InterruptedException{
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
-		numberVertices(model);
+		
 		Vertex init = findVertex("property", "init",model);
 		init.setUserDatum("colour", "red", UserData.SHARED);
 		setChanged();
@@ -178,7 +179,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return model;
 	}
 	
-	protected boolean compatible(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	protected boolean compatible(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 		boolean returnValue = true;
 		for(List<String> string:sMinus)
 		{
@@ -676,7 +677,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 
-	protected Stack chooseStatePairs(DirectedSparseGraph g, Set<List<String>> sPlus, Set<List<String>> sMinus){
+	protected Stack chooseStatePairs(DirectedSparseGraph g, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores

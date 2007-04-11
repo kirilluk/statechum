@@ -19,14 +19,13 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 	
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Set<List<String>> sPlus, Set<List<String>> sMinus)throws InterruptedException{
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus)throws InterruptedException{
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
-		model = createAugmentedPTA(model, sPlus, sMinus);
-		numberVertices(model);
-		Vertex init = findVertex("property", "init",model);
-		init.setUserDatum("colour", "red", UserData.SHARED);
+		model = createAugmentedPTA(model, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+		findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
 		setChanged();
+
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
@@ -38,8 +37,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			doneEdges = new HashSet();
 			if(computeScore(model, pair)<this.certaintyThreshold){
 				questions = generateQuestions(model, temp, pair);
-				questions = trimSet(questions);
+				// questions = trimSet(questions); // KIRR: unnecessary by construction of questions
 			}
+			
+			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
+			
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
@@ -57,18 +59,22 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
 					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
-							return learnMachine(initialise(), sPlus, sMinus);
+					{
+							restartLearning = true;break;
+					}
 				}
 				else if(answer >= 0){
 					assert answer < question.size();
-					sMinus.add(question.subList(0, answer+1));
+					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));sMinus.add(subAnswer);
+					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
+
 					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 					if((answer==question.size()-1)&&tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
 						continue;
 					}
 					else{
 						assert accepted.equals("true");
-						return learnMachine(initialise(), sPlus, sMinus);
+						restartLearning = true;break;
 					}
 				}
 				else if (answer == USER_ACCEPTED-1){
@@ -80,7 +86,18 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 				}
 				
 			}
-			model = temp;
+			
+			
+			if (restartLearning)
+			{// restart learning
+				model = createAugmentedPTA(initialise(), sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+				setChanged();				
+			}
+			else
+				// keep going with the existing model
+				model = temp;
+			
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
 		updateGraph(model);

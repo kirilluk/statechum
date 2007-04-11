@@ -14,10 +14,10 @@ import statechum.xmachine.model.testset.*;
 public class RandomPathGenerator {
 	
 	protected DirectedSparseGraph g;
-	protected Set<List<String>> sPlus;
+	protected Collection<List<String>> sPlus;
 	
 	public RandomPathGenerator(DirectedSparseGraph baseGraph) {
-		sPlus = new HashSet<List<String>>();
+		sPlus = new LinkedList<List<String>>();
 		g = baseGraph;
 		DijkstraDistance dd = new DijkstraDistance(baseGraph);
 		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g)).values();
@@ -43,7 +43,7 @@ public class RandomPathGenerator {
 		Set<String> doneStrings = new HashSet<String>();
 		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g);
 		while(counter<number){
-			List<String> path = new ArrayList<String>();
+			List<String> path = new LinkedList<String>();
 			String s = "";
 			Vertex current = init;
 			for(int i=0;i<maxLength;i++){
@@ -69,24 +69,25 @@ public class RandomPathGenerator {
 		labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 		return pickRandom(labels).toString();
 	}
+
+	public static final Random pathRandomNumberGenerator = new Random(0); 
 	
 	private Object pickRandom(Collection c){
 		Object[] array = c.toArray();
-		Random r = new Random();
 		if(array.length==1)
 			return array[0];
 		else{
-			int random = r.nextInt(array.length);
+			int random = pathRandomNumberGenerator.nextInt(array.length);
 			return array[random];
 		}
 	}
 
-	public Set<List<String>> getSPlus() {
+	public Collection<List<String>> getSPlus() {
 		return sPlus;
 	}
 	
-	public Set<List<String>> getAllPaths(){
-		Set<List<String>> allPaths = new HashSet<List<String>>();
+	public Collection<List<String>> getAllPaths(){
+		Collection<List<String>> allPaths = new LinkedList<List<String>>();
 		allPaths.addAll(sPlus);
 		return allPaths;
 	}

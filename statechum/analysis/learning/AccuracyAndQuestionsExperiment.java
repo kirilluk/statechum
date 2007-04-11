@@ -32,8 +32,8 @@ public class AccuracyAndQuestionsExperiment {
 		WMethod tester = new WMethod(g,0);
 		Set<List<String>> fullTestSet = (Set<List<String>>)tester.getFullTestSet();
 		fullTestSet.addAll(tester.getTransitionCover());
-		Set<List<String>> tests = randomHalf(fullTestSet);
-		Set<List<String>> fullSet = rpg.getAllPaths();
+		Collection<List<String>> tests = randomHalf(fullTestSet);
+		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(g);
 		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(v)
 		{
@@ -43,7 +43,7 @@ public class AccuracyAndQuestionsExperiment {
 			}
 		};
 		//l.setCertaintyThreshold(2);
-		Set<List<String>> sampleSet = randomHalf(fullSet);
+		Collection<List<String>> sampleSet = randomHalf(fullSet);
 		Vector<List<String>> samples = new Vector<List<String>>();
 		samples.addAll(sampleSet);
 		tests.removeAll(sampleSet);
@@ -96,7 +96,7 @@ public class AccuracyAndQuestionsExperiment {
 		}
 	}
 	
-	private double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Set<List<String>> tests){
+	private double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
@@ -136,7 +136,7 @@ public class AccuracyAndQuestionsExperiment {
 		return current;
 	}
 	
-	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Set<List<String>> sMinus ){
+	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Collection<List<String>> sMinus ){
 		Set<List<String>> returnSet = new HashSet<List<String>>();
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
 		while(sMinusIt.hasNext()){
@@ -160,17 +160,18 @@ public class AccuracyAndQuestionsExperiment {
 		}
 		return positiveStrings;
 	}
-	
-	public static Set<List<String>> randomHalf(Set<List<String>> v){
+
+	public static final Random halfRandomNumberGenerator = new Random(1); 
+
+	public static Collection<List<String>> randomHalf(Collection<List<String>> v){
 		Object[]samples = v.toArray();
-		HashSet<List<String>> returnSet = new HashSet<List<String>>();
-		Random generator = new Random();
+		List<List<String>> returnSet = new LinkedList<List<String>>();
 		Set<Integer> done = new HashSet<Integer>();
 		for(int i=0;i<v.size()/2;i++){
 			int randomIndex = 0;
 			boolean newInteger = false;
 			while(!newInteger){
-				randomIndex = generator.nextInt(v.size());
+				randomIndex = halfRandomNumberGenerator.nextInt(v.size());
 				Integer current = new Integer(randomIndex);
 				if(!done.contains(current)){
 					done.add(current);

@@ -39,6 +39,8 @@ import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.TestFSMAlgo.buildList;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.cross;
+import static statechum.xmachine.model.testset.WMethod.crossWithSet;
+import static statechum.xmachine.model.testset.WMethod.crossWithSet_One;
 import static statechum.xmachine.model.testset.PrefixFreeCollection.isPrefix;
 
 /**
@@ -211,6 +213,94 @@ public class TestWMethod {
 		Assert.assertTrue(actual.isEmpty());		
 	}
 	
+	/**
+	 * Test method for {@link statechum.xmachine.model.testset.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 */
+	@Test
+	public final void testCrossWithSet1() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{"p","q"});
+		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[]{"a","b","p"},
+				new String[]{"z","x","p"},
+				new String[]{"a","b","q"},
+				new String[]{"z","x","q"}});
+		Assert.assertTrue("expected: "+expected+" actual: "+actualA,expected.equals(actualA));
+		Assert.assertTrue("expected: "+expected+" actual: "+actualB,expected.equals(actualB));
+	}
+
+	/**
+	 * Test method for {@link statechum.xmachine.model.testset.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 */
+	@Test
+	public final void testCrossWithSet2() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{});
+		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		Assert.assertEquals(0, actualA.size());
+		Assert.assertEquals(0, actualB.size());
+	}
+
+	/**
+	 * Test method for {@link statechum.xmachine.model.testset.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 */
+	@Test
+	public final void testCrossWithSet3() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{"p","q"});
+		actualA.addAll(crossWithSet(buildList(new String[][] {}),with));
+		actualB.addAll(crossWithSet(buildList(new String[][] {}),with));
+		Assert.assertEquals(0, actualA.size());
+		Assert.assertEquals(0, actualB.size());
+	}
+
+	@Test
+	public final void testCrossWithSet4() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{"p"});
+		LinkedList<List<String>> data = new LinkedList<List<String>>();
+		LinkedList<String> seq = new LinkedList<String>();
+		seq.clear();seq.addAll(Arrays.asList(new String[]{"a","b"}));data.add((List<String>)seq.clone());
+		seq.clear();seq.addAll(Arrays.asList(new String[]{"z","x"}));data.add((List<String>)seq.clone());// cannot use buildList here because it returns a collection of immutable sequences
+		
+		actualA.addAll(crossWithSet((LinkedList<List<String>>)data.clone(),with));
+		actualB.addAll(crossWithSet_One((LinkedList<List<String>>)data.clone(),with));
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[]{"a","b","p"},
+				new String[]{"z","x","p"}});
+		Assert.assertTrue("expected: "+expected+" actual: "+actualA,expected.equals(actualA));
+		Assert.assertTrue("expected: "+expected+" actual: "+actualB,expected.equals(actualB));
+	}
+
+	/**
+	 * Test method for {@link statechum.xmachine.model.testset.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 */
+	@Test
+	public final void testCrossWithSet5() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{});
+		actualA.addAll(crossWithSet(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		actualB.addAll(crossWithSet_One(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}),with));
+		Assert.assertEquals(0, actualA.size());
+		Assert.assertEquals(0, actualB.size());
+	}
+
+	/**
+	 * Test method for {@link statechum.xmachine.model.testset.WMethod#crossWithSet(java.util.Set, java.util.Set)}.
+	 */
+	@Test
+	public final void testCrossWithSet6() {
+		Set<List<String>> actualA = new HashSet<List<String>>(), actualB = new HashSet<List<String>>();
+		List<String> with = Arrays.asList(new String[]{"p"});
+		actualA.addAll(crossWithSet(buildList(new String[][] {}),with));
+		actualB.addAll(crossWithSet(buildList(new String[][] {}),with));
+		Assert.assertEquals(0, actualA.size());
+		Assert.assertEquals(0, actualB.size());
+	}
+
 	/**
 	 * Test method for {@link statechum.xmachine.model.testset.WMethod#getStimuli}.
 	 */

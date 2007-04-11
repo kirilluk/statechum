@@ -114,16 +114,20 @@ public class RPNITester {
 			sMinus = (Collection<List<String>>)decoder.readObject();
 			decoder.close();
 			
-			DirectedSparseGraph model = l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
-			l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
-
-			System.out.println("computing pairs");
-			StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
-			System.out.println("merging");
-			DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
-			System.out.println("generating questions");
-			l.generateQuestions(model, temp, pair);
-			
+			for(int i=0;i< 2;++i)
+			{
+				DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
+				//g.getEdgeConstraints().clear();
+				DirectedSparseGraph model = l.createAugmentedPTA(g, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+	
+				System.out.println("computing pairs");
+				StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
+				System.out.println("merging");
+				DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
+				System.out.println("generating questions");
+				l.generateQuestions(model, temp, pair);
+			}			
 
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();return;

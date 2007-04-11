@@ -45,6 +45,8 @@ public class computeStateScores {
 	
 	private final Map<Vertex,Map<String,Vertex>> transitionMatrix = new LinkedHashMap<Vertex,Map<String,Vertex>>();
 			
+	public static final int pairArraySize = 2000;
+	
 	/** Initialises the class used to compute scores between states.
 	 * 
 	 * @param g the graph it will be used on 
@@ -56,7 +58,7 @@ public class computeStateScores {
 		init = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, graph);
 		
 		Set<Vertex> graphVertices = graph.getVertices();
-		pairsAndScores = new ArrayList<computeStateScores.PairScore>(graphVertices.size()*graphVertices.size());
+		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		for(Vertex v:graphVertices)
 		{
 			assert !sinkVertexName.equals(v);
@@ -625,7 +627,6 @@ public class computeStateScores {
 	{
 		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,pta);
 		
-		Iterator<List<String>> stringsIt = strings.iterator();
 		for(List<String> sequence:strings)
 		{
 			Vertex currentState = init, prevState = null;

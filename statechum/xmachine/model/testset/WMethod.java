@@ -7,6 +7,7 @@ import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 
+import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -280,16 +281,8 @@ public class WMethod {
 	{
 		LinkedHashSet<String> alphabet = new LinkedHashSet<String>();
 
-		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		while(vertexIt.hasNext())
-		{
-			Vertex v = vertexIt.next();
-			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-			while(outEdgeIt.hasNext()){
-				DirectedSparseEdge outEdge = outEdgeIt.next();
-				alphabet.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
-			}
-		}
+		for(Edge e:(Set<Edge>)g.getEdges())
+				alphabet.addAll( (Set<String>)e.getUserDatum(JUConstants.LABEL) );
 		return alphabet;
 	}
 

@@ -89,8 +89,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		computeStateScores.augmentPTA(model, sPlus, true);
 		computeStateScores.augmentPTA(model, sMinus, false);
 
-		System.out.println("vertices: "+model.numVertices()+" edges: "+model.numEdges());
 		/*
+		System.out.println("vertices: "+model.numVertices()+" edges: "+model.numEdges());
 		if (model.getEdges().size() > 4000)
 		{
 			try

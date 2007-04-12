@@ -534,7 +534,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
 		computeStateScores s = new computeStateScores(g,"SINK");
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
-		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
+		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair),
+			tempB = computeStateScores.mergeAndDeterminize(g, pair);
+		FSMStructure tempG = WMethod.getGraphData(temp), tempBG = WMethod.getGraphData(tempB);
+		Assert.assertEquals(false, WMethod.checkUnreachableStates(tempG));Assert.assertEquals(false, WMethod.checkUnreachableStates(tempBG));
+		Assert.assertEquals(true, TestFSMAlgo.checkMBoolean(tempG, tempBG, tempG.init, tempBG.init));
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pair),
 			newScoreA = s.computeStateScore(pair),
@@ -853,11 +857,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void findMergablePair4()
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergablePair4");
-		Vertex 
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g),
-			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
-		StatePair expected = new StatePair(d,b),
-		actualA = RPNIBlueFringeLearner.findMergablePair(g);
+		StatePair actualA = RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertNull(actualA);
 	}
 
@@ -878,93 +878,103 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testMerge1b()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nU-b->E\nA-d->D\nA-n->U", "testMerge");
-		Vertex 
-			red = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			blue = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "U", g);
-		StatePair pair = new StatePair(blue,red);
-		DirectedSparseGraph g2 = computeStateScores.mergeAndDeterminize(g, pair);//computeStateScores.mergeAndDeterminize(g, pair);
-		setDebugMode(true);updateFrame(g, g2);
-		FSMStructure 
-			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
-			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
-			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-d->D\nA-n->A", "expected"));
-		Assert.assertTrue(expectedResult.equals(mergeResultA));
-		Assert.assertTrue(expectedResult.equals(mergeResultB));
+		checkCorrectnessOfMerging("S-p->A-a->S\nA-b->S\nA-c->D\nU-b->E\nA-d->D\nA-n->U",
+				"S-p->A-a->S\nA-b->S\nA-c->D\nA-d->D\nA-n->A",
+				"U","A",
+				true);
 	}
 	
 	@Test
 	public final void testMerge2()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge");
-		Vertex 
-			s = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", g),
-			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
-		StatePair pair = new StatePair(d,s);
-		FSMStructure 
-			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
-			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
-			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U", "expected"));
-		Assert.assertTrue(expectedResult.equals(mergeResultA));
-		Assert.assertTrue(expectedResult.equals(mergeResultB));
+		checkCorrectnessOfMerging("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U",
+				"S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U",
+				"D","S",
+				true);
 	}
 
 	@Test
 	public final void testMerge3()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U", "testMerge");
-		Vertex 
-			s = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", g),
-			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
-		StatePair pair = new StatePair(d,s);
-
-		FSMStructure 
-			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)),
-			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
-			expectedResult = WMethod.getGraphData(TestFSMAlgo.buildGraph("P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U", "expected"));
-		Assert.assertTrue(expectedResult.equals(mergeResultA));
-		Assert.assertTrue(expectedResult.equals(mergeResultB));
+		checkCorrectnessOfMerging(
+				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U",
+				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U",
+				"D","S",
+				true);
 	}
 
+	/** Tests merging of states <em>stateRed</em> and <em>stateBlue</em> of <em>machineToMerge</em>.
+	 * The outcome of merging has to be equivalent to <em>expectedFSM</em>. 
+	 * 
+	 * @param machineToMerge machine to merge
+	 * @param expectedFSM the expected result
+	 * @param stateBlue the name of the second state to merge.
+	 * @param stateRed the name of the first state to merge
+	 * @param checkWithEquals whether the equivalence between the result of merging is to be assessed by 
+	 * running a language equivalence query or by doing a .equals on FSMStructures corresponding to them. This will usually
+	 * be false. 
+	 */
+	public void checkCorrectnessOfMerging(String machineToMerge, String expectedFSM, String stateBlue, String stateRed, boolean checkWithEquals)
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machineToMerge, "Machine to merge");
+		Vertex 
+			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateRed, g),
+			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateBlue, g);
+		
+		Assert.assertNotNull("state "+stateRed+" was not found", a);
+		Assert.assertNotNull("state "+stateBlue+" was not found", b);
+		
+		StatePair pair = new StatePair(b,a);
+		
+		FSMStructure 
+			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)), 
+			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
+			expectedMachine = WMethod.getGraphData(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"));
+
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultA));
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultB));
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(expectedMachine));
+		
+		if (checkWithEquals)
+		{
+			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultA));
+			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultB));
+		}
+		else
+		{
+			Assert.assertTrue("incorrect merging",TestFSMAlgo.checkMBoolean(mergeResultA, expectedMachine, mergeResultA.init, expectedMachine.init));
+			Assert.assertTrue("incorrect merging",TestFSMAlgo.checkMBoolean(mergeResultB, expectedMachine, mergeResultB.init, expectedMachine.init));
+		}
+	}
+	
 	@Test
 	public final void testMerge4()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->S1-b->S1-a->S2\nS1-c->A-a->S1\nA-f->S2\nA-b->A1-b->A2\nA-d->B-c->B7\nB-b->B1-b->B2-d->B3\nB-a->B4-a->B5-e->B6", "testMerge");
-		String expectedFSM = "S-p->S1-b->S1-a->S2\nS1-c->A-a->S1\nA-f->S2\nA-b->A1-b->A2\nA-d->A-c->B7\nS2-e->S3\nA2-d->A3";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+		checkCorrectnessOfMerging(
+				"S-p->S1-b->S1-a->S2\nS1-c->A-a->S1\nA-f->S2\nA-b->A1-b->A2\nA-d->B-c->B7\nB-b->B1-b->B2-d->B3\nB-a->B4-a->B5-e->B6",
+				"S-p->S1-b->S1-a->S2\nS1-c->A-a->S1\nA-f->S2\nA-b->A1-b->A2\nA-d->A-c->B7\nS2-e->S3\nA2-d->A3",
+				"B","A",
+				false);
 	}
 
 	@Test
 	public final void testMerge5()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B-a->B1-a->B2-d->B3\nA-b->A1-b->A2", "testMerge");
-		String expectedFSM = "S-p->A-a->A-d->A2\nA-b->A1-b->A2";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+		checkCorrectnessOfMerging(
+				"S-p->A-a->B-a->B1-a->B2-d->B3\nA-b->A1-b->A2",
+				"S-p->A-a->A-d->A2\nA-b->A1-b->A2",
+				"B","A",
+				false);
 	}
 
 	@Test
 	public final void testMerge6()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->A3-b->B-a->B1-c->B2\nA-b->A1-b->A2", "testMerge");
-		String expectedFSM = "S-p->A-a->A3-c->A4\nA3-b->A\nA-b->A1-b->A2";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+		checkCorrectnessOfMerging(
+				"S-p->A-a->A3-b->B-a->B1-c->B2\nA-b->A1-b->A2",
+				"S-p->A-a->A3-c->A4\nA3-b->A\nA-b->A1-b->A2",
+				"B","A",
+				false);
 	}
 
 	public static final String 
@@ -1048,47 +1058,35 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testMerge7()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph1,"testMerge7");
-		String expectedFSM = 
+		checkCorrectnessOfMerging(largeGraph1,
 			"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA-c->A2-c->A3\n"+"A5<-a-A3-b->A4-f->AA4\n"+
-			"A-d->A\nA5-b->AA6-d->AA7\nAA6-c->AA8";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+			"A-d->A\nA5-b->AA6-d->AA7\nAA6-c->AA8",
+			
+			"B","A",
+			false);
 	}
 
 	@Test
 	public final void testMerge8()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph2,"testMerge8");
-		String expectedFSM = 
+		checkCorrectnessOfMerging(largeGraph2,
 			"S-a->A-a->S\n"+
-			"A-d->A-c->A-b->BL4-c->BL5";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+			"A-d->A-c->A-b->BL4-c->BL5",
+			
+			"B","A",
+			false);
 	}
 
 	@Test
 	public final void testMerge9()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph3,"testMerge9");
-		String expectedFSM = 
+		checkCorrectnessOfMerging(largeGraph3,
 			"S-a->A-a->S\n"+
 			"A-d->A-c->A-b->BL4-c->BL5\n"+
-			"A-f->B1";
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
-		StatePair pair = new StatePair(b,a);// A is red
-		TestFSMAlgo.checkM(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair), expectedFSM);
-		TestFSMAlgo.checkM(computeStateScores.mergeAndDeterminize(g, pair), expectedFSM);
+			"A-f->B1",
+			
+			"B","A",
+			false);
 	}
 
 	@Test(expected = IllegalArgumentException.class)

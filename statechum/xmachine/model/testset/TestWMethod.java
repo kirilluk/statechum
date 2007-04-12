@@ -726,7 +726,16 @@ public class TestWMethod {
 		FSMStructure fsm = TestFSMAlgo.convertTableToFSMStructure(table, new int[]{0,1}, -1);
 		Assert.assertEquals(true, WMethod.checkEquivalentStates(fsm));
 	}
-		
+	
+	private void checkTestGenerationResult(WMethod testGenerator, String [][] expected)
+	{
+		Set<List<String>> expectedSet = buildSet(expected),
+			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
+		actualA.addAll(testGenerator.computeOldTestSet());actualB.addAll(testGenerator.computeNewTestSet());
+		assertTrue("old test generator failure, received "+actualA,expectedSet.equals(actualA));
+		assertTrue("new test generator failure, received "+actualB,expectedSet.equals(actualB));
+	}
+	
 	@Test
 	public final void testTestGeneration1()
 	{
@@ -737,62 +746,66 @@ public class TestWMethod {
 		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 		g.addVertex(init);
 		WMethod wm = new WMethod(g,0);
-		Set<List<String>> expected = buildSet(new String[][] {
+		checkTestGenerationResult(wm, new String[][] {
 				new String[] {}
-			}),
-			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
-		assertTrue(actual.equals(expected));
+			});
 	}
 	
 	@Test
 	public final void testTestGeneration2()
 	{
 		WMethod wm = new WMethod(buildGraph("A-a->A", "testTestGeneration2"),0);
-		Set<List<String>> expected = buildSet(new String[][] {
+		checkTestGenerationResult(wm, new String[][] {
 				new String[] {"a"}
-			}),
-			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
-		assertTrue(actual.equals(expected));
+			});
 	}
 	
 	@Test
 	public final void testTestGeneration3()
 	{
 		WMethod wm = new WMethod(buildGraph("A-a->A", "testTestGeneration3"),1);
-		Set<List<String>> expected = buildSet(new String[][] {
+		checkTestGenerationResult(wm, new String[][] {
 				new String[] {"a","a"}
-			}),
-			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
-		assertTrue(actual.equals(expected));
+			});
 	}
 	
 	@Test
 	public final void testTestGeneration4()
 	{
 		WMethod wm = new WMethod(buildGraph("A-a->A-b->B", "testTestGeneration4"),0);
-		Set<List<String>> expected = buildSet(new String[][] {
+		checkTestGenerationResult(wm, new String[][] {
 				new String[] {"a","a"},
 				new String[] {"b","a"},
 				new String[] {"b","b"}
-			}),
-		actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
-		assertTrue(actual.equals(expected));
+			});
 	}
 	
 	@Test
 	public final void testTestGeneration5()
 	{
 		WMethod wm = new WMethod(buildGraph("A-a->A-b->B", "testTestGeneration5"),1);
-		Set<List<String>> expected = buildSet(new String[][] {
+		checkTestGenerationResult(wm, new String[][] {
 				new String[] {"a","a","a"},
 				new String[] {"a","b","a"},
 				new String[] {"b","a"},
 				new String[] {"b","b"}
-			}),
-			actual = new HashSet<List<String>>();actual.addAll(wm.getFullTestSet());
-		assertTrue(actual.equals(expected));
+			});
 	}
 
+	@Test
+	public final void testTestGeneration6()
+	{
+		WMethod wm = new WMethod(buildGraph(
+				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
+				"A-d->A\nA5-b->AA6", "testTestGeneration6"),2);
+		Set<List<String>> 
+			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
+			actualA.addAll(wm.computeOldTestSet());actualB.addAll(wm.computeNewTestSet());
+			assertTrue("the two test generators return different values, old returns "+
+					actualA+" and the new one - "+actualB,
+			actualA.equals(actualB));
+	}
+	
 	@Test
 	public final void testCheckUnreachable1()
 	{

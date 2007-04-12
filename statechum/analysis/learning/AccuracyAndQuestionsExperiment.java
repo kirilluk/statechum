@@ -30,8 +30,9 @@ public class AccuracyAndQuestionsExperiment {
 		//updateFrame(g,g);
 		RandomPathGenerator rpg = new RandomPathGenerator(g);
 		WMethod tester = new WMethod(g,0);
-		Set<List<String>> fullTestSet = (Set<List<String>>)tester.getFullTestSet();
-		fullTestSet.addAll(tester.getTransitionCover());
+		Collection<List<String>> fullTestSet = (Collection<List<String>>)tester.getFullTestSet();
+		System.out.println("test set size: "+fullTestSet.size());
+		//fullTestSet.addAll(tester.getTransitionCover());
 		Collection<List<String>> tests = randomHalf(fullTestSet);
 		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(g);
@@ -185,8 +186,10 @@ public class AccuracyAndQuestionsExperiment {
 	
 	public static void main(String[] args){
 		AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
-		File graphDir = new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-2");
+		File graphDir = new File(
+				"D:\\experiment\\Neil-Data2\\50-6");
+				/*System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
+				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");*/
         String[] graphFileList = graphDir.list();
         for(int i=0;i<graphFileList.length;i++){
         	if(!graphFileList[i].startsWith("N"))

@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Vertex;
@@ -19,7 +20,7 @@ public class WMethod {
 	private DirectedSparseGraph machineGraph;
 	private FSMStructure fsm;
 	private int numberOfExtraStates;
-	private PrefixFreeCollection fullTestSet;
+	private Collection<List<String>> fullTestSet;
 	private List<List<String>> transitionCover, characterisationSet;
 	
 	public WMethod(DirectedSparseGraph g, int numberOfExtraStates){
@@ -36,9 +37,10 @@ public class WMethod {
 	
 	public Collection<List<String>> getFullTestSet(){
 		if (fullTestSet == null)
-			computeTestSet();
-		return fullTestSet.getData();
+			fullTestSet = computeNewTestSet();
+		return fullTestSet;
 	}
+	
 	/*
 	public Set<List<String>> getFullTestSetStrings(){
 		Iterator<Set<List<String>>> testSetIt = fullTestSet.iterator();
@@ -194,7 +196,7 @@ public class WMethod {
 			appendSequence(fsm, sequences, path);
 	}
 	
-	private void computeTestSet()
+	Collection<List<String>> computeOldTestSet()
 	{
 		if (fsm == null)
 			fsm = getGraphData(machineGraph);
@@ -203,16 +205,41 @@ public class WMethod {
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
-		fullTestSet = new SlowPrefixFreeCollection();
+		SlowPrefixFreeCollection testsequenceCollection = new SlowPrefixFreeCollection();
 		
-		appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
+		appendAllSequences(fsm, testsequenceCollection, cross(partialSet,characterisationSet));
 		for(int i=0;i<=this.numberOfExtraStates;i++)
 		{
 			partialSet=crossWithSet(partialSet,alphabet);
-			appendAllSequences(fsm, fullTestSet, cross(partialSet,characterisationSet));
+			appendAllSequences(fsm, testsequenceCollection, cross(partialSet,characterisationSet));
 		}
+		
+		return testsequenceCollection.getData();
 	}
-	
+
+	Collection<List<String>> computeNewTestSet()
+	{
+		if (fsm == null)
+			fsm = getGraphData(machineGraph);
+		Set<String> alphabet =  computeAlphabet(fsm);
+		List<List<String>> stateCover = computeStateCover(fsm);
+		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
+
+		PTATestSequenceEngine engine = new PTATestSequenceEngine(fsm);
+		sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
+		partialPTA = partialPTA.cross(stateCover);
+		
+		partialPTA.cross(characterisationSet);
+		for(int i=0;i<=this.numberOfExtraStates;i++)
+		{
+			partialPTA = partialPTA.crossWithSet(alphabet);
+			partialPTA.cross(characterisationSet);
+		}
+		
+		return engine.getData();
+	}
+
 	/** Checks if the supplied FSM has unreachable states.
 	 * 
 	 * @param fsm the machine to check

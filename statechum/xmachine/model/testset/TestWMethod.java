@@ -797,6 +797,20 @@ public class TestWMethod {
 	{
 		WMethod wm = new WMethod(buildGraph(
 				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
+				"A-d->A\nA5-b->AA6", "testTestGeneration6"),0);
+		Set<List<String>> 
+			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
+			actualA.addAll(wm.computeOldTestSet());actualB.addAll(wm.computeNewTestSet());
+			assertTrue("the two test generators return different values, old returns "+
+					actualA+" and the new one - "+actualB,
+			actualA.equals(actualB));
+	}
+	
+	@Test
+	public final void testTestGeneration7()
+	{
+		WMethod wm = new WMethod(buildGraph(
+				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
 				"A-d->A\nA5-b->AA6", "testTestGeneration6"),2);
 		Set<List<String>> 
 			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();

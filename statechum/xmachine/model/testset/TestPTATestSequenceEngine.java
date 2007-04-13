@@ -45,7 +45,7 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTATestSequenceEngine(WMethod.getGraphData(g));
+		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
 		vertifyPTA(en, new String[][] { 
 				new String[] {}
 			});
@@ -60,7 +60,7 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTATestSequenceEngine(WMethod.getGraphData(g));
+		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
 		vertifyPTA(en, new String[][] {
 				new String[] {}
 		});
@@ -121,7 +121,7 @@ public class TestPTATestSequenceEngine
 	public final void setUp()
 	{
 		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "sample automaton"));
-		en = new PTATestSequenceEngine(fsm);		
+		en = new PTA_FSMStructure(fsm);		
 	}
 	
 	@Test
@@ -377,7 +377,7 @@ public class TestPTATestSequenceEngine
 	public final void test_sequenceSet3_5() // a more complex composition
 	{
 		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "sample automaton"));
-		en = new PTATestSequenceEngine(fsm);		
+		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
 			.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
@@ -397,7 +397,7 @@ public class TestPTATestSequenceEngine
 	public final void test_sequenceSet3_6() // a more complex composition
 	{
 		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
-		en = new PTATestSequenceEngine(fsm);		
+		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b","a"}))

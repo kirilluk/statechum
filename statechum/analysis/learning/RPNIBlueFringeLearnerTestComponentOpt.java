@@ -1,8 +1,11 @@
 package statechum.analysis.learning;
 
 import java.awt.Frame;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
@@ -12,8 +15,12 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 
+import statechum.JUConstants;
+
 import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
 
 public class RPNIBlueFringeLearnerTestComponentOpt extends
 		RPNIBlueFringeLearnerTestComponent {
@@ -21,69 +28,111 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	public RPNIBlueFringeLearnerTestComponentOpt(Frame parentFrame) {
 		super(parentFrame);
 	}
-
-	@Override
-	protected int computeScore(DirectedSparseGraph original, StatePair blueRed)
-	{
-		//return super.computeScore(original, blueRed);
-		return scoreComputer.computeStateScore(blueRed);
-	}
 	
 	protected int runCount = 1000;
 	
-	/* (non-Javadoc)
-	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#chooseStatePairs(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
-	 */
-	@Override
-	protected Stack chooseStatePairs(DirectedSparseGraph g,
-			Collection<List<String>> plus, Collection<List<String>> minus) {
-		
-		Stack result = null;
-		scoreComputer = new computeStateScores(g,"SINK");
-		//return super.chooseStatePairs(g, plus, minus);
-
-		scoreComputer.generalisationThreshold = generalisationThreshold;
-		scoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
-
-		result = scoreComputer.chooseStatePairs();
-		return result;
-	}
-
-	/* (non-Javadoc)
-	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#generateQuestions(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, edu.uci.ics.jung.graph.impl.DirectedSparseGraph, statechum.analysis.learning.StatePair)
-	 */
-	@Override
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model,
-			DirectedSparseGraph temp, StatePair pair) {
-		scoreComputer.generalisationThreshold = generalisationThreshold;
-		scoreComputer.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
-		return scoreComputer.computeQS(pair,temp);
-		
-		//return super.generateQuestions(model, temp, pair);
-	}
-
 	computeStateScores scoreComputer = null;
 
+	private int counterAccepted =0, counterRejected =0, counterRestarted = 0;
+	
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#learnMachine(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
 	 */
 	@Override
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model,
-			Collection<List<String>> plus, Collection<List<String>> minus)
-			throws InterruptedException {
-		scoreComputer = null;// to rebuild the transition diagram each time learnMachine is called (the rebuild is done when chooseStatePairs is called.
-		return super.learnMachine(model, plus, minus);
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus) throws InterruptedException {
+		this.sPlus = plus;
+		this.sMinus = minus;
+		createAugmentedPTA(plus,minus);counterAccepted =0;counterRejected =0;counterRestarted = 0;System.out.print("\n[ PTA: "+scoreComputer.getStatistics()+" ] ");
+		setChanged();
+
+		Stack possibleMerges = scoreComputer.chooseStatePairs();
+		while(!possibleMerges.isEmpty()){
+			StatePair pair = (StatePair)possibleMerges.pop();
+			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
+			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
+			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
+			setChanged();
+			List<List<String>> questions = new LinkedList<List<String>>();
+			if(scoreComputer.computeStateScore(pair)<this.certaintyThreshold){
+				questions = scoreComputer.computeQS(pair, temp);
+				// questions = trimSet(questions); // KIRR: unnecessary by construction of questions
+				//System.out.println("trying to merge "+pair);
+			}
+			
+			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
+			
+			Iterator<List<String>> questionIt = questions.iterator();
+			while(questionIt.hasNext()){
+				List<String> question = questionIt.next();
+				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
+				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
+				this.questionCounter++;
+				if (answer == USER_CANCELLED)
+				{
+					System.out.println("CANCELLED");
+					return null;
+				}
+				
+				Vertex tempVertex = temp.getVertex(question);
+				
+				if(answer == USER_ACCEPTED)
+				{
+					++counterAccepted;
+					sPlus.add(question);
+					//System.out.println(setByAuto+question.toString()+ " <yes>");
+					
+					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+					{
+							restartLearning = true;break;
+					}
+				}
+				else if(answer >= 0){
+					assert answer < question.size();
+					++counterRejected;
+					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));sMinus.add(subAnswer);
+					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
+
+					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+					if((answer==question.size()-1)&&tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+						continue;
+					else{
+						assert accepted.equals("true");
+						restartLearning = true;break;
+					}
+				}
+				else if (answer == USER_ACCEPTED-1){
+					// sPlus = this.parentFrame.addTest(sPlus);
+					if(sPlus == null)
+						return model;
+					//if(!containsSubString(sPlus, question))
+					//	return learnMachine(initialise(), sPlus, sMinus);
+				}
+				
+			}
+			
+			
+			if (restartLearning)
+			{// restart learning
+				createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				setChanged();++counterRestarted;		
+			}
+			else
+				// keep going with the existing model
+				scoreComputer = temp;
+			
+			possibleMerges = scoreComputer.chooseStatePairs();
+		}
+		System.out.print(counterAccepted+" accepts "+counterRejected+" rejects, "+counterRestarted+ " restarst \n[ Result: "+scoreComputer.getStatistics()+" ] ");
+		return scoreComputer.getGraph();
+	}
+		
+	protected computeStateScores createAugmentedPTA(Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
+		scoreComputer = new computeStateScores();
+		scoreComputer.augmentPTA(sPlus, true);
+		scoreComputer.augmentPTA(sMinus, false);
+		return scoreComputer;
 	}
 	
-	protected int checkpointNumber = 0;
-	protected int iterationNumber = 0;
-		
-	@Override
-	protected DirectedSparseGraph mergeAndDeterminize(Graph model, StatePair pair) {
-		return computeStateScores.mergeAndDeterminize(model, pair);
-	}
-
-	@Override
 	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
 		//return super.createAugmentedPTA(model, sPlus, sMinus);
 		computeStateScores.augmentPTA(model, sPlus, true);

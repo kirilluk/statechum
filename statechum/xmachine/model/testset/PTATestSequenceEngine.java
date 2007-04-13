@@ -13,12 +13,10 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
 
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-
 public class PTATestSequenceEngine 
 {
 	/** The machine used to match all paths supplied against */
-	private final FSMStructure fsm;
+	private FSMAbstraction fsm = null;
 	
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
 	private final Map<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>> pta = new HashMap<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>>(); 
@@ -36,7 +34,7 @@ public class PTATestSequenceEngine
 		}
 
 		/** Constructor for accept nodes. */
-		public Node(String state)
+		public Node(Object state)
 		{
 			if (state == null)
 				throw new IllegalArgumentException("state name cannot be null");
@@ -53,7 +51,7 @@ public class PTATestSequenceEngine
 			return ID >= 0;
 		}
 
-		public String getState()
+		public Object getState()
 		{
 			return fsmState;
 		}
@@ -63,7 +61,7 @@ public class PTATestSequenceEngine
 		/** The ID of this node, positive for accept nodes, negative for reject ones. */
 		private final int ID;
 		/** The FSM state this object corresponds. */
-		private final String fsmState;
+		private final Object fsmState;
 
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
@@ -101,13 +99,28 @@ public class PTATestSequenceEngine
 	}
 	
 	/** The initial node of the pta */
-	private final PTATestSequenceEngine.Node init; 
+	private PTATestSequenceEngine.Node init = null; 
 	
-	public PTATestSequenceEngine(FSMStructure machine)
+	public interface FSMAbstraction 
+	{
+		/** the next-state function, returning a map from inputs to next states. */
+		public Object getNextState(Object currentState, String input); 
+		/** returns the initial state */
+		public Object getInitState();
+		/** returns true if the given state is an accept-state. */
+		public boolean isAccept(Object currentState);
+		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
+		public boolean shouldBeReturned(Object elem);
+	}
+	
+	
+	public PTATestSequenceEngine() {}
+	
+	public void init(FSMAbstraction machine)
 	{
 		fsm = machine;
-		if (machine.accept.get(machine.init))
-			init =  new Node(machine.init);
+		if (machine.isAccept(machine.getInitState()))
+			init =  new Node(machine.getInitState());
 		else
 			init = Node.rejectNode;
 		
@@ -176,11 +189,8 @@ public class PTATestSequenceEngine
 			else
 			{// No transition in the pta with the given input, 
 			 // hence we have to extend the pta by adding a new transition
-				String newState = null;
-				Map<String,String> fsmRow = fsm.trans.get(currentNode.getState()); 
-				if (fsmRow != null)
-					newState = fsmRow.get(input);
-				if (newState == null || !fsm.accept.get(newState))
+				Object newState = fsm.getNextState(currentNode.getState(), input); 
+				if (newState == null || !fsm.isAccept(newState))
 				{
 					row.put(input, Node.rejectNode);// next node is the reject one
 					nextCurrentNode = Node.rejectNode;
@@ -208,8 +218,11 @@ public class PTATestSequenceEngine
 			Node currentVertex = currentExplorationBoundary.remove();List<String> currentSequence = currentExplorationSequence.remove();
 			Map<String,Node> row = pta.get(currentVertex);
 			if (row.isEmpty())
+			{
 				// the current node is the last on a path, hence we simply add the current sequence to the result
+				if (fsm.shouldBeReturned(currentVertex.getState())) 
 					result.add(currentSequence);
+			}
 			else
 				for(Entry<String,Node> entry:row.entrySet())
 				{

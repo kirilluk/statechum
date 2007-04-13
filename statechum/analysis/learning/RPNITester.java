@@ -88,7 +88,7 @@ public class RPNITester {
 			l.scoreComputer.computeQS(pair, temp);
 		}
 */		
-		/*
+	/*	
 		for(int i=0;i< 5;++i)
 		{
 			System.out.println("iteration "+i+" building PTA");
@@ -118,15 +118,27 @@ public class RPNITester {
 			{
 				DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
 				//g.getEdgeConstraints().clear();
-				DirectedSparseGraph model = l.createAugmentedPTA(g, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
-				l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+				computeStateScores aa = l.createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				//l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
 	
 				System.out.println("computing pairs");
-				StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
+				//StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
+				Stack stk = aa.chooseStatePairs();
+				StatePair pair = (StatePair) stk.peek();
+				while(!stk.isEmpty())
+				{
+					StatePair p = (StatePair)stk.pop();
+					assert p.getQ().getUserDatum("colour").equals("blue");
+					assert p.getR().getUserDatum("colour").equals("red");					
+				}
 				System.out.println("merging");
-				DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
+				//DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
+				//System.out.println("Pair : "+pair+" compatibility: "+aa.computePairCompatibilityScore(pair));
+				computeStateScores temp = computeStateScores.mergeAndDeterminize(aa, pair);
+				
 				System.out.println("generating questions");
-				l.generateQuestions(model, temp, pair);
+				//l.generateQuestions(model, temp, pair);
+				aa.computeQS(pair, temp);
 			}			
 
 		} catch (FileNotFoundException e1) {

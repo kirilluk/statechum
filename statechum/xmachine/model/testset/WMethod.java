@@ -226,7 +226,7 @@ public class WMethod {
 		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
-		PTATestSequenceEngine engine = new PTATestSequenceEngine(fsm);
+		PTATestSequenceEngine engine = new PTA_FSMStructure(fsm);
 		sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(stateCover);
 		
@@ -366,6 +366,7 @@ public class WMethod {
 		private static final long serialVersionUID = 6988899034488999997L;
 		
 		private final String stateA, stateB;
+		private int NumberOfEquivalentStates;
 		
 		public String getA()
 		{
@@ -377,9 +378,15 @@ public class WMethod {
 			return stateB;
 		}
 		
-		public EquivalentStatesException(String a, String b)
+		public EquivalentStatesException(String a, String b, int Number)
 		{
-			stateA = a;stateB = b;
+			stateA = a;stateB = b;NumberOfEquivalentStates = Number;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "There are "+NumberOfEquivalentStates+" equivalent states, such as "+stateA+ " and "+stateB;
 		}
 	}
 	
@@ -514,6 +521,7 @@ public class WMethod {
 		}
 		else
 		{// report equivalent states
+			LinkedHashSet<String> equivalentStates = new LinkedHashSet<String>();
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
 			{
 				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
@@ -521,10 +529,14 @@ public class WMethod {
 				{
 					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
-						throw new EquivalentStatesException(stateA.getKey(),stateB.getKey());
+					{
+						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
+					}
 				}
 			}
-			assert false: "equivalent states were not found";
+			assert equivalentStates.size() > 0: "equivalent states were not found";
+			Iterator<String> equivIt = equivalentStates.iterator(); 
+			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
 		}
 		return result;
 	}

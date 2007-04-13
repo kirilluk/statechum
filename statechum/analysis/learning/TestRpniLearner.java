@@ -6,8 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.awt.Point;
-import java.io.IOException;
-import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +31,7 @@ import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.PairScore;
 import statechum.xmachine.model.testset.WMethod;
+import sun.reflect.generics.scope.Scope;
 
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
@@ -45,182 +44,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 {
 	public TestRpniLearner() {
 		super(null);
-	}
-
-	@Test
-	public void testAugmentPTA() // only two traces, both accept
-	{
-		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
-		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualB = computeStateScores.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true);
-		RPNIBlueFringeLearner.numberVertices(actualA);
-		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
-		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualB, expectedPTA);
-	}
-
-	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings)
-	{
-		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualB =null;
-		IllegalArgumentException eA = null, eB = null;
-		try
-		{
-			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eA = e;
-		}
-
-		try
-		{
-			actualB = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eB = e;
-		}
-		
-		if (eA != null)
-		{
-			Assert.assertNotNull(eB);
-			throw eA;
-		}
-		else
-			if (eB != null)
-			{
-				Assert.assertNotNull(eA);
-				throw eA;
-			}
-				
-		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
-		Assert.assertEquals(0, actualA.getEdges().size());
-	
-		Assert.assertEquals(1, actualB.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualB.getVertices().iterator().next()) )); 
-		Assert.assertEquals(0, actualB.getEdges().size());
-	}
-	
-	@Test
-	public void testPTAconstruction1a()// an empty accept trace
-	{
-		checkEmptyPTA(
-				new String[][] { new String[]{}},
-				new String[][] { }
-			);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction1b()// an empty reject trace
-	{
-		checkEmptyPTA(
-				new String[][] { },
-				new String[][] { new String[]{} }
-			);
-	}
-
-	@Test
-	public void testPTAconstruction1c()// empty traces
-	{
-		checkEmptyPTA(
-				new String[][] {},
-				new String[][] {}
-			);
-	}
-
-	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA)
-	{
-		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualB =null;
-		IllegalArgumentException eA = null, eB = null;
-		try
-		{
-			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eA = e;
-		}
-
-		try
-		{
-			actualB = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eB = e;
-		}
-		
-		if (eA != null)
-		{
-			Assert.assertNotNull(eB);
-			throw eA;
-		}
-		else
-			if (eB != null)
-			{
-				Assert.assertNotNull(eA);
-				throw eA;
-			}
-
-	 //updateFrame(g,null);
-		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualB, expectedPTA);
-	}
-	
-	@Test
-	public void testPTAconstruction2()// two accept traces and one reject one
-	{
-		checkPTAconstruction(
-			new String[][] { new String[]{"a","b","c"}, new String[]{"a","d","c"}},
-			new String[][] { new String[]{"a","b","c","d"} },
-			"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2"
-			);
-	}
-
-	@Test
-	public void testPTAconstruction3()// two accept traces and two reject ones
-	{
-		checkPTAconstruction(
-				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
-				new String[][] { new String[]{"a","b","c","d"}, new String[]{"a","u"} },
-				"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2\nB-u-#A2");
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction4()// a trace goes through a reject-state
-	{
-		checkPTAconstruction(
-				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
-				new String[][] { new String[]{"a","b","c","d"}, 
-						new String[]{"a","b"} },
-				"junk");
-	}
-
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction5()// a trace goes through a reject-state
-	{
-		checkPTAconstruction(
-				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
-				new String[][] { new String[]{"a","b","c","d"}, 
-						new String[]{"a","b","c"} },
-				"junk");
-	}
-
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction6()// a trace goes through a reject-state
-	{
-		checkPTAconstruction(
-				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
-				new String[][] { new String[]{"a","b","c","d"}, 
-						new String[]{"a","b","c","d","e"} },
-				"junk");
 	}
 
 	protected int checkPath(FSMStructure expected, DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
@@ -336,127 +159,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			}
 		}
 	}
-
-	@Test
-	public void testLoadAnswers1() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		Assert.assertEquals(0,sa.getCount());
-	}
-	
-	@Test
-	public void testLoadAnswers2() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader(""));
-		Assert.assertEquals(0,sa.getCount());
-	}
-	
-	@Test
-	public void testLoadAnswers3() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader(""));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED,sa.getAnswer(Arrays.asList(new String[]{})));
-	}
-
-	@Test
-	public void testLoadAnswers4() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("[test] <yes>"));
-		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-	}
-	
-	@Test
-	public void testLoadAnswers5A() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader(" \t\t    [test] <no> at position 5, junk"));
-		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-	}
-
-	@Test
-	public void testLoadAnswers5B() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("\n\n[test] <no> at position 5, junk\n"));
-		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-	}
-
-	@Test
-	public void testLoadAnswers5C() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
-		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail1() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("junk"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail2() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("[valid string] junk"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail3() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("[valid string] <no>"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail4() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("[valid string] <no> at position "));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail5() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("[valid string] <no> at position 6"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail6() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader("[valid string] <no> at position 7,\njunk"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail7() throws IOException
-	{
-		new StoredAnswers().setAnswers(new StringReader(" junk\n\n[valid string] <no> at position 7,\n"));
-	}
-	
-	
-	@Test
-	public void testLoadAnswers6() throws IOException
-	{
-		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("[test] <no> at position 5, junk\n "
-				+RPNIBlueFringeLearner.QUESTION_AUTO+" [some text, more of it] <yes> whatever\n\n\n"
-				+"[teststr, another, more] <no> at position 0, junk\n"				
-				+RPNIBlueFringeLearner.QUESTION_AUTO+"[teststr, a, more] <no> at position 2, junk\n"				
-				+"[teststr, p, more] <yes> junk\n"				
-		));
-		Assert.assertEquals(5,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
-		Assert.assertEquals(0, sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
-		Assert.assertEquals(2, sa.getAnswer(Arrays.asList(new String[]{"teststr","a", "more"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
-	}
 	
 	/** Checks if the supplied vertex is an accept one or not.
 	 * 
@@ -532,34 +234,144 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void testNewLearnerQuestions(String fsm, int expectedScore)
 	{
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
-		computeStateScores s = new computeStateScores(g,"SINK");
+		computeStateScores 	s = new computeStateScores(g,"SINK");
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
 		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair),
 			tempB = computeStateScores.mergeAndDeterminize(g, pair);
+		
+		//setDebugMode(true);updateFrame(g, temp);
+
+		// Now check that computeStateScores properly does  mergeAndDeterminize 
+		// (on the test data we are dealing with in these tests, there are separate tests for mergeAndDeterminize)
 		FSMStructure tempG = WMethod.getGraphData(temp), tempBG = WMethod.getGraphData(tempB);
 		Assert.assertEquals(false, WMethod.checkUnreachableStates(tempG));Assert.assertEquals(false, WMethod.checkUnreachableStates(tempBG));
 		Assert.assertEquals(true, TestFSMAlgo.checkMBoolean(tempG, tempBG, tempG.init, tempBG.init));
+		
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pair),
 			newScoreA = s.computeStateScore(pair),
 			newScoreB = s.computePairCompatibilityScore(pair);
-		updateFrame(g,temp);
-		Collection<List<String>> questions = s.computeQS(pair,temp);
+		Collection<List<String>> 
+			questionsA = s.computeQS(pair,temp),
+			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
+			questionsB = s.computeQS(pair, computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair));
+				
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		//System.out.println("computed scores, orig: "+origScore+" and the new one is "+newScoreA);
-		Assert.assertEquals(expectedScore, newScoreA);
-		Assert.assertEquals(expectedScore, newScoreB);
 		Assert.assertEquals(expectedScore, origScore);
-		if (origScore != -1)
+		Assert.assertEquals(expectedScore, newScoreA);
+		Assert.assertTrue( expectedScore < 0? (newScoreB < 0):(newScoreB >= 0));
+		if (expectedScore != -1)
 		{
+			
 			Set<List<String>> oldQuestions = new HashSet<List<String>>();oldQuestions.addAll(generateQuestions(g,temp, pair));
-			Set<List<String>> newQuestions = new HashSet<List<String>>();newQuestions.addAll(questions);
-			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questions,oldQuestions.equals(newQuestions));
+			//Assert.assertTrue(oldQuestions.size() > 0);
+			//Set<List<String>> newQuestionsA = new HashSet<List<String>>();newQuestionsA.addAll(questionsA);
+			Set<List<String>> newQuestionsB = new HashSet<List<String>>();newQuestionsB.addAll(questionsB);
+			//Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsA,oldQuestions.equals(newQuestionsA));
+			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsB,oldQuestions.equals(newQuestionsB));
 		}
 	}
 	
 	public static final String PTA1 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\n";
 
+	@Test
+	public final void testFindVertex0()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"),"SINK");
+		Assert.assertNull(s.findVertex("Z"));
+		Assert.assertEquals("A", s.findVertex("A").getUserDatum(JUConstants.LABEL));
+		Assert.assertEquals("C", s.findVertex("C").getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public final void testFindVertex1()
+	{
+		computeStateScores s = new computeStateScores();
+		Assert.assertNull(s.findVertex("Z"));
+		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public final void testComputePathsToRed0a()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(new DirectedSparseVertex()));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test
+	public final void testComputePathsToRed0b()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(null));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test
+	public final void testComputePathsToRed1()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {}
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("A")));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test
+	public final void testComputePathsToRed2()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a","b"}
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test
+	public final void testComputePathsToRed3()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"a","b"},
+				new String[] {"a","d"},
+				new String[] {"c","b"},
+				new String[] {"c","d"}
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test
+	public final void testComputePathsToRed4()
+	{
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed1"),"SINK");
+		Set<List<String>> expected = buildSet(new String[][] {
+				new String[] {"p"},
+				new String[] {"q"}
+			}), 
+			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testLearnerFailsWhenRedNotFound()
+	{
+		new computeStateScores().computeQS(new StatePair(null,new DirectedSparseVertex()), new computeStateScores());
+	}
+	
 	@Test
 	public final void testNewLearner0()
 	{
@@ -746,6 +558,54 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 
 	@Test
+	public final void testNewLearner_4_4() // testing that loops around the red states are being dealt with correctly
+	{
+		testNewLearnerQuestions("S-m->A\nS-n->A-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1);
+	}
+
+	@Test
+	public final void testNewLearner_4_4_simple() // a simplified version of test 4_4
+	{
+		testNewLearnerQuestions("S-m->A\nA-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1);
+	}
+
+	@Test
+	public final void testNewLearner_4_5() // testing that shortest paths actually work
+	{
+		testNewLearnerQuestions("A-a->A1-c->A2\nA-b->A2\nA-n->B-a->B1-c->B2-p->B3-f->B4-g->B5",2);
+	}
+
+	@Test
+	public final void testNewLearner_4_6() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nB1-d->B6-f->B7",5);
+	}
+
+	@Test
+	public final void testNewLearner_4_7() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+	}
+
+	@Test
+	public final void testNewLearner_4_8a() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+	}
+
+	@Test
+	public final void testNewLearner_4_8b() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->Atmp-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+	}
+
+	@Test
+	public final void testNewLearner_4_9() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nA2-r->A3-r->A4-i->A5",4);
+	}
+	
+	@Test
 	public final void testGetTempRed1()
 	{
 		DirectedSparseGraph a=TestFSMAlgo.buildGraph("A-a->B", "testGetTempRed1 model"),
@@ -861,6 +721,57 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertNull(actualA);
 	}
 
+	/** Tests merging of states <em>stateRed</em> and <em>stateBlue</em> of <em>machineToMerge</em>.
+	 * The outcome of merging has to be equivalent to <em>expectedFSM</em>. 
+	 * 
+	 * @param machineToMerge machine to merge
+	 * @param expectedFSM the expected result
+	 * @param stateBlue the name of the second state to merge.
+	 * @param stateRed the name of the first state to merge
+	 * @param checkWithEquals whether the equivalence between the result of merging is to be assessed by 
+	 * running a language equivalence query or by doing a .equals on FSMStructures corresponding to them. This will usually
+	 * be false. 
+	 */
+	public void checkCorrectnessOfMerging(String machineToMerge, String expectedFSM, String stateBlue, String stateRed, boolean checkWithEquals)
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machineToMerge, "Machine to merge"),
+			g2=(DirectedSparseGraph)g.copy();
+		Vertex 
+			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateRed, g),
+			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateBlue, g);
+		
+		Assert.assertNotNull("state "+stateRed+" was not found", a);
+		Assert.assertNotNull("state "+stateBlue+" was not found", b);
+		
+		StatePair pair = new StatePair(b,a);
+		
+		FSMStructure 
+			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)), 
+			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g2, pair)),
+			mergeResultC = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair).getGraph()),
+			expectedMachine = WMethod.getGraphData(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"));
+
+		TestFSMAlgo.checkM(g2, machineToMerge);
+		
+		Assert.assertFalse("unreachable states - original",WMethod.checkUnreachableStates(mergeResultA));
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultB));
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultC));
+		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(expectedMachine));
+		
+		if (checkWithEquals)
+		{
+			Assert.assertTrue("incorrect merging - original",expectedMachine.equals(mergeResultA));
+			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultB));
+			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultC));
+		}
+		else
+		{
+			Assert.assertTrue("incorrect merging - original",TestFSMAlgo.checkMBoolean(mergeResultA, expectedMachine, mergeResultA.init, expectedMachine.init));
+			Assert.assertTrue("incorrect merging - first improved",TestFSMAlgo.checkMBoolean(mergeResultB, expectedMachine, mergeResultB.init, expectedMachine.init));
+			Assert.assertTrue("incorrect merging - most improved",TestFSMAlgo.checkMBoolean(mergeResultC, expectedMachine, mergeResultC.init, expectedMachine.init));
+		}
+	}
+
 	@Test
 	public final void testMerge1a()
 	{
@@ -887,8 +798,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testMerge2()
 	{
-		checkCorrectnessOfMerging("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U",
-				"S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U",
+		checkCorrectnessOfMerging("S-p->A-a->S\nA-b->S\nA-c->D\nA-e->D\nA-d->E\nS-n->U",
+				"S-p->A-a->S\nA-b->S\nA-c->S\nA-e->S\nA-d->E\nS-n->U",
 				"D","S",
 				true);
 	}
@@ -897,54 +808,10 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void testMerge3()
 	{
 		checkCorrectnessOfMerging(
-				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E\nS-n->U",
-				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->S\nA-b->S\nA-d->E\nS-n->U",
+				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->D\nA-e->D\nA-d->E\nS-n->U",
+				"P-a->P1-b->P-b->P2-c->S-p->A-a->S\nA-b->S\nA-c->S\nA-e->S\nA-d->E\nS-n->U",
 				"D","S",
 				true);
-	}
-
-	/** Tests merging of states <em>stateRed</em> and <em>stateBlue</em> of <em>machineToMerge</em>.
-	 * The outcome of merging has to be equivalent to <em>expectedFSM</em>. 
-	 * 
-	 * @param machineToMerge machine to merge
-	 * @param expectedFSM the expected result
-	 * @param stateBlue the name of the second state to merge.
-	 * @param stateRed the name of the first state to merge
-	 * @param checkWithEquals whether the equivalence between the result of merging is to be assessed by 
-	 * running a language equivalence query or by doing a .equals on FSMStructures corresponding to them. This will usually
-	 * be false. 
-	 */
-	public void checkCorrectnessOfMerging(String machineToMerge, String expectedFSM, String stateBlue, String stateRed, boolean checkWithEquals)
-	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machineToMerge, "Machine to merge");
-		Vertex 
-			a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateRed, g),
-			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, stateBlue, g);
-		
-		Assert.assertNotNull("state "+stateRed+" was not found", a);
-		Assert.assertNotNull("state "+stateBlue+" was not found", b);
-		
-		StatePair pair = new StatePair(b,a);
-		
-		FSMStructure 
-			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)), 
-			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g, pair)),
-			expectedMachine = WMethod.getGraphData(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"));
-
-		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultA));
-		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(mergeResultB));
-		Assert.assertFalse("unreachable states",WMethod.checkUnreachableStates(expectedMachine));
-		
-		if (checkWithEquals)
-		{
-			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultA));
-			Assert.assertTrue("incorrect merging",expectedMachine.equals(mergeResultB));
-		}
-		else
-		{
-			Assert.assertTrue("incorrect merging",TestFSMAlgo.checkMBoolean(mergeResultA, expectedMachine, mergeResultA.init, expectedMachine.init));
-			Assert.assertTrue("incorrect merging",TestFSMAlgo.checkMBoolean(mergeResultB, expectedMachine, mergeResultB.init, expectedMachine.init));
-		}
 	}
 	
 	@Test
@@ -1053,8 +920,14 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			"B-a->BL1-a->BL2-d->BL3\n"+
 				"BL3-b-#BL4\n"+
 				"BL3-a->BL6-a->BL7-c->BL8\n"+
-					"BL8-b->BL9\n";
+					"BL8-b->BL9\n",
 
+		largeGraph5 = 
+			"S-n->A-n->An-n->B\n"+
+			"A-a->A1-c->A2\nA-b->A1-d->A2\n"+
+			"B-a->B1-c->B3-p->B5\n"+
+			"B-b->B2-d->B4";
+	
 	@Test
 	public final void testMerge7()
 	{
@@ -1089,8 +962,33 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			false);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public final void testMerge10()
+	{
+		checkCorrectnessOfMerging(
+				"S-a->A-b->A1-c->A2-d->A3-e->A4\n"+
+				"S-n->B-b->B1-c->B2-d->B3-e->B4\n"+
+				"B-h->C1\nB2-g->C2\nB3-f->C3",
+			"S-a->A-b->A1-c->A2-d->A3-e->A4\n"+
+			"S-n->A-h->C1\nA2-g->C2\nA3-f->C3",
+			
+			"B","A",
+			false);
+	}
+
+	@Test
+	public final void testMerge11()
+	{
+		checkCorrectnessOfMerging(largeGraph5,
+			"S-n->A-n->An-n->A\n"+
+			"A-a->A1-c->A2\nA-b->A1-d->A2-p->A3\n",
+			
+			"B","A",
+			false);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testMerge_fail1()
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge10");
 		Vertex 
@@ -1100,6 +998,17 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		computeStateScores.mergeAndDeterminize(g, pair);
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testMerge_fail2()
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge10");
+		Vertex 
+		a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
+		b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
+		StatePair pair = new StatePair(b,a);// A is red
+		computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair);
+	}
+
 	protected interface InterfaceChooserToTest {
 		Stack<StatePair> choosePairs();
 	}
@@ -1140,7 +1049,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	private final void testChooseStatePairsInternal(DirectedSparseGraph g, String [] initialReds, String [] expectedReds, List<PairScore> expectedPairs,InterfaceChooserToTest chooser)
 	{
 		for(String red:initialReds)
-			findVertex(JUConstants.LABEL, red, g).addUserDatum("colour", "red", UserData.SHARED);
+		{
+			Vertex v = findVertex(JUConstants.LABEL, red, g);v.removeUserDatum("colour");v.addUserDatum("colour", "red", UserData.SHARED);
+		}
 		Stack<StatePair> pairs = chooser.choosePairs();
 		Map<Integer,Set<PairScore>> distribution = new HashMap<Integer,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
 
@@ -1165,6 +1076,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			int currentScore = computeScore(g, elem);
 			PairScore elA = new PairScore(elem.getQ(),elem.getR(),currentScore);
 			PairScore elB = new PairScore(elem.getR(),elem.getQ(),currentScore);
+			Assert.assertTrue(elem.getR().getUserDatum("colour").equals("red"));
+			Assert.assertTrue(elem.getQ().getUserDatum("colour").equals("blue"));
 			Assert.assertTrue(currentScore >= 0);
 			Assert.assertTrue(distribution.containsKey(currentScore));
 			Set<PairScore> ps = distribution.get(currentScore);
@@ -1344,7 +1257,26 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		testScoreAndCompatibilityComputation(largeGraph4_invalid1,5,-1);
 	}
 
+	@Test
+	public final void testGetVertex1()
+	{
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"),"SINK");
+		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getUserDatum(JUConstants.LABEL).equals("A"));
+	}
 
+	@Test
+	public final void testGetVertex2()
+	{
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"),"SINK");
+		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getUserDatum(JUConstants.LABEL).equals("C"));
+	}
+
+	@Test
+	public final void testGetVertex3()
+	{
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"),"SINK");
+		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
+	}
 
 	@Ignore("only used occasionally")
 	@Test 

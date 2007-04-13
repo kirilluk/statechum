@@ -236,7 +236,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					Set<List<String>> paths = getPaths(sp);
 					returnSet.addAll(paths);
 				}
-				else if(e.getSource().equals(v)&&(e.getDest().equals(v))){
+				else if(e.getSource().equals(v)) { //&&(e.getDest().equals(v))){ // KIRR: BUG FIXED
 					sp.add(e);
 					Set<List<String>> paths = getPaths(sp);
 					returnSet.addAll(paths);

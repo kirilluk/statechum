@@ -36,7 +36,7 @@ public class StatePair implements Comparable {
 	}
 	
 	public String toString(){
-		return "[ "+q.getUserDatum(JUConstants.LABEL)+", "+r.getUserDatum(JUConstants.LABEL)+" ]";
+		return "[ "+((q == null)?"NULL":q.getUserDatum(JUConstants.LABEL))+", "+((r == null)?"NULL":r.getUserDatum(JUConstants.LABEL))+" ]";
 	}
 
 	/* (non-Javadoc)

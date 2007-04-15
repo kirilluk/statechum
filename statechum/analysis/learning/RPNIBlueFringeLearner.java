@@ -128,7 +128,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return model;
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus)throws InterruptedException{
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
@@ -841,6 +841,9 @@ public class RPNIBlueFringeLearner extends Observable {
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();
+			if (string.isEmpty() && !accepted)
+				throw new IllegalArgumentException("since the initial state is an accept one, a negative string should not be empty");
+			
 			for(int i = 1;i<=string.size();i++){
 				List<String> current = string.subList(0, i);
 				Vertex existing = getVertex(pta,current);
@@ -895,6 +898,9 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	protected static Vertex getVertex (DirectedSparseGraph g,Vertex v, List<String> string){
 		Vertex current = v;
+		if (current == null)
+			return null;
+		
 		for(int i = 0;i<string.size();i++){
 			String label = string.get(i);
 			DirectedSparseEdge edge = getEdgeWithLabel(current.getOutEdges(), label);
@@ -906,16 +912,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 	
 	public static Vertex getVertex (DirectedSparseGraph g, List<String> string){
-		Vertex init = findVertex("property", "init",g);
-		Vertex current = init;
-		for(int i = 0;i<string.size();i++){
-			String label = string.get(i);
-			DirectedSparseEdge edge = getEdgeWithLabel(current.getOutEdges(), label);
-			if(edge == null)
-				return null;
-			current = edge.getDest();
-		}
-		return current;
+		return getVertex(g, findVertex("property", "init",g), string);
 	}
 	
 	public static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){

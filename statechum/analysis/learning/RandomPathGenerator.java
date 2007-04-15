@@ -9,6 +9,7 @@ import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 import java.util.*;
 
 import statechum.JUConstants;
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.*;
 
 public class RandomPathGenerator {
@@ -24,7 +25,7 @@ public class RandomPathGenerator {
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		int diameter = distancesList.get(distancesList.size()-1).intValue();
-		this.populateRandomWalks((int)Math.pow(g.getVertices().size(),2), diameter+5);
+		this.populateRandomWalksC((int)Math.pow(g.getVertices().size(),2), diameter+5);
 	}
 	
 	private Set<String> getOutgoingSymbols(Vertex v){
@@ -62,7 +63,33 @@ public class RandomPathGenerator {
 			}
 		}
 	}
-	
+
+	private void populateRandomWalksC(int number, int maxLength){
+		int counter = 0;
+		Set<String> doneStrings = new HashSet<String>();
+		FSMStructure fsm = WMethod.getGraphData(g);
+		while(counter<number){
+			List<String> path = new LinkedList<String>();
+			String s = "";
+			String current = fsm.init;
+			for(int i=0;i<maxLength;i++){
+				Map<String,String> row = fsm.trans.get(current);
+				if(row.isEmpty())
+					break;
+				String nextInput= (String)pickRandom(row.keySet());
+				s = s.concat(nextInput);
+				path.add(nextInput);
+				
+				if(!doneStrings.contains(s)){
+					sPlus.add(new ArrayList(path));
+					doneStrings.add(s);
+					counter++;
+				}
+				current = row.get(nextInput);
+			}
+		}
+	}
+
 	private String pickRandom(Vertex v){
 		Set<String> labels;
 		Edge e = (Edge)pickRandom(v.getOutEdges());

@@ -101,17 +101,20 @@ public class computeStateScores implements Cloneable {
 				outgoing.put(label, e.getDest());			
 		}
 	}
-	
-	public computeStateScores()
+
+	public computeStateScores(int newGeneralisationThreshold, int newPairsMergedPerHypothesis)
 	{
-		graph = new DirectedSparseGraph();
+		generalisationThreshold = newGeneralisationThreshold;
+		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
+		
+		graph = null;
 		init = new DirectedSparseVertex();
 		init.addUserDatum("property", "init", UserData.SHARED);
 		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "Init", UserData.SHARED);
 		init.setUserDatum("colour", "red", UserData.SHARED);
-		graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
-		graph.addVertex(init);transitionMatrix.put(init,new TreeMap<String,Vertex>());
+		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
+		transitionMatrix.put(init,new TreeMap<String,Vertex>());
 		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
 	}
 	
@@ -271,21 +274,8 @@ public class computeStateScores implements Cloneable {
 		}
 		return sp;
 	}
-/*	
-	public List<List<String>> computeQS(StatePair pair, computeStateScores temp)
-	{
-		Vertex tempRed = temp.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
-		Collection<List<String>> sp = temp.computePathsToRed(tempRed);
-		if (sp == null || sp.isEmpty())
-			throw new IllegalArgumentException("failed to find the red state in the merge result");
-		//sp = WMethod.cross(sp, )
-		PrefixFreeCollection partialQuestions = new SlowPrefixFreeCollection();
-		
-		return null;
-	}
-*/
 
-	private void buildQuestionsFromPair(computeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
+	private static void buildQuestionsFromPair(computeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
@@ -324,6 +314,43 @@ public class computeStateScores implements Cloneable {
 		
 	}
 	
+	private class NonExistingPaths implements FSMAbstraction
+	{
+		private final Vertex red;
+		
+		public NonExistingPaths(Vertex redState)
+		{
+			red = redState;
+		}
+		
+		public Object getInitState() {
+			return red;
+		}
+	
+		public final Vertex junkVertex = new DirectedSparseVertex();
+		
+		public Object getNextState(Object currentState, String input) 
+		{
+			Vertex result = null;
+			Map<String,Vertex> row = transitionMatrix.get(currentState);
+			if (row != null)
+				result = row.get(input);
+			if (result == null)
+				result = junkVertex;
+
+			return result;
+		}
+	
+		public boolean isAccept(Object currentState) 
+		{
+			return true;
+		}
+
+		public boolean shouldBeReturned(Object elem) {
+			return elem == junkVertex;
+		}
+	}
+		
 	public List<List<String>> computeQS(final StatePair pair, computeStateScores temp)
 	{
 		Vertex tempRed = temp.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
@@ -332,38 +359,7 @@ public class computeStateScores implements Cloneable {
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 	
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();
-		engine.init(new FSMAbstraction()
-			{
-				public Object getInitState() {
-					return pair.getR();
-				}
-			
-				public final Vertex junkVertex = new DirectedSparseVertex();
-				
-				public Object getNextState(Object currentState, String input) 
-				{
-					Vertex result = null;
-					Map<String,Vertex> row = transitionMatrix.get(currentState);
-					if (row != null)
-						result = row.get(input);
-					if (result == null)
-					{
-						result = junkVertex;
-						//System.out.println("End states: "+currentState+" - "+input);
-					}
-					return result;
-				}
-			
-				public boolean isAccept(Object currentState) 
-				{
-					return true;
-				}
-
-				public boolean shouldBeReturned(Object elem) {
-					return elem == junkVertex;
-				}
-			}
-		);
+		engine.init(new NonExistingPaths(pair.getR()));
 		
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();paths.setIdentity();
 		buildQuestionsFromPair(temp, tempRed, paths);
@@ -392,7 +388,6 @@ public class computeStateScores implements Cloneable {
 		int score = 0;
 		
 		assert pair.getQ() != pair.getR();
-		assert pair.getQ().getGraph() == graph && pair.getR().getGraph() == graph; 
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		currentExplorationBoundary.add(pair);
@@ -514,7 +509,7 @@ public class computeStateScores implements Cloneable {
 					{
 						StatePair pairToComputeFrom = new StatePair(currentBlueState,oldRed);
 						int computedScore = computeStateScore(pairToComputeFrom);
-						if (computedScore > 0 &&
+						if (computedScore >= 0 &&
 								computePairCompatibilityScore(pairToComputeFrom) < 0)
 									computedScore = -1;
 						computeStateScores.PairScore pair = new PairScore(currentBlueState,oldRed,computedScore);
@@ -524,32 +519,35 @@ public class computeStateScores implements Cloneable {
 							++numberOfCompatiblePairs;
 						}
 					}
+					
 					if (numberOfCompatiblePairs == 0)
 					{// mark this blue node as red. 
-						currentBlueState.setUserDatum("colour", "red", UserData.SHARED);
-						reds.add(BlueEntry.getValue());currentExplorationBoundary.add(BlueEntry.getValue());
+						Vertex newRedNode = currentBlueState;
+						newRedNode.setUserDatum("colour", "red", UserData.SHARED);
+						reds.add(newRedNode);currentExplorationBoundary.add(newRedNode);
 
 						// All future blue nodes will use this revised set of red states; the fact that
 						// it is added to the exploration boundary ensures that it is considered when looking for more blue states.
 						// Note that previously-considered blue states were not compared to this one,
 						// however previously-introduced red were - we're using the up-to-date reds set above.
 						// For this reason, all we have to do is iterate over the old blue states and compare them to the
-						// current one; none of those states may become red as a consequence since they are not red already, i.e. there is an entry about them in PairsAndScores
+						// current one; none of those states may become red as a consequence since they are not 
+						// red already, i.e. there is an entry about them in PairsAndScores
 						for(Vertex oldBlue:BlueStatesConsideredSoFar)
 						{
-							StatePair newPair = new StatePair(oldBlue,currentBlueState);
+							StatePair newPair = new StatePair(oldBlue,newRedNode);
 							int computedScore = computeStateScore(newPair);
-							if (computedScore > 0 &&
+							if (computedScore >= 0 &&
 									computePairCompatibilityScore(newPair) < 0)
 										computedScore = -1;
 
-							computeStateScores.PairScore pair = new PairScore(oldBlue,currentBlueState,computedScore);
+							computeStateScores.PairScore pair = new PairScore(oldBlue,newRedNode,computedScore);
 							if (pair.getScore() >= generalisationThreshold)
 								pairsAndScores.add(pair);
 						}
 					}
 					else
-					{
+					{// This node is a blue node
 						BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
 						currentBlueState.setUserDatum("colour", "blue", UserData.SHARED);
 					}							
@@ -721,7 +719,7 @@ public class computeStateScores implements Cloneable {
 		result.transitionMatrix = new LinkedHashMap<Vertex,Map<String,Vertex>>(); 
 		for(Entry<Vertex,Map<String,Vertex>> entry:transitionMatrix.entrySet())
 			result.transitionMatrix.put(entry.getKey(),(Map<String,Vertex>)((TreeMap<String,Vertex>)entry.getValue()).clone());
-		// TODO: do I need to do anything about PairsAndScores? it will not be used on the original object anyway, though, so perhaps I should not care
+		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
 		return result;
 	}
 
@@ -914,90 +912,29 @@ public class computeStateScores implements Cloneable {
 		return score;
 	}
 
-
-	/** Creates a new vertex and an edge and and adds both to the graph. 
-	 * 
-	 * @param g the graph to modify
+	/** A very important object - this one is used when I wish to create new vertices or edges in a Jung graph.
+	 * There are many threads which may wish to do that; the potential outcome is that a single thread may end up
+	 * with multiple Vertices with the same ID, as repeatedly observed on 50-6. Holding a lock on this global object 
+	 * when creating vertices/edges eliminates the potential of such racing, which occurs when public static int ID
+	 * gets increased by Jung in the course of object creation.
+	 */
+	protected static final Object syncObj = new Object();
+	
+	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
+	 * concurrently processing graphs. 
+	 *  
 	 * @param prevState the state from which to start the new edge
 	 * @param accepted whether the vertex to add should be an accept one
 	 * @param input the label of the edge
 	 * @return
 	 */
-	private static Vertex addVertex(DirectedSparseGraph g, Vertex prevState, boolean accepted, String input)
-	{
-		Vertex newVertex = new DirectedSparseVertex();newVertex.addUserDatum(JUConstants.LABEL, newVertex.toString(), UserData.SHARED);
-		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
-		g.addVertex(newVertex);
-		DirectedSparseEdge e = new DirectedSparseEdge(prevState, newVertex);
-		Set<String> labels = new HashSet<String>();labels.add(input);
-		e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
-		g.addEdge(e);
-		return newVertex;
-	}
-
 	private Vertex addVertex(Vertex prevState, boolean accepted, String input)
 	{
 		Vertex newVertex = new DirectedSparseVertex();newVertex.addUserDatum(JUConstants.LABEL, newVertex.toString(), UserData.SHARED);
 		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
-		graph.addVertex(newVertex);
 		transitionMatrix.put(newVertex, new TreeMap<String,Vertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);
 		return newVertex;
-	}
-	
-	/** Adds a given set of sequences to a PTA, with a specific accept-reject labelling.
-	 * 
-	 * @param pta
-	 * @param strings sequences to be added
-	 * @param accepted whether sequences are accept or reject ones.
-	 * @return the result of adding.
-	 */ 
-	public static DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted)
-	{
-		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,pta);
-		
-		for(List<String> sequence:strings)
-		{
-			Vertex currentState = init, prevState = null;
-			Iterator<String> inputIt = sequence.iterator();
-			String lastInput = null;
-			int position = 0;
-			while(inputIt.hasNext() && currentState != null)
-			{
-				if (!TestRpniLearner.isAccept(currentState))
-				{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
-					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
-					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
-				}
-				prevState = currentState;lastInput = inputIt.next();++position;
-				DirectedSparseEdge followingEdge = RPNIBlueFringeLearner.getEdgeWithLabel(currentState.getOutEdges(),lastInput);
-				if (followingEdge != null)
-					currentState = followingEdge.getDest();
-				else
-					currentState = null;
-			}
-			
-			if (currentState == null)
-			{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
-				while(inputIt.hasNext())
-				{
-					prevState = addVertex(pta, prevState, true, lastInput);
-					lastInput = inputIt.next();
-				}
-				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				addVertex(pta, prevState, accepted, lastInput);
-			}
-			else
-			{// we reached the end of the PTA
-				if (TestRpniLearner.isAccept(currentState) != accepted)
-				{
-					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
-					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
-				}
-				
-			}
-		}
-		return pta;
 	}
 
 	public computeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)
@@ -1022,13 +959,17 @@ public class computeStateScores implements Cloneable {
 			
 			if (currentState == null)
 			{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
-				while(inputIt.hasNext())
-				{
-					prevState = addVertex(prevState, true, lastInput);
-					lastInput = inputIt.next();
+
+				synchronized (syncObj) {
+					while(inputIt.hasNext())
+					{
+						prevState = addVertex(prevState, true, lastInput);
+						lastInput = inputIt.next();
+					}
+					// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+					addVertex(prevState, accepted, lastInput);
 				}
-				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				addVertex(prevState, accepted, lastInput);
+				
 			}
 			else
 			{// we reached the end of the PTA
@@ -1051,34 +992,38 @@ public class computeStateScores implements Cloneable {
 	 */
 	public DirectedSparseGraph getGraph()
 	{
-		DirectedSparseGraph result = new DirectedSparseGraph();
-		result.setUserDatum(JUConstants.TITLE, "the graph from computeStateScores",UserData.SHARED);
-		Map<Vertex,Vertex> oldVertexToNewVertex = new HashMap<Vertex,Vertex>();
-		Map<Vertex,Set<String>> targetStateToEdgeLabels = new LinkedHashMap<Vertex,Set<String>>();
-		for(Entry<Vertex,Map<String,Vertex>> entry:transitionMatrix.entrySet())
-			oldVertexToNewVertex.put(entry.getKey(), (Vertex)entry.getKey().copy(result));
-		
-		for(Entry<Vertex,Map<String,Vertex>> entry:transitionMatrix.entrySet())
+		DirectedSparseGraph result = null;
+		synchronized (syncObj) 
 		{
-			targetStateToEdgeLabels.clear();
-			for(Entry<String,Vertex> sv:entry.getValue().entrySet())
+			result = new DirectedSparseGraph();
+			result.setUserDatum(JUConstants.TITLE, "the graph from computeStateScores",UserData.SHARED);
+			Map<Vertex,Vertex> oldVertexToNewVertex = new HashMap<Vertex,Vertex>();
+			Map<Vertex,Set<String>> targetStateToEdgeLabels = new LinkedHashMap<Vertex,Set<String>>();
+			for(Entry<Vertex,Map<String,Vertex>> entry:transitionMatrix.entrySet())
+				oldVertexToNewVertex.put(entry.getKey(), (Vertex)entry.getKey().copy(result));
+			
+			for(Entry<Vertex,Map<String,Vertex>> entry:transitionMatrix.entrySet())
 			{
-				Set<String> labels = targetStateToEdgeLabels.get(sv.getValue());
-				if (labels != null)
-				// there is an edge already with the same target state from the current vertice, update the label on it
-					labels.add(sv.getKey());
-				else
-				{// add a new edge
-					Vertex src = oldVertexToNewVertex.get(entry.getKey()), dst = oldVertexToNewVertex.get(sv.getValue());
-					if (src == null)
-						throw new IllegalArgumentException("Source vertex "+entry.getKey()+" is not in the transition table");
-					if (dst == null)
-						throw new IllegalArgumentException("Target vertex "+sv.getValue()+" is not in the transition table");
-					DirectedSparseEdge e = new DirectedSparseEdge(src,dst);
-					labels = new HashSet<String>();labels.add(sv.getKey());
-					targetStateToEdgeLabels.put(sv.getValue(), labels);
-					e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
-					result.addEdge(e);			
+				targetStateToEdgeLabels.clear();
+				for(Entry<String,Vertex> sv:entry.getValue().entrySet())
+				{
+					Set<String> labels = targetStateToEdgeLabels.get(sv.getValue());
+					if (labels != null)
+					// there is an edge already with the same target state from the current vertice, update the label on it
+						labels.add(sv.getKey());
+					else
+					{// add a new edge
+						Vertex src = oldVertexToNewVertex.get(entry.getKey()), dst = oldVertexToNewVertex.get(sv.getValue());
+						if (src == null)
+							throw new IllegalArgumentException("Source vertex "+entry.getKey()+" is not in the transition table");
+						if (dst == null)
+							throw new IllegalArgumentException("Target vertex "+sv.getValue()+" is not in the transition table");
+						DirectedSparseEdge e = new DirectedSparseEdge(src,dst);
+						labels = new HashSet<String>();labels.add(sv.getKey());
+						targetStateToEdgeLabels.put(sv.getValue(), labels);
+						e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
+						result.addEdge(e);			
+					}
 				}
 			}
 		}

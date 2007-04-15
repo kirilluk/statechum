@@ -53,20 +53,18 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualB = computeStateScores.augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new computeStateScores().augmentPTA(plusStrings, true).getGraph();
+			actualC = new computeStateScores(0,0).augmentPTA(plusStrings, true).getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualB, expectedPTA);
 		TestFSMAlgo.checkM(actualC, expectedPTA);
 	}
 
 	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualB =null, actualC = null;
-		IllegalArgumentException eA = null, eB = null, eC = null;
+		DirectedSparseGraph actualA = null, actualC = null;
+		IllegalArgumentException eA = null, eC = null;
 		try
 		{
 			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
@@ -76,17 +74,6 @@ public class TestPTAConstruction
 			// ignore this - it might be expected.
 			eA = e;
 		}
-
-		try
-		{
-			actualB = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eB = e;
-		}
-		
 
 		try
 		{
@@ -100,30 +87,19 @@ public class TestPTAConstruction
 
 		if (eA != null)
 		{
-			Assert.assertNotNull(eB);
 			Assert.assertNotNull(eC);
 			throw eA;
 		}
 		else
-			if (eB != null)
+			if (eC != null)
 			{
 				Assert.assertNotNull(eA);
 				Assert.assertNotNull(eC);
 				throw eA;
 			}
-			else
-				if (eC != null)
-				{
-					Assert.assertNotNull(eA);
-					Assert.assertNotNull(eB);
-					throw eA;
-				}
 				
 		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, TestRpniLearner.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualA.getEdges().size());
-	
-		Assert.assertEquals(1, actualB.getVertices().size());Assert.assertEquals(true, TestRpniLearner.isAccept( ((Vertex)actualB.getVertices().iterator().next()) )); 
-		Assert.assertEquals(0, actualB.getEdges().size());
 
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, TestRpniLearner.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualC.getEdges().size());
@@ -159,8 +135,8 @@ public class TestPTAConstruction
 	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualB =null, actualC =null;
-		IllegalArgumentException eA = null, eB = null, eC = null;
+		DirectedSparseGraph actualA = null, actualC =null;
+		IllegalArgumentException eA = null, eC = null;
 		try
 		{
 			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
@@ -173,16 +149,6 @@ public class TestPTAConstruction
 
 		try
 		{
-			actualB = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
-		}
-		catch(IllegalArgumentException e)
-		{
-			// ignore this - it might be expected.
-			eB = e;
-		}
-		
-		try
-		{
 			actualC = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(plusStrings, minusStrings).getGraph();
 		}
 		catch(IllegalArgumentException e)
@@ -193,28 +159,18 @@ public class TestPTAConstruction
 		
 		if (eA != null)
 		{
-			Assert.assertNotNull(eB);
 			Assert.assertNotNull(eC);
 			throw eA;
 		}
 		else
-			if (eB != null)
+			if (eC != null)
 			{
 				Assert.assertNotNull(eA);
-				Assert.assertNotNull(eC);
 				throw eA;
 			}
-			else
-				if (eC != null)
-				{
-					Assert.assertNotNull(eA);
-					Assert.assertNotNull(eB);
-					throw eA;
-				}
 
 	 //updateFrame(g,null);
 		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualB, expectedPTA);
 		TestFSMAlgo.checkM(actualC, expectedPTA);
 	}
 	

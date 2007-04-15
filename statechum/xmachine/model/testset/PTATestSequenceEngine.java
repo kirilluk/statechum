@@ -21,16 +21,26 @@ public class PTATestSequenceEngine
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
 	private final Map<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>> pta = new HashMap<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>>(); 
 	
+	/** The global "counter" of nodes; this is not static to avoid racing problems associated with multiple threads
+	 * creating nodes, so that the same thread may end up with multiple nodes bearing the same ID. This may
+	 * have been causing random failures when question generation would produce sequences not possible in 
+	 * the merged machine, running it multiple times would sometimes produce such sequences, sometimes not,
+	 * but each produced sequence was different from another one (i.e. one failed, another few passed, next failing
+	 * one different from the first one, all with the same transition matrix and even before we consider
+	 * loops in the blue state).
+	 */
+	protected int positiveNodeID = 1;
+	protected int negativeNodeID = -1;
+	public final PTATestSequenceEngine.Node rejectNode = new Node();
+
 	/** Represents elements of the PTA. */
-	public static class Node  
+	public class Node  
 	{
-		private static int positiveID = 1;
-		private static int negativeID = -1;
 		
 		/** Constructor for reject nodes. */
 		private Node() 
 		{ 
-			ID = negativeID;fsmState=null;
+			ID = negativeNodeID;fsmState=null;
 		}
 
 		/** Constructor for accept nodes. */
@@ -38,7 +48,7 @@ public class PTATestSequenceEngine
 		{
 			if (state == null)
 				throw new IllegalArgumentException("state name cannot be null");
-			ID = positiveID++;fsmState = state;
+			ID = positiveNodeID++;fsmState = state;
 		}
 		
 		public int getID()
@@ -55,9 +65,7 @@ public class PTATestSequenceEngine
 		{
 			return fsmState;
 		}
-		
-		public static final PTATestSequenceEngine.Node rejectNode = new Node();
-		
+				
 		/** The ID of this node, positive for accept nodes, negative for reject ones. */
 		private final int ID;
 		/** The FSM state this object corresponds. */
@@ -122,10 +130,10 @@ public class PTATestSequenceEngine
 		if (machine.isAccept(machine.getInitState()))
 			init =  new Node(machine.getInitState());
 		else
-			init = Node.rejectNode;
+			init = rejectNode;
 		
 		pta.put(init,new LinkedHashMap<String,PTATestSequenceEngine.Node>());
-		pta.put(Node.rejectNode,new LinkedHashMap<String,PTATestSequenceEngine.Node>());
+		pta.put(rejectNode,new LinkedHashMap<String,PTATestSequenceEngine.Node>());
 	}
 	
 	/** Represents a set of sequences using a PTA. */
@@ -183,7 +191,7 @@ public class PTATestSequenceEngine
 		{
 			Map<String,PTATestSequenceEngine.Node> row = pta.get(currentNode);
 			PTATestSequenceEngine.Node nextCurrentNode = null;
-			
+
 			if (row.containsKey(input))
 				nextCurrentNode = row.get(input); // the next node is an accept one
 			else
@@ -192,8 +200,8 @@ public class PTATestSequenceEngine
 				Object newState = fsm.getNextState(currentNode.getState(), input); 
 				if (newState == null || !fsm.isAccept(newState))
 				{
-					row.put(input, Node.rejectNode);// next node is the reject one
-					nextCurrentNode = Node.rejectNode;
+					row.put(input, rejectNode);// next node is the reject one
+					nextCurrentNode = rejectNode;
 				}
 				else
 				{

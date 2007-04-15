@@ -69,10 +69,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);
 		        	if (whomToNotify != null) whomToNotify.threadStarted();
-		        	try{
-		        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
-		        	}
-		        	catch (InterruptedException e){return;};
+	        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();

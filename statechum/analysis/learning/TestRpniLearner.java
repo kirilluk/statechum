@@ -79,16 +79,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		l.addObserver(visFrame);
-		try{
-			DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
-			updateFrame(learningOutcome,g);
-			FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
-			System.out.println(l.getQuestionCounter());
-			//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
-		}
-		catch(InterruptedException e){
-			AssertionFailedError th = new AssertionFailedError("interrupted exception received");th.initCause(e);throw th;
-		};
+		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
+		updateFrame(learningOutcome,g);
+		FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
+		System.out.println(l.getQuestionCounter());
+		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 	}
 	
 	@Test
@@ -287,7 +282,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testFindVertex1()
 	{
-		computeStateScores s = new computeStateScores();
+		computeStateScores s = new computeStateScores(0,0);
 		Assert.assertNull(s.findVertex("Z"));
 		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
 	}
@@ -369,7 +364,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
 	{
-		new computeStateScores().computeQS(new StatePair(null,new DirectedSparseVertex()), new computeStateScores());
+		new computeStateScores(0,0).computeQS(new StatePair(null,new DirectedSparseVertex()), new computeStateScores(0,0));
 	}
 	
 	@Test
@@ -1022,10 +1017,10 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	 * 
 	 * @param fsm the graph to choose states in
 	 * @param initialReds the initial set of reds
-	 * @param expectedReds the expected reds
+	 * @param expectedReds the set of sets of expected reds (there could be a number of possible outcomes, depending on the traversal taken by a method under test)
 	 * @param expectedPairs a set of pairs which has to be returned
 	 */
-	public final void testChooseStatePairs(String fsm, String [] initialReds, String [] expectedReds, List<PairScore> expectedPairs)
+	public final void testChooseStatePairs(String fsm, String [] initialReds, String [][] expectedReds, List<PairScore> expectedPairs)
 	{
 		final DirectedSparseGraph gB = TestFSMAlgo.buildGraph(fsm, "testChooseStatePairs_Ref");
 		// check how the reference pair selection function performs
@@ -1046,7 +1041,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		});
 	}
 	
-	private final void testChooseStatePairsInternal(DirectedSparseGraph g, String [] initialReds, String [] expectedReds, List<PairScore> expectedPairs,InterfaceChooserToTest chooser)
+	private final void testChooseStatePairsInternal(DirectedSparseGraph g, String [] initialReds, String [][] expectedReds, List<PairScore> expectedPairs,InterfaceChooserToTest chooser)
 	{
 		for(String red:initialReds)
 		{
@@ -1055,11 +1050,16 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Stack<StatePair> pairs = chooser.choosePairs();
 		Map<Integer,Set<PairScore>> distribution = new HashMap<Integer,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
 
-		Set<String> expectedRedsAsSet = new HashSet<String>();expectedRedsAsSet.addAll(Arrays.asList(expectedReds));
+		Set<Set<String>> expectedRedsAsSet = new HashSet<Set<String>>();
+		for(int i=0;i<expectedReds.length;++i) 
+		{
+			Set<String> possibleReds = new HashSet<String>();possibleReds.addAll(Arrays.asList(expectedReds[i]));
+			expectedRedsAsSet.add(possibleReds);
+		}
 		Set<String> finalReds = new HashSet<String>();
 		for(Vertex red:findVertices("colour", "red", g))
 				finalReds.add((String)red.getUserDatum(JUConstants.LABEL));
-		Assert.assertTrue("expected red states: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.equals(finalReds));
+		Assert.assertTrue("expected red states, any of: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.contains(finalReds));
 		for(PairScore ps:expectedPairs)
 		{
 			Set<PairScore> currScore = distribution.get(ps.getScore()); 
@@ -1114,7 +1114,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-u->U1-d->U2-c->U3\n"+
 				"A-q->Q1-d->Q2",
 				new String[]{"A"},
-				new String[]{"A","P1","Arej"},
+				new String[][] {new String[]{"A","P1","Arej"}},
 				pairsAndScores);
 	}
 	
@@ -1140,7 +1140,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-u->U1-d->U2-c->U3\n"+
 				"A-q->Q1-d->Q2",
 				new String[]{"A"},
-				new String[]{"A","P1","Arej"},
+				new String[][] {new String[]{"A","P1","Arej"}},
 				pairsAndScores);
 	}
 	
@@ -1157,7 +1157,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A1-a->B2\n"+
 				"A1-b->A2-a->B3\n",
 				new String[]{"A"},
-				new String[]{"A","B1","REJ2"},
+				new String[][] {new String[]{"A","B1","REJ2"},new String[]{"A","B1","REJ1"}},
 				pairsAndScores);
 	}
 

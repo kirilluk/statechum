@@ -69,15 +69,15 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void testNodeEquality()
 	{
-		
-		Node a = new Node("A"), b = new Node("A"), c = new Node("B");
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();
+		Node a = engine.new Node("A"), b = engine.new Node("A"), c = engine.new Node("B");
 		assertTrue(a.equals(a));
 		assertTrue(b.equals(b));
-		assertTrue(Node.rejectNode.equals(Node.rejectNode));
+		assertTrue(engine.rejectNode.equals(engine.rejectNode));
 		assertFalse(a.equals(b));
 		assertFalse(b.equals(a));
 		assertFalse(a.equals(c));
-		assertFalse(a.equals(Node.rejectNode));
+		assertFalse(a.equals(engine.rejectNode));
 		
 		
 		assertFalse(a.equals("test"));
@@ -87,19 +87,19 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void testNode1()
 	{
-		
-		Node a = new Node("A");
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();
+		Node a = engine.new Node("A");
 		
 		assertTrue(a.isAccept());
-		assertTrue(new Node("test").isAccept());
-		assertFalse(Node.rejectNode.isAccept());
+		assertTrue(engine.new Node("test").isAccept());
+		assertFalse(engine.rejectNode.isAccept());
 	}
 
 	@Test
 	public final void testNode2()
 	{
-		
-		Node a = new Node("A"), b = new Node("A"), c = new Node("B");
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();
+		Node a = engine.new Node("A"), b = engine.new Node("A"), c = engine.new Node("B");
 		assertEquals("A", a.getState());
 		assertEquals("A", b.getState());
 		assertEquals("B", c.getState());
@@ -109,9 +109,9 @@ public class TestPTATestSequenceEngine
 		assertTrue(aID != bID && aID != cID && aID != bID);
 		
 		assertTrue(a.hashCode() != b.hashCode() && a.hashCode() != c.hashCode() && b.hashCode() != c.hashCode());
-		assertTrue(a.hashCode() != Node.rejectNode.hashCode());
-		assertTrue(b.hashCode() != Node.rejectNode.hashCode());
-		assertTrue(c.hashCode() != Node.rejectNode.hashCode());
+		assertTrue(a.hashCode() != engine.rejectNode.hashCode());
+		assertTrue(b.hashCode() != engine.rejectNode.hashCode());
+		assertTrue(c.hashCode() != engine.rejectNode.hashCode());
 	}
 
 	private PTATestSequenceEngine en = null; 

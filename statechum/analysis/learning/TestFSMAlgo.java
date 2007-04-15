@@ -27,6 +27,7 @@ import edu.uci.ics.jung.utils.UserData;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -842,6 +843,7 @@ public class TestFSMAlgo {
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),"B",null));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"D",null)));
 		expected.trans.put("C", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null));
+		expected.trans.put("D", createLabelToStateMap(Collections.EMPTY_LIST,null,null));
 		expected.accept.put("A", true);
 		expected.accept.put("B", true);
 		expected.accept.put("C", true);
@@ -881,6 +883,7 @@ public class TestFSMAlgo {
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
 		expected.trans.put("D", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"B", createLabelToStateMap(Arrays.asList(new String[] {"c"}),"A",null)));
+		expected.trans.put("C", createLabelToStateMap(Collections.EMPTY_LIST,null,null));
 		expected.accept.put("A", true);
 		expected.accept.put("B", true);
 		expected.accept.put("C", false);
@@ -900,6 +903,7 @@ public class TestFSMAlgo {
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),"C",null)));
+		expected.trans.put("C", createLabelToStateMap(Collections.EMPTY_LIST,null,null));
 		expected.accept.put("A", true);
 		expected.accept.put("B", true);
 		expected.accept.put("C", false);
@@ -1193,33 +1197,22 @@ public class TestFSMAlgo {
 				throw new DifferentFSMException("states "+statePair.a+" and " + statePair.b+" have a different acceptance labelling between the machines");
 						
 			Map<String,String> targets = graph.trans.get(statePair.a), expectedTargets = expected.trans.get(statePair.b);
-			if (expectedTargets == null)
-			{
-				if (targets != null)
-					throw new DifferentFSMException("not expecting any transitions from "+statePair.b+" state");
-			}
-			else
-			{
-				if (targets == null)
-					throw new DifferentFSMException("expected transitions from "+statePair.a+" state but there were none");
+			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
+				throw new DifferentFSMException("different number of transitions from state "+statePair);
 				
-				if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
-					throw new DifferentFSMException("different number of transitions from state "+statePair);
-					
-				for(Entry<String,String> labelstate:targets.entrySet())
+			for(Entry<String,String> labelstate:targets.entrySet())
+			{
+				String label = labelstate.getKey();
+				if (!expectedTargets.containsKey(label))
+					throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.b);
+				String tState = labelstate.getValue();// the original one
+				String expectedState = expectedTargets.get(label);
+				
+				StringPair nextPair = new StringPair(tState,expectedState);
+				if (!statesAddedToBoundary.contains(nextPair))
 				{
-					String label = labelstate.getKey();
-					if (!expectedTargets.containsKey(label))
-						throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.b);
-					String tState = labelstate.getValue();// the original one
-					String expectedState = expectedTargets.get(label);
-					
-					StringPair nextPair = new StringPair(tState,expectedState);
-					if (!statesAddedToBoundary.contains(nextPair))
-					{
-						currentExplorationBoundary.offer(nextPair);
-						statesAddedToBoundary.add(nextPair);
-					}
+					currentExplorationBoundary.offer(nextPair);
+					statesAddedToBoundary.add(nextPair);
 				}
 			}
 		}
@@ -1411,98 +1404,119 @@ public class TestFSMAlgo {
 	 * @param fsmString a description of an FSM
 	 * @param path a sequence of labels to follow
 	 * @param ExpectedResult the result to check
+	 * @param The name of the vertex which is expected to be returned by getVertex
 	 */
-	public static void checkPath(String fsmString, String []path, int ExpectedResult)
+	public static void checkPath(String fsmString, String []path, int ExpectedResult, String enteredName)
 	{
-		final FSMStructure graph = getGraphData(buildGraph(fsmString, "sample FSM"));
+		assert (enteredName == null)? (ExpectedResult >= 0):true;
+		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
+		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
+		Vertex expected = (enteredName == null)? null:new computeStateScores(g,"SINK").findVertex(enteredName);
+		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path)));
+	}
+	
+	/** Given an FSM and a sequence of labels to follow, this one checks whether the sequence is correctly
+	 * accepted from a supplied state or not, and if not whether it is rejected at the correct element.
+	 * 
+	 * @param fsmString a description of an FSM
+	 * @param path a sequence of labels to follow
+	 * @param ExpectedResult the result to check
+	 * @param The name of the vertex which is expected to be returned by getVertex
+	 */
+	public static void checkPathFrom(String fsmString, String startingState, String []path, int ExpectedResult, String enteredName)
+	{
+		assert (enteredName == null) == (ExpectedResult >= 0);
+		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
+		final FSMStructure graph = getGraphData(g);
+		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
+		Vertex starting = new computeStateScores(g,"SINK").findVertex(startingState);
+		Vertex expected = (enteredName == null)? null:new computeStateScores(g,"SINK").findVertex(enteredName);
+		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, starting,Arrays.asList(path)));
 	}
 	
 	@Test
 	public void testTracePath()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{}, RPNIBlueFringeLearner.USER_ACCEPTED);
+		checkPath("A-a->B-b->C-c->D", new String[]{}, RPNIBlueFringeLearner.USER_ACCEPTED,"A");
 	}
 	
 	@Test
 	public void testTracePath1a()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, RPNIBlueFringeLearner.USER_ACCEPTED);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, RPNIBlueFringeLearner.USER_ACCEPTED,"B");
 	}
 	
 	@Test
 	public void testTracePath1b()
 	{
-		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
-		assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, WMethod.tracePath(graph, Arrays.asList(new String[]{"b"}),"B"));
+		checkPathFrom("A-a->B-b->C-c->D","B",new String[]{"b"},RPNIBlueFringeLearner.USER_ACCEPTED,"C");
 	}
 	
 	@Test
 	public void testTracePath2a()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, RPNIBlueFringeLearner.USER_ACCEPTED);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, RPNIBlueFringeLearner.USER_ACCEPTED,"D");
 	}
 	
 	@Test
 	public void testTracePath2b()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c","d"}, 3);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c","d"}, 3,null);
 	}
 	
 	@Test
 	public void testTracePath3()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"b"}, 0);
+		checkPath("A-a->B-b->C-c->D", new String[]{"b"}, 0,null);
 	}
 	
 	@Test
 	public void testTracePath4()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","d"}, 2);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","d"}, 2,null);
 	}
 	
 	@Test
 	public void testTracePath5a()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"b","a","c"}, 0);
+		checkPath("A-a->B-b->C-c->D", new String[]{"b","a","c"}, 0,null);
 	}
 	
 	@Test
 	public void testTracePath5b()
 	{
-		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
-		assertEquals(0, WMethod.tracePath(graph, Arrays.asList(new String[]{"c"}),"B"));
+		checkPathFrom("A-a->B-b->C-c->D", "B",new String[]{"c"},0,null);
 	}
 	
 	@Test
 	public void testTracePath5c()
 	{
-		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->C-c->D", "sample FSM"));
-		assertEquals(0, WMethod.tracePath(graph, Arrays.asList(new String[]{"c"}),"Q"));
+		checkPathFrom("A-a->B-b->C-c->D", "Q",new String[]{"c"},0,null);
 	}
 	
 	@Test
 	public void testTracePath6()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a","a","c","b"}, 1);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","a","c","b"}, 1,null);
 	}
 	
 	@Test
 	public void testTracePath7()
 	{
-		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c"}, 2);
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c"}, 2,"D");
 	}
 	
 	@Test
 	public void testTracePath8()
 	{
-		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d"}, 3);
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d"}, 3,null);
 	}
 	
 	@Test
 	public void testTracePath9()
 	{
-		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3);
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3,null);
 	}
 	
 	/** Computes an alphabet of a given graph and adds transitions to a 
@@ -1812,7 +1826,7 @@ public class TestFSMAlgo {
 			int currentState = vFrom[i];
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
 			if (tTable[currentState].length != alphabetSize) throw new IllegalArgumentException("rows of inconsistent size");
-			Map<String,String> row = new HashMap<String,String>();
+			Map<String,String> row = new LinkedHashMap<String,String>();
 			fsm.accept.put(stateName[currentState], true);
 			for(int input=0;input < tTable[currentState].length;++input)
 				if (tTable[currentState][input] != rejectNumber)
@@ -1823,8 +1837,7 @@ public class TestFSMAlgo {
 					row.put(inputName[input], stateName[nextState]);
 					statesUsed.add(stateName[nextState]);
 				}
-			if (!row.isEmpty())
-				fsm.trans.put(stateName[currentState], row);
+			fsm.trans.put(stateName[currentState], row);
 		}
 		statesUsed.removeAll(fsm.accept.keySet());
 		if (!statesUsed.isEmpty())
@@ -1934,6 +1947,19 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{3,0,1}, -1);
+		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+	}
+	
+	@Test
+	public final void testConvertTableToFSMStructure8()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	3}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1);
 		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
 	}
 

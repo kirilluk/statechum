@@ -160,17 +160,17 @@ public class TestGraphGeneration {
 	public static void cleanUp()
 	{
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() 
+			if (visFrame != null)
 			{
-				public void run()
+				SwingUtilities.invokeAndWait(new Runnable() 
 				{
-					if (visFrame != null)
+					public void run()
 					{
-						visFrame.setVisible(false);
-						visFrame.dispose();
+							visFrame.setVisible(false);
+							visFrame.dispose();
 					}
-				}
-			});
+				});
+			}
 		} catch (InterruptedException e) {
 			// cannot do anything with this
 			e.printStackTrace();

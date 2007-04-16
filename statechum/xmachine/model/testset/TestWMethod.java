@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import javax.swing.SwingUtilities;
 
 import junit.framework.Assert;
+import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -999,5 +1000,11 @@ public class TestWMethod {
 			// cannot do anything with this
 			e.printStackTrace();
 		}
+	}
+	
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestWMethod.class);
 	}
 }

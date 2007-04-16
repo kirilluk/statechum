@@ -10,6 +10,7 @@ import static statechum.xmachine.model.testset.WMethod.getGraphData;
 
 import junit.framework.Assert;
 import junit.framework.AssertionFailedError;
+import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import org.junit.BeforeClass;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.xmachine.model.testset.TestWMethod;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -1997,4 +1999,10 @@ public class TestFSMAlgo {
 			e.printStackTrace();
 		}
 	}	
+
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestFSMAlgo.class);
+	}
 }

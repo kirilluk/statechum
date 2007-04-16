@@ -23,6 +23,7 @@ import java.util.Stack;
 import javax.swing.SwingUtilities;
 
 import junit.framework.AssertionFailedError;
+import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -33,6 +34,7 @@ import org.junit.Test;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.PairScore;
+import statechum.xmachine.model.testset.TestWMethod;
 import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.Edge;
@@ -225,4 +227,10 @@ public class TestPTAConstruction
 				"junk");
 	}
 
+	
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestLoadAnswers.class);
+	}
 }

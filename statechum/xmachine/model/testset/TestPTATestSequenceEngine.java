@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import junit.framework.JUnit4TestAdapter;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -472,5 +474,9 @@ public class TestPTATestSequenceEngine
 		});
 	}
 
-
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestPTATestSequenceEngine.class);
+	}
 }

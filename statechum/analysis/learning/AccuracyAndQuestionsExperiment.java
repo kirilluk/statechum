@@ -247,6 +247,20 @@ public class AccuracyAndQuestionsExperiment {
 		}
 		return returnSet;
 	}
+	
+	private void processFile(String fileName)
+	{
+    	GraphMLFile graphmlFile = new GraphMLFile();
+    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+    	DirectedSparseGraph dg = new DirectedSparseGraph();
+    	dg.getEdgeConstraints().clear();
+    	dg = (DirectedSparseGraph)graphmlFile.load(fileName);
+    	//Iterator<Vertex> vIt = dg.getVertices().iterator();
+    	System.out.println(fileName);
+    	evaluate(dg);		
+	}
+	
+
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1024m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
 	 * Quad-core would use -Dthreadnum=4 instead.
@@ -254,26 +268,28 @@ public class AccuracyAndQuestionsExperiment {
 	 * @param args command-line arguments
 	 */
 	public static void main(String[] args){
-		AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
-		File graphDir = new File(
-				//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); //D:\\experiment\\Neil-Data2\\50-6");
-				System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-				System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
-        String[] graphFileList = graphDir.list();
-         
-        for(int i=0;i<graphFileList.length;i++){
-        	if(!graphFileList[i].startsWith("N"))
-        		continue;
-        	String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
-        	GraphMLFile graphmlFile = new GraphMLFile();
-        	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-        	DirectedSparseGraph dg = new DirectedSparseGraph();
-        	dg.getEdgeConstraints().clear();
-        	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+graphFileList[i]);
-        	//Iterator<Vertex> vIt = dg.getVertices().iterator();
-        	System.out.println(graphFileList[i]);
-        	experiment.evaluate(dg);
-        }
+		final AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
+		
+		if (args.length < 2)
+		{
+			File graphDir = new File(args[0]);
+					//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); 
+					//"D:\\experiment\\Neil-Data2\\50-6");
+					//System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
+					//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
+	        String[] graphFileList = graphDir.list();
+	         
+	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
+	        for(int i=0;i<graphFileList.length;i++){
+	        	if(!graphFileList[i].startsWith("N"))
+	        		continue;
+	            experiment.processFile(wholePath+graphFileList[i]);
+	        }
+		}
+		else
+		{// args.length >=2
+            experiment.processFile(args[0]);			
+		}
 	}
 	
 }

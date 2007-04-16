@@ -4,8 +4,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 
+import junit.framework.JUnit4TestAdapter;
+
 import org.junit.Assert;
 import org.junit.Test;
+
+import statechum.xmachine.model.testset.TestWMethod;
 
 public class TestLoadAnswers {
 	@Test
@@ -129,4 +133,10 @@ public class TestLoadAnswers {
 		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
 	}
 
+	
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestLoadAnswers.class);
+	}
 }

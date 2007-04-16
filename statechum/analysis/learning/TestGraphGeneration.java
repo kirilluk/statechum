@@ -11,6 +11,8 @@ import java.util.Set;
 
 import javax.swing.SwingUtilities;
 
+import junit.framework.JUnit4TestAdapter;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,6 +20,7 @@ import org.junit.Test;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
+import statechum.xmachine.model.testset.TestWMethod;
 
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -169,4 +172,11 @@ public class TestGraphGeneration {
 			e.printStackTrace();
 		}
 	}	
+
+	
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new JUnit4TestAdapter(TestGraphGeneration.class);
+	}
 }

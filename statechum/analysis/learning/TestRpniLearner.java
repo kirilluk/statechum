@@ -1323,4 +1323,10 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			e.printStackTrace();
 		}
 	}
+	
+	/** In order to be able to use old junit runner. */
+	public static junit.framework.Test suite()
+	{
+		return new junit.framework.JUnit4TestAdapter(TestRpniLearner.class);
+	}
 }

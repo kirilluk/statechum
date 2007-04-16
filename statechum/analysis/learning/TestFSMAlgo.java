@@ -820,7 +820,6 @@ public class TestFSMAlgo {
 	{
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A","testConstruction1");
-		updateFrame(g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",null));
@@ -840,7 +839,6 @@ public class TestFSMAlgo {
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b->C-c->A-b->B-a-#D","testConstruction2");
 		g.setUserDatum(JUConstants.TITLE, "testConstruction2",UserData.SHARED);
-		updateFrame(g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),"B",null));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"b"}),"C",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"D",null)));
@@ -861,7 +859,6 @@ public class TestFSMAlgo {
 	{
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--C-c->A-b->A-c->A\nB-d->B-p->C\nB-q->C\nB-r->C\n","testConstruction3");
-		updateFrame(g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
@@ -880,7 +877,6 @@ public class TestFSMAlgo {
 	{
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B<-b--D-c->A-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction4");
-		updateFrame(g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),"C",null)));
@@ -901,7 +897,6 @@ public class TestFSMAlgo {
 	{
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("A--a-->B-b-#C\nA-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction5");
-		visFrame.update(null, g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("A", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"A",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"B",null)));
 		expected.trans.put("B", createLabelToStateMap(Arrays.asList(new String[] {"d"}),"B",createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),"C",null)));
@@ -920,7 +915,6 @@ public class TestFSMAlgo {
 	{
 		FSMStructure expected = new FSMStructure();
 		DirectedSparseGraph g = buildGraph("P-c->P<-b-Q_State<-a-P-b->P\nQ_State-a->Q_State","testConstruction6");
-		visFrame.update(null, g);
 		FSMStructure graph = getGraphData(g);
 		expected.trans.put("P", createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),"P",createLabelToStateMap(Arrays.asList(new String[] {"a"}),"Q_State",null)));
 		expected.trans.put("Q_State", createLabelToStateMap(Arrays.asList(new String[] {"a"}),"Q_State",createLabelToStateMap(Arrays.asList(new String[] {"b"}),"P",null)));
@@ -1066,7 +1060,6 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		final FSMStructure graph = getGraphData(g);
-		updateFrame(expectedGraph);
 		final FSMStructure expected = getGraphData(expectedGraph);
 		assertEquals("incorrect initial state",expected.init, graph.init);
 		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
@@ -1312,7 +1305,6 @@ public class TestFSMAlgo {
 	{
 		final DirectedSparseGraph g = buildGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4");
 		final FSMStructure graph = getGraphData(g);
-		updateFrame(g);
 		List<String> states = Arrays.asList(new String[]{"A","B","C"});
 		for(String stA:states)
 			for(String stB:states)
@@ -1665,7 +1657,6 @@ public class TestFSMAlgo {
 	public void completeGraphTest6()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C", "completeGraphTest6");Assert.assertTrue(completeGraph(g,"REJECT"));
-		updateFrame(g);
 		checkM(g, "A-a->A-b->B-c->B-a->C\nA-c-#REJECT#-b-B\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT");		
 	}	
 	
@@ -1673,7 +1664,6 @@ public class TestFSMAlgo {
 	public void completeGraphTest7()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeGraphTest7");Assert.assertTrue(completeGraph(g,"REJECT"));
-		updateFrame(g);
 		final FSMStructure graph = getGraphData(g);
 		final FSMStructure expected = getGraphData(buildGraph("A-a->A-b->B-c->B-a->C\nA-c-#REJECT\nA-d-#REJECT\nB-b-#REJECT\nB-d-#REJECT\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT\nC-d-#REJECT\nS-a-#REJECT\nS-b-#REJECT\nS-c-#REJECT\nS-d-#REJECT\nQ-a-#REJECT\nQ-b-#REJECT\nQ-c-#REJECT\nQ-d->S","expected graph"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));

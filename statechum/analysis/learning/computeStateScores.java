@@ -525,7 +525,8 @@ public class computeStateScores implements Cloneable {
 						Vertex newRedNode = currentBlueState;
 						newRedNode.setUserDatum("colour", "red", UserData.SHARED);
 						reds.add(newRedNode);currentExplorationBoundary.add(newRedNode);
-
+						BlueStatesConsideredSoFar.remove(newRedNode);
+						
 						// All future blue nodes will use this revised set of red states; the fact that
 						// it is added to the exploration boundary ensures that it is considered when looking for more blue states.
 						// Note that previously-considered blue states were not compared to this one,

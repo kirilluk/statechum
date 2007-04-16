@@ -79,7 +79,7 @@ public class TestGraphGeneration {
 			 v.addUserDatum(JUConstants.LABEL, v.getUserDatum(VERTEX), UserData.SHARED);
 			 v.removeUserDatum(VERTEX);
 		}
-		updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
+		//updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
 		TestFSMAlgo.checkM(g,expected);
 	}
 	

@@ -66,23 +66,19 @@ public class RandomPathGenerator {
 
 	private void populateRandomWalksC(int number, int maxLength){
 		int counter = 0;
-		Set<String> doneStrings = new HashSet<String>();
 		FSMStructure fsm = WMethod.getGraphData(g);
 		while(counter<number){
-			List<String> path = new LinkedList<String>();
-			String s = "";
+			List<String> path = new ArrayList<String>(maxLength);
 			String current = fsm.init;
 			for(int i=0;i<maxLength;i++){
 				Map<String,String> row = fsm.trans.get(current);
 				if(row.isEmpty())
 					break;
 				String nextInput= (String)pickRandom(row.keySet());
-				s = s.concat(nextInput);
 				path.add(nextInput);
 				
-				if(!doneStrings.contains(s)){
-					sPlus.add(new ArrayList(path));
-					doneStrings.add(s);
+				if(!sPlus.contains(path)){
+					sPlus.add(new ArrayList<String>(path));
 					counter++;
 				}
 				current = row.get(nextInput);

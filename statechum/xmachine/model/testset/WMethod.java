@@ -91,10 +91,7 @@ public class WMethod {
 			{
 				labelToTargetState = new HashMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
 			}
-			if (!extractedFSM.trans.containsKey(to))
-			{
-				extractedFSM.trans.put(to, new HashMap<String,String>());
-			}
+
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);
 		}
 		
@@ -103,7 +100,11 @@ public class WMethod {
 		{
 			Vertex v = vertexIt.next();
 			String name = (String)v.getUserDatum(JUConstants.LABEL);
-			assert extractedFSM.trans.containsKey(name);
+
+			if (!extractedFSM.trans.containsKey(name))
+			{// This state is a state with no outgoing transitions
+				extractedFSM.trans.put(name, new HashMap<String,String>());
+			}
 			
 			if (name == null)
 				throw new IllegalArgumentException("unlabelled state encountered");

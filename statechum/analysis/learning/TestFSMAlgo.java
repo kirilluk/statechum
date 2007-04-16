@@ -1955,6 +1955,15 @@ public class TestFSMAlgo {
 		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
 	}
 
+	@Test
+	public final void assertsEnabled()
+	{
+		boolean assertsOn = false;
+		assert assertsOn = true;
+		
+		Assert.assertTrue("asserts have to be enabled", assertsOn);
+	}
+	
 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
 	 * 		updateFrame(g);// a public method
@@ -1965,7 +1974,7 @@ public class TestFSMAlgo {
 	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
-	{
+	{		
 		visFrame = new Visualiser();
 	}
 

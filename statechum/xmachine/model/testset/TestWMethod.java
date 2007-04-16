@@ -8,7 +8,6 @@ import static org.junit.Assert.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -978,7 +977,7 @@ public class TestWMethod {
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = new Visualiser();
+		visFrame = null;
 	}
 
 	@AfterClass
@@ -989,8 +988,11 @@ public class TestWMethod {
 			{
 				public void run()
 				{
-					visFrame.setVisible(false);
-					visFrame.dispose();
+					if (visFrame != null)
+					{
+						visFrame.setVisible(false);
+						visFrame.dispose();
+					}
 				}
 			});
 		} catch (InterruptedException e) {

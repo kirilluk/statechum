@@ -78,7 +78,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setPairsMergedPerHypothesis(0);
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
-		l.addObserver(visFrame);
+		if (visFrame != null) l.addObserver(visFrame);
 		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 		updateFrame(learningOutcome,g);
 		FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
@@ -130,6 +130,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		if (!debugMode)
 			return;		
+		
+		if (visFrame == null)
+		{
+			visFrame = new Visualiser();			
+		}
 		
 		visFrame.update(null, g);
 		if (lowerGraph != null)
@@ -1300,7 +1305,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = new Visualiser();
+		visFrame = null;
 	}
 	
 	@AfterClass
@@ -1311,8 +1316,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			{
 				public void run()
 				{
-					visFrame.setVisible(false);
-					visFrame.dispose();
+					if (visFrame != null)
+					{
+						visFrame.setVisible(false);
+						visFrame.dispose();
+					}
 				}
 			});
 		} catch (InterruptedException e) {

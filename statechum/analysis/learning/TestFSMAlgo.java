@@ -812,6 +812,8 @@ public class TestFSMAlgo {
 	 */
 	public void updateFrame(DirectedSparseGraph g)
 	{
+		if (visFrame == null)
+			visFrame = new Visualiser();
 		visFrame.update(null, g);
 	}
 	
@@ -1975,7 +1977,7 @@ public class TestFSMAlgo {
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{		
-		visFrame = new Visualiser();
+		visFrame = null;
 	}
 
 	@AfterClass
@@ -1986,8 +1988,11 @@ public class TestFSMAlgo {
 			{
 				public void run()
 				{
-					visFrame.setVisible(false);
-					visFrame.dispose();
+					if (visFrame != null)
+					{
+						visFrame.setVisible(false);
+						visFrame.dispose();
+					}
 				}
 			});
 		} catch (InterruptedException e) {

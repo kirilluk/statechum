@@ -105,6 +105,8 @@ public class TestGraphGeneration {
 	 */
 	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
 	{
+		if (visFrame == null)
+			visFrame = new Visualiser();
 		visFrame.update(null, g);
 		if (lowerGraph != null)
 		{
@@ -135,6 +137,8 @@ public class TestGraphGeneration {
 	 */
 	public void updateFrame(DirectedSparseGraph g)
 	{
+		if (visFrame == null)
+			visFrame = new Visualiser();
 		visFrame.update(null, g);
 	}
 	
@@ -149,7 +153,7 @@ public class TestGraphGeneration {
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = new Visualiser();
+		visFrame = null;
 	}
 
 	@AfterClass
@@ -160,8 +164,11 @@ public class TestGraphGeneration {
 			{
 				public void run()
 				{
-					visFrame.setVisible(false);
-					visFrame.dispose();
+					if (visFrame != null)
+					{
+						visFrame.setVisible(false);
+						visFrame.dispose();
+					}
 				}
 			});
 		} catch (InterruptedException e) {

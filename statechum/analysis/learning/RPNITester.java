@@ -34,7 +34,7 @@ public class RPNITester {
     	dg.getEdgeConstraints().clear();
     	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
 		
-		RandomPathGenerator rpg = new RandomPathGenerator(dg);
+		RandomPathGenerator rpg = new RandomPathGenerator(dg, new Random(1));
 		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(dg);
 		
@@ -46,7 +46,7 @@ public class RPNITester {
 			}
 		};
 		
-		Collection<List<String>> sampleSet = AccuracyAndQuestionsExperiment.randomHalf(fullSet);
+		Collection<List<String>> sampleSet = AccuracyAndQuestionsExperiment.randomHalf(fullSet, new Random(1));
 		Vector<List<String>> samples = new Vector<List<String>>();
 		samples.addAll(sampleSet);
 		Collection<List<String>> tests = fullSet;

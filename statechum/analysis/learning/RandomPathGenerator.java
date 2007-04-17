@@ -17,7 +17,15 @@ public class RandomPathGenerator {
 	protected DirectedSparseGraph g;
 	protected Collection<List<String>> sPlus;
 	
-	public RandomPathGenerator(DirectedSparseGraph baseGraph) {
+	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
+	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
+	 * to java's Random being non-serialisable.
+	 *  
+	 * @param baseGraph
+	 * @param randomGenerator
+	 */ 
+	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator) {
+		pathRandomNumberGenerator = randomGenerator;
 		sPlus = new LinkedList<List<String>>();
 		g = baseGraph;
 		DijkstraDistance dd = new DijkstraDistance(baseGraph);
@@ -93,7 +101,7 @@ public class RandomPathGenerator {
 		return pickRandom(labels).toString();
 	}
 
-	public static final Random pathRandomNumberGenerator = new Random(0); 
+	private final Random pathRandomNumberGenerator; 
 	
 	private Object pickRandom(Collection c){
 		Object[] array = c.toArray();

@@ -89,7 +89,7 @@ public class WMethod {
 			Map<String,String> labelToTargetState = extractedFSM.trans.get(from);
 			if (labelToTargetState == null)
 			{
-				labelToTargetState = new HashMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
+				labelToTargetState = new TreeMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
 			}
 
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);

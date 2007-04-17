@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -647,7 +648,7 @@ public class TestFSMAlgo {
 		
 		public FSMStructure()
 		{
-			trans = new LinkedHashMap<String,Map<String,String>>();accept = new LinkedHashMap<String,Boolean>();
+			trans = new TreeMap<String,Map<String,String>>();accept = new TreeMap<String,Boolean>();
 		}
 		
 		public boolean equals(Object o)

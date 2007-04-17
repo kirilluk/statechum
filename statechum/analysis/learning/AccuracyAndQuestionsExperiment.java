@@ -6,9 +6,24 @@ package statechum.analysis.learning;
 
 
 import java.awt.Point;
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
+import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -37,23 +52,8 @@ import static statechum.xmachine.model.testset.WMethod.tracePath;
 
 public class AccuracyAndQuestionsExperiment {
 
-	Visualiser v = null;
-	
-	public void evaluate(final DirectedSparseGraph g){
-		//updateFrame(g,g);
-		RandomPathGenerator rpg = new RandomPathGenerator(g);
-		WMethod tester = new WMethod(g,0);
-		Collection<List<String>> fullTestSet = (Collection<List<String>>)tester.getFullTestSet();
-		System.out.println("test set size: "+fullTestSet.size());
-		final Collection<List<String>> tests = randomHalf(fullTestSet);
-		Collection<List<String>> fullSet = rpg.getAllPaths();
-		final FSMStructure expected = getGraphData(g);
-		//l.setCertaintyThreshold(2);
-		Collection<List<String>> sampleSet = randomHalf(fullSet);
-		Vector<List<String>> samples = new Vector<List<String>>();
-		samples.addAll(sampleSet);
-		tests.removeAll(sampleSet);
-		Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
+	public AccuracyAndQuestionsExperiment(LearnerEvaluatorFactory eval)
+	{
 		int ThreadNumber = 1; // the default for single-cpu systems.
 		String cpuNum = System.getProperty("threadnum");
 		if (cpuNum != null)
@@ -64,12 +64,190 @@ public class AccuracyAndQuestionsExperiment {
 			if (parsedNumber > 0 && parsedNumber < 31)
 				ThreadNumber = parsedNumber;
 		}
-		final List<Future<String>> results = new LinkedList<Future<String>>();
-		CompletionService<String> runner = new ExecutorCompletionService<String>(
-				Executors.newFixedThreadPool(ThreadNumber)
-				//Executors.newSingleThreadExecutor() // this one for single-threaded operation
-				//Executors.newCachedThreadPool()
-				);
+
+		results = new LinkedList<Future<String>>();
+		runner = new ExecutorCompletionService<String>(Executors.newFixedThreadPool(ThreadNumber));
+		evaluatorFactory = eval;
+	}
+	
+	public abstract static class LearnerEvaluatorFactory 
+	{
+		public abstract LearnerEvaluator createLearnerEvaluator(Collection<List<String>> plus, Collection<List<String>> minus, DirectedSparseGraph g, String name, int per, Collection<List<String>> tests);
+	}
+	
+	public abstract static class LearnerEvaluator implements Callable<String>
+	{
+		protected Collection<List<String>> sPlus=null, sMinus=null;
+		protected DirectedSparseGraph graph=null;
+		protected String fileName = null;
+		protected Collection<List<String>> tests = null;
+		protected int percent;
+		
+		private LearnerEvaluator() {}
+
+		/**
+		 * 
+		 * @param plus positive set.
+		 * @param minus negative set.
+		 * @param machine machine to check the result against.
+		 * @param name the name of the graph.
+		 * @param per the percentage of the total set of inputs this evaluator is being run on.
+		 * @param the set of data used for checking the accuracy of learning.
+		 */
+		public LearnerEvaluator(Collection<List<String>> plus, Collection<List<String>> minus, DirectedSparseGraph g, String name, int per, Collection<List<String>> in_tests)
+		{
+			graph = g;sPlus = plus;sMinus = minus;fileName = name;percent = per;tests=in_tests;
+		}
+
+		public enum FileType { 
+			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
+			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
+			
+			abstract String getFileName(String prefix, String suffix);
+		};
+		
+		protected String getFileName(FileType fileNameType)
+		{
+			return fileNameType.getFileName(fileName,"-"+percent); 
+		}
+	}
+	
+	
+	/** This one is not static because it refers to the frame to display results. */
+	public static class RPNIEvaluator extends LearnerEvaluator
+	{
+		public RPNIEvaluator(Collection<List<String>> plus, Collection<List<String>> minus, DirectedSparseGraph g, String name, int per, Collection<List<String>> in_tests)
+		{
+			super(plus,minus,g,name,per,in_tests);			
+		}
+		
+		public String call()
+		{
+			final FSMStructure fsm = WMethod.getGraphData(graph);
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
+			{
+				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+				{
+					return tracePath(fsm, question);
+				}
+			};
+			System.out.println(""+percent + "% started");
+			DirectedSparseGraph learningOutcome = null;
+			String result = "" + percent+"%,";
+			String stats = "";
+			String stdOutput = null;
+			try
+			{
+				learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+				result = result+l.getQuestionCounter()+", "+computeAccuracy(learningOutcome, graph,tests);							
+				//updateFrame(g,learningOutcome);
+				l.setQuestionCounter(0);
+				if (learningOutcome != null)
+					stats = learningOutcome.containsUserDatumKey("STATS")? "\n"+learningOutcome.getUserDatum("STATS").toString():"";
+				System.out.println(percent +"% terminated");
+				
+				// now record the result
+				Writer outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
+				outputWriter.write(result+"\nSTATS: "+stats);outputWriter.close();
+				
+				stdOutput = fileName+" "+result+"\nSTATS: "+stats;
+			}
+			catch(Throwable th)
+			{
+				StringWriter writer = new StringWriter();
+				th.printStackTrace();
+				th.printStackTrace(new PrintWriter(writer));
+				stdOutput = result+"FAILED\nSTACK: "+writer.toString();
+			}
+			return stdOutput;
+		}
+	}
+	
+	public class SaveData extends LearnerEvaluator
+	{
+		public String call() throws Exception {
+			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(getFileName(FileType.DATA))));
+			encoder.writeObject(sPlus);
+			encoder.writeObject(sMinus);
+			encoder.writeObject(fileName);encoder.writeObject(new Integer(percent));
+			encoder.writeObject(tests);
+			ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+			new GraphMLFile().save(graph, new PrintStream(outStream));
+			encoder.writeObject(outStream.toString());// Jung uses PrintStream to dump bytes of the graph but read is in using Reader which interprets unicode in the input data - extremely strange, so I ignore all that and use strings
+			encoder.close();	
+			return "Wrote "+getFileName(FileType.DATA);
+		}
+		
+	}
+	
+	public class LoadData extends LearnerEvaluator
+	{
+		/**
+		 * ID for serialisation, same as SaveData
+		 */
+		private static final long serialVersionUID = -6070805972757350807L;
+
+		public String call() throws Exception {
+			XMLDecoder decoder = new XMLDecoder(new BufferedInputStream(new FileInputStream(getFileName(FileType.DATA))));
+			sPlus = (Collection<List<String>>)decoder.readObject();
+			sMinus = (Collection<List<String>>) decoder.readObject();
+			fileName = (String) decoder.readObject();percent = ((Integer)decoder.readObject()).intValue();
+			tests = (Collection<List<String>>) decoder.readObject();
+			String data = (String) decoder.readObject();
+			graph = (DirectedSparseGraph) new GraphMLFile().load(new StringReader(data));
+			decoder.close();	
+			return "Loaded "+getFileName(FileType.DATA);
+		}
+		
+	}
+	
+	public class LoadDataAndProcessIt extends LoadData
+	{
+		final protected LearnerEvaluatorFactory evalFactory;
+		
+		public LoadDataAndProcessIt(String name, int percent, LearnerEvaluatorFactory evalFac)
+		{
+			evalFactory = evalFac;
+		}
+		
+		public String call() throws Exception 
+		{
+			String result = super.call();
+			LearnerEvaluator processor =
+				evalFactory.createLearnerEvaluator(sPlus, sMinus, graph, fileName, percent, tests);
+			return result+"\n"+processor.call();
+		}		
+	}
+	
+	/** Stores results of execution of evaluators. */
+	final List<Future<String>> results;
+	
+	/** Stores tasks to complete. */
+	final CompletionService<String> runner;
+	
+	/** The class to perform experiments. */
+	final LearnerEvaluatorFactory evaluatorFactory;
+	
+	/** Since we need predictable generation of sets, construction of them cannot be parallelised because
+	 * then the sequence of calls to the random number generator will be unpredictable.
+	 *  
+	 * @param outputFileName the output file name
+	 * @param g graph to process
+	 */ 
+	public void evaluate(String outputFileName,final DirectedSparseGraph g){
+		//updateFrame(g,g);
+		RandomPathGenerator rpg = new RandomPathGenerator(g);
+		WMethod tester = new WMethod(g,0);
+		Collection<List<String>> fullTestSet = (Collection<List<String>>)tester.getFullTestSet();
+		System.out.println("test set size: "+fullTestSet.size());
+		final Collection<List<String>> tests = randomHalf(fullTestSet);
+		Collection<List<String>> fullSet = rpg.getAllPaths();
+		//l.setCertaintyThreshold(2);
+		Collection<List<String>> sampleSet = randomHalf(fullSet);
+		Vector<List<String>> samples = new Vector<List<String>>();
+		samples.addAll(sampleSet);
+		tests.removeAll(sampleSet);
+		Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
 		
 		for(int i=10;i<=100;i=i+10){
 			currentSamples = addPercentageFromSamples(currentSamples, samples, i);
@@ -77,69 +255,19 @@ public class AccuracyAndQuestionsExperiment {
 			Collection<List<String>> sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
 			sMinus = trimToNegatives(g, sMinus);
-			final int percentNo = i;
 			final Collection<List<String>> minus = new LinkedList<List<String>>();minus.addAll(sMinus);
-			results.add(runner.submit(
-				new Callable<String>() {
-					public String call()
-					{
-						RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(v)
-						{
-							protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
-							{
-								return tracePath(expected, question);
-							}
-						};
-						System.out.println(percentNo + "% started");
-						DirectedSparseGraph learningOutcome = null;
-						String result = "" + percentNo+"%,";
-						String stats = "";
-						try
-						{
-							learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, minus);
-							result = result+l.getQuestionCounter()+", "+computeAccuracy(learningOutcome, g,tests);							
-						}
-						catch(Throwable th)
-						{
-							StringWriter writer = new StringWriter();
-							th.printStackTrace();
-							th.printStackTrace(new PrintWriter(writer));
-							result = result+"FAILED";
-							stats = "STACK: "+writer.toString();
-						}
-						//updateFrame(g,learningOutcome);
-						l.setQuestionCounter(0);
-						if (learningOutcome != null)
-							stats = learningOutcome.containsUserDatumKey("STATS")? "\n"+learningOutcome.getUserDatum("STATS").toString():"";
-						System.out.println(percentNo +"% terminated");
-						return result+"\nSTATS: "+stats;
-					}
-				}));
+			results.add(runner.submit(evaluatorFactory.createLearnerEvaluator(sPlus, sMinus, g, outputFileName, i, tests)));
 		}
 
-		for(Future<String> computationOutcome:results)
-		{
-			try {
-				System.out.println("RESULT: "+computationOutcome.get());
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	/** Displays twos graphs passed as arguments in the Jung window.
 	 * @param g the graph to display 
 	 * @param lowerGraph the graph to display below it
 	 */
-	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
+	public static void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
 	{
-
-		if (v == null)
-			v=new Visualiser();
+		final Visualiser v=new Visualiser();
 		v.update(null, g);
 		if (lowerGraph != null)
 		{
@@ -164,7 +292,7 @@ public class AccuracyAndQuestionsExperiment {
 		}
 	}
 	
-	private double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
+	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
@@ -260,21 +388,32 @@ public class AccuracyAndQuestionsExperiment {
     	dg = (DirectedSparseGraph)graphmlFile.load(fileName);
     	//Iterator<Vertex> vIt = dg.getVertices().iterator();
     	System.out.println(fileName);
-    	evaluate(dg);		
+    	evaluate("w_"+new File(fileName).getName(),dg);		
 	}
 	
 
 	/**
-	 * For dual-core operation, VM args should be -ea -Xmx1024m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
+	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
 	 * Quad-core would use -Dthreadnum=4 instead.
+	 * 
+	 * There are multiple modes of operation, process graphs, generate data for processing 
+	 * and dump sets to files, load data from files and process them, using a user-chosen learner. 
 	 * 
 	 * @param args command-line arguments
 	 */
-	public static void main(String[] args){
-		final AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment();
-		
+	public static void main(String[] args)
+	{
+		AccuracyAndQuestionsExperiment experiment = null;
 		if (args.length < 2)
 		{
+			experiment = new AccuracyAndQuestionsExperiment(new LearnerEvaluatorFactory() {
+
+				@Override
+				public LearnerEvaluator createLearnerEvaluator(Collection<List<String>> plus, Collection<List<String>> minus, DirectedSparseGraph g, String name, int per, Collection<List<String>> tests) {
+					return new RPNIEvaluator(plus, minus, g,name,per,tests);
+				}
+				
+			});
 			File graphDir = new File(args[0]);
 					//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); 
 					//"D:\\experiment\\Neil-Data2\\50-6");
@@ -292,6 +431,21 @@ public class AccuracyAndQuestionsExperiment {
 		else
 		{// args.length >=2
             experiment.processFile(args[0]);			
+		}
+
+		
+		// now display the results
+        for(Future<String> computationOutcome:experiment.results)
+		{
+			try {
+				System.out.println("RESULT: "+computationOutcome.get());
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 	

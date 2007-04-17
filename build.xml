@@ -1,0 +1,57 @@
+<!-- based on http://ant.apache.org/manual/ -->
+<project name="XMachineTool" default="test" basedir=".">
+    <description>
+        Builds the project and runs it on a series of data files
+    </description>
+  <!-- set global properties for this build -->
+  <property name="src" location="."/>
+  <property name="bin" location="bin"/>
+
+    <path id="classpath.main">
+      <fileset dir="lib">
+        <include name="**/*.jar"/>
+      </fileset>
+    </path>
+
+    <path id="classpath.full">
+      <path refid="classpath.main"/>
+      <pathelement location="NightTrain/lib/junit-4.1.jar"/>
+    </path>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${bin}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac srcdir="${src}" destdir="${bin}">
+       <classpath refid="classpath.full" />
+    </javac>
+  </target>
+
+  <target name="test" depends="compile" description="run unit tests">
+       <junit  fork="on" maxmemory="512m" forkmode="once" printsummary="yes" haltonfailure="yes">
+	<jvmarg value="-ea" /> 
+       <classpath>
+         <path refid="classpath.full" />
+         <pathelement location="${bin}"/>
+         </classpath>
+  <batchtest>
+    <fileset dir="${src}">
+      <include name="**/Test*.java"/>
+    </fileset>
+  </batchtest>
+       </junit>
+       
+  </target>
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${bin} directory tree -->
+    <delete dir="${bin}/statechum"/>
+  </target>
+</project>

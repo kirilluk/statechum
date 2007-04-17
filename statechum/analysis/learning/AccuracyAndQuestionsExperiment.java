@@ -37,7 +37,7 @@ import static statechum.xmachine.model.testset.WMethod.tracePath;
 
 public class AccuracyAndQuestionsExperiment {
 
-	Visualiser v = new Visualiser();
+	Visualiser v = null;
 	
 	public void evaluate(final DirectedSparseGraph g){
 		//updateFrame(g,g);
@@ -137,6 +137,9 @@ public class AccuracyAndQuestionsExperiment {
 	 */
 	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
 	{
+
+		if (v == null)
+			v=new Visualiser();
 		v.update(null, g);
 		if (lowerGraph != null)
 		{

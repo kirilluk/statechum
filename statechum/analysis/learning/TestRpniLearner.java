@@ -1283,23 +1283,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
 	}
 
-	@Ignore("only used occasionally")
-	@Test 
-	public final void testPerformanceOfCross()
-	{
-		List<List<String>> partA = new LinkedList<List<String>>(), partB = new LinkedList<List<String>>();
-		for(int i=0;i < 1000;++i)
-		{
-			List<String> seqA = new LinkedList<String>(),seqB = new LinkedList<String>();
-			for(int j=0;j < 2;++j)
-			{
-				seqA.add("A"+i+"_"+j);seqB.add("B"+i+"_"+j);
-			}
-			partA.add(seqA);partB.add(seqB);
-		}
-		WMethod.cross(partA, partB);
-	}
-
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	@BeforeClass

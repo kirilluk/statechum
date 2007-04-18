@@ -11,7 +11,34 @@ public class DeterministicDirectedSparseGraph {
 	/** The extension of the vertex where all operations are ID-based, for performance. */
 	public static class DeterministicVertex extends CmpVertex
 	{
+		protected int hashCode = super.hashCode();
+		
+		/* (non-Javadoc)
+		 * @see edu.uci.ics.jung.utils.UserDataDelegate#addUserDatum(java.lang.Object, java.lang.Object, edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
+		 */
+		@Override
+		public void addUserDatum(Object key, Object datum, CopyAction copyAct) {
+			if (key == JUConstants.LABEL)
+				hashCode = datum.hashCode();
+			super.addUserDatum(key, datum, copyAct);
+		}
 
+		/* (non-Javadoc)
+		 * @see edu.uci.ics.jung.utils.UserDataDelegate#setUserDatum(java.lang.Object, java.lang.Object, edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
+		 */
+		@Override
+		public void setUserDatum(Object key, Object datum, CopyAction copyAct) {
+			if (key == JUConstants.LABEL)
+				hashCode = datum.hashCode();
+			super.setUserDatum(key, datum, copyAct);
+		}
+
+		@Override
+		public int hashCode()
+		{
+			return hashCode;
+		}
+		
 		/* (non-Javadoc)
 		 * @see edu.uci.ics.jung.graph.impl.AbstractSparseVertex#toString()
 		 */

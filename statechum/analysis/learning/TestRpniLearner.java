@@ -710,9 +710,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Vertex 
 			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g),
 			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
-		StatePair expected = new StatePair(d,b),
-			actualA = RPNIBlueFringeLearner.findMergablePair(g);
-		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
+		Set<Vertex> expected = new HashSet<Vertex>();expected.add(d);expected.add(b);
+		Set<Vertex> actualA = new HashSet<Vertex>();StatePair value = RPNIBlueFringeLearner.findMergablePair(g);actualA.add(value.getQ());actualA.add(value.getR());
+		Assert.assertTrue("expected: B, D in either order got: "+actualA,expected.equals(actualA));
 	}
 	
 	@Test

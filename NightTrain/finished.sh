@@ -1,3 +1,3 @@
 #!/bin/sh
-date
+date> output/finished
 

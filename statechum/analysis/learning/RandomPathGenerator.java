@@ -23,8 +23,9 @@ public class RandomPathGenerator {
 	 *  
 	 * @param baseGraph
 	 * @param randomGenerator
+	 * @param extraToDiameter the length of paths will be diameter plus this value.
 	 */ 
-	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator) {
+	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int extraToDiameter) {
 		pathRandomNumberGenerator = randomGenerator;
 		sPlus = new LinkedList<List<String>>();
 		g = baseGraph;
@@ -33,7 +34,7 @@ public class RandomPathGenerator {
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		int diameter = distancesList.get(distancesList.size()-1).intValue();
-		this.populateRandomWalksC((int)Math.pow(g.getVertices().size(),2), diameter+5);
+		this.populateRandomWalksC((int)Math.pow(g.getVertices().size(),2), diameter+extraToDiameter);
 	}
 	
 	private Set<String> getOutgoingSymbols(Vertex v){

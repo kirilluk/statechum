@@ -18,6 +18,8 @@ import org.junit.BeforeClass;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.xmachine.model.testset.TestWMethod;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
@@ -559,8 +561,8 @@ public class TestFSMAlgo {
 	 */
 	public static DirectedSparseGraph buildGraph(String fsm,String name)
 	{
-		final Map<String,DirectedSparseVertex> existingVertices = new HashMap<String,DirectedSparseVertex>();
-		final Map<StatePair,DirectedSparseEdge> existingEdges = new HashMap<StatePair,DirectedSparseEdge>();
+		final Map<String,CmpVertex> existingVertices = new HashMap<String,CmpVertex>();
+		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
 		
 		final DirectedSparseGraph g = new DirectedSparseGraph();
 		g.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
@@ -568,7 +570,7 @@ public class TestFSMAlgo {
 		new fsmParser(fsm).parse(new TransitionReceiver()
 		{
 			public void put(String from, String to, String label, boolean accept) {
-				DirectedSparseVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
+				CmpVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
 				
 				if (fromVertex == null)
 				{
@@ -604,7 +606,7 @@ public class TestFSMAlgo {
 							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 				
 				StatePair pair = new StatePair(fromVertex,toVertex);
-				DirectedSparseEdge edge = existingEdges.get(pair);
+				DeterministicEdge edge = existingEdges.get(pair);
 				if (edge == null)
 				{
 					edge = new DeterministicDirectedSparseGraph.DeterministicEdge(fromVertex,toVertex);

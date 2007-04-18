@@ -28,6 +28,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.PairScore;
 import statechum.xmachine.model.testset.WMethod;
@@ -49,7 +51,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	protected int checkPath(FSMStructure expected, DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 	{
 		int answer = WMethod.tracePath(expected, question);
-		//System.out.println("questions: "+question+" answer "+answer);
 		return answer;
 	}
 
@@ -82,7 +83,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 		updateFrame(learningOutcome,g);
 		FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
-		System.out.println(l.getQuestionCounter());
 		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 	}
 	
@@ -215,6 +215,32 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		checkLess("a","b",4,"c","d",4);
 		checkLess("a","b",4,"a","c",4);
 		checkLess("a","b",4,"c","b",4);
+	}
+
+	@Test
+	public void testDDVertexComparison()
+	{
+		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+		
+	@Test
+	public void testDeterministicVertexComparison()
+	{
+		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
+		p.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
+		q.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
 	}
 
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
@@ -684,7 +710,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Vertex 
 			b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g),
 			d = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g);
-		StatePair expected = new StatePair(b,d),
+		StatePair expected = new StatePair(d,b),
 			actualA = RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
 	}
@@ -1145,7 +1171,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-u->U1-d->U2-c->U3\n"+
 				"A-q->Q1-d->Q2",
 				new String[]{"A"},
-				new String[][] {new String[]{"A","P1","Arej"}},
+				new String[][] {new String[]{"A","P1","Arej"},new String[]{"A","P1","P3"}},
 				pairsAndScores);
 	}
 	

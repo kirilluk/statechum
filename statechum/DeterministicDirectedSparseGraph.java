@@ -1,12 +1,15 @@
 package statechum;
 
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 
 public class DeterministicDirectedSparseGraph {
 
-	public static class DeterministicVertex extends DirectedSparseVertex
+	public static abstract class CmpVertex extends DirectedSparseVertex implements Comparable
+	{}
+	
+	/** The extension of the vertex where all operations are ID-based, for performance. */
+	public static class DeterministicVertex extends CmpVertex
 	{
 
 		/* (non-Javadoc)
@@ -14,26 +17,26 @@ public class DeterministicDirectedSparseGraph {
 		 */
 		@Override
 		public String toString() {
-			return getUserDatum(JUConstants.LABEL).toString();
+			if (containsUserDatumKey(JUConstants.LABEL))
+				return getUserDatum(JUConstants.LABEL).toString();
+			else
+				return super.toString();
 		}
 
-		/* (non-Javadoc)
-		 * @see edu.uci.ics.jung.graph.impl.AbstractElement#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			Object label = getUserDatum(JUConstants.LABEL);
-			return label.hashCode();
+		public int compareTo(Object o) {
+			assert o != null;
+			assert o instanceof DeterministicVertex : "an attempt to compare "+toString()+" with a non-CmpVertx "+o.toString();
+			DeterministicVertex v=(DeterministicVertex)o; 
+			if (v.id == this.id) return 0;
+			return (this.id < v.id)? -1:1;
 		}
-	
 	}
 
 	public static class DeterministicEdge extends DirectedSparseEdge
 	{
 
-		public DeterministicEdge(Vertex from, Vertex to) {
+		public DeterministicEdge(CmpVertex from, CmpVertex to) {
 			super(from, to);
-			assert from instanceof DeterministicVertex && to instanceof DeterministicVertex;
 		}
 
 		/* (non-Javadoc)

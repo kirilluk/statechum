@@ -1,6 +1,5 @@
  package statechum.analysis.learning;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
@@ -12,12 +11,8 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.xmachine.model.testset.WMethod;
-
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
-import edu.uci.ics.jung.utils.UserData;
 
 
 
@@ -34,7 +29,7 @@ public class RPNITester {
     	dg.getEdgeConstraints().clear();
     	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
 		
-		RandomPathGenerator rpg = new RandomPathGenerator(dg, new Random(1));
+		RandomPathGenerator rpg = new RandomPathGenerator(dg, new Random(1),5);
 		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(dg);
 		
@@ -116,7 +111,7 @@ public class RPNITester {
 			
 			for(int i=0;i< 2;++i)
 			{
-				DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
+				//DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
 				//g.getEdgeConstraints().clear();
 				computeStateScores aa = l.createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 				//l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);

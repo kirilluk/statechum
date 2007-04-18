@@ -52,7 +52,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		createAugmentedPTA(plus,minus);
 		
 		StringWriter report = new StringWriter();
-		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics()+" ] ");
+		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 
 		Stack<StatePair> possibleMerges = scoreComputer.chooseStatePairs();
@@ -70,6 +70,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
+			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
@@ -132,7 +133,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			
 			possibleMerges = scoreComputer.chooseStatePairs();
 		}
-		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics()+" ] ");
+		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum("STATS", report.toString(), UserData.SHARED);
 		return result;
 	}

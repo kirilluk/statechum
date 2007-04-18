@@ -82,7 +82,7 @@ public class AccuracyAndQuestionsExperiment {
 	    	graph.getEdgeConstraints().clear();
 	    	graph = (DirectedSparseGraph)graphmlFile.load(inputFileName);
 
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(percent+100));// the seed for Random should be the same for each file
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100));// the seed for Random should be the same for each file
 			WMethod tester = new WMethod(graph,0);
 			Collection<List<String>> fullTestSet = (Collection<List<String>>)tester.getFullTestSet();
 			tests = randomHalf(fullTestSet,new Random(0));

@@ -474,6 +474,20 @@ public class TestPTATestSequenceEngine
 		});
 	}
 
+	@Test
+	public final void test_sequenceSet5_2() // a more complex composition
+	{
+		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
+		seq.crossWithSequence(Arrays.asList(new String[] {"a","b","c"})).crossWithSet(new LinkedList<String>());
+		en.new sequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
+				new String[] {"a","b","c","d"},
+				new String[] {"c"}
+		}));
+		vertifyPTA(en, new String[][] {
+				new String[] {"a","b","c"}
+		});
+	}
+
 	/** In order to be able to use old junit runner. */
 	public static junit.framework.Test suite()
 	{

@@ -170,10 +170,26 @@ public class PTATestSequenceEngine
 		{
 			sequenceSet result = new sequenceSet();
 			
+			for(List<String> inputSequence:inputSequences)
+				for(PTATestSequenceEngine.Node node:ptaNodes)
+				{
+						PTATestSequenceEngine.Node currentNode = node;
+						Iterator<String> seqIt = inputSequence.iterator();
+						while(seqIt.hasNext() && currentNode.isAccept())
+							currentNode=followToNextNode(currentNode, seqIt.next());
+						
+						if (currentNode.isAccept())
+							result.ptaNodes.add(currentNode);
+				}
+			return result;
+		}
+
+		public sequenceSet crossWithSequence(List<String> inputSequence)
+		{
+			sequenceSet result = new sequenceSet();
+			
 			for(PTATestSequenceEngine.Node node:ptaNodes)
 			{
-				for(List<String> inputSequence:inputSequences)
-				{
 					PTATestSequenceEngine.Node currentNode = node;
 					Iterator<String> seqIt = inputSequence.iterator();
 					while(seqIt.hasNext() && currentNode.isAccept())
@@ -181,7 +197,6 @@ public class PTATestSequenceEngine
 					
 					if (currentNode.isAccept())
 						result.ptaNodes.add(currentNode);
-				}
 			}
 			
 			return result;

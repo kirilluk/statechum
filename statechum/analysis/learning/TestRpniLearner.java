@@ -32,6 +32,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.PairScore;
+import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.xmachine.model.testset.WMethod;
 import sun.reflect.generics.scope.Scope;
 
@@ -80,9 +81,16 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		if (visFrame != null) l.addObserver(visFrame);
-		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
+		DirectedSparseGraph learningOutcomeA = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 		//updateFrame(learningOutcome,g);
-		FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
+		FSMStructure learntStructureA = WMethod.getGraphData(learningOutcomeA);
+
+		// Now do the same with ptasets instead of real sets
+		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus));
+		DirectedSparseGraph learningOutcomeB = l.learnMachine(RPNIBlueFringeLearner.initialise(), plusPTA, minusPTA);
+		FSMStructure learntStructureB = WMethod.getGraphData(learningOutcomeB);
+		
+		TestFSMAlgo.checkMBoolean(learntStructureA, learntStructureB, learntStructureA.init, learntStructureB.init);
 		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 	}
 	

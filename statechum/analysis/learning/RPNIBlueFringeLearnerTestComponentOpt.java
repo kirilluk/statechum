@@ -13,7 +13,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.StringWriter;
 
+import samples.graph.VertexImageShaperDemo.Checkmark;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.xmachine.model.testset.PTASequenceSet;
+import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -48,8 +53,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	@Override
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus) {
 		this.sPlus = plus;
-		this.sMinus = minus;
-		createAugmentedPTA(plus,minus);
+		this.sMinus = minus;		
+		scoreComputer = createAugmentedPTA(plus,minus);
+		computeStateScores newPTA = null;
+		try { newPTA = (computeStateScores)scoreComputer.clone(); } 
+		catch (CloneNotSupportedException e) {	throw new IllegalArgumentException("failed to clone PTA");	}
 		
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
@@ -90,7 +98,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				if(answer == USER_ACCEPTED)
 				{
 					++counterAccepted;
-					sPlus.add(question);
+					sPlus.add(question);newPTA.augmentPTA(question, true);
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
 					if(!TestRpniLearner.isAccept(tempVertex))
@@ -103,8 +111,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					{// The sequence has been rejected by a user
 						assert answer < question.size();
 						++counterRejected;
-						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));sMinus.add(subAnswer);
-	
+						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
+						sMinus.add(subAnswer);newPTA.augmentPTA(subAnswer, false);
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
@@ -124,7 +132,12 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			
 			if (restartLearning)
 			{// restart learning
-				createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
+				try { scoreComputer = (computeStateScores)newPTA.clone(); } 
+				catch (CloneNotSupportedException e) {	throw new IllegalArgumentException("failed to clone PTA");	}
+				//FSMStructure current = WMethod.getGraphData(scoreComputer.getGraph()), parallel = WMethod.getGraphData(expected.getGraph());
+				//assert current.trans.equals(parallel.trans);
+				scoreComputer.clearColours();
 				setChanged();++counterRestarted;		
 			}
 			else
@@ -134,15 +147,16 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			possibleMerges = scoreComputer.chooseStatePairs();
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
+		report.write("\n[ final sets of questions, plus: "+plus.size()+" minus: "+minus.size()+" ] ");
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;
 	}
 		
 	protected computeStateScores createAugmentedPTA(Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
-		scoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
-		scoreComputer.augmentPTA(sMinus, false);
-		scoreComputer.augmentPTA(sPlus, true);
-		return scoreComputer;
+		computeStateScores newScoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
+		newScoreComputer.augmentPTA(sMinus, false);
+		newScoreComputer.augmentPTA(sPlus, true);
+		return newScoreComputer;
 	}
 	
 	protected void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)

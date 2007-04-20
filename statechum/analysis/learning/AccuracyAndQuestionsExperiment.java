@@ -31,6 +31,7 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.*;
+import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
@@ -156,11 +157,13 @@ public class AccuracyAndQuestionsExperiment {
 			changeParametersOnLearner(l);
 			DirectedSparseGraph learningOutcome = null;
 			String result = "" + percent+"%,";
-			String stats = "Instance: "+instanceID+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ " ";
+			String stats = "Instance: "+instanceID+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
 			String stdOutput = null;
 			try
 			{
-				learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+				PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
+				stats = stats + "Actual sequences, sPlus: "+plusPTA.size()+" sMinus: "+minusPTA.size()+ " ";
+				learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), plusPTA, minusPTA);
 				result = result+l.getQuestionCounter()+", "+computeAccuracy(learningOutcome, graph,tests);							
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);

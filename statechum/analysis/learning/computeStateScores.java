@@ -26,8 +26,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import statechum.xmachine.model.testset.PrefixFreeCollection;
-import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
 import statechum.xmachine.model.testset.WMethod;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 import statechum.xmachine.model.testset.WMethod.EquivalentStatesException;
@@ -66,6 +64,14 @@ public class computeStateScores implements Cloneable {
 					result.add(v.getUserDatum(JUConstants.LABEL).toString());
 		
 		return result;
+	}
+
+	/** Resets all the colour labelling to the initial value. */
+	public void clearColours()
+	{
+		for(Vertex v:transitionMatrix.keySet())
+			v.removeUserDatum("colour");
+		init.addUserDatum("colour", "red", UserData.SHARED);
 	}
 	
 	public void assignReds(Set<String> reds)
@@ -1040,7 +1046,8 @@ public class computeStateScores implements Cloneable {
 	 */
 	protected static final Object syncObj = new Object();
 	
-	protected int vertID = 1;
+	protected int vertPositiveID = 1;
+	protected int vertNegativeID = 1;
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
 	 * concurrently processing graphs. 
@@ -1054,7 +1061,9 @@ public class computeStateScores implements Cloneable {
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
-		newVertex.addUserDatum(JUConstants.LABEL, "V"+vertID++, UserData.SHARED);
+		newVertex.addUserDatum(JUConstants.LABEL, 
+				(accepted?"P"+vertPositiveID++:"N"+vertNegativeID++), 
+				UserData.SHARED);
 		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);
@@ -1064,48 +1073,52 @@ public class computeStateScores implements Cloneable {
 	public computeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)
 	{
 		for(List<String> sequence:strings)
+			augmentPTA(sequence, accepted);
+		return this;
+	}
+	
+	public computeStateScores augmentPTA(List<String> sequence, boolean accepted)
+	{
+		CmpVertex currentState = init, prevState = null;
+		Iterator<String> inputIt = sequence.iterator();
+		String lastInput = null;
+		int position = 0;
+		while(inputIt.hasNext() && currentState != null)
 		{
-			CmpVertex currentState = init, prevState = null;
-			Iterator<String> inputIt = sequence.iterator();
-			String lastInput = null;
-			int position = 0;
-			while(inputIt.hasNext() && currentState != null)
-			{
-				if (!TestRpniLearner.isAccept(currentState))
-				{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
-					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
-					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
-				}
-				prevState = currentState;lastInput = inputIt.next();++position;
-				
-				currentState = transitionMatrix.get(prevState).get(lastInput);
+			if (!TestRpniLearner.isAccept(currentState))
+			{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
+				currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
 			}
+			prevState = currentState;lastInput = inputIt.next();++position;
 			
-			if (currentState == null)
-			{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
-
-				synchronized (syncObj) {
-					while(inputIt.hasNext())
-					{
-						prevState = addVertex(prevState, true, lastInput);
-						lastInput = inputIt.next();
-					}
-					// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-					addVertex(prevState, accepted, lastInput);
-				}
-				
-			}
-			else
-			{// we reached the end of the PTA
-				if (TestRpniLearner.isAccept(currentState) != accepted)
-				{
-					currentState.addUserDatum("pair", "whatever", UserData.SHARED);
-					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
-				}
-				
-			}
+			currentState = transitionMatrix.get(prevState).get(lastInput);
 		}
 		
+		if (currentState == null)
+		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
+
+			synchronized (syncObj) {
+				while(inputIt.hasNext())
+				{
+					prevState = addVertex(prevState, true, lastInput);
+					lastInput = inputIt.next();
+				}
+				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+				addVertex(prevState, accepted, lastInput);
+			}
+			
+		}
+		else
+		{// we reached the end of the PTA
+			if (TestRpniLearner.isAccept(currentState) != accepted)
+			{
+				currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+			}
+			
+		}
+	
 		return this;
 	}
 	

@@ -311,9 +311,9 @@ public class WMethod {
 		return returnVect;
 	}
 
-	public static LinkedHashSet<String> computeAlphabet(DirectedSparseGraph g)
+	public static Set<String> computeAlphabet(DirectedSparseGraph g)
 	{
-		LinkedHashSet<String> alphabet = new LinkedHashSet<String>();
+		Set<String> alphabet = new TreeSet<String>();
 
 		for(Edge e:(Set<Edge>)g.getEdges())
 				alphabet.addAll( (Set<String>)e.getUserDatum(JUConstants.LABEL) );

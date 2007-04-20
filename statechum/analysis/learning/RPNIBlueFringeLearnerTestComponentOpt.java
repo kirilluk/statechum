@@ -60,7 +60,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			StatePair pair = (StatePair)possibleMerges.pop();
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
-			List<List<String>> questions = new LinkedList<List<String>>();
+			Collection<List<String>> questions = new LinkedList<List<String>>();
 			if(scoreComputer.computeStateScore(pair)<this.certaintyThreshold)
 			{
 				questions = scoreComputer.computeQS(pair, temp);
@@ -134,7 +134,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			possibleMerges = scoreComputer.chooseStatePairs();
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
-		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum("STATS", report.toString(), UserData.SHARED);
+		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;
 	}
 		

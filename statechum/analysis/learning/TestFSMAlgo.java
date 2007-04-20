@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1534,7 +1535,7 @@ public class TestFSMAlgo {
 		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
 		// first pass - computing an alphabet
-		LinkedHashSet<String> alphabet = WMethod.computeAlphabet(g);
+		Set<String> alphabet = WMethod.computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
 		Set<String> outLabels = new HashSet<String>();
@@ -1561,7 +1562,7 @@ public class TestFSMAlgo {
 				Vertex v = vertexIt.next();
 				if (v != rejectVertex)
 				{// no transitions should start from the reject vertex
-					Set<String> outgoingLabels = (Set<String>)alphabet.clone();
+					Set<String> outgoingLabels = new TreeSet<String>();outgoingLabels.addAll(alphabet);
 					
 					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
 					while(outEdgeIt.hasNext()){

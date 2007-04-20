@@ -60,7 +60,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		final DirectedSparseGraph completedGraph = (DirectedSparseGraph)g.copy();TestFSMAlgo.completeGraph(completedGraph, "REJECT");
 		final FSMStructure expected = WMethod.getGraphData(g);
 		
-		updateFrame(g, g);
+		//updateFrame(g, g);
 
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
@@ -81,7 +81,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setCertaintyThreshold(5);
 		if (visFrame != null) l.addObserver(visFrame);
 		DirectedSparseGraph learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
-		updateFrame(learningOutcome,g);
+		//updateFrame(learningOutcome,g);
 		FSMStructure learntStructure = WMethod.getGraphData(learningOutcome);
 		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 	}
@@ -218,9 +218,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 
 	@Test
-	public void testDDVertexComparison()
+	public void testDeterministicVertexComparison1()
 	{
-		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
+		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -230,7 +230,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 		
 	@Test
-	public void testDeterministicVertexComparison()
+	public void testDeterministicVertexComparison2()
 	{
 		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
 		p.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
@@ -243,6 +243,15 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		assertEquals(0,q.compareTo(q));
 	}
 
+	@Test
+	public void testDeterministicVertexComparison3()
+	{
+		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)==0);
+	}
+	
+	DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm)
 	{
@@ -265,7 +274,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair),
 			tempB = computeStateScores.mergeAndDeterminize(g, pair);
 		
-		//setDebugMode(true);updateFrame(g, temp);
+		//setDebugMode(true);updateFrame(g, computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"),pair).getGraph());
 
 		// Now check that computeStateScores properly does  mergeAndDeterminize 
 		// (on the test data we are dealing with in these tests, there are separate tests for mergeAndDeterminize)
@@ -278,7 +287,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			newScoreA = s.computeStateScore(pair),
 			newScoreB = s.computePairCompatibilityScore(pair);
 		Collection<List<String>> 
-			questionsA = s.computeQS(pair,temp),
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
 			questionsB = s.computeQS(pair, computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair));
 				
@@ -292,9 +300,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			
 			Set<List<String>> oldQuestions = new HashSet<List<String>>();oldQuestions.addAll(generateQuestions(g,temp, pair));
 			//Assert.assertTrue(oldQuestions.size() > 0);
-			//Set<List<String>> newQuestionsA = new HashSet<List<String>>();newQuestionsA.addAll(questionsA);
 			Set<List<String>> newQuestionsB = new HashSet<List<String>>();newQuestionsB.addAll(questionsB);
-			//Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsA,oldQuestions.equals(newQuestionsA));
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsB,oldQuestions.equals(newQuestionsB));
 		}
 	}
@@ -630,6 +636,47 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nA2-r->A3-r->A4-i->A5",4);
 	}
+	
+	@Test
+	public final void testNewLearner_4_10() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-b->A2\n"+
+				"A-d->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",5);
+	}
+	
+	@Test
+	public final void testNewLearner_4_11a() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-d->A-a->A1-b->A2\n"+
+				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+	}
+	
+	@Test
+	public final void testNewLearner_4_11b() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("R-q->S-n->A-d->A-a->A1-b->A2\n"+
+				"R-p->S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+	}
+	
+	@Test
+	public final void testNewLearner_4_12() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-a->A1-b->A2\n"+
+				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",0);
+	}
+	
+	@Test
+	public final void testNewLearner_4_13() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
+	{
+		testNewLearnerQuestions("S-n->A-d->A-a->A1-b->A2\n"+
+				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+	}
+	
 	
 	@Test
 	public final void testGetTempRed1()
@@ -1013,6 +1060,21 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			false);
 	}
 
+	@Test
+	public final void testMerge12()
+	{
+		checkCorrectnessOfMerging(
+				"S-n->A-d->A-a->A1-b->A2\n"+
+				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",
+			"S-n->A-d->A-a->A1-b->A2\n"+
+			"S-m->A\nA2-c->B3\nA2-f->C4\n",
+			
+			"B","A",
+			false);
+	}
+
+	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail1()
 	{
@@ -1110,7 +1172,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			Assert.assertTrue(elem.getR().getUserDatum("colour").equals("red"));
 			Assert.assertTrue(elem.getQ().getUserDatum("colour").equals("blue"));
 			Assert.assertTrue(currentScore >= 0);
-			Assert.assertTrue(distribution.containsKey(currentScore));
+			Assert.assertTrue("unexpected pair returned: "+elem+", score "+currentScore,distribution.containsKey(currentScore));
 			Set<PairScore> ps = distribution.get(currentScore);
 			Assert.assertTrue("unexpected state pair "+elem+" with score "+currentScore,
 					ps.contains(elA) || ps.contains(elB));
@@ -1138,7 +1200,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			pairsAndScores.add(constructPairScore(state, "P1", 0));
 
 		testChooseStatePairs(
-				"A-a-#Arej\nA-d->A2-c->A2\n"+
+				"A-a-#Arej\nA-d->A2-c->A3-c->A4-c->A5\n"+
 				"A-p->P1-a->P2\n"+
 				"A-s->S1-d->S2-c->S3-c->S4\n"+
 				"A-r->R1-d->R2-c->R3\n"+
@@ -1164,7 +1226,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		pairsAndScores.add(constructPairScore("P3", "Arej", 0));
 
 		testChooseStatePairs(
-				"A-a-#Arej\nA-d->A2-c->A2\n"+
+				"A-a-#Arej\nA-d->A2-c->A3-c->A4-c->A5\n"+
 				"A-p->P1-a->P2\n"+"P1-b-#P3\n"+
 				"A-s->S1-d->S2-c->S3-c->S4\n"+
 				"A-r->R1-d->R2-c->R3\n"+
@@ -1314,7 +1376,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = null;
+		visFrame = null;computeStateScores.testMode = true;
 	}
 	
 	@AfterClass

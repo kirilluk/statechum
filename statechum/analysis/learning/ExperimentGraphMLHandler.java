@@ -9,6 +9,7 @@ import edu.uci.ics.jung.graph.decorators.StringLabeller;
 
 import java.util.*;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
@@ -63,7 +64,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             throw new FatalException("Error parsing graph. Graph element must be specified before node element.");
         }
 
-        ArchetypeVertex vertex = mGraph.addVertex(new SparseVertex());
+        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex());
         String idString = (String) attributeMap.remove("id");
 
         try {

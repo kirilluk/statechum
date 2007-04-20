@@ -2,6 +2,7 @@ package statechum;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
+import edu.uci.ics.jung.utils.UserData;
 
 public class DeterministicDirectedSparseGraph {
 
@@ -11,15 +12,27 @@ public class DeterministicDirectedSparseGraph {
 	/** The extension of the vertex where all operations are ID-based, for performance. */
 	public static class DeterministicVertex extends CmpVertex
 	{
+		protected String label = null;
 		protected int hashCode = super.hashCode();
 		
+		public DeterministicVertex(String string) {
+			super();addUserDatum(JUConstants.LABEL, string, UserData.SHARED);
+		}
+
+		public DeterministicVertex() {
+			super();
+		}
+
 		/* (non-Javadoc)
 		 * @see edu.uci.ics.jung.utils.UserDataDelegate#addUserDatum(java.lang.Object, java.lang.Object, edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
 		 */
 		@Override
 		public void addUserDatum(Object key, Object datum, CopyAction copyAct) {
 			if (key == JUConstants.LABEL)
+			{
+				label = (String)datum;
 				hashCode = datum.hashCode();
+			}
 			super.addUserDatum(key, datum, copyAct);
 		}
 
@@ -29,7 +42,10 @@ public class DeterministicDirectedSparseGraph {
 		@Override
 		public void setUserDatum(Object key, Object datum, CopyAction copyAct) {
 			if (key == JUConstants.LABEL)
+			{
+				label = (String)datum;
 				hashCode = datum.hashCode();
+			}
 			super.setUserDatum(key, datum, copyAct);
 		}
 
@@ -44,8 +60,8 @@ public class DeterministicDirectedSparseGraph {
 		 */
 		@Override
 		public String toString() {
-			if (containsUserDatumKey(JUConstants.LABEL))
-				return getUserDatum(JUConstants.LABEL).toString();
+			if (label != null)
+				return label;
 			else
 				return super.toString();
 		}
@@ -53,9 +69,11 @@ public class DeterministicDirectedSparseGraph {
 		public int compareTo(Object o) {
 			assert o != null;
 			assert o instanceof DeterministicVertex : "an attempt to compare "+toString()+" with a non-CmpVertx "+o.toString();
-			DeterministicVertex v=(DeterministicVertex)o; 
-			if (v.id == this.id) return 0;
-			return (this.id < v.id)? -1:1;
+			DeterministicVertex v=(DeterministicVertex)o;
+			if (this == v) return 0;
+			return label.compareTo(v.label);
+			//if (v.id == this.id) return 0;
+			//return (this.id < v.id)? -1:1;
 		}
 	}
 

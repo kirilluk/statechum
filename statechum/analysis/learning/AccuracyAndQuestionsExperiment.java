@@ -58,7 +58,7 @@ public class AccuracyAndQuestionsExperiment {
 	
 	public abstract static class LearnerEvaluatorGenerator 
 	{
-		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, String ouputDir, int percent);
+		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, String ouputDir, int percent, int instanceID);
 	}
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
@@ -68,27 +68,34 @@ public class AccuracyAndQuestionsExperiment {
 		protected String inputFileName = null, outputDir = null;
 		protected Collection<List<String>> tests = null;
 		protected int percent;
+		protected final int instanceID;
 		
-		public LearnerEvaluator(String inputFile, String outputD, int per) 
+		public LearnerEvaluator(String inputFile, String outputD, int per, int inID) 
 		{
-			inputFileName = inputFile;outputDir = outputD;percent = per;			
+			inputFileName = inputFile;outputDir = outputD;percent = per;instanceID = inID;			
 		}
 
+		protected void loadGraph()
+		{
+			synchronized (computeStateScores.syncObj) 
+			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+		    	GraphMLFile graphmlFile = new GraphMLFile();
+		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+		    	graph = new DirectedSparseGraph();
+		    	graph.getEdgeConstraints().clear();
+		    	graph = (DirectedSparseGraph)graphmlFile.load(inputFileName);
+			}
+		}
+		
 		protected void buildSets()
 		{
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	graph = new DirectedSparseGraph();
-	    	graph.getEdgeConstraints().clear();
-	    	graph = (DirectedSparseGraph)graphmlFile.load(inputFileName);
-
+			loadGraph();
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),4);// the seed for Random should be the same for each file
 			WMethod tester = new WMethod(graph,0);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			//tests = randomHalf(fullTestSet,new Random(0));
 			Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
 			// this one ensures that walks are of length diameter+5 if they exist and some will not exist
-			
 			//l.setCertaintyThreshold(2);
 			//Collection<List<String>> sampleSet = randomHalf(fullSampleSet,new Random(1));
 			//Vector<List<String>> samples = new Vector<List<String>>();
@@ -104,6 +111,8 @@ public class AccuracyAndQuestionsExperiment {
 			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 
+		public static Collection<List<String>> plus = null;
+		
 		public enum FileType { 
 			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
 			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
@@ -120,9 +129,9 @@ public class AccuracyAndQuestionsExperiment {
 	/** This one is not static because it refers to the frame to display results. */
 	public static class RPNIEvaluator extends LearnerEvaluator
 	{
-		public RPNIEvaluator(String inputFile, String outputDir, int per)
+		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
 		{
-			super(inputFile, outputDir, per);			
+			super(inputFile, outputDir, per,instanceID);			
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
@@ -133,7 +142,7 @@ public class AccuracyAndQuestionsExperiment {
 		
 		public String call()
 		{
-			System.out.println(inputFileName+" "+percent + "% started");
+			System.out.println(inputFileName+" (instance "+instanceID+") "+percent + "% started");
 			buildSets();
 			
 			final FSMStructure fsm = WMethod.getGraphData(graph);
@@ -147,7 +156,7 @@ public class AccuracyAndQuestionsExperiment {
 			changeParametersOnLearner(l);
 			DirectedSparseGraph learningOutcome = null;
 			String result = "" + percent+"%,";
-			String stats = "sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ " ";
+			String stats = "Instance: "+instanceID+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ " ";
 			String stdOutput = null;
 			try
 			{
@@ -156,12 +165,8 @@ public class AccuracyAndQuestionsExperiment {
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)
-					stats = stats+(learningOutcome.containsUserDatumKey("STATS")? "\n"+learningOutcome.getUserDatum("STATS").toString():"");
+					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
 				System.out.println(inputFileName+" "+percent +"% terminated");
-				
-				// now record the result
-				Writer outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
-				outputWriter.write(result+"\nSTATS: "+stats);outputWriter.close();
 				
 				stdOutput = inputFileName+" "+result+"\nSTATS: "+stats;
 			}
@@ -171,6 +176,20 @@ public class AccuracyAndQuestionsExperiment {
 				th.printStackTrace();
 				th.printStackTrace(new PrintWriter(writer));
 				stdOutput = result+"\nFAILED\nSTACK: "+writer.toString();
+			}
+			
+			// now record the result
+			try
+			{
+				Writer outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
+				outputWriter.write(result+"\nSTATS: "+stats);outputWriter.close();
+			}
+			catch(IOException e)
+			{
+				StringWriter writer = new StringWriter();
+				e.printStackTrace();
+				e.printStackTrace(new PrintWriter(writer));
+				stdOutput = stdOutput+"\nFAILED TO WRITE A REPORT :"+writer.toString();
 			}
 			return stdOutput;
 		}
@@ -298,8 +317,8 @@ public class AccuracyAndQuestionsExperiment {
 	public static final LearnerEvaluatorGenerator [] learnerGenerators = {
 		new LearnerEvaluatorGenerator() {
 			@Override
-			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent) {
-				return new RPNIEvaluator(inputFile,outputDir, percent);
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
+				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID);
 			}
 		}
 		// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one
@@ -319,7 +338,7 @@ public class AccuracyAndQuestionsExperiment {
 		if (Number < 0 || Number >= stageNumber*LearnerNumber)
 			throw new IllegalArgumentException("Array task number "+Number+" for file "+inputFile+" is out of range, it should be between 0 and "+LearnerNumber*stageNumber);
 		int percentStage = Number % stageNumber;
-		results.add(runner.submit(learnerGenerators[Number / stageNumber].getLearnerEvaluator(inputFile, outputDir, 100*(1+percentStage)/stageNumber)));
+		results.add(runner.submit(learnerGenerators[Number / stageNumber].getLearnerEvaluator(inputFile, outputDir, 100*(1+percentStage)/stageNumber, Number)));
 	}
 	
 	protected final String outputDir;

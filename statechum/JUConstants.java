@@ -8,4 +8,5 @@ public interface JUConstants {
 	final String FALSE = "false";
 	final String PROPERTY = "property";
 	final String INIT = "init";
+	final String STATS = "STATS";
 }

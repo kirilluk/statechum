@@ -55,15 +55,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		this.sPlus = plus;
 		this.sMinus = minus;		
 		scoreComputer = createAugmentedPTA(plus,minus);
-		computeStateScores newPTA = null;
-		try { newPTA = (computeStateScores)scoreComputer.clone(); } 
-		catch (CloneNotSupportedException e) {	throw new IllegalArgumentException("failed to clone PTA");	}
+		computeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 
 		Stack<StatePair> possibleMerges = scoreComputer.chooseStatePairs();
+		int plusSize = plus.size(), minusSize = minus.size();
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
@@ -98,7 +97,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				if(answer == USER_ACCEPTED)
 				{
 					++counterAccepted;
-					sPlus.add(question);newPTA.augmentPTA(question, true);
+					//sPlus.add(question);
+					newPTA.augmentPTA(question, true);++plusSize;
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
 					if(!TestRpniLearner.isAccept(tempVertex))
@@ -112,7 +112,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						assert answer < question.size();
 						++counterRejected;
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
-						sMinus.add(subAnswer);newPTA.augmentPTA(subAnswer, false);
+						//sMinus.add(subAnswer);
+						newPTA.augmentPTA(subAnswer, false);++minusSize ;
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
@@ -120,23 +121,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 							restartLearning = true;break;
 						}
 					}
-					else if (answer == USER_ACCEPTED-1){
-						// sPlus = this.parentFrame.addTest(sPlus);
-						if(sPlus == null)
-							return model;
-						//if(!containsSubString(sPlus, question))
-						//	return learnMachine(initialise(), sPlus, sMinus);
-					}
+					else 
+						throw new IllegalArgumentException("unexpected user choice");
 				
 			}
 			
 			if (restartLearning)
 			{// restart learning
 				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
-				try { scoreComputer = (computeStateScores)newPTA.clone(); } 
-				catch (CloneNotSupportedException e) {	throw new IllegalArgumentException("failed to clone PTA");	}
-				//FSMStructure current = WMethod.getGraphData(scoreComputer.getGraph()), parallel = WMethod.getGraphData(expected.getGraph());
-				//assert current.trans.equals(parallel.trans);
+				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				setChanged();++counterRestarted;		
 			}
@@ -147,7 +140,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			possibleMerges = scoreComputer.chooseStatePairs();
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
-		report.write("\n[ final sets of questions, plus: "+plus.size()+" minus: "+minus.size()+" ] ");
+		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;
 	}

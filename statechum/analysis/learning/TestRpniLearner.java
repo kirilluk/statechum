@@ -1108,7 +1108,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 
 	protected interface InterfaceChooserToTest {
-		Stack<StatePair> choosePairs();
+		Stack<? extends StatePair> choosePairs();
 	}
 
 	/**
@@ -1128,7 +1128,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		final DirectedSparseGraph gB = TestFSMAlgo.buildGraph(fsm, "testChooseStatePairs_Ref");
 		// check how the reference pair selection function performs
 		testChooseStatePairsInternal(gB, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public Stack<StatePair> choosePairs() {
+			public Stack<? extends StatePair> choosePairs() {
 				return chooseStatePairs(gB, new HashSet<List<String>>(), new HashSet<List<String>>());
 			}
 		});
@@ -1138,7 +1138,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		// check how the revised pair selection function performs
 		final computeStateScores s = new computeStateScores(gA,"SINK");
 		testChooseStatePairsInternal(gA, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public Stack<StatePair> choosePairs() {
+			public Stack<? extends StatePair> choosePairs() {
 				return s.chooseStatePairs();
 			}
 		});
@@ -1150,7 +1150,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		{
 			Vertex v = findVertex(JUConstants.LABEL, red, g);v.removeUserDatum("colour");v.addUserDatum("colour", "red", UserData.SHARED);
 		}
-		Stack<StatePair> pairs = chooser.choosePairs();
+		Stack<? extends StatePair> pairs = chooser.choosePairs();
 		Map<Integer,Set<PairScore>> distribution = new HashMap<Integer,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
 
 		Set<Set<String>> expectedRedsAsSet = new HashSet<Set<String>>();

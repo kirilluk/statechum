@@ -403,7 +403,7 @@ public class computeStateScores implements Cloneable {
 	
 	public static class PairScore extends StatePair implements Comparable
 	{
-		protected final int score;
+		private final int score;
 
 		public PairScore(Vertex q, Vertex r, int sc) {
 			super(q, r);
@@ -465,7 +465,7 @@ public class computeStateScores implements Cloneable {
 	}
 	
 	
-	protected Stack<StatePair> chooseStatePairs()
+	protected Stack<computeStateScores.PairScore> chooseStatePairs()
 	{
 		pairsAndScores.clear();
 		Set<Vertex> reds = new LinkedHashSet<Vertex>();
@@ -541,7 +541,7 @@ public class computeStateScores implements Cloneable {
 
 		Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 				//, new Comparator(){	public int compare(Object o1, Object o2) { return ((PairScore)o2).compareTo(o1); }
-		Stack<StatePair> result = new Stack<StatePair>();
+		Stack<computeStateScores.PairScore> result = new Stack<computeStateScores.PairScore>();
 		if (pairsMergedPerHypothesis > 0)
 		{
 			int numberOfElements = Math.min(pairsAndScores.size(),pairsMergedPerHypothesis);

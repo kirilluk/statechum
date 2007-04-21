@@ -1,48 +1,19 @@
 package statechum.analysis.learning;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
-import java.awt.Point;
-import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
-import javax.swing.SwingUtilities;
-
-import junit.framework.AssertionFailedError;
 import junit.framework.JUnit4TestAdapter;
 
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import statechum.JUConstants;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.analysis.learning.computeStateScores.PairScore;
-import statechum.xmachine.model.testset.TestWMethod;
-import statechum.xmachine.model.testset.WMethod;
+import statechum.analysis.learning.computeStateScores.IDMode;
 
-import edu.uci.ics.jung.graph.Edge;
-import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
-import edu.uci.ics.jung.utils.UserData;
 
 public class TestPTAConstruction
 {
@@ -55,7 +26,7 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new computeStateScores(0,0).augmentPTA(plusStrings, true).getGraph();
+			actualC = new computeStateScores(0,0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);
@@ -151,7 +122,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			actualC = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(plusStrings, minusStrings).getGraph();
+			actualC = new RPNIBlueFringeLearnerTestComponentOpt(null).setMode(IDMode.POSITIVE_NEGATIVE).createAugmentedPTA(plusStrings, minusStrings).getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{

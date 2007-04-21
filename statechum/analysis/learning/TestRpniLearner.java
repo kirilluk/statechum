@@ -31,6 +31,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.analysis.learning.computeStateScores.PairScore;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.xmachine.model.testset.WMethod;
@@ -69,7 +70,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		for(String [] path:minus)
 			assert RPNIBlueFringeLearner.USER_ACCEPTED != WMethod.tracePath(expected, Arrays.asList(path));
 		
-		RPNIBlueFringeLearnerTestComponent l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
+		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
 		{
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
@@ -81,6 +82,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		if (visFrame != null) l.addObserver(visFrame);
+		l.setMode(IDMode.POSITIVE_NEGATIVE);
 		DirectedSparseGraph learningOutcomeA = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
 		//updateFrame(learningOutcome,g);
 		FSMStructure learntStructureA = WMethod.getGraphData(learningOutcomeA);

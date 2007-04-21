@@ -17,6 +17,7 @@ import samples.graph.VertexImageShaperDemo.Checkmark;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.xmachine.model.testset.WMethod;
 
@@ -46,6 +47,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	computeStateScores scoreComputer = null;
 
 	private int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
+	
+	protected IDMode mode = computeStateScores.IDMode.NONE;
+	
+	public RPNIBlueFringeLearnerTestComponentOpt setMode(IDMode m)
+	{
+		mode = m;return this;
+	}
 	
 	/* (non-Javadoc)
 	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#learnMachine(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
@@ -113,7 +121,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						++counterRejected;
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
 						//sMinus.add(subAnswer);
-						newPTA.augmentPTA(subAnswer, false);++minusSize ;
+						newPTA.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs is 
+						// only unique for each instance of computeStateScores, only once 
+						// instance should ever receive calls to augmentPTA
+						
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
@@ -147,6 +158,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		
 	protected computeStateScores createAugmentedPTA(Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
 		computeStateScores newScoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
+		newScoreComputer.setMode(mode);
 		newScoreComputer.augmentPTA(sMinus, false);
 		newScoreComputer.augmentPTA(sPlus, true);
 		return newScoreComputer;

@@ -30,6 +30,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
@@ -321,7 +322,25 @@ public class AccuracyAndQuestionsExperiment {
 		new LearnerEvaluatorGenerator() {
 			@Override
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID);
+				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
+				{
+					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+					{
+						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_NEGATIVE);
+					}
+				};
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
+				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
+				{
+					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+					{
+						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_ONLY);
+					}
+				};
 			}
 		}
 		// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one

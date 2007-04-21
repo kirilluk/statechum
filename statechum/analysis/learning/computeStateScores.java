@@ -21,6 +21,8 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.text.Position;
+
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -1049,6 +1051,27 @@ public class computeStateScores implements Cloneable {
 	protected int vertPositiveID = 1;
 	protected int vertNegativeID = 1;
 	
+	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY };
+	
+	protected IDMode id_mode = IDMode.NONE; // creation of new vertices is prohibited.
+	
+	public computeStateScores setMode(IDMode m)
+	{
+		id_mode = m;return this;
+	}
+	
+	/** Generates vertice IDs. */
+	public String nextID(boolean accepted)
+	{
+		if (id_mode == IDMode.POSITIVE_NEGATIVE)
+			return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
+		else
+			if (id_mode == IDMode.POSITIVE_ONLY)
+				return "V"+vertPositiveID++;
+			else
+				throw new IllegalArgumentException("unknown vertex id allocation mode");
+	}
+	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
 	 * concurrently processing graphs. 
 	 *  
@@ -1062,7 +1085,7 @@ public class computeStateScores implements Cloneable {
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 		newVertex.addUserDatum(JUConstants.LABEL, 
-				(accepted?"P"+vertPositiveID++:"N"+vertNegativeID++), 
+				nextID(accepted), 
 				UserData.SHARED);
 		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());

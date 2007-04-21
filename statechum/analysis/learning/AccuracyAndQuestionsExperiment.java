@@ -199,7 +199,7 @@ public class AccuracyAndQuestionsExperiment {
 			};
 			DirectedSparseGraph learningOutcome = null;
 			String result = "";
-			String stats = "Instance: "+instanceID+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
+			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
 			try
 			{
 				changeParametersOnLearner(l);
@@ -359,6 +359,12 @@ public class AccuracyAndQuestionsExperiment {
 						super.changeParametersOnLearner(l);
 						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_NEGATIVE);
 					}
+					
+					@Override
+					public String toString()
+					{
+						return "RPNI, POSITIVE_NEGATIVE";
+					}
 				};
 			}
 		},
@@ -371,6 +377,12 @@ public class AccuracyAndQuestionsExperiment {
 					{
 						super.changeParametersOnLearner(l);
 						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_ONLY);
+					}
+
+					@Override
+					public String toString()
+					{
+						return "RPNI, POSITIVE_ONLY";
 					}
 				};
 			}
@@ -419,20 +431,32 @@ public class AccuracyAndQuestionsExperiment {
 		loadFileNames(fileNameListReader);
 		final int LearnerNumber = learnerGenerators.length;
 		final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
-		if (Number < 0)
-			return NumberMax;
+		if (Number < 0 || Number >= NumberMax)
+			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
 		else
-			if (Number >= NumberMax)
-				throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
-			else
-			{// the number is valid.
-				int learnerStep = fileName.size()*stageNumber;
-				int learnerType = Number / learnerStep;
-				int fileNumber = (Number % learnerStep) / stageNumber;
-				int percentStage = (Number % learnerStep) % stageNumber;
-				results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
-				return 0;
-			}
+		{// the number is valid.
+			int learnerStep = fileName.size()*stageNumber;
+			int learnerType = Number / learnerStep;
+			int fileNumber = (Number % learnerStep) / stageNumber;
+			int percentStage = (Number % learnerStep) % stageNumber;
+			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
+			return 0;
+		}
+	}
+
+	public void dumpMaxNumber(String fileNameList)
+	{
+		try
+		{
+			loadFileNames(new FileReader(fileNameList));
+			final int LearnerNumber = learnerGenerators.length;
+			final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
+			System.out.println(NumberMax);
+		}
+		catch(Exception e)
+		{
+			System.out.println("0");
+		}
 	}
 	
 	protected final String outputDir;
@@ -477,7 +501,12 @@ public class AccuracyAndQuestionsExperiment {
 		else
 		{// args.length >=2
             try {
-				experiment.processDataSet(new FileReader(args[0]), Integer.parseInt(args[1]));
+            	int num = Integer.parseInt(args[1]);
+            	if (num >= 0)
+            		experiment.processDataSet(new FileReader(args[0]), num);
+            	else
+            		experiment.dumpMaxNumber(args[0]);
+            	
 			} catch (Exception e) {
 				System.out.println("FAILED");
 				e.printStackTrace();

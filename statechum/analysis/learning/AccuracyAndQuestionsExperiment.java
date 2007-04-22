@@ -112,7 +112,7 @@ public class AccuracyAndQuestionsExperiment {
 			try
 			{
 				outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
-				outputWriter.write(inputFileName+FS+percent+FS+outcome+(result == null? "":FS+result));
+				outputWriter.write(inputFileName+FS+percent+FS+outcome+(result == null? "":FS+result)+"\n");
 			}
 			catch(IOException e)
 			{

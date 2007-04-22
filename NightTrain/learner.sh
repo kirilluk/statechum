@@ -6,7 +6,7 @@ STATUS=$OUTPUT/status_$TASK_ID
 date> $STATUS
 free>>$STATUS
 date> $OUTPUT/running_$TASK_ID
-../jr.sh -ea -Xmx850m -XX:NewRatio=1 -Xms800m statechum.analysis.learning.AccuracyAndQuestionsExperiment $MACHINES $TASK_ID 
+../jr.sh -ea -Xmx850m -XX:NewRatio=1 -Xms800m statechum.analysis.learning.AccuracyAndQuestionsExperiment $MACHINES $OUTPUT $TASK_ID 
 date>>$STATUS
 free>>$STATUS
 rm    $OUTPUT/running_$TASK_ID

@@ -468,14 +468,15 @@ public class AccuracyAndQuestionsExperiment {
 	 * There are multiple modes of operation, process graphs, generate data for processing 
 	 * and dump sets to files, load data from files and process them, using a user-chosen learner. 
 	 * 
-	 * @param args command-line arguments
+	 * @param args command-line arguments, a directory name to process all files inside it or
+	 * <FILENAMES_FILE> <OUTPUT_DIR> <NUMBER> where FILENAMES_FILE contains files to process, OUTPUT_DIR is where to store output and NUMBER is the task number
 	 */
 	public static void main(String[] args)
 	{
         if (100 % stageNumber != 0)
         	throw new IllegalArgumentException("wrong compiled-in stageNumber="+stageNumber+": it should be a divisor of 100");
 
-        String outputDir = "output";
+        String outputDir = args.length < 2? "output":args[1];
         AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment(outputDir);
 		if (args.length < 2)
 		{
@@ -501,7 +502,7 @@ public class AccuracyAndQuestionsExperiment {
 		else
 		{// args.length >=2
             try {
-            	int num = Integer.parseInt(args[1]);
+            	int num = Integer.parseInt(args[2]);
             	if (num >= 0)
             		experiment.processDataSet(new FileReader(args[0]), num);
             	else

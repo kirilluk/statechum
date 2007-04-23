@@ -53,7 +53,7 @@ public class computeStateScores implements Cloneable {
 	protected int generalisationThreshold;
 	protected int pairsMergedPerHypothesis;
 	
-	private boolean bumpPositives = false;
+	private boolean bumpPositives = false, useCompatibilityScore = false;
 
 	/** Used to switch on a variety of consistency checks. */
 	protected static boolean testMode = false;
@@ -383,11 +383,8 @@ public class computeStateScores implements Cloneable {
 					
 					++score;
 
-					if (((DirectedSparseVertex)nextBlueState).numSuccessors() > 0)
-					{
-						StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
-						currentExplorationBoundary.offer(nextStatePair);
-					}
+					StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+					currentExplorationBoundary.offer(nextStatePair);
 				}
 				// if the red can make a move, but the blue one cannot, ignore this case.
 			}
@@ -485,12 +482,7 @@ public class computeStateScores implements Cloneable {
 					int numberOfCompatiblePairs = 0;
 					for(Vertex oldRed:reds)
 					{
-						StatePair pairToComputeFrom = new StatePair(currentBlueState,oldRed);
-						int computedScore = computeStateScore(pairToComputeFrom);
-						if (computedScore >= 0 &&
-								computePairCompatibilityScore(pairToComputeFrom) < 0)
-									computedScore = -1;
-						computeStateScores.PairScore pair = new PairScore(currentBlueState,oldRed,computedScore);
+						computeStateScores.PairScore pair = obtainPair(currentBlueState,oldRed);
 						if (pair.getScore() >= generalisationThreshold)
 						{
 							pairsAndScores.add(pair);
@@ -515,13 +507,7 @@ public class computeStateScores implements Cloneable {
 						// red already, i.e. there is an entry about them in PairsAndScores
 						for(Vertex oldBlue:BlueStatesConsideredSoFar)
 						{
-							StatePair newPair = new StatePair(oldBlue,newRedNode);
-							int computedScore = computeStateScore(newPair);
-							if (computedScore >= 0 &&
-									computePairCompatibilityScore(newPair) < 0)
-										computedScore = -1;
-
-							computeStateScores.PairScore pair = new PairScore(oldBlue,newRedNode,computedScore);
+							computeStateScores.PairScore pair = obtainPair(oldBlue,newRedNode);
 							if (pair.getScore() >= generalisationThreshold)
 							{
 								pairsAndScores.add(pair);
@@ -545,11 +531,41 @@ public class computeStateScores implements Cloneable {
 			int numberOfElements = Math.min(pairsAndScores.size(),pairsMergedPerHypothesis);
 			result.addAll(pairsAndScores.subList(0, numberOfElements));
 		}
+/*		
+		else
+			if (bumpPositives && !pairsAndScores.isEmpty())
+			{// here we only append elements with the same score as the max score
+				
+				computeStateScores.PairScore topPair = pairsAndScores.get(pairsAndScores.size()-1);result.add(topPair);
+				
+				for(int i=0;i< pairsAndScores.size();++i)
+				{// we iterage until we get to the end; pairsAndScores is an array
+					computeStateScores.PairScore p = pairsAndScores.get(i);
+					if (p.getScore() == topPair.getScore()) result.add(p);
+				}
+			}
+*/			
 		else result.addAll(pairsAndScores);
 
 		return result;
 	}		
 
+	private PairScore obtainPair(Vertex blue, Vertex red)
+	{
+		int computedScore = -1;StatePair pairToComputeFrom = new StatePair(blue,red);
+		if (useCompatibilityScore)
+			computedScore = computePairCompatibilityScore(pairToComputeFrom);
+		else
+		{
+			computedScore = computeStateScore(pairToComputeFrom);
+			if (computedScore >= 0 &&
+				computePairCompatibilityScore(pairToComputeFrom) < 0)
+					computedScore = -1;
+		}
+		
+		return new PairScore(blue,red,computedScore);
+	}
+	
 	/** If the supplied vertex is already known (its label is stored in the map), the one from the map is returned;
 	 * otherwise a reasonable copy is made, it is then both returned and stored in the map.
 	 * 
@@ -1233,6 +1249,11 @@ public class computeStateScores implements Cloneable {
 
 	public void bumpPositive() {
 		bumpPositives  = true;
+	}
+	
+	public void useCompatibilityScore()
+	{
+		useCompatibilityScore = true;
 	}
 }
 

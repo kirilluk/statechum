@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import java.beans.XMLEncoder;
@@ -58,10 +59,19 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		}
 	}
 	
-	public static String HistogramToString(Map<Integer,AtomicInteger> histogram)
+	public static String HistogramToString(Map<Integer,AtomicInteger> histogram, String Name)
 	{
+		final String FS=",";
+		String result="\n"+Name;
 		Map<Integer, AtomicInteger> tmp = new TreeMap<Integer,AtomicInteger>();
-		tmp.putAll(histogram);return tmp.toString();
+		tmp.putAll(histogram);
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet())
+			result = result+FS+sc.getValue();
+		result=result+"\n"+Name;
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet())
+			result = result+FS+sc.getKey();
+
+		return result+"\n";
 	}
 
 	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
@@ -163,13 +173,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				scoreComputer.clearColours();
 				setChanged();++counterRestarted;
 				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
+				//System.out.println(pairsMerged);
 			}
 			else
 			{
+				pairsMerged=pairsMerged+pair+" compatibility score : "+scoreComputer.computePairCompatibilityScore(pair)+" questions: "+questions.size()+"\n";
+
 				// keep going with the existing model
 				scoreComputer = temp;
 				// now update the statistics
-				pairsMerged=pairsMerged+pair+"\n";
 				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null)
 				{
@@ -182,8 +194,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
-		report.write("\n[ Distribution of scores (score-count): "+HistogramToString(scoreDistribution)+" ]");
-		report.write("\n[ Pairs merged (score-number of times): "+HistogramToString(whichScoresWereUsedForMerging)+" ]");
+		report.write("\n[ Distribution of scores (score-count):"+HistogramToString(scoreDistribution,"DISTRIBUTION"));
+		report.write("\n[ Pairs merged (score-number of times):"+HistogramToString(whichScoresWereUsedForMerging,"MERGED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;

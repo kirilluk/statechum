@@ -183,7 +183,7 @@ public class AccuracyAndQuestionsExperiment {
 		
 		public String call()
 		{
-			System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started");
+			System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
 			OUTCOME currentOutcome = OUTCOME.FAILURE;
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
@@ -214,7 +214,7 @@ public class AccuracyAndQuestionsExperiment {
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)
 					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
-				System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ "% terminated");
+				System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
 				currentOutcome = OUTCOME.SUCCESS;
 			}
 			catch(Throwable th)
@@ -419,7 +419,31 @@ public class AccuracyAndQuestionsExperiment {
 					@Override
 					public String toString()
 					{
-						return "RPNI, POSITIVE_ONLY with a bump of 1 of scores for positives";
+						return "RPNI, POSITIVE_ONLY with a bump of 1";
+					}
+				};
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
+				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
+				{
+					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+					{
+					}
+
+					@Override
+					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					{
+						c.bumpPositive();c.useCompatibilityScore();
+						c.setMode(IDMode.POSITIVE_ONLY);
+					}
+
+					@Override
+					public String toString()
+					{
+						return "RPNI, POSITIVE_ONLY with a bump of 1 and compatibility scores";
 					}
 				};
 			}
@@ -481,19 +505,19 @@ public class AccuracyAndQuestionsExperiment {
 		}
 	}
 
-	public void dumpMaxNumber(String fileNameList)
+	public int computeMaxNumber(Reader fileNameListReader)
 	{
+		int NumberMax = 0;
 		try
 		{
-			loadFileNames(new FileReader(fileNameList));
+			loadFileNames(fileNameListReader);
 			final int LearnerNumber = learnerGenerators.length;
-			final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
-			System.out.println(NumberMax);
+			NumberMax = fileName.size()*stageNumber*LearnerNumber;
 		}
 		catch(Exception e)
-		{
-			System.out.println("0");
+		{// ignore the exception - NumberMax will remain at 0
 		}
+		return NumberMax;
 	}
 	
 	protected final String outputDir;
@@ -512,9 +536,8 @@ public class AccuracyAndQuestionsExperiment {
 	{
         if (100 % stageNumber != 0)
         	throw new IllegalArgumentException("wrong compiled-in stageNumber="+stageNumber+": it should be a divisor of 100");
-
-        String outputDir = args.length < 2? "output":args[1];
-        AccuracyAndQuestionsExperiment experiment = new AccuracyAndQuestionsExperiment(outputDir);
+        AccuracyAndQuestionsExperiment experiment = null;
+        
 		if (args.length < 2)
 		{
 			File graphDir = new File(args[0]);
@@ -530,14 +553,18 @@ public class AccuracyAndQuestionsExperiment {
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
 	        StringReader fileNameListReader = new StringReader(listOfFileNames);
-	        assert fileNumber == experiment.processDataSet(fileNameListReader, -1);
-       		for(int learner=0;learner < learnerGenerators.length;++learner)
-       			for(int file=0;file < fileNumber;file++)
-        			for(int percentStage=0;percentStage < stageNumber;++percentStage)
-	        			experiment.processDataSet(fileNameListReader, (learner*learnerGenerators.length+file)*fileNumber+percentStage);
+	        File outputDir = new File("output_"+graphDir.getName());
+	        if (outputDir.canRead() || outputDir.mkdirs())
+	        {
+		        experiment = new AccuracyAndQuestionsExperiment(outputDir.getAbsolutePath());
+		        assert fileNumber*learnerGenerators.length*stageNumber == experiment.computeMaxNumber(fileNameListReader);
+	       		for(int number=0;number < fileNumber*learnerGenerators.length*stageNumber;++number)
+		        			experiment.processDataSet(fileNameListReader, number);
+	        }
 		}
 		else
 		{// args.length >=2
+	        experiment = new AccuracyAndQuestionsExperiment(args[1]);
             try {
             	int num = Integer.parseInt(args[2]);
             	if (num >= 0)
@@ -546,7 +573,14 @@ public class AccuracyAndQuestionsExperiment {
             			experiment.processDataSet(new FileReader(args[0]), Integer.parseInt(args[i]));
             	}
             	else
-            		experiment.dumpMaxNumber(args[0]);
+            		try
+            		{
+            			System.out.println(experiment.computeMaxNumber(new FileReader(args[0])));
+            		}
+            		catch(Exception ex)
+            		{
+            			System.out.println(0);
+            		}
             	
 			} catch (Exception e) {
 				System.out.println("FAILED");
@@ -558,17 +592,19 @@ public class AccuracyAndQuestionsExperiment {
 		// not exist at all or will simply contain "FAILED" in it.
 		
 		// now obtain the results
-        for(Future<String> computationOutcome:experiment.results)
-		try {
-				System.out.println("RESULT: "+computationOutcome.get()+"\n");
-		} catch (Exception e) {
-			System.out.println("FAILED");
-			e.printStackTrace();
-		}
-		finally
-		{
-			experiment.shutDown();
-		}
+		if (experiment != null && experiment.results != null)
+	        for(Future<String> computationOutcome:experiment.results)
+				try {
+						System.out.println("RESULT: "+computationOutcome.get()+"\n");
+				} catch (Exception e) {
+					System.out.println("FAILED");
+					e.printStackTrace();
+				}
+				finally
+				{
+					experiment.shutDown();
+				}
+				
 	}
 
 	public void shutDown() {

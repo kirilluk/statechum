@@ -53,6 +53,8 @@ public class computeStateScores implements Cloneable {
 	protected int generalisationThreshold;
 	protected int pairsMergedPerHypothesis;
 	
+	private boolean bumpPositives = false;
+
 	/** Used to switch on a variety of consistency checks. */
 	protected static boolean testMode = false;
 
@@ -120,16 +122,8 @@ public class computeStateScores implements Cloneable {
 	{
 		generalisationThreshold = newGeneralisationThreshold;
 		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
-		
 		graph = null;
-		init = new DeterministicDirectedSparseGraph.DeterministicVertex();
-		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
-		init.addUserDatum(JUConstants.LABEL, "Init", UserData.SHARED);
-		init.setUserDatum("colour", "red", UserData.SHARED);
-		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
-		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
-		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
+		initPTA();
 	}
 	
 	public static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
@@ -397,7 +391,11 @@ public class computeStateScores implements Cloneable {
 				}
 				// if the red can make a move, but the blue one cannot, ignore this case.
 			}
-		}		
+		}
+		
+		if (bumpPositives && TestRpniLearner.isAccept(pair.getQ()))
+			score++;
+		
 		return score;
 	}
 	
@@ -450,7 +448,7 @@ public class computeStateScores implements Cloneable {
 		}
 		
 		public String toString(){
-			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+", "+getR().getUserDatum(JUConstants.LABEL)+" : "+score+" ]";
+			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getR())+") : "+score+" ]";
 		}
 	}
 
@@ -1093,6 +1091,19 @@ public class computeStateScores implements Cloneable {
 		return newVertex;
 	}
 
+	public void initPTA()
+	{
+		transitionMatrix.clear();
+		init = new DeterministicDirectedSparseGraph.DeterministicVertex();
+		init.addUserDatum("property", "init", UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.LABEL, "Init", UserData.SHARED);
+		init.setUserDatum("colour", "red", UserData.SHARED);
+		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
+		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
+		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
+	}
+	
 	public computeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)
 	{
 		for(List<String> sequence:strings)
@@ -1218,6 +1229,10 @@ public class computeStateScores implements Cloneable {
 	public String toString()
 	{
 		return "trans: "+transitionMatrix.size()+" (hash "+transitionMatrix.hashCode()+")";
+	}
+
+	public void bumpPositive() {
+		bumpPositives  = true;
 	}
 }
 

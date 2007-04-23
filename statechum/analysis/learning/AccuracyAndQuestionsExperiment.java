@@ -168,7 +168,7 @@ public class AccuracyAndQuestionsExperiment {
 	}
 	
 	/** This one is not static because it refers to the frame to display results. */
-	public static class RPNIEvaluator extends LearnerEvaluator
+	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
 		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
 		{
@@ -176,13 +176,14 @@ public class AccuracyAndQuestionsExperiment {
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
-		protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-		{
-		}
+		protected abstract void changeParametersOnComputeStateScores(computeStateScores c);
+
+		/** This one may be overridden by subclass to customise the learner. */
+		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
 		
 		public String call()
 		{
-			System.out.println(inputFileName+" (instance "+instanceID+") "+percent + "% started");
+			System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started");
 			OUTCOME currentOutcome = OUTCOME.FAILURE;
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
@@ -202,16 +203,18 @@ public class AccuracyAndQuestionsExperiment {
 			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
 			try
 			{
-				changeParametersOnLearner(l);
 				PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
 				stats = stats + "Actual sequences, sPlus: "+plusPTA.size()+" sMinus: "+minusPTA.size()+ " ";
-				learningOutcome = l.learnMachine(RPNIBlueFringeLearner.initialise(), plusPTA, minusPTA);
+				changeParametersOnComputeStateScores(l.getScoreComputer());
+				l.init(plusPTA, minusPTA);
+				changeParametersOnLearner(l);
+				learningOutcome = l.learnMachine();
 				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);							
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)
 					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
-				System.out.println(inputFileName+" (instance "+instanceID+") "+percent + "% terminated");
+				System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ "% terminated");
 				currentOutcome = OUTCOME.SUCCESS;
 			}
 			catch(Throwable th)
@@ -354,12 +357,17 @@ public class AccuracyAndQuestionsExperiment {
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
 				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
 				{
+					@Override
 					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
 					{
-						super.changeParametersOnLearner(l);
-						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_NEGATIVE);
 					}
 					
+					@Override
+					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					{
+						c.setMode(IDMode.POSITIVE_NEGATIVE);						
+					}
+
 					@Override
 					public String toString()
 					{
@@ -373,16 +381,45 @@ public class AccuracyAndQuestionsExperiment {
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
 				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
 				{
+					@Override
 					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
 					{
-						super.changeParametersOnLearner(l);
-						((RPNIBlueFringeLearnerTestComponentOpt)l).setMode(IDMode.POSITIVE_ONLY);
+					}
+
+					@Override
+					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					{
+						c.setMode(IDMode.POSITIVE_ONLY);						
 					}
 
 					@Override
 					public String toString()
 					{
 						return "RPNI, POSITIVE_ONLY";
+					}
+				};
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
+				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
+				{
+					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+					{
+					}
+
+					@Override
+					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					{
+						c.bumpPositive();
+						c.setMode(IDMode.POSITIVE_ONLY);
+					}
+
+					@Override
+					public String toString()
+					{
+						return "RPNI, POSITIVE_ONLY with a bump of 1 of scores for positives";
 					}
 				};
 			}
@@ -504,7 +541,10 @@ public class AccuracyAndQuestionsExperiment {
             try {
             	int num = Integer.parseInt(args[2]);
             	if (num >= 0)
-            		experiment.processDataSet(new FileReader(args[0]), num);
+            	{
+            		for(int i=2;i< args.length;++i)
+            			experiment.processDataSet(new FileReader(args[0]), Integer.parseInt(args[i]));
+            	}
             	else
             		experiment.dumpMaxNumber(args[0]);
             	

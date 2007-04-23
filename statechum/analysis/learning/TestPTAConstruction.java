@@ -50,7 +50,10 @@ public class TestPTAConstruction
 
 		try
 		{
-			actualC = new RPNIBlueFringeLearnerTestComponentOpt(null).createAugmentedPTA(plusStrings, minusStrings).getGraph();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
+			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
+			l.init(plusStrings, minusStrings);
+			actualC = l.getScoreComputer().getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -122,7 +125,11 @@ public class TestPTAConstruction
 
 		try
 		{
-			actualC = new RPNIBlueFringeLearnerTestComponentOpt(null).setMode(IDMode.POSITIVE_NEGATIVE).createAugmentedPTA(plusStrings, minusStrings).getGraph();
+			
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
+			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
+			l.init(plusStrings, minusStrings);
+			actualC = l.getScoreComputer().getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{

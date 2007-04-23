@@ -17,13 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.StringWriter;
 
-import samples.graph.VertexImageShaperDemo.Checkmark;
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.analysis.learning.computeStateScores.IDMode;
-import statechum.xmachine.model.testset.PTASequenceSet;
-import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -46,16 +40,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(scoreComputer.getGraph());
 	}
 	
-	computeStateScores scoreComputer = null;
+	computeStateScores scoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
 
 	private int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
-	
-	protected IDMode mode = computeStateScores.IDMode.NONE;
-	
-	public RPNIBlueFringeLearnerTestComponentOpt setMode(IDMode m)
-	{
-		mode = m;return this;
-	}
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
 	public static void populateHistogram(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
@@ -76,24 +63,32 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		Map<Integer, AtomicInteger> tmp = new TreeMap<Integer,AtomicInteger>();
 		tmp.putAll(histogram);return tmp.toString();
 	}
+
+	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
+	{
+		sPlus = plus;sMinus = minus;
+		scoreComputer.initPTA();
+		scoreComputer.augmentPTA(sMinus, false);
+		scoreComputer.augmentPTA(sPlus, true);
+	}
 	
-	/* (non-Javadoc)
-	 * @see statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent#learnMachine(edu.uci.ics.jung.graph.impl.DirectedSparseGraph, java.util.Set, java.util.Set)
-	 */
-	@Override
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus) {
+	public computeStateScores getScoreComputer()
+	{
+		return scoreComputer;
+	}
+	
+	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			scoreDistribution = new HashMap<Integer,AtomicInteger>();
 		
-		scoreComputer = createAugmentedPTA(plus,minus);
 		computeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
-		
+		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 
 		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
-		int plusSize = plus.size(), minusSize = minus.size();
+		int plusSize = sPlus.size(), minusSize = sMinus.size();
 		while(!possibleMerges.isEmpty()){
 			populateHistogram(possibleMerges,scoreDistribution);
 			computeStateScores.PairScore pair = possibleMerges.pop();
@@ -114,7 +109,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
-				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
+				int answer = checkWithEndUser(null,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
 				{
@@ -166,13 +161,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
-				setChanged();++counterRestarted;		
+				setChanged();++counterRestarted;
+				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
 			}
 			else
 			{
 				// keep going with the existing model
 				scoreComputer = temp;
 				// now update the statistics
+				pairsMerged=pairsMerged+pair+"\n";
 				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null)
 				{
@@ -187,16 +184,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
 		report.write("\n[ Distribution of scores (score-count): "+HistogramToString(scoreDistribution)+" ]");
 		report.write("\n[ Pairs merged (score-number of times): "+HistogramToString(whichScoresWereUsedForMerging)+" ]");
+		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;
-	}
-		
-	protected computeStateScores createAugmentedPTA(Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
-		computeStateScores newScoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
-		newScoreComputer.setMode(mode);
-		newScoreComputer.augmentPTA(sMinus, false);
-		newScoreComputer.augmentPTA(sPlus, true);
-		return newScoreComputer;
 	}
 	
 	protected static void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)
@@ -250,7 +240,5 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	protected DirectedSparseGraph mergeAndDeterminize(Graph model,
 			StatePair pair) {
 		throw new UnsupportedOperationException();
-	}
-	
-	
+	}	
 }

@@ -113,7 +113,8 @@ public class RPNITester {
 			{
 				//DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
 				//g.getEdgeConstraints().clear();
-				computeStateScores aa = l.createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				l.init(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
+				computeStateScores aa = l.getScoreComputer();
 				//l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
 	
 				System.out.println("computing pairs");

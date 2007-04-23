@@ -82,14 +82,16 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		if (visFrame != null) l.addObserver(visFrame);
-		l.setMode(IDMode.POSITIVE_NEGATIVE);
-		DirectedSparseGraph learningOutcomeA = l.learnMachine(RPNIBlueFringeLearner.initialise(), buildSet(plus), buildSet(minus));
+		l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
+		l.init(buildSet(plus), buildSet(minus));
+		DirectedSparseGraph learningOutcomeA = l.learnMachine();
 		//updateFrame(learningOutcome,g);
 		FSMStructure learntStructureA = WMethod.getGraphData(learningOutcomeA);
 
 		// Now do the same with ptasets instead of real sets
 		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus));
-		DirectedSparseGraph learningOutcomeB = l.learnMachine(RPNIBlueFringeLearner.initialise(), plusPTA, minusPTA);
+		l.init(plusPTA, minusPTA);
+		DirectedSparseGraph learningOutcomeB = l.learnMachine();
 		FSMStructure learntStructureB = WMethod.getGraphData(learningOutcomeB);
 		
 		TestFSMAlgo.checkMBoolean(learntStructureA, learntStructureB, learntStructureA.init, learntStructureB.init);

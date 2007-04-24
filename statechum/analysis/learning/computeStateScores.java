@@ -1019,7 +1019,7 @@ public class computeStateScores implements Cloneable {
 					if (nextRedState == origPair.getQ())
 					{
 						nextRedState = origPair.getR(); // emulates the new loop
-						redFromPta = true; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
+						redFromPta = !useCompatibilityScore; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
 					}
 
 					StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
@@ -1038,7 +1038,7 @@ public class computeStateScores implements Cloneable {
 							nextRedState = origPair.getR(); // emulates the new loop
 						
 						StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
-						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(true);// from now on, no increments to the score
+						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(!useCompatibilityScore);// from now on, no increments to the score
 					}
 					else
 					{

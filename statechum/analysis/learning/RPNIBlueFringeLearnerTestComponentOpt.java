@@ -50,10 +50,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	{
 		for(computeStateScores.PairScore pair:data)
 		{
-			AtomicInteger count = histogram.get(pair.getScore());
+		int pairScore = pair.getScore()>= 200? pair.getScore()-pair.getScore() % 100: pair.getScore()>=10? pair.getScore()-pair.getScore()%10: pair.getScore()>0?1:0;
+			AtomicInteger count = histogram.get(pairScore);
 			if (count == null)
 			{
-				count = new AtomicInteger();histogram.put(pair.getScore(),count);
+				count = new AtomicInteger();histogram.put(pairScore,count);
 			}
 			count.incrementAndGet();
 		}

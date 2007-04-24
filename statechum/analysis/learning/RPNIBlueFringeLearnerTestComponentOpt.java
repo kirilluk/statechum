@@ -177,8 +177,12 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			}
 			else
 			{
-				pairsMerged=pairsMerged+pair+" compatibility score : "+scoreComputer.computePairCompatibilityScore(pair)+" questions: "+questions.size()+"\n";
-
+				// At this point, scoreComputer may have been modified because it may point to 
+				// the original PTA which will be modified as a result of new sequences being added to it.
+				// temp is different too, hence there is no way for me to compute compatibility score here.
+				// This is hence computed inside the obtainPair method.
+				pairsMerged=pairsMerged+pair+" questions: "+questions.size()+"\n";
+				
 				// keep going with the existing model
 				scoreComputer = temp;
 				// now update the statistics

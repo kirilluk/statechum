@@ -489,7 +489,7 @@ public class AccuracyAndQuestionsExperiment {
 	 */
 	public int processDataSet(Reader fileNameListReader, int Number)
 	{
-		loadFileNames(fileNameListReader);
+		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		final int LearnerNumber = learnerGenerators.length;
 		final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)

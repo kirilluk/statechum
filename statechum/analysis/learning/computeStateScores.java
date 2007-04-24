@@ -396,13 +396,17 @@ public class computeStateScores implements Cloneable {
 		return score;
 	}
 	
+	/** Important: although compatibility score is recorded and reported, it is ignored in 
+	 * all computations since it is considered for information only. Hence there is no
+	 * getter method for it either.
+	 */
 	public static class PairScore extends StatePair implements Comparable
 	{
-		private final int score;
+		private final int score, compatibilityScore;
 
-		public PairScore(Vertex q, Vertex r, int sc) {
+		public PairScore(Vertex q, Vertex r, int sc, int compat) {
 			super(q, r);
-			score = sc;
+			score = sc;compatibilityScore = compat;
 		}
 		
 		public int getScore() {
@@ -445,7 +449,7 @@ public class computeStateScores implements Cloneable {
 		}
 		
 		public String toString(){
-			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getR())+") : "+score+" ]";
+			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
 		}
 	}
 
@@ -552,18 +556,25 @@ public class computeStateScores implements Cloneable {
 
 	private PairScore obtainPair(Vertex blue, Vertex red)
 	{
-		int computedScore = -1;StatePair pairToComputeFrom = new StatePair(blue,red);
+		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (useCompatibilityScore)
-			computedScore = computePairCompatibilityScore(pairToComputeFrom);
+		{
+			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
+		}
 		else
 		{
 			computedScore = computeStateScore(pairToComputeFrom);
-			if (computedScore >= 0 &&
-				computePairCompatibilityScore(pairToComputeFrom) < 0)
+			if (computedScore >= 0)
+			{
+				compatibilityScore=	computePairCompatibilityScore(pairToComputeFrom);
+				if (compatibilityScore < 0)
 					computedScore = -1;
+			}
+			if (testMode)
+				assert computePairCompatibilityScore(pairToComputeFrom) <= computedScore;
 		}
 		
-		return new PairScore(blue,red,computedScore);
+		return new PairScore(blue,red,computedScore, compatibilityScore);
 	}
 	
 	/** If the supplied vertex is already known (its label is stored in the map), the one from the map is returned;

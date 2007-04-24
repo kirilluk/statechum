@@ -190,7 +190,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
 		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
 		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
-		return new computeStateScores.PairScore(aV,bV, score);
+		return new computeStateScores.PairScore(aV,bV, score,score);
 	}
 
 	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS)
@@ -1179,8 +1179,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		{
 			doneEdges = new HashSet();
 			int currentScore = computeScore(g, elem);
-			PairScore elA = new PairScore(elem.getQ(),elem.getR(),currentScore);
-			PairScore elB = new PairScore(elem.getR(),elem.getQ(),currentScore);
+			PairScore elA = new PairScore(elem.getQ(),elem.getR(),currentScore, currentScore);
+			PairScore elB = new PairScore(elem.getR(),elem.getQ(),currentScore, currentScore);
 			Assert.assertTrue(elem.getR().getUserDatum("colour").equals("red"));
 			Assert.assertTrue(elem.getQ().getUserDatum("colour").equals("blue"));
 			Assert.assertTrue(currentScore >= 0);

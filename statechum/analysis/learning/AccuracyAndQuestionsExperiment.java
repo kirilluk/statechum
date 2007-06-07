@@ -131,7 +131,7 @@ public class AccuracyAndQuestionsExperiment {
 		protected void buildSets()
 		{
 			loadGraph();
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),4);// the seed for Random should be the same for each file
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			WMethod tester = new WMethod(graph,0);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			//tests = randomHalf(fullTestSet,new Random(0));
@@ -146,9 +146,12 @@ public class AccuracyAndQuestionsExperiment {
 			
 			currentSamples = addPercentageFromSamples(currentSamples, fullSampleSet, percent);
 			sPlus = getPositiveStrings(graph,currentSamples);
-			sMinus = currentSamples;
+			sMinus = new HashSet<List<String>>();
+			
+			/* sMinus = currentSamples;
 			sMinus.removeAll(sPlus);
 			sMinus = trimToNegatives(graph, sMinus);
+			*/
 			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 

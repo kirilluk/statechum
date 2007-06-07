@@ -141,6 +141,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					
 					if(!TestRpniLearner.isAccept(tempVertex))
 					{
+						pairsMerged=pairsMerged+"ABOUT TO RESTART due to acceptance of a reject vertex for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
 				}
@@ -159,6 +160,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
 							assert accepted.equals("true");
+							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 							restartLearning = true;break;
 						}
 					}

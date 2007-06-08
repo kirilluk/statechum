@@ -23,48 +23,48 @@ xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/graphml">
 <node id="19" VERTEX="21" />
 <node id="20" VERTEX="22" />
 <node id="21" VERTEX="24" />
-<edge source="10" target="16" directed="true"EDGE="a4" />
-<edge source="1" target="10" directed="true"EDGE="a5" />
-<edge source="5" target="16" directed="true"EDGE="a3" />
-<edge source="9" target="5" directed="true"EDGE="a4" />
-<edge source="9" target="6" directed="true"EDGE="a5" />
-<edge source="16" target="14" directed="true"EDGE="a1" />
-<edge source="7" target="12" directed="true"EDGE="a2" />
-<edge source="7" target="12" directed="true"EDGE="a3" />
-<edge source="14" target="5" directed="true"EDGE="a2" />
-<edge source="14" target="12" directed="true"EDGE="a0" />
-<edge source="8" target="3" directed="true"EDGE="a3" />
-<edge source="8" target="19" directed="true"EDGE="a1" />
-<edge source="4" target="15" directed="true"EDGE="a4" />
-<edge source="19" target="2" directed="true"EDGE="a2" />
-<edge source="13" target="19" directed="true"EDGE="a0" />
-<edge source="2" target="20" directed="true"EDGE="a2" />
-<edge source="5" target="6" directed="true"EDGE="a2" />
-<edge source="11" target="2" directed="true"EDGE="a0" />
-<edge source="4" target="1" directed="true"EDGE="a0" />
-<edge source="17" target="16" directed="true"EDGE="a5" />
-<edge source="3" target="4" directed="true"EDGE="a2" />
-<edge source="12" target="20" directed="true"EDGE="a1" />
-<edge source="18" target="9" directed="true"EDGE="a1" />
-<edge source="1" target="2" directed="true"EDGE="a0" />
-<edge source="16" target="2" directed="true"EDGE="a2" />
-<edge source="21" target="17" directed="true"EDGE="a0" />
-<edge source="9" target="16" directed="true"EDGE="a1" />
-<edge source="20" target="16" directed="true"EDGE="a2" />
-<edge source="3" target="12" directed="true"EDGE="a1" />
-<edge source="2" target="5" directed="true"EDGE="a0" />
-<edge source="12" target="8" directed="true"EDGE="a0" />
-<edge source="20" target="9" directed="true"EDGE="a0" />
-<edge source="19" target="18" directed="true"EDGE="a5" />
-<edge source="13" target="7" directed="true"EDGE="a2" />
-<edge source="3" target="1" directed="true"EDGE="a5" />
-<edge source="11" target="7" directed="true"EDGE="a3" />
-<edge source="15" target="21" directed="true"EDGE="a3" />
-<edge source="15" target="4" directed="true"EDGE="a1" />
-<edge source="10" target="20" directed="true"EDGE="a1" />
-<edge source="17" target="11" directed="true"EDGE="a4" />
-<edge source="6" target="13" directed="true"EDGE="a4" />
-<edge source="18" target="13" directed="true"EDGE="a0" />
-<edge source="6" target="17" directed="true"EDGE="a1" />
+<edge source="10" target="16" directed="true" EDGE="a4" />
+<edge source="1" target="10" directed="true" EDGE="a5" />
+<edge source="5" target="16" directed="true" EDGE="a3" />
+<edge source="9" target="5" directed="true" EDGE="a4" />
+<edge source="9" target="6" directed="true" EDGE="a5" />
+<edge source="16" target="14" directed="true" EDGE="a1" />
+<edge source="7" target="12" directed="true" EDGE="a2" />
+<edge source="7" target="12" directed="true" EDGE="a3" />
+<edge source="14" target="5" directed="true" EDGE="a2" />
+<edge source="14" target="12" directed="true" EDGE="a0" />
+<edge source="8" target="3" directed="true" EDGE="a3" />
+<edge source="8" target="19" directed="true" EDGE="a1" />
+<edge source="4" target="15" directed="true" EDGE="a4" />
+<edge source="19" target="2" directed="true" EDGE="a2" />
+<edge source="13" target="19" directed="true" EDGE="a0" />
+<edge source="2" target="20" directed="true" EDGE="a2" />
+<edge source="5" target="6" directed="true" EDGE="a2" />
+<edge source="11" target="2" directed="true" EDGE="a0" />
+<edge source="4" target="1" directed="true" EDGE="a0" />
+<edge source="17" target="16" directed="true" EDGE="a5" />
+<edge source="3" target="4" directed="true" EDGE="a2" />
+<edge source="12" target="20" directed="true" EDGE="a1" />
+<edge source="18" target="9" directed="true" EDGE="a1" />
+<edge source="1" target="2" directed="true" EDGE="a0" />
+<edge source="16" target="2" directed="true" EDGE="a2" />
+<edge source="21" target="17" directed="true" EDGE="a0" />
+<edge source="9" target="16" directed="true" EDGE="a1" />
+<edge source="20" target="16" directed="true" EDGE="a2" />
+<edge source="3" target="12" directed="true" EDGE="a1" />
+<edge source="2" target="5" directed="true" EDGE="a0" />
+<edge source="12" target="8" directed="true" EDGE="a0" />
+<edge source="20" target="9" directed="true" EDGE="a0" />
+<edge source="19" target="18" directed="true" EDGE="a5" />
+<edge source="13" target="7" directed="true" EDGE="a2" />
+<edge source="3" target="1" directed="true" EDGE="a5" />
+<edge source="11" target="7" directed="true" EDGE="a3" />
+<edge source="15" target="21" directed="true" EDGE="a3" />
+<edge source="15" target="4" directed="true" EDGE="a1" />
+<edge source="10" target="20" directed="true" EDGE="a1" />
+<edge source="17" target="11" directed="true" EDGE="a4" />
+<edge source="6" target="13" directed="true" EDGE="a4" />
+<edge source="18" target="13" directed="true" EDGE="a0" />
+<edge source="6" target="17" directed="true" EDGE="a1" />
 </graph>
 </graphml>

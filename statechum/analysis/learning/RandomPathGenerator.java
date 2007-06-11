@@ -15,7 +15,7 @@ import statechum.xmachine.model.testset.*;
 public class RandomPathGenerator {
 	
 	protected DirectedSparseGraph g;
-	protected Collection<List<String>> sPlus;
+	private PTASequenceSet sPlus;
 	
 	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
@@ -27,14 +27,15 @@ public class RandomPathGenerator {
 	 */ 
 	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int extraToDiameter) {
 		pathRandomNumberGenerator = randomGenerator;
-		sPlus = new LinkedList<List<String>>();
+		//sPlus = new LinkedList<List<String>>();
+		sPlus = new PTASequenceSet();
 		g = baseGraph;
 		DijkstraDistance dd = new DijkstraDistance(baseGraph);
 		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g)).values();
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		int diameter = distancesList.get(distancesList.size()-1).intValue();
-		this.populateRandomWalksC((int)Math.pow(g.getVertices().size(),2), diameter+extraToDiameter);
+		this.populateRandomWalksC(4*g.getVertices().size(), diameter+extraToDiameter);
 	}
 	
 	private Set<String> getOutgoingSymbols(Vertex v){
@@ -86,10 +87,12 @@ public class RandomPathGenerator {
 				String nextInput= (String)pickRandom(row.keySet());
 				path.add(nextInput);
 				
-				if(!sPlus.contains(path)){
-					sPlus.add(new ArrayList<String>(path));
+				//if(!sPlus.contains(path)){
+				int oldSize = sPlus.size();	
+				sPlus.add(new ArrayList<String>(path));
+				if(sPlus.size()>oldSize)
 					counter++;
-				}
+				//}
 				current = row.get(nextInput);
 			}
 		}
@@ -120,7 +123,7 @@ public class RandomPathGenerator {
 	
 	public Collection<List<String>> getAllPaths(){
 		Collection<List<String>> allPaths = new LinkedList<List<String>>();
-		allPaths.addAll(sPlus);
+		allPaths.addAll(sPlus.getData());
 		return allPaths;
 	}
 	

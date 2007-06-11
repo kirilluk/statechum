@@ -132,19 +132,20 @@ public class AccuracyAndQuestionsExperiment {
 		{
 			loadGraph();
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-			WMethod tester = new WMethod(graph,0);
+	    	WMethod tester = new WMethod(graph,0);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			//tests = randomHalf(fullTestSet,new Random(0));
-			Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
+			//Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
+			
 			// this one ensures that walks are of length diameter+5 if they exist and some will not exist
 			//l.setCertaintyThreshold(2);
 			//Collection<List<String>> sampleSet = randomHalf(fullSampleSet,new Random(1));
 			//Vector<List<String>> samples = new Vector<List<String>>();
 			//samples.addAll(sampleSet);
-			tests.removeAll(fullSampleSet);
+			tests.removeAll(rpg.getAllPaths());
 			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
 			
-			currentSamples = addPercentageFromSamples(currentSamples, fullSampleSet, percent);
+			currentSamples = addPercentageFromSamples(currentSamples, rpg.getAllPaths(), percent);
 			sPlus = getPositiveStrings(graph,currentSamples);
 			sMinus = new HashSet<List<String>>();
 			
@@ -304,7 +305,6 @@ public class AccuracyAndQuestionsExperiment {
 	public static Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Collection<List<String>> samples, double percent){
 		double size = samples.size();
 		double number = size*percent/100;
-		//samples.removeAll(current);
 		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
 		for(int i=0;i<(int)number;i++){
 			current.add(sampleArray[i]);

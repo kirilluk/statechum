@@ -187,7 +187,7 @@ public class AccuracyAndQuestionsExperiment {
 		
 		public String call()
 		{
-			System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
+			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
 			OUTCOME currentOutcome = OUTCOME.FAILURE;
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
@@ -213,12 +213,13 @@ public class AccuracyAndQuestionsExperiment {
 				l.init(plusPTA, minusPTA);
 				changeParametersOnLearner(l);
 				learningOutcome = l.learnMachine();
-				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);							
+				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);	
+				System.out.println(instanceID+","+result);
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)
 					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
-				System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
+				//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
 				currentOutcome = OUTCOME.SUCCESS;
 			}
 			catch(Throwable th)
@@ -598,7 +599,7 @@ public class AccuracyAndQuestionsExperiment {
 		if (experiment != null && experiment.results != null)
 	        for(Future<String> computationOutcome:experiment.results)
 				try {
-						System.out.println("RESULT: "+computationOutcome.get()+"\n");
+						//        System.out.println("RESULT: "+computationOutcome.get()+"\n");
 				} catch (Exception e) {
 					System.out.println("FAILED");
 					e.printStackTrace();

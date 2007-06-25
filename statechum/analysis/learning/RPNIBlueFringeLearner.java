@@ -24,7 +24,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
-	protected int generalisationThreshold, pairsMergedPerHypothesis, certaintyThreshold=100000;
+	protected int pairsMergedPerHypothesis, certaintyThreshold=100000;
 	protected int questionCounter = 0;
 	
 	
@@ -74,7 +74,6 @@ public class RPNIBlueFringeLearner extends Observable {
 
 	public RPNIBlueFringeLearner(Frame parentFrame){
 		this.pairsMergedPerHypothesis = 0;
-		this.generalisationThreshold = 0;
 		this.parentFrame = parentFrame;
 	}
 	
@@ -691,8 +690,6 @@ public class RPNIBlueFringeLearner extends Observable {
 				StatePair pair = new StatePair(blueVertex, redVertex);
 				doneEdges = new HashSet();
 				Integer score = new Integer(computeScore(g,pair));
-				if(score.intValue()<this.generalisationThreshold)
-					continue;
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){
 					// singleSet maps scores to pairs which have those scores
@@ -959,10 +956,6 @@ public class RPNIBlueFringeLearner extends Observable {
 				return current;
 		}
 		return null;
-	}
-
-	public void setGeneralisationThreshold(int generalisationThreshold) {
-		this.generalisationThreshold = generalisationThreshold;
 	}
 
 	public void setPairsMergedPerHypothesis(int pairsMergedPerHypothesis) {

@@ -106,6 +106,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		return getData().size();
 	}
 
+
 	public Object[] toArray() {
 		throw new UnsupportedOperationException();
 	}

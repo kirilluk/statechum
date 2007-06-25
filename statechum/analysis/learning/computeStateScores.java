@@ -118,9 +118,8 @@ public class computeStateScores implements Cloneable {
 		}
 	}
 
-	public computeStateScores(int newGeneralisationThreshold, int newPairsMergedPerHypothesis)
+	public computeStateScores(int newPairsMergedPerHypothesis)
 	{
-		generalisationThreshold = newGeneralisationThreshold;
 		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
 		graph = null;
 		initPTA();

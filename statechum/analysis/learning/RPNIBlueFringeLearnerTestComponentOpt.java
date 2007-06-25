@@ -41,11 +41,26 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(scoreComputer.getGraph());
 	}
 	
-	computeStateScores scoreComputer = new computeStateScores(generalisationThreshold,pairsMergedPerHypothesis);
+	computeStateScores scoreComputer = new computeStateScores(0);
 
 	private int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
+	public static void populateScores(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
+	{
+		for(computeStateScores.PairScore pair:data)
+		{
+		int pairScore = pair.getScore();
+			AtomicInteger count = histogram.get(pairScore);
+			if (count == null)
+			{
+				count = new AtomicInteger();histogram.put(pairScore,count);
+			}
+			count.incrementAndGet();
+		}
+	}
+	
+	/** Takes the candidates for merging and computes the number of times different scores (increments of 10) are encountered. */
 	public static void populateHistogram(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
 		for(computeStateScores.PairScore pair:data)
@@ -74,6 +89,34 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 
 		return result+"\n";
 	}
+	
+	public static String HistogramToSeries(Map<Integer,AtomicInteger> histogram, String Name)
+	{
+		final String FS=",";
+		String result="\n"+Name;
+		Map<Integer, AtomicInteger> tmp = new TreeMap<Integer,AtomicInteger>();
+		tmp.putAll(histogram);
+		int limit = 0;
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet()){
+			limit = sc.getValue().get();
+			for(int i = 0;i<limit;i++){
+				result = result+FS+sc.getKey();
+			}
+		}
+
+		return result+"\n";
+	}
+	
+	public static String pairScoresAndIterations(Map<computeStateScores.PairScore,Integer> map, String name){
+		final String FS=",";
+		String result="\n"+name+"-score"+FS;
+		for(computeStateScores.PairScore score:map.keySet())
+			result=result+score.getScore()+FS;
+		result = result+"\n"+name+"-iteration"+FS;
+		for(Integer i:map.values())
+			result = result+i+FS;
+		return result;
+	}
 
 	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
@@ -90,8 +133,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
-			scoreDistribution = new HashMap<Integer,AtomicInteger>();
-		
+			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
+		Map<computeStateScores.PairScore, Integer> scoresToIterations = new HashMap<computeStateScores.PairScore, Integer>();
+		Map<computeStateScores.PairScore, Integer> restartsToIterations = new HashMap<computeStateScores.PairScore, Integer>();
 		computeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
@@ -99,9 +143,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		setChanged();
 
 		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
-		int plusSize = sPlus.size(), minusSize = sMinus.size();
+		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
-			populateHistogram(possibleMerges,scoreDistribution);
+			iterations++;
+			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			computeStateScores.PairScore pair = possibleMerges.pop();
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
@@ -111,7 +156,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				questions = scoreComputer.computeQS(pair, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
-			}
+			} 
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
@@ -176,7 +221,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				scoreComputer.clearColours();
 				setChanged();++counterRestarted;
 				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
-				//System.out.println(pairsMerged);
+				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
+				if (count == null)
+				{
+					count = new AtomicInteger();restartScoreDistribution.put(pair.getScore(),count);
+				}
+				count.incrementAndGet();
+				restartsToIterations.put(pair, iterations);
+				iterations = 0;
 			}
 			else
 			{
@@ -195,14 +247,17 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					count = new AtomicInteger();whichScoresWereUsedForMerging.put(pair.getScore(),count);
 				}
 				count.incrementAndGet();
+				scoresToIterations.put(pair, iterations);
 			}
 			
 			possibleMerges = scoreComputer.chooseStatePairs();
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
-		report.write("\n[ Distribution of scores (score-count):"+HistogramToString(scoreDistribution,"DISTRIBUTION"));
-		report.write("\n[ Pairs merged (score-number of times):"+HistogramToString(whichScoresWereUsedForMerging,"MERGED"));
+		report.write("\n[ Pair scores to iteration numbers:"+pairScoresAndIterations(scoresToIterations,"MERGED-ITERATIONS"));
+		report.write("\n[ Restart scores to iteration numbers:"+pairScoresAndIterations(restartsToIterations,"RESTART-ITERATIONS"));
+		report.write("\n[ Pairs merged (score-number of times):"+HistogramToSeries(whichScoresWereUsedForMerging,"MERGED"));
+		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		return result;

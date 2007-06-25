@@ -331,7 +331,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testFindVertex1()
 	{
-		computeStateScores s = new computeStateScores(0,0);
+		computeStateScores s = new computeStateScores(0);
 		Assert.assertNull(s.findVertex("Z"));
 		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
 	}
@@ -413,7 +413,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
 	{
-		new computeStateScores(0,0).computeQS(new StatePair(null,new DirectedSparseVertex()), new computeStateScores(0,0));
+		new computeStateScores(0).computeQS(new StatePair(null,new DirectedSparseVertex()), new computeStateScores(0));
 	}
 	
 	@Test

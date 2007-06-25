@@ -26,7 +26,7 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new computeStateScores(0,0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
+			actualC = new computeStateScores(0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);

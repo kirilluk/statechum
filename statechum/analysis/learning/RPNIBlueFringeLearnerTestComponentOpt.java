@@ -151,7 +151,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
-			if(pair.getScore() <this.certaintyThreshold)
+			int score = pair.getScore();
+			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
 			{
 				questions = scoreComputer.computeQS(pair, temp);
 				if (questions.isEmpty())

@@ -202,6 +202,8 @@ public class AccuracyAndQuestionsExperiment {
 					return tracePath(fsm, question);
 				}
 			};
+			//l.setCertaintyThreshold(10);
+			//l.setMinCertaintyThreshold(0);
 			DirectedSparseGraph learningOutcome = null;
 			String result = "";
 			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
@@ -214,7 +216,7 @@ public class AccuracyAndQuestionsExperiment {
 				changeParametersOnLearner(l);
 				learningOutcome = l.learnMachine();
 				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);	
-				//System.out.println(instanceID+","+result);
+				System.out.println(instanceID+","+result);
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)

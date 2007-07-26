@@ -35,7 +35,8 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
 			doneEdges = new HashSet();
-			if(computeScore(model, pair)<this.certaintyThreshold){
+			int score = computeScore(model, pair);
+			if(score<this.certaintyThreshold&&score>minCertaintyThreshold){
 				questions = generateQuestions(model, temp, pair);
 				// questions = trimSet(questions); // KIRR: unnecessary by construction of questions
 			}

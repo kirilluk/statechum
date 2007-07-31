@@ -13,6 +13,7 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
+import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
 
 public class PickNegativesVisualiser extends Visualiser{
@@ -51,7 +52,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify)
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final boolean active)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
@@ -59,13 +60,15 @@ public class PickNegativesVisualiser extends Visualiser{
 			{
 					if (split != null) {
 		        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this);
-		        		l.setDebugMode(true);
+		        		
 		        		//l.setPairsMergedPerHypothesis(2);
 		        		
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearner(PickNegativesVisualiser.this);
-		        		
+		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
+		        	if(!active)
+		        		l.setMinCertaintyThreshold(400000);
+					l.setDebugMode(true);
 		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);
 		        	if (whomToNotify != null) whomToNotify.threadStarted();
@@ -99,7 +102,10 @@ public class PickNegativesVisualiser extends Visualiser{
 				{
 					learnerThread.join();
 					sMinus.add(negatives);
-					construct(sPlus, sMinus, this);
+					boolean active = true;
+					if(l.getMinCertaintyThreshold()>200000)
+						active = false;
+					construct(sPlus, sMinus, this, active);
 					synchronized (this) {
 						while(!learnerStarted)
 							wait();// here we wait for the learner thread to start - if we do not wait for this, 

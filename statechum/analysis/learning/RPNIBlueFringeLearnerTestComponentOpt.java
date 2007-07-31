@@ -131,6 +131,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return scoreComputer;
 	}
 	
+	
+	
+	@Override
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
+		init(sPlus, sMinus);
+		return learnMachine();
+	}
+
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
@@ -166,7 +174,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
-				int answer = checkWithEndUser(null,question, new Object [] {"Test"});
+				int answer = checkWithEndUser(scoreComputer.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
 				{
@@ -261,6 +269,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
+		updateGraph(result);
 		return result;
 	}
 	

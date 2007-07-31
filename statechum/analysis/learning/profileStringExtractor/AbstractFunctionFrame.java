@@ -192,7 +192,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null);
+				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null, true);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

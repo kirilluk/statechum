@@ -982,4 +982,8 @@ public class RPNIBlueFringeLearner extends Observable {
 		this.minCertaintyThreshold = minCertaintyThreshold;
 	}
 
+	public int getMinCertaintyThreshold() {
+		return minCertaintyThreshold;
+	}
+
 }

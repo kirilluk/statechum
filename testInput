@@ -1,0 +1,4 @@
+active
++ get_job buy_house lose_job sell_house
++ get_job lose_job
++ get_job sell_house buy_house lose_job sell_house

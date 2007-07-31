@@ -1087,13 +1087,9 @@ public class computeStateScores implements Cloneable {
 	/** Generates vertice IDs. */
 	public String nextID(boolean accepted)
 	{
-		if (id_mode == IDMode.POSITIVE_NEGATIVE)
-			return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
-		else
-			if (id_mode == IDMode.POSITIVE_ONLY)
-				return "V"+vertPositiveID++;
-			else
-				throw new IllegalArgumentException("unknown vertex id allocation mode");
+		if (id_mode == IDMode.POSITIVE_ONLY)
+			return "V"+vertPositiveID++;
+		else return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when

@@ -33,14 +33,14 @@ public class StackHandler extends AbstractHandler {
 		else if(qName.equals("methodExit")){
 			Integer ticket = Integer.valueOf(attributes.getValue("ticket"));
 			assert methodSequence.size() > 0 && ticket.equals(methodSequence.get(methodSequence.size()-1)): "inconsistent xml trace file";
-			checkStackForFunction(methodSequence);
+			checkSequenceForFunction(methodSequence);
 			methodSequence.remove(ticket);
 			ticketToString.remove(ticket);
 		}
 
 	}
 	
-	protected void checkStackForFunction(List<Integer> sequence){
+	protected void checkSequenceForFunction(List<Integer> sequence){
 		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			if(containsString(sequence, pathToStrings(l))){

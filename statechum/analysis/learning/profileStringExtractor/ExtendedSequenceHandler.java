@@ -24,7 +24,7 @@ public class ExtendedSequenceHandler extends SequenceHandler {
 	}
 
 	@Override
-	protected void checkStackForFunction(List<Integer> methodStack) {
+	protected void checkSequenceForFunction(List<Integer> methodStack) {
 		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			List<String> stringL = pathToStrings(l);

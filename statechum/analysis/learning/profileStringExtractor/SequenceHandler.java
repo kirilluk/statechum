@@ -1,7 +1,6 @@
 package statechum.analysis.learning.profileStringExtractor;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.swing.tree.TreePath;
 
@@ -9,8 +8,19 @@ import org.xml.sax.Attributes;
 
 public class SequenceHandler extends AbstractHandler {
 	
+	protected Set<String> vocabulary; 
+	
 	public SequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
 		super(functions, classMethods);
+		vocabulary = new HashSet<String>();
+		computeVocab(functions.values());
+	}
+	
+	private void computeVocab(Collection<List<TreePath>> functionDefinitions){
+		for (List<TreePath> list : functionDefinitions) {
+			List<String> stringPath = pathToStrings(list);
+			vocabulary.addAll(stringPath);
+		}
 	}
 
 	@Override
@@ -24,14 +34,16 @@ public class SequenceHandler extends AbstractHandler {
 				Integer methodId = Integer.valueOf(methodIdRef);
 				Integer ticket = Integer.valueOf(ticketRef);
 				String methodString = convertToString(methodId);
-				methodSequence.add(ticket);
-				ticketToString.put(ticket, methodString);
-				checkStackForFunction(methodSequence);
+				if(vocabulary.contains(methodString)){
+					methodSequence.add(ticket);
+					ticketToString.put(ticket, methodString);
+					checkSequenceForFunction(methodSequence);
+				}
 			}
 		}
 	}
 	
-	protected void checkStackForFunction(List<Integer> sequence){
+	protected void checkSequenceForFunction(List<Integer> sequence){
 		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			if(containsString(sequence, pathToStrings(l))){

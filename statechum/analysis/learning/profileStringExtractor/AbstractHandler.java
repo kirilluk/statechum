@@ -64,7 +64,7 @@ public abstract class AbstractHandler extends DefaultHandler {
 	
 	public abstract void startElement(String uri, String localName, String qName, Attributes attributes);
 	
-	protected abstract void checkStackForFunction(List<Integer> sequence);
+	protected abstract void checkSequenceForFunction(List<Integer> sequence);
 	
 	protected boolean containsString(List<Integer> sequence, List<String> list){
 		for(int index=0;index<sequence.size();index++){

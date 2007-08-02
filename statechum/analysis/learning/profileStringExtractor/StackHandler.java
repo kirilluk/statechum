@@ -8,12 +8,12 @@ import javax.swing.tree.TreePath;
 
 public class StackHandler extends DefaultHandler {
 	
-	private Map<Integer,String> ticketToString;
-	private Map<String,List<TreePath>> functions;
-	private Set<Integer> doneTickets;
-	private ClassMethodDefsHandler classMethods;
-	private List<Integer> methodStack;
-	private List<String> functionString;
+	protected Map<Integer,String> ticketToString;
+	protected Map<String,List<TreePath>> functions;
+	protected Set<Integer> doneTickets;
+	protected ClassMethodDefsHandler classMethods;
+	protected List<Integer> methodStack;
+	protected List<String> functionString;
 	
 	public StackHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
 		this.functionString = new ArrayList<String>();
@@ -89,7 +89,7 @@ public class StackHandler extends DefaultHandler {
 		}
 	}
 	
-	private void checkStackForFunction(List<Integer> methodStack){
+	protected void checkStackForFunction(List<Integer> methodStack){
 		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			if(containsString(methodStack, pathToStrings(l)))
@@ -97,7 +97,7 @@ public class StackHandler extends DefaultHandler {
 		}
 	}
 	
-	private boolean containsString(List<Integer> stack, List<String> list){
+	protected boolean containsString(List<Integer> stack, List<String> list){
 		for(int index=0;index<stack.size();index++){
 			Integer ticket = stack.get(index);
 			if(doneTickets.contains(ticket))
@@ -117,7 +117,7 @@ public class StackHandler extends DefaultHandler {
 	}
 	
 	/** Given a list of paths, this function returns a list of textual representations of those paths. */
-	private static List<String> pathToStrings(List<TreePath> list){
+	protected static List<String> pathToStrings(List<TreePath> list){
 		Iterator<TreePath> listIt = list.iterator();
 		List<String> returnList = new ArrayList<String>();
 		for(int i=0;i<list.size();i++){
@@ -138,7 +138,7 @@ public class StackHandler extends DefaultHandler {
 	/** Every method has a unique id, this function finds a class corresponding 
 	 * to this method and returns a full name of this method. 
 	 */
-	private String convertToString(Integer methodId){
+	protected String convertToString(Integer methodId){
 		Map<Integer, String> classDefs = classMethods.getClassDefs();
 		Map<Integer, String> methodDefs = classMethods.getMethodDefs();
 		Map<Integer, Set<Integer>> classesToMethods = classMethods.getClassesToMethods();

@@ -12,6 +12,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
+import statechum.analysis.learning.oracles.AbstractOracle;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
@@ -25,7 +26,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	RPNIBlueFringeLearner l =  null;
 	
 	protected SplitFrame split = null;
-	protected StoredAnswers ans = null;
+	protected AbstractOracle ans = null;
 	
 	public PickNegativesVisualiser()
 	{
@@ -33,7 +34,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	}
 	
 	
-	public PickNegativesVisualiser(SplitFrame frm, StoredAnswers an)
+	public PickNegativesVisualiser(SplitFrame frm, AbstractOracle an)
 	{
 		super();
 		split = frm;ans = an;
@@ -67,7 +68,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		        	else
 		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
 		        	if(!active)
-		        		l.setMinCertaintyThreshold(400000);
+		        		l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
 					l.setDebugMode(true);
 		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);

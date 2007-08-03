@@ -14,6 +14,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.JUConstants;
+import statechum.analysis.learning.oracles.AbstractOracle;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -276,13 +277,13 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 	
 	/** Stores recorded answers. */
-	protected StoredAnswers ans = null;
+	protected AbstractOracle ans = null;
 	
 	/** Makes it possible to answer questions automatically.
 	 *  
 	 * @param a the class holding stored answers.
 	 */
-	public void setAnswers(StoredAnswers a)
+	public void setAnswers(AbstractOracle a)
 	{
 		ans = a;
 	}

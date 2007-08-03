@@ -1,4 +1,4 @@
-package statechum.analysis.learning;
+package statechum.analysis.learning.oracles;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,7 +9,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class StoredAnswers 
+import statechum.analysis.learning.RPNIBlueFringeLearner;
+
+public class StoredAnswers implements AbstractOracle
 {
 	private Map<String,Integer> answers = new HashMap<String, Integer>();
 	
@@ -55,7 +57,7 @@ public class StoredAnswers
 
 	
 	/** test method - returns the number of questions loaded. */
-	int getCount()
+	public int getCount()
 	{
 		return answers.size();
 	}

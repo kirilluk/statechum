@@ -9,6 +9,7 @@ import junit.framework.JUnit4TestAdapter;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.TestWMethod;
 
 public class TestLoadAnswers {

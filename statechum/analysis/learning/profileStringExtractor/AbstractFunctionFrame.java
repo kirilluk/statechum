@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.oracles.StoredAnswers;
 
 import javax.xml.parsers.*;
 import javax.swing.*;

@@ -40,6 +40,11 @@ public class PickNegativesVisualiser extends Visualiser{
 		split = frm;ans = an;
 	}
 	
+	public PickNegativesVisualiser(AbstractOracle an){
+		super();
+		ans = an;
+	}
+	
 	/** The learner thread. */
 	Thread learnerThread = null;
 	

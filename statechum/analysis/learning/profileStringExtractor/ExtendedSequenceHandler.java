@@ -16,7 +16,7 @@ import org.xml.sax.SAXException;
 
 public class ExtendedSequenceHandler extends SequenceHandler {
 	
-	private Map<String,Collection<List<Integer>>> functionsToObservations; 
+	protected Map<String,Collection<List<Integer>>> functionsToObservations; 
 	
 	public ExtendedSequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
 		super(functions, classMethods);
@@ -24,17 +24,18 @@ public class ExtendedSequenceHandler extends SequenceHandler {
 	}
 
 	@Override
-	protected void checkSequenceForFunction(List<Integer> methodStack) {
+	protected void checkSequenceForFunction(List<Integer> sequence) {
 		for(String key:functions.keySet()){
 			List<TreePath> l = functions.get(key);
 			List<String> stringL = pathToStrings(l);
-			if(containsString(methodStack, stringL)){
+			if(containsString(sequence, stringL)){
 				functionString.add(key);
 				Collection obs = getListFor(key);
-				if(!methodStack.isEmpty()){
-					obs.add(toListOfMethodNames(methodStack));
+				if(!sequence.isEmpty()){
+					obs.add(toListOfMethodNames(sequence));
 					functionsToObservations.put(key, obs);
 				}
+				methodSequence.clear();
 			}
 		}
 	}
@@ -77,7 +78,7 @@ public class ExtendedSequenceHandler extends SequenceHandler {
 		}
 	}
 
-	private Collection<List<Integer>> getListFor(String key){
+	protected Collection<List<Integer>> getListFor(String key){
 		Collection<List<Integer>> observations = functionsToObservations.get(key);
 		if(observations == null)
 			return new ArrayList<List<Integer>>();

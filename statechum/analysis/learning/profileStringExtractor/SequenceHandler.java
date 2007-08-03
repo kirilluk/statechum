@@ -34,11 +34,10 @@ public class SequenceHandler extends AbstractHandler {
 				Integer methodId = Integer.valueOf(methodIdRef);
 				Integer ticket = Integer.valueOf(ticketRef);
 				String methodString = convertToString(methodId);
-				if(vocabulary.contains(methodString)){
-					methodSequence.add(ticket);
-					ticketToString.put(ticket, methodString);
+				methodSequence.add(ticket);
+				ticketToString.put(ticket, methodString);
+				if(vocabulary.contains(methodString))
 					checkSequenceForFunction(methodSequence);
-				}
 			}
 		}
 	}

@@ -72,7 +72,8 @@ public abstract class AbstractHandler extends DefaultHandler {
 			if(doneTickets.contains(ticket))
 				continue;
 			String methodString = ticketToString.get(ticket);
-			if(methodString.equals(list.get(0).trim())){
+			String listElement = list.get(0);
+			if(listElement.equals(methodString.substring(0, methodString.indexOf('(')))){
 				if(list.size() == 1){
 					doneTickets.addAll(sequence);
 					return true;
@@ -86,7 +87,7 @@ public abstract class AbstractHandler extends DefaultHandler {
 	}
 	
 	/** Given a list of paths, this function returns a list of textual representations of those paths. */
-	protected static List<String> pathToStrings(List<TreePath> list){
+	protected  List<String> pathToStrings(List<TreePath> list){
 		Iterator<TreePath> listIt = list.iterator();
 		List<String> returnList = new ArrayList<String>();
 		for(int i=0;i<list.size();i++){
@@ -98,7 +99,6 @@ public abstract class AbstractHandler extends DefaultHandler {
 				else
 					pathString = pathString.concat(current.getPathComponent(j).toString());
 			}
-			
 			returnList.add(pathString);
 		}
 		return returnList;
@@ -115,6 +115,18 @@ public abstract class AbstractHandler extends DefaultHandler {
 		String className = (String)classDefs.get(classId);
 		String methodName = (String)methodDefs.get(methodId);
 		return className+"."+methodName;
+	}
+	
+	protected String convertToSignatureString(Integer methodId){
+		Map<Integer, String> classDefs = classMethods.getClassDefs();
+		Map<Integer, String> methodDefs = classMethods.getMethodDefs();
+		Map<Integer, Set<Integer>> classesToMethods = classMethods.getClassesToMethods();
+		Map<Integer, String> methodToSignature = classMethods.getMethodSignatures();
+		Integer classId = findKeyFor(classesToMethods,methodId);
+		String className = (String)classDefs.get(classId);
+		String methodName = (String)methodDefs.get(methodId);
+		String methodSignature = methodToSignature.get(methodId);
+		return className+"."+methodName+methodSignature;
 	}
 	
 	private Integer findKeyFor(Map<Integer, Set<Integer>> classesToMethods, Integer method){

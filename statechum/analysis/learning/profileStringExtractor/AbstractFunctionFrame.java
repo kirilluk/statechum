@@ -188,7 +188,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 				for(int i=0;i<files.length;i++){
 					SAXParser parser = factory.newSAXParser();
 					
-					SequenceHandler stackHandler = new SequenceHandler(namesToMethods, filesToHandlers.get(files[i]));
+					SequenceHandler stackHandler = new ExtendedSequenceHandler(namesToMethods, filesToHandlers.get(files[i]));
 					parser.parse((File)files[i], stackHandler);
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));

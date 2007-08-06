@@ -48,7 +48,6 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 		setApplicationClasses();
 		Transform sparkTransform = PackManager.v().getTransform("cg.spark");
 		sparkTransform.apply();
-		System.out.println(Scene.v().getCallGraph().size());
 		System.out.println("done");
 	}
 	
@@ -64,6 +63,8 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 			Scene.v().setSootClassPath( sootClassPath + System.getProperty("path.separator") + packageRoot.getPath());
 			addAllSubRoot(packageRoot);
 		}
+		else
+			System.exit(0);
 		Scene.v().loadNecessaryClasses();
 	}
 	
@@ -159,9 +160,12 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 			libraryFiles = fc.getSelectedFiles();
 			populateLibraries(libraryFiles);
 		}
+		else
+			System.exit(0);
 	}
 
 	public int getAnswer(List<String> question) {
+		
 		return RPNIBlueFringeLearner.USER_CANCELLED;
 	}
 

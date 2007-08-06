@@ -13,16 +13,17 @@ public class ClassMethodDefsHandler extends DefaultHandler implements Serializab
 	 */
 	private static final long serialVersionUID = 2167687392681999116L;
 	
-	Map<Integer, String> classDefs, methodDefs;
-	Map<Integer,Integer> objectsToClasses;
-	Map<Integer,Set<Integer>> classesToMethods;
-	File source;
+	private Map<Integer, String> classDefs, methodDefs, methodSignatures;
+	private Map<Integer,Integer> objectsToClasses;
+	private Map<Integer,Set<Integer>> classesToMethods;
+	private File source;
 	
 	public ClassMethodDefsHandler(File f){
 		super();
 		source = f;
 		classDefs = new HashMap<Integer, String>();
 		methodDefs = new HashMap<Integer, String>();
+		methodSignatures = new HashMap<Integer, String>();
 		classesToMethods = new HashMap<Integer, Set<Integer>>();
 		objectsToClasses = new HashMap<Integer, Integer>();
 	}
@@ -37,6 +38,7 @@ public class ClassMethodDefsHandler extends DefaultHandler implements Serializab
 			Integer id = Integer.valueOf(attributes.getValue("methodId"));
 			String name = attributes.getValue("name");
 			methodDefs.put(id, name);
+			methodSignatures.put(id, attributes.getValue("signature"));
 			Integer classId = Integer.valueOf(attributes.getValue("classIdRef"));
 			if(classesToMethods.get(classId)!=null){
 				Set<Integer> c = classesToMethods.get(classId);
@@ -74,6 +76,10 @@ public class ClassMethodDefsHandler extends DefaultHandler implements Serializab
 
 	public File getSource() {
 		return source;
+	}
+
+	public Map<Integer, String> getMethodSignatures() {
+		return methodSignatures;
 	}
 
 }

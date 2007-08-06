@@ -35,7 +35,7 @@ public class SequenceHandler extends AbstractHandler {
 				Integer ticket = Integer.valueOf(ticketRef);
 				String methodString = convertToString(methodId);
 				methodSequence.add(ticket);
-				ticketToString.put(ticket, methodString);
+				ticketToString.put(ticket, convertToSignatureString(methodId));
 				if(vocabulary.contains(methodString))
 					checkSequenceForFunction(methodSequence);
 			}

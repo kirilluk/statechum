@@ -43,9 +43,14 @@ public class ExtendedSequenceHandler extends SequenceHandler {
 	protected List<String> toListOfMethodNames(List<Integer> methodStack){
 		ArrayList<String> returnList = new ArrayList<String>();
 		Iterator<Integer> sequenceIt = methodStack.iterator();
+		HashSet<Integer> doneTickets = new HashSet<Integer>();
 		while(sequenceIt.hasNext()){
 			Integer nextInt = sequenceIt.next();
-			returnList.add(ticketToString.get(nextInt));
+			if(!doneTickets.contains(nextInt)){
+				returnList.add(ticketToString.get(nextInt));
+				doneTickets.add(nextInt);
+			} else
+				returnList.add("ret");
 		}
 		return returnList;
 	}
@@ -60,7 +65,7 @@ public class ExtendedSequenceHandler extends SequenceHandler {
 			try{
 				FileOutputStream fos = new FileOutputStream(key);
 				OutputStreamWriter out= new OutputStreamWriter(fos, "UTF-8");
-				out.write("passive\n");
+				out.write("active\n");
 				Iterator<List<String>> obsIt = obs.iterator();
 				while(obsIt.hasNext()){
 					out.write("+ ");

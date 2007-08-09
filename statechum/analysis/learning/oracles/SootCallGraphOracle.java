@@ -10,6 +10,7 @@ import soot.options.*;
 import soot.util.*;
 import soot.jimple.*;
 import soot.jimple.spark.*;
+import soot.jimple.toolkits.callgraph.*;
 
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 
@@ -25,9 +26,18 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 	}
 	
 	private void init(){
+		
+		ArrayList<String> dynamicClasses = new ArrayList<String>();
+		dynamicClasses.add("CH.ifa.draw.util.collections.jdk12.CollectionsFactoryJDK12");
 		Options.v().set_whole_program(true);
+		Options.v().set_app(true);
+		Options.v().set_dynamic_class(dynamicClasses);
+		Options.v().setPhaseOption("cg", "verbose:true");
 		Options.v().setPhaseOption("cg.spark", "enabled:true");
-		Options.v().setPhaseOption("cg.spark", "vta:false");
+		Options.v().setPhaseOption("cg.spark", "rta:false");
+		Options.v().setPhaseOption("cg", "all-reachable:true");
+		Options.v().setPhaseOption("cg", "safe-newinstance:true");
+
 		selectLibraries();
 		selectPackageRoot();
 		selectMainClass();
@@ -44,10 +54,10 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 	}
 	
 	private void buildCallGraph(){
-		
 		setApplicationClasses();
-		Transform sparkTransform = PackManager.v().getTransform("cg.spark");
-		sparkTransform.apply();
+		Scene.v().setEntryPoints(EntryPoints.v().all());
+		Pack cg = G.v().soot_PackManager().getPack("cg");
+		cg.apply();
 		System.out.println("done");
 	}
 	
@@ -165,8 +175,63 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 	}
 
 	public int getAnswer(List<String> question) {
-		
-		return RPNIBlueFringeLearner.USER_CANCELLED;
+		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();
+		int length = question.size();
+		MethodOrMethodContext fromMethod = getSootMethod(question.get(0));
+		methodStack.push(fromMethod);
+		CallGraph cg = Scene.v().getCallGraph();
+
+		for(int i=1;i<length;i++){
+			String next = question.get(i);
+			if(next.equals("ret")){
+				if(!methodStack.isEmpty()){
+					methodStack.pop();
+					continue;
+				}
+				else
+					return i;
+			}
+			MethodOrMethodContext toMethod = getSootMethod(next);
+			if(!methodStack.isEmpty()){
+				boolean found = false;
+				Iterator<Edge> outEdges = cg.edgesOutOf(methodStack.peek());
+				while(outEdges.hasNext()){
+					Edge e = outEdges.next();
+					if(e.getTgt().equals(toMethod)){
+						found = true;
+						break;
+					}
+					
+				}
+				if(!found){
+					System.out.println("not found: "+methodStack.peek().method().getSignature()+ "->"+ toMethod.method().getSignature());
+					return i;
+				}
+			}
+			methodStack.push(toMethod);
+		}
+		return RPNIBlueFringeLearner.USER_ACCEPTED;
+	}
+	
+	private MethodOrMethodContext getSootMethod(String signature){
+		int parenthesisIndex = signature.indexOf('(');
+		String params = signature.substring(parenthesisIndex+1, signature.indexOf(')'));
+		String classString = signature.substring(0, parenthesisIndex);
+		classString = classString.substring(0,classString.lastIndexOf('.'));
+		SootClass sc = Scene.v().getSootClass(classString);
+		params = params.replace('/', '.');
+		StringTokenizer paramTokenizer = new StringTokenizer(params, ";");
+		String methodName = signature.substring(classString.length()+1,parenthesisIndex);
+		List<RefType> paramTypes = new ArrayList<RefType>();
+		while(paramTokenizer.hasMoreTokens()){
+			String parameter = paramTokenizer.nextToken();
+			RefType type = Scene.v().getRefType(parameter.substring(1));
+			if(type!=null)
+				paramTypes.add(type);
+		}
+		if(methodName.contains("-init-"))
+			return sc.getMethod("<init>", paramTypes);
+		return sc.getMethod(methodName, paramTypes);
 	}
 
 }

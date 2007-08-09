@@ -40,7 +40,16 @@ public class SequenceHandler extends AbstractHandler {
 					checkSequenceForFunction(methodSequence);
 			}
 		}
+		else if(qName.equals("methodExit")){
+			String ticketRef = attributes.getValue("ticket");
+			if(!(ticketRef == null)){
+				Integer ticket = Integer.valueOf(ticketRef);
+				methodSequence.add(ticket);
+			}
+		}
 	}
+	
+	
 	
 	protected void checkSequenceForFunction(List<Integer> sequence){
 		for(String key:functions.keySet()){

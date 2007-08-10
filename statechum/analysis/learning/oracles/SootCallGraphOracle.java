@@ -177,6 +177,8 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 	public int getAnswer(List<String> question) {
 		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();
 		int length = question.size();
+		if(question.get(0).equals("ret"))
+			return 0;
 		MethodOrMethodContext fromMethod = getSootMethod(question.get(0));
 		methodStack.push(fromMethod);
 		CallGraph cg = Scene.v().getCallGraph();
@@ -215,7 +217,13 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 	
 	private MethodOrMethodContext getSootMethod(String signature){
 		int parenthesisIndex = signature.indexOf('(');
-		String params = signature.substring(parenthesisIndex+1, signature.indexOf(')'));
+		String params = new String();
+		try{
+			params = signature.substring(parenthesisIndex+1, signature.indexOf(')'));
+		}catch(Exception e){ 
+			System.out.println(signature);
+			System.exit(0);
+		}
 		String classString = signature.substring(0, parenthesisIndex);
 		classString = classString.substring(0,classString.lastIndexOf('.'));
 		SootClass sc = Scene.v().getSootClass(classString);
@@ -225,13 +233,17 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 		List<RefType> paramTypes = new ArrayList<RefType>();
 		while(paramTokenizer.hasMoreTokens()){
 			String parameter = paramTokenizer.nextToken();
-			RefType type = Scene.v().getRefType(parameter.substring(1));
+			RefType type = null;
+			if(parameter.startsWith("IL"))
+				type = Scene.v().getRefType(parameter.substring(2)); //starts with IL
+			else 
+				type = Scene.v().getRefType(parameter.substring(1)); //starts with L
 			if(type!=null)
 				paramTypes.add(type);
 		}
 		if(methodName.contains("-init-"))
-			return sc.getMethod("<init>", paramTypes);
-		return sc.getMethod(methodName, paramTypes);
+				return sc.getMethod("<init>", paramTypes);
+			return sc.getMethod(methodName, paramTypes);
 	}
 
 }

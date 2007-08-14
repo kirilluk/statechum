@@ -215,6 +215,37 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 		return RPNIBlueFringeLearner.USER_ACCEPTED;
 	}
 	
+	private List<Type> getTypes(String params){
+		List<Type> typeList = new ArrayList<Type>();
+		for(int i=0;i<params.length();i++){
+			char character = params.charAt(i);
+			if(character=='Z')
+				typeList.add(BooleanType.v());
+			else if(character=='B')
+				typeList.add(ByteType.v());
+			else if(character=='C')
+				typeList.add(CharType.v());
+			else if(character=='S')
+				typeList.add(ShortType.v());
+			else if(character=='I')
+				typeList.add(IntType.v());
+			else if(character=='J')
+				typeList.add(LongType.v());
+			else if(character=='F')
+				typeList.add(FloatType.v());
+			else if(character=='D')
+				typeList.add(DoubleType.v());
+			else if(character=='L'){
+				int skip = params.indexOf(';', i+1);
+				String refString = params.substring(i+1,skip);
+				typeList.add(Scene.v().getRefType(refString));
+				i = skip;
+			}
+		}
+		return typeList;
+		
+	}
+	
 	private MethodOrMethodContext getSootMethod(String signature){
 		int parenthesisIndex = signature.indexOf('(');
 		String params = new String();
@@ -228,19 +259,8 @@ public class SootCallGraphOracle extends JFrame implements AbstractOracle {
 		classString = classString.substring(0,classString.lastIndexOf('.'));
 		SootClass sc = Scene.v().getSootClass(classString);
 		params = params.replace('/', '.');
-		StringTokenizer paramTokenizer = new StringTokenizer(params, ";");
 		String methodName = signature.substring(classString.length()+1,parenthesisIndex);
-		List<RefType> paramTypes = new ArrayList<RefType>();
-		while(paramTokenizer.hasMoreTokens()){
-			String parameter = paramTokenizer.nextToken();
-			RefType type = null;
-			if(parameter.startsWith("IL"))
-				type = Scene.v().getRefType(parameter.substring(2)); //starts with IL
-			else 
-				type = Scene.v().getRefType(parameter.substring(1)); //starts with L
-			if(type!=null)
-				paramTypes.add(type);
-		}
+		List<Type> paramTypes = getTypes(params);
 		if(methodName.contains("-init-"))
 				return sc.getMethod("<init>", paramTypes);
 			return sc.getMethod(methodName, paramTypes);

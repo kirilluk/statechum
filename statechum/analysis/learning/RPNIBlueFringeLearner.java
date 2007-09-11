@@ -14,7 +14,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.JUConstants;
-import statechum.analysis.learning.oracles.AbstractOracle;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -71,7 +70,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			notifyObservers(g);
 	}
 	
-	private Frame parentFrame;
+	protected Frame parentFrame;
 
 	public RPNIBlueFringeLearner(Frame parentFrame){
 		this.pairsMergedPerHypothesis = 0;
@@ -264,7 +263,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected JDialog dialog = null;
 	
 	/** the option pane. */
-	JOptionPane jop = null;	
+	protected JOptionPane jop = null;	
 	
 	/** Cancels a dialog, if present. With no dialog, learner thread will terminate within a reasonable amount of time.
 	 */
@@ -295,10 +294,14 @@ public class RPNIBlueFringeLearner extends Observable {
 	public final static String QUESTION_AUTO = "<auto> "; 
 	protected String setByAuto = "";
 	
+	protected int processAnswer(List<String> question){
+		return ans.getAnswer(question);
+	}
+	
 	protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions){
 		if (ans != null)
 		{
-			int AutoAnswer = ans.getAnswer(question);
+			int AutoAnswer = processAnswer(question);
 			if (AutoAnswer != USER_CANCELLED)
 			{
 				setByAuto = QUESTION_AUTO;

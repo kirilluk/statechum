@@ -41,9 +41,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(scoreComputer.getGraph());
 	}
 	
-	computeStateScores scoreComputer = new computeStateScores(0);
+	protected computeStateScores scoreComputer = new computeStateScores(0);
 
-	private int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
+	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
 	public static void populateScores(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)

@@ -173,6 +173,53 @@ public class computeStateScores implements Cloneable {
 		return computePathsBetween(init, red);
 	}
 	
+	public Collection<List<String>> getNegativeStrings(String firstLabel, String negLabel){
+		Iterator<CmpVertex> keyIt = transitionMatrix.keySet().iterator();
+		Set<List<String>> negativePaths = new HashSet<List<String>>();
+		while(keyIt.hasNext()){
+			Vertex next = keyIt.next();
+			Map<String,CmpVertex> map = transitionMatrix.get(next);
+			if(map.keySet().contains(firstLabel)){
+				CmpVertex dest = map.get(firstLabel);
+				if(dest.getUserDatum(JUConstants.ACCEPTED).equals("false"))
+					continue;
+				List<Collection<String>> pathsToFirst = computePathsSBetween(init, dest);
+				Collection<List<String>> collectionOfPaths = getPathsFrom(pathsToFirst, new ArrayList<List<String>>());
+				for (List<String> list : collectionOfPaths) {
+					list.add(negLabel);
+				}
+				negativePaths.addAll(collectionOfPaths);
+			}
+		}
+		return negativePaths;
+	}
+	
+	private Collection<List<String>> getPathsFrom(List<Collection<String>> paths, ArrayList<List<String>> pathCollection){
+		Collection<String> labels = paths.get(0);
+		Iterator<String> labelIt = labels.iterator();
+		while(labelIt.hasNext()){
+			String label = labelIt.next();
+			if(pathCollection.isEmpty()){
+				ArrayList<String> path = new ArrayList<String>();
+				path.add(label);
+				pathCollection.add(path);
+			}
+			else{
+				for(int i=0;i<pathCollection.size();i++){
+					List<String> path = pathCollection.get(i);
+					path.add(label);
+					pathCollection.set(i, path);
+				}
+			}
+		}
+		paths.remove(0);
+		if(paths.isEmpty())
+			return pathCollection;
+		else
+			return getPathsFrom(paths, pathCollection);
+	}
+
+	
 	/** Computes all possible shortest paths from the supplied source state to the supplied target state 
 	 * 
 	 * @param vertSource the source state
@@ -463,7 +510,7 @@ public class computeStateScores implements Cloneable {
 	}
 	
 	
-	protected Stack<computeStateScores.PairScore> chooseStatePairs()
+	public Stack<computeStateScores.PairScore> chooseStatePairs()
 	{
 		pairsAndScores.clear();
 		Set<Vertex> reds = new LinkedHashSet<Vertex>();

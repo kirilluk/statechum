@@ -12,10 +12,10 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
-import statechum.analysis.learning.oracles.AbstractOracle;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
+import statechum.analysis.learning.oracles.*;
 
 public class PickNegativesVisualiser extends Visualiser{
     /**
@@ -71,7 +71,8 @@ public class PickNegativesVisualiser extends Visualiser{
 		        		
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
+		        		//l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
+		        		l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
 		        	if(!active)
 		        		l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
 					l.setDebugMode(true);

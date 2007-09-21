@@ -2,6 +2,7 @@ package statechum.xmachine.model.testset;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
@@ -397,6 +398,35 @@ public class WMethod {
 		}
 	}
 	
+	/** Computes a set of inputs which distinguish a given pair of states, when supplied with a map between states and their equivalence classes.
+	 * 
+	 */
+	private static Set<String> computeDistinguishingLabel(String stateA, String stateB, Map<String,Map<String,Integer>> newMap)
+	{
+		Map<String,Integer> mapA = newMap.get(stateA), mapB = newMap.get(stateB);
+		Set<String> distInputs = new HashSet<String>();
+		
+		Iterator<Entry<String,Integer>> mapAiter = mapA.entrySet().iterator();
+		String label = null;
+		while(mapAiter.hasNext() && label == null)
+		{
+			Entry<String,Integer> enA = mapAiter.next();
+			if (!mapB.entrySet().contains(enA))
+				distInputs.add(enA.getKey());
+		}
+		
+		Iterator<Entry<String,Integer>> mapBiter = mapB.entrySet().iterator();
+		while(mapBiter.hasNext() && label == null)
+		{
+			Entry<String,Integer> enB = mapBiter.next();
+			if (!mapA.entrySet().contains(enB))
+				distInputs.add(enB.getKey());
+		}
+		
+		assert !distInputs.isEmpty();
+		return distInputs;
+	}
+	
 	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
 	 * it will take a bit longer to perform the computation. 
 	 * 
@@ -404,7 +434,7 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static List<List<String>> computeWSet(FSMStructure fsm) throws EquivalentStatesException
+	public static List<List<String>> computeWSetOrig(FSMStructure fsm) throws EquivalentStatesException
 	{
 		
 		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
@@ -470,22 +500,179 @@ public class WMethod {
 						assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
 						
 						// the two states used to be equivalent but not any more, find the different element
-						Map<String,Integer> mapA = newMap.get(stateA.getKey()), mapB = newMap.get(stateB.getKey());
-						Iterator<Entry<String,Integer>> mapAiter = mapA.entrySet().iterator();
-						String label = null;
-						while(mapAiter.hasNext() && label == null)
+						String label = computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap).iterator().next();
+						String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(label);
+						String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(label);
+						Wsequence.add(label);
+						if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
 						{
-							Entry<String,Integer> enA = mapAiter.next();
-							if (!mapB.entrySet().contains(enA))
-								label = enA.getKey();
+							List<String> Wprevious = null;
+							if (Wdata.get(toA).containsKey(toB))
+								Wprevious = Wdata.get(toA).get(toB);// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+							else
+								Wprevious = Wdata.get(toB).get(toA);
+							assert Wprevious != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
+							assert !Wprevious.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") was not separated";
+							
+							Wsequence.addAll(Wprevious);
 						}
+					}
+				}			
+			}			
+
+			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<String,Integer>();
+		}
+		while(equivalenceClassNumber > oldEquivalenceClassNumber);
+
+		List<List<String>> result = new LinkedList<List<String>>();
+		if (oldEquivalenceClassNumber == fsm.accept.entrySet().size() )
+		{
+			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					List<String> seq = Wdata.get(stateA.getKey()).get(stateB.getKey());
+					if (!seq.isEmpty()) 
+						result.add(seq);
+				}
+			}			
+		}
+		else
+		{// report equivalent states
+			LinkedHashSet<String> equivalentStates = new LinkedHashSet<String>();
+			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
+					{
+						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
+					}
+				}
+			}
+			assert equivalentStates.size() > 0: "equivalent states were not found";
+			Iterator<String> equivIt = equivalentStates.iterator(); 
+			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
+		}
+		return result;
+	}
+
+
+	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
+	 * it will take a bit longer to perform the computation). 
+	 * Additionally, it attempts to reduce the size of W.
+	 * 
+	 * @param fsm the machine to process
+	 * @param alphabet
+	 * @return characterising set
+	 */
+	public static List<List<String>> computeWSet(FSMStructure fsm) throws EquivalentStatesException
+	{
+		
+		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
+		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
+		Map<String,Map<String,List<String>>> Wdata = new HashMap<String,Map<String,List<String>>>();
+		Map<String,AtomicInteger> distLabelUsage = new HashMap<String,AtomicInteger>();
+		
+		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
+			equivalenceClasses.put(stateEntry.getKey(), 0);
+		for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+		{
+			Map<String,List<String>> row = new HashMap<String,List<String>>();
+			Wdata.put(stateA.getKey(), row);
+
+			Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+			while(stateB_It.hasNext())
+			{
+				Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				row.put(stateB.getKey(), new LinkedList<String>());
+			}
+		}
+		
+		int equivalenceClassNumber = 0,oldEquivalenceClassNumber=0;
+		do
+		{
+			oldEquivalenceClassNumber = equivalenceClassNumber;
+			Map<String,Map<String,Integer>> newMap = new HashMap<String,Map<String,Integer>>();
+			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
+			for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet())
+			{
+				Map<String,Integer> map = new HashMap<String,Integer>();
+				Map<String,String> labelNSmap = fsm.trans.get(stateEntry.getKey());
+				if (labelNSmap != null)
+					for(Entry<String,String> labelstate:labelNSmap.entrySet())
+						map.put(labelstate.getKey(), equivalenceClasses.get(labelstate.getValue()));
+				
+				newMap.put(stateEntry.getKey(), map);
+				if (!sortedRows.containsKey(map))
+				{
+					equivalenceClassNumber++;
+					sortedRows.put(map,equivalenceClassNumber);newEquivClasses.put(stateEntry.getKey(), equivalenceClassNumber);
+				}
+				else
+					newEquivClasses.put(stateEntry.getKey(), sortedRows.get(map));
+			}
+
+
+			distLabelUsage.clear();// reset the histogram
+			
+			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+
+					if (stateA.getValue().equals(stateB.getValue()) &&
+							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
 						
-						Iterator<Entry<String,Integer>> mapBiter = mapB.entrySet().iterator();
-						while(mapBiter.hasNext() && label == null)
+						// the two states used to be equivalent but not any more, find inputs which 
+						// distinguish between them and update the histogram to count the number
+						// of inputs which can be used distuigish between states at this stage.
+						for(String label:computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap))
 						{
-							Entry<String,Integer> enB = mapBiter.next();
-							if (!mapA.entrySet().contains(enB))
-								label = enB.getKey();
+							AtomicInteger counter = distLabelUsage.get(label);
+							if (counter == null) counter = new AtomicInteger(0);else counter.addAndGet(1);
+							distLabelUsage.put(label, counter);
+						}
+					}
+				}
+			}
+			
+			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+
+					if (stateA.getValue().equals(stateB.getValue()) &&
+							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
+						
+						List<String> Wsequence = null;
+						if (Wdata.get(stateA.getKey()).containsKey(stateB.getKey()))
+							Wsequence = Wdata.get(stateA.getKey()).get(stateB.getKey());// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+						else
+							Wsequence = Wdata.get(stateB.getKey()).get(stateA.getKey());
+						assert Wsequence != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is null";
+						assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
+						
+						// the two states used to be equivalent but not any more, find the different element
+						String label = null;int currUsefulness = -1;
+						for(String curLabel:computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap))
+						{
+							int usefulness = distLabelUsage.get(curLabel).get();
+							if (usefulness > currUsefulness)
+							{
+								currUsefulness = usefulness;// choose an input which is most useful for state distinguishing
+								label = curLabel;
+							}
 						}
 						assert label != null;
 						String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(label);

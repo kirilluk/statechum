@@ -589,33 +589,12 @@ public class TestWMethod {
 	{
 		DirectedSparseGraph g = buildGraph(machine,"testWset");
 		FSMStructure fsm = getGraphData(g);//visFrame.update(null, g);
+		Set<List<String>> origWset = new HashSet<List<String>>(); 
 		try
 		{
-			List<List<String>> wset = WMethod.computeWSet(fsm);
+			origWset.addAll(WMethod.computeWSetOrig(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			//System.out.println("states: "+fsm.accept.size()+" Wset has "+wset.size()+" elements");
-			for(Entry<String,Boolean> stateA:fsm.accept.entrySet())
-			{
-				for(Entry<String,Boolean> stateB:fsm.accept.entrySet())
-					if (!stateA.getKey().equals(stateB.getKey()))
-					{
-						boolean foundString = false;
-						Iterator<List<String>> pathIt = wset.iterator();
-						while(pathIt.hasNext() && !foundString)
-						{
-							List<String> path = pathIt.next();
-							int aResult = WMethod.tracePath(fsm, path, stateA.getKey()),
-								bResult = WMethod.tracePath(fsm, path, stateB.getKey());
-							
-							if ( (aResult == RPNIBlueFringeLearner.USER_ACCEPTED && bResult >= 0) ||
-									(bResult == RPNIBlueFringeLearner.USER_ACCEPTED && aResult >= 0))
-								foundString = true;
-						}
-						
-						if (!foundString)
-							fail("W set does not distinguish between "+stateA.getKey()+" and "+stateB.getKey());
-					}
-			}
+			checkW_is_corrent(fsm, origWset);			
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -623,7 +602,52 @@ public class TestWMethod {
 			TestFSMAlgo.checkM(fsm,fsm,e.getA(),e.getB());
 		}
 		
+		try
+		{
+			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet(fsm));
+			Assert.assertEquals(false, equivalentExpected);
+			checkW_is_corrent(fsm, wset);
+			int reduction = origWset.size() - wset.size();
+			Assert.assertTrue(reduction >= 0);
+		}
+		catch(EquivalentStatesException e)
+		{
+			Assert.assertEquals(true, equivalentExpected);
+			TestFSMAlgo.checkM(fsm,fsm,e.getA(),e.getB());
+		}
 	}
+
+	/** Given an FSM and a W set, checks if it is a valid W set and throws if not.
+	 * 
+	 * @param fsm the machine
+	 * @param wset the set to check validity of.
+	 */
+	private static void checkW_is_corrent(FSMStructure fsm, Collection<List<String>> wset)
+	{
+		for(Entry<String,Boolean> stateA:fsm.accept.entrySet())
+		{
+			for(Entry<String,Boolean> stateB:fsm.accept.entrySet())
+				if (!stateA.getKey().equals(stateB.getKey()))
+				{
+					boolean foundString = false;
+					Iterator<List<String>> pathIt = wset.iterator();
+					while(pathIt.hasNext() && !foundString)
+					{
+						List<String> path = pathIt.next();
+						int aResult = WMethod.tracePath(fsm, path, stateA.getKey()),
+							bResult = WMethod.tracePath(fsm, path, stateB.getKey());
+						
+						if ( (aResult == RPNIBlueFringeLearner.USER_ACCEPTED && bResult >= 0) ||
+								(bResult == RPNIBlueFringeLearner.USER_ACCEPTED && aResult >= 0))
+							foundString = true;
+					}
+					
+					if (!foundString)
+						fail("W set does not distinguish between "+stateA.getKey()+" and "+stateB.getKey());
+				}
+		}
+	}
+	
 	
 	@Test
 	public final void testWset1()
@@ -689,6 +713,18 @@ public class TestWMethod {
 		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false);
 	}
 	
+	@Test
+	public final void testWset10()
+	{
+		String machineOrig = "0--a4->0--a2->0--a5->2\n0--a7->4\n0--a9->3\n0--a0->1\n1--a5->0\n1--a3->0\n4--a1->0\n4--a8->3\n3--a4->1\n3--a6->2\n2--a8->4\n2--a4->0\n3--a9->0",
+			machine = null;
+		int a = 4, b = 2;
+		machine = machineOrig.replaceAll(a+"--", "Q"+"--").replaceAll(">"+a, ">"+"Q")
+			.replaceAll(b+"--", a+"--").replaceAll(">"+b, ">"+a)
+			.replaceAll("Q"+"--", b+"--").replaceAll(">"+"Q", ">"+b);
+		testWsetconstruction(machine,false);
+	}
+
 	@Test
 	public final void testCheckEquivalentStates1() // equivalent states
 	{
@@ -811,7 +847,7 @@ public class TestWMethod {
 	{
 		WMethod wm = new WMethod(buildGraph(
 				"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
-				"A-d->A\nA5-b->AA6", "testTestGeneration6"),2);
+				"A-d->A\nA5-b->AA6", "testTestGeneration7"),2);
 		Set<List<String>> 
 			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
 			actualA.addAll(wm.computeOldTestSet());actualB.addAll(wm.computeNewTestSet());

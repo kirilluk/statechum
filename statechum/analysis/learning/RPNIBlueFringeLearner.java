@@ -697,6 +697,8 @@ public class RPNIBlueFringeLearner extends Observable {
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){
 					// singleSet maps scores to pairs which have those scores
+					if(score<0)
+						continue;
 					if(singleSet.get(score) == null){
 						// nothing yet with this score
 						Vector<StatePair> s = new Vector<StatePair>();

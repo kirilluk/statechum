@@ -42,27 +42,6 @@ public class WMethod {
 		return fullTestSet;
 	}
 	
-	/*
-	public Set<List<String>> getFullTestSetStrings(){
-		Iterator<Set<List<String>>> testSetIt = fullTestSet.iterator();
-		HashSet<List<String>> testSet = new HashSet<List<String>>();
-		while(testSetIt.hasNext()){
-			Collection test = testSetIt.next();
-			ArrayList<String> string = new ArrayList<String>();
-			for(Object element:test){
-				if(element instanceof Edge){
-					Edge e = (Edge)element;
-					Set labelSet = (Set)e.getUserDatum(JUConstants.LABEL);
-					string.add(labelSet.toArray()[0].toString());
-				}
-				else 
-					string.add((String)element);
-			}
-			testSet.add(string);
-		}
-		return testSet;
-	}
-	*/
 	public List<List<String>> getCharacterisationSet() {
 		return characterisationSet;
 	}
@@ -407,8 +386,7 @@ public class WMethod {
 		Set<String> distInputs = new HashSet<String>();
 		
 		Iterator<Entry<String,Integer>> mapAiter = mapA.entrySet().iterator();
-		String label = null;
-		while(mapAiter.hasNext() && label == null)
+		while(mapAiter.hasNext())
 		{
 			Entry<String,Integer> enA = mapAiter.next();
 			if (!mapB.entrySet().contains(enA))
@@ -416,7 +394,7 @@ public class WMethod {
 		}
 		
 		Iterator<Entry<String,Integer>> mapBiter = mapB.entrySet().iterator();
-		while(mapBiter.hasNext() && label == null)
+		while(mapBiter.hasNext())
 		{
 			Entry<String,Integer> enB = mapBiter.next();
 			if (!mapA.entrySet().contains(enB))
@@ -643,7 +621,7 @@ public class WMethod {
 					}
 				}
 			}
-			
+
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
 			{
 				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();

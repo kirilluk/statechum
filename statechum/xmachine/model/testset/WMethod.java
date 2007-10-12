@@ -539,7 +539,37 @@ public class WMethod {
 		return result;
 	}
 
-
+	/** Given a map from pairs of states to sets of labels which distinguish between these pairs, 
+	 * this method returns a label which will distinguish the largest number of pairs.
+	 * 
+	 * @param distinguishingLabels a map from pairs of states to sets of distinguishing labels.
+	 * @return
+	 */ 
+	public static String computeTopLabel(Map<String,Map<String,Set<String>>> distinguishingLabels)
+	{
+		Map<String,AtomicInteger> distLabelUsage = new HashMap<String,AtomicInteger>();// reset the histogram ...
+		String topLabel = null;int topLabelCounter = -1;// ... and the top element
+		for(Entry<String,Map<String,Set<String>>> stateAdist:distinguishingLabels.entrySet())
+		{
+			for(Entry<String,Set<String>> stateB:stateAdist.getValue().entrySet())
+			{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
+				for(String label:stateB.getValue())
+				{
+					AtomicInteger counter = distLabelUsage.get(label);
+					if (counter == null) counter = new AtomicInteger(0);else counter.addAndGet(1);
+					distLabelUsage.put(label, counter);
+					if (counter.get() > topLabelCounter)
+					{
+						topLabel = label;topLabelCounter = counter.get();// record which label is the top now
+					}
+				}
+			}
+			
+		}
+		return topLabel;
+	}
+	
+	
 	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
 	 * it will take a bit longer to perform the computation). 
 	 * Additionally, it attempts to reduce the size of W.
@@ -554,8 +584,8 @@ public class WMethod {
 		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
 		Map<String,Map<String,List<String>>> Wdata = new HashMap<String,Map<String,List<String>>>();
-		Map<String,AtomicInteger> distLabelUsage = new HashMap<String,AtomicInteger>();
-		
+		Map<String,Map<String,Set<String>>> distinguishingLabels = new HashMap<String,Map<String,Set<String>>>();
+
 		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
 			equivalenceClasses.put(stateEntry.getKey(), 0);
 		for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
@@ -570,7 +600,7 @@ public class WMethod {
 				row.put(stateB.getKey(), new LinkedList<String>());
 			}
 		}
-		
+
 		int equivalenceClassNumber = 0,oldEquivalenceClassNumber=0;
 		do
 		{
@@ -596,7 +626,7 @@ public class WMethod {
 			}
 
 
-			distLabelUsage.clear();// reset the histogram
+			distinguishingLabels.clear();// clear a map from pairs of states to sets of labels which distinguish between them
 			
 			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
 			{
@@ -612,66 +642,62 @@ public class WMethod {
 						// the two states used to be equivalent but not any more, find inputs which 
 						// distinguish between them and update the histogram to count the number
 						// of inputs which can be used distuigish between states at this stage.
-						for(String label:computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap))
-						{
-							AtomicInteger counter = distLabelUsage.get(label);
-							if (counter == null) counter = new AtomicInteger(0);else counter.addAndGet(1);
-							distLabelUsage.put(label, counter);
-						}
+						Map<String,Set<String>> stateToDist = distinguishingLabels.get(stateA.getKey());
+						if (stateToDist == null) stateToDist = new HashMap<String,Set<String>>();
+						stateToDist.put(stateB.getKey(), computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap));
+						distinguishingLabels.put(stateA.getKey(), stateToDist);
 					}
 				}
 			}
 
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			// First, we compute the histogram of label usage
+			String topLabel = computeTopLabel(distinguishingLabels);
+			while(topLabel != null)
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
-				while(stateB_It.hasNext())
+				
+				// Now topLabel is the most often used one, we use it to separate all relevant states
+				for(Entry<String,Map<String,Set<String>>> stateA:distinguishingLabels.entrySet())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-
-					if (stateA.getValue().equals(stateB.getValue()) &&
-							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					for(Entry<String,Set<String>> stateB:stateA.getValue().entrySet())
 					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
-						
-						List<String> Wsequence = null;
-						if (Wdata.get(stateA.getKey()).containsKey(stateB.getKey()))
-							Wsequence = Wdata.get(stateA.getKey()).get(stateB.getKey());// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
-						else
-							Wsequence = Wdata.get(stateB.getKey()).get(stateA.getKey());
-						assert Wsequence != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is null";
-						assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
-						
-						// the two states used to be equivalent but not any more, find the different element
-						String label = null;int currUsefulness = -1;
-						for(String curLabel:computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap))
+	
+						if (distinguishingLabels.get(stateA.getKey()).get(stateB.getKey()).contains(topLabel))
 						{
-							int usefulness = distLabelUsage.get(curLabel).get();
-							if (usefulness > currUsefulness)
-							{
-								currUsefulness = usefulness;// choose an input which is most useful for state distinguishing
-								label = curLabel;
-							}
-						}
-						assert label != null;
-						String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(label);
-						String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(label);
-						Wsequence.add(label);
-						if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
-						{
-							List<String> Wprevious = null;
-							if (Wdata.get(toA).containsKey(toB))
-								Wprevious = Wdata.get(toA).get(toB);// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+							List<String> Wsequence = null;
+							if (Wdata.get(stateA.getKey()).containsKey(stateB.getKey()))
+								Wsequence = Wdata.get(stateA.getKey()).get(stateB.getKey());// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
 							else
-								Wprevious = Wdata.get(toB).get(toA);
-							assert Wprevious != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
-							assert !Wprevious.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") was not separated";
-							
-							Wsequence.addAll(Wprevious);
-						}
-					}
-				}			
-			}			
+								Wsequence = Wdata.get(stateB.getKey()).get(stateA.getKey());
+							assert Wsequence != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is null";
+							assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
 
+							assert topLabel != null;
+														
+							String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(topLabel);
+							String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(topLabel);
+							Wsequence.add(topLabel);
+							if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
+							{
+								List<String> Wprevious = null;
+								if (Wdata.get(toA).containsKey(toB))
+									Wprevious = Wdata.get(toA).get(toB);// depending on the ordering in the matrix, either (A,B) or (B,A) should be defined.
+								else
+									Wprevious = Wdata.get(toB).get(toA);
+								assert Wprevious != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
+								assert !Wprevious.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") was not separated";
+								
+								Wsequence.addAll(Wprevious);
+							}
+							
+							// now that we added the top label, we need  to remove it from the appropriate sets of labels.
+							distinguishingLabels.get(stateA.getKey()).get(stateB.getKey()).clear();
+						}
+					}			
+				}
+				
+				topLabel = computeTopLabel(distinguishingLabels);
+			} // while(topLabel != null)
+			
 			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<String,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);

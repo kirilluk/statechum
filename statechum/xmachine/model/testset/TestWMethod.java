@@ -587,7 +587,7 @@ public class TestWMethod {
 		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
-	public static void testWsetconstruction(String machine, boolean equivalentExpected)
+	public static void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected)
 	{
 		DirectedSparseGraph g = buildGraph(machine,"testWset");
 		FSMStructure fsm = getGraphData(g);//visFrame.update(null, g);
@@ -610,9 +610,7 @@ public class TestWMethod {
 			Assert.assertEquals(false, equivalentExpected);
 			checkW_is_corrent(fsm, wset);
 			int reduction = origWset.size() - wset.size();
-			Assert.assertTrue(reduction >= 0);
-			
-			System.out.println(wset);
+			Assert.assertTrue(reduction >= 0 || !reductionExpected);
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -656,19 +654,19 @@ public class TestWMethod {
 	@Test
 	public final void testWset1()
 	{
-		testWsetconstruction("A-p->A-b->B-c->B-a->C",false);
+		testWsetconstruction("A-p->A-b->B-c->B-a->C",false,true);
 	}
 	
 	@Test
 	public final void testWset2()
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q",false);
+		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q",false,true);
 	}
 	
 	@Test
 	public final void testWset3() // equivalent states
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q",true);
+		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q",true,true);
 	}
 
 	@Test
@@ -682,39 +680,39 @@ public class TestWMethod {
 	public final void testWset5a() // equivalent states
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				true);
+				true,true);
 	}
 	
 	@Test
 	public final void testWset5b() // equivalent states
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				true);
+				true,true);
 	}
 	
 	@Test
 	public final void testWset6() // no equivalent states
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				false);
+				false,true);
 	}
 
 	@Test
 	public final void testWset7()
 	{
-		testWsetconstruction("A-a->B-a->C-a->A-b->C-b->B",false);
+		testWsetconstruction("A-a->B-a->C-a->A-b->C-b->B",false,true);
 	}
 	
 	@Test
 	public final void testWset8()
 	{
-		testWsetconstruction("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N",true);
+		testWsetconstruction("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N",true,true);
 	}
 	
 	@Test
 	public final void testWset9()
 	{
-		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false);
+		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false,true);
 	}
 	
 	@Test
@@ -726,19 +724,25 @@ public class TestWMethod {
 		machine = machineOrig.replaceAll(a+"--", "Q"+"--").replaceAll(">"+a, ">"+"Q")
 			.replaceAll(b+"--", a+"--").replaceAll(">"+b, ">"+a)
 			.replaceAll("Q"+"--", b+"--").replaceAll(">"+"Q", ">"+b);
-		testWsetconstruction(machine,false);
+		testWsetconstruction(machine,false,true);
 	}
 
 	@Test
 	public final void testWset11()
 	{
-		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->6\n0-a3->1\n0-a5->0\n0-a7->7\n0-a10->7\n0-a12->5\n1-a0->9\n1-a1->5\n1-a3->3\n1-a6->3\n1-a8->7\n1-a14->9\n1-a17->9\n1-a18->6\n2-a0->8\n2-a2->8\n2-a3->6\n2-a4->4\n2-a7->3\n2-a9->2\n2-a10->4\n2-a15->5\n3-a0->5\n3-a1->2\n3-a2->2\n3-a7->3\n3-a9->8\n3-a10->0\n3-a15->6\n3-a16->5\n4-a0->8\n4-a4->8\n4-a5->0\n4-a7->4\n4-a11->0\n4-a12->3\n4-a16->0\n4-a19->5\n5-a0->1\n5-a2->1\n5-a5->6\n5-a6->2\n5-a7->9\n5-a9->0\n5-a11->3\n5-a19->5\n6-a0->1\n6-a2->4\n6-a4->7\n6-a9->8\n6-a10->0\n6-a12->1\n6-a18->1\n6-a19->3\n7-a1->6\n7-a5->4\n7-a7->9\n7-a10->9\n7-a12->7\n7-a13->4\n7-a14->6\n7-a15->9\n8-a2->7\n8-a4->1\n8-a5->6\n8-a6->4\n8-a9->0\n8-a11->2\n8-a13->2\n8-a14->7\n9-a2->7\n9-a3->3\n9-a5->4\n9-a6->2\n9-a9->5\n9-a11->2\n9-a16->8\n9-a17->8\n",false);
+		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->6\n0-a3->1\n0-a5->0\n0-a7->7\n0-a10->7\n0-a12->5\n1-a0->9\n1-a1->5\n1-a3->3\n1-a6->3\n1-a8->7\n1-a14->9\n1-a17->9\n1-a18->6\n2-a0->8\n2-a2->8\n2-a3->6\n2-a4->4\n2-a7->3\n2-a9->2\n2-a10->4\n2-a15->5\n3-a0->5\n3-a1->2\n3-a2->2\n3-a7->3\n3-a9->8\n3-a10->0\n3-a15->6\n3-a16->5\n4-a0->8\n4-a4->8\n4-a5->0\n4-a7->4\n4-a11->0\n4-a12->3\n4-a16->0\n4-a19->5\n5-a0->1\n5-a2->1\n5-a5->6\n5-a6->2\n5-a7->9\n5-a9->0\n5-a11->3\n5-a19->5\n6-a0->1\n6-a2->4\n6-a4->7\n6-a9->8\n6-a10->0\n6-a12->1\n6-a18->1\n6-a19->3\n7-a1->6\n7-a5->4\n7-a7->9\n7-a10->9\n7-a12->7\n7-a13->4\n7-a14->6\n7-a15->9\n8-a2->7\n8-a4->1\n8-a5->6\n8-a6->4\n8-a9->0\n8-a11->2\n8-a13->2\n8-a14->7\n9-a2->7\n9-a3->3\n9-a5->4\n9-a6->2\n9-a9->5\n9-a11->2\n9-a16->8\n9-a17->8\n",false,true);
 	}
 
 	@Test
 	public final void testWset12()
 	{
-		testWsetconstruction("0-a0->1\n0-a1->8\n0-a2->7\n0-a7->3\n0-a9->3\n0-a11->8\n0-a12->6\n0-a15->0\n1-a2->0\n1-a4->6\n1-a6->4\n1-a12->5\n1-a13->5\n1-a16->8\n1-a18->6\n1-a19->2\n2-a2->2\n2-a5->7\n2-a8->0\n2-a10->8\n2-a12->8\n2-a13->1\n2-a14->5\n2-a16->8\n3-a3->3\n3-a6->2\n3-a8->7\n3-a10->4\n3-a11->6\n3-a14->9\n3-a15->3\n3-a16->7\n4-a0->4\n4-a3->1\n4-a5->6\n4-a6->7\n4-a10->7\n4-a12->3\n4-a17->4\n4-a18->4\n5-a0->0\n5-a6->3\n5-a7->0\n5-a11->0\n5-a14->4\n5-a16->3\n5-a17->3\n5-a18->4\n6-a0->6\n6-a2->2\n6-a4->1\n6-a10->9\n6-a11->2\n6-a12->1\n6-a17->5\n6-a19->9\n7-a1->5\n7-a2->9\n7-a3->5\n7-a5->1\n7-a7->2\n7-a10->1\n7-a11->0\n7-a16->9\n8-a3->9\n8-a4->9\n8-a5->6\n8-a6->8\n8-a7->6\n8-a12->8\n8-a17->5\n8-a18->9\n9-a1->7\n9-a5->5\n9-a9->1\n9-a10->7\n9-a15->2\n9-a17->0\n9-a18->2\n9-a19->4\n",false);
+		testWsetconstruction("0-a0->1\n0-a1->8\n0-a2->7\n0-a7->3\n0-a9->3\n0-a11->8\n0-a12->6\n0-a15->0\n1-a2->0\n1-a4->6\n1-a6->4\n1-a12->5\n1-a13->5\n1-a16->8\n1-a18->6\n1-a19->2\n2-a2->2\n2-a5->7\n2-a8->0\n2-a10->8\n2-a12->8\n2-a13->1\n2-a14->5\n2-a16->8\n3-a3->3\n3-a6->2\n3-a8->7\n3-a10->4\n3-a11->6\n3-a14->9\n3-a15->3\n3-a16->7\n4-a0->4\n4-a3->1\n4-a5->6\n4-a6->7\n4-a10->7\n4-a12->3\n4-a17->4\n4-a18->4\n5-a0->0\n5-a6->3\n5-a7->0\n5-a11->0\n5-a14->4\n5-a16->3\n5-a17->3\n5-a18->4\n6-a0->6\n6-a2->2\n6-a4->1\n6-a10->9\n6-a11->2\n6-a12->1\n6-a17->5\n6-a19->9\n7-a1->5\n7-a2->9\n7-a3->5\n7-a5->1\n7-a7->2\n7-a10->1\n7-a11->0\n7-a16->9\n8-a3->9\n8-a4->9\n8-a5->6\n8-a6->8\n8-a7->6\n8-a12->8\n8-a17->5\n8-a18->9\n9-a1->7\n9-a5->5\n9-a9->1\n9-a10->7\n9-a15->2\n9-a17->0\n9-a18->2\n9-a19->4\n",false,true);
+	}
+
+	@Test
+	public final void testWset13()
+	{
+		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->5\n0-a4->9\n0-a5->5\n0-a10->9\n0-a11->7\n0-a12->9\n0-a15->8\n0-a16->0\n0-a17->3\n0-a18->8\n1-a0->7\n1-a2->0\n1-a3->2\n1-a4->7\n1-a5->6\n1-a7->6\n1-a8->2\n1-a11->0\n1-a15->0\n1-a17->4\n1-a18->1\n1-a19->4\n2-a0->5\n2-a4->7\n2-a5->0\n2-a6->1\n2-a8->9\n2-a10->9\n2-a11->6\n2-a12->2\n2-a13->6\n2-a15->3\n2-a16->1\n2-a17->0\n3-a1->8\n3-a3->3\n3-a4->5\n3-a6->4\n3-a7->6\n3-a9->1\n3-a10->4\n3-a11->3\n3-a15->6\n3-a16->6\n3-a17->5\n3-a19->6\n4-a0->4\n4-a1->0\n4-a2->5\n4-a3->3\n4-a6->2\n4-a7->2\n4-a8->8\n4-a9->0\n4-a10->5\n4-a16->2\n4-a17->5\n4-a19->4\n5-a0->9\n5-a2->6\n5-a5->1\n5-a7->5\n5-a8->4\n5-a9->2\n5-a11->4\n5-a12->7\n5-a15->7\n5-a17->1\n5-a18->7\n5-a19->7\n6-a4->4\n6-a6->7\n6-a7->9\n6-a9->2\n6-a10->8\n6-a12->3\n6-a13->7\n6-a14->1\n6-a15->8\n6-a16->0\n6-a17->1\n6-a18->2\n7-a1->6\n7-a3->1\n7-a5->2\n7-a6->0\n7-a7->6\n7-a8->3\n7-a9->0\n7-a10->5\n7-a11->4\n7-a15->8\n7-a17->8\n7-a19->2\n8-a0->7\n8-a1->3\n8-a3->9\n8-a4->7\n8-a5->6\n8-a6->1\n8-a8->3\n8-a9->0\n8-a10->3\n8-a11->9\n8-a14->8\n8-a18->4\n9-a0->4\n9-a1->9\n9-a5->8\n9-a6->5\n9-a7->3\n9-a9->9\n9-a10->3\n9-a13->8\n9-a14->5\n9-a15->1\n9-a16->8\n9-a17->2\n",false,false);
 	}
 
 	/** Adds an entry to the supplied map of pairs of states to labels which distinguish among those states.

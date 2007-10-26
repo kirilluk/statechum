@@ -71,8 +71,8 @@ public class PickNegativesVisualiser extends Visualiser{
 		        		
 		        	}
 		        	else
-		        		//l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
-		        		l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
+		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
+		        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
 		        	if(!active)
 		        		l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
 					l.setDebugMode(true);

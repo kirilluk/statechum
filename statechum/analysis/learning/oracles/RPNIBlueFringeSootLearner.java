@@ -47,12 +47,10 @@ public class RPNIBlueFringeSootLearner extends
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
-
 		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
-			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			computeStateScores.PairScore pair = possibleMerges.pop();
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
@@ -64,10 +62,7 @@ public class RPNIBlueFringeSootLearner extends
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
-			
-			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
-			
-			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
+			boolean restartLearning = false;
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
@@ -77,9 +72,7 @@ public class RPNIBlueFringeSootLearner extends
 				if(answer>=0){
 					String from = oracle.getFrom();
 					String to = question.get(answer);
-					impossiblePairs.add(new StringPair(from, to));
-					//LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
-					//sMinus.add(subAnswer);
+					newPTA.augmentPairs(new StringPair(from, to), false);
 					++counterRejected;
 					if( (answer < question.size()-1) || isAccept(tempVertex)){
 						pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
@@ -90,7 +83,6 @@ public class RPNIBlueFringeSootLearner extends
 				{
 					++counterAccepted;
 					newPTA.augmentPTA(question, true);++plusSize;
-					//sPlus.add(question);
 				}
 				else 
 						throw new IllegalArgumentException("unexpected user choice");
@@ -98,19 +90,10 @@ public class RPNIBlueFringeSootLearner extends
 			}
 			
 			if (restartLearning)
-			{// restart learning
-				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
-				
+			{
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
-				Iterator<StringPair> impossiblePairIt = impossiblePairs.iterator();
-				Set<List<String>> impossibleStrings = new HashSet<List<String>>();
-				while(impossiblePairIt.hasNext()){
-					StringPair p = impossiblePairIt.next();
-					impossibleStrings.addAll(scoreComputer.getNegativeStrings(p.from , p.to));
-				}
-				scoreComputer.augmentPTA(impossibleStrings, false);
-				scoreComputer.clearColours();
 				
+				scoreComputer.clearColours();
 				setChanged();++counterRestarted;
 				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
@@ -156,12 +139,13 @@ public class RPNIBlueFringeSootLearner extends
 		return result;
 	}
 	
-	
-	
-	class StringPair{
-		String from, to;
-		public StringPair(String a, String b){
-			from = a; to = b;
+	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, computeStateScores temp){
+		Collection<List<String>> filteredQuestions = new HashSet<List<String>>();
+		for (List<String> list : questions) {
+			Vertex v = temp.getVertex(list);
+			if(v.getUserDatum(JUConstants.ACCEPTED).equals("true"))
+				filteredQuestions.add(list);
 		}
+		return filteredQuestions;
 	}
 }

@@ -38,7 +38,8 @@ public class QSMTool {
 	        }
 	        in.close();
 		} 	catch (IOException e) {e.printStackTrace();}
-		new PickNegativesVisualiser(new SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
+		//new PickNegativesVisualiser(new SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
+		new PickNegativesVisualiser().construct(sPlus, sMinus,null, active);
 	}
 	
 	private static void process(String fileString){

@@ -27,6 +27,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.WMethod;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
@@ -173,26 +174,70 @@ public class computeStateScores implements Cloneable {
 		return computePathsBetween(init, red);
 	}
 	
-	public Collection<List<String>> getNegativeStrings(String firstLabel, String negLabel){
-		Iterator<CmpVertex> keyIt = transitionMatrix.keySet().iterator();
-		Set<List<String>> negativePaths = new HashSet<List<String>>();
-		while(keyIt.hasNext()){
-			Vertex next = keyIt.next();
-			Map<String,CmpVertex> map = transitionMatrix.get(next);
-			if(map.keySet().contains(firstLabel)){
-				CmpVertex dest = map.get(firstLabel);
-				if(dest.getUserDatum(JUConstants.ACCEPTED).equals("false"))
-					continue;
-				List<Collection<String>> pathsToFirst = computePathsSBetween(init, dest);
-				Collection<List<String>> collectionOfPaths = getPathsFrom(pathsToFirst, new ArrayList<List<String>>());
-				for (List<String> list : collectionOfPaths) {
-					list.add(negLabel);
-				}
-				negativePaths.addAll(collectionOfPaths);
+	/**
+	 * Augment every occurrence of the first label in the pair in the PTA
+	 * with an edge to the second label in the pair, that is either accepted or not
+	 */
+	public void augmentPairs(StringPair pair, boolean accepted){
+		Collection<CmpVertex> fromVertices = findVertices(pair.getFrom());
+		for (CmpVertex vertex : fromVertices) {
+			Collection<List<String>> tails = getTails(vertex, new ArrayList<String>(), new HashSet<List<String>>());
+			for (List<String> list : tails) {
+				addNegativeEdges(vertex, list, pair, accepted);
 			}
 		}
-		return negativePaths;
 	}
+	
+	private void addNegativeEdges(CmpVertex fromVertex,List<String> tail, StringPair pair, boolean accepted){
+		Stack callStack = new Stack();
+		addVertex(fromVertex, accepted, pair.getTo());
+		CmpVertex currentVertex = fromVertex;
+		for(int i=0;i<tail.size();i++){
+			String element = tail.get(i);
+			currentVertex = transitionMatrix.get(currentVertex).get(element);
+			if(element.equals("ret")&&!callStack.isEmpty()){
+				callStack.pop();
+				if(callStack.isEmpty())
+					addVertex(currentVertex, accepted, pair.getTo());
+			}
+			else if (!element.equals("ret"))
+				callStack.push(element);
+			else if (element.equals("ret")&&callStack.isEmpty())
+				return;
+		}
+	}
+	
+	private Collection<List<String>> getTails(CmpVertex vertex, ArrayList<String> currentList, Collection<List<String>> collection){
+		Map<String,CmpVertex> successors = transitionMatrix.get(vertex);
+		if(successors.keySet().isEmpty()){
+			collection.add(currentList);
+			return collection;
+		}
+		else{
+			Iterator<String> keyIt = successors.keySet().iterator();
+			while(keyIt.hasNext()){
+				String key = keyIt.next();
+				currentList.add(key);
+				collection.addAll(getTails(successors.get(key),currentList,collection));
+			}
+		}
+		return collection;
+	}
+	
+	/**
+	 *returns set of vertices that are the destination of label
+	 */
+	private Collection<CmpVertex> findVertices(String label){
+		Collection<CmpVertex> vertices = new HashSet<CmpVertex>();
+		Iterator<Map<String, CmpVertex>> outgoingEdgesIt = transitionMatrix.values().iterator();
+		while(outgoingEdgesIt.hasNext()){
+			Map<String,CmpVertex> edges = outgoingEdgesIt.next();
+			if(edges.keySet().contains(label))
+				vertices.add(edges.get(label));
+		}
+		return vertices;
+	}
+	
 	
 	private Collection<List<String>> getPathsFrom(List<Collection<String>> paths, ArrayList<List<String>> pathCollection){
 		Collection<String> labels = paths.get(0);
@@ -509,6 +554,24 @@ public class computeStateScores implements Cloneable {
 		return result;
 	}
 	
+	public Vertex getVertex(Vertex from, List<String> seq){
+		Vertex result = from;
+		Iterator<String> seqIt = seq.iterator();
+		while(seqIt.hasNext() && result != null)
+			result = transitionMatrix.get(result).get(seqIt.next());
+		
+		return result;
+	}
+	
+	public int countEdges(){
+		Iterator<Map<String,CmpVertex>> outIt = transitionMatrix.values().iterator();
+		int counter = 0;
+		while(outIt.hasNext()){
+			Map current = outIt.next();
+			counter = counter + current.keySet().size();
+		}
+		return counter;
+	}
 	
 	public Stack<computeStateScores.PairScore> chooseStatePairs()
 	{

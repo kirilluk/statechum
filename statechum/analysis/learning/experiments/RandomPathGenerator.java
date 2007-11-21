@@ -37,7 +37,7 @@ public class RandomPathGenerator {
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		int diameter = distancesList.get(distancesList.size()-1).intValue();
-		int size = g.getVertices().size();
+		int size = g.getEdges().size();
 		this.populateRandomWalksC(4*size, diameter+extraToDiameter);
 	}
 	

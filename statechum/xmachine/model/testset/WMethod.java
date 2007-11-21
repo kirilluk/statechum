@@ -150,8 +150,25 @@ public class WMethod {
 		}
 		return fsm.accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
 	}
+	
+	public static List<String> trimSequence(FSMStructure fsm, List<String> path)
+	{
+		ArrayList<String> rejectPath = new ArrayList<String>();
+		String current = fsm.init;
+		for(String label:path)
+		{
+			rejectPath.add(label);
+			Map<String,String> exitingTrans = fsm.trans.get(current);
+			current = exitingTrans.get(label);
+			int accepted = tracePath(fsm, rejectPath);
+			if (exitingTrans == null || current == null || accepted>=0){
+				return rejectPath;
+			}
+		}
+		return null;
+	}
 
-
+	
 	/** converts a given sequence into
 	 * a fundamental test sequence.
 	 * 

@@ -28,6 +28,16 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected int questionCounter = 0;
 	
 	
+	public static Collection<String> getAlphabetForEdges(Collection<Edge> edges){
+		HashSet<String> alphabet = new HashSet<String>();
+		Iterator<Edge> edgeIt = edges.iterator();
+		while(edgeIt.hasNext()){
+			Edge e = (edgeIt.next());
+			alphabet.addAll((Collection)e.getUserDatum(JUConstants.LABEL));
+		}
+		return alphabet;
+	}
+	
 	public Collection<List<String>> getSMinus() {
 		return sMinus;
 	}

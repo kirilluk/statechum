@@ -133,11 +133,52 @@ public class AccuracyAndQuestionsExperiment {
 			return stdOutput;
 		}
 		
+		protected void buildSetsHalfNegative()
+		{
+			loadGraph();
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
+	    	WMethod tester = new WMethod(graph,2);
+			tests = (Collection<List<String>>)tester.getFullTestSet();
+			tests.removeAll(rpg.getAllPaths());
+			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
+			
+			currentSamples = addPercentageFromSamples(currentSamples, rpg.getAllPaths(), percent);
+			sPlus = getPositiveStrings(graph,currentSamples);
+			sMinus = new HashSet<List<String>>();
+			
+			int half = sPlus.size()/2;
+			Object[] positives = sPlus.toArray();
+			FSMStructure fsm = WMethod.getGraphData(graph);
+			for(int i=0;i<half;i++){
+				List<String> element = (List<String>)positives[i];
+				sPlus.remove(element);
+				sMinus.add(pickNegativeTest(fsm));
+			}
+			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
+		}
+		
+		public List<String> pickNegativeTest(FSMStructure graph){
+			Random generator = new Random();
+			boolean accepted = true;
+			Object[] testArray = tests.toArray();
+			List<String> string = null;
+			while(accepted){
+				int randomIndex = generator.nextInt(testArray.length-1);
+				string = WMethod.trimSequence(graph, (List<String>)testArray[randomIndex]);
+				if(string == null)
+					continue;
+				if(!sMinus.contains(string))
+					accepted=false;
+			}
+			tests.remove(string);
+			return string;
+		}
+		
 		protected void buildSets()
 		{
 			loadGraph();
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,0);
+	    	WMethod tester = new WMethod(graph,2);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			//tests = randomHalf(fullTestSet,new Random(0));
 			//Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
@@ -154,10 +195,6 @@ public class AccuracyAndQuestionsExperiment {
 			sPlus = getPositiveStrings(graph,currentSamples);
 			sMinus = new HashSet<List<String>>();
 			
-			/* sMinus = currentSamples;
-			sMinus.removeAll(sPlus);
-			sMinus = trimToNegatives(graph, sMinus);
-			*/
 			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 
@@ -197,7 +234,7 @@ public class AccuracyAndQuestionsExperiment {
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
 			
-			buildSets();
+			buildSetsHalfNegative();
 			
 			final FSMStructure fsm = WMethod.getGraphData(graph);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
@@ -208,7 +245,7 @@ public class AccuracyAndQuestionsExperiment {
 				}
 			};
 			//l.setCertaintyThreshold(10);
-			//l.setMinCertaintyThreshold(0);
+			l.setMinCertaintyThreshold(500000); //question threshold
 			DirectedSparseGraph learningOutcome = null;
 			String result = "";
 			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
@@ -220,8 +257,11 @@ public class AccuracyAndQuestionsExperiment {
 				l.init(plusPTA, minusPTA);
 				changeParametersOnLearner(l);
 				learningOutcome = l.learnMachine();
-				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);	
-				System.out.println(instanceID+","+result);
+				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);
+				if(this.percent == 10)
+					System.out.println();
+				System.out.print(computeAccuracy(learningOutcome, graph,tests)+",");
+				//System.out.println(instanceID+","+result);
 				//updateFrame(g,learningOutcome);
 				l.setQuestionCounter(0);
 				if (learningOutcome != null)
@@ -342,6 +382,9 @@ public class AccuracyAndQuestionsExperiment {
 		}
 		return positiveStrings;
 	}
+	
+	
+	
 	public static Collection<List<String>> randomHalf(Collection<List<String>> v, Random halfRandomNumberGenerator){
 		Object[]samples = v.toArray();
 		List<List<String>> returnSet = new LinkedList<List<String>>();
@@ -386,7 +429,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 				};
 			}
-		},
+		}/*,
 		new LearnerEvaluatorGenerator() {
 			@Override
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
@@ -458,7 +501,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 				};
 			}
-		}
+		}*/
 		// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one
 	};
 	
@@ -555,11 +598,11 @@ public class AccuracyAndQuestionsExperiment {
 					//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); 
 					//"D:\\experiment\\Neil-Data2\\50-6");
 					//System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-					//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
+					//System.getProperNty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
 	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
 	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
 	        for(int i=0;i<graphFileList.length;i++)
-	        	if(graphFileList[i].startsWith("N"))
+	        	if(graphFileList[i].endsWith("xml"))
 	        	{
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}

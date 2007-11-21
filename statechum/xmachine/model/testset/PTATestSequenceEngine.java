@@ -256,5 +256,24 @@ public class PTATestSequenceEngine
 		
 		return result;
 	}
+	
+	public int treeSize(){
+		int result = 0;
+		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
+		currentExplorationBoundary.add(init);
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			Node currentVertex = currentExplorationBoundary.remove();
+			Map<String,Node> row = pta.get(currentVertex);
+			if (!row.isEmpty())
+				for(Entry<String,Node> entry:row.entrySet())
+				{
+					result++;
+					currentExplorationBoundary.offer(entry.getValue());
+				}
+		}
+		
+		return result;
+	}
 }
 

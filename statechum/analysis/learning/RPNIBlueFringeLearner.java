@@ -954,7 +954,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return vertices;
 	}
 	
-	protected static Edge findEdge(Vertex from, Vertex to){
+	public static Edge findEdge(Vertex from, Vertex to){
 		Iterator<DirectedSparseEdge> edgesOut = from.getOutEdges().iterator();
 		while(edgesOut.hasNext()){
 			DirectedSparseEdge current = edgesOut.next();

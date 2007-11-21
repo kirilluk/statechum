@@ -11,6 +11,9 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.experiments.AccuracyAndQuestionsExperiment;
+import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
+import statechum.analysis.learning.experiments.RandomPathGenerator;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 

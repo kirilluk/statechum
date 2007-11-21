@@ -1,4 +1,4 @@
-package statechum.analysis.learning;
+package statechum.analysis.learning.experiments;
 
 import edu.uci.ics.jung.io.GraphMLFileHandler;
 import edu.uci.ics.jung.graph.*;
@@ -11,6 +11,7 @@ import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 

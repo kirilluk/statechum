@@ -1180,7 +1180,7 @@ public class computeStateScores implements Cloneable {
 	 * when creating vertices/edges eliminates the potential of such racing, which occurs when public static int ID
 	 * gets increased by Jung in the course of object creation.
 	 */
-	protected static final Object syncObj = new Object();
+	public static final Object syncObj = new Object();
 	
 	protected int vertPositiveID = 1;
 	protected int vertNegativeID = 1;

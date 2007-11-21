@@ -2,7 +2,7 @@
  * INCOMPLETE
  */
 
-package statechum.analysis.learning;
+package statechum.analysis.learning.experiments;
 
 
 import java.awt.Point;
@@ -34,6 +34,11 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.TestFSMAlgo;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
@@ -41,11 +46,11 @@ import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
-public class AccuracyAndQuestionsExperiment {
+public class PathCompressionExperiment {
 
 	private final ExecutorService executorService;
 	
-	public AccuracyAndQuestionsExperiment(String outputD)
+	public PathCompressionExperiment(String outputD)
 	{
 		int ThreadNumber = 1; // the default for single-cpu systems.
 		String cpuNum = System.getProperty("threadnum");
@@ -72,10 +77,9 @@ public class AccuracyAndQuestionsExperiment {
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
 	{
-		protected Collection<List<String>> sPlus=null, sMinus=null;
+		protected Collection<List<String>> sPlus=null;
 		protected DirectedSparseGraph graph=null;
 		protected String inputFileName = null, outputDir = null;
-		protected Collection<List<String>> tests = null;
 		protected int percent;
 		protected final int instanceID;
 		
@@ -131,29 +135,10 @@ public class AccuracyAndQuestionsExperiment {
 		protected void buildSets()
 		{
 			loadGraph();
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,0);
-			tests = (Collection<List<String>>)tester.getFullTestSet();
-			//tests = randomHalf(fullTestSet,new Random(0));
-			//Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
-			
-			// this one ensures that walks are of length diameter+5 if they exist and some will not exist
-			//l.setCertaintyThreshold(2);
-			//Collection<List<String>> sampleSet = randomHalf(fullSampleSet,new Random(1));
-			//Vector<List<String>> samples = new Vector<List<String>>();
-			//samples.addAll(sampleSet);
-			tests.removeAll(rpg.getAllPaths());
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),3);// the seed for Random should be the same for each file
 			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
-			
 			currentSamples = addPercentageFromSamples(currentSamples, rpg.getAllPaths(), percent);
 			sPlus = getPositiveStrings(graph,currentSamples);
-			sMinus = new HashSet<List<String>>();
-			
-			/* sMinus = currentSamples;
-			sMinus.removeAll(sPlus);
-			sMinus = trimToNegatives(graph, sMinus);
-			*/
-			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 
 		public static Collection<List<String>> plus = null;
@@ -176,7 +161,8 @@ public class AccuracyAndQuestionsExperiment {
 	{
 		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
 		{
-			super(inputFile, outputDir, per,instanceID);			
+			super(inputFile, outputDir, per,instanceID);
+			
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
@@ -184,6 +170,14 @@ public class AccuracyAndQuestionsExperiment {
 
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
+		
+		protected static int stringCollectionSize(Collection<List<String>> strings){
+			int size = 0;
+			for (List<String> list : strings) {
+				size = size + list.size();
+			}
+			return size;
+		}
 		
 		public String call()
 		{
@@ -193,36 +187,20 @@ public class AccuracyAndQuestionsExperiment {
 			if (stdOutput != null) return stdOutput;
 			
 			buildSets();
+			int uncompressed = stringCollectionSize(sPlus);
 			
-			final FSMStructure fsm = WMethod.getGraphData(graph);
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
-			{
-				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
-				{
-					return tracePath(fsm, question);
-				}
-			};
-			//l.setCertaintyThreshold(10);
-			//l.setMinCertaintyThreshold(0);
-			DirectedSparseGraph learningOutcome = null;
-			String result = "";
-			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";
+			String stats = instanceID+","+sPlus.size()+ ","+uncompressed;
 			try
 			{
-				PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
-				stats = stats + "Actual sequences, sPlus: "+plusPTA.size()+" sMinus: "+minusPTA.size()+ " ";
-				changeParametersOnComputeStateScores(l.getScoreComputer());
-				l.init(plusPTA, minusPTA);
-				changeParametersOnLearner(l);
-				learningOutcome = l.learnMachine();
-				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph,tests);	
-				System.out.println(instanceID+","+result);
-				//updateFrame(g,learningOutcome);
-				l.setQuestionCounter(0);
-				if (learningOutcome != null)
-					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
-				//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
+				PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);
+				int compressed = plusPTA.treeSize();
+				float compression = 100-((new Float(compressed)/new Float(uncompressed))*100);
+				//stats = stats + ","+compressed+","+compression;
+				stats = compression+",";
 				currentOutcome = OUTCOME.SUCCESS;
+				if(this.percent == 10)
+					System.out.println();
+				System.out.print(stats);
 			}
 			catch(Throwable th)
 			{
@@ -233,7 +211,7 @@ public class AccuracyAndQuestionsExperiment {
 			}
 			
 			// now record the result
-			stdOutput = writeResult(currentOutcome, result + "\n"+ stats);
+			stdOutput = writeResult(currentOutcome, stats);
 			if (stdOutput != null) return stdOutput;
 			return inputFileName+FS+percent+FS+currentOutcome;
 		}
@@ -245,65 +223,6 @@ public class AccuracyAndQuestionsExperiment {
 	/** Stores tasks to complete. */
 	final CompletionService<String> runner;
 			
-	/** Displays twos graphs passed as arguments in the Jung window.
-	 * @param g the graph to display 
-	 * @param lowerGraph the graph to display below it
-	 */
-	public static void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
-	{
-		final Visualiser v=new Visualiser();
-		v.update(null, g);
-		if (lowerGraph != null)
-		{
-			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
-				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
-				// I rely on the results of execution of the above thread below in order to position the window.
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-						Visualiser viz=new Visualiser();viz.update(null, lowerGraph);
-						Point newLoc = viz.getLocation();newLoc.move(0, v.getHeight());v.setLocation(newLoc);
-					}
-				});
-			} catch (InterruptedException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
-		int failed = 0;
-		for (List<String> list : tests) {
-			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
-			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
-			if((hypVertex == null)&(correctVertex != null)){
-				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
-					//updateFrame(learned, correct);
-					failed ++;
-				}
-			}
-			else if(hypVertex !=null & correctVertex!=null){
-				if(!(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals(correctVertex.getUserDatum(JUConstants.ACCEPTED).toString()))){
-					//updateFrame(learned, correct);
-					failed ++;
-				}
-			}
-			else if(hypVertex!=null & correctVertex == null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
-					//updateFrame(learned, correct);
-					failed++;
-				}
-			}
-				
-		}
-		double accuracy = 1-((double)failed/(double)tests.size());
-		return accuracy;
-	}
 	
 	public static Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Collection<List<String>> samples, double percent){
 		double size = samples.size();
@@ -378,78 +297,6 @@ public class AccuracyAndQuestionsExperiment {
 					public String toString()
 					{
 						return "RPNI, POSITIVE_NEGATIVE";
-					}
-				};
-			}
-		},
-		new LearnerEvaluatorGenerator() {
-			@Override
-			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
-				{
-					@Override
-					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-					{
-					}
-
-					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
-					{
-						c.setMode(IDMode.POSITIVE_ONLY);						
-					}
-
-					@Override
-					public String toString()
-					{
-						return "RPNI, POSITIVE_ONLY";
-					}
-				};
-			}
-		},
-		new LearnerEvaluatorGenerator() {
-			@Override
-			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
-				{
-					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-					{
-					}
-
-					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
-					{
-						c.bumpPositive();
-						c.setMode(IDMode.POSITIVE_ONLY);
-					}
-
-					@Override
-					public String toString()
-					{
-						return "RPNI, POSITIVE_ONLY with a bump of 1";
-					}
-				};
-			}
-		},
-		new LearnerEvaluatorGenerator() {
-			@Override
-			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
-				{
-					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-					{
-					}
-
-					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
-					{
-						c.bumpPositive();c.useCompatibilityScore();
-						c.setMode(IDMode.POSITIVE_ONLY);
-					}
-
-					@Override
-					public String toString()
-					{
-						return "RPNI, POSITIVE_ONLY with a bump of 1 and compatibility scores";
 					}
 				};
 			}
@@ -542,7 +389,7 @@ public class AccuracyAndQuestionsExperiment {
 	{
         if (100 % stageNumber != 0)
         	throw new IllegalArgumentException("wrong compiled-in stageNumber="+stageNumber+": it should be a divisor of 100");
-        AccuracyAndQuestionsExperiment experiment = null;
+        PathCompressionExperiment experiment = null;
         
 		if (args.length < 2)
 		{
@@ -554,7 +401,7 @@ public class AccuracyAndQuestionsExperiment {
 	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
 	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
 	        for(int i=0;i<graphFileList.length;i++)
-	        	if(graphFileList[i].startsWith("N"))
+	        	if(graphFileList[i].endsWith(".xml"))
 	        	{
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
@@ -562,7 +409,7 @@ public class AccuracyAndQuestionsExperiment {
 	        File outputDir = new File("output_"+graphDir.getName());
 	        if (outputDir.canRead() || outputDir.mkdirs())
 	        {
-		        experiment = new AccuracyAndQuestionsExperiment(outputDir.getAbsolutePath());
+		        experiment = new PathCompressionExperiment(outputDir.getAbsolutePath());
 		        assert fileNumber*learnerGenerators.length*stageNumber == experiment.computeMaxNumber(fileNameListReader);
 	       		for(int number=0;number < fileNumber*learnerGenerators.length*stageNumber;++number)
 		        			experiment.processDataSet(fileNameListReader, number);
@@ -570,7 +417,7 @@ public class AccuracyAndQuestionsExperiment {
 		}
 		else
 		{// args.length >=2
-	        experiment = new AccuracyAndQuestionsExperiment(args[1]);
+	        experiment = new PathCompressionExperiment(args[1]);
             try {
             	int num = Integer.parseInt(args[2]);
             	if (num >= 0)
@@ -601,7 +448,7 @@ public class AccuracyAndQuestionsExperiment {
 		if (experiment != null && experiment.results != null)
 	        for(Future<String> computationOutcome:experiment.results)
 				try {
-						//        System.out.println("RESULT: "+computationOutcome.get()+"\n");
+						//System.out.println("RESULT: "+computationOutcome.get()+"\n");
 				} catch (Exception e) {
 					System.out.println("FAILED");
 					e.printStackTrace();

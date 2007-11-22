@@ -136,25 +136,23 @@ public class AccuracyAndQuestionsExperiment {
 		protected void buildSetsHalfNegative()
 		{
 			loadGraph();
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,2);
+			int size = (graph.numVertices()*graph.numVertices())/2;
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size/2,5);// the seed for Random should be the same for each file
+	    	WMethod tester = new WMethod(graph,0);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			tests.removeAll(rpg.getAllPaths());
 			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
-			
-			currentSamples = addPercentageFromSamples(currentSamples, rpg.getAllPaths(), percent);
+			int number = size*percent/100;
+			currentSamples = addNumberFromSamples(currentSamples, rpg.getAllPaths(), number/2);
+			currentSamples = addNumberFromSamples(currentSamples, rpg.getNegativePaths(), number/2);
 			sPlus = getPositiveStrings(graph,currentSamples);
-			sMinus = new HashSet<List<String>>();
 			
-			int half = sPlus.size()/2;
-			Object[] positives = sPlus.toArray();
-			FSMStructure fsm = WMethod.getGraphData(graph);
-			for(int i=0;i<half;i++){
-				List<String> element = (List<String>)positives[i];
-				sPlus.remove(element);
+			sMinus = getNegativeStrings(graph,currentSamples);
+			/*FSMStructure fsm = WMethod.getGraphData(graph);
+			for(int i=0;i<size;i++){
 				sMinus.add(pickNegativeTest(fsm));
-			}
-			//System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
+			}*/
+			System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 		
 		public List<String> pickNegativeTest(FSMStructure graph){
@@ -177,7 +175,8 @@ public class AccuracyAndQuestionsExperiment {
 		protected void buildSets()
 		{
 			loadGraph();
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
+			int size = graph.getEdges().size()*4;
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size,5);// the seed for Random should be the same for each file
 	    	WMethod tester = new WMethod(graph,2);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
 			//tests = randomHalf(fullTestSet,new Random(0));
@@ -360,6 +359,15 @@ public class AccuracyAndQuestionsExperiment {
 		return current;
 	}
 	
+	public static Set<List<String>> addNumberFromSamples(Set<List<String>> current, Collection<List<String>> samples, double number){
+		double size = samples.size();
+		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
+		for(int i=0;i<(int)number;i++){
+			current.add(sampleArray[i]);
+		}
+		return current;
+	}
+	
 	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Collection<List<String>> sMinus ){
 		Set<List<String>> returnSet = new HashSet<List<String>>();
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
@@ -383,7 +391,16 @@ public class AccuracyAndQuestionsExperiment {
 		return positiveStrings;
 	}
 	
-	
+	public static Collection<List<String>> getNegativeStrings(DirectedSparseGraph graph, Collection<List<String>> samples){
+		Iterator<List<String>> sampleIt = samples.iterator();
+		HashSet<List<String>> negativeStrings = new HashSet<List<String>>();
+		while(sampleIt.hasNext()){
+			List<String> v = sampleIt.next();
+			if(RPNIBlueFringeLearner.getVertex(graph, v) == null)
+				negativeStrings.add(v);
+		}
+		return negativeStrings;
+	}
 	
 	public static Collection<List<String>> randomHalf(Collection<List<String>> v, Random halfRandomNumberGenerator){
 		Object[]samples = v.toArray();

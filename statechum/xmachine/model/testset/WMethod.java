@@ -154,6 +154,8 @@ public class WMethod {
 	public static List<String> trimSequence(FSMStructure fsm, List<String> path)
 	{
 		ArrayList<String> rejectPath = new ArrayList<String>();
+		if(tracePath(fsm, path)<0)
+			return null;
 		String current = fsm.init;
 		for(String label:path)
 		{

@@ -17,7 +17,8 @@ import statechum.xmachine.model.testset.*;
 public class RandomPathGenerator {
 	
 	protected DirectedSparseGraph g;
-	private PTASequenceSet sPlus;
+	private PTASequenceSet sPlus, sMinus;
+	private int number=0, extradiameter=0;
 	
 	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
@@ -27,92 +28,114 @@ public class RandomPathGenerator {
 	 * @param randomGenerator
 	 * @param extraToDiameter the length of paths will be diameter plus this value.
 	 */ 
-	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int extraToDiameter) {
+	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int number,  int extraToDiameter) {
 		pathRandomNumberGenerator = randomGenerator;
 		//sPlus = new LinkedList<List<String>>();
 		sPlus = new PTASequenceSet();
+		sMinus = new PTASequenceSet();
 		g = baseGraph;
-		DijkstraDistance dd = new DijkstraDistance(baseGraph);
-		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g)).values();
+		this.number = number;
+		this.extradiameter = extraToDiameter;
+		this.populateRandomWalksC(number, diameter(g)+extradiameter);
+		this.populateNegativeRandomWalksC(number, diameter(g)+extradiameter);
+	}
+	
+	public static int diameter(DirectedSparseGraph graph){
+		DijkstraDistance dd = new DijkstraDistance(graph);
+		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", graph)).values();
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
-		int diameter = distancesList.get(distancesList.size()-1).intValue();
-		int size = g.getEdges().size();
-		this.populateRandomWalksC(4*size, diameter+extraToDiameter);
+		return distancesList.get(distancesList.size()-1).intValue();
 	}
 	
-	private Set<String> getOutgoingSymbols(Vertex v){
-		Set<String> outSymbols = new HashSet<String>();
-		Iterator<Edge> outEdges = v.getOutEdges().iterator();
-		while (outEdges.hasNext()) {
-			Edge e = outEdges.next();
-			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-			outSymbols.addAll(labels);
-		}
-		return outSymbols;
-	}
-	
-	private void populateRandomWalks(int number, int maxLength){
-		int counter = 0;
-		Set<String> doneStrings = new HashSet<String>();
-		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", g);
-		while(counter<number){
-			List<String> path = new LinkedList<String>();
-			String s = "";
-			Vertex current = init;
-			for(int i=0;i<maxLength;i++){
-				if(current.outDegree()==0)
-					break;
-				String currentString= pickRandom(current);
-				s = s.concat(currentString);
-				path.add(currentString);
-				Vertex exists = RPNIBlueFringeLearner.getVertex(g, path);
-				if(!doneStrings.contains(s)){
-					sPlus.add(new ArrayList(path));
-					doneStrings.add(s);
-					counter++;
-				}
-				current = exists;
-			}
-		}
-	}
 
 	private void populateRandomWalksC(int number, int maxLength){
 		int counter=0, unsucc = 0;
 		FSMStructure fsm = WMethod.getGraphData(g);
+		Random length = new Random();
 		while(counter<number){
 			List<String> path = new ArrayList<String>(maxLength);
 			String current = fsm.init;
 			if(unsucc>100)
 				return;
-			for(int i=0;i<maxLength;i++){
+			int randomLength =  0;
+			while(randomLength == 0)
+				randomLength=length.nextInt(maxLength+1);
+			for(int i=0;i<randomLength;i++){
 				Map<String,String> row = fsm.trans.get(current);
 				if(row.isEmpty())
 					break;
 				String nextInput= (String)pickRandom(row.keySet());
 				path.add(nextInput);
-				
-				//if(!sPlus.contains(path)){
-				int oldSize = sPlus.size();	
-				sPlus.add(new ArrayList<String>(path));
-				if(sPlus.size()>oldSize){
-					counter++;
-					unsucc=0;
-				}
-				else
-					unsucc++;
 				current = row.get(nextInput);
+			}
+			int oldSize = sPlus.size();	
+			sPlus.add(new ArrayList<String>(path));
+			if(sPlus.size()>oldSize){
+				counter++;
+				unsucc=0;
+			}
+			else{
+				unsucc++;
+				
 			}
 		}
 	}
 
-	private String pickRandom(Vertex v){
-		Set<String> labels;
-		Edge e = (Edge)pickRandom(v.getOutEdges());
-		labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-		return pickRandom(labels).toString();
+	private void populateNegativeRandomWalksC(int number, int maxLength){
+		int counter=0, unsucc = 0;
+		FSMStructure fsm = WMethod.getGraphData(g);
+		Set<String> alphabet = WMethod.computeAlphabet(fsm);
+		Random length = new Random();
+		while(counter<number){
+			boolean skip = false;
+			List<String> path = new ArrayList<String>(maxLength);
+			String current = fsm.init;
+			if(unsucc>100)
+				return;
+			int randomLength =  0;
+			while(randomLength == 0)
+				randomLength=length.nextInt(maxLength+1)+1;
+			for(int i=0;i<randomLength;i++){
+				Map<String,String> row = fsm.trans.get(current);
+				if(row.isEmpty()){
+					skip = true;
+					break;
+				}
+				if(i==randomLength-1){
+					Set<String> negatives = new HashSet<String>();
+					negatives.addAll(alphabet);
+					negatives.removeAll(row.keySet());
+					if(negatives.isEmpty()){
+						skip = true;
+						break;
+					}
+					path.add((String)pickRandom(negatives));
+				}
+				else{
+					String nextInput= (String)pickRandom(row.keySet());
+					path.add(nextInput);
+					current = row.get(nextInput);
+				}
+			}
+			if(skip){
+				skip = false;
+				continue;
+			}
+			int oldSize = sMinus.size();	
+			sMinus.add(new ArrayList<String>(path));
+			if(sMinus.size()>oldSize){
+				counter++;
+				unsucc=0;
+			}
+			else{
+				unsucc++;
+				
+			}
+		}
 	}
 
+	
 	private final Random pathRandomNumberGenerator; 
 	
 	private Object pickRandom(Collection c){
@@ -129,8 +152,16 @@ public class RandomPathGenerator {
 		return sPlus;
 	}
 	
+	public Collection<List<String>> getNegativePaths(){
+		Collection<List<String>> allPaths = new LinkedList<List<String>>();
+		
+		allPaths.addAll(sMinus.getData());
+		return allPaths;
+	}
+	
 	public Collection<List<String>> getAllPaths(){
 		Collection<List<String>> allPaths = new LinkedList<List<String>>();
+		
 		allPaths.addAll(sPlus.getData());
 		return allPaths;
 	}

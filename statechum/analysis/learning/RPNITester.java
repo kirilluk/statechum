@@ -31,8 +31,8 @@ public class RPNITester {
     	DirectedSparseGraph dg = new DirectedSparseGraph();
     	dg.getEdgeConstraints().clear();
     	dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
-		
-		RandomPathGenerator rpg = new RandomPathGenerator(dg, new Random(1),5);
+    	int size = dg.getEdges().size()*4;
+		RandomPathGenerator rpg = new RandomPathGenerator(dg, new Random(1),size, 5);
 		Collection<List<String>> fullSet = rpg.getAllPaths();
 		final FSMStructure expected = getGraphData(dg);
 		

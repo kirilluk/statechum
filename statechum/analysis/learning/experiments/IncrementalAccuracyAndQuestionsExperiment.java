@@ -46,11 +46,11 @@ import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
-public class PathCompressionExperiment {
+public class IncrementalAccuracyAndQuestionsExperiment {
 
 	private final ExecutorService executorService;
 	
-	public PathCompressionExperiment(String outputD)
+	public IncrementalAccuracyAndQuestionsExperiment(String outputD)
 	{
 		int ThreadNumber = 1; // the default for single-cpu systems.
 		String cpuNum = System.getProperty("threadnum");
@@ -77,15 +77,15 @@ public class PathCompressionExperiment {
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
 	{
-		protected Collection<List<String>> sPlus=null;
+		protected Collection<List<String>> sPlus=null, sMinus=null;
 		protected DirectedSparseGraph graph=null;
 		protected String inputFileName = null, outputDir = null;
-		protected int percent;
+		protected Collection<List<String>> tests = null;
 		protected final int instanceID;
 		
-		public LearnerEvaluator(String inputFile, String outputD, int per, int inID) 
+		public LearnerEvaluator(String inputFile, String outputD, int inID) 
 		{
-			inputFileName = inputFile;outputDir = outputD;percent = per;instanceID = inID;			
+			inputFileName = inputFile;outputDir = outputD;instanceID = inID;			
 		}
 
 		protected void loadGraph()
@@ -116,7 +116,7 @@ public class PathCompressionExperiment {
 			try
 			{
 				outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
-				outputWriter.write(inputFileName+FS+percent+FS+outcome+(result == null? "":FS+result)+"\n");
+				outputWriter.write(inputFileName+FS+outcome+(result == null? "":FS+result)+"\n");
 			}
 			catch(IOException e)
 			{
@@ -132,15 +132,36 @@ public class PathCompressionExperiment {
 			return stdOutput;
 		}
 		
-		protected void buildSets()
+		protected RandomPathGenerator buildSetsHalfNegative()
 		{
 			loadGraph();
-			int size = graph.getEdges().size()*4;
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size, 3);// the seed for Random should be the same for each file
-			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
-			currentSamples = addPercentageFromSamples(currentSamples, rpg.getAllPaths(), percent);
-			sPlus = getPositiveStrings(graph,currentSamples);
+			int size = (graph.numVertices()*graph.numVertices())/2;
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size/2,5);// the seed for Random should be the same for each file
+	    	WMethod tester = new WMethod(graph,0);
+			tests = (Collection<List<String>>)tester.getFullTestSet();
+			tests.removeAll(rpg.getAllPaths());
+			return rpg;
+			
 		}
+		
+		public List<String> pickNegativeTest(FSMStructure graph){
+			Random generator = new Random();
+			boolean accepted = true;
+			Object[] testArray = tests.toArray();
+			List<String> string = null;
+			while(accepted){
+				int randomIndex = generator.nextInt(testArray.length-1);
+				string = WMethod.trimSequence(graph, (List<String>)testArray[randomIndex]);
+				if(string == null)
+					continue;
+				if(!sMinus.contains(string))
+					accepted=false;
+			}
+			tests.remove(string);
+			return string;
+		}
+		
+		
 
 		public static Collection<List<String>> plus = null;
 		
@@ -153,17 +174,16 @@ public class PathCompressionExperiment {
 		
 		protected String getFileName(FileType fileNameType)
 		{
-			return fileNameType.getFileName(outputDir+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),"-"+percent); 
+			return fileNameType.getFileName(outputDir+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),"-"); 
 		}
 	}
 	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
-		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
+		public RPNIEvaluator(String inputFile, String outputDir, int instanceID)
 		{
-			super(inputFile, outputDir, per,instanceID);
-			
+			super(inputFile, outputDir, instanceID);			
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
@@ -172,14 +192,6 @@ public class PathCompressionExperiment {
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
 		
-		protected static int stringCollectionSize(Collection<List<String>> strings){
-			int size = 0;
-			for (List<String> list : strings) {
-				size = size + list.size();
-			}
-			return size;
-		}
-		
 		public String call()
 		{
 			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
@@ -187,34 +199,48 @@ public class PathCompressionExperiment {
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
 			
-			buildSets();
-			int uncompressed = stringCollectionSize(sPlus);
-			
-			String stats = instanceID+","+sPlus.size()+ ","+uncompressed;
-			try
+			RandomPathGenerator rpg = buildSetsHalfNegative();
+			sMinus = new HashSet<List<String>>();
+			sPlus = new HashSet<List<String>>();
+			final FSMStructure fsm = WMethod.getGraphData(graph);
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
-				PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);
-				int compressed = plusPTA.treeSize();
-				float compression = 100-((new Float(compressed)/new Float(uncompressed))*100);
-				//stats = stats + ","+compressed+","+compression;
-				stats = compression+",";
-				currentOutcome = OUTCOME.SUCCESS;
-				if(this.percent == 10)
-					System.out.println();
-				System.out.print(stats);
+				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+				{
+					return tracePath(fsm, question);
+				}
+			};
+			//l.setCertaintyThreshold(10);
+			l.setMinCertaintyThreshold(500000); //question threshold
+			DirectedSparseGraph learningOutcome = null;
+			for(int percent=10;percent<101;percent=percent+10){
+				try
+				{
+					int number = ((graph.numVertices()*graph.numVertices())/2)/10;
+					sPlus = addNumberFromSamples(sPlus, rpg.getAllPaths(), number);
+					sMinus = addNumberFromSamples(sMinus, rpg.getNegativePaths(), number);
+					PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
+					changeParametersOnComputeStateScores(l.getScoreComputer());
+					l.init(plusPTA, minusPTA);
+					changeParametersOnLearner(l);
+					learningOutcome = l.learnMachine();
+					if(percent == 10)
+						System.out.println();
+					System.out.print(computeAccuracy(learningOutcome, graph,tests)+",");
+					//System.out.println(instanceID+","+result);
+					//updateFrame(g,learningOutcome);
+					l.setQuestionCounter(0);
+					
+					currentOutcome = OUTCOME.SUCCESS;
+				}
+				catch(Throwable th)
+				{
+					StringWriter writer = new StringWriter();
+					th.printStackTrace();
+					th.printStackTrace(new PrintWriter(writer));
+				}
 			}
-			catch(Throwable th)
-			{
-				StringWriter writer = new StringWriter();
-				th.printStackTrace();
-				th.printStackTrace(new PrintWriter(writer));
-				stats = stats+"\nFAILED\nSTACK: "+writer.toString();
-			}
-			
-			// now record the result
-			stdOutput = writeResult(currentOutcome, stats);
-			if (stdOutput != null) return stdOutput;
-			return inputFileName+FS+percent+FS+currentOutcome;
+			return inputFileName+"success";
 		}
 	}
 	
@@ -224,12 +250,81 @@ public class PathCompressionExperiment {
 	/** Stores tasks to complete. */
 	final CompletionService<String> runner;
 			
+	/** Displays twos graphs passed as arguments in the Jung window.
+	 * @param g the graph to display 
+	 * @param lowerGraph the graph to display below it
+	 */
+	public static void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
+	{
+		final Visualiser v=new Visualiser();
+		v.update(null, g);
+		if (lowerGraph != null)
+		{
+			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
+				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
+				// I rely on the results of execution of the above thread below in order to position the window.
+				SwingUtilities.invokeAndWait(new Runnable() 
+				{
+					public void run()
+					{
+						Visualiser viz=new Visualiser();viz.update(null, lowerGraph);
+						Point newLoc = viz.getLocation();newLoc.move(0, v.getHeight());v.setLocation(newLoc);
+					}
+				});
+			} catch (InterruptedException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
+		int failed = 0;
+		for (List<String> list : tests) {
+			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
+			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
+			if((hypVertex == null)&(correctVertex != null)){
+				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+					//updateFrame(learned, correct);
+					failed ++;
+				}
+			}
+			else if(hypVertex !=null & correctVertex!=null){
+				if(!(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals(correctVertex.getUserDatum(JUConstants.ACCEPTED).toString()))){
+					//updateFrame(learned, correct);
+					failed ++;
+				}
+			}
+			else if(hypVertex!=null & correctVertex == null){
+				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+					//updateFrame(learned, correct);
+					failed++;
+				}
+			}
+				
+		}
+		double accuracy = 1-((double)failed/(double)tests.size());
+		return accuracy;
+	}
 	
 	public static Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Collection<List<String>> samples, double percent){
 		double size = samples.size();
 		double number = size*percent/100;
 		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
 		for(int i=0;i<(int)number;i++){
+			current.add(sampleArray[i]);
+		}
+		return current;
+	}
+	
+	public static Collection<List<String>> addNumberFromSamples(Collection<List<String>> current, Collection<List<String>> samples, double number){
+		double size = samples.size();
+		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
+		int currSize = current.size();
+		for(int i=currSize;i<(int)currSize+number&&i<size;i++){
 			current.add(sampleArray[i]);
 		}
 		return current;
@@ -257,6 +352,18 @@ public class PathCompressionExperiment {
 		}
 		return positiveStrings;
 	}
+	
+	public static Collection<List<String>> getNegativeStrings(DirectedSparseGraph graph, Collection<List<String>> samples){
+		Iterator<List<String>> sampleIt = samples.iterator();
+		HashSet<List<String>> negativeStrings = new HashSet<List<String>>();
+		while(sampleIt.hasNext()){
+			List<String> v = sampleIt.next();
+			if(RPNIBlueFringeLearner.getVertex(graph, v) == null)
+				negativeStrings.add(v);
+		}
+		return negativeStrings;
+	}
+	
 	public static Collection<List<String>> randomHalf(Collection<List<String>> v, Random halfRandomNumberGenerator){
 		Object[]samples = v.toArray();
 		List<List<String>> returnSet = new LinkedList<List<String>>();
@@ -281,7 +388,7 @@ public class PathCompressionExperiment {
 		new LearnerEvaluatorGenerator() {
 			@Override
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
+				return new RPNIEvaluator(inputFile,outputDir, instanceID)
 				{
 					@Override
 					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
@@ -302,7 +409,6 @@ public class PathCompressionExperiment {
 				};
 			}
 		}
-		// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one
 	};
 	
 	public static final int stageNumber = 10;
@@ -390,7 +496,7 @@ public class PathCompressionExperiment {
 	{
         if (100 % stageNumber != 0)
         	throw new IllegalArgumentException("wrong compiled-in stageNumber="+stageNumber+": it should be a divisor of 100");
-        PathCompressionExperiment experiment = null;
+        IncrementalAccuracyAndQuestionsExperiment experiment = null;
         
 		if (args.length < 2)
 		{
@@ -398,11 +504,11 @@ public class PathCompressionExperiment {
 					//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); 
 					//"D:\\experiment\\Neil-Data2\\50-6");
 					//System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-					//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
+					//System.getProperNty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
 	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
 	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
 	        for(int i=0;i<graphFileList.length;i++)
-	        	if(graphFileList[i].endsWith(".xml"))
+	        	if(graphFileList[i].endsWith("xml"))
 	        	{
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
@@ -410,7 +516,7 @@ public class PathCompressionExperiment {
 	        File outputDir = new File("output_"+graphDir.getName());
 	        if (outputDir.canRead() || outputDir.mkdirs())
 	        {
-		        experiment = new PathCompressionExperiment(outputDir.getAbsolutePath());
+		        experiment = new IncrementalAccuracyAndQuestionsExperiment(outputDir.getAbsolutePath());
 		        assert fileNumber*learnerGenerators.length*stageNumber == experiment.computeMaxNumber(fileNameListReader);
 	       		for(int number=0;number < fileNumber*learnerGenerators.length*stageNumber;++number)
 		        			experiment.processDataSet(fileNameListReader, number);
@@ -418,7 +524,7 @@ public class PathCompressionExperiment {
 		}
 		else
 		{// args.length >=2
-	        experiment = new PathCompressionExperiment(args[1]);
+	        experiment = new IncrementalAccuracyAndQuestionsExperiment(args[1]);
             try {
             	int num = Integer.parseInt(args[2]);
             	if (num >= 0)
@@ -449,7 +555,7 @@ public class PathCompressionExperiment {
 		if (experiment != null && experiment.results != null)
 	        for(Future<String> computationOutcome:experiment.results)
 				try {
-						//System.out.println("RESULT: "+computationOutcome.get()+"\n");
+						//        System.out.println("RESULT: "+computationOutcome.get()+"\n");
 				} catch (Exception e) {
 					System.out.println("FAILED");
 					e.printStackTrace();

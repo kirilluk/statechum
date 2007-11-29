@@ -925,7 +925,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 	
 	public static Vertex getVertex (DirectedSparseGraph g, List<String> string){
-		return getVertex(g, findVertex("property", "init",g), string);
+		return getVertex(g, findVertex(JUConstants.PROPERTY, JUConstants.INIT,g), string);
 	}
 	
 	public static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){

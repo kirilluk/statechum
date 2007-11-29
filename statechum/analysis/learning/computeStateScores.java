@@ -51,7 +51,7 @@ public class computeStateScores implements Cloneable {
 	/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
 	protected List<computeStateScores.PairScore> pairsAndScores;
 	
-	protected int generalisationThreshold;
+	protected int generalisationThreshold=1;
 	protected int pairsMergedPerHypothesis;
 	
 	private boolean bumpPositives = false, useCompatibilityScore = false;

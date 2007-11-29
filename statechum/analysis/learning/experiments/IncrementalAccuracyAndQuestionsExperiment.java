@@ -30,6 +30,8 @@ import java.util.concurrent.Future;
 
 import javax.swing.SwingUtilities;
 
+import org.junit.runner.JUnitCore;
+
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
@@ -42,6 +44,7 @@ import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
+import sun.dc.pr.PRError;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
@@ -72,7 +75,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	
 	public abstract static class LearnerEvaluatorGenerator 
 	{
-		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, String ouputDir, int percent, int instanceID);
+		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, String ouputDir, int instanceID);
 	}
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
@@ -135,33 +138,17 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		protected RandomPathGenerator buildSetsHalfNegative()
 		{
 			loadGraph();
-			int size = (graph.numVertices()*graph.numVertices())/2;
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size/2,5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,0);
+			int size =(((graph.numVertices()*graph.numVertices())/2));
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size,5);// the seed for Random should be the same for each file
+	    	WMethod tester = new WMethod(graph,1);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
+			tests.addAll(tester.getTransitionCover());
 			tests.removeAll(rpg.getAllPaths());
-			return rpg;
+			tests.removeAll(rpg.getNegativePaths());
+			
+	    	return rpg;
 			
 		}
-		
-		public List<String> pickNegativeTest(FSMStructure graph){
-			Random generator = new Random();
-			boolean accepted = true;
-			Object[] testArray = tests.toArray();
-			List<String> string = null;
-			while(accepted){
-				int randomIndex = generator.nextInt(testArray.length-1);
-				string = WMethod.trimSequence(graph, (List<String>)testArray[randomIndex]);
-				if(string == null)
-					continue;
-				if(!sMinus.contains(string))
-					accepted=false;
-			}
-			tests.remove(string);
-			return string;
-		}
-		
-		
 
 		public static Collection<List<String>> plus = null;
 		
@@ -202,6 +189,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			RandomPathGenerator rpg = buildSetsHalfNegative();
 			sMinus = new HashSet<List<String>>();
 			sPlus = new HashSet<List<String>>();
+			Collection<List<String>> allPositive = rpg.getAllPaths();
+			Collection<List<String>> allNegative = rpg.getNegativePaths();
 			final FSMStructure fsm = WMethod.getGraphData(graph);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
@@ -213,22 +202,24 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			//l.setCertaintyThreshold(10);
 			l.setMinCertaintyThreshold(500000); //question threshold
 			DirectedSparseGraph learningOutcome = null;
+			int number = (((graph.numVertices()*graph.numVertices())/2))/10;
+			Vector<PrecisionRecall> prResults = new Vector<PrecisionRecall>();
 			for(int percent=10;percent<101;percent=percent+10){
 				try
 				{
-					int number = ((graph.numVertices()*graph.numVertices())/2)/10;
-					sPlus = addNumberFromSamples(sPlus, rpg.getAllPaths(), number);
-					sMinus = addNumberFromSamples(sMinus, rpg.getNegativePaths(), number);
+					sPlus = addNumberFromSamples(sPlus, allPositive, number);
+					sMinus = addNumberFromSamples(sMinus, allNegative, number);
 					PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
 					changeParametersOnComputeStateScores(l.getScoreComputer());
 					l.init(plusPTA, minusPTA);
 					changeParametersOnLearner(l);
 					learningOutcome = l.learnMachine();
-					if(percent == 10)
-						System.out.println();
-					System.out.print(computeAccuracy(learningOutcome, graph,tests)+",");
+					//if(percent == 10)
+						//System.out.println();
+					//System.out.print(computeAccuracy(learningOutcome, graph,tests)+",");
 					//System.out.println(instanceID+","+result);
 					//updateFrame(g,learningOutcome);
+					prResults.add(CompareGraphs.computePrecisionRecall(learningOutcome, graph, tests));
 					l.setQuestionCounter(0);
 					
 					currentOutcome = OUTCOME.SUCCESS;
@@ -240,7 +231,29 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					th.printStackTrace(new PrintWriter(writer));
 				}
 			}
+			printPR(prResults);
+			
 			return inputFileName+"success";
+		}
+		
+		private static void printPR(Vector<PrecisionRecall> results){
+			PrecisionRecall hundred = results.get(9);
+			System.out.println(hundred.getPrecision()+","+hundred.getRecall());
+			/*System.out.print("p:"+",");
+			for (PrecisionRecall recall : results) {
+				System.out.print(recall.getPrecision()+",");
+			}
+			System.out.println();
+			System.out.print("r:"+",");
+			for (PrecisionRecall recall : results) {
+				System.out.print(recall.getRecall()+",");
+			}
+			System.out.println();
+			/*System.out.print("f:"+",");
+			for (PrecisionRecall recall : results) {
+				System.out.print(recall.getFMeasure()+",");
+			}
+			System.out.println();*/
 		}
 	}
 	
@@ -299,7 +312,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				if(!hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")){
 					//updateFrame(learned, correct);
 					failed++;
 				}
@@ -364,30 +377,18 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		return negativeStrings;
 	}
 	
-	public static Collection<List<String>> randomHalf(Collection<List<String>> v, Random halfRandomNumberGenerator){
-		Object[]samples = v.toArray();
-		List<List<String>> returnSet = new LinkedList<List<String>>();
-		Set<Integer> done = new HashSet<Integer>();
-		for(int i=0;i<v.size()/2;i++){
-			int randomIndex = 0;
-			boolean newInteger = false;
-			while(!newInteger){
-				randomIndex = halfRandomNumberGenerator.nextInt(v.size());
-				Integer current = new Integer(randomIndex);
-				if(!done.contains(current)){
-					done.add(current);
-					newInteger = true;
-				}
-			}
-			returnSet.add((List<String>)samples[randomIndex]);
-		}
-		return returnSet;
+	private static Collection half(Collection original){
+		Object[] array = original.toArray();
+		Collection newList = new HashSet();
+		for(int i=0;i<array.length/2;i++)
+			newList.add(array[i]);
+		return newList;
 	}
 	
 	public static final LearnerEvaluatorGenerator [] learnerGenerators = {
 		new LearnerEvaluatorGenerator() {
 			@Override
-			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int percent, int instanceID) {
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
 				return new RPNIEvaluator(inputFile,outputDir, instanceID)
 				{
 					@Override
@@ -411,7 +412,6 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		}
 	};
 	
-	public static final int stageNumber = 10;
 	protected ArrayList<String> fileName = new ArrayList<String>(100);
 
 	/** Given a name containing a file with file names, this one adds names of those which can be read, to the
@@ -451,16 +451,16 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	{
 		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		final int LearnerNumber = learnerGenerators.length;
-		final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
+		final int NumberMax = fileName.size()*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
 		else
 		{// the number is valid.
-			int learnerStep = fileName.size()*stageNumber;
+			int learnerStep = fileName.size();
 			int learnerType = Number / learnerStep;
-			int fileNumber = (Number % learnerStep) / stageNumber;
-			int percentStage = (Number % learnerStep) % stageNumber;
-			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
+			int fileNumber = (Number % learnerStep);
+			int percentStage = (Number % learnerStep);
+			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, Number)));
 			return 0;
 		}
 	}
@@ -472,7 +472,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		{
 			loadFileNames(fileNameListReader);
 			final int LearnerNumber = learnerGenerators.length;
-			NumberMax = fileName.size()*stageNumber*LearnerNumber;
+			NumberMax = fileName.size()*LearnerNumber;
 		}
 		catch(Exception e)
 		{// ignore the exception - NumberMax will remain at 0
@@ -494,8 +494,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	 */
 	public static void main(String[] args)
 	{
-        if (100 % stageNumber != 0)
-        	throw new IllegalArgumentException("wrong compiled-in stageNumber="+stageNumber+": it should be a divisor of 100");
+        
         IncrementalAccuracyAndQuestionsExperiment experiment = null;
         
 		if (args.length < 2)
@@ -517,8 +516,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	        if (outputDir.canRead() || outputDir.mkdirs())
 	        {
 		        experiment = new IncrementalAccuracyAndQuestionsExperiment(outputDir.getAbsolutePath());
-		        assert fileNumber*learnerGenerators.length*stageNumber == experiment.computeMaxNumber(fileNameListReader);
-	       		for(int number=0;number < fileNumber*learnerGenerators.length*stageNumber;++number)
+		        assert fileNumber*learnerGenerators.length == experiment.computeMaxNumber(fileNameListReader);
+	       		for(int number=0;number < fileNumber*learnerGenerators.length;++number)
 		        			experiment.processDataSet(fileNameListReader, number);
 	        }
 		}

@@ -30,7 +30,6 @@ public class RandomPathGenerator {
 	 */ 
 	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int number,  int extraToDiameter) {
 		pathRandomNumberGenerator = randomGenerator;
-		//sPlus = new LinkedList<List<String>>();
 		sPlus = new PTASequenceSet();
 		sMinus = new PTASequenceSet();
 		g = baseGraph;
@@ -47,7 +46,6 @@ public class RandomPathGenerator {
 		Collections.sort(distancesList);
 		return distancesList.get(distancesList.size()-1).intValue();
 	}
-	
 
 	private void populateRandomWalksC(int number, int maxLength){
 		int counter=0, unsucc = 0;

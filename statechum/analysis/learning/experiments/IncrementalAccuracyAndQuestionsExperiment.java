@@ -135,10 +135,9 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			return stdOutput;
 		}
 		
-		protected RandomPathGenerator buildSetsHalfNegative()
+		protected RandomPathGenerator buildSetsHalfNegative(int size)
 		{
-			loadGraph();
-			int size =(((graph.numVertices()*graph.numVertices())/2));
+			
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size,5);// the seed for Random should be the same for each file
 	    	WMethod tester = new WMethod(graph,1);
 			tests = (Collection<List<String>>)tester.getFullTestSet();
@@ -185,8 +184,10 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			OUTCOME currentOutcome = OUTCOME.FAILURE;
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
-			
-			RandomPathGenerator rpg = buildSetsHalfNegative();
+			loadGraph();
+			//int size =1000;
+			int size = graph.numVertices()*4;
+			RandomPathGenerator rpg = buildSetsHalfNegative(size);
 			sMinus = new HashSet<List<String>>();
 			sPlus = new HashSet<List<String>>();
 			Collection<List<String>> allPositive = rpg.getAllPaths();
@@ -199,26 +200,28 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					return tracePath(fsm, question);
 				}
 			};
-			//l.setCertaintyThreshold(10);
-			l.setMinCertaintyThreshold(500000); //question threshold
+			l.setCertaintyThreshold(10);
+			l.setMinCertaintyThreshold(0); //question threshold
 			DirectedSparseGraph learningOutcome = null;
-			int number = (((graph.numVertices()*graph.numVertices())/2))/10;
-			Vector<PrecisionRecall> prResults = new Vector<PrecisionRecall>();
+			int number = size/10;
+			Vector<PosNegPrecisionRecall> prResults = new Vector<PosNegPrecisionRecall>();
 			for(int percent=10;percent<101;percent=percent+10){
+				sPlus = addNumberFromSamples(sPlus, allPositive, number);
+				//sMinus = addNumberFromSamples(sMinus, allNegative, number);
+				if(percent!=30&percent!=100)
+					continue;
 				try
 				{
-					sPlus = addNumberFromSamples(sPlus, allPositive, number);
-					sMinus = addNumberFromSamples(sMinus, allNegative, number);
+					
 					PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
 					changeParametersOnComputeStateScores(l.getScoreComputer());
 					l.init(plusPTA, minusPTA);
 					changeParametersOnLearner(l);
 					learningOutcome = l.learnMachine();
-					//if(percent == 10)
-						//System.out.println();
-					//System.out.print(computeAccuracy(learningOutcome, graph,tests)+",");
-					//System.out.println(instanceID+","+result);
-					//updateFrame(g,learningOutcome);
+					/*if(percent == 30)
+						System.out.print(l.getQuestionCounter()+",");
+					else
+						System.out.println(l.getQuestionCounter());*/
 					prResults.add(CompareGraphs.computePrecisionRecall(learningOutcome, graph, tests));
 					l.setQuestionCounter(0);
 					
@@ -236,9 +239,11 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			return inputFileName+"success";
 		}
 		
-		private static void printPR(Vector<PrecisionRecall> results){
-			PrecisionRecall hundred = results.get(9);
-			System.out.println(hundred.getPrecision()+","+hundred.getRecall());
+		private static void printPR(Vector<PosNegPrecisionRecall> results){
+			PosNegPrecisionRecall thirty = results.get(0);
+			PosNegPrecisionRecall hundred = results.get(1);
+			System.out.println(thirty.getRecall()+","+thirty.getPrecision()+","+hundred.getRecall()+","+hundred.getPrecision());
+			//System.out.println(hundred.getPosprecision()+","+hundred.getPosrecall()+","+hundred.getNegprecision()+","+hundred.getNegrecall());
 			/*System.out.print("p:"+",");
 			for (PrecisionRecall recall : results) {
 				System.out.print(recall.getPrecision()+",");

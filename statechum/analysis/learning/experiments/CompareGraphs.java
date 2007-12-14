@@ -39,7 +39,7 @@ public class CompareGraphs {
 		}
 	}
 
-	public static PrecisionRecall computePrecisionRecall(DirectedSparseGraph learned, 
+	public static PosNegPrecisionRecall computePrecisionRecall(DirectedSparseGraph learned, 
 			DirectedSparseGraph correct, Collection<List<String>> tests){
 		Collection<List<String>> retneg = new HashSet<List<String>>();
 		Collection<List<String>> relneg = new HashSet<List<String>>();
@@ -92,7 +92,7 @@ public class CompareGraphs {
 			}
 				
 		}
-		return new PrecisionRecall(retpos,relpos, retneg, relneg);
+		return new PosNegPrecisionRecall(retpos,relpos, retneg, relneg);
 	}
 
 }

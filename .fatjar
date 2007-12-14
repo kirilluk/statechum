@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Wed Nov 07 14:38:34 GMT 2007
+onejar.license.required=false
+manifest.classpath=
+manifest.removesigners=true
+onejar.checkbox=false
+jarname=XMachineTool_fat.jar
+manifest.mergeall=true
+manifest.mainclass=statechum.StateChum
+manifest.file=<createnew>
+jarname.isextern=false
+onejar.expand=
+excludes=<po|XMachineTool>~resources/;<po|XMachineTool>~sootOutput/;<po|XMachineTool>~.svn/;<po|XMachineTool>~.fatjar
+includes=<inc|XMachineTool/statechum>~xmachine/~model/~testset/;<inc|XMachineTool/statechum>~xmachine/~model/~randomMachine/;<inc|XMachineTool/statechum>~xmachine/~model/~graphReader/;<inc|XMachineTool/statechum>~xmachine/~model/~JungGraphBuilder.java;<inc|XMachineTool/statechum>~xmachine/~model/~TransitionFunction.java;<inc|XMachineTool/statechum>~xmachine/~model/~Block.java;<inc|XMachineTool/statechum>~xmachine/~model/~XMachineModel.java;<inc|XMachineTool/statechum>~xmachine/~model/~XMachineTransitionFunction.java;<inc|XMachineTool/statechum>~xmachine/~model/~State.java;<inc|XMachineTool/statechum>~xmachine/~model/~MemState.java;<inc|XMachineTool/statechum>~xmachine/~model/~Transition.java;<inc|XMachineTool/statechum>~analysis/~learning/;<inc|XMachineTool/statechum>~JUConstants.java;<inc|XMachineTool/statechum>~DeterministicDirectedSparseGraph.java;<inc|XMachineTool/statechum>~XMachineViewer.java;<inc|XMachineTool/statechum>~StateChum.java

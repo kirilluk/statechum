@@ -132,6 +132,39 @@ public class RandomPathGenerator {
 			}
 		}
 	}
+	
+	public Collection<List<String>> makeCollectionNegative(Collection<List<String>> pathCollection){
+		Set<List<String>> negativePaths = new HashSet<List<String>>(); 
+		Iterator<List<String>> collectionIt = pathCollection.iterator();
+		FSMStructure fsm = WMethod.getGraphData(g);
+		while(collectionIt.hasNext()){
+			List<String> path = collectionIt.next();
+			String current = fsm.init;
+			Map<String,String> row = null;
+			for(int i=0;i<path.size();i++){
+				row = fsm.trans.get(current);
+				String next = path.get(i);
+				current = row.get(next);
+			}
+			negativePaths.add(makeNegative(fsm, path, current));
+		}
+		return negativePaths;
+	}
+	
+	private List<String> makeNegative(FSMStructure fsm, List<String> positivePath, String current){
+		Map<String,String>row = fsm.trans.get(current);
+		List<String> negativePath = new ArrayList<String>();
+		Set<String> alphabet = WMethod.computeAlphabet(fsm);
+		Set<String> negatives = new HashSet<String>();
+		negatives.addAll(alphabet);
+		negatives.removeAll(row.keySet());
+		if(negatives.isEmpty()){
+			return new ArrayList<String>();
+		}
+		negativePath.addAll(positivePath);
+		negativePath.add((String)pickRandom(negatives));
+		return negativePath;
+	}
 
 	
 	private final Random pathRandomNumberGenerator; 

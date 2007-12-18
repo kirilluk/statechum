@@ -185,13 +185,12 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
 			loadGraph();
-			//int size =1000;
-			int size = graph.numVertices()*4;
+			int size = 4*graph.numVertices();
 			RandomPathGenerator rpg = buildSetsHalfNegative(size);
 			sMinus = new HashSet<List<String>>();
 			sPlus = new HashSet<List<String>>();
 			Collection<List<String>> allPositive = rpg.getAllPaths();
-			Collection<List<String>> allNegative = rpg.getNegativePaths();
+			//Collection<List<String>> allNegative = rpg.getNegativePaths();
 			final FSMStructure fsm = WMethod.getGraphData(graph);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
@@ -200,66 +199,62 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					return tracePath(fsm, question);
 				}
 			};
-			l.setCertaintyThreshold(10);
-			l.setMinCertaintyThreshold(0); //question threshold
-			DirectedSparseGraph learningOutcome = null;
+			//l.setCertaintyThreshold(10);
+			l.setMinCertaintyThreshold(500000); //question threshold
+			
 			int number = size/10;
 			Vector<PosNegPrecisionRecall> prResults = new Vector<PosNegPrecisionRecall>();
 			for(int percent=10;percent<101;percent=percent+10){
+				if(/*percent!=30&*/percent!=100)
+					continue;
 				sPlus = addNumberFromSamples(sPlus, allPositive, number);
 				//sMinus = addNumberFromSamples(sMinus, allNegative, number);
-				if(percent!=30&percent!=100)
-					continue;
-				try
-				{
-					
-					PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
-					changeParametersOnComputeStateScores(l.getScoreComputer());
-					l.init(plusPTA, minusPTA);
-					changeParametersOnLearner(l);
-					learningOutcome = l.learnMachine();
-					/*if(percent == 30)
-						System.out.print(l.getQuestionCounter()+",");
-					else
-						System.out.println(l.getQuestionCounter());*/
-					prResults.add(CompareGraphs.computePrecisionRecall(learningOutcome, graph, tests));
-					l.setQuestionCounter(0);
-					
-					currentOutcome = OUTCOME.SUCCESS;
-				}
-				catch(Throwable th)
-				{
-					StringWriter writer = new StringWriter();
-					th.printStackTrace();
-					th.printStackTrace(new PrintWriter(writer));
-				}
+				sMinus = rpg.makeCollectionNegative(sPlus);
+				
+				PosNegPrecisionRecall pr = learn(l,sPlus,new HashSet<List<String>>());
+				PosNegPrecisionRecall prNeg = learn(l,new HashSet<List<String>>(), sMinus);
+				System.out.println(pr.getPrecision()+", "+pr.getRecall()+", "+pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPrecision()+", "+ prNeg.getRecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall());
+				
 			}
-			printPR(prResults);
+			//printPR(prResults);
 			
 			return inputFileName+"success";
 		}
 		
-		private static void printPR(Vector<PosNegPrecisionRecall> results){
-			PosNegPrecisionRecall thirty = results.get(0);
-			PosNegPrecisionRecall hundred = results.get(1);
-			System.out.println(thirty.getRecall()+","+thirty.getPrecision()+","+hundred.getRecall()+","+hundred.getPrecision());
-			//System.out.println(hundred.getPosprecision()+","+hundred.getPosrecall()+","+hundred.getNegprecision()+","+hundred.getNegrecall());
-			/*System.out.print("p:"+",");
-			for (PrecisionRecall recall : results) {
-				System.out.print(recall.getPrecision()+",");
-			}
-			System.out.println();
-			System.out.print("r:"+",");
-			for (PrecisionRecall recall : results) {
-				System.out.print(recall.getRecall()+",");
-			}
-			System.out.println();
-			/*System.out.print("f:"+",");
-			for (PrecisionRecall recall : results) {
-				System.out.print(recall.getFMeasure()+",");
-			}
-			System.out.println();*/
+		private PosNegPrecisionRecall learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+			DirectedSparseGraph learningOutcome = null;
+			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
+			changeParametersOnComputeStateScores(l.getScoreComputer());
+			l.init(plusPTA, minusPTA);
+			changeParametersOnLearner(l);
+			learningOutcome = l.learnMachine();
+			/*if(percent == 30)
+				System.out.print(l.getQuestionCounter()+",");
+			else
+				System.out.println(l.getQuestionCounter());*/
+			
+			l.setQuestionCounter(0);
+			return CompareGraphs.computePrecisionRecall(learningOutcome, graph, tests);
 		}
+		
+	
+	}
+		
+	private static void printPR(Vector<PosNegPrecisionRecall> results){
+		/*PosNegPrecisionRecall thirty = results.get(0);
+		PosNegPrecisionRecall hundred = results.get(1);
+		System.out.println(thirty.getRecall()+","+thirty.getPrecision()+","+hundred.getRecall()+","+hundred.getPrecision());
+		//System.out.println(hundred.getPosprecision()+","+hundred.getPosrecall()+","+hundred.getNegprecision()+","+hundred.getNegrecall());
+		*/System.out.print("p:"+",");
+		for (PrecisionRecall recall : results) {
+			System.out.print(recall.getPrecision()+",");
+		}
+		System.out.println();
+		System.out.print("r:"+",");
+		for (PrecisionRecall recall : results) {
+			System.out.print(recall.getRecall()+",");
+		}
+		System.out.println();
 	}
 	
 	/** Stores results of execution of evaluators. */

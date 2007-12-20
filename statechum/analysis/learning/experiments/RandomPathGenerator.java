@@ -50,7 +50,7 @@ public class RandomPathGenerator {
 	private void populateRandomWalksC(int number, int maxLength){
 		int counter=0, unsucc = 0;
 		FSMStructure fsm = WMethod.getGraphData(g);
-		Random length = new Random();
+		Random length = new Random(0);
 		while(counter<number){
 			List<String> path = new ArrayList<String>(maxLength);
 			String current = fsm.init;
@@ -84,7 +84,7 @@ public class RandomPathGenerator {
 		int counter=0, unsucc = 0;
 		FSMStructure fsm = WMethod.getGraphData(g);
 		Set<String> alphabet = WMethod.computeAlphabet(fsm);
-		Random length = new Random();
+		Random length = new Random(0);
 		while(counter<number){
 			boolean skip = false;
 			List<String> path = new ArrayList<String>(maxLength);

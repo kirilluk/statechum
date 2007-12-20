@@ -133,7 +133,7 @@ public class RandomPathGenerator {
 		}
 	}
 	
-	public Collection<List<String>> makeCollectionNegative(Collection<List<String>> pathCollection){
+	public Collection<List<String>> makeCollectionNegative(Collection<List<String>> pathCollection, int negativesPerPositive){
 		Set<List<String>> negativePaths = new HashSet<List<String>>(); 
 		Iterator<List<String>> collectionIt = pathCollection.iterator();
 		FSMStructure fsm = WMethod.getGraphData(g);
@@ -146,24 +146,32 @@ public class RandomPathGenerator {
 				String next = path.get(i);
 				current = row.get(next);
 			}
-			negativePaths.add(makeNegative(fsm, path, current));
+			for(int i=0;i<negativesPerPositive;i++){
+				List<String> negativeString = makeNegative(fsm, path, current, negativePaths);
+				if(negativeString.size()>0)
+					negativePaths.add(negativeString);
+			}
 		}
 		return negativePaths;
 	}
 	
-	private List<String> makeNegative(FSMStructure fsm, List<String> positivePath, String current){
+	private List<String> makeNegative(FSMStructure fsm, List<String> positivePath, String current, Set<List<String>> negativePaths){
 		Map<String,String>row = fsm.trans.get(current);
 		List<String> negativePath = new ArrayList<String>();
 		Set<String> alphabet = WMethod.computeAlphabet(fsm);
-		Set<String> negatives = new HashSet<String>();
+		Vector<String> negatives = new Vector<String>();
 		negatives.addAll(alphabet);
 		negatives.removeAll(row.keySet());
-		if(negatives.isEmpty()){
-			return new ArrayList<String>();
-		}
 		negativePath.addAll(positivePath);
-		negativePath.add((String)pickRandom(negatives));
-		return negativePath;
+		for(int i=0;i<negatives.size();i++){
+			String negative = negatives.get(i);
+			negativePath.add(negative);
+			if(!negativePaths.contains(negativePath))
+				return negativePath;
+			else
+				negativePath.remove(negativePath.size()-1);
+		}
+		return new ArrayList<String>();
 	}
 
 	

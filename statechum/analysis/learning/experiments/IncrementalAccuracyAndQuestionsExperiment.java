@@ -209,9 +209,10 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					continue;
 				sPlus = addNumberFromSamples(sPlus, allPositive, number);
 				//sMinus = addNumberFromSamples(sMinus, allNegative, number);
-				sMinus = rpg.makeCollectionNegative(sPlus);
+				
 				
 				PosNegPrecisionRecall pr = learn(l,sPlus,new HashSet<List<String>>());
+				sMinus = rpg.makeCollectionNegative(sPlus, 2);
 				PosNegPrecisionRecall prNeg = learn(l,new HashSet<List<String>>(), sMinus);
 				System.out.println(pr.getPrecision()+", "+pr.getRecall()+", "+pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPrecision()+", "+ prNeg.getRecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall());
 				

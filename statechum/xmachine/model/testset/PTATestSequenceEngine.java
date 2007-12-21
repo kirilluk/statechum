@@ -19,7 +19,7 @@ public class PTATestSequenceEngine
 	private FSMAbstraction fsm = null;
 	
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
-	private final Map<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>> pta = new HashMap<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>>(); 
+	protected final Map<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>> pta = new HashMap<PTATestSequenceEngine.Node,Map<String,PTATestSequenceEngine.Node>>(); 
 	
 	/** The global "counter" of nodes; this is not static to avoid racing problems associated with multiple threads
 	 * creating nodes, so that the same thread may end up with multiple nodes bearing the same ID. This may
@@ -107,7 +107,7 @@ public class PTATestSequenceEngine
 	}
 	
 	/** The initial node of the pta */
-	private PTATestSequenceEngine.Node init = null; 
+	protected PTATestSequenceEngine.Node init = null; 
 	
 	public interface FSMAbstraction 
 	{
@@ -201,35 +201,35 @@ public class PTATestSequenceEngine
 			
 			return result;
 		}
-
-		private PTATestSequenceEngine.Node followToNextNode(PTATestSequenceEngine.Node currentNode, String input)
-		{
-			Map<String,PTATestSequenceEngine.Node> row = pta.get(currentNode);
-			PTATestSequenceEngine.Node nextCurrentNode = null;
-
-			if (row.containsKey(input))
-				nextCurrentNode = row.get(input); // the next node is an accept one
-			else
-			{// No transition in the pta with the given input, 
-			 // hence we have to extend the pta by adding a new transition
-				Object newState = fsm.getNextState(currentNode.getState(), input); 
-				if (newState == null || !fsm.isAccept(newState))
-				{
-					row.put(input, rejectNode);// next node is the reject one
-					nextCurrentNode = rejectNode;
-				}
-				else
-				{
-					PTATestSequenceEngine.Node nextNode = new Node(newState);
-					row.put(input, nextNode);pta.put(nextNode, new HashMap<String,PTATestSequenceEngine.Node>());
-					nextCurrentNode = nextNode;
-				}
-			}
-			
-			return nextCurrentNode;
-		}
 	}
 	
+	protected PTATestSequenceEngine.Node followToNextNode(PTATestSequenceEngine.Node currentNode, String input)
+	{
+		Map<String,PTATestSequenceEngine.Node> row = pta.get(currentNode);
+		PTATestSequenceEngine.Node nextCurrentNode = null;
+
+		if (row.containsKey(input))
+			nextCurrentNode = row.get(input); // the next node is an accept one
+		else
+		{// No transition in the pta with the given input, 
+		 // hence we have to extend the pta by adding a new transition
+			Object newState = fsm.getNextState(currentNode.getState(), input); 
+			if (newState == null || !fsm.isAccept(newState))
+			{
+				row.put(input, rejectNode);// next node is the reject one
+				nextCurrentNode = rejectNode;
+			}
+			else
+			{
+				PTATestSequenceEngine.Node nextNode = new Node(newState);
+				row.put(input, nextNode);pta.put(nextNode, new HashMap<String,PTATestSequenceEngine.Node>());
+				nextCurrentNode = nextNode;
+			}
+		}
+		
+		return nextCurrentNode;
+	}
+
 	public Collection<List<String>> getData()
 	{
 		Collection<List<String>> result = new LinkedList<List<String>>();

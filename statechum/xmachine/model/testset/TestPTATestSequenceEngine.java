@@ -1,7 +1,6 @@
 package statechum.xmachine.model.testset;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,12 +16,10 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.JUConstants;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.Node;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
-import sun.security.provider.certpath.BuildStep;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 public class TestPTATestSequenceEngine 
 {
 
-	private void vertifyPTA(PTATestSequenceEngine en, String [][] expected)
+	static void vertifyPTA(PTATestSequenceEngine en, String [][] expected)
 	{
 		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(en.getData());
 		Set<List<String>> expectedSet = TestFSMAlgo.buildSet(expected);

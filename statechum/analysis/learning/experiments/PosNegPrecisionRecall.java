@@ -20,9 +20,20 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 		posprecision = computePrecision(retpos, relpos);
 		negrecall = computeRecall(retneg, relneg);
 		posrecall = computeRecall(retpos, relpos);
-		precision = (2*negprecision*posprecision)/(negprecision+posprecision);
-		recall = (2*negrecall*posrecall)/(negrecall+posrecall);
-		fMeasure = (2*precision*recall)/(precision+recall);
+		precision = computeMean(negprecision, posprecision);
+		recall = computeMean(posrecall, negrecall);
+		fMeasure = computeMean(precision, recall);
+	}
+	
+	/*
+	 * Computes the weighted harmonic mean of a and b, unless a or b are zero, when it simply
+	 * computes the arithmetic mean instead.
+	 */
+	protected double computeMean(double a, double b){
+		if(a==0||b==0){
+			return (a+b)/2;
+		}
+		else return ((2*a*b)/(a+b));
 	}
 
 	public double getNegprecision() {

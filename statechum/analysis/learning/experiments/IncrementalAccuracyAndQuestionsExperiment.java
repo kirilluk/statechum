@@ -44,6 +44,7 @@ import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
+import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 import sun.dc.pr.PRError;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
@@ -85,6 +86,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		protected String inputFileName = null, outputDir = null;
 		protected Collection<List<String>> tests = null;
 		protected final int instanceID;
+		protected int percent;
 		
 		public LearnerEvaluator(String inputFile, String outputD, int inID) 
 		{
@@ -190,8 +192,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			sMinus = new HashSet<List<String>>();
 			sPlus = new HashSet<List<String>>();
 			Collection<List<String>> allPositive = rpg.getAllPaths();
-			//Collection<List<String>> allNegative = rpg.getNegativePaths();
 			final FSMStructure fsm = WMethod.getGraphData(graph);
+			WMethod wm = new WMethod(fsm,1);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
@@ -199,30 +201,44 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					return tracePath(fsm, question);
 				}
 			};
-			//l.setCertaintyThreshold(10);
-			l.setMinCertaintyThreshold(500000); //question threshold
-			
+			l.setCertaintyThreshold(3);
+			l.setMinCertaintyThreshold(-1); //question threshold
 			int number = size/10;
-			Vector<PosNegPrecisionRecall> prResults = new Vector<PosNegPrecisionRecall>();
 			for(int percent=10;percent<101;percent=percent+10){
-				if(/*percent!=30&*/percent!=100)
-					continue;
+				this.percent = percent;
 				sPlus = addNumberFromSamples(sPlus, allPositive, number);
-				//sMinus = addNumberFromSamples(sMinus, allNegative, number);
-				
-				
-				PosNegPrecisionRecall pr = learn(l,sPlus,new HashSet<List<String>>());
-				sMinus = rpg.makeCollectionNegative(sPlus, 2);
-				PosNegPrecisionRecall prNeg = learn(l,new HashSet<List<String>>(), sMinus);
-				System.out.println(pr.getPrecision()+", "+pr.getRecall()+", "+pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPrecision()+", "+ prNeg.getRecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall());
-				
+				if(/*percent!=30/*&*/percent!=100)
+					continue;
+				sMinus = rpg.makeCollectionNegative(sPlus, 1);
+				//posNegExperiment(fsm, l, wm);
+				questionsExperiment(fsm, l, wm);
 			}
-			//printPR(prResults);
 			
 			return inputFileName+"success";
 		}
 		
-		private PosNegPrecisionRecall learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+		private void questionsExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
+			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
+			System.out.println(prNeg.precision+", "+prNeg.recall);
+		}
+		
+		private void posNegExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
+			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
+			PosNegPrecisionRecall pr= computePR(fsm, l, wm, sPlus, new HashSet<List<String>>());
+			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
+		}
+		
+		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm, Collection<List<String>> splus, Collection<List<String>> sminus){
+			
+			FSMStructure learned = learn(l,splus, sminus);
+			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
+			PTATestSequenceEngine engine = new PTA_FSMStructure(fsm);
+			sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
+			partialPTA = partialPTA.cross(wm.getFullTestSet());
+			return precRec.crossWith(engine);
+		}
+		
+		private FSMStructure learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 			DirectedSparseGraph learningOutcome = null;
 			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
 			changeParametersOnComputeStateScores(l.getScoreComputer());
@@ -232,10 +248,10 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			/*if(percent == 30)
 				System.out.print(l.getQuestionCounter()+",");
 			else
-				System.out.println(l.getQuestionCounter());*/
-			
+				System.out.println(l.getQuestionCounter());
+			*/
 			l.setQuestionCounter(0);
-			return CompareGraphs.computePrecisionRecall(learningOutcome, graph, tests);
+			return WMethod.getGraphData(learningOutcome);
 		}
 		
 	

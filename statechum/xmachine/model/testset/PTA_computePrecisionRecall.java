@@ -30,9 +30,9 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 			posprecision = pos_Ret>0?(double)pos_relret/(double)pos_Ret:0;
 			negrecall = neg_Rel>0?(double)neg_relret/(double)neg_Rel:0;
 			posrecall = pos_Rel>0?(double)pos_relret/(double)pos_Rel:0;
-			precision = (2*negprecision*posprecision)/(negprecision+posprecision);
-			recall = (2*negrecall*posrecall)/(negrecall+posrecall);
-			fMeasure = (2*precision*recall)/(precision+recall);			
+			precision = computeMean(negprecision, posprecision);
+			recall = computeMean(posrecall, negrecall);
+			fMeasure = computeMean(precision, recall);	
 		}
 	}
 

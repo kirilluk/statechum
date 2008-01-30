@@ -59,6 +59,7 @@ public class computeStateScores implements Cloneable {
 	/** Used to switch on a variety of consistency checks. */
 	protected static boolean testMode = false;
 
+	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 	
 	public List<String> extractReds()
@@ -92,9 +93,8 @@ public class computeStateScores implements Cloneable {
 	/** Initialises the class used to compute scores between states.
 	 * 
 	 * @param g the graph it will be used on 
-	 * @param sinkVertexName the name for a sink vertex, to be different from names of all vertices on the graph
 	 */
-	public computeStateScores(DirectedSparseGraph g,String sinkVertexName)
+	public computeStateScores(DirectedSparseGraph g)
 	{
 		graph = g;
 		init = (CmpVertex)TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, graph);
@@ -102,7 +102,6 @@ public class computeStateScores implements Cloneable {
 		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		for(CmpVertex v:(Set<CmpVertex>)g.getVertices())
 		{
-			assert !sinkVertexName.equals(v);
 			transitionMatrix.put(v,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
 			v.removeUserDatum("colour");
 		}
@@ -238,33 +237,6 @@ public class computeStateScores implements Cloneable {
 		return vertices;
 	}
 	
-	
-	private Collection<List<String>> getPathsFrom(List<Collection<String>> paths, ArrayList<List<String>> pathCollection){
-		Collection<String> labels = paths.get(0);
-		Iterator<String> labelIt = labels.iterator();
-		while(labelIt.hasNext()){
-			String label = labelIt.next();
-			if(pathCollection.isEmpty()){
-				ArrayList<String> path = new ArrayList<String>();
-				path.add(label);
-				pathCollection.add(path);
-			}
-			else{
-				for(int i=0;i<pathCollection.size();i++){
-					List<String> path = pathCollection.get(i);
-					path.add(label);
-					pathCollection.set(i, path);
-				}
-			}
-		}
-		paths.remove(0);
-		if(paths.isEmpty())
-			return pathCollection;
-		else
-			return getPathsFrom(paths, pathCollection);
-	}
-
-	
 	/** Computes all possible shortest paths from the supplied source state to the supplied target state 
 	 * 
 	 * @param vertSource the source state
@@ -370,6 +342,12 @@ public class computeStateScores implements Cloneable {
 				visitedStates.add(target.getKey());
 				currentExplorationBoundary.offer(target.getKey());
 				currentExplorationTargetStates.offer(currentPaths.crossWithSet(target.getValue()));
+// KIRR: what is interesting is that even if crossWithSet delivers all-sink states (i.e. no transition we've taken from the 
+// new red state is allowed by the original automaton), we still proceed to enumerate states. Another strange feature is 
+// that we're taking shortest paths to all states in the new automaton, while there could be multiple different paths. 
+// This means that it is possible that there would be paths to some states in the new automaton which will also be possible 
+// in the original one, but will not be found because they are not the shortest ones. In turn, this means that many potential
+
 			}
 		}
 		
@@ -468,9 +446,8 @@ public class computeStateScores implements Cloneable {
 				Vertex nextBlueState = targetBlue.get(redEntry.getKey());
 				if (nextBlueState != null)
 				{// both states can make a transition
-					// if the red side is currently in the sink vertex, i.e. we are effectively calculating a set of questions, do not report inconsistency or increment the score
-						if (TestRpniLearner.isAccept(redEntry.getValue()) != TestRpniLearner.isAccept(nextBlueState))
-							return -1;// incompatible states
+					if (TestRpniLearner.isAccept(redEntry.getValue()) != TestRpniLearner.isAccept(nextBlueState))
+						return -1;// incompatible states
 					
 					++score;
 
@@ -482,7 +459,7 @@ public class computeStateScores implements Cloneable {
 		}
 		
 		if (bumpPositives && TestRpniLearner.isAccept(pair.getQ()))
-			score++;
+			score++;// bumpPositives is used to give an extra weight to state pairs which are both compatible and positive (i.e. discourage reject-reject state pairs).
 		
 		return score;
 	}
@@ -491,7 +468,7 @@ public class computeStateScores implements Cloneable {
 	 * all computations since it is considered for information only. Hence there is no
 	 * getter method for it either.
 	 */
-	public static class PairScore extends StatePair implements Comparable
+	public static class PairScore extends StatePair
 	{
 		private final int score, compatibilityScore;
 
@@ -515,7 +492,7 @@ public class computeStateScores implements Cloneable {
 			return result;
 		}
 
-		public int compareTo(Object b){
+		public int compareTo(StatePair b){
 			computeStateScores.PairScore pB = (computeStateScores.PairScore)b;
 			if (score != pB.score)
 				return score < pB.score? -1:1;
@@ -629,7 +606,7 @@ public class computeStateScores implements Cloneable {
 						}
 					}
 					else
-					{// This node is a blue node
+					{// This node is a blue node and remains blue unlike the case above when it could become red.
 						BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
 						currentBlueState.setUserDatum("colour", "blue", UserData.SHARED);
 					}							
@@ -762,7 +739,7 @@ public class computeStateScores implements Cloneable {
 			Vertex newRed = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),g);
 			pair = new StatePair(newBlue,newRed);
 			Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();
-			computeStateScores s=new computeStateScores(g,"SINK");
+			computeStateScores s=new computeStateScores(g);
 			if (s.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
@@ -898,11 +875,12 @@ public class computeStateScores implements Cloneable {
 				if (mergedVertices.containsKey(vert))
 				{// there are some vertices to merge with this one.
 					
-					inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());
+					inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
 					for(Vertex toMerge:mergedVertices.get(vert))
 					{// for every input, I'll have a unique target state - this is a feature of PTA
 					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
-					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state.
+					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
+					// (as long as this combination is the one not already present from the corresponding red state).
 						boolean somethingWasAdded = false;
 						for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
 							if (!inputsUsed.contains(input_and_target.getKey()))
@@ -910,8 +888,12 @@ public class computeStateScores implements Cloneable {
 								resultRow.put(input_and_target.getKey(), input_and_target.getValue());
 								inputsUsed.add(input_and_target.getKey());
 								ptaVerticesUsed.add(input_and_target.getValue());somethingWasAdded = true;
+								// Since PTA is a tree, a tree rooted at ptaVerticesUsed will be preserved in a merged automaton, however 
+								// other parts of a tree could be merged into it. In this case, each time there is a fork corresponding to 
+								// a step by that other chunk which the current tree cannot follow, that step will end in a tree and a root
+								// of that tree will be added to ptaVerticesUsed.
 							}
-						assert somethingWasAdded;
+						assert somethingWasAdded : "RedAndBlueToBeMerged was not set correctly at an earlier stage";
 					}
 				}
 			}
@@ -927,7 +909,6 @@ public class computeStateScores implements Cloneable {
 					// any transition leading to states in the red portion of the graph, by construction 
 					// of ptaVerticesUsed) have been appended to the transition diagram and
 					// hence we should not go through its target states.
-					// Note that only some vertices 
 					for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(currentVert).entrySet())
 						currentExplorationBoundary.offer(input_and_target.getValue());
 
@@ -1082,7 +1063,7 @@ public class computeStateScores implements Cloneable {
 	 * be merged. The idea is to keep merging such states until it either has to do a contradictory 
 	 * merge (accept and reject states) or no merged states exhibit non-determinism. This function
 	 * performs a `virtual' merge and populates the list of possible mergers.
-	 * It also computes a compability score between a pair of states.
+	 * It also computes a compatibility score between a pair of states.
 	 * 
 	 * The scores computed are different from what computeScore returns since in the situation when a graph
 	 * is a straight line, computeScore happily matches PTA with itself while this one has to know
@@ -1108,8 +1089,11 @@ public class computeStateScores implements Cloneable {
 			StatePair currentPair = currentExplorationBoundary.remove();Boolean redFromPta = currentRedFromPta.remove();
 			boolean RedAndBlueToBeMerged = false;// this one is set to true if states in the current pair have to be merged. 
 			// This will be so for all state pairs where a blue node can 
-			// make moves which the red one cannot match. The aim is to avoid unnecessary mergers such as
-			// when a blue state can make multiple moves which the red node cannot match.
+			// make moves which the red one cannot match. The term "merged" does not refer to whether 
+			// two nodes are actually merged - they have to be anyway, however if there are sequences of 
+			// nodes with identical moves, PTA nodes do not contribute to anything - we only need
+			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
+			// can accept input a red node cannot accept. 
 			
 			if (TestRpniLearner.isAccept(currentPair.getQ()) != TestRpniLearner.isAccept(currentPair.getR()))
 				return -1;// incompatible states
@@ -1135,16 +1119,16 @@ public class computeStateScores implements Cloneable {
 					currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(redFromPta);
 				}
 				else
-				{// the current state cannot make a transition, perhaps PTA states associated with it can
+				{// the current red state cannot make a transition, perhaps PTA states associated with it can
 					nextRedState = findNextRed(mergedVertices,currentPair.getR(),blueEntry.getKey());
 					if (nextRedState != null)
 					{// both states can make a transition - this would be the case of "non-determinism" for Merge&Determinize
-					 // The red state is the one originally from a previosly-merged PTA branch
-						
-						// PTA does not have loops, but the original automaton has
-						// and one of those loops is not on the transition diagram, namely the one related to B=A
-						if (nextRedState == origPair.getQ())
-							nextRedState = origPair.getR(); // emulates the new loop
+					 // The red state is the one originally from a previously-merged PTA branch, so here we are merging PTA with itself. 
+
+						// Since we are merging PTA with itself and PTA does not have loops, we cannot reenter the original blue state. Moreover,
+						// since we called findNextRed, we are looking at transitions from the PTA states. For this reason, we cannot enter the 
+						// blue state since PTA does not have loops.
+						assert nextRedState != origPair.getQ() : "inconsistent PTA";
 						
 						StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
 						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(!useCompatibilityScore);// from now on, no increments to the score
@@ -1208,7 +1192,7 @@ public class computeStateScores implements Cloneable {
 	 * @param prevState the state from which to start the new edge
 	 * @param accepted whether the vertex to add should be an accept one
 	 * @param input the label of the edge
-	 * @return
+	 * @return the new vertex.
 	 */
 	private CmpVertex addVertex(CmpVertex prevState, boolean accepted, String input)
 	{
@@ -1288,10 +1272,9 @@ public class computeStateScores implements Cloneable {
 		return this;
 	}
 	
-	/** Certain methods does not add any edges to the graph, for performance reasons. 
-	 * This method adds all relevant edges.
+	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
 	 * 
-	 * @return the current graph (with all edges added).
+	 * @return constructed graph.
 	 */
 	public DirectedSparseGraph getGraph()
 	{

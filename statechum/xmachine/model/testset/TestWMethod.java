@@ -854,8 +854,8 @@ public class TestWMethod {
 		Set<List<String>> expectedSet = buildSet(expected),
 			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
 		actualA.addAll(testGenerator.computeOldTestSet());actualB.addAll(testGenerator.computeNewTestSet());
-		assertTrue("old test generator failure, received "+actualA,expectedSet.equals(actualA));
-		assertTrue("new test generator failure, received "+actualB,expectedSet.equals(actualB));
+		assertTrue("old test generator failure, received "+actualA+" expected "+expectedSet,expectedSet.equals(actualA));
+		assertTrue("new test generator failure, received "+actualB+" expected "+expectedSet,expectedSet.equals(actualB));
 	}
 	
 	@Test

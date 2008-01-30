@@ -950,7 +950,7 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
-		Vertex expected = (enteredName == null)? null:new computeStateScores(g,"SINK").findVertex(enteredName);
+		Vertex expected = (enteredName == null)? null:new computeStateScores(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path)));
 	}
 	
@@ -968,8 +968,8 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
-		Vertex starting = new computeStateScores(g,"SINK").findVertex(startingState);
-		Vertex expected = (enteredName == null)? null:new computeStateScores(g,"SINK").findVertex(enteredName);
+		Vertex starting = new computeStateScores(g).findVertex(startingState);
+		Vertex expected = (enteredName == null)? null:new computeStateScores(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, starting,Arrays.asList(path)));
 	}
 	

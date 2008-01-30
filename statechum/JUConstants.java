@@ -9,4 +9,5 @@ public interface JUConstants {
 	final String PROPERTY = "property";
 	final String INIT = "init";
 	final String STATS = "STATS";
+	final String COLOUR="colour";
 }

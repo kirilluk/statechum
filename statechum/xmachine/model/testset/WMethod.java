@@ -81,16 +81,16 @@ public class WMethod {
 			Vertex v = vertexIt.next();
 			String name = (String)v.getUserDatum(JUConstants.LABEL);
 
-			if (!extractedFSM.trans.containsKey(name))
-			{// This state is a state with no outgoing transitions
-				extractedFSM.trans.put(name, new HashMap<String,String>());
-			}
-			
 			if (name == null)
 				throw new IllegalArgumentException("unlabelled state encountered");
 			
 			if (extractedFSM.accept.containsKey(name))
 				throw new IllegalArgumentException("multiple states with the same name "+name);
+			
+			if (!extractedFSM.trans.containsKey(name))
+			{// This state is a state with no outgoing transitions
+				extractedFSM.trans.put(name, new HashMap<String,String>());
+			}
 			
 			extractedFSM.accept.put(name, 
 					new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString()));

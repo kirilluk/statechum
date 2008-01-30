@@ -1,20 +1,14 @@
 package statechum.analysis.learning;
 
 import java.util.*;
-import java.util.List;
-
 import edu.uci.ics.jung.visualization.*;
 import edu.uci.ics.jung.visualization.contrib.*;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.PickingGraphMousePlugin;
-import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.profileStringExtractor.*;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -166,11 +160,11 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 			if (picked.isPicked(v))
 				col = Color.LIGHT_GRAY;
 			else
-			if (v.getUserDatum("colour") == null)
+			if (v.getUserDatum(JUConstants.COLOUR) == null)
 				col = Color.GREEN;
 			else
 			{
-				String c = (String)v.getUserDatum("colour");
+				String c = (String)v.getUserDatum(JUConstants.COLOUR);
 				if (c == "red")
 					col = Color.PINK;
 				else

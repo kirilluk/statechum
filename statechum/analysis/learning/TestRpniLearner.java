@@ -268,7 +268,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void testNewLearnerIncompatible(String fsm)
 	{
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
-		computeStateScores s = new computeStateScores(g,"SINK");
+		computeStateScores s = new computeStateScores(g);
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pair),
@@ -281,12 +281,12 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void testNewLearnerQuestions(String fsm, int expectedScore)
 	{
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
-		computeStateScores 	s = new computeStateScores(g,"SINK");
+		computeStateScores 	s = new computeStateScores(g);
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
 		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair),
 			tempB = computeStateScores.mergeAndDeterminize(g, pair);
 		
-		//setDebugMode(true);updateFrame(g, computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"),pair).getGraph());
+		//setDebugMode(true);updateFrame(g, computeStateScores.mergeAndDeterminize(new computeStateScores(g),pair).getGraph());
 
 		// Now check that computeStateScores properly does  mergeAndDeterminize 
 		// (on the test data we are dealing with in these tests, there are separate tests for mergeAndDeterminize)
@@ -300,7 +300,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			newScoreB = s.computePairCompatibilityScore(pair);
 		Collection<List<String>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
-			questionsB = s.computeQS(pair, computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair));
+			questionsB = s.computeQS(pair, computeStateScores.mergeAndDeterminize(new computeStateScores(g), pair));
 				
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		//System.out.println("computed scores, orig: "+origScore+" and the new one is "+newScoreA);
@@ -322,7 +322,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testFindVertex0()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"));
 		Assert.assertNull(s.findVertex("Z"));
 		Assert.assertEquals("A", s.findVertex("A").getUserDatum(JUConstants.LABEL));
 		Assert.assertEquals("C", s.findVertex("C").getUserDatum(JUConstants.LABEL));
@@ -339,7 +339,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed0a()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 			}), 
 			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(new DirectedSparseVertex()));
@@ -350,7 +350,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed0b()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 			}), 
 			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(null));
@@ -361,7 +361,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed1()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {}
 			}), 
@@ -373,7 +373,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed2()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"}
 			}), 
@@ -385,7 +385,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed3()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},
@@ -400,7 +400,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed4()
 	{
-		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed1"),"SINK");
+		computeStateScores s = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"p"},
 				new String[] {"q"}
@@ -697,7 +697,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			temp=TestFSMAlgo.buildGraph("C-d->Q", "testGetTempRed1 temp");
 		Vertex foundA = computeStateScores.getTempRed_DijkstraShortestPath(a, findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
 		Vertex foundB =RPNIBlueFringeLearnerTestComponent.getTempRed(a, findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
-		Vertex foundC = new computeStateScores(a,"SINK").getTempRed_internal(findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
+		Vertex foundC = new computeStateScores(a).getTempRed_internal(findVertex(JUConstants.PROPERTY, JUConstants.INIT, a), temp);
 		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundA));
 		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundB));
 		Assert.assertTrue(findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp).equals(foundC));
@@ -710,7 +710,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			temp=TestFSMAlgo.buildGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp");
 		Vertex foundA = computeStateScores.getTempRed_DijkstraShortestPath(a, findVertex(JUConstants.LABEL, "D", a), temp);
 		Vertex foundB = RPNIBlueFringeLearnerTestComponent.getTempRed(a, findVertex(JUConstants.LABEL, "D", a), temp);
-		Vertex foundC = new computeStateScores(a,"SINK").getTempRed_internal( findVertex(JUConstants.LABEL, "D", a), temp);
+		Vertex foundC = new computeStateScores(a).getTempRed_internal( findVertex(JUConstants.LABEL, "D", a), temp);
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundA));
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundB));
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundC));
@@ -833,7 +833,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		FSMStructure 
 			mergeResultA = WMethod.getGraphData(new RPNIBlueFringeLearner(null).mergeAndDeterminize(g, pair)), 
 			mergeResultB = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(g2, pair)),
-			mergeResultC = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair).getGraph()),
+			mergeResultC = WMethod.getGraphData(computeStateScores.mergeAndDeterminize(new computeStateScores(g), pair).getGraph()),
 			expectedMachine = WMethod.getGraphData(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"));
 
 		TestFSMAlgo.checkM(g2, machineToMerge);
@@ -1106,7 +1106,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		a = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g),
 		b = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g);
 		StatePair pair = new StatePair(b,a);// A is red
-		computeStateScores.mergeAndDeterminize(new computeStateScores(g,"SINK"), pair);
+		computeStateScores.mergeAndDeterminize(new computeStateScores(g), pair);
 	}
 
 	protected interface InterfaceChooserToTest {
@@ -1138,7 +1138,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		final DirectedSparseGraph gA = TestFSMAlgo.buildGraph(fsm, "testChooseStatePairs_Opt");
 
 		// check how the revised pair selection function performs
-		final computeStateScores s = new computeStateScores(gA,"SINK");
+		final computeStateScores s = new computeStateScores(gA);
 		testChooseStatePairsInternal(gA, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
 			public Stack<? extends StatePair> choosePairs() {
 				return s.chooseStatePairs();
@@ -1279,7 +1279,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		StatePair pair = new StatePair(
 				RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "B", g),
 				RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", g));
-		computeStateScores s = new computeStateScores(g,"SINK");
+		computeStateScores s = new computeStateScores(g);
 
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pair),
@@ -1365,21 +1365,21 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testGetVertex1()
 	{
-		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"),"SINK");
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"));
 		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getUserDatum(JUConstants.LABEL).equals("A"));
 	}
 
 	@Test
 	public final void testGetVertex2()
 	{
-		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"),"SINK");
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"));
 		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getUserDatum(JUConstants.LABEL).equals("C"));
 	}
 
 	@Test
 	public final void testGetVertex3()
 	{
-		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"),"SINK");
+		computeStateScores score = new computeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"));
 		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
 	}
 

@@ -3,7 +3,7 @@ package statechum.analysis.learning;
 import statechum.JUConstants;
 import edu.uci.ics.jung.graph.*;
 
-public class StatePair implements Comparable {
+public class StatePair implements Comparable<StatePair> {
 	
 	private Vertex q, r;
 	
@@ -17,7 +17,7 @@ public class StatePair implements Comparable {
 		return vLabel;
 	}
 	
-	public int compareTo(Object b){
+	public int compareTo(StatePair b){
 		StatePair pB = (StatePair)b;
 		int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
 		int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));

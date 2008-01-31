@@ -9,7 +9,6 @@ import static statechum.xmachine.model.testset.WMethod.createLabelToStateMap;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 
 import junit.framework.Assert;
-import junit.framework.AssertionFailedError;
 import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
@@ -20,7 +19,6 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
-import statechum.xmachine.model.testset.TestWMethod;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -28,15 +26,12 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -45,10 +40,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.swing.SwingUtilities;
 
 public class TestFSMAlgo {
 
@@ -115,8 +106,8 @@ public class TestFSMAlgo {
 				{
 					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 					if (existingVertices.isEmpty())
-						fromVertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
-					fromVertex.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+						fromVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+					fromVertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 					fromVertex.addUserDatum(JUConstants.LABEL, from, UserData.SHARED);
 					existingVertices.put(from, fromVertex);
 					g.addVertex(fromVertex);
@@ -135,13 +126,13 @@ public class TestFSMAlgo {
 					{
 						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
-						toVertex.addUserDatum(JUConstants.ACCEPTED, Boolean.toString(accept), UserData.SHARED);
+						toVertex.addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
 						toVertex.addUserDatum(JUConstants.LABEL, to, UserData.SHARED);
 						existingVertices.put(to, toVertex);
 						g.addVertex(toVertex);
 					}
 					else
-						if (Boolean.valueOf(toVertex.getUserDatum(JUConstants.ACCEPTED).toString()) != accept)
+						if (RPNIBlueFringeLearner.isAccept(toVertex) != accept)
 							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 				
 				StatePair pair = new StatePair(fromVertex,toVertex);
@@ -349,16 +340,6 @@ public class TestFSMAlgo {
 		assertTrue("exception not thrown",exceptionThrown);
 	}
 
-	/** Displays the graph passed as an argument in the Jung window.
-	 * @param g the graph to display 
-	 */
-	public void updateFrame(DirectedSparseGraph g)
-	{
-		if (visFrame == null)
-			visFrame = new Visualiser();
-		visFrame.update(null, g);
-	}
-	
 	@Test
 	public void testGraphConstruction1()
 	{
@@ -529,7 +510,7 @@ public class TestFSMAlgo {
 	public void testGraphConstructionFail2()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
 		checkWithVertex(v, "multiple", "testGraphConstructionFail2");
 	}
 	
@@ -537,7 +518,7 @@ public class TestFSMAlgo {
 	public void testGraphConstructionFail3()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "CONFL", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "CONFL", UserData.SHARED);
 		checkWithVertex(v, "multiple", "testGraphConstructionFail3");
 	}
 	
@@ -545,18 +526,26 @@ public class TestFSMAlgo {
 	public void testGraphConstructionFail4()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 		checkWithVertex(v, "duplicate", "testGraphConstructionFail4");
 	}
 	
 	@Test
-	public void testGraphConstructionFail5()
+	public void testGraphConstructionFail5a()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.PROPERTY, "aa", UserData.SHARED);
-		checkWithVertex(v, "property", "testGraphConstructionFail5");
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, "aa", UserData.SHARED);
+		checkWithVertex(v, "invalid init property", "testGraphConstructionFail5a");
 	}
 	
+	@Test
+	public void testGraphConstructionFail5b()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, false, UserData.SHARED);
+		checkWithVertex(v, "invalid init property", "testGraphConstructionFail5b");
+	}
+
 	@Test
 	public void testGraphConstructionFail6() // missing initial state in an empty graph
 	{
@@ -579,8 +568,8 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph g = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
-		init.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);g.addVertex(init);
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);g.addVertex(init);
 		boolean exceptionThrown = false;
 		try
 		{
@@ -950,7 +939,7 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
-		Vertex expected = (enteredName == null)? null:new computeStateScores(g).findVertex(enteredName);
+		Vertex expected = (enteredName == null)? null:new ComputeStateScores(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path)));
 	}
 	
@@ -968,8 +957,8 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
-		Vertex starting = new computeStateScores(g).findVertex(startingState);
-		Vertex expected = (enteredName == null)? null:new computeStateScores(g).findVertex(enteredName);
+		Vertex starting = new ComputeStateScores(g).findVertex(startingState);
+		Vertex expected = (enteredName == null)? null:new ComputeStateScores(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, starting,Arrays.asList(path)));
 	}
 	
@@ -1069,7 +1058,7 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseVertex rejectVertex = new DirectedSparseVertex();
 		boolean transitionsToBeAdded = false;// whether and new transitions have to be added.
-		rejectVertex.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
+		rejectVertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
 		// first pass - computing an alphabet
@@ -1217,31 +1206,48 @@ public class TestFSMAlgo {
 		Assert.assertTrue(checkMBoolean(graph,expected,"REJECT","REJECT"));
 	}	
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testFindVertex0()
+	{
+		RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, null, new DirectedSparseGraph());
+	}
+
 	@Test
 	public void testFindVertex1()
 	{
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex("aa", "bb", new DirectedSparseGraph()));
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, "bb", new DirectedSparseGraph()));
 	}
 	
 	@Test
 	public void testFindVertex2()
 	{
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex("aa", "bb", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2")));
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2");
+		//Visualiser.updateFrame(g, g);Visualiser.waitForKey();
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, "bb", g));
 	}
 		
 	@Test
 	public void testFindVertex3()
 	{
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3")));
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3");
+		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
+		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g));
 	}
 
 	@Test
-	public void testFindVertex4()
+	public void testFindVertex4a()
 	{
-		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4"));
+		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a"));
+		Assert.assertNull(v);
+	}
+
+	@Test
+	public void testFindVertex4b()
+	{
+		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
 		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
 	}
-	
+
 	@Test
 	public void testFindVertex5()
 	{
@@ -1271,6 +1277,20 @@ public class TestFSMAlgo {
 	}
 
 	
+	@Test
+	public void testFindInitial1()
+	{
+		Vertex v = RPNIBlueFringeLearner.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
+		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+	}
+	
+	@Test
+	public void testFindInitial2()
+	{
+		Vertex v = RPNIBlueFringeLearner.findInitial(new DirectedSparseGraph());
+		Assert.assertNull(v);
+	}
+
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data
@@ -1507,43 +1527,17 @@ public class TestFSMAlgo {
 		
 		Assert.assertTrue("asserts have to be enabled", assertsOn);
 	}
-	
-	/** Holds the JFrame to see the graphs being dealt with. Usage:
-	 * <pre>
-	 * 		updateFrame(g);// a public method
-	 * </pre>
-	 * where <i>g</i> is the graph to be displayed.
-	 */
-	protected static Visualiser visFrame = null;
-	
+		
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{		
-		visFrame = null;
+		Visualiser.disposeFrame();
 	}
 
 	@AfterClass
 	public static void cleanUp()
 	{
-		try {
-			if (visFrame != null)
-			{
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-							visFrame.setVisible(false);
-							visFrame.dispose();
-					}
-				});
-			}
-		} catch (InterruptedException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		}
+		Visualiser.disposeFrame();
 	}	
 
 	/** In order to be able to use old junit runner. */

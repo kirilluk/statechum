@@ -93,11 +93,12 @@ public class WMethod {
 			}
 			
 			extractedFSM.accept.put(name, 
-					new Boolean(v.getUserDatum(JUConstants.ACCEPTED).toString()));
-			Object initp = v.getUserDatum(JUConstants.PROPERTY);
-			if (initp != null)
+					new Boolean(RPNIBlueFringeLearner.isAccept(v)));
+
+			if (RPNIBlueFringeLearner.isInitial(v))
 			{
-				if (!JUConstants.INIT.equals(initp.toString()))
+				Object initValue = v.getUserDatum(JUConstants.INITIAL); 
+				if ( !(initValue instanceof Boolean) || ((Boolean)initValue).booleanValue() == false)
 					throw new IllegalArgumentException("invalid init property");
 
 				if (extractedFSM.init != null)

@@ -21,8 +21,6 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.text.Position;
-
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -32,16 +30,17 @@ import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.WMethod;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 import statechum.xmachine.model.testset.WMethod.EquivalentStatesException;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
+
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-public class computeStateScores implements Cloneable {
+public class ComputeStateScores implements Cloneable {
 	private DirectedSparseGraph graph;
 	/** The initial vertex. */
 	private CmpVertex init;
@@ -49,7 +48,7 @@ public class computeStateScores implements Cloneable {
 	private Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 			
 	/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
-	protected List<computeStateScores.PairScore> pairsAndScores;
+	protected List<ComputeStateScores.PairScore> pairsAndScores;
 	
 	protected int generalisationThreshold;
 	protected int pairsMergedPerHypothesis;
@@ -66,7 +65,7 @@ public class computeStateScores implements Cloneable {
 	{
 		List<String> result = new LinkedList<String>();
 		for(Vertex v:transitionMatrix.keySet())
-			if (v.containsUserDatumKey("colour")&& v.getUserDatum("colour").equals("red"))
+			if (v.containsUserDatumKey(JUConstants.COLOUR)&& v.getUserDatum(JUConstants.COLOUR) == JUConstants.RED)
 					result.add(v.getUserDatum(JUConstants.LABEL).toString());
 		
 		return result;
@@ -76,17 +75,17 @@ public class computeStateScores implements Cloneable {
 	public void clearColours()
 	{
 		for(Vertex v:transitionMatrix.keySet())
-			v.removeUserDatum("colour");
-		init.addUserDatum("colour", "red", UserData.SHARED);
+			v.removeUserDatum(JUConstants.COLOUR);
+		init.addUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 	}
 	
 	public void assignReds(Set<String> reds)
 	{
 		for(Vertex v:transitionMatrix.keySet())
 		{
-			v.removeUserDatum("colour");
+			v.removeUserDatum(JUConstants.COLOUR);
 			if (reds.contains(v.getUserDatum(JUConstants.LABEL)))
-				v.addUserDatum("colour","red", UserData.SHARED);
+				v.addUserDatum(JUConstants.COLOUR,JUConstants.RED, UserData.SHARED);
 		}
 	}
 	
@@ -94,18 +93,18 @@ public class computeStateScores implements Cloneable {
 	 * 
 	 * @param g the graph it will be used on 
 	 */
-	public computeStateScores(DirectedSparseGraph g)
+	public ComputeStateScores(DirectedSparseGraph g)
 	{
 		graph = g;
-		init = (CmpVertex)TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, graph);
+		init = (CmpVertex)TestRpniLearner.findInitial(graph);
 		
-		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
+		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		for(CmpVertex v:(Set<CmpVertex>)g.getVertices())
 		{
 			transitionMatrix.put(v,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
-			v.removeUserDatum("colour");
+			v.removeUserDatum(JUConstants.COLOUR);
 		}
-		init.addUserDatum("colour", "red", UserData.SHARED);
+		init.addUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 	
 		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
 		while(edgeIter.hasNext())
@@ -118,7 +117,7 @@ public class computeStateScores implements Cloneable {
 		}
 	}
 
-	public computeStateScores(int newPairsMergedPerHypothesis)
+	public ComputeStateScores(int newPairsMergedPerHypothesis)
 	{
 		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
 		graph = null;
@@ -127,7 +126,7 @@ public class computeStateScores implements Cloneable {
 	
 	public static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
-		List<Edge> pathToRed = p.getPath(TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,model), r);
+		List<Edge> pathToRed = p.getPath(TestRpniLearner.findInitial(model), r);
 		Vertex tempRed = null;
 		if(!pathToRed.isEmpty()){
 			List<String> pathToRedString = new LinkedList<String>();
@@ -136,7 +135,7 @@ public class computeStateScores implements Cloneable {
 			tempRed = TestRpniLearner.getVertex(temp, pathToRedString);
 		}
 		else
-			tempRed = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp);
+			tempRed = TestRpniLearner.findInitial(temp);
 		return tempRed;
 	}
 	
@@ -144,7 +143,7 @@ public class computeStateScores implements Cloneable {
 		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
 		HashSet<Vertex> visitedVertices = new HashSet<Vertex>();visitedVertices.add(init);
 		currentExplorationBoundary.add(init);
-		Vertex tempInit = TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT, temp);
+		Vertex tempInit = TestRpniLearner.findInitial(temp);
 		Queue<Vertex> currentTempExploration = new LinkedList<Vertex>();currentTempExploration.add(tempInit);
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -236,7 +235,7 @@ public class computeStateScores implements Cloneable {
 		}
 		return vertices;
 	}
-	
+		
 	/** Computes all possible shortest paths from the supplied source state to the supplied target state 
 	 * 
 	 * @param vertSource the source state
@@ -308,7 +307,7 @@ public class computeStateScores implements Cloneable {
 		return sequenceOfSets;
 	}
 
-	private static void buildQuestionsFromPair(computeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
+	private static void buildQuestionsFromPair(ComputeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
@@ -392,7 +391,7 @@ public class computeStateScores implements Cloneable {
 
 	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
-	public Collection<List<String>> computeQS(final StatePair pair, computeStateScores temp)
+	public Collection<List<String>> computeQS(final StatePair pair, ComputeStateScores temp)
 	{
 		Vertex tempRed = temp.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();
@@ -425,7 +424,7 @@ public class computeStateScores implements Cloneable {
 	 */
 	protected int computeStateScore(StatePair pair)
 	{
-		if (TestRpniLearner.isAccept(pair.getR()) != TestRpniLearner.isAccept(pair.getQ()))
+		if (isAccept(pair.getR()) != isAccept(pair.getQ()))
 			return -1;
 
 		int score = 0;
@@ -446,7 +445,7 @@ public class computeStateScores implements Cloneable {
 				Vertex nextBlueState = targetBlue.get(redEntry.getKey());
 				if (nextBlueState != null)
 				{// both states can make a transition
-					if (TestRpniLearner.isAccept(redEntry.getValue()) != TestRpniLearner.isAccept(nextBlueState))
+					if (isAccept(redEntry.getValue()) != isAccept(nextBlueState))
 						return -1;// incompatible states
 					
 					++score;
@@ -458,7 +457,7 @@ public class computeStateScores implements Cloneable {
 			}
 		}
 		
-		if (bumpPositives && TestRpniLearner.isAccept(pair.getQ()))
+		if (bumpPositives && isAccept(pair.getQ()))
 			score++;// bumpPositives is used to give an extra weight to state pairs which are both compatible and positive (i.e. discourage reject-reject state pairs).
 		
 		return score;
@@ -493,7 +492,7 @@ public class computeStateScores implements Cloneable {
 		}
 
 		public int compareTo(StatePair b){
-			computeStateScores.PairScore pB = (computeStateScores.PairScore)b;
+			ComputeStateScores.PairScore pB = (ComputeStateScores.PairScore)b;
 			if (score != pB.score)
 				return score < pB.score? -1:1;
 			return super.compareTo(b);
@@ -510,14 +509,14 @@ public class computeStateScores implements Cloneable {
 				return false;
 			if (!(obj instanceof PairScore))
 				return false;
-			final computeStateScores.PairScore other = (computeStateScores.PairScore) obj;
+			final ComputeStateScores.PairScore other = (ComputeStateScores.PairScore) obj;
 			if (score != other.score)
 				return false;
 			return true;
 		}
 		
 		public String toString(){
-			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
+			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
 		}
 	}
 
@@ -550,12 +549,12 @@ public class computeStateScores implements Cloneable {
 		return counter;
 	}
 	
-	public Stack<computeStateScores.PairScore> chooseStatePairs()
+	public Stack<ComputeStateScores.PairScore> chooseStatePairs()
 	{
 		pairsAndScores.clear();
 		Set<Vertex> reds = new LinkedHashSet<Vertex>();
 		for(Vertex v:transitionMatrix.keySet())
-			if (v.containsUserDatumKey("colour") && v.getUserDatum("colour").equals("red"))
+			if (v.containsUserDatumKey(JUConstants.COLOUR) && v.getUserDatum(JUConstants.COLOUR) == JUConstants.RED)
 				reds.add(v);
 
 		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
@@ -565,14 +564,14 @@ public class computeStateScores implements Cloneable {
 		{
 			Vertex currentRed = currentExplorationBoundary.remove();
 			for(Entry<String,CmpVertex> BlueEntry:transitionMatrix.get(currentRed).entrySet())
-				if (!BlueEntry.getValue().containsUserDatumKey("colour") || BlueEntry.getValue().getUserDatum("colour").equals("blue"))
+				if (!BlueEntry.getValue().containsUserDatumKey(JUConstants.COLOUR) || BlueEntry.getValue().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE)
 				{// the next vertex is not marked red, hence it has to become blue
 					Vertex currentBlueState = BlueEntry.getValue();
 											
 					int numberOfCompatiblePairs = 0;
 					for(Vertex oldRed:reds)
 					{
-						computeStateScores.PairScore pair = obtainPair(currentBlueState,oldRed);
+						ComputeStateScores.PairScore pair = obtainPair(currentBlueState,oldRed);
 						if (pair.getScore() >= generalisationThreshold)
 						{
 							pairsAndScores.add(pair);
@@ -584,7 +583,7 @@ public class computeStateScores implements Cloneable {
 					if (numberOfCompatiblePairs == 0)
 					{// mark this blue node as red. 
 						Vertex newRedNode = currentBlueState;
-						newRedNode.setUserDatum("colour", "red", UserData.SHARED);
+						newRedNode.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 						reds.add(newRedNode);currentExplorationBoundary.add(newRedNode);
 						BlueStatesConsideredSoFar.remove(newRedNode);
 						
@@ -597,7 +596,7 @@ public class computeStateScores implements Cloneable {
 						// red already, i.e. there is an entry about them in PairsAndScores
 						for(Vertex oldBlue:BlueStatesConsideredSoFar)
 						{
-							computeStateScores.PairScore pair = obtainPair(oldBlue,newRedNode);
+							ComputeStateScores.PairScore pair = obtainPair(oldBlue,newRedNode);
 							if (pair.getScore() >= generalisationThreshold)
 							{
 								pairsAndScores.add(pair);
@@ -608,14 +607,14 @@ public class computeStateScores implements Cloneable {
 					else
 					{// This node is a blue node and remains blue unlike the case above when it could become red.
 						BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
-						currentBlueState.setUserDatum("colour", "blue", UserData.SHARED);
+						currentBlueState.setUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
 					}							
 				}
 		}
 
 		Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 				//, new Comparator(){	public int compare(Object o1, Object o2) { return ((PairScore)o2).compareTo(o1); }
-		Stack<computeStateScores.PairScore> result = new Stack<computeStateScores.PairScore>();
+		Stack<ComputeStateScores.PairScore> result = new Stack<ComputeStateScores.PairScore>();
 		if (pairsMergedPerHypothesis > 0)
 		{
 			int numberOfElements = Math.min(pairsAndScores.size(),pairsMergedPerHypothesis);
@@ -626,11 +625,11 @@ public class computeStateScores implements Cloneable {
 			if (bumpPositives && !pairsAndScores.isEmpty())
 			{// here we only append elements with the same score as the max score
 				
-				computeStateScores.PairScore topPair = pairsAndScores.get(pairsAndScores.size()-1);result.add(topPair);
+				ComputeStateScores.PairScore topPair = pairsAndScores.get(pairsAndScores.size()-1);result.add(topPair);
 				
 				for(int i=0;i< pairsAndScores.size();++i)
 				{// we iterage until we get to the end; pairsAndScores is an array
-					computeStateScores.PairScore p = pairsAndScores.get(i);
+					ComputeStateScores.PairScore p = pairsAndScores.get(i);
 					if (p.getScore() == topPair.getScore()) result.add(p);
 				}
 			}
@@ -678,9 +677,9 @@ public class computeStateScores implements Cloneable {
 		if (newVertex == null) { 
 			newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
 			newVertex.addUserDatum(JUConstants.LABEL, vertName, UserData.SHARED);
-			newVertex.addUserDatum(JUConstants.ACCEPTED, TestRpniLearner.isAccept(origVertex)? "true":"false", UserData.SHARED);
-			Object property = origVertex.getUserDatum(JUConstants.PROPERTY);
-			if (property != null) newVertex.addUserDatum(JUConstants.PROPERTY, property, UserData.SHARED);
+			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
+			if (RPNIBlueFringeLearner.isInitial(origVertex))
+				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 			newVertices.put(vertName,newVertex);g.addVertex(newVertex);
 		}
 		return newVertex;
@@ -739,7 +738,7 @@ public class computeStateScores implements Cloneable {
 			Vertex newRed = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),g);
 			pair = new StatePair(newBlue,newRed);
 			Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();
-			computeStateScores s=new computeStateScores(g);
+			ComputeStateScores s=new ComputeStateScores(g);
 			if (s.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
@@ -811,7 +810,7 @@ public class computeStateScores implements Cloneable {
 	@Override
 	public Object clone() throws CloneNotSupportedException
 	{
-		computeStateScores result = (computeStateScores)super.clone();
+		ComputeStateScores result = (ComputeStateScores)super.clone();
 		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
 		{
@@ -819,7 +818,7 @@ public class computeStateScores implements Cloneable {
 			newValue.putAll(entry.getValue());
 			result.transitionMatrix.put(entry.getKey(),newValue);
 		}
-		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);
 		return result;
 	}
 
@@ -839,13 +838,13 @@ public class computeStateScores implements Cloneable {
 		return result;
 	}
 	
-	public static computeStateScores mergeAndDeterminize(computeStateScores original, StatePair pair)
+	public static ComputeStateScores mergeAndDeterminize(ComputeStateScores original, StatePair pair)
 	{
 			if (testMode) { checkPTAConsistency(original, (CmpVertex)pair.getQ());checkPTAIsTree(original,null,null,null); }
 			Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();
-			computeStateScores result;
+			ComputeStateScores result;
 			try {
-				result = (computeStateScores)original.clone();
+				result = (ComputeStateScores)original.clone();
 			} catch (CloneNotSupportedException e) {
 				IllegalArgumentException ex = new IllegalArgumentException("failed to clone the supplied machine");
 				ex.initCause(e);throw ex;
@@ -920,7 +919,7 @@ public class computeStateScores implements Cloneable {
 			return result;
 	}
 
-	protected static void checkPTAConsistency(computeStateScores original, Vertex blueState)
+	protected static void checkPTAConsistency(ComputeStateScores original, Vertex blueState)
 	{
 		assert testMode : "this one should not run when not under test";
 		Queue<Vertex> currentBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
@@ -942,7 +941,7 @@ public class computeStateScores implements Cloneable {
 			{// this is a non-pta state, check where it points to
 				for(Entry<String,CmpVertex> input_and_target:entry.getValue().entrySet())
 					if (ptaStates.contains(input_and_target.getValue()) && input_and_target.getValue() != blueState)
-						throw new IllegalArgumentException("non-pta state "+entry.getKey()+" ("+entry.getKey().getUserDatum("colour")+") refers to PTA state "+input_and_target.getValue()+", blue state is "+blueState);
+						throw new IllegalArgumentException("non-pta state "+entry.getKey()+" ("+entry.getKey().getUserDatum(JUConstants.COLOUR)+") refers to PTA state "+input_and_target.getValue()+", blue state is "+blueState);
 			}									
 	}
 	
@@ -952,7 +951,7 @@ public class computeStateScores implements Cloneable {
 	 * 
 	 * @param pta
 	 */
-	protected static void checkPTAIsTree(computeStateScores pta,computeStateScores original, StatePair pair,Collection<Vertex> notRemoved)
+	protected static void checkPTAIsTree(ComputeStateScores pta,ComputeStateScores original, StatePair pair,Collection<Vertex> notRemoved)
 	{
 		assert testMode : "this one should not run when not under test";
 		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMap<CmpVertex,AtomicInteger>();
@@ -966,7 +965,7 @@ public class computeStateScores implements Cloneable {
 			}
 		for(Entry<CmpVertex,AtomicInteger> p:hasIncoming.entrySet())
 			if (p.getValue().intValue() > 1 &&
-					p.getKey().containsUserDatumKey("colour") && !p.getKey().getUserDatum("colour").equals("red"))
+					p.getKey().containsUserDatumKey(JUConstants.COLOUR) && p.getKey().getUserDatum(JUConstants.COLOUR) != JUConstants.RED)
 				throw new IllegalArgumentException("non-red vertex "+p.getKey()+" has multiple incoming transitions");
 				
 		Queue<Vertex> currentBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
@@ -1095,7 +1094,7 @@ public class computeStateScores implements Cloneable {
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
 			
-			if (TestRpniLearner.isAccept(currentPair.getQ()) != TestRpniLearner.isAccept(currentPair.getR()))
+			if (isAccept(currentPair.getQ()) != isAccept(currentPair.getR()))
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
@@ -1173,7 +1172,7 @@ public class computeStateScores implements Cloneable {
 	
 	protected IDMode id_mode = IDMode.NONE; // creation of new vertices is prohibited.
 	
-	public computeStateScores setMode(IDMode m)
+	public ComputeStateScores setMode(IDMode m)
 	{
 		id_mode = m;return this;
 	}
@@ -1201,7 +1200,7 @@ public class computeStateScores implements Cloneable {
 		newVertex.addUserDatum(JUConstants.LABEL, 
 				nextID(accepted), 
 				UserData.SHARED);
-		newVertex.setUserDatum(JUConstants.ACCEPTED, ""+accepted, UserData.SHARED);
+		newVertex.setUserDatum(JUConstants.ACCEPTED, accepted, UserData.SHARED);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);
 		return newVertex;
@@ -1211,23 +1210,23 @@ public class computeStateScores implements Cloneable {
 	{
 		transitionMatrix.clear();
 		init = new DeterministicDirectedSparseGraph.DeterministicVertex();
-		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "Init", UserData.SHARED);
-		init.setUserDatum("colour", "red", UserData.SHARED);
+		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
-		pairsAndScores = new ArrayList<computeStateScores.PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);
 	}
 	
-	public computeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)
+	public ComputeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)
 	{
 		for(List<String> sequence:strings)
 			augmentPTA(sequence, accepted);
 		return this;
 	}
 	
-	public computeStateScores augmentPTA(List<String> sequence, boolean accepted)
+	public ComputeStateScores augmentPTA(List<String> sequence, boolean accepted)
 	{
 		CmpVertex currentState = init, prevState = null;
 		Iterator<String> inputIt = sequence.iterator();
@@ -1235,9 +1234,9 @@ public class computeStateScores implements Cloneable {
 		int position = 0;
 		while(inputIt.hasNext() && currentState != null)
 		{
-			if (!TestRpniLearner.isAccept(currentState))
+			if (!isAccept(currentState))
 			{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
-				currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+				currentState.addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
 				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
 			}
 			prevState = currentState;lastInput = inputIt.next();++position;
@@ -1261,9 +1260,9 @@ public class computeStateScores implements Cloneable {
 		}
 		else
 		{// we reached the end of the PTA
-			if (TestRpniLearner.isAccept(currentState) != accepted)
+			if (isAccept(currentState) != accepted)
 			{
-				currentState.addUserDatum("pair", "whatever", UserData.SHARED);
+				currentState.addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
 				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
 			}
 			
@@ -1282,7 +1281,7 @@ public class computeStateScores implements Cloneable {
 		synchronized (syncObj) 
 		{
 			result = new DirectedSparseGraph();
-			result.setUserDatum(JUConstants.TITLE, "the graph from computeStateScores",UserData.SHARED);
+			result.setUserDatum(JUConstants.TITLE, "the graph from ComputeStateScores",UserData.SHARED);
 			Map<Vertex,Vertex> oldVertexToNewVertex = new HashMap<Vertex,Vertex>();
 			Map<Vertex,Set<String>> targetStateToEdgeLabels = new LinkedHashMap<Vertex,Set<String>>();
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())

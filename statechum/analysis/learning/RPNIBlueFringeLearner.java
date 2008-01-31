@@ -52,9 +52,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		HashSet remove = new HashSet();
 		while(vertexIt.hasNext()){
 			Vertex v = (Vertex)vertexIt.next();
-			if(v.getUserDatum(JUConstants.ACCEPTED)==null)
-				continue;
-			if(v.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")&&!v.equals(findVertex("property", "init",g)))
+			if(!isAccept(v)&&!isInitial(v))
 				remove.add(v);
 		}
 		Iterator<Vertex> removeIt = remove.iterator();
@@ -95,18 +93,18 @@ public class RPNIBlueFringeLearner extends Observable {
 	 */ 
 	protected Set<Vertex> computeBlue(DirectedSparseGraph model){
 		Set<Vertex> blues = new HashSet<Vertex>();
-		for(Vertex v: findVertices("colour", "red", model))
+		for(Vertex v: findVertices(JUConstants.COLOUR, JUConstants.RED, model))
 		{
 			Iterator<DirectedSparseEdge>neighbourIt = v.getOutEdges().iterator();
 			while(neighbourIt.hasNext()){
 				DirectedSparseEdge next = neighbourIt.next();
 				Vertex neighbour = next.getDest();
-				String neighbourColour = (String)neighbour.getUserDatum("colour");
+				JUConstants neighbourColour = (JUConstants)neighbour.getUserDatum(JUConstants.COLOUR);
 				if(neighbourColour!=null){
-					if(neighbourColour.equals("red"))
+					if(neighbourColour == JUConstants.RED)
 						continue;
 				}
-				neighbour.setUserDatum("colour", "blue", UserData.SHARED);
+				neighbour.setUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
 				blues.add(neighbour);
 				
 			}
@@ -142,38 +140,38 @@ public class RPNIBlueFringeLearner extends Observable {
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);
 		
-		Vertex init = findVertex("property", "init",model);
-		init.setUserDatum("colour", "red", UserData.SHARED);
+		Vertex init = findInitial(model);
+		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
 			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
-				pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
-				pair.getR().setUserDatum("pair", pair, UserData.SHARED);
+				pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
+				pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				setChanged();
 				List<List<String>> questions = generateQuestions(model, pair);
 				questions = trimSet(questions);
 				Iterator<List<String>> questionIt = questions.iterator();
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
-					String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();// Q is the blue vertex
+					boolean accepted = isAccept(pair.getQ());// Q is the blue vertex
 					updateGraph(model);
 					int response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
 					questionCounter++;
-					pair.getQ().removeUserDatum("pair");
-					pair.getR().removeUserDatum("pair");
+					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
+					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
 					if(response == USER_ACCEPTED){
 						sPlus.add(question);
 						System.out.println(setByAuto+question+ " <yes>");
-						if(accepted.equals("false"))// KIRR: how can this be true? If it were so, there would be no questions to ask
+						if(accepted == false)// KIRR: how can this be true? If it were so, there would be no questions to ask
 							return learnMachine(initialise(), sPlus, sMinus);
 					}
 					else{
 						sMinus.add(question.subList(0, response));
 						System.out.println(setByAuto+question+ " <no>");
-						if(accepted.equals("true")){// KIRR: this cannot be false either
+						if(accepted == true){// KIRR: this cannot be false either
 							return learnMachine(initialise(), sPlus, sMinus);
 						}
 					}
@@ -194,8 +192,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		{
 			Vertex v = getVertex(model,string);
 			if(v != null){
-				Object accepted = v.getUserDatum(JUConstants.ACCEPTED);
-				if(accepted.toString().equals("true"))
+				if(isAccept(v))
 					returnValue = false;
 			}
 		}
@@ -205,8 +202,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			if(v == null)
 				returnValue = false;
 			else{
-				Object accepted = v.getUserDatum(JUConstants.ACCEPTED);
-				if(accepted.toString().equals("false"))
+				if(!isAccept(v))
 					returnValue = false;
 			}
 		}
@@ -419,8 +415,8 @@ public class RPNIBlueFringeLearner extends Observable {
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
 			return new ArrayList<List<String>>();
-		String accepted = q.getUserDatum(JUConstants.ACCEPTED).toString();
-		if(accepted.equals("false"))
+		boolean accepted = isAccept(q);
+		if(accepted == false)
 			return new ArrayList<List<String>>();
 		List<String> sp = null;
 		Set<List<String>> w =null;
@@ -484,7 +480,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
-			if(e.getOpposite(v).getUserDatum(JUConstants.ACCEPTED).toString().equals("true")){
+			if(isAccept(e.getOpposite(v))){
 				ArrayList l = new ArrayList();
 				l.add(e);
 				returnStrings.addAll(getPaths(l));
@@ -498,7 +494,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		while (neighbourIt.hasNext()){
 			DirectedSparseEdge e = neighbourIt.next();
 			Vertex to = e.getDest();
-			if(to.getUserDatum(JUConstants.ACCEPTED).toString().equals("true"))
+			if(isAccept(to))
 				return true;
 		}
 		return false;
@@ -512,14 +508,14 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param accepted labelling requested.
 	 * @return the list of paths.
 	 */
-	protected Set<List<String>> getSuffixes(DirectedSparseGraph graph, Vertex r, String accepted){
+	protected Set<List<String>> getSuffixes(DirectedSparseGraph graph, Vertex r, boolean accepted){
 		Set<List<String>> setOfPaths = new HashSet<List<String>>();
 		Iterator<Vertex> vertexIt = graph.getVertices().iterator();
 		Set<Vertex> endVertices = new HashSet<Vertex>();
 		DijkstraShortestPath p = new DijkstraShortestPath(graph);
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
-			if(v.getSuccessors().isEmpty()&& v.getUserDatum(JUConstants.ACCEPTED).toString().equals(accepted))
+			if(v.getSuccessors().isEmpty()&& isAccept(v) == accepted)
 				endVertices.add(v);
 		}
 		for(Vertex v:endVertices)
@@ -573,7 +569,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */
 	protected static List<String> getShortPrefix(DirectedSparseGraph model, Vertex q){
-		Vertex init = findVertex("property", "init",model);
+		Vertex init = findInitial(model);
 		UnweightedShortestPath p = new UnweightedShortestPath(model);
 		Iterator<Edge> pathIt =  ShortestPathUtils.getPath(p, init, q).iterator();
 		List<String> list = new ArrayList<String>();
@@ -630,7 +626,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	protected static List<Vertex> getBFSList(Graph g){
 		List<Vertex> queue = new LinkedList<Vertex>();
-		Vertex init = findVertex("property", "init",g);
+		Vertex init = findInitial(g);
 		queue.add(0,init);
 		int i=0;
 		int j= queue.size();
@@ -677,7 +673,7 @@ public class RPNIBlueFringeLearner extends Observable {
 					else {
 						DirectedSparseEdge eDash = doneLabels.get(label);
 						StatePair p = null;
-						if(eDash.getDest().getUserDatum("property")!=null)
+						if(isInitial(eDash.getDest()))
 							p = new StatePair(e.getDest(), eDash.getDest());
 						else
 							p = new StatePair(eDash.getDest(),e.getDest());
@@ -698,7 +694,7 @@ public class RPNIBlueFringeLearner extends Observable {
 			TreeMap<Integer,Vector<StatePair> > singleSet = new TreeMap<Integer,Vector<StatePair> >();
 			Vertex blueVertex = blueStack.pop();
 			Stack<Vertex> redStack = new Stack<Vertex>();
-			redStack.addAll(findVertices("colour", "red", g));
+			redStack.addAll(findVertices(JUConstants.COLOUR, JUConstants.RED, g));
 			while(!redStack.isEmpty()){
 				Vertex redVertex = redStack.pop();
 				StatePair pair = new StatePair(blueVertex, redVertex);
@@ -724,7 +720,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				}
 			}
 			if(singleSet.isEmpty()){// no new pairs found, marking the current blue vertex as red.
-				blueVertex.setUserDatum("colour", "red", UserData.SHARED);
+				blueVertex.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 				blueStack.clear();
 				scoreToPair.clear();
 				blueStack.addAll(computeBlue(g));
@@ -773,16 +769,11 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param pair a pair states to check for compatibility. 
 	 * @return whether the two are different.
 	 */
-	protected  static boolean different(StatePair pair){
-		Object qAcceptedO = pair.getQ().getUserDatum(JUConstants.ACCEPTED);
-		Object rAcceptedO = pair.getR().getUserDatum(JUConstants.ACCEPTED);
-		if(rAcceptedO==null || qAcceptedO == null)
-			return false;
-		Boolean qAccepted = new Boolean(qAcceptedO.toString());
-		Boolean rAccepted = new Boolean(rAcceptedO.toString());
-		if(rAccepted.booleanValue()!=qAccepted.booleanValue())
-			return true;
-		return false;
+	protected static boolean different(StatePair pair){
+		boolean qAcceptedO = isAccept(pair.getQ());
+		boolean rAcceptedO = isAccept(pair.getR());
+
+		return qAcceptedO != rAcceptedO;
 	}
 	
 	/** For every pair of transitions with the same label from a supplied pair of states
@@ -834,8 +825,8 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected static DirectedSparseGraph initialise(){
 		DirectedSparseGraph pta = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
-		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		pta.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
 		pta.addVertex(init);
 		numberVertices(pta);
@@ -865,7 +856,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				if (i == string.size())// KIRR: every prefix of a reject sequence is an accept sequence.
 					newVertex.setUserDatum(JUConstants.ACCEPTED, accepted, UserData.SHARED);
 				else
-					newVertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+					newVertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 				
 				if(existing == null){
 					pta.addVertex(newVertex);
@@ -880,7 +871,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				else
 					if (different(new StatePair(existing,newVertex)))
 					{
-						existing.addUserDatum("pair", "whatever", UserData.SHARED);
+						existing.addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
 						updateGraph(pta);
 						StringBuffer errorPath = new StringBuffer();
 						errorPath.append( string.get(0) );
@@ -925,7 +916,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 	
 	public static Vertex getVertex (DirectedSparseGraph g, List<String> string){
-		return getVertex(g, findVertex(JUConstants.PROPERTY, JUConstants.INIT,g), string);
+		return getVertex(g, findInitial(g), string);
 	}
 	
 	public static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
@@ -939,7 +930,52 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 	
-	public static Vertex findVertex(String property, Object value, Graph g){
+	/** Checks if the supplied vertex is an accept one or not.
+	 * 
+	 * @param v vertex to check
+	 * @return true if the vertex is an accept-vertex
+	 */
+	public final static boolean isAccept(final Vertex v)
+	{
+		return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
+	}	
+	
+	/** Checks if the supplied vertex is an initial state.
+	 * 
+	 * @param v vertex to check
+	 * @return true if the vertex is an initial state
+	 */
+	public final static boolean isInitial(final Vertex v)
+	{
+		return v.containsUserDatumKey(JUConstants.INITIAL);		
+	}
+
+	/** Finds an initial state in a graph. Returns null if the initial state was not found.
+	 * 
+	 * @param g graph to search for an initial state in.
+	 * @return initial vertex, null if not found.
+	 */
+	public static Vertex findInitial(Graph g){
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			if (isInitial(v))
+				return v;
+		}
+		return null;
+	}
+
+	/** Finds a vertex with a given property set to a specified value. 
+	 * 
+	 * @param property property to search
+	 * @param value what it has to be set to, cannot be null
+	 * @param g the graph to search in
+	 * @return vertex found.
+	 */
+	public static Vertex findVertex(JUConstants property, Object value, Graph g){
+		if (value == null)
+			throw new IllegalArgumentException("value to search for cannot be null");
+		
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
@@ -951,7 +987,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 	
-	public static Set<Vertex> findVertices(String property, Object value, Graph g){
+	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){
 		Set<Vertex> vertices = new HashSet<Vertex>();
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){

@@ -25,8 +25,6 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
-import static statechum.analysis.learning.TestRpniLearner.isAccept;
-
 public class RPNIBlueFringeLearnerTestComponentOpt extends
 		RPNIBlueFringeLearnerTestComponent {
 
@@ -36,19 +34,19 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	
 	protected void update(StatePair pair)
 	{
-		pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
-		pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
+		pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
+		pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
 		updateGraph(scoreComputer.getGraph());
 	}
 	
-	protected computeStateScores scoreComputer = new computeStateScores(0);
+	protected ComputeStateScores scoreComputer = new ComputeStateScores(0);
 
 	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
-	public static void populateScores(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
+	public static void populateScores(Collection<ComputeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
-		for(computeStateScores.PairScore pair:data)
+		for(ComputeStateScores.PairScore pair:data)
 		{
 		int pairScore = pair.getScore();
 			AtomicInteger count = histogram.get(pairScore);
@@ -61,9 +59,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	}
 	
 	/** Takes the candidates for merging and computes the number of times different scores (increments of 10) are encountered. */
-	public static void populateHistogram(Collection<computeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
+	public static void populateHistogram(Collection<ComputeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
-		for(computeStateScores.PairScore pair:data)
+		for(ComputeStateScores.PairScore pair:data)
 		{
 		int pairScore = pair.getScore()>= 200? pair.getScore()-pair.getScore() % 100: pair.getScore()>=10? pair.getScore()-pair.getScore()%10: pair.getScore()>0?1:0;
 			AtomicInteger count = histogram.get(pairScore);
@@ -107,10 +105,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return result+"\n";
 	}
 	
-	public static String pairScoresAndIterations(Map<computeStateScores.PairScore,Integer> map, String name){
+	public static String pairScoresAndIterations(Map<ComputeStateScores.PairScore,Integer> map, String name){
 		final String FS=",";
 		String result="\n"+name+"-score"+FS;
-		for(computeStateScores.PairScore score:map.keySet())
+		for(ComputeStateScores.PairScore score:map.keySet())
 			result=result+score.getScore()+FS;
 		result = result+"\n"+name+"-iteration"+FS;
 		for(Integer i:map.values())
@@ -126,7 +124,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		scoreComputer.augmentPTA(sPlus, true);
 	}
 	
-	public computeStateScores getScoreComputer()
+	public ComputeStateScores getScoreComputer()
 	{
 		return scoreComputer;
 	}
@@ -142,21 +140,21 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
-		Map<computeStateScores.PairScore, Integer> scoresToIterations = new HashMap<computeStateScores.PairScore, Integer>();
-		Map<computeStateScores.PairScore, Integer> restartsToIterations = new HashMap<computeStateScores.PairScore, Integer>();
-		computeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
+		Map<ComputeStateScores.PairScore, Integer> scoresToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
+		Map<ComputeStateScores.PairScore, Integer> restartsToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
+		ComputeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 
-		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<ComputeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
-			computeStateScores.PairScore pair = possibleMerges.pop();
-			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
+			ComputeStateScores.PairScore pair = possibleMerges.pop();
+			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
@@ -173,7 +171,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
-				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
+				boolean accepted = isAccept(pair.getQ());
 				int answer = checkWithEndUser(scoreComputer.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
@@ -193,7 +191,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					newPTA.augmentPTA(question, true);++plusSize;
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
-					if(!TestRpniLearner.isAccept(tempVertex))
+					if(!isAccept(tempVertex))
 					{
 						pairsMerged=pairsMerged+"ABOUT TO RESTART due to acceptance of a reject vertex for a pair "+pair+" ========\n";
 						restartLearning = true;break;
@@ -207,13 +205,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
 						//sMinus.add(subAnswer);
 						newPTA.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs is 
-						// only unique for each instance of computeStateScores, only once 
+						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
 						
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
-							assert accepted.equals("true");
+							assert accepted == true;
 							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 							restartLearning = true;break;
 						}
@@ -225,7 +223,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			
 			if (restartLearning)
 			{// restart learning
-				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
+				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				setChanged();++counterRestarted;

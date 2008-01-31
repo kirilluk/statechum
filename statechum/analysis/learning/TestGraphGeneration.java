@@ -99,49 +99,6 @@ public class TestGraphGeneration {
 		checkEquivalence(g,graphString);
 	}
 
-	/** Displays twos graphs passed as arguments in the Jung window.
-	 * @param g the graph to display 
-	 * @param lowerGraph the graph to display below it
-	 */
-	public void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
-	{
-		if (visFrame == null)
-			visFrame = new Visualiser();
-		visFrame.update(null, g);
-		if (lowerGraph != null)
-		{
-			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
-				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
-				// I rely on the results of execution of the above thread below in order to position the window.
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-						Visualiser v=new Visualiser();v.update(null, lowerGraph);
-						Point newLoc = visFrame.getLocation();newLoc.move(0, visFrame.getHeight());v.setLocation(newLoc);
-					}
-				});
-			} catch (InterruptedException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			}
-		}
-	}
-
-	
-	/** Displays the graph passed as an argument in the Jung window.
-	 * @param g the graph to display 
-	 */
-	public void updateFrame(DirectedSparseGraph g)
-	{
-		if (visFrame == null)
-			visFrame = new Visualiser();
-		visFrame.update(null, g);
-	}
-	
  	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
 	 * 		updateFrame(g);// a public method
@@ -153,31 +110,13 @@ public class TestGraphGeneration {
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = null;
+		Visualiser.disposeFrame();
 	}
 
 	@AfterClass
 	public static void cleanUp()
 	{
-		try {
-			if (visFrame != null)
-			{
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-							visFrame.setVisible(false);
-							visFrame.dispose();
-					}
-				});
-			}
-		} catch (InterruptedException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		}
+		Visualiser.disposeFrame();
 	}	
 
 	

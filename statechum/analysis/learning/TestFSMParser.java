@@ -363,7 +363,7 @@ public class TestFSMParser {
 	@Test 
 	public void testFsmParseFail7()
 	{
-		checkEx("A - -",JUConstants.LABEL);
+		checkEx("A - -","label expected");
 	}
 	
 	@Test 
@@ -454,7 +454,7 @@ public class TestFSMParser {
 	@Test 
 	public void testFsmParseFail18()
 	{
-		checkEx("A <- b - C - -",JUConstants.LABEL);
+		checkEx("A <- b - C - -","label expected");
 	}
 
 	@Test 

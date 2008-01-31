@@ -86,9 +86,9 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
         if(label.startsWith("Initial")){
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
-        	vertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
+        	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
         }
-        vertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+        vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
         return vertex;
     }
 

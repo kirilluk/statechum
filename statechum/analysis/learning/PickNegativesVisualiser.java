@@ -154,7 +154,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
 		Set<List<String>> questions = new HashSet<List<String>>();
-		Vertex init = RPNIBlueFringeLearner.findVertex("property", "init", g);
+		Vertex init = RPNIBlueFringeLearner.findInitial(g);
 		DijkstraShortestPath p = new DijkstraShortestPath(g);
 		List<Edge> shortPrefix = p.getPath(init, e.getSource());
 		Set<List<String>> prefixStrings = RPNIBlueFringeLearner.getPaths(shortPrefix);

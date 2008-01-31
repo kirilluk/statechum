@@ -10,14 +10,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
 
+import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.experiments.AccuracyAndQuestionsExperiment;
 import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.analysis.learning.experiments.RandomPathGenerator;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
-
-
 
 public class RPNITester {
 
@@ -60,14 +59,14 @@ public class RPNITester {
 		for(int i=0;i< 20;++i)
 		{
 			dg.copy();
-			computeStateScores.copy(dg);
+			ComputeStateScores.copy(dg);
 		}
 */		
 		/*
 		DirectedSparseGraph g= l.createAugmentedPTA(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 		RPNIBlueFringeLearner.numberVertices(g);
-		Vertex init = RPNIBlueFringeLearner.findVertex("property", "init",g);
-		init.setUserDatum("colour", "red", UserData.SHARED);
+		Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init",g);
+		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		System.out.println("computing pairs");
 		for(int i=0;i< 5;++i)
 		{
@@ -95,8 +94,8 @@ public class RPNITester {
 			l.scoreComputer.augmentPTA(l.scoreComputer.augmentPTA(RPNIBlueFringeLearner.initialise(), sPlus, true), sMinus, false);
 			
 			RPNIBlueFringeLearner.numberVertices(g);
-			Vertex init = RPNIBlueFringeLearner.findVertex("property", "init",g);
-			init.setUserDatum("colour", "red", UserData.SHARED);
+			Vertex init = RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init",g);
+			init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 			System.out.println("computing pairs");
 			StatePair pair=(StatePair)l.chooseStatePairs(g, sPlus, sMinus).peek();
 			System.out.println("merging");
@@ -117,8 +116,8 @@ public class RPNITester {
 				//DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
 				//g.getEdgeConstraints().clear();
 				l.init(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
-				computeStateScores aa = l.getScoreComputer();
-				//l.findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+				ComputeStateScores aa = l.getScoreComputer();
+				//l.findVertex(JUConstants.PROPERTY, "init",model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 	
 				System.out.println("computing pairs");
 				//StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
@@ -127,13 +126,13 @@ public class RPNITester {
 				while(!stk.isEmpty())
 				{
 					StatePair p = (StatePair)stk.pop();
-					assert p.getQ().getUserDatum("colour").equals("blue");
-					assert p.getR().getUserDatum("colour").equals("red");					
+					assert p.getQ().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE;
+					assert p.getR().getUserDatum(JUConstants.COLOUR) == JUConstants.RED;					
 				}
 				System.out.println("merging");
 				//DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
 				//System.out.println("Pair : "+pair+" compatibility: "+aa.computePairCompatibilityScore(pair));
-				computeStateScores temp = computeStateScores.mergeAndDeterminize(aa, pair);
+				ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(aa, pair);
 				
 				System.out.println("generating questions");
 				//l.generateQuestions(model, temp, pair);

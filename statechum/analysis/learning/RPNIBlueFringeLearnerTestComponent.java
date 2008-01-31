@@ -4,6 +4,7 @@ import java.awt.Frame;
 import java.util.*;
 
 import statechum.JUConstants;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.impl.*;
@@ -23,15 +24,15 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;
 		model = createAugmentedPTA(model, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
-		findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+		findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
 
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			StatePair pair = (StatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize(model, pair);
-			pair.getQ().setUserDatum("pair", pair, UserData.SHARED);
-			pair.getR().setUserDatum("pair", pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
+			pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
+			pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
 			doneEdges = new HashSet();
@@ -46,7 +47,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
-				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
+				boolean accepted = isAccept(pair.getQ());
 				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
@@ -59,7 +60,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					sPlus.add(question);
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
-					if(tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false"))
+					if(!isAccept(tempVertex))
 					{
 							restartLearning = true;break;
 					}
@@ -70,11 +71,11 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
 
 					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-					if((answer==question.size()-1)&&tempVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")){
+					if((answer==question.size()-1)&&!isAccept(tempVertex)){
 						continue;
 					}
 					else{
-						assert accepted.equals("true");
+						assert accepted == true;
 						restartLearning = true;break;
 					}
 				}
@@ -92,7 +93,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			if (restartLearning)
 			{// restart learning
 				model = createAugmentedPTA(initialise(), sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
-				findVertex("property", "init",model).setUserDatum("colour", "red", UserData.SHARED);
+				findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 				setChanged();				
 			}
 			else
@@ -109,7 +110,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
-		List<Edge> pathToRed = p.getPath(findVertex("property", "init",model), r);
+		List<Edge> pathToRed = p.getPath(findInitial(model), r);
 		Set<List<String>> pathToRedStrings = new HashSet<List<String>>();
 		Vertex tempRed = null;
 		if(!pathToRed.isEmpty()){
@@ -118,7 +119,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			tempRed = getVertex(temp, prefixString);
 		}
 		else
-			tempRed = findVertex("property", "init", temp);
+			tempRed = findInitial(temp);
 		return tempRed;
 	}
 	
@@ -129,7 +130,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			return new ArrayList<List<String>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(temp);
 		Vertex tempRed = getTempRed(model, r, temp);
-		Vertex tempInit = findVertex("property", "init", temp);
+		Vertex tempInit = findInitial(temp);
 		Set<List<String>> prefixes = new HashSet<List<String>>();
 		if(!tempRed.equals(tempInit)){
 			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
@@ -148,7 +149,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		Iterator<Vertex> questionIt = getEndPoints(questionPrefixes).iterator();
 		p = new DijkstraShortestPath(questionPrefixes);
 		questions =new ArrayList<List<String>>();
-		Vertex init = findVertex("property", "init",questionPrefixes);
+		Vertex init = findInitial(questionPrefixes);
 		while(questionIt.hasNext()){
 			List<Edge> edgePath = p.getPath(init, questionIt.next());
 			Set<List<String>> pathsToPoint = getPaths(edgePath);

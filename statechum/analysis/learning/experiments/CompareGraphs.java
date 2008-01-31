@@ -9,6 +9,8 @@ import statechum.analysis.learning.*;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.xmachine.model.testset.WMethod;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
+
 /**
  * Compares two graphs (fed as string inputs using Kirill's notation) and provides feedback
  * as Precision and recall, computed using the W-Method.
@@ -53,39 +55,39 @@ public class CompareGraphs {
 				retneg.add(list);
 			}
 			else if((hypVertex == null)&(correctVertex != null)){
-				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				if(isAccept(correctVertex)){
 					relpos.add(list);
 					retneg.add(list);
 				}
-				else if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")){
+				else if(!isAccept(correctVertex)){
 					relneg.add(list);
 					retneg.add(list);
 				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("true")&&correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")){
+				if(isAccept(hypVertex)&&!isAccept(correctVertex)){
 					retpos.add(list);
 					relneg.add(list);
 				}
-				else if(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")&&correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				else if(!isAccept(hypVertex)&&isAccept(correctVertex)){
 					retneg.add(list);
 					relpos.add(list);
 				}
-				else if(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("false")&&correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")){
+				else if(!isAccept(hypVertex)&&!isAccept(correctVertex)){
 					retneg.add(list);
 					relneg.add(list);
 				}
-				else if(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals("true")&&correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){ 
+				else if(isAccept(hypVertex)&&isAccept(correctVertex)){ 
 					retpos.add(list);
 					relpos.add(list);
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				if(isAccept(hypVertex)){
 					retpos.add(list);
 					relneg.add(list);
 				}
-				else if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("false")){
+				else if(!isAccept(hypVertex)){
 					retneg.add(list);
 					relneg.add(list);
 				}

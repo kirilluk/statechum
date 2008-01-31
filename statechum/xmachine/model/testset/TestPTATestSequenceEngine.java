@@ -40,8 +40,8 @@ public class TestPTATestSequenceEngine
 	{
 		DirectedSparseGraph g = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
-		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
 		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
@@ -55,8 +55,8 @@ public class TestPTATestSequenceEngine
 	{
 		DirectedSparseGraph g = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
-		init.addUserDatum("property", "init", UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.INITIAL, true,UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
 		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));

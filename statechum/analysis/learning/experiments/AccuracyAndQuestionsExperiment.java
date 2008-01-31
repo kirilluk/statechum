@@ -36,15 +36,14 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.computeStateScores;
+import statechum.analysis.learning.ComputeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.analysis.learning.computeStateScores.IDMode;
+import statechum.analysis.learning.ComputeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 public class AccuracyAndQuestionsExperiment {
 
@@ -91,7 +90,7 @@ public class AccuracyAndQuestionsExperiment {
 
 		protected void loadGraph()
 		{
-			synchronized (computeStateScores.syncObj) 
+			synchronized (ComputeStateScores.syncObj) 
 			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 		    	GraphMLFile graphmlFile = new GraphMLFile();
 		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
@@ -221,7 +220,7 @@ public class AccuracyAndQuestionsExperiment {
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParametersOnComputeStateScores(computeStateScores c);
+		protected abstract void changeParametersOnComputeStateScores(ComputeStateScores c);
 
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
@@ -289,56 +288,25 @@ public class AccuracyAndQuestionsExperiment {
 	/** Stores tasks to complete. */
 	final CompletionService<String> runner;
 			
-	/** Displays twos graphs passed as arguments in the Jung window.
-	 * @param g the graph to display 
-	 * @param lowerGraph the graph to display below it
-	 */
-	public static void updateFrame(final DirectedSparseGraph g,final DirectedSparseGraph lowerGraph)
-	{
-		final Visualiser v=new Visualiser();
-		v.update(null, g);
-		if (lowerGraph != null)
-		{
-			try {// I'm assuming here that Swing has only one queue of threads to run on the AWT thread, hence the
-				// thread scheduled by invokeLater will be run to completion before the next one (below) runs and hence
-				// I rely on the results of execution of the above thread below in order to position the window.
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-						Visualiser viz=new Visualiser();viz.update(null, lowerGraph);
-						Point newLoc = viz.getLocation();newLoc.move(0, v.getHeight());v.setLocation(newLoc);
-					}
-				});
-			} catch (InterruptedException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			} catch (InvocationTargetException e) {
-				// cannot do much about this
-				e.printStackTrace();
-			}
-		}
-	}
-	
 	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
 			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex != null)){
-				if(correctVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				if(isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(!(hypVertex.getUserDatum(JUConstants.ACCEPTED).toString().equals(correctVertex.getUserDatum(JUConstants.ACCEPTED).toString()))){
+				if(isAccept(hypVertex) != isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(hypVertex.getUserDatum(JUConstants.ACCEPTED).equals("true")){
+				if(isAccept(hypVertex)){
 					//updateFrame(learned, correct);
 					failed++;
 				}
@@ -434,7 +402,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 					
 					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					protected void changeParametersOnComputeStateScores(ComputeStateScores c) 
 					{
 						c.setMode(IDMode.POSITIVE_NEGATIVE);						
 					}
@@ -458,7 +426,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 
 					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					protected void changeParametersOnComputeStateScores(ComputeStateScores c) 
 					{
 						c.setMode(IDMode.POSITIVE_ONLY);						
 					}
@@ -481,7 +449,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 
 					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					protected void changeParametersOnComputeStateScores(ComputeStateScores c) 
 					{
 						c.bumpPositive();
 						c.setMode(IDMode.POSITIVE_ONLY);
@@ -505,7 +473,7 @@ public class AccuracyAndQuestionsExperiment {
 					}
 
 					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
+					protected void changeParametersOnComputeStateScores(ComputeStateScores c) 
 					{
 						c.bumpPositive();c.useCompatibilityScore();
 						c.setMode(IDMode.POSITIVE_ONLY);

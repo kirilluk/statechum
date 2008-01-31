@@ -864,8 +864,8 @@ public class TestWMethod {
 		DirectedSparseGraph g = new DirectedSparseGraph();
 		DirectedSparseVertex init = new DirectedSparseVertex();
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
-		init.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		g.addVertex(init);
 		WMethod wm = new WMethod(g,0);
 		checkTestGenerationResult(wm, new String[][] {
@@ -959,43 +959,17 @@ public class TestWMethod {
 	{
 		assertTrue(WMethod.checkUnreachableStates(WMethod.getGraphData(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"))));	
 	}
-		
-	/** Holds the JFrame to see the graphs being dealt with. Usage:
-	 * <pre>
-	 * 		updateFrame(g);// a public method
-	 * </pre>
-	 * where <i>g</i> is the graph to be displayed.
-	 */
-	protected static Visualiser visFrame = null;
-	
+			
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		visFrame = null;
+		Visualiser.disposeFrame();
 	}
 
 	@AfterClass
 	public static void cleanUp()
 	{
-		try {
-			if (visFrame != null)
-			{
-				SwingUtilities.invokeAndWait(new Runnable() 
-				{
-					public void run()
-					{
-							visFrame.setVisible(false);
-							visFrame.dispose();
-					}
-				});
-			}
-		} catch (InterruptedException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// cannot do anything with this
-			e.printStackTrace();
-		}
+		Visualiser.disposeFrame();
 	}
 	
 	/** In order to be able to use old junit runner. */

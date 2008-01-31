@@ -1,13 +1,25 @@
 package statechum;
 
-public interface JUConstants {
-	final String LABEL = "label";
-	final String ACCEPTED = "accepted";
-	final String TITLE = "title";
-	final String TRUE = "true";
-	final String FALSE = "false";
-	final String PROPERTY = "property";
-	final String INIT = "init";
-	final String STATS = "STATS";
-	final String COLOUR="colour";
+public enum JUConstants {
+	LABEL("label"),
+	ACCEPTED("accepted"),
+	TITLE("title"),
+	INITIAL("init"),// whether a vertex is an initial state
+	HIGHLIGHT("highlight"),
+	STATS("STATS"),
+	COLOUR("colour"),
+	RED("red"),BLUE("blue"),
+	JUNKVERTEX("junk");// used for testing that searching for a property that does not exist returns a null vertex.
+	
+	private String stringRepresentation;
+	
+	JUConstants(String textualName)
+	{
+		stringRepresentation = textualName;
+	}
+	
+	public String toString()
+	{
+		return stringRepresentation;
+	}
 }

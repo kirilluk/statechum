@@ -1,6 +1,6 @@
 package statechum.analysis.learning.oracles;
 
-import static statechum.analysis.learning.TestRpniLearner.isAccept;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import java.awt.Frame;
 import java.io.StringWriter;
@@ -39,20 +39,20 @@ public class RPNIBlueFringeSootLearner extends
 		SootCallGraphOracle oracle = (SootCallGraphOracle)ans;
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
-		Map<computeStateScores.PairScore, Integer> scoresToIterations = new HashMap<computeStateScores.PairScore, Integer>();
-		Map<computeStateScores.PairScore, Integer> restartsToIterations = new HashMap<computeStateScores.PairScore, Integer>();
+		Map<ComputeStateScores.PairScore, Integer> scoresToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
+		Map<ComputeStateScores.PairScore, Integer> restartsToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
 		Set<StringPair> impossiblePairs = new HashSet<StringPair>();
-		computeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
+		ComputeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
-		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<ComputeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
-			computeStateScores.PairScore pair = possibleMerges.pop();
-			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
+			ComputeStateScores.PairScore pair = possibleMerges.pop();
+			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
@@ -139,11 +139,11 @@ public class RPNIBlueFringeSootLearner extends
 		return result;
 	}
 	
-	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, computeStateScores temp){
+	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, ComputeStateScores temp){
 		Collection<List<String>> filteredQuestions = new HashSet<List<String>>();
 		for (List<String> list : questions) {
 			Vertex v = temp.getVertex(list);
-			if(v.getUserDatum(JUConstants.ACCEPTED).equals("true"))
+			if(isAccept(v))
 				filteredQuestions.add(list);
 		}
 		return filteredQuestions;

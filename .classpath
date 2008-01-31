@@ -4,9 +4,9 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/colt.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.1.jar"/>
-	<classpathentry kind="lib" path="lib/jung-1.7.4.jar" sourcepath="C:/software/java/jung-1.7.6-src.jar"/>
 	<classpathentry kind="lib" path="lib/polyglotclasses-1.3.4.jar"/>
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/jung-1.7.6.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

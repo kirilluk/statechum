@@ -41,7 +41,7 @@ public class RandomPathGenerator {
 	
 	public static int diameter(DirectedSparseGraph graph){
 		DijkstraDistance dd = new DijkstraDistance(graph);
-		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findVertex(JUConstants.PROPERTY, "init", graph)).values();
+		Collection<Double> distances = dd.getDistanceMap(RPNIBlueFringeLearner.findInitial(graph)).values();
 		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
 		Collections.sort(distancesList);
 		return distancesList.get(distancesList.size()-1).intValue();

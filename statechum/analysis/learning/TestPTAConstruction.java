@@ -10,7 +10,8 @@ import junit.framework.JUnit4TestAdapter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.analysis.learning.computeStateScores.IDMode;
+import statechum.analysis.learning.ComputeStateScores.IDMode;
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -26,7 +27,7 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new computeStateScores(0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
+			actualC = new ComputeStateScores(0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);
@@ -74,10 +75,10 @@ public class TestPTAConstruction
 				throw eA;
 			}
 				
-		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, TestRpniLearner.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualA.getEdges().size());
 
-		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, TestRpniLearner.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualC.getEdges().size());
 	}
 	

@@ -15,6 +15,7 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
+import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import statechum.analysis.learning.oracles.*;
 
 public class PickNegativesVisualiser extends Visualiser{
@@ -30,7 +31,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	
 	public PickNegativesVisualiser()
 	{
-		super();
+		super(VIZ_PROPERTIES.UPPER);
 	}
 	
 	

@@ -1,3 +1,10 @@
+/**
+ * To use this, LTL2BA needs to be on the system path, as it is called 
+ * by the LTL2BA Java interfaces. 
+ * 
+ * Future versions will similarly require SPIN to be on the system path as well.
+ */
+
 package statechum.analysis.learning.spin;
 import java.io.*;
 import java.util.*;

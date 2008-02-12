@@ -17,6 +17,7 @@ import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
 import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import statechum.analysis.learning.oracles.*;
+import statechum.analysis.learning.spin.*;
 
 public class PickNegativesVisualiser extends Visualiser{
     /**
@@ -81,6 +82,32 @@ public class PickNegativesVisualiser extends Visualiser{
 		        	l.setAnswers(ans);
 		        	if (whomToNotify != null) whomToNotify.threadStarted();
 	        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
+			}
+		},"RPNI learner thread");
+	   	learnerThread.start();
+		
+    }
+	
+	/** Starts the learning thread with the supplied sets of positive and negative examples.
+	 * 
+	 * @param sPlus positives
+	 * @param sMinus negatives
+	 * @param whomToNotify this one is called just before learning commences.
+	 */
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final boolean active)
+    {
+	   	learnerThread = new Thread(new Runnable()
+		{
+			public void run()
+			{
+				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae);
+				if(!active)
+					l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
+				l.setDebugMode(true);
+	        	l.addObserver(PickNegativesVisualiser.this);
+	        	l.setAnswers(ans);
+	        	if (whomToNotify != null) whomToNotify.threadStarted();
+        		l.learnMachine(RPNIBlueFringeLearner.initialise(), sPlus, sMinus);
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();

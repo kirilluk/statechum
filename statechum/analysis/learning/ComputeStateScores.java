@@ -45,7 +45,7 @@ public class ComputeStateScores implements Cloneable {
 	/** The initial vertex. */
 	private CmpVertex init;
 	
-	private Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
+	protected Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 			
 	/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
 	protected List<ComputeStateScores.PairScore> pairsAndScores;
@@ -53,7 +53,7 @@ public class ComputeStateScores implements Cloneable {
 	protected int generalisationThreshold;
 	protected int pairsMergedPerHypothesis;
 	
-	private boolean bumpPositives = false, useCompatibilityScore = false;
+	protected boolean bumpPositives = false, useCompatibilityScore = false;
 
 	/** Used to switch on a variety of consistency checks. */
 	protected static boolean testMode = false;
@@ -639,7 +639,7 @@ public class ComputeStateScores implements Cloneable {
 		return result;
 	}		
 
-	private PairScore obtainPair(Vertex blue, Vertex red)
+	protected PairScore obtainPair(Vertex blue, Vertex red)
 	{
 		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (useCompatibilityScore)
@@ -711,7 +711,7 @@ public class ComputeStateScores implements Cloneable {
 	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
 	 * using mergedVertices. 
 	 */
-	private Vertex findNextRed(Map<Vertex,List<Vertex>> mergedVertices, Vertex r, String input)
+	protected Vertex findNextRed(Map<Vertex,List<Vertex>> mergedVertices, Vertex r, String input)
 	{
 		Vertex target = null;
 		List<Vertex> associatedVertices = mergedVertices.get(r);
@@ -1072,7 +1072,7 @@ public class ComputeStateScores implements Cloneable {
 	 * @param mergedVertices records which vertices have to be merged.
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
-	private int computePairCompatibilityScore_internal(StatePair origPair,Map<Vertex,List<Vertex>> mergedVertices) 
+	protected int computePairCompatibilityScore_internal(StatePair origPair,Map<Vertex,List<Vertex>> mergedVertices) 
 	{
 		mergedVertices.clear();// for every vertex of the model, gives a set of PTA vertices which were joined to it, for those of them which lead to a new (PTA-only) state
 			// note that PTA states may easily be merged with other PTA states, in which case they will feature as keys of this set.

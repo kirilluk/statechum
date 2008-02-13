@@ -6,10 +6,14 @@ import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -21,7 +25,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.ComputeStateScores.PairScore;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -130,7 +133,9 @@ public class TestGraphBasicAlgorithms {
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
 		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		String actual = paths.getDebugData().replaceAll(" |\\n", ""),expected="[a,b][leafreturned=true]";
+		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
@@ -142,7 +147,9 @@ public class TestGraphBasicAlgorithms {
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
 		s.computePathsSBetween(s.findVertex("A"), s.findVertex("A"),initSet,paths);
-		String actual = paths.getDebugData().replaceAll(" |\\n", ""),expected="[][leafreturned=true]";
+		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
@@ -155,8 +162,12 @@ public class TestGraphBasicAlgorithms {
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
 		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		String actual = paths.getDebugData().replaceAll(" |\\n", ""),
-			expected="[a,d][leafreturned=true][a,b][leafreturned=true][c,d][leafreturned=true][c,b][leafreturned=true]";
+		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
@@ -169,11 +180,68 @@ public class TestGraphBasicAlgorithms {
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
 		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		String actual = paths.getDebugData().replaceAll(" |\\n", ""),
-			expected="[a,d][leafreturned=true][a,b][leafreturned=true][c,d][leafreturned=true][c,b][leafreturned=true][p,q][leafreturned=true]";
+		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
+	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
+	@Test
+	public final void testComputePathsSBetween5()
+	{
+		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
+		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
+				new String[] { "sequenceA","sequenceB" },
+		});
+		initSet = initSet.cross(initSeq);
+		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Map<String,String> expected = new HashMap<String,String>();
+		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(PTATestSequenceEngine.seqToString(is)+PTATestSequenceEngine.separator+expSrc.getKey(), expSrc.getValue());
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
+	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
+	@Test
+	public final void testComputePathsSBetween6()
+	{
+		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
+		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
+				new String[] { "sequenceA","sequenceB" },
+				new String[] { "sequenceC" },
+				new String[] { "sA","sB","sC"}
+		});
+		initSet = initSet.cross(initSeq);
+		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Map<String,String> expected = new HashMap<String,String>();
+		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(PTATestSequenceEngine.seqToString(is)+PTATestSequenceEngine.separator+expSrc.getKey(), expSrc.getValue());
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0a()
 	{

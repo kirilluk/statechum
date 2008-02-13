@@ -5,10 +5,10 @@
    <int>83</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>319.97540283203125</double> 
+     <double>286.3002624511719</double> 
     </void> 
     <void property="y"> 
-     <double>348.53778076171875</double> 
+     <double>294.9378662109375</double> 
     </void> 
    </object> 
   </void> 
@@ -16,10 +16,10 @@
    <int>65</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>409.86737060546875</double> 
+     <double>422.3207702636719</double> 
     </void> 
     <void property="y"> 
-     <double>187.97610473632812</double> 
+     <double>124.74606323242188</double> 
     </void> 
    </object> 
   </void> 
@@ -38,10 +38,10 @@
    <int>66</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>324.41741943359375</double> 
+     <double>404.22137451171875</double> 
     </void> 
     <void property="y"> 
-     <double>282.0439147949219</double> 
+     <double>302.1698913574219</double> 
     </void> 
    </object> 
   </void> 
@@ -49,10 +49,10 @@
    <int>81</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>213.9842071533203</double> 
+     <double>443.481201171875</double> 
     </void> 
     <void property="y"> 
-     <double>267.56646728515625</double> 
+     <double>226.2117462158203</double> 
     </void> 
    </object> 
   </void> 
@@ -61,16 +61,16 @@
   <void property="m"> 
    <array class="double" length="6"> 
     <void index="0"> 
-     <double>1.0</double> 
+     <double>0.7513146991246459</double> 
     </void> 
     <void index="3"> 
-     <double>1.0</double> 
+     <double>0.7513146991246459</double> 
     </void> 
     <void index="4"> 
-     <double>-163.3558912893956</double> 
+     <double>171.21851049507612</double> 
     </void> 
     <void index="5"> 
-     <double>-66.1785264603177</double> 
+     <double>-10.287794185299798</double> 
     </void> 
    </array> 
   </void> 
@@ -79,22 +79,22 @@
   <void property="m"> 
    <array class="double" length="6"> 
     <void index="0"> 
-     <double>1.0161067207591428</double> 
+     <double>1.6119114295734378</double> 
     </void> 
     <void index="1"> 
-     <double>-0.11569474386797753</double> 
+     <double>0.41339867045229406</double> 
     </void> 
     <void index="2"> 
-     <double>0.00474080340602309</double> 
+     <double>0.07402695445010957</double> 
     </void> 
     <void index="3"> 
-     <double>1.1865805200496768</double> 
+     <double>0.6448191896918328</double> 
     </void> 
     <void index="4"> 
-     <double>161.4382199968278</double> 
+     <double>-477.11208089710635</double> 
     </void> 
     <void index="5"> 
-     <double>-41.27619593825262</double> 
+     <double>-86.81760594902244</double> 
     </void> 
    </array> 
   </void> 

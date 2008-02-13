@@ -109,6 +109,12 @@ public class TestPTAConstruction
 			);
 	}
 
+	/** Builds a PTA from the supplied arguments using two different methods. If any of them throws, checks that another one throws too and then rethrows the exception. 
+	 * 
+	 * @param arrayPlusStrings allowed sequences
+	 * @param arrayMinusStrings sequences ending at a reject state
+	 * @param expectedPTA a textual representation of a PTA which should be built.
+	 */
 	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);

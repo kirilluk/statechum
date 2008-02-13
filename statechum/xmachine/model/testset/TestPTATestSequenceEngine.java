@@ -4,10 +4,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import junit.framework.JUnit4TestAdapter;
-
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -119,7 +119,7 @@ public class TestPTATestSequenceEngine
 	@Before
 	public final void setUp()
 	{
-		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "sample automaton"));
+		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "test_sequenceSet1-3_4"));
 		en = new PTA_FSMStructure(fsm);		
 	}
 	
@@ -127,133 +127,169 @@ public class TestPTATestSequenceEngine
 	public final void test_sequenceSet1()
 	{
 		sequenceSet seq = en.new sequenceSet();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"})); // appending anything to an empty sequence produces an empty sequence.
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"}))); // appending anything to an empty sequence produces an empty sequence.
 		vertifyPTA(en, new String[][] {
 				new String[] {}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet2() // an input which exists
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet3() // the one which does not exist
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"c"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"c"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"c"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet4() // the one which enters a reject state
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet5() // a composition of sequenceSet with an input which exists
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"}))
+			.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet6() // a composition of sequenceSet with the one which does not exist
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"c"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"c"}))
+			.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"c"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet7() // a composition of sequenceSet with the one which enters a reject state
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b"}))
+			.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
 	public final void test_sequenceSet_2_1() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"}))
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b"}))
-			.crossWithSet(Arrays.asList(new String[] {"c"}));
+			.crossWithSet(Arrays.asList(new String[] {"c"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a","a","b","c"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet2_2() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"}))
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b"}))
 			.crossWithSet(Arrays.asList(new String[] {"c"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+			.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a","a","b","c","a"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet2_3() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"}))
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b"}))
 			.crossWithSet(Arrays.asList(new String[] {"c"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
-			.crossWithSet(Arrays.asList(new String[] {"b"}));
+			.crossWithSet(Arrays.asList(new String[] {"b"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a","a","b","c","a"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet2_4() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"c"}))
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"c"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b"}))
 			.crossWithSet(Arrays.asList(new String[] {"c"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+			.crossWithSet(Arrays.asList(new String[] {"a"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"c"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
@@ -261,24 +297,34 @@ public class TestPTATestSequenceEngine
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		sequenceSet tempE = 
-			seq.crossWithSet(Arrays.asList(new String[] {"a"}))
+			 seq.crossWithSet(Arrays.asList(new String[] {"a"}))
 				.crossWithSet(Arrays.asList(new String[] {"a"}))
 				.crossWithSet(Arrays.asList(new String[] {"a"}))
 				.crossWithSet(Arrays.asList(new String[] {"b"}))
 				.crossWithSet(Arrays.asList(new String[] {"c"}));
-		tempE.crossWithSet(Arrays.asList(new String[] {"a"}));
-		tempE.crossWithSet(Arrays.asList(new String[] {"b"}));
+		Map<String,String> actual2 = en.getDebugDataMap(tempE.crossWithSet(Arrays.asList(new String[] {"a"})));
+		Map<String,String> actual3 = en.getDebugDataMap(tempE.crossWithSet(Arrays.asList(new String[] {"b"})));
+		Map<String,String> actual1 = en.getDebugDataMap(tempE);// if I do this before PTA is updated, the long path returned by getDebugDataMap will have its nodes marked as leaves, but after PTA is built, they are no long leaves.
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a","a","b","c","a"},
 				new String[] {"a","a","a","b","c","b"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
 	}
 
 	@Test
 	public final void test_sequenceSet2_6() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b"}))
+		sequenceSet temp0=seq.crossWithSet(Arrays.asList(new String[] {"b"}))
 			.crossWithSet(Arrays.asList(new String[] {"a"}));
 
 		sequenceSet tempE = 
@@ -287,33 +333,49 @@ public class TestPTATestSequenceEngine
 				.crossWithSet(Arrays.asList(new String[] {"a"}))
 				.crossWithSet(Arrays.asList(new String[] {"b"}))
 				.crossWithSet(Arrays.asList(new String[] {"c"}));
-		tempE.crossWithSet(Arrays.asList(new String[] {"a"}));
-		tempE.crossWithSet(Arrays.asList(new String[] {"b"}));
+		Map<String,String> actual3 = en.getDebugDataMap(tempE.crossWithSet(Arrays.asList(new String[] {"a"})));
+		Map<String,String> actual4 = en.getDebugDataMap(tempE.crossWithSet(Arrays.asList(new String[] {"b"})));
+		Map<String,String> actual2 = en.getDebugDataMap(tempE);
+		Map<String,String> actual1 = en.getDebugDataMap(temp0);
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","a","a","b","c","a"},
 				new String[] {"a","a","a","b","c","b"},
 				new String[] {"b"}
 		});
+
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
+		Assert.assertTrue("expected: "+expected+", actual: "+actual4, expected.equals(actual4));
 	}
 
 	@Test
 	public final void test_sequenceSet3_1() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"},
 				new String[] {"a"},
 				new String[] {"d"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet3_2() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
-			.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
+			.crossWithSet(Arrays.asList(new String[] {"b","a","d"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"},
 				new String[] {"a","a"},
@@ -321,6 +383,11 @@ public class TestPTATestSequenceEngine
 				new String[] {"a","b"},
 				new String[] {"d"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
@@ -328,8 +395,10 @@ public class TestPTATestSequenceEngine
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		sequenceSet temp = seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
-		temp.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
-			.crossWithSet(Arrays.asList(new String[] {"u","a","d"}));
+		sequenceSet temp2 = temp.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
+		Map<String,String> actual3 = en.getDebugDataMap(temp2.crossWithSet(Arrays.asList(new String[] {"u","a","d"})));
+		Map<String,String> actual1 = en.getDebugDataMap(temp);
+		Map<String,String> actual2 = en.getDebugDataMap(temp2);
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"},
 				new String[] {"d"},
@@ -341,6 +410,19 @@ public class TestPTATestSequenceEngine
 				new String[] {"a","a","u"},
 				new String[] {"a","d"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
 	}
 
 	@Test
@@ -348,15 +430,18 @@ public class TestPTATestSequenceEngine
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		sequenceSet temp = seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
-		temp.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
+		sequenceSet temp_0 = temp.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
 			.crossWithSet(Arrays.asList(new String[] {"u","a","d"}));
-		temp.crossWithSet(Arrays.asList(new String[] {"u","a","d"}));
-		temp.crossWithSet(Arrays.asList(new String[] {"u","a","d"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}))
-			.crossWithSet(Arrays.asList(new String[] {"b"}))
-			.crossWithSet(Arrays.asList(new String[] {"c"}))
-			.crossWithSet(Arrays.asList(new String[] {"b","a"}));
-		
+		sequenceSet temp_1 = temp.crossWithSet(Arrays.asList(new String[] {"u","a","d"}));
+		sequenceSet temp2 = temp.crossWithSet(Arrays.asList(new String[] {"u","a","d"}))
+		.crossWithSet(Arrays.asList(new String[] {"a"}))
+		.crossWithSet(Arrays.asList(new String[] {"b"}))
+		.crossWithSet(Arrays.asList(new String[] {"c"}));
+		Map<String,String> actual3_1 = en.getDebugDataMap(temp2);// before PTA is updated, the long path should be a leaf ...
+		Map<String,String> actual4 = en.getDebugDataMap(temp2.crossWithSet(Arrays.asList(new String[] {"b","a"})));
+		Map<String,String> actual3_2 = en.getDebugDataMap(temp2);// after it is updated, that path should no longer be a leaf.
+		Map<String,String> actual1 = en.getDebugDataMap(temp_0);
+		Map<String,String> actual2 = en.getDebugDataMap(temp_1);
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"},
 				new String[] {"d"},
@@ -370,17 +455,37 @@ public class TestPTATestSequenceEngine
 				new String[] {"a","d"},
 				new String[] {"a","u"}
 		});
+		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual3_1, expected.equals(actual3_1));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual3_2, expected.equals(actual3_2));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual4, expected.equals(actual4));
 	}
 
 	@Test
 	public final void test_sequenceSet3_5() // a more complex composition
 	{
-		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "sample automaton"));
+		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5"));
 		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
-			.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
-			.crossWithSet(Arrays.asList(new String[] {"a"}));
+		sequenceSet temp2 = seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
+			.crossWithSet(Arrays.asList(new String[] {"b","a","d"}));
+		Map<String,String> actual2 = en.getDebugDataMap(temp2.crossWithSet(Arrays.asList(new String[] {"a"})));
+		Map<String,String> actual1 = en.getDebugDataMap(temp2);
 		vertifyPTA(en, new String[][] {
 				new String[] {"b"},
 				new String[] {"a","a","a"},
@@ -390,6 +495,16 @@ public class TestPTATestSequenceEngine
 				new String[] {"d","b"},
 				new String[] {"d","d"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)},
+				new Object[]{new String[] {"d","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
 	}
 
 	@Test
@@ -398,9 +513,9 @@ public class TestPTATestSequenceEngine
 		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
 		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b","a"}))
-			.crossWithSet(Arrays.asList(new String[] {"a","b"}));
+			.crossWithSet(Arrays.asList(new String[] {"a","b"})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"b","b"},
 				new String[] {"b","a"},
@@ -409,33 +524,133 @@ public class TestPTATestSequenceEngine
 				new String[] {"a","b","a"},
 				new String[] {"a","b","b"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+
+	@Test
+	public final void test_sequenceSet_testing_shouldBeReturned1() // a test for shouldBeReturned
+	{
+		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		en = new PTA_FSMStructure(machine) {
+			{ 
+				fsm = machine;
+				init(new FSM(){
+					@Override
+					public boolean shouldBeReturned(Object elem) {
+						// elem is null for REJECT states
+						return !(elem == null) && elem.toString().equals("B");
+					}			
+				}); 
+			}
+		};
+		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
+			.crossWithSet(Arrays.asList(new String[] {"b","a"})));
+		vertifyPTA(en, new String[][] {
+				new String[] {"a","b"}
+		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, false)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+
+	@Test
+	public final void test_sequenceSet_testing_shouldBeReturned2() // a test for shouldBeReturned
+	{
+		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		en = new PTA_FSMStructure(machine) {
+			{ 
+				fsm = machine;
+				init(new FSM(){
+					@Override
+					public boolean shouldBeReturned(Object elem) {
+						return false;
+					}			
+				}); 
+			}
+		};
+		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
+			.crossWithSet(Arrays.asList(new String[] {"b","a"})));
+		vertifyPTA(en, new String[][] {
+		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, false)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, false)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+	}
+
+	@Test
+	public final void test_sequenceSet_testing_shouldBeReturned3() // a test for shouldBeReturned
+	{
+		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		en = new PTA_FSMStructure(machine) {
+			{ 
+				fsm = machine;
+				init(new FSM(){
+					@Override
+					public boolean shouldBeReturned(Object elem) {
+						// elem is null for REJECT states
+						return !(elem == null);// all paths which exist
+					}			
+				}); 
+			}
+		};
+		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
+		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
+			.crossWithSet(Arrays.asList(new String[] {"b","a"})));
+		vertifyPTA(en, new String[][] {
+				new String[] {"a","b"},
+				new String[] {"a","a"}
+		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet4_1() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.cross(TestFSMAlgo.buildList(new String[][] {
+		Map<String,String> actual = en.getDebugDataMap(seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		}));
+		})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","b","c"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void test_sequenceSet4_2() // a more complex composition
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
-		seq.cross(TestFSMAlgo.buildList(new String[][] {
+		Map<String,String> actual = en.getDebugDataMap(seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"},
 				new String[] {"a"},
 				new String[] {"a","b","c","d"},
 				
-		}));
+		})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","b","c","d"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)},
+				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(false, true)}
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
@@ -445,14 +660,17 @@ public class TestPTATestSequenceEngine
 		sequenceSet temp = seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
 		}));
-		temp.cross(TestFSMAlgo.buildList(new String[][] {
+		Map<String,String> actual = en.getDebugDataMap(temp.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"},
 				new String[] {"c"}
-		}));
+		})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","b","c","c"},
 				new String[] {"a","b","c","a"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	@Test
@@ -462,13 +680,16 @@ public class TestPTATestSequenceEngine
 		seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
 		})).crossWithSet(new LinkedList<String>());
-		en.new sequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
+		Map<String,String> actual = en.getDebugDataMap(en.new sequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
-		}));
+		})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","b","c"}
 		});
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
@@ -476,18 +697,15 @@ public class TestPTATestSequenceEngine
 	{
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		seq.crossWithSequence(Arrays.asList(new String[] {"a","b","c"})).crossWithSet(new LinkedList<String>());
-		en.new sequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
+		Map<String,String> actual = en.getDebugDataMap(en.new sequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
-		}));
+		})));
 		vertifyPTA(en, new String[][] {
 				new String[] {"a","b","c"}
 		});
-	}
-
-	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite()
-	{
-		return new JUnit4TestAdapter(TestPTATestSequenceEngine.class);
+		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		});
+		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 }

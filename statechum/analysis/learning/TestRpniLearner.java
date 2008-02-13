@@ -132,7 +132,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertEquals(-1, newScoreA);
 	}
 	
-	/** Checks that both the old and the new algorithm report the same score for a pair of states and ask the same questions. */
+	/** Checks that both the old and the new algorithm report the same score for a pair of states and asks the same questions. */
 	public final void testNewLearnerQuestions(String fsm, int expectedScore, String learnerName)
 	{
 		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, learnerName);

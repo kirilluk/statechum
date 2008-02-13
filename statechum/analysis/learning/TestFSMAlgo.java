@@ -19,6 +19,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -1311,6 +1312,26 @@ public class TestFSMAlgo {
 		return result;
 	}
 	
+	/** Builds a map from an array, where each element corresponds to a pair of a string array 
+	 * (representing a sequence) and a string (representing flags associated with this sequence).
+	 * 
+	 * @param data source data
+	 * @return a string->string map
+	 */
+	public static Map<String,String> buildStringMap(Object [][] data)
+	{
+		Map<String,String> result = new HashMap<String,String>();
+		for(Object[] str:data)
+		{
+			if (str.length != 2)
+				throw new IllegalArgumentException("more than two elements in sequence "+str);
+			if (str[0] == null || str[1] == null || !(str[0] instanceof String[]) || !(str[1] instanceof String))
+				throw new IllegalArgumentException("invalid data in array");// TODO: to test that this exception is thrown.
+			result.put(PTATestSequenceEngine.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
+		}
+		return result;
+	}
+	
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data
@@ -1363,6 +1384,144 @@ public class TestFSMAlgo {
 		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
 		assertTrue(expectedResult.equals(buildSet(new String[] []{
 				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
+	}
+
+	@Test
+	public void testBuildStringMap1()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+		})));
+	}
+	
+	@Test
+	public void testBuildStringMap2()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"a"},"value2"},
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+	
+	@Test
+	public void testBuildStringMap3()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value2"},
+				new Object[]{new String[]{"a"},"value1"},
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap4()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{new String[]{"a"}},// an invalid sequence
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap5()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{},// an invalid sequence - too few elements
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap6()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{new String[]{"a"},"c","d"},// an invalid sequence - too many elements
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap7()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{new Object(),"c"},// an invalid sequence - wrong type of the first element
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap8()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{"text","c"},// an invalid sequence - wrong type of the first element
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap9()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{new String[]{"a"},new Object()},// an invalid sequence - wrong type of the second element
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap10()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{new String[]{"a"},new Object()},// an invalid sequence - null in the first element
+				new Object[]{new String[]{"b"},"value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildStringMap11()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
+				new Object[]{new String[]{"strC"},"value1"},
+				new Object[]{null, "a"},// an invalid sequence - null in the second element
+				new Object[]{new String[]{"b"},null}
+		})));
 	}
 
 	/** Converts a transition into an FSM structure, by taking a copy.

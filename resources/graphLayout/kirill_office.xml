@@ -5,19 +5,19 @@
   <void method="put"> 
    <string>LOWER</string> 
    <object class="java.awt.Rectangle"> 
-    <int>189</int> 
-    <int>429</int> 
-    <int>1341</int> 
-    <int>400</int> 
+    <int>110</int> 
+    <int>184</int> 
+    <int>490</int> 
+    <int>313</int> 
    </object> 
   </void> 
   <void method="put"> 
    <string>UPPER</string> 
    <object class="java.awt.Rectangle"> 
-    <int>-3</int> 
-    <int>0</int> 
-    <int>629</int> 
-    <int>420</int> 
+    <int>1232</int> 
+    <int>491</int> 
+    <int>459</int> 
+    <int>705</int> 
    </object> 
   </void> 
  </object> 

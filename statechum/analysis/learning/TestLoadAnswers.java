@@ -133,11 +133,4 @@ public class TestLoadAnswers {
 		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
 		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
 	}
-
-	
-	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite()
-	{
-		return new JUnit4TestAdapter(TestLoadAnswers.class);
-	}
 }

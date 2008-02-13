@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.5.0_14" class="java.beans.XMLDecoder"> 
+ <object class="java.util.Properties"> 
+  <void method="put"> 
+   <string>BUILDGRAPH</string> 
+   <string>testNewLearner1b</string> 
+  </void> 
+  <void method="put"> 
+   <string>STOP</string> 
+   <string>testNewLearner_2_1aa</string> 
+  </void> 
+  <void method="put"> 
+   <string>ASSERT</string> 
+   <string>true</string> 
+  </void> 
+ </object> 
+ <object class="java.util.HashMap"> 
+  <void method="put"> 
+   <string>LOWER</string> 
+   <object class="java.awt.Rectangle"> 
+    <int>867</int> 
+    <int>0</int> 
+    <int>733</int> 
+    <int>724</int> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <string>UPPER</string> 
+   <object class="java.awt.Rectangle"> 
+    <int>130</int> 
+    <int>0</int> 
+    <int>737</int> 
+    <int>754</int> 
+   </object> 
+  </void> 
+ </object> 
+</java> 

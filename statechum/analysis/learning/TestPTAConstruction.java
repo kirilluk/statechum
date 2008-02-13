@@ -205,11 +205,4 @@ public class TestPTAConstruction
 						new String[]{"a","b","c","d","e"} },
 				"junk");
 	}
-
-	
-	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite()
-	{
-		return new JUnit4TestAdapter(TestLoadAnswers.class);
-	}
 }

@@ -4,10 +4,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-/** Makes it possible to construct a collection of sequences of strings where no string is a prefix of another one.
+/** Makes it possible to construct a collection of sequences of 
+ * strings where no string is a prefix of another one.
  * 
  * @author Kirill
- *
  */
 public abstract class PrefixFreeCollection {
 	

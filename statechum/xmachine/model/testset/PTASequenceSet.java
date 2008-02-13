@@ -8,7 +8,6 @@ import java.util.Set;
 
 public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
 {
-	public static final String theOnlyState = "TheOnlyState";
 	protected PTATestSequenceEngine engine = new PTATestSequenceEngine();
 	protected PTATestSequenceEngine.sequenceSet initSet;
 
@@ -16,25 +15,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 	
 	public PTASequenceSet()
 	{
-		engine.init(new PTATestSequenceEngine.FSMAbstraction() {
-			public Object getInitState() {
-				return theOnlyState;
-			}
-
-			public Object getNextState(Object currentState, String input) {
-				return theOnlyState;
-			}
-
-			public boolean isAccept(Object currentState) {
-				return true;
-			}
-
-			public boolean shouldBeReturned(Object elem) {
-				return true;
-			}
-			
-		});
-		
+		engine.init(new PTASequenceSetAutomaton());		
 		initSet = engine.new sequenceSet();initSet.setIdentity();
 	}
 	

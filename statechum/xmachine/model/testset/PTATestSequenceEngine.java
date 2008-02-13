@@ -124,6 +124,14 @@ public class PTATestSequenceEngine
 	
 	public PTATestSequenceEngine() {}
 	
+	/** Initialises this PTA engine with an underlying machine. There is no method 
+	 * to swap a machine for a different one afterwards since states of the original
+	 * machine used in PTA directly. Perhaps there has to be a mechanism to substitute
+	 * a machine and relabel the existing nodes in a PTA with those of the new machine,
+	 * expecting equals on them to define the expected (total) injection (orig->new). 
+	 * 
+	 * @param machine
+	 */
 	public void init(FSMAbstraction machine)
 	{
 		fsm = machine;
@@ -136,7 +144,7 @@ public class PTATestSequenceEngine
 		pta.put(rejectNode,new LinkedHashMap<String,PTATestSequenceEngine.Node>());
 	}
 	
-	/** Represents a set of sequences using a PTA. */
+	/** Represents a set of sequences using a PTA, backed by an underlying state machine, passed in at initialization. */
 	public class sequenceSet 
 	{
 		private List<PTATestSequenceEngine.Node> ptaNodes;
@@ -149,6 +157,22 @@ public class PTATestSequenceEngine
 		public void setIdentity()
 		{
 			ptaNodes.clear();ptaNodes.add(init);
+		}
+		
+		private PTATestSequenceEngine getEnclosingObject()
+		{
+			return PTATestSequenceEngine.this;
+		}
+		
+		/** Unites the given set of sequence with the supplied one.
+		 *  
+		 * @param with a sequence set to unite with
+		 */
+		public void unite(sequenceSet with)
+		{//TODO to test that exception gets thrown.
+			if (getEnclosingObject() != with.getEnclosingObject())
+				throw new IllegalArgumentException("unite with an argument from a different PTA machine");
+			ptaNodes.addAll(with.ptaNodes);
 		}
 		
 		public sequenceSet crossWithSet(Collection<String> inputs)
@@ -200,6 +224,20 @@ public class PTATestSequenceEngine
 			}
 			
 			return result;
+		}
+
+		/** Given a node, this method determines whether that node belongs to this set of nodes.
+		 * 
+		 * @param currentVertex node to look for
+		 * @return true if the supplied node is a part of this set of nodes.
+		 */
+		boolean contains(Node someNode) {
+			return ptaNodes.contains(someNode);
+		}
+		
+		public String getDebugData()
+		{
+			return PTATestSequenceEngine.this.getDebugData(this);
 		}
 	}
 	
@@ -257,6 +295,43 @@ public class PTATestSequenceEngine
 		return result;
 	}
 	
+	/** Returns a textual representation of nodes held in the supplied set.
+	 * Important: do not change the returned data unless you are prepared to modify tests
+	 * relying on it, such as testComputePathsSBetween1.
+	 * 
+	 * @param targetNodes nodes to "display"
+	 * @return textual representation of nodes in the set.
+	 */
+	public String getDebugData(sequenceSet targetNodes)
+	{
+		StringBuffer result = new StringBuffer();
+		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
+		Queue<List<String>> currentExplorationSequence = new LinkedList<List<String>>();// FIFO queue
+		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<String>());
+		
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			Node currentVertex = currentExplorationBoundary.remove();List<String> currentSequence = currentExplorationSequence.remove();
+			Map<String,Node> row = pta.get(currentVertex);
+			if ( (targetNodes == null && row.isEmpty()) ||
+					(targetNodes != null && targetNodes.contains(currentVertex)))
+			{// the current node is the last on a path, hence we simply add the current sequence to the result
+					result.append(currentSequence);result.append(" [");
+					if (row.isEmpty()) result.append(" leaf ");
+					result.append("returned=");result.append(fsm.shouldBeReturned(currentVertex.getState()));result.append(" ]\n");
+			}
+			
+			if (!row.isEmpty()) // continue exploring if we can
+				for(Entry<String,Node> entry:row.entrySet())
+				{
+					List<String> newSeq = new LinkedList<String>();newSeq.addAll(currentSequence);newSeq.add(entry.getKey());
+					currentExplorationBoundary.offer(entry.getValue());currentExplorationSequence.offer(newSeq);
+				}
+		}
+		
+		return result.toString();
+	}
+
 	public int treeSize(){
 		int result = 0;
 		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue

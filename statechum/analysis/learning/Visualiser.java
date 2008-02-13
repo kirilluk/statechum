@@ -120,13 +120,13 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 				{
 					case KeyEvent.VK_ESCAPE:// terminate
 						setVisible(false);dispose();
-						Visualiser.syncObject.set(false);
+						Visualiser.syncValue.set(true);
 						synchronized (Visualiser.syncObject) {
 							Visualiser.syncObject.notify();
 						}
 						break;
 					case KeyEvent.VK_SPACE:// single-step
-						Visualiser.syncObject.set(true);
+						Visualiser.syncValue.set(false);
 						synchronized (Visualiser.syncObject) {
 							Visualiser.syncObject.notify();
 						}
@@ -538,13 +538,15 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 	}
 
 	/** Used to make it possible to single-step through graph transforms. */
-	private final static AtomicBoolean syncObject = new AtomicBoolean();
+	private final static Object syncObject = new Object();
+	/** Value to return to a thread which is waiting. */
+	private final static AtomicBoolean syncValue = new AtomicBoolean();
 	
 	/** Waits for a user to hit space on any of the visualiser windows. 
 	 * 
 	 * @return true if user hit space, false if application is terminating.
 	 */
-	public static boolean waitForKey()
+	public static void waitForKey()
 	{
 		synchronized(syncObject)
 		{
@@ -555,7 +557,8 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 			}
 		}
 		
-		return syncObject.get();
+		if (syncValue.get())
+			System.exit(1);
 	}
 	
 	public enum VIZ_ENV_PROPERTIES {
@@ -565,7 +568,9 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 	
 	public enum VIZ_PROPERTIES { // internal properties
 		ASSERT,// whether to display assert warning.
+		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
 		LOWER, UPPER // window positions, not real properties to be stored in a file.
+		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
 		;
 	}
 
@@ -708,7 +713,20 @@ public class Visualiser extends JFrame implements Observer,Runnable, MouseListen
 			e.printStackTrace();
 		}		
 	}
-	
+
+	/** Returns true if the configuration file defines the name of the supplied graph as the one 
+	 * transformation of which we should be looking at in detail.
+	 * 
+	 * @param graph the graph we might wish to look at in detail
+	 * @return whether lots of debug output should be enable when this graph is being processed.
+	 */
+	public static boolean isGraphTransformationDebug(DirectedSparseGraph graph)
+	{
+		String name = graph == null? null:(String)graph.getUserDatum(JUConstants.TITLE);
+		return name != null && name.length()>0 && 
+			Visualiser.getProperty(Visualiser.VIZ_PROPERTIES.STOP, "").equals(name);
+	}
+
 	protected static class XMLPersistingLayout extends PersistentLayoutImpl
 	{
 

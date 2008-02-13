@@ -26,12 +26,15 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.oracles.*;
+import statechum.xmachine.model.testset.PTASequenceSet;
+import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.WMethod;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
+import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 import statechum.xmachine.model.testset.WMethod.EquivalentStatesException;
 import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
-
+import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
@@ -79,6 +82,10 @@ public class ComputeStateScores implements Cloneable {
 		init.addUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 	}
 	
+	/** Assigns red colour to all vertices in the supplied set
+	 * 
+	 * @param reds vertices to assign colours to.
+	 */
 	public void assignReds(Set<String> reds)
 	{
 		for(Vertex v:transitionMatrix.keySet())
@@ -236,7 +243,8 @@ public class ComputeStateScores implements Cloneable {
 		return vertices;
 	}
 		
-	/** Computes all possible shortest paths from the supplied source state to the supplied target state 
+	/** Computes all possible shortest paths from the supplied source state to the supplied target state.
+	 * If there are many paths of the same length, all of those paths are returned.
 	 * 
 	 * @param vertSource the source state
 	 * @param vertTarget the target state
@@ -244,79 +252,210 @@ public class ComputeStateScores implements Cloneable {
 	 */	
 	Collection<List<String>> computePathsBetween(Vertex vertSource, Vertex vertTarget)
 	{
-		List<List<String>> sp = new LinkedList<List<String>>();
-		List<Collection<String>> sequenceOfSets = computePathsSBetween(vertSource, vertTarget);
-		if (sequenceOfSets == null) 
-			return sp;
-		sp.add(new LinkedList<String>());
-		for(Collection<String> inputsToMultWith:sequenceOfSets)
-			sp = WMethod.crossWithSet(sp, inputsToMultWith);
-		return sp;
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
+		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();paths.setIdentity(); 
+		computePathsSBetween(vertSource, vertTarget,initSet,paths);
+		return engine.getData();
 	}
 	
-	/** Computes all possible shortest paths from the supplied source state to the supplied target state 
-	 * and returns a sequence of possible sets inputs which can be followed. In other words, 
-	 * a choice of any input from each of the returned sets gives a possible path between
-	 * the requested vertices.
+	/** Computes all possible shortest paths from the supplied source state to the 
+	 * supplied target state and returns a PTA corresponding to them. The easiest 
+	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
+	 * this also permits one to trace them in some automaton and junk irrelevant ones.
 	 * 
 	 * @param vertSource the source state
 	 * @param vertTarget the target state
-	 * @return sequences of inputs to follow all paths found. Null if a path is not found and an empty list if the target vertex is the same as the source one
+	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
+	 * or obtained using PTATestSequenceEngine-related operations.
+	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
+	 * cannot create an empty instance of a sequenceSet, perhaps for a reason).
 	 */	
-	List<Collection<String>> computePathsSBetween(Vertex vertSource, Vertex vertTarget)
+	void computePathsSBetween(Vertex vertSource, Vertex vertTarget,
+			PTATestSequenceEngine.sequenceSet pathsToVertSource,
+			PTATestSequenceEngine.sequenceSet result)
 	{
-		List<Collection<String>> sequenceOfSets = null;
-
+		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
+			throw new IllegalArgumentException("null arguments to computePathsSBetween");
 		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(vertSource);
-		LinkedList<Vertex> initPath = new LinkedList<Vertex>();initPath.add( vertSource );
-		Queue<LinkedList<Vertex>> currentExplorationPath = new LinkedList<LinkedList<Vertex>>();// FIFO queue containing paths to states to be explored
-		currentExplorationPath.add(initPath);
-		LinkedList<Vertex> currentPath = null;Vertex currentVert = null;
-		while(currentVert != vertTarget && !currentExplorationPath.isEmpty())
+		
+		// FIFO queue containing sequences of states labelling paths to states to be explored.
+		// Important, after processing of each wave, we add a null, in order to know when
+		// to stop when scanning to the end of the current wave when a path to the target state
+		// has been found.
+		Queue<List<Vertex>> currentExplorationPath = new LinkedList<List<Vertex>>();
+		Queue<Vertex> currentExplorationState = new LinkedList<Vertex>();
+		if (vertSource == vertTarget)
 		{
-			currentPath = currentExplorationPath.remove();
-			currentVert = currentPath.getLast();
-			if (currentVert != vertTarget)
-				// we have not reached the red state, yet
-				for(Vertex targetVertex:transitionMatrix.get(currentVert).values())
-					if (!visitedStates.contains(targetVertex))
-					{
-						LinkedList<Vertex> newPath = new LinkedList<Vertex>();newPath.addAll(currentPath);newPath.add(targetVertex);
-						currentExplorationPath.offer(newPath);
-						visitedStates.add(currentVert);
+			result.setIdentity();
+			return ;// nothing to do, return an empty sequence.
+		}
+		
+		currentExplorationPath.add(new LinkedList<Vertex>());currentExplorationState.add(vertSource);
+		currentExplorationPath.offer(null);currentExplorationState.offer(null);// mark the end of the first (singleton) wave.
+		Vertex currentVert = null;List<Vertex> currentPath = null;
+		boolean pathFound = false;
+		while(!currentExplorationPath.isEmpty())
+		{
+			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
+			if (currentVert == null)
+			{// we got to the end of a wave
+				if (pathFound)
+					break;// if we got to the end of a wave and the target vertex has been found on some paths in this wave, stop scanning.
+				else
+					if (currentExplorationPath.isEmpty())
+						break;// we are at the end of the last wave, stop looping.
+					else
+					{// mark the end of a wave.
+						currentExplorationPath.offer(null);currentExplorationState.offer(null);
 					}
+			}
+			else
+			{
+				visitedStates.add(currentVert);
+				for(Vertex nextVertex:transitionMatrix.get(currentVert).values())
+				{
+					if (nextVertex == vertTarget)
+					{// found the vertex we are looking for
+						pathFound = true;
+						// now we need to go through all our states in a path and update pathsToVertSource
+						PTATestSequenceEngine.sequenceSet paths = pathsToVertSource;
+						Vertex curr = vertSource;Collection<String> inputsToMultWith = new LinkedList<String>();
+						
+						// process all but one vertices
+						for(Vertex tgt:currentPath)
+						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
+							inputsToMultWith.clear();
+							for(Entry<String,CmpVertex> entry:transitionMatrix.get(curr).entrySet())
+								if (entry.getValue() == tgt)
+									inputsToMultWith.add(entry.getKey());
+							paths = paths.crossWithSet(inputsToMultWith);
+							curr = tgt;
+						}
+						inputsToMultWith.clear();
+						// now the last pass for the target vertex
+						for(Entry<String,CmpVertex> entry:transitionMatrix.get(curr).entrySet())
+							if (entry.getValue() == nextVertex)
+								inputsToMultWith.add(entry.getKey());
+						result.unite( paths.crossWithSet(inputsToMultWith) );// update the result.
+					}
+					else
+					if (!visitedStates.contains(nextVertex))
+					{
+						List<Vertex> newPath = new LinkedList<Vertex>();newPath.addAll(currentPath);newPath.add(nextVertex);
+						currentExplorationPath.offer(newPath);currentExplorationState.offer(nextVertex);
+					}
+				}
+			}
 		}
 
-		if (currentVert == vertTarget && vertTarget != null)
-		{// the path to the red state has been found.
-			sequenceOfSets = new LinkedList<Collection<String>>();
-			Iterator<Vertex> vertIt = currentPath.iterator();
-			Vertex prevVert = vertIt.next();
-			while(vertIt.hasNext())
+		if (!pathFound)
+			throw new IllegalArgumentException("path to state "+vertTarget+" was not found");
+		
+		return ;
+	}
+
+	private static class ExplorationElement
+	{
+		public final Vertex firstVertex, secondVertex;
+		public final PTATestSequenceEngine.sequenceSet pathsInOriginal;
+		
+		public ExplorationElement(Vertex first, Vertex second, PTATestSequenceEngine.sequenceSet paths)
+		{
+			firstVertex=first;secondVertex=second;pathsInOriginal=paths;
+		}
+	}
+	
+	private static void buildQuestionsFromPair(
+			ComputeStateScores original, Vertex originalRed, 
+			ComputeStateScores merged, Vertex mergedRed, 
+			PTATestSequenceEngine.sequenceSet pathsInOriginal)
+	{
+		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
+		
+		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
+		// build a path from tempRed to it, at the same time tracing it through the current machine.
+
+		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(originalRed);
+		Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue containing vertices to be explored
+		currentExplorationBoundary.add(new ExplorationElement(originalRed,mergedRed, pathsInOriginal));
+
+		//List<String> nextInput = new ArrayList<String>(1);
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			ExplorationElement current = currentExplorationBoundary.remove();
+			
+			Map<String,CmpVertex> firstRow = merged.transitionMatrix.get(current.firstVertex),
+				secondRow = original.transitionMatrix.get(current.secondVertex);
+			targetToInputSet.clear();
+			System.out.println("before multiplying: "+current.pathsInOriginal.getDebugData());
+			PTATestSequenceEngine.sequenceSet multResult = current.pathsInOriginal.crossWithSet(firstRow.keySet());// transition cover of merged
+			System.out.println("about to multiply by "+firstRow.keySet());
+			System.out.println("after state cover: "+multResult.getDebugData());
+			if (ComputeStateScores.testMode)
 			{
-				currentVert = vertIt.next();
-				List<String> inputsToMultWith = new LinkedList<String>();
-				for(Entry<String,CmpVertex> entry:transitionMatrix.get(prevVert).entrySet())
-					if (entry.getValue() == currentVert)
-						inputsToMultWith.add(entry.getKey());
-				sequenceOfSets.add(inputsToMultWith);
-				prevVert = currentVert;
+				Set<String> moreOrigInputs = new HashSet<String>();moreOrigInputs.addAll(secondRow.keySet());
+				moreOrigInputs.removeAll(firstRow.keySet());
+				assert moreOrigInputs.isEmpty() : 
+					"inconsistent merge: merged automaton has fewer paths, merged: "+firstRow.keySet()+
+					", original: "+secondRow.keySet();
+			}
+			System.out.println("from states "+current.firstVertex+","+current.secondVertex);
+			for(Entry<String,CmpVertex> entry:firstRow.entrySet())
+				// When generating questions for PTA merging, we should be trying 
+				// to enter all states of the merged automaton - 
+				// traversing states of the original one generates long sequences 
+				// and is likely to lead to numerous spurious questions being generated 
+				// because for a group of states merged into one, the closest one to the 
+				// initial state will be the most representative (the further from the initial 
+				// state, the more sparse a PTA becomes). The important point here is that the first state
+				// of a group of merged states is the one closest to the initial state in the PTA.
+				// In contrast, where states in an arbitrary automaton are being merged, 
+				// we might be better off checking states further away
+				// because they may just happen to contain more structure.
+				if (!visitedStates.contains(entry.getValue()))
+				{
+					List<String> inputs = targetToInputSet.get(entry.getValue());
+					if (inputs == null)
+					{
+						inputs = new LinkedList<String>();targetToInputSet.put(entry.getValue(),inputs);
+					}
+					inputs.add(entry.getKey());
+				}
+			
+			for(Entry<CmpVertex,List<String>> target:targetToInputSet.entrySet())
+			{
+				visitedStates.add(target.getKey());
+				Vertex newMergedVertex = firstRow.get(target.getValue().iterator().next());
+				PTATestSequenceEngine.sequenceSet stateCoverSoFar = current.pathsInOriginal.crossWithSet(target.getValue()); 
+				currentExplorationBoundary.offer(new ExplorationElement(target.getKey(), newMergedVertex, 
+						stateCoverSoFar));
+				System.out.println("\tnew pair: "+target.getKey()+","+newMergedVertex+
+						" inputs: "+target.getValue());
 			}
 		}
 		
-		return sequenceOfSets;
+
+		if (isGraphTransformationDebug(original.graph))
+		{
+			Visualiser.updateFrame(original.graph, merged.getGraph());
+			Visualiser.waitForKey();
+		}
 	}
 
-	private static void buildQuestionsFromPair(ComputeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
+	private static void buildQuestionsFromPair_Compatible(
+			ComputeStateScores original, Vertex originalRed, 
+			ComputeStateScores merged, Vertex mergedRed, 
+			PTATestSequenceEngine.sequenceSet pathsInOriginal)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
 
-		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(initialRed);
+		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(mergedRed);
 		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
 		Queue<PTATestSequenceEngine.sequenceSet> currentExplorationTargetStates = new LinkedList<PTATestSequenceEngine.sequenceSet>();
-		currentExplorationBoundary.add(initialRed);
-		currentExplorationTargetStates.add(initialBlueStates);
+		currentExplorationBoundary.add(mergedRed);
+		currentExplorationTargetStates.add(pathsInOriginal);
 
 		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
 		while(!currentExplorationBoundary.isEmpty())
@@ -325,8 +464,8 @@ public class ComputeStateScores implements Cloneable {
 			PTATestSequenceEngine.sequenceSet currentPaths = currentExplorationTargetStates.remove();
 			targetToInputSet.clear();
 			
-			currentPaths.crossWithSet(temp.transitionMatrix.get(currentVert).keySet());
-			for(Entry<String,CmpVertex> entry:temp.transitionMatrix.get(currentVert).entrySet())
+			currentPaths.crossWithSet(merged.transitionMatrix.get(currentVert).keySet());
+			for(Entry<String,CmpVertex> entry:merged.transitionMatrix.get(currentVert).entrySet())
 				if (!visitedStates.contains(entry.getValue()))
 				{
 					List<String> inputs = targetToInputSet.get(entry.getValue());
@@ -349,9 +488,14 @@ public class ComputeStateScores implements Cloneable {
 
 			}
 		}
-		
+
+		if (isGraphTransformationDebug(original.graph))
+		{
+			Visualiser.updateFrame(original.graph, merged.getGraph());
+			Visualiser.waitForKey();
+		}
 	}
-	
+
 	private class NonExistingPaths implements FSMAbstraction
 	{
 		private final CmpVertex red;
@@ -391,31 +535,30 @@ public class ComputeStateScores implements Cloneable {
 
 	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
-	public Collection<List<String>> computeQS(final StatePair pair, ComputeStateScores temp)
+	public Collection<List<String>> computeQS(final StatePair pair, ComputeStateScores merged)
 	{
-		Vertex tempRed = temp.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
+		Vertex mergedRed = merged.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
+		if (mergedRed == null)
+			throw new IllegalArgumentException("failed to find the red state in the merge result");
+
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();
 		engine.init(new NonExistingPaths((CmpVertex)init));
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();paths.setIdentity();
+		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+		PTATestSequenceEngine.sequenceSet initp = engine.new sequenceSet();initp.setIdentity();
 
-		List<Collection<String>> sequenceOfSets = temp.computePathsSBetween(temp.init,tempRed);
-		if (sequenceOfSets == null)
-			throw new IllegalArgumentException("failed to find the red state in the merge result");
-		for(Collection<String> inputsToMultWith:sequenceOfSets)
-			paths = paths.crossWithSet(inputsToMultWith);
-
-		buildQuestionsFromPair(temp, tempRed, paths);
-		for(Entry<String,CmpVertex> loopEntry:temp.transitionMatrix.get(tempRed).entrySet())
-			if (loopEntry.getValue() == tempRed)
+		merged.computePathsSBetween(merged.init,mergedRed, initp, paths);
+		Collection<String> inputsToMultWith = new LinkedList<String>();
+		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
+			if (loopEntry.getValue() == mergedRed)
 			{// Note an input corresponding to any loop in temp can be followed in the original machine, since
 				// a loop in temp is either due to the merge or because it was there in the first place.
-				List<String> initialSeq = new LinkedList<String>();initialSeq.add(loopEntry.getKey());
-				buildQuestionsFromPair(temp, loopEntry.getValue(),paths.crossWithSet(initialSeq));
+				inputsToMultWith.add(loopEntry.getKey());
 			}
+		paths.unite(paths.crossWithSet(inputsToMultWith));// the resulting path does a "transition cover" on all transitions leaving the red state.
+		buildQuestionsFromPair_Compatible(this, pair.getR(), merged, mergedRed, paths);
 		return engine.getData();
 	}
 
-	
 	
 	/** Computes scores by navigating a cross-product of this machine, with itself.
 	 * 
@@ -491,6 +634,13 @@ public class ComputeStateScores implements Cloneable {
 			return result;
 		}
 
+		/** This one is used when pairs of states are identified and 
+		 * we'd like to sort them in the order of decreasing score, so that 
+		 * the first one will have the highest score etc.
+		 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
+		 * 
+		 * @param b the state pair to compare to.
+		 */
 		public int compareTo(StatePair b){
 			ComputeStateScores.PairScore pB = (ComputeStateScores.PairScore)b;
 			if (score != pB.score)
@@ -564,7 +714,8 @@ public class ComputeStateScores implements Cloneable {
 		{
 			Vertex currentRed = currentExplorationBoundary.remove();
 			for(Entry<String,CmpVertex> BlueEntry:transitionMatrix.get(currentRed).entrySet())
-				if (!BlueEntry.getValue().containsUserDatumKey(JUConstants.COLOUR) || BlueEntry.getValue().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE)
+				if (!BlueEntry.getValue().containsUserDatumKey(JUConstants.COLOUR) || 
+						BlueEntry.getValue().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE)
 				{// the next vertex is not marked red, hence it has to become blue
 					Vertex currentBlueState = BlueEntry.getValue();
 											
@@ -589,7 +740,7 @@ public class ComputeStateScores implements Cloneable {
 						
 						// All future blue nodes will use this revised set of red states; the fact that
 						// it is added to the exploration boundary ensures that it is considered when looking for more blue states.
-						// Note that previously-considered blue states were not compared to this one,
+						// Note that previously-considered blue states were not compared to this one (because it was blue before),
 						// however previously-introduced red were - we're using the up-to-date reds set above.
 						// For this reason, all we have to do is iterate over the old blue states and compare them to the
 						// current one; none of those states may become red as a consequence since they are not 
@@ -613,7 +764,7 @@ public class ComputeStateScores implements Cloneable {
 		}
 
 		Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
-				//, new Comparator(){	public int compare(Object o1, Object o2) { return ((PairScore)o2).compareTo(o1); }
+
 		Stack<ComputeStateScores.PairScore> result = new Stack<ComputeStateScores.PairScore>();
 		if (pairsMergedPerHypothesis > 0)
 		{
@@ -879,7 +1030,7 @@ public class ComputeStateScores implements Cloneable {
 					{// for every input, I'll have a unique target state - this is a feature of PTA
 					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
-					// (as long as this combination is the one not already present from the corresponding red state).
+					// (as long as this combination is the one _not_ already present from the corresponding red state).
 						boolean somethingWasAdded = false;
 						for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
 							if (!inputsUsed.contains(input_and_target.getKey()))
@@ -946,16 +1097,26 @@ public class ComputeStateScores implements Cloneable {
 	}
 	
 	/** Checks that non-red states form a tree, i.e. they have exactly one incoming edge and there are no
-	 * disconnected states. Arguments after pta are used to check what happened when the pta fails to be
-	 * a tree.
+	 * disconnected states. Arguments after mergeResult are used to check 
+	 * what happened when the mergeResult fails to be a tree.
 	 * 
-	 * @param pta
+	 * @param mergeResult merged automaton
+	 * @param original the original one
+	 * @param pair the pair being merged
+	 * @param notRemoved set of PTA states which had transitions with new inputs entering 
+	 * them from those PTA states which were merged with either red states or other PTA states. 
 	 */
-	protected static void checkPTAIsTree(ComputeStateScores pta,ComputeStateScores original, StatePair pair,Collection<Vertex> notRemoved)
+	protected static void checkPTAIsTree(ComputeStateScores mergeResult,ComputeStateScores original, 
+			StatePair pair,Collection<Vertex> notRemoved)
 	{
 		assert testMode : "this one should not run when not under test";
+	
+		// The first check: every state of a merged PTA contains only one incoming transition,
+		// assuming that only those labelled RED can have multiple incoming transitions. Given that
+		// merging routines merge PTA states _into_ the original ones, thus preserving the red colour,
+		// those left with blue colour or without any have to be PTA parts. 
 		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMap<CmpVertex,AtomicInteger>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:pta.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:mergeResult.transitionMatrix.entrySet())
 			for(Entry<String,CmpVertex> targ:entry.getValue().entrySet())
 			{
 				if (!hasIncoming.containsKey(targ.getValue()))
@@ -968,13 +1129,15 @@ public class ComputeStateScores implements Cloneable {
 					p.getKey().containsUserDatumKey(JUConstants.COLOUR) && p.getKey().getUserDatum(JUConstants.COLOUR) != JUConstants.RED)
 				throw new IllegalArgumentException("non-red vertex "+p.getKey()+" has multiple incoming transitions");
 				
+		// The second check: trying to find states which have become unreachable in the course of merging
+		// but were not removed at the end of the merging process. 
 		Queue<Vertex> currentBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
 		Set<Vertex> visitedStates = new HashSet<Vertex>();
-		currentBoundary.add( pta.init );visitedStates.add(pta.init);
+		currentBoundary.add( mergeResult.init );visitedStates.add(mergeResult.init);
 		while(!currentBoundary.isEmpty())
 		{
 			Vertex current = currentBoundary.remove();
-			for(Entry<String,CmpVertex> input_and_target:pta.transitionMatrix.get(current).entrySet())
+			for(Entry<String,CmpVertex> input_and_target:mergeResult.transitionMatrix.get(current).entrySet())
 				if (!visitedStates.contains(input_and_target.getValue()))
 				{
 					visitedStates.add(input_and_target.getValue());
@@ -982,10 +1145,10 @@ public class ComputeStateScores implements Cloneable {
 				}
 		}
 		
-		Set<CmpVertex> unreachables = new HashSet<CmpVertex>();unreachables.addAll(pta.transitionMatrix.keySet());
+		Set<CmpVertex> unreachables = new HashSet<CmpVertex>();unreachables.addAll(mergeResult.transitionMatrix.keySet());
 		unreachables.removeAll(visitedStates);
 		if (!unreachables.isEmpty())
-		{
+		{// some states appear unreachable, starting investigation.
 			if( original == null)
 				throw new IllegalArgumentException("vertices "+unreachables.toString()+" are unreachable");
 			
@@ -1003,23 +1166,38 @@ public class ComputeStateScores implements Cloneable {
 						currentBoundary.offer(input_and_target.getValue());
 					}
 			}
+			
+			// now visitedStates contains a set of states originally reachable from the blue state before merging.
+			
 			Set<CmpVertex> remaining = new HashSet<CmpVertex>();remaining.addAll(unreachables);
-			remaining.removeAll(visitedStates);
+			remaining.removeAll(visitedStates);// this one computes the set of states which are 
+			// unreachable in the merged machine and do not belong to the original PTA (it is possible to compare
+			// vertices directly because they all originate from the same big PTA we started from before 
+			// merging was initiated; btw, even if not, they would have identical names, being CmpVertex and
+			// most likely DeterministicVertex too).  
 			if (remaining.isEmpty())
-			{
+			{// all unreachable vertices came from the original PTA
 				remaining.clear();remaining.addAll(unreachables);remaining.removeAll(notRemoved);
+				// Now remaining is the set of unreachable vertices which should've been removed but apparently were not.
+				// Possibly, they have incoming transitions (if a chunk of a tree became orphaned, it will surely
+				// not get merged into anything).
 				String response = "vertices "+unreachables.toString()+" are unreachable and all of them are PTA vertices; the following were for some reason not removed "+remaining+"\n";
 				for(Vertex u:unreachables)
 					response=response+" "+u+"("+hasIncoming.get(u)+")";
 				System.out.println(response);
+				
 				Vertex InterestingUnreachableVertex = unreachables.iterator().next();
 				List<String> seq = original.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
-				System.out.println(seq);
+				System.out.println(seq);// dumps a seq from a blue state to the first unreachable vertex (after merging) which was on the PTA in the original machine.
 				Map<Vertex,List<Vertex>> mergedVertices = new HashMap<Vertex,List<Vertex>>();
 				if (original.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
-					throw new IllegalArgumentException("elements of the pair are incompatible");
+					throw new IllegalArgumentException("elements of the pair are incompatible in the original machine, no idea why they got merged in the first place");
 				
 				System.out.println(pair);
+				
+				// Now I could dump what was merged and where, in order to try to trace what happened.
+				// This is done by traversing a branch of a tree (from the blue state to the unreachable one)
+				// which is used by the merging algorithm and dumping the results.
 				Vertex v = pair.getR();
 				Iterator<String> seqIt = seq.iterator();
 				while(seqIt.hasNext() && v != null)
@@ -1042,8 +1220,8 @@ public class ComputeStateScores implements Cloneable {
 				while(seqIt.hasNext() && v != null)
 				{
 					String input = seqIt.next();
-					System.out.println(v.toString()+" "+pta.transitionMatrix.get(v).keySet()+" input "+input+" ");
-					v = pta.transitionMatrix.get(v).get(input);
+					System.out.println(v.toString()+" "+mergeResult.transitionMatrix.get(v).keySet()+" input "+input+" ");
+					v = mergeResult.transitionMatrix.get(v).get(input);
 				}
 				System.out.println("final state is "+v);
 				
@@ -1272,6 +1450,7 @@ public class ComputeStateScores implements Cloneable {
 	}
 	
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
+	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
 	 * 
 	 * @return constructed graph.
 	 */

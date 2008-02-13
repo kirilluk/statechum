@@ -1,8 +1,6 @@
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
@@ -18,6 +16,7 @@ import java.util.Stack;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import statechum.JUConstants;
@@ -34,6 +33,8 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
+
+import static statechum.analysis.learning.TestGraphBasicAlgorithms.constructPairScore;
 
 public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 {
@@ -116,90 +117,12 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				new String[][]{new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","set_dimensions", "figure", "set_position", "set_dimensions"}, new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","text", "set_position", "edit"}, new String[]{"text","text","set_position","edit","finalize","text"}, new String[]{"text","text","set_position","edit","finalize","figure"}}, new String[][]{});
 		
 	}
-	
-	static protected PairScore constructPairScore(String a,String b, int score)
-	{
-		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
-		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
-		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
-		return new ComputeStateScores.PairScore(aV,bV, score,score);
-	}
-
-	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS)
-	{
-		StatePair p = constructPairScore(a,b,abS), q=constructPairScore(c,d,cdS);
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-	
-	@Test
-	public void testPairScoreEquality()
-	{
-		StatePair p = constructPairScore("a","b",4), q=constructPairScore("a","b",4);
-		assertTrue(p.equals(p));
-		assertTrue(p.equals(q));
-		assertFalse(p.equals(null));
-		assertFalse(p.equals("test"));
-		assertFalse(p.equals(constructPairScore("a","c",4)));
-		assertFalse(p.equals(constructPairScore("a","b",6)));
-		assertFalse(p.equals(constructPairScore("b","b",4)));
-	}
-	
-	@Test
-	public void testStatePairScoreComparison()
-	{
-		checkLess("a","b",4,"a","b",6);
-		checkLess("z","z",4,"a","b",6);
-		checkLess("a","b",4,"z","z",6);
-
-		checkLess("a","b",4,"c","d",4);
-		checkLess("a","b",4,"a","c",4);
-		checkLess("a","b",4,"c","b",4);
-	}
-
-	@Test
-	public void testDeterministicVertexComparison1()
-	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-		
-	@Test
-	public void testDeterministicVertexComparison2()
-	{
-		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
-		p.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
-		q.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-
-	@Test
-	public void testDeterministicVertexComparison3()
-	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)==0);
-	}
-	
+			
 	DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
-	public final void testNewLearnerIncompatible(String fsm)
+	public final void testNewLearnerIncompatible(String fsm, String name)
 	{
-		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
+		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, name);
 		ComputeStateScores s = new ComputeStateScores(g);
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
 		doneEdges = new HashSet();
@@ -210,9 +133,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 	
 	/** Checks that both the old and the new algorithm report the same score for a pair of states and ask the same questions. */
-	public final void testNewLearnerQuestions(String fsm, int expectedScore)
+	public final void testNewLearnerQuestions(String fsm, int expectedScore, String learnerName)
 	{
-		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, "testNewLearner");
+		DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsm, learnerName);
 		ComputeStateScores 	s = new ComputeStateScores(g);
 		StatePair pair = new StatePair(findVertex(JUConstants.LABEL, "B", g),findVertex(JUConstants.LABEL, "A", g));
 		DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair),
@@ -250,97 +173,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	}
 	
 	public static final String PTA1 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\n";
-
-	@Test
-	public final void testFindVertex0()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"));
-		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("A", s.findVertex("A").getUserDatum(JUConstants.LABEL));
-		Assert.assertEquals("C", s.findVertex("C").getUserDatum(JUConstants.LABEL));
-	}
-	
-	@Test
-	public final void testFindVertex1()
-	{
-		ComputeStateScores s = new ComputeStateScores(0);
-		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
-	}
-	
-	@Test
-	public final void testComputePathsToRed0a()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(new DirectedSparseVertex()));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
-	
-	@Test
-	public final void testComputePathsToRed0b()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(null));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
-	
-	@Test
-	public final void testComputePathsToRed1()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-				new String[] {}
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("A")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
-	
-	@Test
-	public final void testComputePathsToRed2()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-				new String[] {"a","b"}
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
-	
-	@Test
-	public final void testComputePathsToRed3()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-				new String[] {"a","b"},
-				new String[] {"a","d"},
-				new String[] {"c","b"},
-				new String[] {"c","d"}
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
-	
-	@Test
-	public final void testComputePathsToRed4()
-	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed1"));
-		Set<List<String>> expected = buildSet(new String[][] {
-				new String[] {"p"},
-				new String[] {"q"}
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
-	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
@@ -351,55 +183,55 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testNewLearner0()
 	{
-		testNewLearnerIncompatible("A-a->A1\nA-p->P1-q-#B");
+		testNewLearnerIncompatible("A-a->A1\nA-p->P1-q-#B","testNewLearner0");
 	}
 	
 	@Test
 	public final void testNewLearner1a()
 	{
-		testNewLearnerIncompatible("A-a->A"+PTA1);
+		testNewLearnerIncompatible("A-a->A"+PTA1,"testNewLearner1a");
 	}
 
 	@Test
 	public final void testNewLearner1b()
 	{
-		testNewLearnerQuestions("A-a->A"+"\nA-p->I-q->B"+"\nB-a->B1-a->B2\nB1-b->B3-b->B4\n",2);
+		testNewLearnerQuestions("A-a->A"+"\nA-p->I-q->B"+"\nB-a->B1-a->B2\nB1-b->B3-b->B4\n",2,"testNewLearner1b");
 	}
 	
 	@Test
 	public final void testNewLearner2()
 	{
-		testNewLearnerIncompatible("A-a->A1-a->A2"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a->A2"+PTA1,"testNewLearner2");
 	}
 
 	@Test
 	public final void testNewLearner3()
 	{
-		testNewLearnerQuestions("A-a->A1-b->A1"+PTA1,3);
+		testNewLearnerQuestions("A-a->A1-b->A1"+PTA1,3,"testNewLearner3");
 	}
 	
 	@Test
 	public final void testNewLearner4()
 	{
-		testNewLearnerQuestions("A-a->A1-b->A1-a-#A2"+PTA1,4);
+		testNewLearnerQuestions("A-a->A1-b->A1-a-#A2"+PTA1,4,"testNewLearner4");
 	}
 	
 	@Test
 	public final void testNewLearner5()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b-#A2"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b-#A2"+PTA1,"testNewLearner5");
 	}
 
 	@Test
 	public final void testNewLearner6()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2-b-#A3"+PTA1);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2-b-#A3"+PTA1,"testNewLearner6");
 	}
 	
 	@Test
 	public final void testNewLearner7()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2-b->A3"+PTA1,4);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2-b->A3"+PTA1,4,"testNewLearner7");
 	}
 	
 	public static final String PTA2 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2\nB1-b->B3-b->B4\nB1-c->BB1-c->BB2\n";
@@ -407,25 +239,25 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testNewLearner8()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A1"+PTA2,5);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A1"+PTA2,5,"testNewLearner8");
 	}
 	
 	@Test
 	public final void testNewLearner9()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2\nA1-c-#A3"+PTA2);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-b->A2\nA1-c-#A3"+PTA2,"testNewLearner9");
 	}
 	
 	@Test
 	public final void testNewLearner10()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A3"+PTA2,4);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A2\nA1-c->A3"+PTA2,4,"testNewLearner10");
 	}
 	
 	@Test
 	public final void testNewLearner11()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A1\nA1-c->A3"+PTA2,5);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-b->A1\nA1-c->A3"+PTA2,5,"testNewLearner11");
 	}
 	
 	protected static final String PTA_4 = "\nB1-d->B3a-d->B4a-c->B5a-c->B6a\nB3a-c->B4c-c->B5c-c->B6c\nB3b-d->B4d-c->B5d-c->B6d\nB1-c->B3b-c->B4b-c->B5b-c->B6b\n";
@@ -434,151 +266,151 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testNewLearner_2_1()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8);
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_2_1");
 	}
 	
 	@Test
 	public final void testNewLearner_2_2()
 	{
-		testNewLearnerIncompatible("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3);
+		testNewLearnerIncompatible("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_2_2");
 	}
 	
 	@Test
 	public final void testNewLearner_2_3()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4);
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_2_3");
 	}
 	
 	@Test
 	public final void testNewLearner_2_4()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7);
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_2_4");
 	}
 	
 	@Test
 	public final void testNewLearner_2_6()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16);
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_2_6");
 	}
 	
 	@Test
 	public final void testNewLearner_2_7()
 	{
-		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8);
+		testNewLearnerQuestions("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_2_7");
 	}
 
 	@Test
 	public final void testNewLearner_3_1()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+PTA3,8,"testNewLearner_3_1");
 	}
 	
 	@Test
 	public final void testNewLearner_3_2()
 	{
-		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3);
+		testNewLearnerIncompatible("A-a->A1-a-#ARej\nA1-d->A2\nA1-c-#A3"+PTA3,"testNewLearner_3_2");
 	}
 	
 	@Test
 	public final void testNewLearner_3_3()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A3"+PTA3,4,"testNewLearner_3_3");
 	}
 	
 	@Test
 	public final void testNewLearner_3_4()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3"+PTA3,7,"testNewLearner_3_4");
 	}
 	
 	@Test
 	public final void testNewLearner_3_5a()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A3"+PTA3,13);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A3"+PTA3,13,"testNewLearner_3_5a");
 	}
 	
 	@Test
 	public final void testNewLearner_3_5b()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A4"+PTA3,10);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A3-c->A4"+PTA3,10,"testNewLearner_3_5b");
 	}
 	
 	@Test
 	public final void testNewLearner_3_6()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A1\nA1-c->A1"+PTA3,16,"testNewLearner_3_6");
 	}
 	
 	@Test
 	public final void testNewLearner_3_7()
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3,8,"testNewLearner_3_7");
 	}
 
 	@Test
 	public final void testNewLearner_4_1() // red and blue are adjacent
 	{
-		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+"\nA-p->B"+"\nB-a->B1-a-#B2"+PTA_4,8);
+		testNewLearnerQuestions("A-a->A1-a-#ARej\nA1-d->A2\nA1-c->A1"+"\nA-p->B"+"\nB-a->B1-a-#B2"+PTA_4,8,"testNewLearner_4_1");
 	}
 	
 	@Test
 	public final void testNewLearner_4_2() // blue node has no access successors
 	{
-		testNewLearnerQuestions("A-d->A1\nA1-d->A2\nA1-c->A1"+"\nA-p->Atmp-q->B"+"\nB2#-c-B-a-#B1\n",0);
+		testNewLearnerQuestions("A-d->A1\nA1-d->A2\nA1-c->A1"+"\nA-p->Atmp-q->B"+"\nB2#-c-B-a-#B1\n",0,"testNewLearner_4_2");
 	}
 	
 	@Test
 	public final void testNewLearner_4_3() // testing of folding of a long path into a complex machine
 	{
-		testNewLearnerQuestions("S-d->A-a->S\nA-b->B-a->D-a->E\nS-a->P-b->Q-b->P-t->R",2);
+		testNewLearnerQuestions("S-d->A-a->S\nA-b->B-a->D-a->E\nS-a->P-b->Q-b->P-t->R",2,"testNewLearner_4_3");
 	}
 
 	@Test
 	public final void testNewLearner_4_4() // testing that loops around the red states are being dealt with correctly
 	{
-		testNewLearnerQuestions("S-m->A\nS-n->A-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1);
+		testNewLearnerQuestions("S-m->A\nS-n->A-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1,"testNewLearner_4_4");
 	}
 
 	@Test
 	public final void testNewLearner_4_4_simple() // a simplified version of test 4_4
 	{
-		testNewLearnerQuestions("S-m->A\nA-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1);
+		testNewLearnerQuestions("S-m->A\nA-d->A-a->A1\nA-b->A2\nA-c->B-c->B1-p->B2",1,"testNewLearner_4_4_simple");
 	}
 
 	@Test
 	public final void testNewLearner_4_5() // testing that shortest paths actually work
 	{
-		testNewLearnerQuestions("A-a->A1-c->A2\nA-b->A2\nA-n->B-a->B1-c->B2-p->B3-f->B4-g->B5",2);
+		testNewLearnerQuestions("A-a->A1-c->A2\nA-b->A2\nA-n->B-a->B1-c->B2-p->B3-f->B4-g->B5",2,"testNewLearner_4_5");
 	}
 
 	@Test
 	public final void testNewLearner_4_6() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nB1-d->B6-f->B7",5);
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nB1-d->B6-f->B7",5,"testNewLearner_4_6");
 	}
 
 	@Test
 	public final void testNewLearner_4_7() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4,"testNewLearner_4_7");
 	}
 
 	@Test
 	public final void testNewLearner_4_8a() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4,"testNewLearner_4_8a");
 	}
 
 	@Test
 	public final void testNewLearner_4_8b() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->Atmp-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4);
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->An-n->B\nAn-k->A\nA-j->Atmp-j->B\nA-v->P-l->P1\nA-u->P\nAn-m->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5",4,"testNewLearner_4_8b");
 	}
 
 	@Test
 	public final void testNewLearner_4_9() // testing that different paths through a PTA which correspond to the same path through a merged machine are handled correctly
 	{
-		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nA2-r->A3-r->A4-i->A5",4);
+		testNewLearnerQuestions("S-n->A-a->A1-c->A2\nA-b->A1-d->A2\nA-n->B\nB-a->B1-c->B3\nB-b->B2-d->B4-p->B5\nA2-r->A3-r->A4-i->A5",4,"testNewLearner_4_9");
 	}
 	
 	@Test
@@ -586,7 +418,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("S-n->A-a->A1-b->A2\n"+
 				"A-d->B-d->B0-a->B1-b->B2-c->B3\n"+
-				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",5);
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",5,"testNewLearner_4_10");
 	}
 	
 	@Test
@@ -594,7 +426,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("S-n->A-d->A-a->A1-b->A2\n"+
 				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
-				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6,"testNewLearner_4_11a");
 	}
 	
 	@Test
@@ -602,7 +434,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("R-q->S-n->A-d->A-a->A1-b->A2\n"+
 				"R-p->S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
-				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6,"testNewLearner_4_11b");
 	}
 	
 	@Test
@@ -610,7 +442,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("S-n->A-a->A1-b->A2\n"+
 				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
-				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",0);
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",0,"testNewLearner_4_12");
 	}
 	
 	@Test
@@ -618,7 +450,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testNewLearnerQuestions("S-n->A-d->A-a->A1-b->A2\n"+
 				"S-m->B-d->B0-a->B1-b->B2-c->B3\n"+
-				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6);
+				"B0-d->C0-a->C1-b->C2-c->C3\nC2-f->C4",6,"testNewLearner_4_13");
 	}
 	
 	
@@ -1294,27 +1126,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		testScoreAndCompatibilityComputation(largeGraph4_invalid1,5,-1);
 	}
 
-	@Test
-	public final void testGetVertex1()
-	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"));
-		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getUserDatum(JUConstants.LABEL).equals("A"));
-	}
-
-	@Test
-	public final void testGetVertex2()
-	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"));
-		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getUserDatum(JUConstants.LABEL).equals("C"));
-	}
-
-	@Test
-	public final void testGetVertex3()
-	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"));
-		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
-	}
-
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	@BeforeClass
@@ -1328,11 +1139,5 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public static void cleanUp()
 	{
 		Visualiser.disposeFrame();
-	}
-	
-	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite()
-	{
-		return new junit.framework.JUnit4TestAdapter(TestRpniLearner.class);
 	}
 }

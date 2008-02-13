@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
+import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
 
 public class TestFSMAlgo {
 
@@ -156,6 +157,10 @@ public class TestFSMAlgo {
 			}
 		});
 		
+		if (isGraphTransformationDebug(g))
+		{
+			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
+		}
 		return g;
 	}
 

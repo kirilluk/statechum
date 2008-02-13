@@ -43,11 +43,11 @@ public class ComputeSpinStateScores extends ComputeStateScores {
 		return score;
 	}
 	
-	protected int checkPropertiesOfMerge(StatePair pair, int score){
+	private int checkPropertiesOfMerge(StatePair pair, int score){
 		try{
-			ComputeStateScores temp = (ComputeStateScores)this.clone();
-			ComputeStateScores.mergeAndDeterminize(temp, pair);
-			if(!SpinUtil.check(temp.getGraph(), ltl))
+			//ComputeStateScores temp = (ComputeStateScores)this.clone();
+			//ComputeStateScores.mergeAndDeterminize(temp, pair);
+			if(!SpinUtil.check(getGraph(), ltl))
 				return -1;
 		} catch(Exception e){e.printStackTrace();}
 		return score;

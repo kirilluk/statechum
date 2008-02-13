@@ -10,6 +10,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.JUConstants;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -18,19 +19,47 @@ import jltl2ba.*;
 
 public class SpinUtil {
 	
-	static int functionCounter;
+	static int functionCounter, stateCounter;
 	static String defines;
 	static StringWriter sw;
 	
 	public static boolean check(DirectedSparseGraph g, Set<String> ltl){
 		functionCounter = 0;
+		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(g, ltl);
-		return true;
+		return runSpin();
 	}
 	
-	public static void generatePromela(DirectedSparseGraph g, Set<String> ltl){
+	private static boolean runSpin(){
+		boolean pass = true;
+		String output = new String();
+		List<String[]> cmdArray = new ArrayList<String[]>();
+		String dir = System.getProperty("user.dir");
+		String sep = System.getProperty("file.separator");
+		cmdArray.add(0, (String[])Arrays.asList("spin", "-Z", "promelaMachine").toArray());
+		cmdArray.add(1,(String[])Arrays.asList("spin", "-a", "-X", "promelaMachine").toArray());
+		cmdArray.add(2,(String[])Arrays.asList("gcc", "-w", "-o", "pan", "-D_POSIX_SOURCE", "-DMEMLIM=128",  "-DXUSAFE", "-DNOFAIR",  "pan.c").toArray());
+		cmdArray.add(3,(String[])Arrays.asList("./pan", "-v", "-X", "-m10000", "-w19",  "-a", "-c1").toArray());
+		Runtime rt = Runtime.getRuntime();
+		for (int i=0;i<4;i++) {
+			try{
+				String line;
+				Process proc = rt.exec(cmdArray.get(i));
+				BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+				while ((line = input.readLine()) != null) {
+			    	System.out.println(line);
+			    }
+			}catch (Throwable e){
+				e.printStackTrace();
+			}
+		}
+		
+		return pass;
+	}
+	
+	private static void generatePromela(DirectedSparseGraph g, Set<String> ltl){
 		generateProcsAndInit(g, ltl);
 		
 		try{
@@ -63,13 +92,16 @@ public class SpinUtil {
 	}
 	
 	private static void generateProcsAndInit(DirectedSparseGraph g, Set<String> ltl){
-		setup();
-		Iterator<DirectedEdge> edgeIt = g.getEdges().iterator();
-		HashMap<String,Integer> functionMap = new HashMap<String,Integer>();
 		HashMap<String,Integer> stateMap = new HashMap<String,Integer>();
-		int  stateCounter = 0;
+		HashMap<String,Integer> functionMap = new HashMap<String,Integer>();
+		setup(g, stateMap, functionMap);
+		Iterator<DirectedEdge> edgeIt = g.getEdges().iterator();
+		
+		
 		while(edgeIt.hasNext()){
 			DirectedEdge e = edgeIt.next();
+			if(!RPNIBlueFringeLearner.isAccept(e.getDest()))
+				continue;
 			Set labels = (Set)e.getUserDatum(JUConstants.LABEL);
 			Iterator labelIt = labels.iterator();
 			String currentState = e.getSource().getUserDatum(JUConstants.LABEL).toString();
@@ -93,7 +125,7 @@ public class SpinUtil {
 			}
 			
 		}
-		sw.write("\n\tod\n}\n");
+		sw.write("\n\tfi\n\tod\n}\n");
 		sw.write("\ninit {\nrun machine();\n}");
 		if(ltl!=null)
 			addLtl(ltl, functionMap);
@@ -132,9 +164,35 @@ public class SpinUtil {
 		sw.write("\n*/");
 	}
 	
-	private static void setup(){
+	private static void setup(DirectedSparseGraph g, Map<String,Integer> stateMap, Map<String,Integer> functionMap){
 		sw = new StringWriter();
-		sw.write("int state=0;\nint input;\nproctype machine(){\n\tdo");
+		DirectedSparseVertex v = (DirectedSparseVertex)RPNIBlueFringeLearner.findInitial(g);
+		String state = v.getUserDatum(JUConstants.LABEL).toString();
+		if(!stateMap.keySet().contains(state)){
+			stateMap.put(state, new Integer(stateCounter));
+			stateCounter++;
+		}
+		sw.write("int state;\nint input;\nproctype machine(){\n\tstate=0;"+getInputBranch(v, functionMap)+"\n\tdo\n\t:: if");
+	}
+	
+	private static String getInputBranch(DirectedSparseVertex init, Map<String,Integer> functionMap){
+		String ret = "\n\tif";
+		Set<DirectedSparseEdge> outEdges = init.getOutEdges();
+		for (DirectedSparseEdge edge : outEdges) {
+			Set<String> inputs = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
+			if(!RPNIBlueFringeLearner.isAccept(edge.getDest()))
+				continue;
+			for (String string : inputs) {
+				if(!functionMap.keySet().contains(string)){
+					functionMap.put(string, new Integer(functionCounter));
+					functionCounter++;
+				}
+				ret = ret.concat("\n\t\t::input="+functionMap.get(string));
+			}
+		}
+		ret = ret.concat("\n\tfi;");
+		
+		return ret;
 	}
 
 }

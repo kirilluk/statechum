@@ -15,7 +15,7 @@
 
     <path id="classpath.full">
       <path refid="classpath.main"/>
-      <pathelement location="NightTrain/lib/junit-4.1.jar"/>
+      <pathelement location="lib/junit-4.4.jar"/>
     </path>
 
   <target name="init">

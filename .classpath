@@ -9,5 +9,6 @@
 	<classpathentry kind="lib" path="lib/jung-1.7.6.jar"/>
 	<classpathentry kind="lib" path="junit-4.4.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
+	<classpathentry kind="lib" path="lib/junit-4.4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

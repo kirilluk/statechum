@@ -22,6 +22,8 @@ public class SpinUtil {
 	static int functionCounter, stateCounter;
 	static String defines;
 	static StringWriter sw;
+	static Map<String,Integer> functionMap;
+	static Map<Integer, String> inverseFunctionMap;
 	
 	public static boolean check(DirectedSparseGraph g, Set<String> ltl){
 		functionCounter = 0;
@@ -29,15 +31,20 @@ public class SpinUtil {
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(g, ltl);
+		createInverseMap();
 		return runSpin();
 	}
 	
+	private static void createInverseMap(){
+		inverseFunctionMap = new  HashMap<Integer,String>();
+		for (String key : functionMap.keySet()) {
+			inverseFunctionMap.put(functionMap.get(key), key);
+		}
+	}
+	
 	private static boolean runSpin(){
-		boolean pass = true;
-		String output = new String();
+		boolean pass = false;
 		List<String[]> cmdArray = new ArrayList<String[]>();
-		String dir = System.getProperty("user.dir");
-		String sep = System.getProperty("file.separator");
 		cmdArray.add(0, (String[])Arrays.asList("spin", "-Z", "promelaMachine").toArray());
 		cmdArray.add(1,(String[])Arrays.asList("spin", "-a", "-X", "promelaMachine").toArray());
 		cmdArray.add(2,(String[])Arrays.asList("gcc", "-w", "-o", "pan", "-D_POSIX_SOURCE", "-DMEMLIM=128",  "-DXUSAFE", "-DNOFAIR",  "pan.c").toArray());
@@ -49,13 +56,13 @@ public class SpinUtil {
 				Process proc = rt.exec(cmdArray.get(i));
 				BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 				while ((line = input.readLine()) != null) {
-			    	System.out.println(line);
+			    	if(line.contains("errors: 0"))
+			    		return true;
 			    }
 			}catch (Throwable e){
 				e.printStackTrace();
 			}
 		}
-		
 		return pass;
 	}
 	
@@ -71,7 +78,7 @@ public class SpinUtil {
 		}catch (Exception e){e.printStackTrace();}
 	}
 	
-	private static void addLtl(Set<String> ltl, Map<String, Integer> functionMap){
+	private static void addLtl(Set<String> ltl){
 		try{
 			for (String string : ltl) {
 				StringBuffer output = LowLevel.exec(string);
@@ -93,7 +100,7 @@ public class SpinUtil {
 	
 	private static void generateProcsAndInit(DirectedSparseGraph g, Set<String> ltl){
 		HashMap<String,Integer> stateMap = new HashMap<String,Integer>();
-		HashMap<String,Integer> functionMap = new HashMap<String,Integer>();
+		functionMap = new HashMap<String,Integer>();
 		setup(g, stateMap, functionMap);
 		Iterator<DirectedEdge> edgeIt = g.getEdges().iterator();
 		
@@ -128,12 +135,12 @@ public class SpinUtil {
 		sw.write("\n\tfi\n\tod\n}\n");
 		sw.write("\ninit {\nrun machine();\n}");
 		if(ltl!=null)
-			addLtl(ltl, functionMap);
+			addLtl(ltl);
 		printLegend(sw, functionMap);
 		generateDefines(functionMap);
 	}
 	
-	private static void addSuccessorIf(StringWriter sw, DirectedSparseVertex state, HashMap<String, Integer> functionMap){
+	private static void addSuccessorIf(StringWriter sw, DirectedSparseVertex state, Map<String, Integer> functionMap){
 		sw.write("\tif");
 		Iterator<Edge> outgoingTransitions = state.getOutEdges().iterator();
 		while(outgoingTransitions.hasNext()){
@@ -154,7 +161,7 @@ public class SpinUtil {
 		sw.write("\n\tfi");
 	}
 	
-	private static void printLegend(StringWriter sw, HashMap<String, Integer> functionMap){
+	private static void printLegend(StringWriter sw, Map<String, Integer> functionMap){
 		Iterator<String> keyIt = functionMap.keySet().iterator();
 		sw.write("\n/*");
 		while(keyIt.hasNext()){
@@ -162,6 +169,31 @@ public class SpinUtil {
 			sw.write("\n"+key+" - "+ functionMap.get(key));
 		}
 		sw.write("\n*/");
+	}
+	
+	public static List<String> getCurrentCounterExample(){
+		List<String> counterExample = new ArrayList<String>();
+		List<String[]> cmdArray = new ArrayList<String[]>();
+		String[] trace = (String[])Arrays.asList("spin", "-t","-p","promelaMachine").toArray();
+		Runtime rt = Runtime.getRuntime();
+		try{
+			String line;
+			Process proc = rt.exec(trace);
+			BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+			while ((line = input.readLine()) != null) {
+		    	if(line.contains("[input")){
+		    		int inputIndex = line.indexOf("[input =")+8;
+		    		int closingBracket = line.indexOf("]", inputIndex);
+		    		counterExample.add(inverseFunctionMap.get(Integer.valueOf((String)line.substring(inputIndex, closingBracket).trim())));
+		    	}
+		    	else if(line.contains("<<<<<"))
+		    		break;
+		  
+		    }
+		}catch (Throwable e){
+			e.printStackTrace();
+		}
+		return counterExample;
 	}
 	
 	private static void setup(DirectedSparseGraph g, Map<String,Integer> stateMap, Map<String,Integer> functionMap){

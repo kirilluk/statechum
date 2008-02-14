@@ -1,9 +1,9 @@
-#define close	(input == 3)
+#define close	(input == 1)
 #define load	(input == 0)
 #define save_as	(input == 4)
-#define ok	(input == 2)
-#define exit	(input == 1)
-#define edit	(input == 5)
+#define ok	(input == 5)
+#define exit	(input == 3)
+#define edit	(input == 2)
 int state;
 int input;
 proctype machine(){
@@ -15,53 +15,49 @@ proctype machine(){
 	:: if
 	:: ((state==1) && (input==1)) -> state=2;
 	if
-		::break
-	fi
-	:: ((state==3) && (input==2)) -> state=4;
-	if
+		:: input = 2;
 		:: input = 3;
 	fi
-	:: ((state==5) && (input==1)) -> state=6;
+	:: ((state==1) && (input==4)) -> state=3;
 	if
-		::break
+		:: input = 4;
+		:: input = 5;
 	fi
-	:: ((state==7) && (input==4)) -> state=3;
+	:: ((state==0) && (input==0)) -> state=1;
 	if
+		:: input = 1;
+		:: input = 4;
 		:: input = 2;
 	fi
-	:: ((state==4) && (input==3)) -> state=8;
+	:: ((state==4) && (input==1)) -> state=5;
 	if
-		:: input = 1;
+		:: input = 3;
 	fi
-	:: ((state==8) && (input==1)) -> state=9;
+	:: ((state==5) && (input==3)) -> state=6;
 	if
 		::break
 	fi
-	:: ((state==10) && (input==5)) -> state=7;
+	:: ((state==7) && (input==4)) -> state=8;
 	if
-		:: input = 5;
 		:: input = 4;
 	fi
-	:: ((state==11) && (input==3)) -> state=5;
+	:: ((state==1) && (input==2)) -> state=1;
+	if
+		:: input = 1;
+		:: input = 4;
+		:: input = 2;
+	fi
+	:: ((state==2) && (input==2)) -> state=7;
+	if
+		:: input = 4;
+	fi
+	:: ((state==3) && (input==5)) -> state=4;
 	if
 		:: input = 1;
 	fi
-	:: ((state==0) && (input==0)) -> state=12;
+	:: ((state==2) && (input==3)) -> state=9;
 	if
-		:: input = 5;
-		:: input = 3;
-	fi
-	:: ((state==12) && (input==5)) -> state=10;
-	if
-		:: input = 5;
-	fi
-	:: ((state==7) && (input==5)) -> state=11;
-	if
-		:: input = 3;
-	fi
-	:: ((state==12) && (input==3)) -> state=1;
-	if
-		:: input = 1;
+		::break
 	fi
 	fi
 	od
@@ -70,23 +66,23 @@ proctype machine(){
 init {
 run machine();
 }
-never { /* []((load)->(!<>(edit))) */
-accept_init:
+never { /* ![]((save_as)->(<>(ok))) */
+T0_init:
 	if
-	:: (!load) -> goto accept_init
-	:: (!edit) -> goto accept_S2
+	:: (1) -> goto T0_init
+	:: (!ok && save_as) -> goto accept_S2
 	fi;
 accept_S2:
 	if
-	:: (!edit) -> goto accept_S2
+	:: (!ok) -> goto accept_S2
 	fi;
 }
 
 /*
-close - 3
+close - 1
 load - 0
 save_as - 4
-ok - 2
-exit - 1
-edit - 5
+ok - 5
+exit - 3
+edit - 2
 */

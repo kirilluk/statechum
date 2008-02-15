@@ -44,9 +44,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
-	public static void populateScores(Collection<ComputeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
+	public static void populateScores(Collection<PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
-		for(ComputeStateScores.PairScore pair:data)
+		for(PairScore pair:data)
 		{
 		int pairScore = pair.getScore();
 			AtomicInteger count = histogram.get(pairScore);
@@ -59,9 +59,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	}
 	
 	/** Takes the candidates for merging and computes the number of times different scores (increments of 10) are encountered. */
-	public static void populateHistogram(Collection<ComputeStateScores.PairScore> data, Map<Integer,AtomicInteger> histogram)
+	public static void populateHistogram(Collection<PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
-		for(ComputeStateScores.PairScore pair:data)
+		for(PairScore pair:data)
 		{
 		int pairScore = pair.getScore()>= 200? pair.getScore()-pair.getScore() % 100: pair.getScore()>=10? pair.getScore()-pair.getScore()%10: pair.getScore()>0?1:0;
 			AtomicInteger count = histogram.get(pairScore);
@@ -105,10 +105,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return result+"\n";
 	}
 	
-	public static String pairScoresAndIterations(Map<ComputeStateScores.PairScore,Integer> map, String name){
+	public static String pairScoresAndIterations(Map<PairScore,Integer> map, String name){
 		final String FS=",";
 		String result="\n"+name+"-score"+FS;
-		for(ComputeStateScores.PairScore score:map.keySet())
+		for(PairScore score:map.keySet())
 			result=result+score.getScore()+FS;
 		result = result+"\n"+name+"-iteration"+FS;
 		for(Integer i:map.values())
@@ -140,20 +140,20 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
-		Map<ComputeStateScores.PairScore, Integer> scoresToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
-		Map<ComputeStateScores.PairScore, Integer> restartsToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
+		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
+		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		ComputeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 
-		Stack<ComputeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
-			ComputeStateScores.PairScore pair = possibleMerges.pop();
+			PairScore pair = possibleMerges.pop();
 			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();

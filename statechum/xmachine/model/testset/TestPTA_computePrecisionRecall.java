@@ -1,30 +1,15 @@
 package statechum.xmachine.model.testset;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import junit.framework.JUnit4TestAdapter;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
-import edu.uci.ics.jung.utils.UserData;
-
-import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.analysis.learning.experiments.PosNegPrecisionRecall;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.Node;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class TestPTA_computePrecisionRecall {
 

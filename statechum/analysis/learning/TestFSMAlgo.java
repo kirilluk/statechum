@@ -15,6 +15,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
+import statechum.ArrayOperations;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -1327,7 +1328,7 @@ public class TestFSMAlgo {
 				throw new IllegalArgumentException("more than two elements in sequence "+str);
 			if (str[0] == null || str[1] == null || !(str[0] instanceof String[]) || !(str[1] instanceof String))
 				throw new IllegalArgumentException("invalid data in array");// TODO: to test that this exception is thrown.
-			result.put(PTATestSequenceEngine.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
+			result.put(ArrayOperations.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
 		}
 		return result;
 	}

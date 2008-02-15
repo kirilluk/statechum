@@ -43,15 +43,15 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
+/** This class and its wholly-owned subsidiaries perform computation of scores, state merging and question generation. */
 public class ComputeStateScores implements Cloneable {
-	private DirectedSparseGraph graph;
 	/** The initial vertex. */
 	private CmpVertex init;
 	
 	protected Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 			
 	/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
-	protected List<ComputeStateScores.PairScore> pairsAndScores;
+	protected List<PairScore> pairsAndScores;
 	
 	protected int generalisationThreshold;
 	protected int pairsMergedPerHypothesis;
@@ -102,10 +102,9 @@ public class ComputeStateScores implements Cloneable {
 	 */
 	public ComputeStateScores(DirectedSparseGraph g)
 	{
-		graph = g;
-		init = (CmpVertex)TestRpniLearner.findInitial(graph);
+		init = (CmpVertex)TestRpniLearner.findInitial(g);
 		
-		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		for(CmpVertex v:(Set<CmpVertex>)g.getVertices())
 		{
 			transitionMatrix.put(v,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
@@ -119,7 +118,7 @@ public class ComputeStateScores implements Cloneable {
 			DirectedSparseEdge e = edgeIter.next();
 			Map<String,CmpVertex> outgoing = transitionMatrix.get(e.getSource());
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
-			for(String label:(HashSet<String>)e.getUserDatum(JUConstants.LABEL))
+			for(String label:(Collection<String>)e.getUserDatum(JUConstants.LABEL))
 				outgoing.put(label, (CmpVertex)e.getDest());			
 		}
 	}
@@ -127,7 +126,6 @@ public class ComputeStateScores implements Cloneable {
 	public ComputeStateScores(int newPairsMergedPerHypothesis)
 	{
 		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
-		graph = null;
 		initPTA();
 	}
 	
@@ -144,34 +142,6 @@ public class ComputeStateScores implements Cloneable {
 		else
 			tempRed = TestRpniLearner.findInitial(temp);
 		return tempRed;
-	}
-	
-	public Vertex getTempRed_internal(Vertex r, DirectedSparseGraph temp){
-		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue
-		HashSet<Vertex> visitedVertices = new HashSet<Vertex>();visitedVertices.add(init);
-		currentExplorationBoundary.add(init);
-		Vertex tempInit = TestRpniLearner.findInitial(temp);
-		Queue<Vertex> currentTempExploration = new LinkedList<Vertex>();currentTempExploration.add(tempInit);
-		while(!currentExplorationBoundary.isEmpty())
-		{
-			Vertex currentVertex = currentExplorationBoundary.remove();Vertex currentTemp = currentTempExploration.remove();
-			if (currentVertex == r)
-				return currentTemp;
-			Set<Edge> tempOutgoing = (Set<Edge>)currentTemp.getOutEdges();
-
-			for(DirectedSparseEdge outgoing:(Set<DirectedSparseEdge>)currentVertex.getOutEdges())
-			{// after merging, the languages increases and transitions are not split, 
-			 // hence for every transition in the original graph, there would be the same or bigger transition in the temp graph 
-				Vertex nextVertex = outgoing.getDest();
-				if (!visitedVertices.contains(nextVertex))
-				{// now find the corresponding transition in the temp graph
-					Vertex tempNextVertex = RPNIBlueFringeLearner.getEdgeWithLabel(tempOutgoing, 
-							((Set<String>)outgoing.getUserDatum(JUConstants.LABEL)).iterator().next()).getDest();
-					currentExplorationBoundary.offer(nextVertex);visitedVertices.add(nextVertex);currentTempExploration.offer(tempNextVertex);
-				}
-			}
-		}
-		throw new IllegalArgumentException("failed to find a red vertex");
 	}
 	
 	Collection<List<String>> computePathsToRed(Vertex red)
@@ -435,12 +405,6 @@ public class ComputeStateScores implements Cloneable {
 			}
 		}
 		
-
-		if (isGraphTransformationDebug(original.graph))
-		{
-			Visualiser.updateFrame(original.graph, merged.getGraph());
-			Visualiser.waitForKey();
-		}
 	}
 
 	private static void buildQuestionsFromPair_Compatible(
@@ -487,12 +451,6 @@ public class ComputeStateScores implements Cloneable {
 // in the original one, but will not be found because they are not the shortest ones. In turn, this means that many potential
 
 			}
-		}
-
-		if (isGraphTransformationDebug(original.graph))
-		{
-			Visualiser.updateFrame(original.graph, merged.getGraph());
-			Visualiser.waitForKey();
 		}
 	}
 
@@ -606,70 +564,6 @@ public class ComputeStateScores implements Cloneable {
 		return score;
 	}
 	
-	/** Important: although compatibility score is recorded and reported, it is ignored in 
-	 * all computations since it is considered for information only. Hence there is no
-	 * getter method for it either.
-	 */
-	public static class PairScore extends StatePair
-	{
-		private final int score, compatibilityScore;
-
-		public PairScore(Vertex q, Vertex r, int sc, int compat) {
-			super(q, r);
-			score = sc;compatibilityScore = compat;
-		}
-		
-		public int getScore() {
-			return score;
-		}
-
-		/* (non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int PRIME = 31;
-			int result = super.hashCode();
-			result = PRIME * result + score;
-			return result;
-		}
-
-		/** This one is used when pairs of states are identified and 
-		 * we'd like to sort them in the order of decreasing score, so that 
-		 * the first one will have the highest score etc.
-		 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
-		 * 
-		 * @param b the state pair to compare to.
-		 */
-		public int compareTo(StatePair b){
-			ComputeStateScores.PairScore pB = (ComputeStateScores.PairScore)b;
-			if (score != pB.score)
-				return score < pB.score? -1:1;
-			return super.compareTo(b);
-		}
-
-		/* (non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (!super.equals(obj))
-				return false;
-			if (!(obj instanceof PairScore))
-				return false;
-			final ComputeStateScores.PairScore other = (ComputeStateScores.PairScore) obj;
-			if (score != other.score)
-				return false;
-			return true;
-		}
-		
-		public String toString(){
-			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
-		}
-	}
-
 	public Vertex getVertex(List<String> seq)
 	{
 		Vertex result = init;
@@ -699,7 +593,7 @@ public class ComputeStateScores implements Cloneable {
 		return counter;
 	}
 	
-	public Stack<ComputeStateScores.PairScore> chooseStatePairs()
+	public Stack<PairScore> chooseStatePairs()
 	{
 		pairsAndScores.clear();
 		Set<Vertex> reds = new LinkedHashSet<Vertex>();
@@ -722,7 +616,7 @@ public class ComputeStateScores implements Cloneable {
 					int numberOfCompatiblePairs = 0;
 					for(Vertex oldRed:reds)
 					{
-						ComputeStateScores.PairScore pair = obtainPair(currentBlueState,oldRed);
+						PairScore pair = obtainPair(currentBlueState,oldRed);
 						if (pair.getScore() >= generalisationThreshold)
 						{
 							pairsAndScores.add(pair);
@@ -747,7 +641,7 @@ public class ComputeStateScores implements Cloneable {
 						// red already, i.e. there is an entry about them in PairsAndScores
 						for(Vertex oldBlue:BlueStatesConsideredSoFar)
 						{
-							ComputeStateScores.PairScore pair = obtainPair(oldBlue,newRedNode);
+							PairScore pair = obtainPair(oldBlue,newRedNode);
 							if (pair.getScore() >= generalisationThreshold)
 							{
 								pairsAndScores.add(pair);
@@ -765,7 +659,7 @@ public class ComputeStateScores implements Cloneable {
 
 		Collections.sort(pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 
-		Stack<ComputeStateScores.PairScore> result = new Stack<ComputeStateScores.PairScore>();
+		Stack<PairScore> result = new Stack<PairScore>();
 		if (pairsMergedPerHypothesis > 0)
 		{
 			int numberOfElements = Math.min(pairsAndScores.size(),pairsMergedPerHypothesis);
@@ -969,7 +863,7 @@ public class ComputeStateScores implements Cloneable {
 			newValue.putAll(entry.getValue());
 			result.transitionMatrix.put(entry.getKey(),newValue);
 		}
-		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
 		return result;
 	}
 
@@ -1394,7 +1288,7 @@ public class ComputeStateScores implements Cloneable {
 		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
-		pairsAndScores = new ArrayList<ComputeStateScores.PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
 	}
 	
 	public ComputeStateScores augmentPTA(Collection<List<String>> strings, boolean accepted)

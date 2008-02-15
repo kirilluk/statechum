@@ -5,7 +5,6 @@ package statechum.xmachine.model.testset;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -13,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
+
+import statechum.ArrayOperations;
 
 public class PTATestSequenceEngine 
 {
@@ -331,28 +332,12 @@ public class PTATestSequenceEngine
 		public static String booleanToString(boolean leaf, boolean returned)
 		{
 			StringBuffer result = new StringBuffer();
-			if (leaf) result.append(DebugDataValues.LEAF);else result.append(DebugDataValues.INNER);result.append(separator);
+			if (leaf) result.append(DebugDataValues.LEAF);else result.append(DebugDataValues.INNER);result.append(ArrayOperations.separator);
 			if (returned) result.append(DebugDataValues.sequenceReturned);else result.append(DebugDataValues.sequenceTrashed);
 			return result.toString();
 		}
 	};
-	
-	/** Used to separate elements of flags associated with each sequence corresponding to nodes. Used in <em>getDebugDataSet</em>.
-	 */
-	public static final char separator=','; 
-
-	/** Converts a supplied sequence of strings into a textual representation. Similar to <em>toString</em> but does not include spaces or brackets.
-	 * 
-	 * @param seq sequence to convert
-	 * @return conversion outcome.
-	 */
-	public static String seqToString(Collection<String> seq)
-	{
-		boolean first = true;
-		StringBuffer result = new StringBuffer();for(String str:seq) { if (first) first=false;else result.append(separator);result.append(str); }
-		return result.toString();
-	}
-	
+		
 	/** Returns a representation of nodes held in the supplied set.
 	 * Important: do not change the returned data unless you are prepared to modify tests
 	 * relying on it, such as testComputePathsSBetween1.
@@ -374,7 +359,7 @@ public class PTATestSequenceEngine
 			if ( (targetNodes == null && row.isEmpty()) ||
 					(targetNodes != null && targetNodes.contains(currentVertex)))
 			{// the current node is the last on a path, hence we simply add the current sequence to the result
-					setToBeReturned.put(seqToString(currentSequence),DebugDataValues.booleanToString(row.isEmpty(), fsm.shouldBeReturned(currentVertex.getState())));
+					setToBeReturned.put(ArrayOperations.seqToString(currentSequence),DebugDataValues.booleanToString(row.isEmpty(), fsm.shouldBeReturned(currentVertex.getState())));
 			}
 			
 			if (!row.isEmpty()) // continue exploring if we can

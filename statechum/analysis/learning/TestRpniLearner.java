@@ -23,7 +23,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.ComputeStateScores.IDMode;
-import statechum.analysis.learning.ComputeStateScores.PairScore;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.xmachine.model.testset.WMethod;
 
@@ -461,10 +460,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			temp=TestFSMAlgo.buildGraph("C-d->Q", "testGetTempRed1 temp");
 		Vertex foundA = ComputeStateScores.getTempRed_DijkstraShortestPath(a, findInitial(a), temp);
 		Vertex foundB =RPNIBlueFringeLearnerTestComponent.getTempRed(a, findInitial(a), temp);
-		Vertex foundC = new ComputeStateScores(a).getTempRed_internal(findInitial(a), temp);
 		Assert.assertTrue(findInitial(temp).equals(foundA));
 		Assert.assertTrue(findInitial(temp).equals(foundB));
-		Assert.assertTrue(findInitial(temp).equals(foundC));
 	}
 	
 	@Test
@@ -474,10 +471,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			temp=TestFSMAlgo.buildGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp");
 		Vertex foundA = ComputeStateScores.getTempRed_DijkstraShortestPath(a, findVertex(JUConstants.LABEL, "D", a), temp);
 		Vertex foundB = RPNIBlueFringeLearnerTestComponent.getTempRed(a, findVertex(JUConstants.LABEL, "D", a), temp);
-		Vertex foundC = new ComputeStateScores(a).getTempRed_internal( findVertex(JUConstants.LABEL, "D", a), temp);
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundA));
 		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundB));
-		Assert.assertTrue(findVertex(JUConstants.LABEL, "Q", temp).equals(foundC));
 	}
 	
 	@Test

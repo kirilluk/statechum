@@ -15,7 +15,8 @@ import org.junit.runners.Suite;
 	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.FSMTests.class,
 	statechum.AllTests.WmethodTests.class,
-	statechum.AllTests.BasicGraphTests.class
+	statechum.AllTests.BasicGraphTests.class,
+	statechum.TestArrayOperations.class
 })
 public class AllTests {
 	@RunWith(Suite.class)
@@ -26,7 +27,6 @@ public class AllTests {
 		statechum.xmachine.model.testset.TestPTA_computePrecisionRecall.class,
 	})
 	public static class LearnerTests {
-		
 	}
 	
 	@RunWith(Suite.class)
@@ -35,7 +35,6 @@ public class AllTests {
 		statechum.analysis.learning.TestFSMAlgo.class,
 	})
 	public static class FSMTests {
-		
 	}
 
 	@RunWith(Suite.class)
@@ -45,7 +44,6 @@ public class AllTests {
 		statechum.xmachine.model.testset.TestWMethod.class,
 	})
 	public static class WmethodTests {
-		
 	}
 
 	@RunWith(Suite.class)
@@ -54,6 +52,5 @@ public class AllTests {
 		statechum.analysis.learning.TestGraphGeneration.class,
 	})
 	public static class BasicGraphTests {
-		
 	}
 }

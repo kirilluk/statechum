@@ -20,9 +20,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import statechum.ArrayOperations;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.ComputeStateScores.PairScore;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
@@ -34,7 +34,7 @@ public class TestGraphBasicAlgorithms {
 		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
 		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
 		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
-		return new ComputeStateScores.PairScore(aV,bV, score,score);
+		return new PairScore(aV,bV, score,score);
 	}
 
 	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS)
@@ -211,7 +211,7 @@ public class TestGraphBasicAlgorithms {
 				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 		Map<String,String> expected = new HashMap<String,String>();
-		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(PTATestSequenceEngine.seqToString(is)+PTATestSequenceEngine.separator+expSrc.getKey(), expSrc.getValue());
+		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
@@ -238,7 +238,7 @@ public class TestGraphBasicAlgorithms {
 				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 		Map<String,String> expected = new HashMap<String,String>();
-		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(PTATestSequenceEngine.seqToString(is)+PTATestSequenceEngine.separator+expSrc.getKey(), expSrc.getValue());
+		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	

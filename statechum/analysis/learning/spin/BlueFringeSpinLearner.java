@@ -24,21 +24,21 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
-		Map<ComputeStateScores.PairScore, Integer> scoresToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
-		Map<ComputeStateScores.PairScore, Integer> restartsToIterations = new HashMap<ComputeStateScores.PairScore, Integer>();
+		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
+		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		ComputeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
 		setChanged();
 		
-		Stack<ComputeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
-			ComputeStateScores.PairScore pair = possibleMerges.pop();
+			PairScore pair = possibleMerges.pop();
 			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();

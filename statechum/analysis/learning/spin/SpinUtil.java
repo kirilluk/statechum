@@ -47,7 +47,7 @@ public class SpinUtil {
 		List<String[]> cmdArray = new ArrayList<String[]>();
 		cmdArray.add(0, (String[])Arrays.asList("spin", "-Z", "promelaMachine").toArray());
 		cmdArray.add(1,(String[])Arrays.asList("spin", "-a", "-X", "promelaMachine").toArray());
-		cmdArray.add(2,(String[])Arrays.asList("gcc", "-w", "-o", "pan", "-D_POSIX_SOURCE", "-DMEMLIM=128",  "-DXUSAFE", "-DNOFAIR",  "pan.c").toArray());
+		cmdArray.add(2,(String[])Arrays.asList("gcc", "-w", "-o", "pan", "-D_POSIX_SOURCE", "-DMEMLIM=128","DSAFETY",  "-DXUSAFE", "-DNOFAIR",  "pan.c").toArray());
 		cmdArray.add(3,(String[])Arrays.asList("./pan", "-v", "-X", "-m10000", "-w19",  "-a", "-c1").toArray());
 		Runtime rt = Runtime.getRuntime();
 		for (int i=0;i<4;i++) {
@@ -173,7 +173,6 @@ public class SpinUtil {
 	
 	public static List<String> getCurrentCounterExample(){
 		List<String> counterExample = new ArrayList<String>();
-		List<String[]> cmdArray = new ArrayList<String[]>();
 		String[] trace = (String[])Arrays.asList("spin", "-t","-p","promelaMachine").toArray();
 		Runtime rt = Runtime.getRuntime();
 		try{

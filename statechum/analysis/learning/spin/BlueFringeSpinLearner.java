@@ -43,25 +43,29 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
+			
+			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
+			
+			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
+			
+			if(!SpinUtil.check(temp.getGraph(), ltl)){
+				List<String> counterexample = new LinkedList<String>();
+				counterexample.addAll(SpinUtil.getCurrentCounterExample());
+				newPTA.augmentPTA(counterexample, false);
+				
+				System.out.println(counterexample);
+				++minusSize ;
+				restartLearning = true;
+			}
+			if((score <this.certaintyThreshold&&score>minCertaintyThreshold)&&!restartLearning)
 			{
 				questions = scoreComputer.computeQS(pair, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
-			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
-			
-			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
 			Iterator<List<String>> questionIt = questions.iterator();
-			while(questionIt.hasNext()){
-				System.out.print(".");
-				if(!SpinUtil.check(temp.getGraph(), ltl)){
-					List<String> counterexample = SpinUtil.getCurrentCounterExample();
-					newPTA.augmentPTA(counterexample, false);
-					++minusSize ;
-					restartLearning = true;
-					break;
-				}
+			while(questionIt.hasNext()&& !restartLearning){
+				
 				List<String> question = questionIt.next();
 				boolean accepted = isAccept(pair.getQ());
 				int answer = checkWithEndUser(scoreComputer.getGraph(),question, new Object [] {"Test"});

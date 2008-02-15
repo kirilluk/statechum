@@ -47,7 +47,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
 			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
-			
+			updateGraph(temp.getGraph());
 			if(!SpinUtil.check(temp.getGraph(), ltl)){
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());

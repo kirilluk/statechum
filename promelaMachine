@@ -1,9 +1,9 @@
 #define close	(input == 2)
 #define load	(input == 0)
 #define save_as	(input == 4)
-#define ok	(input == 3)
-#define exit	(input == 1)
-#define edit	(input == 5)
+#define ok	(input == 1)
+#define exit	(input == 5)
+#define edit	(input == 3)
 int state;
 int input;
 proctype machine(){
@@ -15,39 +15,39 @@ proctype machine(){
 	:: if
 	:: ((state==1) && (input==1)) -> state=2;
 	if
-		::break
-	fi
-	:: ((state==3) && (input==2)) -> state=1;
-	if
-		:: input = 1;
-	fi
-	:: ((state==4) && (input==3)) -> state=5;
-	if
 		:: input = 2;
 	fi
-	:: ((state==5) && (input==2)) -> state=6;
+	:: ((state==3) && (input==3)) -> state=3;
+	if
+		:: input = 2;
+		:: input = 3;
+		:: input = 4;
+	fi
+	:: ((state==3) && (input==2)) -> state=4;
+	if
+		:: input = 5;
+	fi
+	:: ((state==3) && (input==4)) -> state=1;
 	if
 		:: input = 1;
+	fi
+	:: ((state==2) && (input==2)) -> state=5;
+	if
+		:: input = 5;
+	fi
+	:: ((state==5) && (input==5)) -> state=6;
+	if
+		::break
+	fi
+	:: ((state==4) && (input==5)) -> state=7;
+	if
+		::break
 	fi
 	:: ((state==0) && (input==0)) -> state=3;
 	if
 		:: input = 2;
-		:: input = 4;
-		:: input = 5;
-	fi
-	:: ((state==6) && (input==1)) -> state=7;
-	if
-		::break
-	fi
-	:: ((state==3) && (input==4)) -> state=4;
-	if
 		:: input = 3;
-	fi
-	:: ((state==3) && (input==5)) -> state=3;
-	if
-		:: input = 2;
 		:: input = 4;
-		:: input = 5;
 	fi
 	fi
 	od
@@ -56,25 +56,24 @@ proctype machine(){
 init {
 run machine();
 }
-never { /* ![](save_as->X(!ok)) */
-T0_init:
+never { /* []((save_as)->X(ok)) */
+accept_init:
 	if
-	:: (1) -> goto T0_init
-	:: (save_as) -> goto accept_S2
+	:: (!save_as) -> goto accept_init
+	:: (1) -> goto accept_S2
 	fi;
 accept_S2:
 	if
-	:: (ok) -> goto accept_all
+	:: (!save_as && ok) -> goto accept_init
+	:: (ok) -> goto accept_S2
 	fi;
-accept_all:
-	skip
 }
 
 /*
 close - 2
 load - 0
 save_as - 4
-ok - 3
-exit - 1
-edit - 5
+ok - 1
+exit - 5
+edit - 3
 */

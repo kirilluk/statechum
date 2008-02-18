@@ -143,9 +143,11 @@ public class SpinUtil {
 	
 	private static void addSuccessorIf(StringWriter sw, DirectedSparseVertex state, Map<String, Integer> functionMap){
 		sw.write("\tif");
-		Iterator<Edge> outgoingTransitions = state.getOutEdges().iterator();
+		Iterator<DirectedEdge> outgoingTransitions = state.getOutEdges().iterator();
 		while(outgoingTransitions.hasNext()){
-			Edge e = outgoingTransitions.next();
+			DirectedEdge e = outgoingTransitions.next();
+			if(!RPNIBlueFringeLearner.isAccept(e.getDest()))
+				continue;
 			Set<String> labels = (Set<String>) e.getUserDatum(JUConstants.LABEL);
 			Iterator<String> labelIt = labels.iterator();
 			while(labelIt.hasNext()){

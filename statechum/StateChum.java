@@ -1,3 +1,21 @@
+/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ 
+This file is part of statechum.
+
+statechum is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Foobar is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+*/ 
+
 package statechum;
 
 import edu.uci.ics.jung.graph.impl.*;
@@ -11,22 +29,24 @@ import statechum.xmachine.model.randomMachine.RandomMachineGenerator;
 import statechum.xmachine.model.graphReader.*;
 import statechum.xmachine.model.testset.*;
 
-public class StateChum extends JFrame implements ActionListener, MouseListener{
-	
+public class StateChum extends JFrame implements ActionListener, MouseListener {
+
 	private XMachineViewer viewer;
+
 	private Stack panelStack;
-	
-	public StateChum(XMachineViewer viewer){
+
+	public StateChum(XMachineViewer viewer) {
 		super();
 		panelStack = new Stack();
 		addMenuBar();
 		this.addMouseListener(this);
 		this.setViewer(viewer);
-		this.setTitle(viewer.getModel().getName()+" "+panelStack.size()+" parents");
+		this.setTitle(viewer.getModel().getName() + " " + panelStack.size()
+				+ " parents");
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 	}
-	
-	public StateChum(){
+
+	public StateChum() {
 		super();
 		panelStack = new Stack();
 		addMenuBar();
@@ -34,9 +54,8 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		this.setTitle("X-Machine Test and Visualisation Tool");
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 	}
-	
-	
-	private void addMenuBar(){
+
+	private void addMenuBar() {
 		JMenuBar menu = new JMenuBar();
 		menu.add(createGraphMenu());
 		menu.add(createModeMenu());
@@ -44,8 +63,8 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		menu.add(createTestSetMenu());
 		this.setJMenuBar(menu);
 	}
-	
-	private JMenu createGraphMenu(){
+
+	private JMenu createGraphMenu() {
 		JMenu graphMenu = new JMenu("Machine");
 		JMenuItem random = new JMenuItem("New Random Machine");
 		random.addActionListener(this);
@@ -55,16 +74,16 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		graphMenu.add(read);
 		return graphMenu;
 	}
-	
-	private JMenu createTestSetMenu(){
+
+	private JMenu createTestSetMenu() {
 		JMenu testSetMenu = new JMenu("Test Sets");
 		JMenuItem wMethod = new JMenuItem("W-Method");
 		wMethod.addActionListener(this);
 		testSetMenu.add(wMethod);
 		return testSetMenu;
 	}
-	
-	private JMenu createModeMenu(){
+
+	private JMenu createModeMenu() {
 		JMenu modeMenu = new JMenu("Mode");
 		JMenuItem transform = new JMenuItem("Transform");
 		transform.addActionListener(this);
@@ -74,14 +93,15 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		modeMenu.add(pick);
 		return modeMenu;
 	}
-	
-	private JMenu createViewMenu(){
+
+	private JMenu createViewMenu() {
 		JMenu viewMenu = new JMenu("View");
 		JCheckBoxMenuItem stateLabels = new JCheckBoxMenuItem("Label States");
 		stateLabels.setActionCommand("labelstates");
 		stateLabels.addActionListener(this);
 		stateLabels.setState(true);
-		JCheckBoxMenuItem transitionLabels = new JCheckBoxMenuItem("Label Transitions");
+		JCheckBoxMenuItem transitionLabels = new JCheckBoxMenuItem(
+				"Label Transitions");
 		transitionLabels.setActionCommand("labeltransitions");
 		transitionLabels.addActionListener(this);
 		transitionLabels.setState(true);
@@ -89,46 +109,47 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		viewMenu.add(transitionLabels);
 		return viewMenu;
 	}
-	
-	private void drillDown(Transition trans, int x, int y){
-		if(trans.getName()==null)
+
+	private void drillDown(Transition trans, int x, int y) {
+		if (trans.getName() == null)
 			return;
 		panelStack.push(viewer.getModel());
 		String key;
-		if(trans.getFunctions().size()>1){
+		if (trans.getFunctions().size() > 1) {
 			key = chooseFunction(trans.getFunctions());
-			if(key==null)
+			if (key == null)
 				return;
-		}
-		else{
+		} else {
 			Iterator setIt = trans.getFunctions().keySet().iterator();
-			key = (String)setIt.next();
+			key = (String) setIt.next();
 		}
-		TransitionFunction tf = (TransitionFunction)trans.getFunctions().get(key);
-		if((tf instanceof XMachineTransitionFunction)){
-			XMachineTransitionFunction xtf = (XMachineTransitionFunction)tf;
-			if(xtf.getFunctionMachine()!=null){
-				XMachineViewer functionViewer = new XMachineViewer(xtf.getFunctionMachine()
-						,viewer.getVertices(),viewer.getEdges(), viewer.isCollapsed());
+		TransitionFunction tf = (TransitionFunction) trans.getFunctions().get(
+				key);
+		if ((tf instanceof XMachineTransitionFunction)) {
+			XMachineTransitionFunction xtf = (XMachineTransitionFunction) tf;
+			if (xtf.getFunctionMachine() != null) {
+				XMachineViewer functionViewer = new XMachineViewer(xtf
+						.getFunctionMachine(), viewer.getVertices(), viewer
+						.getEdges(), viewer.isCollapsed());
 				setViewer(functionViewer);
-			}
-			else xtf.printBlocks();
+			} else
+				xtf.printBlocks();
 		}
 	}
-	
-	
-	private void drillUp(){
-		if(panelStack.isEmpty()){
-			
+
+	private void drillUp() {
+		if (panelStack.isEmpty()) {
+
 			return;
 		}
-		XMachineModel parent = (XMachineModel)panelStack.pop();
-		XMachineViewer functionViewer = new XMachineViewer(parent,viewer.getVertices(),viewer.getEdges(), viewer.isCollapsed());
+		XMachineModel parent = (XMachineModel) panelStack.pop();
+		XMachineViewer functionViewer = new XMachineViewer(parent, viewer
+				.getVertices(), viewer.getEdges(), viewer.isCollapsed());
 		setViewer(functionViewer);
 	}
-	
-	private void setViewer(XMachineViewer v){
-		if(viewer!=null)
+
+	private void setViewer(XMachineViewer v) {
+		if (viewer != null)
 			this.getContentPane().remove(viewer.getPanel());
 		viewer = v;
 		viewer.getViewer().addMouseListener(this);
@@ -136,95 +157,93 @@ public class StateChum extends JFrame implements ActionListener, MouseListener{
 		this.getContentPane().validate();
 		this.repaint();
 	}
-	
-	
-	
-	public void actionPerformed(ActionEvent event){
-		if(event.getActionCommand().equals("Transform")&&viewer!=null)
+
+	public void actionPerformed(ActionEvent event) {
+		if (event.getActionCommand().equals("Transform") && viewer != null)
 			viewer.setTransformable();
-		
-		else if(event.getActionCommand().equals("Pick")&&viewer!=null)
+
+		else if (event.getActionCommand().equals("Pick") && viewer != null)
 			viewer.setPickable();
-		
-		else if(event.getActionCommand().equals("labelstates")&&viewer!=null){
-			JCheckBoxMenuItem item = (JCheckBoxMenuItem)event.getSource();
-			this.setViewer(new XMachineViewer(viewer.getModel(),item.getState(), viewer.getEdges(), viewer.isCollapsed()));
-		}
-		else if(event.getActionCommand().equals("labeltransitions")&&viewer!=null){
-			JCheckBoxMenuItem item = (JCheckBoxMenuItem)event.getSource();
-			setViewer(new XMachineViewer(viewer.getModel(),viewer.getVertices(), item.getState(), viewer.isCollapsed()));
-		}
-		else if(event.getActionCommand().equals("New Random Machine"))
+
+		else if (event.getActionCommand().equals("labelstates")
+				&& viewer != null) {
+			JCheckBoxMenuItem item = (JCheckBoxMenuItem) event.getSource();
+			this.setViewer(new XMachineViewer(viewer.getModel(), item
+					.getState(), viewer.getEdges(), viewer.isCollapsed()));
+		} else if (event.getActionCommand().equals("labeltransitions")
+				&& viewer != null) {
+			JCheckBoxMenuItem item = (JCheckBoxMenuItem) event.getSource();
+			setViewer(new XMachineViewer(viewer.getModel(), viewer
+					.getVertices(), item.getState(), viewer.isCollapsed()));
+		} else if (event.getActionCommand().equals("New Random Machine"))
 			this.randomMachine();
-		else if(event.getActionCommand().equals("Read Machine from File"))
+		else if (event.getActionCommand().equals("Read Machine from File"))
 			this.readMachine();
-		else if(event.getActionCommand().equals("W-Method"))
+		else if (event.getActionCommand().equals("W-Method"))
 			wMethod();
 	}
-	
-	private void wMethod(){
-		WMethodFrame wmf = new WMethodFrame((DirectedSparseGraph)viewer.getModel().getAttachedGraph());
-		
+
+	private void wMethod() {
+		WMethodFrame wmf = new WMethodFrame((DirectedSparseGraph) viewer
+				.getModel().getAttachedGraph());
+
 	}
-	
-	private void randomMachine(){
-        RandomMachineGenerator rmg = new RandomMachineGenerator();
-        XMachineModel machine = rmg.generateGraph();
-        XMachineViewer viewer = new XMachineViewer(machine, true, true,false);
-  	  	this.setViewer(viewer);
+
+	private void randomMachine() {
+		RandomMachineGenerator rmg = new RandomMachineGenerator();
+		XMachineModel machine = rmg.generateGraph();
+		XMachineViewer viewer = new XMachineViewer(machine, true, true, false);
+		this.setViewer(viewer);
 	}
-	
-	private void readMachine(){
+
+	private void readMachine() {
 		GraphReader gr = new GraphReader();
-		 XMachineModel machine = gr.readGraph(this);
-	     XMachineViewer viewer = new XMachineViewer(machine, true, true,false);
-	  	 this.setViewer(viewer);
+		XMachineModel machine = gr.readGraph(this);
+		XMachineViewer viewer = new XMachineViewer(machine, true, true, false);
+		this.setViewer(viewer);
 	}
-	
-	public void mouseReleased(MouseEvent event){
-		if(viewer == null)
+
+	public void mouseReleased(MouseEvent event) {
+		if (viewer == null)
 			return;
-		if(viewer.getPickedEdge()==null)
+		if (viewer.getPickedEdge() == null)
 			return;
 		Transition trans = viewer.getPickedEdge();
-		if(event.getButton() == MouseEvent.BUTTON1)
-			drillDown(trans, event.getX(),event.getY());
-		else if(event.getButton() == MouseEvent.BUTTON2)
+		if (event.getButton() == MouseEvent.BUTTON1)
+			drillDown(trans, event.getX(), event.getY());
+		else if (event.getButton() == MouseEvent.BUTTON2)
 			drillUp();
-		
+
 	}
-	
-	public void mouseExited(MouseEvent event){
-			
+
+	public void mouseExited(MouseEvent event) {
+
 	}
-	
-	public void mousePressed(MouseEvent event){
-		
+
+	public void mousePressed(MouseEvent event) {
+
 	}
-	public void mouseClicked(MouseEvent event){
-		
+
+	public void mouseClicked(MouseEvent event) {
+
 	}
-	public void mouseEntered(MouseEvent event){
-		
+
+	public void mouseEntered(MouseEvent event) {
+
 	}
-	
-	private String chooseFunction(HashMap map){
+
+	private String chooseFunction(HashMap map) {
 		Object[] possibilities = map.keySet().toArray();
-		String s = (String)JOptionPane.showInputDialog(
-		                    this.getParent(),
-		                    "Choose function to explore",
-		                    "Multiple Functions",
-		                    JOptionPane.PLAIN_MESSAGE,
-		                    null,
-		                    possibilities,
-		                    null);
+		String s = (String) JOptionPane.showInputDialog(this.getParent(),
+				"Choose function to explore", "Multiple Functions",
+				JOptionPane.PLAIN_MESSAGE, null, possibilities, null);
 
 		return s;
 	}
-	
-	public static void main(String[] args){
+
+	public static void main(String[] args) {
 		JFrame jf = new StateChum();
-		jf.setSize(800,600);
+		jf.setSize(800, 600);
 		jf.setVisible(true);
 	}
 

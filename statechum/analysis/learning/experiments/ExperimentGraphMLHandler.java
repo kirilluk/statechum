@@ -1,3 +1,21 @@
+/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ 
+This file is part of statechum.
+
+statechum is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Foobar is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+*/ 
+
 package statechum.analysis.learning.experiments;
 
 import edu.uci.ics.jung.io.GraphMLFileHandler;
@@ -18,80 +36,77 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 	protected Edge createEdge(Map attributeMap) {
 		Graph mGraph = getGraph();
 		StringLabeller mLabeller = getLabeller();
-        if (mGraph == null) {
-            throw new FatalException("Error parsing graph. Graph element must be specified before edge element.");
-        }
+		if (mGraph == null) {
+			throw new FatalException(
+					"Error parsing graph. Graph element must be specified before edge element.");
+		}
 
-        String sourceId = (String) attributeMap.remove("source");
-        Vertex sourceVertex =
-                mLabeller.getVertex(sourceId);
+		String sourceId = (String) attributeMap.remove("source");
+		Vertex sourceVertex = mLabeller.getVertex(sourceId);
 
-        String targetId = (String) attributeMap.remove("target");
-        Vertex targetVertex =
-                 mLabeller.getVertex(targetId);
+		String targetId = (String) attributeMap.remove("target");
+		Vertex targetVertex = mLabeller.getVertex(targetId);
 
-        String direction = (String) attributeMap.remove("directed");
-        boolean directed = true;
-        Edge e;
-        if(!(sourceVertex.getSuccessors().contains(targetVertex))){
-	        if (directed)
-	            e = mGraph.addEdge(new DirectedSparseEdge(sourceVertex, targetVertex));
-	        else
-	            e = mGraph.addEdge(new UndirectedSparseEdge(sourceVertex, targetVertex));
-	        for (Iterator keyIt = attributeMap.keySet().iterator();
-	             keyIt.hasNext();
-	                ) {
-	            Object key = keyIt.next();
-	            Object value = attributeMap.get(key);
-	            e.setUserDatum(key, value, UserData.SHARED);
-	            HashSet labels = new HashSet();
-	            labels.add(attributeMap.get("EDGE"));
-	            e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
-	        }
-        }
-        else{
-        	e = RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
-        	HashSet labels = (HashSet)e.getUserDatum(JUConstants.LABEL);
-        	labels.add(attributeMap.get("EDGE"));
-        }
+		String direction = (String) attributeMap.remove("directed");
+		boolean directed = true;
+		Edge e;
+		if (!(sourceVertex.getSuccessors().contains(targetVertex))) {
+			if (directed)
+				e = mGraph.addEdge(new DirectedSparseEdge(sourceVertex,
+						targetVertex));
+			else
+				e = mGraph.addEdge(new UndirectedSparseEdge(sourceVertex,
+						targetVertex));
+			for (Iterator keyIt = attributeMap.keySet().iterator(); keyIt
+					.hasNext();) {
+				Object key = keyIt.next();
+				Object value = attributeMap.get(key);
+				e.setUserDatum(key, value, UserData.SHARED);
+				HashSet labels = new HashSet();
+				labels.add(attributeMap.get("EDGE"));
+				e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
+			}
+		} else {
+			e = RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
+			HashSet labels = (HashSet) e.getUserDatum(JUConstants.LABEL);
+			labels.add(attributeMap.get("EDGE"));
+		}
 
-        return e;
-    }
-	
+		return e;
+	}
+
 	protected ArchetypeVertex createVertex(Map attributeMap) {
 		Graph mGraph = getGraph();
 		StringLabeller mLabeller = getLabeller();
-        if (mGraph == null) {
-            throw new FatalException("Error parsing graph. Graph element must be specified before node element.");
-        }
+		if (mGraph == null) {
+			throw new FatalException(
+					"Error parsing graph. Graph element must be specified before node element.");
+		}
 
-        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex());
-        String idString = (String) attributeMap.remove("id");
+		ArchetypeVertex vertex = mGraph
+				.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex());
+		String idString = (String) attributeMap.remove("id");
 
-        try {
-            mLabeller.setLabel((Vertex) vertex,idString);
-        } catch (StringLabeller.UniqueLabelException ule) {
-            throw new FatalException("Ids must be unique");
+		try {
+			mLabeller.setLabel((Vertex) vertex, idString);
+		} catch (StringLabeller.UniqueLabelException ule) {
+			throw new FatalException("Ids must be unique");
 
-        }
+		}
 
-        for (Iterator keyIt = attributeMap.keySet().iterator();
-             keyIt.hasNext();
-                ) {
-            Object key = keyIt.next();
-            Object value = attributeMap.get(key);
-            vertex.setUserDatum(key, value, UserData.SHARED);
-        }
-        String label = attributeMap.get("VERTEX").toString();
-        vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
-        if(label.startsWith("Initial")){
-        	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
-        	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-        }
-        vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
-        return vertex;
-    }
+		for (Iterator keyIt = attributeMap.keySet().iterator(); keyIt.hasNext();) {
+			Object key = keyIt.next();
+			Object value = attributeMap.get(key);
+			vertex.setUserDatum(key, value, UserData.SHARED);
+		}
+		String label = attributeMap.get("VERTEX").toString();
+		vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
+		if (label.startsWith("Initial")) {
+			vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
+			vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		}
+		vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+		return vertex;
+	}
 
-
-	
 }

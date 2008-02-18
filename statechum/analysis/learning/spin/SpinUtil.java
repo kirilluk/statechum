@@ -48,7 +48,7 @@ public class SpinUtil {
 		cmdArray.add(0, (String[])Arrays.asList("spin", "-Z", "promelaMachine").toArray());
 		cmdArray.add(1,(String[])Arrays.asList("spin", "-a", "-X", "promelaMachine").toArray());
 		cmdArray.add(2,(String[])Arrays.asList("gcc", "-w", "-o", "pan", "-D_POSIX_SOURCE", "-DMEMLIM=128",  "-DXUSAFE", "-DNXT","-DNOREDUCE",  "-DNOFAIR",  "pan.c").toArray());
-		cmdArray.add(3,(String[])Arrays.asList("./pan", "-v", "-X", "-m10000", "-w19",  "-a", "-c1").toArray());
+		cmdArray.add(3,(String[])Arrays.asList("./pan", "-v", "-X", "-m10000", "-w19",  "-a", "-i", "-c1").toArray());
 		Runtime rt = Runtime.getRuntime();
 		for (int i=0;i<4;i++) {
 			try{
@@ -56,9 +56,9 @@ public class SpinUtil {
 				Process proc = rt.exec(cmdArray.get(i));
 				BufferedReader input = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 				while ((line = input.readLine()) != null) {
-			    	//if(line.contains("errors: 0"))
-			    		//return true;
-					System.out.println(line);
+			    	if(line.contains("errors: 0"))
+			    		return true;
+					//System.out.println(line);
 			    }
 			}catch (Throwable e){
 				e.printStackTrace();

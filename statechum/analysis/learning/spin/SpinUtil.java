@@ -1,20 +1,20 @@
 
 /*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  
-This file is part of statechum.
+This file is part of StateChum
 
-statechum is free software: you can redistribute it and/or modify
+StateChum is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Foobar is distributed in the hope that it will be useful,
+StateChum is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
 
@@ -39,17 +39,15 @@ import jltl2ba.*;
  */
 public class SpinUtil {
 	
-	/**
-	 * To use this, LTL2BA needs to be on the system path, as it is called 
-	 * by the LTL2BA Java interfaces. 
-	 * 
-	 * Future versions will similarly require SPIN to be on the system path as well.
-	 */
+	// To use this, LTL2BA and SPIN need to be on the system path. 
+
 
 	static int functionCounter, stateCounter;
 
 	static String defines;
 
+	static String fileRef = "temp"+System.getProperty("file.separator")+"promelaMachine";
+	
 	static StringWriter sw;
 
 	static Map<String, Integer> functionMap;
@@ -63,7 +61,33 @@ public class SpinUtil {
 		defines = new String();
 		generatePromela(g, ltl);
 		createInverseMap();
-		return runSpin();
+		for (String string : ltl) {
+			if(!checkLTL(string))
+				return false;
+		}
+		return true;
+	}
+	
+	private static void write(StringWriter writer, File f){
+		try {
+			f.getParentFile().mkdirs();
+			f.createNewFile();
+			FileOutputStream fos = new FileOutputStream(f);
+			OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
+			out.write(defines.concat(writer.toString()));
+			out.close();
+			fos.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private static boolean checkLTL(String ltl){
+		StringWriter promela = sw;
+		promela = addLtl(promela, ltl.substring(1));
+		File promelaMachine  = new File(fileRef);
+		write(promela, promelaMachine);
+		return runSpin(ltl.charAt(0));
 	}
 
 	private static void createInverseMap() {
@@ -73,78 +97,54 @@ public class SpinUtil {
 		}
 	}
 
-	private static boolean runSpin() {
-		boolean pass = false;
+	private static boolean runSpin(char safetyLiveness) {
 		List<String[]> cmdArray = new ArrayList<String[]>();
 		cmdArray.add(0, (String[]) Arrays
 				.asList("spin", "-Z", "promelaMachine").toArray());
 		cmdArray.add(1, (String[]) Arrays.asList("spin", "-a", "-X",
 				"promelaMachine").toArray());
-		cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+		if( safetyLiveness == 's'){ //compile pan for checking safety properties
+			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
 				"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
-		cmdArray.add(3, (String[]) Arrays.asList("./pan", "-v", "-X",
+			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
 				"-m10000", "-w19", "-a", "-i", "-c1").toArray());
-		Runtime rt = Runtime.getRuntime();
+		}
+		else{ //compile pan for checking liveness properties
+			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+					"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
+					"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
+			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
+					"-m10000", "-w19", "-a", "-c1").toArray());
+		}
 		for (int i = 0; i < 4; i++) {
 			try {
 				String line;
-				Process proc = rt.exec(cmdArray.get(i));
-				BufferedReader input = new BufferedReader(
-						new InputStreamReader(proc.getInputStream()));
-				while ((line = input.readLine()) != null) {
-					// if(line.contains("errors: 0"))
-					// return true;
-					System.out.println(line);
+				ProcessBuilder pb = new ProcessBuilder(cmdArray.get(i));
+				pb.directory(new File(fileRef).getParentFile());
+				
+				Process proc = pb.start();
+				InputStreamReader tempReader = new InputStreamReader(
+		                new BufferedInputStream(proc.getInputStream()));
+		            BufferedReader reader = new BufferedReader(tempReader);
+				while ((line = reader.readLine()) != null) {
+					 if(line.contains("errors: 0"))
+						 return true;
+					//System.out.println(line);
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		}
-		return pass;
+		return false;
 	}
 
 	private static void generatePromela(DirectedSparseGraph g, Set<String> ltl) {
-		generateProcsAndInit(g, ltl);
-
-		try {
-			FileOutputStream fos = new FileOutputStream("promelaMachine");
-			OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
-			out.write(defines.concat(sw.toString()));
-			out.close();
-			fos.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static void addLtl(Set<String> ltl) {
-		try {
-			for (String string : ltl) {
-				StringBuffer output = LowLevel.exec(string);
-				sw.write("\n" + output.toString());
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static void generateDefines(Map<String, Integer> functionMap) {
-
-		for (String key : functionMap.keySet()) {
-			defines = defines.concat("#define " + key + "\t" + "(input == "
-					+ functionMap.get(key) + ")\n");
-		}
-	}
-
-	private static void generateProcsAndInit(DirectedSparseGraph g,
-			Set<String> ltl) {
 		HashMap<String, Integer> stateMap = new HashMap<String, Integer>();
 		functionMap = new HashMap<String, Integer>();
 		setup(g, stateMap, functionMap);
 		Iterator<DirectedEdge> edgeIt = g.getEdges().iterator();
-
+		
 		while (edgeIt.hasNext()) {
 			DirectedEdge e = edgeIt.next();
 			if (!RPNIBlueFringeLearner.isAccept(e.getDest()))
@@ -175,15 +175,32 @@ public class SpinUtil {
 				addSuccessorIf(sw, (DirectedSparseVertex) e.getDest(),
 						functionMap);
 			}
-
+		
 		}
 		sw.write("\n\tfi\n\tod\n}\n");
 		sw.write("\ninit {\nrun machine();\n}");
-		if (ltl != null)
-			addLtl(ltl);
 		printLegend(sw, functionMap);
 		generateDefines(functionMap);
 	}
+
+	private static StringWriter addLtl(StringWriter promela, String ltl) {
+		try {
+			StringBuffer output = LowLevel.exec(ltl);
+			promela.write("\n" + output.toString());
+
+		} catch (Exception e) {e.printStackTrace();}
+		return promela;
+	}
+
+	private static void generateDefines(Map<String, Integer> functionMap) {
+
+		for (String key : functionMap.keySet()) {
+			defines = defines.concat("#define " + key + "\t" + "(input == "
+					+ functionMap.get(key) + ")\n");
+		}
+	}
+
+	
 
 	private static void addSuccessorIf(StringWriter sw,
 			DirectedSparseVertex state, Map<String, Integer> functionMap) {
@@ -226,10 +243,12 @@ public class SpinUtil {
 		List<String> counterExample = new ArrayList<String>();
 		String[] trace = (String[]) Arrays.asList("spin", "-t", "-p",
 				"promelaMachine").toArray();
-		Runtime rt = Runtime.getRuntime();
 		try {
 			String line;
-			Process proc = rt.exec(trace);
+			ProcessBuilder pb = new ProcessBuilder(trace);
+			pb.directory(new File(fileRef).getParentFile());
+			
+			Process proc = pb.start();
 			BufferedReader input = new BufferedReader(new InputStreamReader(
 					proc.getInputStream()));
 			while ((line = input.readLine()) != null) {

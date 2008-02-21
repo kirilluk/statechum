@@ -3,5 +3,4 @@ active
 + load edit edit save_as ok close exit
 + load edit edit edit close exit
 - edit 
-ltl s ![] ((save_as) -> ((save_as) U (ok)))
-ltl l ![] ((load) -> <>((close) || (exit)))
+

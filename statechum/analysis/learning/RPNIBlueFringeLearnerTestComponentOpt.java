@@ -225,7 +225,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				List<String> question = questionIt.next();
 				boolean accepted = isAccept(pair.getQ());
 				int answer = checkWithEndUser(scoreComputer.getGraph(),
-						question, new Object[] { "Test" });
+						question, new Object[] {});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED) {
 					System.out.println("CANCELLED");

@@ -105,10 +105,10 @@ public class SpinUtil {
 				"promelaMachine").toArray());
 		if( safetyLiveness == 's'){ //compile pan for checking safety properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
-				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
+				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DSAFETY", "-DNXT",
 				"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
 			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
-				"-m10000", "-w19", "-a", "-i", "-c1").toArray());
+				"-m10000", "-w19", "-A", "-i", "-c1").toArray());
 		}
 		else{ //compile pan for checking liveness properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",

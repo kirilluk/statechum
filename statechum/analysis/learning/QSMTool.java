@@ -38,6 +38,8 @@ import java.util.*;
 import statechum.analysis.learning.oracles.*;
 
 public class QSMTool {
+	
+	private static boolean includeLTL =false;
 
 	public static void main(String[] args) {
 		Set<List<String>> sPlus = new HashSet<List<String>>();
@@ -59,7 +61,7 @@ public class QSMTool {
 		}
 		// new PickNegativesVisualiser(new
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
-		if (ltl.isEmpty())
+		if (!includeLTL)
 			new PickNegativesVisualiser()
 					.construct(sPlus, sMinus, null, active);
 		else
@@ -79,8 +81,12 @@ public class QSMTool {
 			sPlus.add(sequence);
 		else if (fileString.startsWith("-"))
 			sMinus.add(sequence);
-		else if (fileString.startsWith("ltl"))
-			ltl.add(getLtlString(sequence));
+		else if (fileString.startsWith("ltl")){
+			includeLTL = true;
+			if(fileString.substring(4).trim().length()>0)
+				ltl.add(getLtlString(sequence));
+			
+		}
 
 	}
 

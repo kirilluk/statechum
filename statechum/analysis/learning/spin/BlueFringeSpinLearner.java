@@ -22,9 +22,22 @@ import statechum.JUConstants;
 import statechum.analysis.learning.*;
 
 import java.awt.Frame;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -95,7 +108,7 @@ public class BlueFringeSpinLearner extends
 				List<String> question = questionIt.next();
 				boolean accepted = isAccept(pair.getQ());
 				int answer = checkWithEndUser(scoreComputer.getGraph(),
-						question, new Object[] { "Test" });
+						question, new Object[] { "LTL"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED) {
 					System.out.println("CANCELLED");
@@ -144,9 +157,18 @@ public class BlueFringeSpinLearner extends
 						restartLearning = true;
 						break;
 					}
-				} else
+				} else if(answer==-4){
+					String newLtl = JOptionPane.showInputDialog("New LTL formula:");
+					if(newLtl.length() != 0){
+						ltl.add(newLtl);
+						restartLearning = true;
+						break;
+					}
+				}
+				else{
+					System.out.println(answer);
 					throw new IllegalArgumentException("unexpected user choice");
-
+				}
 			}
 
 			if (restartLearning) {// restart learning
@@ -217,6 +239,135 @@ public class BlueFringeSpinLearner extends
 				UserData.SHARED);
 		updateGraph(result);
 		return result;
+	}
+	
+	protected int checkWithEndUser(DirectedSparseGraph model,
+			List<String> question, final Object[] moreOptions) {
+		if (ans != null) {
+			int AutoAnswer = processAnswer(question);
+			if (AutoAnswer != USER_CANCELLED) {
+				setByAuto = QUESTION_AUTO;
+				return AutoAnswer;
+			} else
+				setByAuto = "";
+		}
+		updateGraph(model);
+		final List<String> questionList = beautifyQuestionList(question);
+		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
+
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					final Object[] options = new Object[1 + moreOptions.length];
+					
+					final JList rejectElements = new JList(questionList
+							.toArray());
+					options[0] = "Accept";
+					System.arraycopy(moreOptions, 0, options, 1,
+							moreOptions.length);
+					final JLabel label = new JLabel(
+							"<html><font color=red>Click on the first non-accepting element below",
+							JLabel.CENTER);
+					jop = new JOptionPane(new Object[] { label,
+							null, rejectElements },
+							JOptionPane.QUESTION_MESSAGE,
+							JOptionPane.YES_NO_CANCEL_OPTION, null, options,
+							options[0]);
+					dialog = new JDialog(parentFrame, "Valid input string?",
+							false);
+					dialog.setContentPane(jop);
+
+					// the following chunk is partly from
+					// http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
+					dialog
+							.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+					dialog.addWindowListener(new WindowAdapter() {
+						public void windowClosing(WindowEvent we) {
+							jop
+									.setValue(new Integer(
+											JOptionPane.CLOSED_OPTION));// from
+																		// http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
+						}
+					});
+					jop.addPropertyChangeListener(new PropertyChangeListener() {
+						public void propertyChange(PropertyChangeEvent e) {
+							String prop = e.getPropertyName();
+
+							Object value = e.getNewValue();
+
+							if (dialog.isVisible()
+									&& e.getSource() == jop
+									&& (prop.equals(JOptionPane.VALUE_PROPERTY))) {
+								int i = 0;
+								for (; i < options.length
+										&& options[i] != value; ++i)
+									;
+								if (i == options.length)
+									i = USER_CANCELLED;// nothing was chosen
+								else
+									i = USER_ACCEPTED - i; // to ensure that
+															// zero translates
+															// into
+															// USER_ACCEPTED and
+															// other choices
+															// into lower
+															// numbers
+
+								// one of the choices was made, determine which
+								// one and close the window
+								answer.getAndSet(i);
+								synchronized (answer) {
+									answer.notifyAll();
+								}
+
+								dialog.setVisible(false);
+								dialog.dispose();
+							}
+						}
+					});
+					rejectElements
+							.addListSelectionListener(new ListSelectionListener() {
+
+								public void valueChanged(ListSelectionEvent e) {
+									if (dialog.isVisible()
+											&& e.getSource() == rejectElements
+											&& !e.getValueIsAdjusting()
+											&& !rejectElements
+													.isSelectionEmpty()) {
+										answer.getAndSet(rejectElements
+												.getLeadSelectionIndex());
+										synchronized (answer) {
+											answer.notifyAll();
+										}
+
+										dialog.setVisible(false);
+										dialog.dispose();
+									}
+								}
+
+							});
+					dialog.pack();
+					// rejectElements.setListData(questionList.toArray());
+					dialog.setVisible(true);
+				}
+			});
+			synchronized (answer) {
+				while (answer.get() == USER_WAITINGFORSELECTION)
+					answer.wait();// wait for a user to make a response
+			}
+		} catch (InvocationTargetException e) {
+			e.printStackTrace();
+			// if we cannot make a call, return a negative number - nothing do
+			// not know what else to do about it.
+		} catch (InterruptedException e) {
+
+			// if we are interrupted, return a negative number - nothing do not
+			// know what else to do about it.
+		}
+		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an
+														// exception was thrown
+			answer.getAndSet(USER_CANCELLED);
+		return answer.get();
 	}
 
 }

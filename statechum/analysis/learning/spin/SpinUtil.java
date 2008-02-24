@@ -59,7 +59,7 @@ public class SpinUtil {
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
-		generatePromela(g, ltl);
+		generatePromela(g);
 		createInverseMap();
 		for (String string : ltl) {
 			if(!checkLTL(string))
@@ -105,7 +105,7 @@ public class SpinUtil {
 				"promelaMachine").toArray());
 		if( safetyLiveness == 's'){ //compile pan for checking safety properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
-				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DSAFETY", "-DNXT",
+				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE",  "-DBFS", "-DSAFETY", "-DNXT",
 				"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
 			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
 				"-m10000", "-w19", "-A", "-i", "-c1").toArray());
@@ -128,9 +128,9 @@ public class SpinUtil {
 		                new BufferedInputStream(proc.getInputStream()));
 		            BufferedReader reader = new BufferedReader(tempReader);
 				while ((line = reader.readLine()) != null) {
+					//System.out.println(line);
 					 if(line.contains("errors: 0"))
 						 return true;
-					//System.out.println(line);
 				}
 			} catch (Throwable e) {
 				e.printStackTrace();
@@ -139,46 +139,67 @@ public class SpinUtil {
 		return false;
 	}
 
-	private static void generatePromela(DirectedSparseGraph g, Set<String> ltl) {
+	
+	private static int numAcceptingSuccessors(DirectedSparseVertex v){
+		int succs = 0;
+		Iterator<DirectedEdge> outgoingIt = v.getOutEdges().iterator();
+		while(outgoingIt.hasNext()){
+			DirectedEdge e = outgoingIt.next();
+			if(RPNIBlueFringeLearner.isAccept(e.getDest()))
+				succs++;
+		}
+		return succs;
+	}
+	
+	private static void generatePromela(DirectedSparseGraph g) {
 		HashMap<String, Integer> stateMap = new HashMap<String, Integer>();
 		functionMap = new HashMap<String, Integer>();
 		setup(g, stateMap, functionMap);
-		Iterator<DirectedEdge> edgeIt = g.getEdges().iterator();
+		Iterator<DirectedSparseVertex> stateIt = g.getVertices().iterator();
 		
-		while (edgeIt.hasNext()) {
-			DirectedEdge e = edgeIt.next();
-			if (!RPNIBlueFringeLearner.isAccept(e.getDest()))
+		while (stateIt.hasNext()) {
+			DirectedSparseVertex v = stateIt.next();
+			if (!RPNIBlueFringeLearner.isAccept(v))
 				continue;
-			Set labels = (Set) e.getUserDatum(JUConstants.LABEL);
-			Iterator labelIt = labels.iterator();
-			String currentState = e.getSource().getUserDatum(JUConstants.LABEL)
-					.toString();
+			String currentState = v.getUserDatum(JUConstants.LABEL).toString();
 			if (!stateMap.keySet().contains(currentState)) {
 				stateMap.put(currentState, new Integer(stateCounter));
 				stateCounter++;
 			}
-			String toState = e.getDest().getUserDatum(JUConstants.LABEL)
-					.toString();
-			if (!stateMap.keySet().contains(toState)) {
-				stateMap.put(toState, new Integer(stateCounter));
-				stateCounter++;
+			if(numAcceptingSuccessors(v)==0){
+				sw.write(v + ": false;\n");
+				continue;
 			}
-			while (labelIt.hasNext()) {
-				String label = labelIt.next().toString();
-				if (!functionMap.keySet().contains(label)) {
-					functionMap.put(label, new Integer(functionCounter));
-					functionCounter++;
+			else{
+				sw.write(v+":\n"+"\tif");
+				Iterator<DirectedEdge> outEdges = v.getOutEdges().iterator();
+				while(outEdges.hasNext()){
+					DirectedEdge e = outEdges.next();
+					Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
+					
+					if(!RPNIBlueFringeLearner.isAccept(e.getDest()))
+							continue;
+					String toState = e.getDest().getUserDatum(JUConstants.LABEL).toString();
+					if (!stateMap.keySet().contains(toState)) {
+						stateMap.put(toState, new Integer(stateCounter));
+						stateCounter++;
+					}
+					Iterator labelIt = labels.iterator();
+					while (labelIt.hasNext()) {
+						String label = labelIt.next().toString();
+						if (!functionMap.keySet().contains(label)) {
+							functionMap.put(label, new Integer(functionCounter));
+							functionCounter++;
+						}
+						sw.write("\n\t:: input=" + functionMap.get(label)
+								+ " -> goto " + toState + ";\n");
+					}
 				}
-				sw.write("\n\t:: ((state==" + stateMap.get(currentState)
-						+ ") && (input==" + functionMap.get(label)
-						+ ")) -> state=" + stateMap.get(toState) + ";\n");
-				addSuccessorIf(sw, (DirectedSparseVertex) e.getDest(),
-						functionMap);
+				sw.write("\tfi;\n");
 			}
-		
 		}
-		sw.write("\n\tfi\n\tod\n}\n");
-		sw.write("\ninit {\nrun machine();\n}");
+		
+		sw.write("}\n\ninit {\nrun machine();\n}");
 		printLegend(sw, functionMap);
 		generateDefines(functionMap);
 	}
@@ -200,33 +221,6 @@ public class SpinUtil {
 		}
 	}
 
-	
-
-	private static void addSuccessorIf(StringWriter sw,
-			DirectedSparseVertex state, Map<String, Integer> functionMap) {
-		sw.write("\tif");
-		Iterator<DirectedEdge> outgoingTransitions = state.getOutEdges()
-				.iterator();
-		while (outgoingTransitions.hasNext()) {
-			DirectedEdge e = outgoingTransitions.next();
-			if (!RPNIBlueFringeLearner.isAccept(e.getDest()))
-				continue;
-			Set<String> labels = (Set<String>) e
-					.getUserDatum(JUConstants.LABEL);
-			Iterator<String> labelIt = labels.iterator();
-			while (labelIt.hasNext()) {
-				String label = labelIt.next();
-				if (!functionMap.keySet().contains(label)) {
-					functionMap.put(label, new Integer(functionCounter));
-					functionCounter++;
-				}
-				sw.write("\n\t\t:: input = " + functionMap.get(label) + ";");
-			}
-		}
-		if (state.getOutEdges().isEmpty())
-			sw.write("\n\t\t::break");
-		sw.write("\n\tfi");
-	}
 
 	private static void printLegend(StringWriter sw,
 			Map<String, Integer> functionMap) {
@@ -278,30 +272,7 @@ public class SpinUtil {
 			stateMap.put(state, new Integer(stateCounter));
 			stateCounter++;
 		}
-		sw.write("int state;\nint input;\nproctype machine(){\n\tstate=0;"
-				+ getInputBranch(v, functionMap) + "\n\tdo\n\t:: if");
-	}
-
-	private static String getInputBranch(DirectedSparseVertex init,
-			Map<String, Integer> functionMap) {
-		String ret = "\n\tif";
-		Set<DirectedSparseEdge> outEdges = init.getOutEdges();
-		for (DirectedSparseEdge edge : outEdges) {
-			Set<String> inputs = (Set<String>) edge
-					.getUserDatum(JUConstants.LABEL);
-			if (!RPNIBlueFringeLearner.isAccept(edge.getDest()))
-				continue;
-			for (String string : inputs) {
-				if (!functionMap.keySet().contains(string)) {
-					functionMap.put(string, new Integer(functionCounter));
-					functionCounter++;
-				}
-				ret = ret.concat("\n\t\t::input=" + functionMap.get(string));
-			}
-		}
-		ret = ret.concat("\n\tfi;");
-
-		return ret;
+		sw.write("int input = 50000;\nproctype machine(){\ngoto Init;\n");
 	}
 
 }

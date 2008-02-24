@@ -88,11 +88,12 @@ public class BlueFringeSpinLearner extends
 
 			// System.out.println(Thread.currentThread()+ " "+pair + "
 			// "+questions);
+			
 			if (!SpinUtil.check(temp.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
-				newPTA.augmentPTA(counterexample, false);
-				System.out.println(counterexample);
+				newPTA.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
+				System.out.println(counterexample.subList(0, counterexample.size()-1));
 				++minusSize;
 				restartLearning = true;
 			}

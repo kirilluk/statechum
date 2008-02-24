@@ -24,30 +24,29 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-public class PTASequenceSet extends PrefixFreeCollection implements
-		Set<List<String>> {
+public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
+{
 	protected PTATestSequenceEngine engine = new PTATestSequenceEngine();
-
 	protected PTATestSequenceEngine.sequenceSet initSet;
 
 	protected boolean empty = true;
-
-	public PTASequenceSet() {
-		engine.init(new PTASequenceSetAutomaton());
-		initSet = engine.new sequenceSet();
-		initSet.setIdentity();
+	
+	public PTASequenceSet()
+	{
+		engine.init(new PTASequenceSetAutomaton());		
+		initSet = engine.new sequenceSet();initSet.setIdentity();
 	}
-
+	
+	
 	public boolean add(List<String> o) {
-		initSet.crossWithSequence(o);
-		empty = false;
+		initSet.crossWithSequence(o);empty = false;
 		return true;
 	}
 
 	public boolean addAll(Collection<? extends List<String>> c) {
 		if (empty && c.size() > 0)
 			empty = false;
-		initSet.cross((Collection<List<String>>) c);
+		initSet.cross((Collection<List<String>>)c);
 		return true;
 	}
 
@@ -101,13 +100,13 @@ public class PTASequenceSet extends PrefixFreeCollection implements
 
 	/** Extremely slow. */
 	public int size() {
-		if (empty)
+		if (empty) 
 			return 0;
 		return getData().size();
 	}
-
+	
 	public int treeSize() {
-		if (empty)
+		if (empty) 
 			return 0;
 		return engine.treeSize();
 	}
@@ -127,8 +126,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements
 
 	@Override
 	public Collection<List<String>> getData() {
-		if (isEmpty())
-			return Collections.emptySet();
+		if (isEmpty()) return Collections.emptySet();
 		return engine.getData();
 	}
 

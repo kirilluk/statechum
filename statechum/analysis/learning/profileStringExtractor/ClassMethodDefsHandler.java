@@ -24,23 +24,19 @@ import java.util.*;
 import java.io.*;
 
 /** Loads classes/methods from an xml file saved by the profiling framework. */
-public class ClassMethodDefsHandler extends DefaultHandler implements
-		Serializable {
-
+public class ClassMethodDefsHandler extends DefaultHandler implements Serializable{
+	
 	/**
 	 * The version ID for serialization.
 	 */
 	private static final long serialVersionUID = 2167687392681999116L;
-
+	
 	private Map<Integer, String> classDefs, methodDefs, methodSignatures;
-
-	private Map<Integer, Integer> objectsToClasses;
-
-	private Map<Integer, Set<Integer>> classesToMethods;
-
+	private Map<Integer,Integer> objectsToClasses;
+	private Map<Integer,Set<Integer>> classesToMethods;
 	private File source;
-
-	public ClassMethodDefsHandler(File f) {
+	
+	public ClassMethodDefsHandler(File f){
 		super();
 		source = f;
 		classDefs = new HashMap<Integer, String>();
@@ -49,32 +45,32 @@ public class ClassMethodDefsHandler extends DefaultHandler implements
 		classesToMethods = new HashMap<Integer, Set<Integer>>();
 		objectsToClasses = new HashMap<Integer, Integer>();
 	}
-
-	public void startElement(String uri, String localName, String qName,
-			Attributes attributes) {
-		if (qName.equals("classDef")) {
+	
+	public void startElement(String uri, String localName, String qName, Attributes attributes){
+		if(qName.equals("classDef")){
 			Integer id = Integer.valueOf(attributes.getValue("classId"));
 			String name = attributes.getValue("name");
 			classDefs.put(id, name);
-		} else if (qName.equals("methodDef")) {
+		}
+		else if(qName.equals("methodDef")){
 			Integer id = Integer.valueOf(attributes.getValue("methodId"));
 			String name = attributes.getValue("name");
 			methodDefs.put(id, name);
 			methodSignatures.put(id, attributes.getValue("signature"));
-			Integer classId = Integer
-					.valueOf(attributes.getValue("classIdRef"));
-			if (classesToMethods.get(classId) != null) {
+			Integer classId = Integer.valueOf(attributes.getValue("classIdRef"));
+			if(classesToMethods.get(classId)!=null){
 				Set<Integer> c = classesToMethods.get(classId);
 				c.add(id);
 				classesToMethods.put(classId, c);
-			} else {
+			}
+			else{
 				HashSet<Integer> methods = new HashSet<Integer>();
 				methods.add(id);
 				classesToMethods.put(classId, methods);
 			}
-		} else if (qName.equals("objAlloc")) {
-			Integer classId = Integer
-					.valueOf(attributes.getValue("classIdRef"));
+		}
+		else if(qName.equals("objAlloc")){
+			Integer classId = Integer.valueOf(attributes.getValue("classIdRef"));
 			Integer objectId = Integer.valueOf(attributes.getValue("objId"));
 			objectsToClasses.put(objectId, classId);
 		}
@@ -91,8 +87,8 @@ public class ClassMethodDefsHandler extends DefaultHandler implements
 	public Map<Integer, Set<Integer>> getClassesToMethods() {
 		return classesToMethods;
 	}
-
-	public Map<Integer, Integer> getObjectsToClasses() {
+	
+	public Map<Integer, Integer> getObjectsToClasses(){
 		return objectsToClasses;
 	}
 

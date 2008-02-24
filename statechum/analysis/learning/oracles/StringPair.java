@@ -18,18 +18,14 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.oracles;
 
-public class StringPair {
+public class StringPair{
 	String from, to;
-
-	public StringPair(String a, String b) {
-		from = a;
-		to = b;
+	public StringPair(String a, String b){
+		from = a; to = b;
 	}
-
 	public String getFrom() {
 		return from;
 	}
-
 	public String getTo() {
 		return to;
 	}

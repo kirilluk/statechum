@@ -28,22 +28,25 @@ public class PTA_FSMStructure extends PTATestSequenceEngine {
 		init(new FSM());
 	}
 
-	private FSMStructure fsm;
+	private FSMStructure fsm; 
 
-	class FSM implements FSMAbstraction {
+	class FSM implements FSMAbstraction
+	{
 		public Object getInitState() {
 			return fsm.init;
 		}
-
-		public Object getNextState(Object currentState, String input) {
+	
+		public Object getNextState(Object currentState, String input) 
+		{
 			String result = null;
-			Map<String, String> row = fsm.trans.get(currentState);
+			Map<String,String> row = fsm.trans.get(currentState);
 			if (row != null)
 				result = row.get(input);
 			return result;
 		}
-
-		public boolean isAccept(Object currentState) {
+	
+		public boolean isAccept(Object currentState) 
+		{
 			return fsm.accept.get(currentState);
 		}
 

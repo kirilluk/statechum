@@ -22,14 +22,15 @@ import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 
 /**
  * @author kirill
- * 
+ *
  */
 public class PTASequenceSetAutomaton implements FSMAbstraction {
 	public static final String theOnlyState = "TheOnlyState";
-
-	public PTASequenceSetAutomaton() {
+	
+	public PTASequenceSetAutomaton() 
+	{ 
 	}
-
+	
 	public Object getInitState() {
 		return theOnlyState;
 	}

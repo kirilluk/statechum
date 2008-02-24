@@ -35,16 +35,24 @@
 
   <target name="test" depends="compile" description="run unit tests">
        <junit  fork="on" maxmemory="512m" forkmode="once" printsummary="yes" haltonfailure="yes">
-	<jvmarg value="-ea" /> 
+		<assertions>
+        	<enable/>
+      	</assertions>
+
+
        <classpath>
          <path refid="classpath.full" />
          <pathelement location="${bin}"/>
          </classpath>
+       	<!--       	
   <batchtest>
     <fileset dir="${src}">
       <include name="**/Test*.java"/>
     </fileset>
   </batchtest>
+  -->
+       	<test name="statechum.AllTests" />
+       	
        </junit>
        
   </target>

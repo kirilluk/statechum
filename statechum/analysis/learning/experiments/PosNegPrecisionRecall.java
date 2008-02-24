@@ -21,20 +21,18 @@ package statechum.analysis.learning.experiments;
 import java.util.Collection;
 
 public class PosNegPrecisionRecall extends PrecisionRecall {
-
+	
 	protected double negprecision, posprecision, negrecall, posrecall;
-
+	
 	/**
-	 * true precision and recall is computed as the harmonic mean of positive
-	 * and negative precision and recall values.
-	 * 
+	 * true precision and recall is computed as the harmonic mean of positive and negative precision
+	 * and recall values.
 	 * @param retpos
 	 * @param relpos
 	 * @param retneg
 	 * @param relneg
 	 */
-	public PosNegPrecisionRecall(Collection retpos, Collection relpos,
-			Collection retneg, Collection relneg) {
+	public PosNegPrecisionRecall(Collection retpos, Collection relpos, Collection retneg, Collection relneg){
 		super();
 		negprecision = computePrecision(retneg, relneg);
 		posprecision = computePrecision(retpos, relpos);
@@ -44,16 +42,16 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 		recall = computeMean(posrecall, negrecall);
 		fMeasure = computeMean(precision, recall);
 	}
-
+	
 	/*
-	 * Computes the weighted harmonic mean of a and b, unless a or b are zero,
-	 * when it simply computes the arithmetic mean instead.
+	 * Computes the weighted harmonic mean of a and b, unless a or b are zero, when it simply
+	 * computes the arithmetic mean instead.
 	 */
-	protected double computeMean(double a, double b) {
-		if (a == 0 || b == 0) {
-			return (a + b) / 2;
-		} else
-			return ((2 * a * b) / (a + b));
+	protected double computeMean(double a, double b){
+		if(a==0||b==0){
+			return (a+b)/2;
+		}
+		else return ((2*a*b)/(a+b));
 	}
 
 	public double getNegprecision() {
@@ -71,5 +69,7 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 	public double getPosrecall() {
 		return posrecall;
 	}
+	
+	
 
 }

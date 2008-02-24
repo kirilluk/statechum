@@ -74,7 +74,7 @@ import javax.swing.*;
 public class Visualiser extends JFrame implements Observer, Runnable,
 		MouseListener {
 	/**
-	 * The version ID for serialization.
+	 * The version ID for serialisation.
 	 */
 	private static final long serialVersionUID = -6382530787840924374L;
 
@@ -109,13 +109,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	protected void construct(Graph g) {
 		boolean assertsEnabled = false;
-		assert assertsEnabled = true; // from
-										// http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
-		if (!assertsEnabled
-				&& Boolean
-						.getBoolean(getProperty(VIZ_PROPERTIES.ASSERT, "true")))
-			System.err
-					.println("Pass the -ea argument to JVM to enable assertions");
+		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
+		if (!assertsEnabled && Boolean.getBoolean(getProperty(VIZ_PROPERTIES.ASSERT, "true")))
+			System.err.println("Pass the -ea argument to JVM to enable assertions");
 
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
@@ -138,412 +134,386 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			public void keyReleased(KeyEvent arg0) {
 			}
 
-			public void keyTyped(KeyEvent key) {
-				switch (key.getKeyChar()) {
-				case KeyEvent.VK_ESCAPE:// terminate
-					setVisible(false);
-					dispose();
-					Visualiser.syncValue.set(true);
-					synchronized (Visualiser.syncObject) {
-						Visualiser.syncObject.notify();
-					}
-					break;
-				case KeyEvent.VK_SPACE:// single-step
-					Visualiser.syncValue.set(false);
-					synchronized (Visualiser.syncObject) {
-						Visualiser.syncObject.notify();
-					}
-					break;
+			public void keyTyped(KeyEvent key) 
+			{
+				switch(key.getKeyChar())
+				{
+					case KeyEvent.VK_ESCAPE:// terminate
+						setVisible(false);dispose();
+						Visualiser.syncValue.set(true);
+						synchronized (Visualiser.syncObject) {
+							Visualiser.syncObject.notify();
+						}
+						break;
+					case KeyEvent.VK_SPACE:// single-step
+						Visualiser.syncValue.set(false);
+						synchronized (Visualiser.syncObject) {
+							Visualiser.syncObject.notify();
+						}
+						break;
 				}
 			}
-
+			
 		});
-		setSize(new Dimension(800, 600));
+        setSize(new Dimension(800,600));
 
-		viewer = new VisualizationViewer(new DefaultVisualizationModel(
-				new XMLPersistingLayout(propName != null ? new FRLayout(g)
-						: new KKLayout(g))), constructRenderer(g));
+		viewer = new VisualizationViewer( new DefaultVisualizationModel(new XMLPersistingLayout(
+				propName != null? new FRLayout(g):new KKLayout(g))), constructRenderer(g) );
 		viewer.setBackground(Color.WHITE);
 		final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
 		graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
 		graphMouse.add(new PickingGraphMousePlugin());
-		viewer.setGraphMouse(graphMouse);
-		viewer.setPickSupport(new ShapePickSupport());
-		viewer.addMouseListener(this);
-		popupMenu = new JPopupMenu();
-		JMenuItem item = new JMenuItem("pick");
-		item.addActionListener(new ActionListener() {
+        viewer.setGraphMouse(graphMouse);
+        viewer.setPickSupport(new ShapePickSupport());
+        viewer.addMouseListener(this);
+        popupMenu = new JPopupMenu();
+        JMenuItem item = new JMenuItem("pick");item.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				((XMLModalGraphMouse) viewer.getGraphMouse())
-						.setMode(ModalGraphMouse.Mode.PICKING);
+				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.PICKING);
 			}
-		});
-		popupMenu.add(item);
-		item = new JMenuItem("transform");
-		item.addActionListener(new ActionListener() {
+        });popupMenu.add(item);
+        item = new JMenuItem("transform");item.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				((XMLModalGraphMouse) viewer.getGraphMouse())
-						.setMode(ModalGraphMouse.Mode.TRANSFORMING);
+				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.TRANSFORMING);
 			}
-		});
-		popupMenu.add(item);
-
+        });popupMenu.add(item);
+        
 		final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
 
-		// Icon loading is from
-		// http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
-		Image icon = Toolkit.getDefaultToolkit()
-				.getImage(
-						"resources" + System.getProperty("file.separator")
-								+ "icon.jpg");
-		if (icon != null)
-			setIconImage(icon);
-
-		// getContentPane().removeAll();
-		getContentPane().add(panel);
-		pack();
-		restoreLayout(true);
-		loadFrame(this, propName);
-		setVisible(true);
+		// Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
+		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+System.getProperty("file.separator")+"icon.jpg");if (icon != null)	setIconImage(icon);
+		
+		//getContentPane().removeAll();
+		getContentPane().add(panel);pack();
+		restoreLayout(true);loadFrame(this, propName);
+        setVisible(true);
 	}
 
-	protected static class XMLModalGraphMouse extends DefaultModalGraphMouse {
-		/**
-		 * Restores parameters which are not recorderd in the view/layout
-		 * transforms, from the supplied XML stream
-		 * 
-		 * @param decode
-		 *            XML decoder to use
-		 */
-		public void restore(XMLDecoder decoder) {
-			((ScalingGraphMousePlugin) scalingPlugin).setIn((Float) decoder
-					.readObject());
-			((ScalingGraphMousePlugin) scalingPlugin).setOut((Float) decoder
-					.readObject());
+	protected static class XMLModalGraphMouse extends DefaultModalGraphMouse
+	{
+		/** Restores parameters which are not recorderd in the view/layout transforms, from the supplied XML stream
+	     * 
+	     * @param decode XML decoder to use
+	     */
+		public void restore(XMLDecoder decoder)
+		{
+			((ScalingGraphMousePlugin)scalingPlugin).setIn( (Float)decoder.readObject());
+			((ScalingGraphMousePlugin)scalingPlugin).setOut( (Float)decoder.readObject());
 		}
 
-		/**
-		 * Stores parameters which are not recorderd in the view/layout
-		 * transforms, to the supplied XML stream
-		 * 
-		 * @param encoder
-		 *            XML encoder to use
-		 */
-		public void store(XMLEncoder encoder) {
-			encoder.writeObject(((ScalingGraphMousePlugin) scalingPlugin)
-					.getIn());
-			encoder.writeObject(((ScalingGraphMousePlugin) scalingPlugin)
-					.getOut());
+		/** Stores parameters which are not recorderd in the view/layout transforms, to the supplied XML stream
+	     * 
+	     * @param encoder XML encoder to use
+	     */
+		public void store(XMLEncoder encoder)
+		{
+			encoder.writeObject( ((ScalingGraphMousePlugin)scalingPlugin).getIn());
+			encoder.writeObject( ((ScalingGraphMousePlugin)scalingPlugin).getOut());
 		}
 	}
-
-	/**
-	 * Loads or reloads a graph. Used during initialisation on the Swing thread,
-	 * when graph changes or user hits F3 (reload).
+	
+	
+	/** Loads or reloads a graph. Used during initialisation on the Swing thread, when graph changes or user hits F3 (reload).
 	 * 
-	 * @param ignoreErrors
-	 *            Whether to ignore loading errors - they are ignored on
-	 *            auto-load, but honoured on user load.
+	 * @param ignoreErrors Whether to ignore loading errors - they are ignored on auto-load, but honoured on user load.
 	 */
-	protected void reloadLayout(boolean ignoreErrors) {
+	protected void reloadLayout(boolean ignoreErrors)
+	{
 		assert graph != null;
-		if (!wasInitialised) {
+		if (!wasInitialised)
+		{
 			construct(graph);
-			setTitle((String) graph.getUserDatum(JUConstants.TITLE));
+			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
 			wasInitialised = true;
-		} else {
-			viewer.getModel().setGraphLayout(
-					new XMLPersistingLayout(propName != null ? new FRLayout(
-							graph) : new KKLayout(graph)));
-			setTitle((String) graph.getUserDatum(JUConstants.TITLE));
+		}
+		else
+		{
+			viewer.getModel().setGraphLayout( new XMLPersistingLayout(propName != null? new FRLayout(graph):new KKLayout(graph)) );
+			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
 			restoreLayout(ignoreErrors);
 			viewer.setRenderer(constructRenderer(graph));
 		}
 	}
-
-	protected void restoreLayout(boolean ignoreErrors) {
-		try {
-			String fileName = getLayoutFileName(graph);
-			if (propName != null && (new File(fileName)).canRead()) {
-				XMLDecoder decoder = new XMLDecoder(new FileInputStream(
-						fileName));
-				((XMLPersistingLayout) viewer.getModel().getGraphLayout())
-						.restore(decoder);
-
-				// most rotate/share/translate are stateless, so I only need to
-				// get the cumulative transform
-				// for layout and view via getTransform() which should return
-				// AffineTransform
-				// which I should be able to persist into XML.
-				// Only ScalingGraphMousePlugin has a state
-				// in the form of getIn()/setIn()/getOut()/setOut().
-				viewer.getViewTransformer().setToIdentity();
-				viewer.getViewTransformer().concatenate(
-						((XMLAffineTransformSerialised) decoder.readObject())
-								.getAffineTransform());
-				viewer.getLayoutTransformer().setToIdentity();
-				viewer.getLayoutTransformer().concatenate(
-						((XMLAffineTransformSerialised) decoder.readObject())
-								.getAffineTransform());
-				((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
-				decoder.close();
-
-				viewer.repaint();
-			}
-		} catch (Exception e1) {
-			if (!ignoreErrors)
-				e1.printStackTrace();
-		}
+	
+	protected void restoreLayout(boolean ignoreErrors)
+	{
+        try {
+        	String fileName = getLayoutFileName(graph);
+        	if (propName != null && (new File(fileName)).canRead())
+        	{
+    	    	XMLDecoder decoder = new XMLDecoder (new FileInputStream(fileName));
+        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(decoder);
+        		
+        		// most rotate/share/translate are stateless, so I only need to get the cumulative transform 
+        		// for layout and view via getTransform() which should return AffineTransform 
+        		// which I should be able to persist into XML.
+        		// Only ScalingGraphMousePlugin has a state
+        		// in the form of getIn()/setIn()/getOut()/setOut().
+        		viewer.getViewTransformer().setToIdentity();viewer.getViewTransformer().concatenate( 
+        				((XMLAffineTransformSerialised)decoder.readObject()).getAffineTransform() );
+        		viewer.getLayoutTransformer().setToIdentity();viewer.getLayoutTransformer().concatenate( 
+        				((XMLAffineTransformSerialised)decoder.readObject()).getAffineTransform() );
+        		((XMLModalGraphMouse)viewer.getGraphMouse()).restore(decoder);
+        		decoder.close();
+        		
+        		viewer.repaint();
+        	}
+        } catch (Exception e1) {
+        	if (!ignoreErrors)
+        		e1.printStackTrace();
+        }		
 	}
-
-	/**
-	 * Used to serialise graph layout information into XML where XMLEncoder
-	 * requires a top-level class.
+	
+	/** Used to serialise graph layout information into XML where XMLEncoder requires a top-level class.
 	 * 
 	 * @author kirr
-	 * 
+	 *
 	 */
 	public static class DoublePair {
-		private double x, y;
-
-		public DoublePair() {
-			x = 0;
-			y = 0;
+		private double x,y;
+		
+		public DoublePair() 
+		{
+			x=0;y=0;
 		}
-
-		public DoublePair(double a, double b) {
-			setX(a);
-			setY(b);
+		
+		public DoublePair(double a,double b)
+		{
+			setX(a);setY(b);
 		}
-
-		public double getX() {
+		
+		public double getX()
+		{
 			return x;
 		}
-
-		public double getY() {
+		
+		public double getY()
+		{
 			return y;
 		}
-
-		public void setX(double a) {
-			x = a;
+		
+		public void setX(double a)
+		{
+			x=a;
 		}
-
-		public void setY(double b) {
-			y = b;
+		
+		public void setY(double b)
+		{
+			y=b;
 		}
 	}
 
-	/**
-	 * A serialised form of XMLAffineTransform
+	/** A serialised form of XMLAffineTransform
 	 * 
 	 * @author kirr
-	 * 
+	 *
 	 */
-	public static class XMLAffineTransformSerialised {
-		protected double[] matrix;
-
-		public double[] getM() {
-			return matrix;
+	public static class XMLAffineTransformSerialised
+	{
+		protected double [] matrix;
+		
+		public double [] getM()
+		{ 
+			return matrix; 
 		}
-
-		public void setM(double[] m) {
+		
+		public void setM(double []m)
+		{
 			matrix = m;
 		}
-
-		AffineTransform getAffineTransform() {
+		
+		AffineTransform getAffineTransform()
+		{
 			return new AffineTransform(matrix);
 		}
-
-		void setFromAffineTransform(AffineTransform tr) {
-			matrix = new double[6];
+		
+		void setFromAffineTransform(AffineTransform tr)
+		{
+			matrix=new double[6];
 			tr.getMatrix(matrix);
 		}
 	}
-
-	protected void storeLayout() {
-		try {
-			if (propName != null) {
-				String fileName = getLayoutFileName(graph);
-				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(
-						fileName));
-				((XMLPersistingLayout) viewer.getModel().getGraphLayout())
-						.persist(encoder);
-
-				XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
-				trV.setFromAffineTransform(viewer.getViewTransformer()
-						.getTransform());
-				encoder.writeObject(trV);
-				XMLAffineTransformSerialised trL = new XMLAffineTransformSerialised();
-				trL.setFromAffineTransform(viewer.getLayoutTransformer()
-						.getTransform());
-				encoder.writeObject(trL);
-				((XMLModalGraphMouse) viewer.getGraphMouse()).store(encoder);
-				encoder.close();
-			}
-		} catch (Exception e1) {
-			e1.printStackTrace();
-		}
+	
+	protected void storeLayout()
+	{
+        try {
+        	if (propName != null)
+        	{
+            	String fileName = getLayoutFileName(graph);
+                XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
+        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist(encoder);
+        		
+        		XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
+        		trV.setFromAffineTransform(viewer.getViewTransformer().getTransform());encoder.writeObject(trV);
+        		XMLAffineTransformSerialised trL = new XMLAffineTransformSerialised();
+        		trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());encoder.writeObject(trL);
+        		((XMLModalGraphMouse)viewer.getGraphMouse()).store(encoder);
+                encoder.close();
+        	}
+        } catch (Exception e1) {
+            e1.printStackTrace();
+        }		
 	}
-
-	protected static PluggableRenderer constructRenderer(Graph g) {
+	
+	protected static PluggableRenderer constructRenderer(Graph g)
+	{
 		PluggableRenderer r = new PluggableRenderer();
 		r = labelEdges(r);
-		r = labelVertices(r, g);
+		r = labelVertices(r,g);
 		return r;
 	}
-
-	/**
-	 * If the frame was not constructed, we have to construct instances of all
-	 * classes responsible for it; once it is build and only our graph changed,
-	 * it is enough to replace the layout to update the graph.
-	 */
+	
+	/** If the frame was not constructed, we have to construct instances of 
+	 * all classes responsible for it; once it is build and only our 
+	 * graph changed, it is enough to replace the layout to update the graph. */
 	protected boolean wasInitialised = false;
-
+	
 	/** The graph currently being displayed, null if none is being displayed. */
 	protected Graph graph = null;
-
-	public void run() {
-		reloadLayout(true);
+	
+	public void run()
+	{
+			reloadLayout(true);
 	}
 
-	public void update(final Observable s, Object arg) {
-		graph = (Graph) ((Graph) arg).copy();
+	public void update(final Observable s, Object arg){
+		graph = (Graph)((Graph)arg).copy();
 		SwingUtilities.invokeLater(this);
 	}
 
-	private static PluggableRenderer labelEdges(PluggableRenderer render) {
-		EdgeStringer stringer = new EdgeStringer() {
-			public String getLabel(ArchetypeEdge e) {
-				if (e.containsUserDatumKey(JUConstants.LABEL)) {
-					HashSet<String> labels = (HashSet<String>) e
-							.getUserDatum(JUConstants.LABEL);
-					Iterator<String> labelIt = labels.iterator();
-					String label = "[ ";
-					while (labelIt.hasNext()) {
-						label = label.concat(labelIt.next() + " ");
-					}
-					return label + " ]";
-				} else
-					return "";
-			}
-		};
-		render.setEdgeStringer(stringer);
-		return render;
+	private static PluggableRenderer labelEdges(PluggableRenderer render){
+		EdgeStringer stringer = new EdgeStringer(){
+            public String getLabel(ArchetypeEdge e) {
+            	if(e.containsUserDatumKey(JUConstants.LABEL)){
+            		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+            		Iterator<String> labelIt = labels.iterator();
+            		String label = "[ ";
+            		while(labelIt.hasNext()){
+            			label = label.concat(labelIt.next()+" ");
+            		}
+            		return label+" ]";
+            	}
+            	else return "";
+            }
+        };
+        render.setEdgeStringer(stringer);
+        return render;
 	}
-
-	static class VertexShape extends AbstractVertexShapeFunction {
+	
+	static class VertexShape extends AbstractVertexShapeFunction
+	{
 		public VertexShape() {
-			super(new ConstantVertexSizeFunction(25),
-					new ConstantVertexAspectRatioFunction(1.0f));
+			super(  new ConstantVertexSizeFunction(25),
+	                new ConstantVertexAspectRatioFunction(1.0f));
 		}
-
+		
 		public Shape getShape(Vertex v) {
 			if (RPNIBlueFringeLearner.isInitial(v))
 				return factory.getRegularStar(v, 7);
-			else if (!RPNIBlueFringeLearner.isAccept(v))
-				return factory.getRectangle(v);
+			else
+				if ( !RPNIBlueFringeLearner.isAccept(v) )
+					return factory.getRectangle(v);
 			return factory.getEllipse(v);
 		}
 	}
-
-	static class VertexPaint implements VertexPaintFunction {
+	
+	static class VertexPaint implements VertexPaintFunction
+	{
 		protected final PickedInfo picked;
-
+		
 		public VertexPaint(PickedInfo p) {
 			picked = p;
 		}
-
+		
 		public Paint getDrawPaint(Vertex v) {
 			if (v.getUserDatum(JUConstants.HIGHLIGHT) != null)
 				return Color.MAGENTA;
-
+			
 			return Color.BLACK;
 		}
 
 		public Paint getFillPaint(Vertex v) {
 			Color col = Color.BLACK;
-
+			
 			if (picked.isPicked(v))
 				col = Color.LIGHT_GRAY;
-			else {
-				JUConstants c = (JUConstants) v
-						.getUserDatum(JUConstants.COLOUR);
+			else
+			{
+				JUConstants c = (JUConstants)v.getUserDatum(JUConstants.COLOUR);
 				if (c == null)
 					col = Color.GREEN;
-				else {
+				else
+				{
 					if (c == JUConstants.RED)
 						col = Color.PINK;
-					else if (c == JUConstants.BLUE)
-						col = Color.BLUE;
+					else
+						if (c == JUConstants.BLUE)
+							col = Color.BLUE;
 				}
 			}
 			return col;
 		}
-
+		
 	}
-
-	private static PluggableRenderer labelVertices(PluggableRenderer r,
-			Graph graph) {
-		StringLabeller labeller = StringLabeller.getLabeller(graph, "name");
+	
+	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
+		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
 		labeller.clear();
 		Iterator labelIt = graph.getVertices().iterator();
-		while (labelIt.hasNext()) {
-			Vertex v = (Vertex) labelIt.next();
-			try {
+		while(labelIt.hasNext()){
+			Vertex v = (Vertex)labelIt.next();
+			try{
 				Object label = v.getUserDatum(JUConstants.LABEL);
 				if (label != null)
-					labeller.setLabel(v, label.toString());
-			} catch (Exception e) {
+					labeller.setLabel(v,label.toString());
+			}
+			catch(Exception e){
 				System.out.println(e);
 				e.printStackTrace();
 			}
 		}
-		r.setVertexStringer(labeller);
+		r.setVertexStringer(labeller);		
 		r.setVertexShapeFunction(new VertexShape());
 		r.setVertexPaintFunction(new VertexPaint(r));
 		r.setVertexStrokeFunction(new ConstantVertexStrokeFunction(2.0f));
 		return r;
 	}
-
-	/**
-	 * Holds the JFrame to see the graphs being dealt with. Usage:
-	 * 
+	
+	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
-	 * updateFrame(upper, lower);// a public method
+	 * 		updateFrame(upper,lower);// a public method
 	 * </pre>
-	 * 
 	 * where <i>upper</i> and <i>lower</i> are the graphs to be displayed.
 	 */
-	static Visualiser upperGraphViz = null, lowerGraphViz = null;
+	static Visualiser upperGraphViz=null,lowerGraphViz=null;
 
-	/**
-	 * If a dialog box has to be displayed, it needs to know a reference frame.
-	 * This method returns this frame, creating it if necessary.
+	/** If a dialog box has to be displayed, it needs to know a reference frame. This method returns this frame, creating it if necessary.
 	 * 
 	 * @return a Visualiser frame.
-	 */
-	public static Visualiser getVisualiser() {
-		if (upperGraphViz == null)
-			upperGraphViz = new Visualiser(VIZ_PROPERTIES.UPPER);
+	 */ 
+	public static Visualiser getVisualiser()
+	{
+		if (upperGraphViz == null) upperGraphViz = new Visualiser(VIZ_PROPERTIES.UPPER);
 		return upperGraphViz;
 	}
-
-	/**
-	 * Removes the two windows displaying Jung graphs.
+	
+	/** Removes the two windows displaying Jung graphs.
 	 */
-	public static void disposeFrame() {
-		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				public void run() {
-					if (upperGraphViz != null) {
-						upperGraphViz.setVisible(false);
-						upperGraphViz.dispose();
-						upperGraphViz = null;
+	public static void disposeFrame()
+	{
+		try
+		{
+			SwingUtilities.invokeAndWait(new Runnable() 
+			{
+				public void run()
+				{
+					if (upperGraphViz != null)
+					{
+						upperGraphViz.setVisible(false);upperGraphViz.dispose();upperGraphViz=null;							
 					}
-					if (lowerGraphViz != null) {
-						lowerGraphViz.setVisible(false);
-						lowerGraphViz.dispose();
-						lowerGraphViz = null;
+					if (lowerGraphViz != null)
+					{
+						lowerGraphViz.setVisible(false);lowerGraphViz.dispose();lowerGraphViz=null;							
 					}
 				}
 			});
@@ -556,32 +526,30 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		}
 	}
 
-	/**
-	 * Displays twos graphs passed as arguments in the Jung window. This method
-	 * is to be called for one (g != null) or two (g != null && lowerGraph !=
-	 * null) windows to be displayed; when both arguments are null, graphs are
-	 * disposed of.
+	/** Displays twos graphs passed as arguments in the Jung window.
+	 * This method is to be called for one (g != null) or two (g != null && lowerGraph != null) windows to be displayed;
+	 * when both arguments are null, graphs are disposed of.
 	 * 
-	 * @param upperGraph
-	 *            the graph to display
-	 * @param lowerGraph
-	 *            the graph to display below it
+	 * @param upperGraph the graph to display 
+	 * @param lowerGraph the graph to display below it
 	 */
-	public static void updateFrame(final DirectedSparseGraph upperGraph,
-			final DirectedSparseGraph lowerGraph) {
-		if (upperGraph == null && lowerGraph == null) {// destruction of
-														// windows
+	public static void updateFrame(final DirectedSparseGraph upperGraph,final DirectedSparseGraph lowerGraph)
+	{
+		if (upperGraph == null && lowerGraph == null)
+		{// destruction of windows
 			disposeFrame();
-		} else {// construction of windows
+		}
+		else
+		{// construction of windows
 			if (upperGraph == null)
-				throw new IllegalArgumentException(
-						"the first graph to display cannot be null");
-
+				throw new IllegalArgumentException("the first graph to display cannot be null");
+			
 			if (upperGraphViz == null)
-				upperGraphViz = new Visualiser(VIZ_PROPERTIES.UPPER);
-
+				upperGraphViz=new Visualiser(VIZ_PROPERTIES.UPPER);
+	
 			upperGraphViz.update(null, upperGraph);
-			if (lowerGraph != null) {
+			if (lowerGraph != null)
+			{
 				if (lowerGraphViz == null)
 					lowerGraphViz = new Visualiser(VIZ_PROPERTIES.LOWER);
 				lowerGraphViz.update(null, lowerGraph);
@@ -591,160 +559,125 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	/** Used to make it possible to single-step through graph transforms. */
 	private final static Object syncObject = new Object();
-
 	/** Value to return to a thread which is waiting. */
 	private final static AtomicBoolean syncValue = new AtomicBoolean();
-
-	/**
-	 * Waits for a user to hit space on any of the visualiser windows.
+	
+	/** Waits for a user to hit space on any of the visualiser windows. 
 	 * 
 	 * @return true if user hit space, false if application is terminating.
 	 */
-	public static void waitForKey() {
-		synchronized (syncObject) {
+	public static void waitForKey()
+	{
+		synchronized(syncObject)
+		{
 			try {
 				syncObject.wait();
 			} catch (InterruptedException e) {
 				// assume we are terminating.
 			}
 		}
-
+		
 		if (syncValue.get())
 			System.exit(1);
 	}
-
+	
 	public enum VIZ_ENV_PROPERTIES {
-		VIZ_DIR, // the path to visualisation-related information, such as
-					// graph layouts and configuration file.
-		VIZ_CONFIG, // the configuration file containing window positions and
-					// whether to display an assert-related warning.
+		VIZ_DIR,// the path to visualisation-related information, such as graph layouts and configuration file.
+		VIZ_CONFIG,// the configuration file containing window positions and whether to display an assert-related warning.
 	}
-
+	
 	public enum VIZ_PROPERTIES { // internal properties
-		ASSERT, // whether to display assert warning.
-		BUILDGRAPH, // whether to break if the name of a graph to build is equal
-					// to a value of this property
-		LOWER, UPPER // window positions, not real properties to be stored in
-						// a file.
-		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on
-				// linux amd64.
+		ASSERT,// whether to display assert warning.
+		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
+		LOWER, UPPER // window positions, not real properties to be stored in a file.
+		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
 		;
 	}
 
 	protected static Properties properties = null;
-
-	protected static Map<String, Rectangle> windowCoords = null;// if I index by
-																// VIZ_PROPERTIES,
-																// I cannot
-																// serialise
-																// into XML
-
-	/**
-	 * Loads the location/size of a frame from the properties file and positions
-	 * the frame as appropriate.
+	protected static Map<String,Rectangle> windowCoords = null;// if I index by VIZ_PROPERTIES, I cannot serialise into XML
+	
+	/** Loads the location/size of a frame from the properties file and positions the frame as appropriate.
 	 * 
-	 * @param frame
-	 *            the frame to position.
-	 * @param name
-	 *            the name of the property to load from
-	 */
-	protected static void loadFrame(Frame frame, VIZ_PROPERTIES name) {
+	 * @param frame the frame to position.
+	 * @param name the name of the property to load from
+	 */   
+	protected static void loadFrame(Frame frame,VIZ_PROPERTIES name)
+	{
 		if (windowCoords == null)
 			loadConfiguration();
-
+		
 		Rectangle result = windowCoords.get(name.toString());
+		
+		if (result == null)
+		{// invent default coordinates, using http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
 
-		if (result == null) {// invent default coordinates, using
-								// http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
-
-			GraphicsEnvironment ge = GraphicsEnvironment
-					.getLocalGraphicsEnvironment();
+			GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 			GraphicsDevice[] gs = ge.getScreenDevices();
 			GraphicsConfiguration gc = gs[0].getDefaultConfiguration();
-
+			
 			// from http://java.sun.com/j2se/1.4.2/docs/api/index.html
 			Rectangle shape = gc.getBounds();
-			result = new Rectangle(shape.x, shape.y, 400, 300);
+			result = new Rectangle(shape.x, shape.y,400,300);
 			if (name == VIZ_PROPERTIES.LOWER)
-				result.y += result.getHeight() + 30;
-
-			// no need to store these values, if a user hits the "save" button,
-			// current ones will be saved.
+				result.y+=result.getHeight()+30;
+			
+			// no need to store these values, if a user hits the "save" button, current ones will be saved.
 		}
-
+		
 		frame.setBounds(result);
 	}
-
-	/**
-	 * Stores the current location/size of a frame to the properties file.
+	
+	/** Stores the current location/size of a frame to the properties file.
 	 * 
-	 * @param frame
-	 *            the frame to position.
-	 * @param name
-	 *            the name under which to store the property
-	 */
-	protected static void saveFrame(Frame frame, VIZ_PROPERTIES name) {
-		Rectangle windowPos = new Rectangle(frame.getSize());
-		windowPos.setLocation(frame.getX(), frame.getY());
+	 * @param frame the frame to position.
+	 * @param name the name under which to store the property
+	 */   
+	protected static void saveFrame(Frame frame,VIZ_PROPERTIES name)
+	{
+		Rectangle windowPos = new Rectangle(frame.getSize());windowPos.setLocation(frame.getX(), frame.getY());
 		windowCoords.put(name.toString(), windowPos);
 	}
 
-	/**
-	 * Retrieves the name of the file to load a graph layout from/store layout
-	 * to.
+	/** Retrieves the name of the file to load a graph layout from/store layout to.
 	 * 
-	 * @param g
-	 *            the graph which name to extract
-	 * @return the file name to load/store layout information, or throw
-	 *         IllegalArgumentException if it cannot be retrieved.
+	 * @param g the graph which name to extract
+	 * @return the file name to load/store layout information, or throw IllegalArgumentException if it cannot be retrieved. 
 	 */
-	protected static String getLayoutFileName(Graph g) {
-		String file = (String) g.getUserDatum(JUConstants.TITLE);
-		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());
-		if (path == null)
-			path = "resources" + System.getProperty("file.separator")
-					+ "graphLayout";
+	protected static String getLayoutFileName(Graph g)
+	{
+		String file = (String)g.getUserDatum(JUConstants.TITLE);
+		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
 		if (file == null)
-			throw new IllegalArgumentException("cannot obtain graph name, the "
-					+ JUConstants.TITLE.toString()
-					+ " property has not been set on the graph");
-
-		return path + System.getProperty("file.separator")
-				+ file.replace(' ', '_') + ".xml";
+			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.toString()+" property has not been set on the graph");
+		
+		return path+System.getProperty("file.separator")+file.replace(' ', '_')+".xml";
 	}
-
-	/**
-	 * Retrieves the name of the file to load configuration information
-	 * from/store it to.
+	
+	/** Retrieves the name of the file to load configuration information from/store it to.
 	 * 
-	 * @return the file name to load/store configuration information
-	 *         information, or return null if it cannot be retrieved.
+	 * @return the file name to load/store configuration information information, or return null if it cannot be retrieved. 
 	 */
-	protected static String getConfigurationFileName() {
-		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());
-		if (path == null)
-			path = "resources" + System.getProperty("file.separator")
-					+ "graphLayout";
+	protected static String getConfigurationFileName()
+	{
+		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
 		String file = System.getenv(VIZ_ENV_PROPERTIES.VIZ_CONFIG.toString());
 		String result = null;
 		if (file != null)
-			result = path + System.getProperty("file.separator") + file
-					+ ".xml";
-
+			result = path+System.getProperty("file.separator")+file+".xml";
+		
 		return result;
-	}
-
-	/**
-	 * Retrieves the name of the property from the property file. The first call
-	 * to this method opens the property file.
-	 * 
-	 * @param name
-	 *            the name of the property.
-	 * @param defaultValue
-	 *            the default value of the property
+	}	
+	
+	/** Retrieves the name of the property from the property file.
+	 *  The first call to this method opens the property file.
+	 *  
+	 * @param name the name of the property.
+	 * @param defaultValue the default value of the property
 	 * @return property value, default value if not found
 	 */
-	public static String getProperty(VIZ_PROPERTIES name, String defaultValue) {
+	public static String getProperty(VIZ_PROPERTIES name,String defaultValue)
+	{
 		String result = defaultValue;
 		if (properties == null)
 			loadConfiguration();
@@ -752,34 +685,37 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		return result;
 	}
 
-	protected static void loadConfiguration() {
+	protected static void loadConfiguration()
+	{
 		String configFileName = getConfigurationFileName();
-		if (configFileName == null || !new File(configFileName).canRead()) {
-			System.err.println("Configuration file " + configFileName
-					+ " does not exist.");
-		} else
-			try {
-				if (configFileName != null) {
-					XMLDecoder decoder = new XMLDecoder(new FileInputStream(
-							configFileName));
-					properties = (Properties) decoder.readObject();
-					windowCoords = (HashMap<String, Rectangle>) decoder
-							.readObject();
-					decoder.close();
-				}
-			} catch (Exception e) {// failed loading, (almost) ignore this.
-				System.err.println("Failed to load " + configFileName);
-				e.printStackTrace();
+		if (configFileName == null || ! new File(configFileName).canRead())
+		{
+			System.err.println("Configuration file "+configFileName+" does not exist.");
+		}
+		else
+		try {
+			if (configFileName != null)
+			{
+				XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
+				properties = (Properties) decoder.readObject();
+				windowCoords = (HashMap<String, Rectangle>) decoder.readObject();
+				decoder.close();
 			}
-
+		} catch (Exception e) 
+		{// failed loading, (almost) ignore this.
+			System.err.println("Failed to load "+configFileName);
+			e.printStackTrace();
+		}
+		
 		if (windowCoords == null)
 			windowCoords = new HashMap<String, Rectangle>();
 		if (properties == null)
 			properties = new Properties();
 	}
-
+	
 	/** Saves all the current properties in the configuration file. */
-	protected static void saveConfiguration() {
+	protected static void saveConfiguration()
+	{
 		String configFileName = getConfigurationFileName();
 		if (windowCoords == null)
 			windowCoords = new HashMap<String, Rectangle>();
@@ -787,86 +723,73 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			properties = new Properties();
 
 		try {
-			if (configFileName != null) {
-				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(
-						configFileName));
-				encoder.writeObject(properties);
-				encoder.writeObject(windowCoords);
-				encoder.close();
+			if (configFileName != null)
+			{
+				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(configFileName));
+				encoder.writeObject(properties);encoder.writeObject(windowCoords);encoder.close();
 			}
-		} catch (Exception e) {// failed loading
+		} catch (Exception e) 
+		{// failed loading
 			e.printStackTrace();
-		}
+		}		
 	}
 
-	/**
-	 * Returns true if the configuration file defines the name of the supplied
-	 * graph as the one transformation of which we should be looking at in
-	 * detail.
+	/** Returns true if the configuration file defines the name of the supplied graph as the one 
+	 * transformation of which we should be looking at in detail.
 	 * 
-	 * @param graph
-	 *            the graph we might wish to look at in detail
-	 * @return whether lots of debug output should be enable when this graph is
-	 *         being processed.
+	 * @param graph the graph we might wish to look at in detail
+	 * @return whether lots of debug output should be enable when this graph is being processed.
 	 */
-	public static boolean isGraphTransformationDebug(DirectedSparseGraph graph) {
-		String name = graph == null ? null : (String) graph
-				.getUserDatum(JUConstants.TITLE);
-		return name != null
-				&& name.length() > 0
-				&& Visualiser.getProperty(Visualiser.VIZ_PROPERTIES.STOP, "")
-						.equals(name);
+	public static boolean isGraphTransformationDebug(DirectedSparseGraph graph)
+	{
+		String name = graph == null? null:(String)graph.getUserDatum(JUConstants.TITLE);
+		return name != null && name.length()>0 && 
+			Visualiser.getProperty(Visualiser.VIZ_PROPERTIES.STOP, "").equals(name);
 	}
 
-	protected static class XMLPersistingLayout extends PersistentLayoutImpl {
+	protected static class XMLPersistingLayout extends PersistentLayoutImpl
+	{
 
 		public XMLPersistingLayout(Layout layout) {
 			super(layout);
 		}
+		
+	    /** Almost verbatim from Jung source code.
+	     * 
+	     * Saves all the vertex locations to a file - this is enough to rebuild the layout 
+	     * later since we'll know the connections later anyway.
+	     * 
+	     * @param encoder XML encoder to use	
+	     * @throws an IOException if the file cannot be used
+	     */
+	    public void persist(XMLEncoder encoder) {
+	        Set set = getGraph().getVertices();
+	        for (Iterator iterator = set.iterator(); iterator.hasNext();) 
+	        {
+	            Vertex v = (Vertex) iterator.next();
+	            DoublePair p = new DoublePair(getX(v), getY(v));
+	            map.put(new Integer(v.hashCode()), p);
+	        }
+	        encoder.writeObject(map);
+	    }
 
-		/**
-		 * Almost verbatim from Jung source code.
-		 * 
-		 * Saves all the vertex locations to a file - this is enough to rebuild
-		 * the layout later since we'll know the connections later anyway.
-		 * 
-		 * @param encoder
-		 *            XML encoder to use
-		 * @throws an
-		 *             IOException if the file cannot be used
-		 */
-		public void persist(XMLEncoder encoder) {
-			Set set = getGraph().getVertices();
-			for (Iterator iterator = set.iterator(); iterator.hasNext();) {
-				Vertex v = (Vertex) iterator.next();
-				DoublePair p = new DoublePair(getX(v), getY(v));
-				map.put(new Integer(v.hashCode()), p);
-			}
-			encoder.writeObject(map);
-		}
-
-		/**
-		 * Almost verbatim from Jung source code. Restores all vertex locations
-		 * from a file; does nothing if loading fails.
-		 * 
-		 * @param decode
-		 *            XML decoder to use
-		 */
-		public void restore(XMLDecoder decoder) throws IOException,
-				ClassNotFoundException {
-			Map<Integer, DoublePair> sourceMap = (Map<Integer, DoublePair>) decoder
-					.readObject();
-			for (Iterator<Map.Entry<Integer, DoublePair>> mi = sourceMap
-					.entrySet().iterator(); mi.hasNext();) {
-				Map.Entry<Integer, DoublePair> e = mi.next();
-				DoublePair p = e.getValue();
-				map.put(e.getKey(), new PersistentLayout.Point(p.getX(), p
-						.getY()));
-			}
-			initializeLocations();
-			locked = true;
-		}
+	    /** Almost verbatim from Jung source code.
+	     * Restores all vertex locations from a file; does nothing if loading fails.
+	     * 
+	     * @param decode XML decoder to use
+	     */
+	    public void restore(XMLDecoder decoder) throws IOException, ClassNotFoundException {
+	        Map<Integer,DoublePair> sourceMap = (Map<Integer,DoublePair>) decoder.readObject();
+	        for(Iterator<Map.Entry<Integer,DoublePair> > mi=sourceMap.entrySet().iterator();mi.hasNext();)
+	        {
+	        	Map.Entry<Integer, DoublePair> e = mi.next();DoublePair p = e.getValue();
+	        	map.put(e.getKey(), new PersistentLayout.Point(p.getX(),p.getY()));
+	        }
+	        initializeLocations();
+	        locked = true;
+	    }
 	}
+
 
 	public void mouseClicked(MouseEvent e) {
 	}
@@ -877,20 +800,20 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	public void mouseExited(MouseEvent e) {
 	}
 
-	// The following is from
-	// http://java.sun.com/docs/books/tutorial/uiswing/components/menu.html#popup
-
+	// The following is from http://java.sun.com/docs/books/tutorial/uiswing/components/menu.html#popup
+	
 	public void mousePressed(MouseEvent e) {
 		maybeShowPopup(e);
 	}
 
-	public void mouseReleased(MouseEvent e) {
+	public void mouseReleased(MouseEvent e) 
+	{
 		maybeShowPopup(e);
 	}
-
 	private void maybeShowPopup(MouseEvent e) {
-		if (e.isPopupTrigger()) {
-			popupMenu.show(e.getComponent(), e.getX(), e.getY());
-		}
-	}
+        if (e.isPopupTrigger()) {
+            popupMenu.show(e.getComponent(),
+                       e.getX(), e.getY());
+        }
+    }
 }

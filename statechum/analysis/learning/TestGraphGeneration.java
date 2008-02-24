@@ -48,100 +48,99 @@ import edu.uci.ics.jung.utils.UserData;
 
 public class TestGraphGeneration {
 	public static final String EDGE = " EDGE";
-
 	public static final String VERTEX = "VERTEX";
-
-	private static void addSingletonLabel(DirectedSparseEdge e, String label) {
-		Set<String> labelSet = new HashSet<String>();
-		labelSet.add(label);
-		e.setUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
+	
+	private static void addSingletonLabel(DirectedSparseEdge e, String label)
+	{
+		Set<String> labelSet = new HashSet<String>();labelSet.add(label);
+		e.setUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);		
 	}
-
-	public static DirectedSparseGraph buildEVGraph(String graphString) {
-		DirectedSparseGraph g = TestFSMAlgo.buildGraph(graphString,
-				"simpleGraph");
+	
+	public static DirectedSparseGraph buildEVGraph(String graphString)
+	{
+		DirectedSparseGraph g = TestFSMAlgo.buildGraph(graphString, "simpleGraph");
 		g.getEdgeConstraints().clear();
 		List<Edge> newEdges = new LinkedList();
-		for (DirectedSparseEdge e : (Set<DirectedSparseEdge>) g.getEdges()) {
-			Collection<String> labels = (Collection<String>) e
-					.getUserDatum(JUConstants.LABEL);
+		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		{
+			Collection<String> labels = (Collection<String>)e.getUserDatum(JUConstants.LABEL);
 			e.removeUserDatum(JUConstants.LABEL);
-			Iterator<String> labelIt = labels.iterator();
+			Iterator<String> labelIt = labels.iterator(); 
 			e.addUserDatum(EDGE, labelIt.next(), UserData.SHARED);
-			while (labelIt.hasNext()) {
-				DirectedSparseEdge newEdge = new DirectedSparseEdge(e
-						.getSource(), e.getDest());
+			while(labelIt.hasNext())
+			{
+				DirectedSparseEdge newEdge = new DirectedSparseEdge(e.getSource(),e.getDest());
 				newEdge.setUserDatum(EDGE, labelIt.next(), UserData.SHARED);
 				newEdges.add(newEdge);
 			}
 		}
-
-		for (Edge e : newEdges)
+		
+		for(Edge e:newEdges)
 			g.addEdge(e);
-
-		for (DirectedSparseVertex v : (Set<DirectedSparseVertex>) g
-				.getVertices()) {
-			v.addUserDatum(VERTEX, v.getUserDatum(JUConstants.LABEL),
-					UserData.SHARED);
-			v.removeUserDatum(JUConstants.LABEL);
+		
+		for(DirectedSparseVertex v:(Set<DirectedSparseVertex>)g.getVertices())
+		{
+			 v.addUserDatum(VERTEX, v.getUserDatum(JUConstants.LABEL), UserData.SHARED);
+			 v.removeUserDatum(JUConstants.LABEL);
 		}
-
+		
 		return g;
 	}
 
-	public void checkEquivalence(DirectedSparseGraph g, String expected) {
-		for (DirectedSparseEdge e : (Set<DirectedSparseEdge>) g.getEdges())
-			addSingletonLabel(e, (String) e.getUserDatum(EDGE));
-
-		for (DirectedSparseVertex v : (Set<DirectedSparseVertex>) g
-				.getVertices()) {
-			v.addUserDatum(JUConstants.LABEL, v.getUserDatum(VERTEX),
-					UserData.SHARED);
-			v.removeUserDatum(VERTEX);
+	public void checkEquivalence(DirectedSparseGraph g, String expected)
+	{
+		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+			addSingletonLabel(e, (String)e.getUserDatum(EDGE));
+		
+		for(DirectedSparseVertex v:(Set<DirectedSparseVertex>)g.getVertices())
+		{
+			 v.addUserDatum(JUConstants.LABEL, v.getUserDatum(VERTEX), UserData.SHARED);
+			 v.removeUserDatum(VERTEX);
 		}
-		// updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
-		TestFSMAlgo.checkM(g, expected);
+		//updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
+		TestFSMAlgo.checkM(g,expected);
 	}
-
+	
 	@Test
-	public final void testA() {
+	public final void testA()
+	{
 		String graphString = "S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0";
-		DirectedSparseGraph g = buildEVGraph(graphString);
-		checkEquivalence(g, graphString);
+		DirectedSparseGraph g=buildEVGraph(graphString);
+		checkEquivalence(g,graphString);
 	}
-
+	
 	@Test
-	public final void testB() {
+	public final void testB()
+	{
 		String graphString = "A-a->B\nA-b->B-a->A-c->D";
-		DirectedSparseGraph g = buildEVGraph(graphString);
-		checkEquivalence(g, graphString);
+		DirectedSparseGraph g=buildEVGraph(graphString);
+		checkEquivalence(g,graphString);
 	}
 
-	/**
-	 * Holds the JFrame to see the graphs being dealt with. Usage:
-	 * 
+ 	/** Holds the JFrame to see the graphs being dealt with. Usage:
 	 * <pre>
-	 * updateFrame(g);// a public method
+	 * 		updateFrame(g);// a public method
 	 * </pre>
-	 * 
 	 * where <i>g</i> is the graph to be displayed.
 	 */
 	protected static Visualiser visFrame = null;
-
+	
 	@BeforeClass
-	public static void initJungViewer() // initialisation - once only for all
-										// tests in this class
+	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
 		Visualiser.disposeFrame();
 	}
 
 	@AfterClass
-	public static void cleanUp() {
+	public static void cleanUp()
+	{
 		Visualiser.disposeFrame();
-	}
+	}	
 
+	
 	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite() {
+	public static junit.framework.Test suite()
+	{
 		return new JUnit4TestAdapter(TestGraphGeneration.class);
 	}
 }

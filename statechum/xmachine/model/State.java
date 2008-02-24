@@ -19,15 +19,13 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.xmachine.model;
 
 public class State {
-
+	
 	private String label;
-
 	private MemState memory;
-
 	boolean start, term;
-
-	public State(String label) {
-		this.label = label;
+	
+	public State(String label){
+		this.label=label;
 	}
 
 	public MemState getMemory() {
@@ -41,11 +39,12 @@ public class State {
 	public String getLabel() {
 		return label;
 	}
-
-	public boolean equals(State s) {
-		if (s.getLabel().equals(this.getLabel())) {
+	
+	public boolean equals(State s){
+		if(s.getLabel().equals(this.getLabel())){
 			return true;
-		} else
+		}
+		else
 			return false;
 	}
 
@@ -64,5 +63,6 @@ public class State {
 	public void setTerm(boolean term) {
 		this.term = term;
 	}
+	
 
 }

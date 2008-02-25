@@ -1,0 +1,8 @@
+active 
++ ini load add update_critiques select_multiple align save quit exit
++ ini add update_critiques remove update_critiques generate_code select_directory select_single edit_prop save_as select_directory quit exit
++ ini load add update_critiques save select_multiple align quit save
++ ini new add update_critiques add update_critiques select_single select_single reorder save_as select_directory quit exit
++ ini add update_critiques select_single edit_fig add update_critiques select_multiple align save_as select_directory quit
++ ini add unselect quit exit
+

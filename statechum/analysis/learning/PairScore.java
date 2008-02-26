@@ -20,7 +20,7 @@ package statechum.analysis.learning;
 
 import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 import statechum.JUConstants;
-import edu.uci.ics.jung.graph.Vertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 /** Important: although compatibility score is recorded and reported, it is ignored in 
  * all computations since it is considered for information only. Hence there is no
@@ -30,7 +30,7 @@ public class PairScore extends StatePair
 {
 	private final int score, compatibilityScore;
 
-	public PairScore(Vertex q, Vertex r, int sc, int compat) {
+	public PairScore(CmpVertex q, CmpVertex r, int sc, int compat) {
 		super(q, r);
 		score = sc;compatibilityScore = compat;
 	}

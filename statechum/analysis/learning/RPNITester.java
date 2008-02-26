@@ -33,6 +33,9 @@ import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.experiments.AccuracyAndQuestionsExperiment;
 import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.analysis.learning.experiments.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.ComputeQuestions;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
@@ -134,12 +137,12 @@ public class RPNITester {
 				//DirectedSparseGraph g=RPNIBlueFringeLearner.initialise();
 				//g.getEdgeConstraints().clear();
 				l.init(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
-				ComputeStateScores aa = l.getScoreComputer();
+				LearnerGraph aa = l.getScoreComputer();
 				//l.findVertex(JUConstants.PROPERTY, "init",model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 	
 				System.out.println("computing pairs");
 				//StatePair pair = (StatePair)l.chooseStatePairs(model, sPlus, sMinus).pop();
-				Stack stk = aa.chooseStatePairs();
+				Stack stk = aa.pairscores.chooseStatePairs();
 				StatePair pair = (StatePair) stk.peek();
 				while(!stk.isEmpty())
 				{
@@ -150,11 +153,11 @@ public class RPNITester {
 				System.out.println("merging");
 				//DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);
 				//System.out.println("Pair : "+pair+" compatibility: "+aa.computePairCompatibilityScore(pair));
-				ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(aa, pair);
+				LearnerGraph temp = MergeStates.mergeAndDeterminize(aa, pair);
 				
 				System.out.println("generating questions");
 				//l.generateQuestions(model, temp, pair);
-				aa.computeQS(pair, temp);
+				ComputeQuestions.computeQS(pair, aa,temp);
 			}			
 
 		} catch (FileNotFoundException e1) {

@@ -38,7 +38,9 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
-import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.RPNIBlueFringeLearner.OrigStatePair;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -66,15 +68,21 @@ public class TestFSMAlgo {
 
 	static protected StatePair constructPair(String a,String b)
 	{
-		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
-		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
-		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
+		DeterministicVertex aV = new DeterministicVertex(a), bV = new DeterministicVertex(b);
 		return new StatePair(aV,bV);
 	}
 
-	static protected void checkLess(String a, String b, String c, String d)
+	static protected OrigStatePair constructOrigPair(String a,String b)
 	{
-		StatePair p = constructPair(a,b), q=constructPair(c,d);
+		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
+		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
+		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
+		return new OrigStatePair(aV,bV);
+	}
+
+	@SuppressWarnings("unchecked")
+	static private void checkLessHelper(Comparable p, Comparable q)
+	{
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -83,16 +91,28 @@ public class TestFSMAlgo {
 		assertEquals(0,q.compareTo(q));
 	}
 	
-	@Test
-	public void testStatePairEquality()
+	static protected void checkLess(String a, String b, String c, String d)
 	{
-		StatePair p = constructPair("a","b"), q=constructPair("a","b");
+		checkLessHelper(constructPair(a,b),constructPair(c,d));
+		checkLessHelper(constructOrigPair(a,b),constructOrigPair(c,d));
+	}
+	
+	@SuppressWarnings("unchecked")
+	static private void PairEqualityTestingHelper(Comparable p, Comparable q)
+	{
 		assertTrue(p.equals(p));
 		assertTrue(p.equals(q));
 		assertFalse(p.equals(null));
 		assertFalse(p.equals("test"));
 		assertFalse(p.equals(constructPair("a","c")));
 		assertFalse(p.equals(constructPair("b","b")));
+	}
+	
+	@Test
+	public void testStatePairEquality()
+	{
+		PairEqualityTestingHelper(constructPair("a","b"), constructPair("a","b"));
+		PairEqualityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"));
 	}
 	
 	@Test
@@ -125,11 +145,10 @@ public class TestFSMAlgo {
 				
 				if (fromVertex == null)
 				{
-					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
+					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(from);
 					if (existingVertices.isEmpty())
 						fromVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 					fromVertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
-					fromVertex.addUserDatum(JUConstants.LABEL, from, UserData.SHARED);
 					existingVertices.put(from, fromVertex);
 					g.addVertex(fromVertex);
 				}
@@ -145,10 +164,9 @@ public class TestFSMAlgo {
 				else
 					if (toVertex == null)
 					{
-						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex();
+						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(to);
 						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
 						toVertex.addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
-						toVertex.addUserDatum(JUConstants.LABEL, to, UserData.SHARED);
 						existingVertices.put(to, toVertex);
 						g.addVertex(toVertex);
 					}
@@ -657,7 +675,7 @@ public class TestFSMAlgo {
 		checkM(graph,expected,graph.init,expected.init);
 	}
 	
-	public static class StringPair implements Comparable
+	public static class StringPair implements Comparable<StringPair>
 	{
 		public final String a,b;
 		
@@ -684,8 +702,7 @@ public class TestFSMAlgo {
 			return "( "+a+","+b+" )";
 		}
 
-		public int compareTo(Object o) {
-			StringPair pB = (StringPair)o;
+		public int compareTo(StringPair pB) {
 			int aStr = a.compareTo(pB.a);
 			int bStr = b.compareTo(pB.b);
 			
@@ -964,7 +981,7 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
-		Vertex expected = (enteredName == null)? null:new ComputeStateScores(g).findVertex(enteredName);
+		Vertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path)));
 	}
 	
@@ -982,8 +999,8 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
-		Vertex starting = new ComputeStateScores(g).findVertex(startingState);
-		Vertex expected = (enteredName == null)? null:new ComputeStateScores(g).findVertex(enteredName);
+		Vertex starting = new LearnerGraph(g).findVertex(startingState);
+		Vertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, starting,Arrays.asList(path)));
 	}
 	

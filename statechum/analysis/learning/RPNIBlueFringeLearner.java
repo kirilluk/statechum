@@ -18,6 +18,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
+import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
+
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -31,7 +33,9 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -130,15 +134,79 @@ public class RPNIBlueFringeLearner extends Observable {
 		//updateGraph(model);
 		return blues;
 	}
+
+	public static class OrigStatePair implements Comparable<OrigStatePair> {
+		
+		private Vertex q, r;
+		
+		public OrigStatePair(Vertex blue, Vertex red){
+			this.q = blue;
+			this.r = red;
+		}
+		
+		private static String strLabel(Vertex v){
+			String vLabel = v.getUserDatum(JUConstants.LABEL).toString();
+			return vLabel;
+		}
+		
+		public int compareTo(OrigStatePair pB){
+			int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
+			int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));
+			
+			if(qLabels != 0)
+				return qLabels; 
+			return rLabels;
+		}
+		
+		public Vertex getQ(){
+			return q;
+		}
+		
+		public Vertex getR(){
+			return r;
+		}
+		
+		public String toString(){
+			return "[ "+((q == null)?"NULL":q.getUserDatum(JUConstants.LABEL))+", "+((r == null)?"NULL":r.getUserDatum(JUConstants.LABEL))+" ]";
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode(){
+			final int PRIME = 31;
+			return q.getUserDatum(JUConstants.LABEL).hashCode()+PRIME*r.getUserDatum(JUConstants.LABEL).hashCode();
+		}
+		
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object o){
+			if(o == null)
+				return false;
+			if(o instanceof OrigStatePair){
+				OrigStatePair other = (OrigStatePair)o;
+				Object otherQ = (Object)other.getQ().getUserDatum(JUConstants.LABEL);
+				Object otherR = (Object)other.getR().getUserDatum(JUConstants.LABEL);
+				Object thisQ = (Object)q.getUserDatum(JUConstants.LABEL);
+				Object thisR = (Object)r.getUserDatum(JUConstants.LABEL);
+				if(thisQ.equals(otherQ)&&thisR.equals(otherR))
+					return true;
+			}
+			return false;
+		}
+	}	
 	
 	/** Makes a copy of the graph given to it and merges states in the pair supplied. */
-	protected DirectedSparseGraph mergeAndDeterminize(Graph model, StatePair pair){
+	protected DirectedSparseGraph mergeAndDeterminize(Graph model, OrigStatePair pair){
 		Graph original = (Graph)model.copy();
 		Vertex q = findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
 		Vertex qDash = findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
-		pair = new StatePair(q,qDash);
+		pair = new OrigStatePair(q,qDash);
 		DirectedSparseGraph temp = merge((DirectedSparseGraph)original, pair);
-		StatePair mergable = findMergablePair(temp);
+		OrigStatePair mergable = findMergablePair(temp);
 		while(mergable!=null){
 			temp=merge(temp, mergable);
 			mergable = findMergablePair(temp);
@@ -163,7 +231,7 @@ public class RPNIBlueFringeLearner extends Observable {
 		setChanged();
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
-			StatePair pair = (StatePair)possibleMerges.pop();
+			OrigStatePair pair = (OrigStatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
 			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
 				pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
@@ -428,7 +496,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	/*
 	 * needs to be refactored into smaller methods
 	 */
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model, StatePair pair){
+	protected List<List<String>> generateQuestions(DirectedSparseGraph model, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
@@ -602,7 +670,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	}
 
 	
-	protected static DirectedSparseGraph merge(DirectedSparseGraph model, StatePair pair){
+	protected static DirectedSparseGraph merge(DirectedSparseGraph model, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex qDash = pair.getR();
 		Iterator<DirectedSparseEdge> inEdges = q.getInEdges().iterator();
@@ -672,7 +740,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param model
 	 * @return a pair of states to be merged or null if the graph is deterministic.
 	 */
-	protected static StatePair findMergablePair(DirectedSparseGraph model){
+	protected static OrigStatePair findMergablePair(DirectedSparseGraph model){
 		List<Vertex> queue = getBFSList(model);
 		Iterator<Vertex> queueIt = queue.iterator();
 		while(queueIt.hasNext()){
@@ -690,11 +758,11 @@ public class RPNIBlueFringeLearner extends Observable {
 						doneLabels.put(label, e);
 					else {
 						DirectedSparseEdge eDash = doneLabels.get(label);
-						StatePair p = null;
+						OrigStatePair p = null;
 						if(isInitial(eDash.getDest()))
-							p = new StatePair(e.getDest(), eDash.getDest());
+							p = new OrigStatePair(e.getDest(), eDash.getDest());
 						else
-							p = new StatePair(eDash.getDest(),e.getDest());
+							p = new OrigStatePair(eDash.getDest(),e.getDest());
 						if(!different(p)) // KIRR: strange - the two should never be different if the original pair to choose was selected properly
 							return p;
 					}
@@ -704,18 +772,18 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 
-	protected Stack chooseStatePairs(DirectedSparseGraph g, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+	protected Stack<OrigStatePair> chooseStatePairs(DirectedSparseGraph g, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
-		TreeMap<Integer,Vector<StatePair> > scoreToPair = new TreeMap<Integer,Vector<StatePair> >();// maps scores to pairs which have those scores
+		TreeMap<Integer,Vector<OrigStatePair> > scoreToPair = new TreeMap<Integer,Vector<OrigStatePair> >();// maps scores to pairs which have those scores
 		while(!blueStack.isEmpty()){
-			TreeMap<Integer,Vector<StatePair> > singleSet = new TreeMap<Integer,Vector<StatePair> >();
+			TreeMap<Integer,Vector<OrigStatePair> > singleSet = new TreeMap<Integer,Vector<OrigStatePair> >();
 			Vertex blueVertex = blueStack.pop();
 			Stack<Vertex> redStack = new Stack<Vertex>();
 			redStack.addAll(findVertices(JUConstants.COLOUR, JUConstants.RED, g));
 			while(!redStack.isEmpty()){
 				Vertex redVertex = redStack.pop();
-				StatePair pair = new StatePair(blueVertex, redVertex);
+				OrigStatePair pair = new OrigStatePair(blueVertex, redVertex);
 				doneEdges = new HashSet();
 				Integer score = new Integer(computeScore(g,pair));
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
@@ -725,13 +793,13 @@ public class RPNIBlueFringeLearner extends Observable {
 						continue;
 					if(singleSet.get(score) == null){
 						// nothing yet with this score
-						Vector<StatePair> s = new Vector<StatePair>();
+						Vector<OrigStatePair> s = new Vector<OrigStatePair>();
 						s.add(pair);
 						singleSet.put(score, s);
 					}
 					else{
 						// already some pairs with this score
-						Vector<StatePair> s = singleSet.get(score);
+						Vector<OrigStatePair> s = singleSet.get(score);
 						s.add(pair);
 						singleSet.put(score, s);
 					}	
@@ -747,14 +815,14 @@ public class RPNIBlueFringeLearner extends Observable {
 				Iterator keyIt = singleSet.keySet().iterator();
 				while(keyIt.hasNext()){
 					Integer key = (Integer)keyIt.next();
-					Vector<StatePair> s = scoreToPair.get(key);
+					Vector<OrigStatePair> s = scoreToPair.get(key);
 					if(s!=null){
 						s.addAll(singleSet.get(key));
 						Collections.sort(s);
 					}
 					else
 					{
-						Vector<StatePair> value = singleSet.get(key);
+						Vector<OrigStatePair> value = singleSet.get(key);
 						Collections.sort(value);
 						scoreToPair.put(key, value);
 					}
@@ -764,22 +832,34 @@ public class RPNIBlueFringeLearner extends Observable {
 		return createOrderedStack(scoreToPair);
 	}
 	
-	protected Stack createOrderedStack(TreeMap<Integer,Vector<StatePair> > sets){
-		Stack<StatePair> values = new Stack<StatePair>();
+	protected Stack<OrigStatePair> createOrderedStack(TreeMap<Integer,Vector<OrigStatePair> > sets){
+		Stack<OrigStatePair> values = new Stack<OrigStatePair>();
 		if(this.pairsMergedPerHypothesis>0){
 			Stack<Integer> keys = new Stack<Integer>();
 			keys.addAll(sets.keySet());
 			for(int i = 0;i< this.pairsMergedPerHypothesis; i++){
 				if(keys.isEmpty())
 					continue;
-				Vector<StatePair> pairs = sets.get(keys.pop());
+				Vector<OrigStatePair> pairs = sets.get(keys.pop());
 				values.addAll(pairs);
 			}
 		}
-		else for(Vector<StatePair> v:sets.values()){
+		else for(Vector<OrigStatePair> v:sets.values()){
 			values.addAll(v);
 		}
 		return values;
+	}
+	
+	/** Checks for shallow compatibility between states, in other words if the two are both accept or both reject states
+	 * 
+	 * @param pair a pair states to check for compatibility. 
+	 * @return whether the two are different.
+	 */
+	protected static boolean different(OrigStatePair pair){
+		boolean qAcceptedO = isAccept(pair.getQ());
+		boolean rAcceptedO = isAccept(pair.getR());
+
+		return qAcceptedO != rAcceptedO;
 	}
 	
 	/** Checks for shallow compatibility between states, in other words if the two are both accept or both reject states
@@ -803,7 +883,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param blueRed the pair of states
 	 * @return
 	 */
-	protected int computeScore(DirectedSparseGraph original, StatePair blueRed){
+	protected int computeScore(DirectedSparseGraph original, OrigStatePair blueRed){
 		int returnValue = 0;
 		if(different(blueRed))
 				return -1;
@@ -822,7 +902,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				string.add(labelIt.next());
 				Vertex qi = e.getDest();
 				Vertex qj = getVertex(original,blueRed.getR(), string);
-				StatePair newPair = new StatePair(qi, qj);
+				OrigStatePair newPair = new OrigStatePair(qi, qj);
 				if(qj!=null){
 					int equivalent = computeScore(original, newPair);
 					if(equivalent<0){
@@ -887,7 +967,7 @@ public class RPNIBlueFringeLearner extends Observable {
 					pta.addEdge(e);
 				}
 				else
-					if (different(new StatePair(existing,newVertex)))
+					if (different(new OrigStatePair(existing,newVertex)))
 					{
 						existing.addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
 						updateGraph(pta);
@@ -1003,6 +1083,58 @@ public class RPNIBlueFringeLearner extends Observable {
 				return v;
 		}
 		return null;
+	}
+	
+	/** If the supplied vertex is already known (its label is stored in the map), the one from the map is returned;
+	 * otherwise a reasonable copy is made, it is then both returned and stored in the map.
+	 * 
+	 * @param newVertices the map from labels to new vertices
+	 * @param g the graph which will have the new vertex added to it
+	 * @param origVertex the vertex to copy
+	 * @return a copy of the vertex
+	 */
+	private static CmpVertex copyVertex(Map<String,CmpVertex> newVertices, DirectedSparseGraph g,Vertex origVertex)
+	{
+		String vertName = (String)origVertex.getUserDatum(JUConstants.LABEL);
+		CmpVertex newVertex = newVertices.get(vertName);
+		if (newVertex == null) { 
+			newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(vertName);
+			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
+			if (RPNIBlueFringeLearner.isInitial(origVertex))
+				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			newVertices.put(vertName,newVertex);g.addVertex(newVertex);
+		}
+		return newVertex;
+	}
+	
+	/** A fast graph copy, which only copies labels and accept labelling. Transition labels are cloned.
+	 * This one only copies vertices which participate in transitions. 
+	 */
+	@SuppressWarnings("unchecked")
+	public static DirectedSparseGraph copy(Graph g)
+	{
+		DirectedSparseGraph result = new DirectedSparseGraph();
+		Map<String,CmpVertex> newVertices = new TreeMap<String,CmpVertex>();
+		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		{
+			CmpVertex newSrc = copyVertex(newVertices,result,e.getSource()),
+				newDst = copyVertex(newVertices, result, e.getDest());
+			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
+			newEdge.addUserDatum(JUConstants.LABEL, ((HashSet<String>)e.getUserDatum(JUConstants.LABEL)).clone(), UserData.SHARED);
+			result.addEdge(newEdge);
+		}
+		return result;
+	}
+	
+	/** Finds a vertex with a given name.
+	 * 
+	 * @param name the name of the node to look for.
+	 * @param g the graph to search in
+	 * @return vertex found.
+	 */
+	public static CmpVertex findVertexNamed(String name,Graph g)
+	{
+		return (CmpVertex)findVertex(JUConstants.LABEL,name,g);
 	}
 	
 	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){

@@ -31,6 +31,9 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.JUConstants;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.rpnicore.ComputeQuestions;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 
 public class RPNIBlueFringeSootLearner extends
 		RPNIBlueFringeLearnerTestComponentOpt {
@@ -60,23 +63,23 @@ public class RPNIBlueFringeSootLearner extends
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		Set<StringPair> impossiblePairs = new HashSet<StringPair>();
-		ComputeStateScores newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
+		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
-		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
+		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
-		Stack<PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(scoreComputer, pair);
+			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
 			{
-				questions = scoreComputer.computeQS(pair, temp);
+				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
@@ -85,7 +88,7 @@ public class RPNIBlueFringeSootLearner extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				Vertex tempVertex = temp.getVertex(question);
-				int answer = checkWithEndUser(scoreComputer.getGraph(),question, new Object [] {"Test"});
+				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if(answer>=0){
 					String from = oracle.getFrom();
@@ -100,7 +103,7 @@ public class RPNIBlueFringeSootLearner extends
 				else if(answer == USER_ACCEPTED)
 				{
 					++counterAccepted;
-					newPTA.augmentPTA(question, true);++plusSize;
+					newPTA.paths.augmentPTA(question, true);++plusSize;
 				}
 				else 
 						throw new IllegalArgumentException("unexpected user choice");
@@ -143,21 +146,21 @@ public class RPNIBlueFringeSootLearner extends
 				scoresToIterations.put(pair, iterations);
 			}
 			
-			possibleMerges = scoreComputer.chooseStatePairs();
+			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		}
-		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
+		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.paths.getStatistics(true)+" ] ");
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
 		report.write("\n[ Pair scores to iteration numbers:"+pairScoresAndIterations(scoresToIterations,"MERGED-ITERATIONS"));
 		report.write("\n[ Restart scores to iteration numbers:"+pairScoresAndIterations(restartsToIterations,"RESTART-ITERATIONS"));
 		report.write("\n[ Pairs merged (score-number of times):"+HistogramToSeries(whichScoresWereUsedForMerging,"MERGED"));
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
-		DirectedSparseGraph result = scoreComputer.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
+		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		updateGraph(result);
 		return result;
 	}
 	
-	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, ComputeStateScores temp){
+	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, LearnerGraph temp){
 		Collection<List<String>> filteredQuestions = new HashSet<List<String>>();
 		for (List<String> list : questions) {
 			Vertex v = temp.getVertex(list);

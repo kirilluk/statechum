@@ -47,7 +47,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
-			StatePair pair = (StatePair)possibleMerges.pop();
+			OrigStatePair pair = (OrigStatePair)possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize(model, pair);
 			pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 			pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
@@ -141,7 +141,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 		return tempRed;
 	}
 	
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, StatePair pair){
+	protected List<List<String>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
@@ -178,7 +178,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			Vertex v = getVertex(model, pathToPoint);
 			if(v == null)
 				questions.add(pathToPoint);
-			else if(different(new StatePair(v, tempV)))
+			else if(different(new OrigStatePair(v, tempV)))
 				questions.add(pathToPoint);
 			
 		}

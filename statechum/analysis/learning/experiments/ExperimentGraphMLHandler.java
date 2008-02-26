@@ -83,8 +83,8 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             throw new FatalException("Error parsing graph. Graph element must be specified before node element.");
         }
 
-        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex());
         String idString = (String) attributeMap.remove("id");
+        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(idString));
 
         try {
             mLabeller.setLabel((Vertex) vertex,idString);

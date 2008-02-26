@@ -23,12 +23,11 @@ import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import java.util.List;
 import java.util.Set;
 
-import junit.framework.JUnit4TestAdapter;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.analysis.learning.ComputeStateScores.IDMode;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraph.IDMode;
 import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import edu.uci.ics.jung.graph.Vertex;
@@ -45,7 +44,7 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new ComputeStateScores(0).setMode(IDMode.POSITIVE_NEGATIVE).augmentPTA(plusStrings, true).getGraph();
+			actualC = new LearnerGraph().setMode(IDMode.POSITIVE_NEGATIVE).paths.augmentPTA(plusStrings, true).paths.getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);
@@ -72,7 +71,7 @@ public class TestPTAConstruction
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
 			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.getScoreComputer().getGraph();
+			actualC = l.getScoreComputer().paths.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -154,7 +153,7 @@ public class TestPTAConstruction
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
 			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.getScoreComputer().getGraph();
+			actualC = l.getScoreComputer().paths.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{

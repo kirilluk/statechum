@@ -19,24 +19,23 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning;
 
 import statechum.JUConstants;
-import edu.uci.ics.jung.graph.*;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 public class StatePair implements Comparable<StatePair> {
 	
-	private Vertex q, r;
+	private CmpVertex q, r;
 	
-	public StatePair(Vertex q, Vertex r){
-		this.q = q;
-		this.r = r;
+	public StatePair(CmpVertex blue, CmpVertex red){
+		this.q = blue;
+		this.r = red;
 	}
 	
-	private String strLabel(Vertex v){
+	private static String strLabel(CmpVertex v){
 		String vLabel = v.getUserDatum(JUConstants.LABEL).toString();
 		return vLabel;
 	}
 	
-	public int compareTo(StatePair b){
-		StatePair pB = (StatePair)b;
+	public int compareTo(StatePair pB){
 		int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
 		int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));
 		
@@ -45,11 +44,11 @@ public class StatePair implements Comparable<StatePair> {
 		return rLabels;
 	}
 	
-	public Vertex getQ(){
+	public CmpVertex getQ(){
 		return q;
 	}
 	
-	public Vertex getR(){
+	public CmpVertex getR(){
 		return r;
 	}
 	
@@ -75,10 +74,10 @@ public class StatePair implements Comparable<StatePair> {
 			return false;
 		if(o instanceof StatePair){
 			StatePair other = (StatePair)o;
-			Object otherQ = (Object)other.getQ().getUserDatum(JUConstants.LABEL);
-			Object otherR = (Object)other.getR().getUserDatum(JUConstants.LABEL);
-			Object thisQ = (Object)q.getUserDatum(JUConstants.LABEL);
-			Object thisR = (Object)r.getUserDatum(JUConstants.LABEL);
+			Object otherQ = other.getQ().getUserDatum(JUConstants.LABEL);
+			Object otherR = other.getR().getUserDatum(JUConstants.LABEL);
+			Object thisQ = q.getUserDatum(JUConstants.LABEL);
+			Object thisR = r.getUserDatum(JUConstants.LABEL);
 			if(thisQ.equals(otherQ)&&thisR.equals(otherR))
 				return true;
 		}

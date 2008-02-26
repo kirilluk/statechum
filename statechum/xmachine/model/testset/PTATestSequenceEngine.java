@@ -55,7 +55,7 @@ public class PTATestSequenceEngine
 	{
 		
 		/** Constructor for reject nodes. */
-		private Node() 
+		Node() 
 		{ 
 			ID = negativeNodeID;fsmState=null;
 		}

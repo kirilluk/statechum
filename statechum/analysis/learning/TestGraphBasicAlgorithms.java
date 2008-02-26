@@ -41,17 +41,15 @@ import org.junit.Test;
 import statechum.ArrayOperations;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 public class TestGraphBasicAlgorithms {
 	static public PairScore constructPairScore(String a,String b, int score)
 	{
-		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
-		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
-		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
+		DeterministicVertex aV = new DeterministicVertex(a), bV = new DeterministicVertex(b);
 		return new PairScore(aV,bV, score,score);
 	}
 
@@ -106,9 +104,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public void testDeterministicVertexComparison2()
 	{
-		DeterministicVertex p = new DeterministicVertex(), q= new DeterministicVertex();
-		p.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
-		q.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
+		DeterministicVertex p = new DeterministicVertex("A"), q= new DeterministicVertex("B");
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -128,7 +124,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testFindVertex0()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"));
 		Assert.assertNull(s.findVertex("Z"));
 		Assert.assertEquals("A", s.findVertex("A").getUserDatum(JUConstants.LABEL));
 		Assert.assertEquals("C", s.findVertex("C").getUserDatum(JUConstants.LABEL));
@@ -137,7 +133,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testFindVertex1()
 	{
-		ComputeStateScores s = new ComputeStateScores(0);
+		LearnerGraph s = new LearnerGraph();
 		Assert.assertNull(s.findVertex("Z"));
 		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
 	}
@@ -146,11 +142,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween1()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween1"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween1"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
@@ -160,11 +156,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween2()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween2"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween2"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("A"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("A"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
@@ -175,11 +171,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween3()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsSBetween3"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsSBetween3"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
@@ -193,11 +189,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween4()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
@@ -212,7 +208,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween5()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
 		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
@@ -220,7 +216,7 @@ public class TestGraphBasicAlgorithms {
 		});
 		initSet = initSet.cross(initSeq);
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
@@ -237,7 +233,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsSBetween6()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
 		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
@@ -247,7 +243,7 @@ public class TestGraphBasicAlgorithms {
 		});
 		initSet = initSet.cross(initSeq);
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
+		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
 		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
@@ -263,10 +259,10 @@ public class TestGraphBasicAlgorithms {
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0a()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(new DirectedSparseVertex()));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(new DeterministicVertex("non-existing-vertex")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -274,10 +270,10 @@ public class TestGraphBasicAlgorithms {
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0b()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(null));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(null));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -285,10 +281,10 @@ public class TestGraphBasicAlgorithms {
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0c()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("Q")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("Q")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -297,11 +293,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsToRed1()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed1"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed1"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("A")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("A")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -310,11 +306,11 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsToRed2()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed2"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsToRed2"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -323,14 +319,14 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsToRed3()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed3"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsToRed3"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},
 				new String[] {"c","b"},
 				new String[] {"c","d"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -339,12 +335,12 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsToRed4()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed4"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->C\nA-q->C", "testComputePathsToRed4"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"p"},
 				new String[] {"q"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -353,7 +349,7 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testComputePathsToRed5()
 	{
-		ComputeStateScores s = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5"));
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5"));
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},
@@ -361,7 +357,7 @@ public class TestGraphBasicAlgorithms {
 				new String[] {"c","d"},
 				new String[] {"p","q"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -369,28 +365,28 @@ public class TestGraphBasicAlgorithms {
 	@Test
 	public final void testGetVertex1()
 	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"));
+		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"));
 		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getUserDatum(JUConstants.LABEL).equals("A"));
 	}
 
 	@Test
 	public final void testGetVertex2()
 	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"));
+		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"));
 		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getUserDatum(JUConstants.LABEL).equals("C"));
 	}
 
 	@Test
 	public final void testGetVertex3()
 	{
-		ComputeStateScores score = new ComputeStateScores(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"));
+		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex3"));
 		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
 	}
 
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		ComputeStateScores.testMode = true;
+		LearnerGraph.testMode = true;
 		Visualiser.disposeFrame();
 	}
 	

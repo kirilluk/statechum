@@ -55,9 +55,9 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.ComputeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
-import statechum.analysis.learning.ComputeStateScores.IDMode;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraph.IDMode;
 import statechum.xmachine.model.testset.*;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
@@ -107,7 +107,7 @@ public class PathCompressionExperiment {
 
 		protected void loadGraph()
 		{
-			synchronized (ComputeStateScores.syncObj) 
+			synchronized (LearnerGraph.syncObj) 
 			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 		    	GraphMLFile graphmlFile = new GraphMLFile();
 		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
@@ -184,7 +184,7 @@ public class PathCompressionExperiment {
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParametersOnComputeStateScores(ComputeStateScores c);
+		protected abstract void changeParametersOnComputeStateScores(LearnerGraph c);
 
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
@@ -306,7 +306,7 @@ public class PathCompressionExperiment {
 					}
 					
 					@Override
-					protected void changeParametersOnComputeStateScores(ComputeStateScores c) 
+					protected void changeParametersOnComputeStateScores(LearnerGraph c) 
 					{
 						c.setMode(IDMode.POSITIVE_NEGATIVE);						
 					}

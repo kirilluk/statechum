@@ -20,6 +20,9 @@ package statechum.analysis.learning.spin;
 
 import statechum.JUConstants;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.rpnicore.ComputeQuestions;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
@@ -57,7 +60,7 @@ public class BlueFringeSpinLearner extends
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
-		ComputeStateScores newPTA = scoreComputer;// no need to clone - this
+		LearnerGraph newPTA = scoreComputer;// no need to clone - this
 													// is the job of
 													// mergeAndDeterminize
 													// anyway
@@ -67,17 +70,17 @@ public class BlueFringeSpinLearner extends
 		counterRejected = 0;
 		counterRestarted = 0;
 		counterEmptyQuestions = 0;
-		report.write("\n[ PTA: " + scoreComputer.getStatistics(false) + " ] ");
+		report.write("\n[ PTA: " + scoreComputer.paths.getStatistics(false) + " ] ");
 		setChanged();
 
-		Stack<PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		while (!possibleMerges.isEmpty()) {
 
 			iterations++;
 			// populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			ComputeStateScores temp = ComputeStateScores.mergeAndDeterminize(
+			LearnerGraph temp = MergeStates.mergeAndDeterminize(
 					scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
@@ -89,17 +92,17 @@ public class BlueFringeSpinLearner extends
 			// System.out.println(Thread.currentThread()+ " "+pair + "
 			// "+questions);
 			
-			if (!SpinUtil.check(temp.getGraph(), ltl)) {
+			if (!SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
-				newPTA.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
+				newPTA.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
 				System.out.println(counterexample.subList(0, counterexample.size()-1));
 				++minusSize;
 				restartLearning = true;
 			}
 			if ((score < this.certaintyThreshold && score > minCertaintyThreshold)
 					&& !restartLearning) {
-				questions = scoreComputer.computeQS(pair, temp);
+				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			}
@@ -108,7 +111,7 @@ public class BlueFringeSpinLearner extends
 
 				List<String> question = questionIt.next();
 				boolean accepted = isAccept(pair.getQ());
-				int answer = checkWithEndUser(scoreComputer.getGraph(),
+				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),
 						question, new Object[] { "LTL"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED) {
@@ -123,7 +126,7 @@ public class BlueFringeSpinLearner extends
 				if (answer == USER_ACCEPTED) {
 					++counterAccepted;
 					// sPlus.add(question);
-					newPTA.augmentPTA(question, true);
+					newPTA.paths.augmentPTA(question, true);
 					++plusSize;
 					// System.out.println(setByAuto+question.toString()+ "
 					// <yes>");
@@ -142,7 +145,7 @@ public class BlueFringeSpinLearner extends
 					LinkedList<String> subAnswer = new LinkedList<String>();
 					subAnswer.addAll(question.subList(0, answer + 1));
 					// sMinus.add(subAnswer);
-					newPTA.augmentPTA(subAnswer, false);
+					newPTA.paths.augmentPTA(subAnswer, false);
 					++minusSize;// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// once
@@ -215,13 +218,13 @@ public class BlueFringeSpinLearner extends
 				scoresToIterations.put(pair, iterations);
 			}
 
-			possibleMerges = scoreComputer.chooseStatePairs();
+			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		}
 		report.write("\n[ Questions: " + counterAccepted + " accepted "
 				+ counterRejected + " rejected resulting in "
 				+ counterRestarted + " restarts; " + counterEmptyQuestions
 				+ " empty sets of questions ]\n[ Learned automaton: "
-				+ scoreComputer.getStatistics(true) + " ] ");
+				+ scoreComputer.paths.getStatistics(true) + " ] ");
 		report.write("\n[ final sets of questions, plus: " + plusSize
 				+ " minus: " + minusSize + " ] ");
 		report.write("\n[ Pair scores to iteration numbers:"
@@ -235,7 +238,7 @@ public class BlueFringeSpinLearner extends
 		report.write("\n[ Pairs restarted (score-number of times):"
 				+ HistogramToSeries(restartScoreDistribution, "RESTARTED"));
 		report.write("\n Pair merge details: \n" + pairsMerged);
-		DirectedSparseGraph result = scoreComputer.getGraph();
+		DirectedSparseGraph result = scoreComputer.paths.getGraph();
 		result.addUserDatum(JUConstants.STATS, report.toString(),
 				UserData.SHARED);
 		updateGraph(result);
@@ -284,10 +287,7 @@ public class BlueFringeSpinLearner extends
 							.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 					dialog.addWindowListener(new WindowAdapter() {
 						public void windowClosing(WindowEvent we) {
-							jop
-									.setValue(new Integer(
-											JOptionPane.CLOSED_OPTION));// from
-																		// http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
+							jop.setValue(new Integer(JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
 						}
 					});
 					jop.addPropertyChangeListener(new PropertyChangeListener() {
@@ -306,13 +306,7 @@ public class BlueFringeSpinLearner extends
 								if (i == options.length)
 									i = USER_CANCELLED;// nothing was chosen
 								else
-									i = USER_ACCEPTED - i; // to ensure that
-															// zero translates
-															// into
-															// USER_ACCEPTED and
-															// other choices
-															// into lower
-															// numbers
+									i = USER_ACCEPTED - i;// to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers
 
 								// one of the choices was made, determine which
 								// one and close the window

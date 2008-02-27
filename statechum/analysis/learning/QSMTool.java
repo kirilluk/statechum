@@ -50,7 +50,7 @@ public class QSMTool {
 			BufferedReader in = new BufferedReader(new FileReader(args[0]));
 			String fileString;
 			String activePassive = in.readLine();
-			if (activePassive.equalsIgnoreCase("passive"))
+			if (activePassive.trim().equalsIgnoreCase("passive"))
 				active = false;
 			while ((fileString = in.readLine()) != null) {
 				process(fileString, sPlus, sMinus, ltl);

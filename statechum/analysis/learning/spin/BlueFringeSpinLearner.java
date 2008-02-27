@@ -85,7 +85,7 @@ public class BlueFringeSpinLearner extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-
+			
 			boolean restartLearning = false;// whether we need to rebuild a PTA
 											// and restart learning.
 
@@ -111,7 +111,9 @@ public class BlueFringeSpinLearner extends
 
 				List<String> question = questionIt.next();
 				boolean accepted = isAccept(pair.getQ());
-				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),
+				int answer = checkWithSPIN(question);
+				if(answer<0)
+					answer = checkWithEndUser(scoreComputer.paths.getGraph(),
 						question, new Object[] { "LTL"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED) {
@@ -217,7 +219,6 @@ public class BlueFringeSpinLearner extends
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);
 			}
-
 			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		}
 		report.write("\n[ Questions: " + counterAccepted + " accepted "
@@ -243,6 +244,17 @@ public class BlueFringeSpinLearner extends
 				UserData.SHARED);
 		updateGraph(result);
 		return result;
+	}
+	
+	protected int checkWithSPIN (List<String> question){
+		int ret = -1;
+		if(!SpinUtil.check(question, ltl)){
+			List<String> counterExample = SpinUtil.getCurrentCounterExample();
+			System.out.println(counterExample.subList(0, counterExample.size()));
+			return counterExample.size()-1;
+		}
+		else
+			return ret;
 	}
 	
 	protected int checkWithEndUser(DirectedSparseGraph model,

@@ -1,8 +1,12 @@
-active 
-+ ini load add update_critiques select_multiple align save quit exit
-+ ini add update_critiques remove update_critiques generate_code select_directory select_single edit_prop save_as select_directory quit exit
-+ ini load add update_critiques save select_multiple align quit save
-+ ini new add update_critiques add update_critiques select_single select_single reorder save_as select_directory quit exit
-+ ini add update_critiques select_single edit_fig add update_critiques select_multiple align save_as select_directory quit
-+ ini add unselect quit exit
-
+passive
++ ini load add updatecritiques selectmultiple align save quit
++ ini add updatecritiques remove updatecritiques generatecode selectdirectory selectsingle editprop saveas selectdirectory quit
++ ini load add updatecritiques save selectmultiple align quit save
++ ini new add updatecritiques add updatecritiques selectsingle selectsingle saveas selectdirectory quit 
++ ini add updatecritiques selectsingle editprop add updatecritiques selectmultiple align saveas selectdirectory quit
++ ini add updatecritiques selectsingle unselect quit
+ltl s !((!save) U (load || saveas))||![]((ini) -> X[](!ini))||!((!unselect) U (selectsingle || selectmultiple))||![](((add || remove) -> X(updatecritiques))||!updatecritiques)||!(!(selectsingle && selectmultiple) U (load || add))
+#ltl s ![]((ini) -> X[](!ini))
+#ltl s !((!unselect) U (selectsingle || selectmultiple))
+#ltl s ![](((add || remove) -> X(updatecritiques))||!updatecritiques)
+#ltl s !(!(selectsingle && selectmultiple) U (load || add))

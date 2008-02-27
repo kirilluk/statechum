@@ -68,6 +68,20 @@ public class SpinUtil {
 		return true;
 	}
 	
+	public static boolean check (List<String> question, Set<String> ltl){
+		functionCounter = 0;
+		stateCounter = 0;
+		sw = new StringWriter();
+		defines = new String();
+		generatePromela(question);
+		createInverseMap();
+		for (String string : ltl) {
+			if(!checkLTL(string))
+				return false;
+		}
+		return true;
+	}
+	
 	private static void write(StringWriter writer, File f){
 		try {
 			f.getParentFile().mkdirs();
@@ -83,10 +97,10 @@ public class SpinUtil {
 	}
 	
 	private static boolean checkLTL(String ltl){
-		StringWriter promela = sw;
-		promela = addLtl(promela, ltl.substring(1));
+		addLtl(ltl.substring(1));
+		generateDefines(functionMap);
 		File promelaMachine  = new File(fileRef);
-		write(promela, promelaMachine);
+		write(sw, promelaMachine);
 		return runSpin(ltl.charAt(0));
 	}
 
@@ -203,14 +217,46 @@ public class SpinUtil {
 		printLegend(sw, functionMap);
 		generateDefines(functionMap);
 	}
+	
+	private static void generatePromela(List<String> question) {
+		functionMap = new HashMap<String, Integer>();
+		sw = new StringWriter();
+		sw.write("int input = 50000;\nproctype machine(){\n");
+		Iterator<String> questionIt = question.iterator();
+		
+		while (questionIt.hasNext()) {
+			String symb = questionIt.next();
+			if (!functionMap.keySet().contains(symb)) {
+				functionMap.put(symb, new Integer(functionCounter));
+				functionCounter++;
+			}
+			sw.write("input="+functionMap.get(symb)+";\n");
+			
+		}
+		
+		sw.write("}\n\ninit {\nrun machine();\n}");
+		printLegend(sw, functionMap);
+		
+	}
 
-	private static StringWriter addLtl(StringWriter promela, String ltl) {
+	private static void addLtl(String ltl) {
 		try {
+			ensureApplicable(ltl);
 			StringBuffer output = LowLevel.exec(ltl);
-			promela.write("\n" + output.toString());
-
+			sw.write("\n" + output.toString());
 		} catch (Exception e) {e.printStackTrace();}
-		return promela;
+	}
+	
+	private static void ensureApplicable(String ltl){
+		String[] splitString = ltl.split("\\p{Punct}|X|U|V");
+		for (String string : splitString) {
+			if(string.trim().equals("")||string.trim().equals("[]"))
+				continue;
+			else if(!functionMap.keySet().contains(string)){
+				functionMap.put(string, new Integer(functionCounter));
+				functionCounter++;
+			}
+		}
 	}
 
 	private static void generateDefines(Map<String, Integer> functionMap) {

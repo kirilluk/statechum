@@ -40,7 +40,7 @@ import statechum.analysis.learning.oracles.*;
 public class QSMTool {
 	
 	private static boolean includeLTL =false;
-	private static int k = 0;
+	private static int k = -1;
 
 	public static void main(String[] args) {
 		Set<List<String>> sPlus = new HashSet<List<String>>();

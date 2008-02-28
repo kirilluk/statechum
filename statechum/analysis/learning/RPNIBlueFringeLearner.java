@@ -46,8 +46,14 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
-	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, minCertaintyThreshold = 0;
+	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, 
+		minCertaintyThreshold = 0, klimit=0;
 	protected int questionCounter = 0;
+	protected boolean askQuestions = true;
+	
+	public void setAskQuestions(boolean askQuestions){
+		this.askQuestions = askQuestions;
+	}
 	
 	
 	public static Collection<String> getAlphabetForEdges(Collection<Edge> edges){
@@ -232,12 +238,17 @@ public class RPNIBlueFringeLearner extends Observable {
 		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
 			OrigStatePair pair = (OrigStatePair)possibleMerges.pop();
+
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
 			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
 				pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				setChanged();
-				List<List<String>> questions = generateQuestions(model, pair);
+				List<List<String>> questions;
+				if(askQuestions)
+					questions = generateQuestions(model, pair);
+				else
+					questions = new ArrayList<List<String>>();
 				questions = trimSet(questions);
 				Iterator<List<String>> questionIt = questions.iterator();
 				while(questionIt.hasNext()){
@@ -789,7 +800,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){
 					// singleSet maps scores to pairs which have those scores
-					if(score<0)
+					if(score<klimit)
 						continue;
 					if(singleSet.get(score) == null){
 						// nothing yet with this score
@@ -1186,6 +1197,16 @@ public class RPNIBlueFringeLearner extends Observable {
 
 	public int getMinCertaintyThreshold() {
 		return minCertaintyThreshold;
+	}
+
+
+	public int getKlimit() {
+		return klimit;
+	}
+
+
+	public void setKlimit(int klimit) {
+		this.klimit = klimit;
 	}
 
 }

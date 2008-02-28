@@ -1,0 +1,10 @@
+passive
+k 1
++ load close exit
++ load edit edit save close exit
++ load edit close load close exit
+- close
+- load save save
+#ltl s ![] ((save_as) -> ((save_as) U (ok)))
+#ltl s ![] (!close U load)
+#ltl s ![] (exit -> ([] exit))

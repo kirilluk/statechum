@@ -85,7 +85,8 @@ public class BlueFringeSpinLearner extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			
+			if(score<klimit)
+				continue;
 			boolean restartLearning = false;// whether we need to rebuild a PTA
 											// and restart learning.
 
@@ -101,7 +102,7 @@ public class BlueFringeSpinLearner extends
 				restartLearning = true;
 			}
 			if ((score < this.certaintyThreshold && score > minCertaintyThreshold)
-					&& !restartLearning) {
+					&& !restartLearning && askQuestions) {
 				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;

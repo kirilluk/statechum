@@ -1,6 +1,0 @@
-passive
-+ load close exit
-+ load edit edit save_as ok close exit
-+ load edit edit edit close exit
-- edit 
-ltl s ![]((exit) -> [](exit))

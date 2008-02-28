@@ -46,7 +46,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = RPNIBlueFringeLearner.initialise();
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
-	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, minCertaintyThreshold = -1;
+	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, minCertaintyThreshold = 0;
 	protected int questionCounter = 0;
 	
 	

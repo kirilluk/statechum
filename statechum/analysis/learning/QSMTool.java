@@ -40,6 +40,7 @@ import statechum.analysis.learning.oracles.*;
 public class QSMTool {
 	
 	private static boolean includeLTL =false;
+	private static int k = 0;
 
 	public static void main(String[] args) {
 		Set<List<String>> sPlus = new HashSet<List<String>>();
@@ -63,10 +64,10 @@ public class QSMTool {
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
 		if (!includeLTL)
 			new PickNegativesVisualiser()
-					.construct(sPlus, sMinus, null, active);
+					.construct(sPlus, sMinus, null, active,k);
 		else
 			new PickNegativesVisualiser().construct(sPlus, sMinus, ltl, null,
-					active);
+					active,k);
 	}
 
 	private static void process(String fileString, Set<List<String>> sPlus,
@@ -86,6 +87,10 @@ public class QSMTool {
 			if(fileString.substring(4).trim().length()>0)
 				ltl.add(getLtlString(sequence));
 			
+		}
+		else if (fileString.startsWith("k")){
+			String value = fileString.substring(1).trim();
+			k = Integer.valueOf(value);
 		}
 
 	}

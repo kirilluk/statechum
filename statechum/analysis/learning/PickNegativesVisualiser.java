@@ -78,7 +78,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final boolean active)
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final boolean active, final int k)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
@@ -93,6 +93,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		        	else
 		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
 		        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
+					l.setMinCertaintyThreshold(k);
 		        	if(!active)
 		        		l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
 					l.setDebugMode(true);
@@ -112,13 +113,14 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final boolean active)
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final boolean active, final int k)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
 			public void run()
 			{
 				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae);
+				l.setMinCertaintyThreshold(k);
 				if(!active)
 					l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
 				l.setDebugMode(true);
@@ -158,7 +160,7 @@ public class PickNegativesVisualiser extends Visualiser{
 					boolean active = true;
 					if(l.getMinCertaintyThreshold()>200000)
 						active = false;
-					construct(sPlus, sMinus, this, active);
+					construct(sPlus, sMinus, this, active,l.getMinCertaintyThreshold());
 					synchronized (this) {
 						while(!learnerStarted)
 							wait();// here we wait for the learner thread to start - if we do not wait for this, 

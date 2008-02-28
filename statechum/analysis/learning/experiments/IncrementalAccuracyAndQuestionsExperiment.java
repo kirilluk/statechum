@@ -213,7 +213,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				}
 			};
 			l.setCertaintyThreshold(3);
-			l.setMinCertaintyThreshold(-1); //question threshold
+			l.setMinCertaintyThreshold(0); //question threshold
 			int number = size/10;
 			for(int percent=10;percent<101;percent=percent+10){
 				this.percent = percent;

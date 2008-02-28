@@ -181,7 +181,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
+			if(score <this.certaintyThreshold&&score>=minCertaintyThreshold)
 			{
 				questions = ComputeQuestions.computeQS(pair, scoreComputer,temp);
 				if (questions.isEmpty())

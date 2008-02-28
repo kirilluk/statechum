@@ -39,12 +39,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.ArrayOperations;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import edu.uci.ics.jung.utils.UserData;
 
 public class TestGraphBasicAlgorithms {
 	static public PairScore constructPairScore(String a,String b, int score)
@@ -117,7 +115,7 @@ public class TestGraphBasicAlgorithms {
 	public void testDeterministicVertexComparison3()
 	{
 		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
-		assertFalse(p.equals(q));
+		assertTrue(p.equals(q));
 		assertTrue(p.compareTo(q)==0);
 	}
 
@@ -126,8 +124,8 @@ public class TestGraphBasicAlgorithms {
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"));
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("A", s.findVertex("A").getUserDatum(JUConstants.LABEL));
-		Assert.assertEquals("C", s.findVertex("C").getUserDatum(JUConstants.LABEL));
+		Assert.assertEquals("A", s.findVertex("A").getName());
+		Assert.assertEquals("C", s.findVertex("C").getName());
 	}
 	
 	@Test
@@ -135,7 +133,7 @@ public class TestGraphBasicAlgorithms {
 	{
 		LearnerGraph s = new LearnerGraph();
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("Init", s.findVertex("Init").getUserDatum(JUConstants.LABEL));
+		Assert.assertEquals("Init", s.findVertex("Init").getName());
 	}
 	
 	/** Similar to testComputePathsToRed2 but tests the contents of a set returned by computePathsSBetween. */
@@ -366,14 +364,14 @@ public class TestGraphBasicAlgorithms {
 	public final void testGetVertex1()
 	{
 		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"));
-		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getUserDatum(JUConstants.LABEL).equals("A"));
+		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getName().equals("A"));
 	}
 
 	@Test
 	public final void testGetVertex2()
 	{
 		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"));
-		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getUserDatum(JUConstants.LABEL).equals("C"));
+		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getName().equals("C"));
 	}
 
 	@Test

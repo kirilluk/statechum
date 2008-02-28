@@ -18,15 +18,13 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 /** Important: although compatibility score is recorded and reported, it is ignored in 
  * all computations since it is considered for information only. Hence there is no
  * getter method for it either.
  */
-public class PairScore extends StatePair
+public class PairScore extends StatePair implements Comparable<StatePair>
 {
 	private final int score, compatibilityScore;
 
@@ -82,6 +80,6 @@ public class PairScore extends StatePair
 	}
 	
 	public String toString(){
-		return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
+		return "[ "+getQ().getName()+"("+getQ().isAccept()+"), "+getR().getName()+"("+getR().isAccept()+") : "+score+","+compatibilityScore+" ]";
 	}
 }

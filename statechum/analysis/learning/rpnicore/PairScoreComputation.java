@@ -18,8 +18,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -35,8 +33,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.utils.UserData;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -56,7 +52,7 @@ public class PairScoreComputation {
 		coregraph.pairsAndScores.clear();
 		Set<CmpVertex> reds = new LinkedHashSet<CmpVertex>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet())
-			if (v.containsUserDatumKey(JUConstants.COLOUR) && v.getUserDatum(JUConstants.COLOUR) == JUConstants.RED)
+			if (v.getColour() == JUConstants.RED)
 				reds.add(v);
 
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
@@ -64,10 +60,10 @@ public class PairScoreComputation {
 		List<CmpVertex> BlueStatesConsideredSoFar = new LinkedList<CmpVertex>();
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Vertex currentRed = currentExplorationBoundary.remove();
+			CmpVertex currentRed = currentExplorationBoundary.remove();
 			for(Entry<String,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
-				if (!BlueEntry.getValue().containsUserDatumKey(JUConstants.COLOUR) || 
-						BlueEntry.getValue().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE)
+				if (BlueEntry.getValue().getColour() == null || 
+						BlueEntry.getValue().getColour() == JUConstants.BLUE)
 				{// the next vertex is not marked red, hence it has to become blue
 					CmpVertex currentBlueState = BlueEntry.getValue();
 											
@@ -86,7 +82,7 @@ public class PairScoreComputation {
 					if (numberOfCompatiblePairs == 0)
 					{// mark this blue node as red. 
 						CmpVertex newRedNode = currentBlueState;
-						newRedNode.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
+						newRedNode.setColour(JUConstants.RED);
 						reds.add(newRedNode);currentExplorationBoundary.add(newRedNode);
 						BlueStatesConsideredSoFar.remove(newRedNode);
 						
@@ -110,7 +106,7 @@ public class PairScoreComputation {
 					else
 					{// This node is a blue node and remains blue unlike the case above when it could become red.
 						BlueStatesConsideredSoFar.add(BlueEntry.getValue());// add a blue one
-						currentBlueState.setUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
+						currentBlueState.setColour(JUConstants.BLUE);
 					}							
 				}
 		}
@@ -211,7 +207,7 @@ public class PairScoreComputation {
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
 			
-			if (isAccept(currentPair.getQ()) != isAccept(currentPair.getR()))
+			if (currentPair.getQ().isAccept() != currentPair.getR().isAccept())
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
@@ -281,7 +277,7 @@ public class PairScoreComputation {
 	 */
 	public int computeStateScore(StatePair pair)
 	{
-		if (isAccept(pair.getR()) != isAccept(pair.getQ()))
+		if (pair.getR().isAccept() != pair.getQ().isAccept())
 			return -1;
 
 		int score = 0;
@@ -302,7 +298,7 @@ public class PairScoreComputation {
 				CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
 				if (nextBlueState != null)
 				{// both states can make a transition
-					if (isAccept(redEntry.getValue()) != isAccept(nextBlueState))
+					if (redEntry.getValue().isAccept() != nextBlueState.isAccept())
 						return -1;// incompatible states
 					
 					++score;
@@ -314,7 +310,7 @@ public class PairScoreComputation {
 			}
 		}
 		
-		if (coregraph.config.isBumpPositives() && isAccept(pair.getQ()))
+		if (coregraph.config.isBumpPositives() && pair.getQ().isAccept())
 			score++;// bumpPositives is used to give an extra weight to state pairs which are both compatible and positive (i.e. discourage reject-reject state pairs).
 		
 		return score;

@@ -132,7 +132,7 @@ public class TestFSMAlgo {
 	 */
 	public static DirectedSparseGraph buildGraph(String fsm,String name)
 	{
-		final Map<String,CmpVertex> existingVertices = new HashMap<String,CmpVertex>();
+		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
 		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
 		
 		final DirectedSparseGraph g = new DirectedSparseGraph();
@@ -141,7 +141,7 @@ public class TestFSMAlgo {
 		new TestFSMParser.fsmParser(fsm).parse(new TestFSMParser.TransitionReceiver()
 		{
 			public void put(String from, String to, String label, boolean accept) {
-				CmpVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
+				DeterministicVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
 				
 				if (fromVertex == null)
 				{
@@ -981,7 +981,7 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
-		Vertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
+		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path)));
 	}
 	
@@ -999,8 +999,8 @@ public class TestFSMAlgo {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final FSMStructure graph = getGraphData(g);
 		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
-		Vertex starting = new LearnerGraph(g).findVertex(startingState);
-		Vertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
+		DeterministicVertex starting = (DeterministicVertex)new LearnerGraph(g).findVertex(startingState);
+		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g).findVertex(enteredName);
 		assertSame(expected, RPNIBlueFringeLearner.getVertex(g, starting,Arrays.asList(path)));
 	}
 	

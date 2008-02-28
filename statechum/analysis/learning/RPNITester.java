@@ -147,8 +147,8 @@ public class RPNITester {
 				while(!stk.isEmpty())
 				{
 					StatePair p = (StatePair)stk.pop();
-					assert p.getQ().getUserDatum(JUConstants.COLOUR) == JUConstants.BLUE;
-					assert p.getR().getUserDatum(JUConstants.COLOUR) == JUConstants.RED;					
+					assert p.getQ().getColour() == JUConstants.BLUE;
+					assert p.getR().getColour() == JUConstants.RED;					
 				}
 				System.out.println("merging");
 				//DirectedSparseGraph temp = l.mergeAndDeterminize(model, pair);

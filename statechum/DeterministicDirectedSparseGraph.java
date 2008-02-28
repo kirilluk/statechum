@@ -18,21 +18,38 @@
 
 package statechum;
 
+import statechum.analysis.learning.RPNIBlueFringeLearner;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 public class DeterministicDirectedSparseGraph {
 
-	public static abstract class CmpVertex extends DirectedSparseVertex
-			implements Comparable<CmpVertex> {
+	public interface CmpVertex extends Comparable<CmpVertex> {
+		/** Returns a name of this vertex. */
+		String getName();
+
+		/** Returns true if this is an accept vertex and false for a reject one. */
+		boolean isAccept();
+		/** Makes this state an accept/reject one. */
+		void setAccept(boolean accept);
+
+		/** Returns the colour of this vertex. */
+		JUConstants getColour();
+		/** Sets the colour of this vertex. null removes the colour. */
+		void setColour(JUConstants colour);
+
+		/** Determines whether this vertex is to be highlighted. */
+		boolean isHighlight();
+		/** Sets the mark on this vertex. */
+		void setHighlight(boolean hightlight);
 	}
 
 	/**
 	 * The extension of the vertex where all operations are ID-based, for
 	 * performance.
 	 */
-	public static class DeterministicVertex extends CmpVertex {
+	public static class DeterministicVertex extends DirectedSparseVertex implements Comparable<CmpVertex>, CmpVertex {
 		protected String label = null;
 
 		protected int hashCode = super.hashCode();
@@ -99,19 +116,75 @@ public class DeterministicDirectedSparseGraph {
 		public int compareTo(CmpVertex o) {
 			assert o != null;
 			assert o instanceof DeterministicVertex : "an attempt to compare "
-					+ toString() + " with a non-CmpVertx " + o.toString();
+					+ toString() + " with a non-DeterministicVertex " + o.toString();
 			DeterministicVertex v = (DeterministicVertex) o;
 			if (this == v)
 				return 0;
 			return label.compareTo(v.label);
-			// if (v.id == this.id) return 0;
-			// return (this.id < v.id)? -1:1;
+		}
+		
+		/** Compares this vertex with a different one, based on label alone.
+		 */
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (!(obj instanceof DeterministicVertex))
+				return false;
+			
+			final DeterministicVertex other = (DeterministicVertex) obj;
+			
+			if (label == null)
+				return other.label == null;
+			else
+				return label.equals(other.label);
+		}
+		
+		public String getName() {
+			return label;
+		}
+
+		public boolean isAccept() {
+			return RPNIBlueFringeLearner.isAccept(this);
+		}
+
+		public void setAccept(boolean accept) 
+		{
+			addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
+		}
+
+		public JUConstants getColour() 
+		{
+			return (JUConstants)getUserDatum(JUConstants.COLOUR);
+		}
+
+		public void setColour(JUConstants colour) 
+		{
+			removeUserDatum(JUConstants.COLOUR);
+			if (colour != null)
+			{
+				if (colour != JUConstants.RED && colour != JUConstants.BLUE)
+					throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
+				addUserDatum(JUConstants.COLOUR, colour, UserData.SHARED);
+			}
+		}
+
+		public void setHighlight(boolean hightlight) {
+			if (hightlight)
+				addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
+			else
+				removeUserDatum(JUConstants.HIGHLIGHT);
+		}
+
+		public boolean isHighlight() {
+			return containsUserDatumKey(JUConstants.HIGHLIGHT);
 		}
 	}
 
 	public static class DeterministicEdge extends DirectedSparseEdge {
 
-		public DeterministicEdge(CmpVertex from, CmpVertex to) {
+		public DeterministicEdge(DeterministicVertex from, DeterministicVertex to) {
 			super(from, to);
 		}
 

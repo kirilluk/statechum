@@ -30,6 +30,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -87,7 +88,7 @@ public class RPNIBlueFringeSootLearner extends
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
-				Vertex tempVertex = temp.getVertex(question);
+				CmpVertex tempVertex = temp.getVertex(question);
 				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if(answer>=0){
@@ -95,7 +96,7 @@ public class RPNIBlueFringeSootLearner extends
 					String to = question.get(answer);
 					newPTA.augmentPairs(new StringPair(from, to), false);
 					++counterRejected;
-					if( (answer < question.size()-1) || isAccept(tempVertex)){
+					if( (answer < question.size()-1) || tempVertex.isAccept()){
 						pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
@@ -163,8 +164,8 @@ public class RPNIBlueFringeSootLearner extends
 	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, LearnerGraph temp){
 		Collection<List<String>> filteredQuestions = new HashSet<List<String>>();
 		for (List<String> list : questions) {
-			Vertex v = temp.getVertex(list);
-			if(isAccept(v))
+			CmpVertex v = temp.getVertex(list);
+			if(v.isAccept())
 				filteredQuestions.add(list);
 		}
 		return filteredQuestions;

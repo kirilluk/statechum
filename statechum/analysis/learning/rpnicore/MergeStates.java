@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import edu.uci.ics.jung.graph.Edge;
@@ -73,19 +74,19 @@ public class MergeStates {
 					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
 		}
 
-		Set<Vertex> ptaVerticesUsed = new HashSet<Vertex>();
+		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
 		Set<String> inputsUsed = new HashSet<String>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
-			Vertex vert = entry.getKey();
+			CmpVertex vert = entry.getKey();
 			Map<String,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
 			if (mergedVertices.containsKey(vert))
 			{// there are some vertices to merge with this one.
 				
 				inputsUsed.clear();inputsUsed.addAll(entry.getValue().keySet());// the first entry is either a "derivative" of a red state or a branch of PTA into which we are now merging more states.
-				for(Vertex toMerge:mergedVertices.get(vert))
+				for(CmpVertex toMerge:mergedVertices.get(vert))
 				{// for every input, I'll have a unique target state - this is a feature of PTA
 				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
@@ -108,11 +109,11 @@ public class MergeStates {
 		}
 		
 		// now remove everything related to the PTA
-		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add( pair.getQ() );
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Vertex currentVert = currentExplorationBoundary.remove();
+			CmpVertex currentVert = currentExplorationBoundary.remove();
 			if (!ptaVerticesUsed.contains(currentVert))
 			{// once a single used PTA vertex is found, all vertices from it (which do not have 
 				// any transition leading to states in the red portion of the graph, by construction 
@@ -129,12 +130,11 @@ public class MergeStates {
 		return result;
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair)
 	{
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
-			CmpVertex newBlue = RPNIBlueFringeLearner.findVertexNamed(pair.getQ().toString(),g);
-			CmpVertex newRed = RPNIBlueFringeLearner.findVertexNamed(pair.getR().toString(),g);
+			DeterministicVertex newBlue = RPNIBlueFringeLearner.findVertexNamed(pair.getQ().toString(),g);
+			DeterministicVertex newRed = RPNIBlueFringeLearner.findVertexNamed(pair.getR().toString(),g);
 			pair = new StatePair(newBlue,newRed);
 			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 			LearnerGraph s=new LearnerGraph(g);
@@ -173,7 +173,7 @@ public class MergeStates {
 				if (mergedVertices.containsKey(vert))
 				{// there are some vertices to merge with this one.
 					usedInputs.clear();usedInputs.addAll(s.transitionMatrix.get(vert).keySet());
-					for(Vertex toMerge:mergedVertices.get(vert))
+					for(CmpVertex toMerge:mergedVertices.get(vert))
 					{// for every input, I'll have a unique target state - this is a feature of PTA
 					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state.
@@ -182,7 +182,7 @@ public class MergeStates {
 							if (!usedInputs.contains(input))
 							{
 								Set<String> labels = new HashSet<String>();labels.add(input);
-								Vertex targetVert = s.transitionMatrix.get(toMerge).get(input);
+								DeterministicVertex targetVert = (DeterministicVertex)s.transitionMatrix.get(toMerge).get(input);
 								DirectedSparseEdge newEdge = new DirectedSparseEdge(vert,targetVert);
 								newEdge.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 								g.removeEdges(targetVert.getInEdges());g.addEdge(newEdge);

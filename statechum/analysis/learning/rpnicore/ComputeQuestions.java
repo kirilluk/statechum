@@ -29,13 +29,11 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
-import edu.uci.ics.jung.graph.Vertex;
 
 public class ComputeQuestions {
 	final LearnerGraph coregraph;
@@ -52,18 +50,18 @@ public class ComputeQuestions {
 
 	private static class ExplorationElement
 	{
-		public final Vertex firstVertex, secondVertex;
+		public final Pair<CmpVertex,CmpVertex> pair;
 		public final PTATestSequenceEngine.sequenceSet pathsInOriginal;
 		
-		public ExplorationElement(Vertex first, Vertex second, PTATestSequenceEngine.sequenceSet paths)
+		public ExplorationElement(CmpVertex first, CmpVertex second, PTATestSequenceEngine.sequenceSet paths)
 		{
-			firstVertex=first;secondVertex=second;pathsInOriginal=paths;
+			pair = new Pair<CmpVertex, CmpVertex>(first,second);pathsInOriginal=paths;
 		}
 	}
 	
 	private static void buildQuestionsFromPair(
-			LearnerGraph original, Vertex originalRed, 
-			LearnerGraph merged, Vertex mergedRed, 
+			LearnerGraph original, CmpVertex originalRed, 
+			LearnerGraph merged, CmpVertex mergedRed, 
 			PTATestSequenceEngine.sequenceSet pathsInOriginal)
 	{
 		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
@@ -71,7 +69,7 @@ public class ComputeQuestions {
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
 
-		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(originalRed);
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(originalRed);
 		Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(new ExplorationElement(originalRed,mergedRed, pathsInOriginal));
 
@@ -80,8 +78,8 @@ public class ComputeQuestions {
 		{
 			ExplorationElement current = currentExplorationBoundary.remove();
 			
-			Map<String,CmpVertex> firstRow = merged.transitionMatrix.get(current.firstVertex),
-				secondRow = original.transitionMatrix.get(current.secondVertex);
+			Map<String,CmpVertex> firstRow = merged.transitionMatrix.get(current.pair.firstElem),
+				secondRow = original.transitionMatrix.get(current.pair.secondElem);
 			targetToInputSet.clear();
 			System.out.println("before multiplying: "+current.pathsInOriginal.getDebugData());
 			PTATestSequenceEngine.sequenceSet multResult = current.pathsInOriginal.crossWithSet(firstRow.keySet());// transition cover of merged
@@ -95,7 +93,7 @@ public class ComputeQuestions {
 					"inconsistent merge: merged automaton has fewer paths, merged: "+firstRow.keySet()+
 					", original: "+secondRow.keySet();
 			}
-			System.out.println("from states "+current.firstVertex+","+current.secondVertex);
+			System.out.println("from states "+current.pair.firstElem+","+current.pair.secondElem);
 			for(Entry<String,CmpVertex> entry:firstRow.entrySet())
 				// When generating questions for PTA merging, we should be trying 
 				// to enter all states of the merged automaton - 
@@ -121,7 +119,7 @@ public class ComputeQuestions {
 			for(Entry<CmpVertex,List<String>> target:targetToInputSet.entrySet())
 			{
 				visitedStates.add(target.getKey());
-				Vertex newMergedVertex = firstRow.get(target.getValue().iterator().next());
+				CmpVertex newMergedVertex = firstRow.get(target.getValue().iterator().next());
 				PTATestSequenceEngine.sequenceSet stateCoverSoFar = current.pathsInOriginal.crossWithSet(target.getValue()); 
 				currentExplorationBoundary.offer(new ExplorationElement(target.getKey(), newMergedVertex, 
 						stateCoverSoFar));
@@ -138,13 +136,13 @@ public class ComputeQuestions {
 	 * @param pathsInOriginal
 	 */ 
 	private void buildQuestionsFromPair_Compatible(
-			Vertex mergedRed,PTATestSequenceEngine.sequenceSet pathsInOriginal)
+			CmpVertex mergedRed,PTATestSequenceEngine.sequenceSet pathsInOriginal)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
 
-		Set<Vertex> visitedStates = new HashSet<Vertex>();visitedStates.add(mergedRed);
-		Queue<Vertex> currentExplorationBoundary = new LinkedList<Vertex>();// FIFO queue containing vertices to be explored
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(mergedRed);
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
 		Queue<PTATestSequenceEngine.sequenceSet> currentExplorationTargetStates = new LinkedList<PTATestSequenceEngine.sequenceSet>();
 		currentExplorationBoundary.add(mergedRed);
 		currentExplorationTargetStates.add(pathsInOriginal);
@@ -152,7 +150,7 @@ public class ComputeQuestions {
 		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Vertex currentVert = currentExplorationBoundary.remove();
+			CmpVertex currentVert = currentExplorationBoundary.remove();
 			PTATestSequenceEngine.sequenceSet currentPaths = currentExplorationTargetStates.remove();
 			targetToInputSet.clear();
 			
@@ -198,7 +196,7 @@ public class ComputeQuestions {
 				
 		public Object getNextState(Object currentState, String input) 
 		{
-			Vertex result = null;
+			CmpVertex result = null;
 			Map<String,CmpVertex> row = ComputeQuestions.this.coregraph.transitionMatrix.get(currentState);
 			if (row != null)
 				result = row.get(input);

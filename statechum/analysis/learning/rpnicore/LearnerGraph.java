@@ -35,7 +35,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.oracles.*;
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -111,9 +110,9 @@ public class LearnerGraph implements Cloneable {
 	/** Resets all the colour labelling to the initial value. */
 	public void clearColours()
 	{
-		for(Vertex v:transitionMatrix.keySet())
-			v.removeUserDatum(JUConstants.COLOUR);
-		init.addUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
+		for(CmpVertex v:transitionMatrix.keySet())
+			v.setColour(null);
+		init.setColour(JUConstants.RED);
 	}
 	
 	final public ComputeQuestions questions = new ComputeQuestions(this);
@@ -134,9 +133,9 @@ public class LearnerGraph implements Cloneable {
 		for(CmpVertex v:(Set<CmpVertex>)g.getVertices())
 		{
 			transitionMatrix.put(v,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
-			v.removeUserDatum(JUConstants.COLOUR);
+			v.setColour(null);
 		}
-		init.addUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
+		init.setColour(JUConstants.RED);
 	
 		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
 		while(edgeIter.hasNext())
@@ -226,9 +225,9 @@ public class LearnerGraph implements Cloneable {
 		return vertices;
 	}
 			
-	public Vertex getVertex(List<String> seq)
+	public CmpVertex getVertex(List<String> seq)
 	{
-		Vertex result = init;
+		CmpVertex result = init;
 		Iterator<String> seqIt = seq.iterator();
 		while(seqIt.hasNext() && result != null)
 			result = transitionMatrix.get(result).get(seqIt.next());
@@ -236,8 +235,8 @@ public class LearnerGraph implements Cloneable {
 		return result;
 	}
 	
-	public Vertex getVertex(Vertex from, List<String> seq){
-		Vertex result = from;
+	public CmpVertex getVertex(CmpVertex from, List<String> seq){
+		CmpVertex result = from;
 		Iterator<String> seqIt = seq.iterator();
 		while(seqIt.hasNext() && result != null)
 			result = transitionMatrix.get(result).get(seqIt.next());
@@ -263,7 +262,7 @@ public class LearnerGraph implements Cloneable {
 	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
 	 * using mergedVertices. 
 	 */
-	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, Vertex r, String input)
+	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, String input)
 	{
 		CmpVertex target = null;
 		List<CmpVertex> associatedVertices = mergedVertices.get(r);
@@ -303,7 +302,7 @@ public class LearnerGraph implements Cloneable {
 		while(entryIt.hasNext() && result == null)
 		{
 			CmpVertex currentVert = entryIt.next().getKey();
-			String vertName = (String)currentVert.getUserDatum(JUConstants.LABEL);
+			String vertName = currentVert.getName();
 			if (vertName.equals(name))
 				result = currentVert;
 		}
@@ -350,7 +349,7 @@ public class LearnerGraph implements Cloneable {
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(nextID(accepted));
-		newVertex.setUserDatum(JUConstants.ACCEPTED, accepted, UserData.SHARED);
+		newVertex.setAccept(accepted);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);
 		return newVertex;
@@ -359,10 +358,8 @@ public class LearnerGraph implements Cloneable {
 	public void initPTA()
 	{
 		initEmpty();
-		init = new DeterministicDirectedSparseGraph.DeterministicVertex("Init");
-		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
-		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
+		init = new DeterministicDirectedSparseGraph.DeterministicVertex("Init"); 
+		init.setAccept(true);init.setColour(JUConstants.RED);
 		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
 	}

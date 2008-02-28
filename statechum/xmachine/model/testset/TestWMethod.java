@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -46,6 +47,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
@@ -760,6 +762,88 @@ public class TestWMethod {
 		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->5\n0-a4->9\n0-a5->5\n0-a10->9\n0-a11->7\n0-a12->9\n0-a15->8\n0-a16->0\n0-a17->3\n0-a18->8\n1-a0->7\n1-a2->0\n1-a3->2\n1-a4->7\n1-a5->6\n1-a7->6\n1-a8->2\n1-a11->0\n1-a15->0\n1-a17->4\n1-a18->1\n1-a19->4\n2-a0->5\n2-a4->7\n2-a5->0\n2-a6->1\n2-a8->9\n2-a10->9\n2-a11->6\n2-a12->2\n2-a13->6\n2-a15->3\n2-a16->1\n2-a17->0\n3-a1->8\n3-a3->3\n3-a4->5\n3-a6->4\n3-a7->6\n3-a9->1\n3-a10->4\n3-a11->3\n3-a15->6\n3-a16->6\n3-a17->5\n3-a19->6\n4-a0->4\n4-a1->0\n4-a2->5\n4-a3->3\n4-a6->2\n4-a7->2\n4-a8->8\n4-a9->0\n4-a10->5\n4-a16->2\n4-a17->5\n4-a19->4\n5-a0->9\n5-a2->6\n5-a5->1\n5-a7->5\n5-a8->4\n5-a9->2\n5-a11->4\n5-a12->7\n5-a15->7\n5-a17->1\n5-a18->7\n5-a19->7\n6-a4->4\n6-a6->7\n6-a7->9\n6-a9->2\n6-a10->8\n6-a12->3\n6-a13->7\n6-a14->1\n6-a15->8\n6-a16->0\n6-a17->1\n6-a18->2\n7-a1->6\n7-a3->1\n7-a5->2\n7-a6->0\n7-a7->6\n7-a8->3\n7-a9->0\n7-a10->5\n7-a11->4\n7-a15->8\n7-a17->8\n7-a19->2\n8-a0->7\n8-a1->3\n8-a3->9\n8-a4->7\n8-a5->6\n8-a6->1\n8-a8->3\n8-a9->0\n8-a10->3\n8-a11->9\n8-a14->8\n8-a18->4\n9-a0->4\n9-a1->9\n9-a5->8\n9-a6->5\n9-a7->3\n9-a9->9\n9-a10->3\n9-a13->8\n9-a14->5\n9-a15->1\n9-a16->8\n9-a17->2\n",false,false);
 	}
 
+	public interface FsmPermutator {
+		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
+		Object [] getPermutation(Object [] from);
+	}
+	
+	public class EmptyPermutator implements FsmPermutator {
+		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
+		public Object [] getPermutation(Object [] from)
+		{
+			Object [] result = new Object [from.length];
+			System.arraycopy(from, 0, result, 0, from.length);
+			
+			return result;
+		}
+	}
+
+	public class RandomPermutator implements FsmPermutator {
+		private RandomPermutator()
+		{}
+		
+		private Random rnd = null;
+		
+		public RandomPermutator(int randomArg)
+		{
+			rnd = new Random(randomArg);
+		}
+		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
+		public Object [] getPermutation(Object [] from)
+		{
+			Object [] result = new Object [from.length];
+			System.arraycopy(from, 0, result, 0, from.length);
+			
+			for(int i=0;i< from.length;++i)
+			{
+				int first = rnd.nextInt(from.length), second = rnd.nextInt(from.length);
+				Object firstObj = result[first];result[first]=result[second];result[second]=firstObj;
+			}
+			return result;
+		}
+	}
+	
+	public static void testWsetDeterministic(String machine, FsmPermutator perm, String testName)
+	{
+		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName);
+		FSMStructure fsm = getGraphData(g);//visFrame.update(null, g);
+		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet(fsm));
+		checkW_is_corrent(fsm, origWset);
+
+		List<Pair<String,String>> transitionList = new LinkedList<Pair<String,String>>();
+		for(Entry<String,Map<String,String>> row:fsm.trans.entrySet())
+			for(Entry<String,String> nextState:row.getValue().entrySet())
+				transitionList.add(new Pair<String,String>(row.getKey(),nextState.getKey()));
+		
+		Object [] permutation = perm.getPermutation(transitionList.toArray());
+		Assert.assertEquals(transitionList.size(), permutation.length);
+		StringBuffer newFsm = new StringBuffer();
+		for(int i=0;i<permutation.length;++i)
+		{
+			Pair<String,String> p = (Pair<String,String>)permutation[i];
+			String from = p.firstElem, label = p.secondElem;
+			newFsm.append("\n"+from+"-"+label+"->"+fsm.trans.get(from).get(label));
+		}
+		FSMStructure permFsm = getGraphData(buildGraph(newFsm.toString(), "testDeterminism_"+testName+"_perm"));
+		permFsm.init = fsm.init;
+		TestFSMAlgo.checkM(fsm,permFsm,fsm.init,permFsm.init);
+		
+		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet(permFsm));
+		checkW_is_corrent(fsm, newWset);
+		
+		Assert.assertTrue(origWset.equals(newWset));
+	}
+
+	@Test
+	public final void testDeterminism1()
+	{
+		String machine = "0-a0->1\n0-a1->9\n0-a2->6\n0-a3->1\n0-a5->0\n0-a7->7\n0-a10->7\n0-a12->5\n1-a0->9\n1-a1->5\n1-a3->3\n1-a6->3\n1-a8->7\n1-a14->9\n1-a17->9\n1-a18->6\n2-a0->8\n2-a2->8\n2-a3->6\n2-a4->4\n2-a7->3\n2-a9->2\n2-a10->4\n2-a15->5\n3-a0->5\n3-a1->2\n3-a2->2\n3-a7->3\n3-a9->8\n3-a10->0\n3-a15->6\n3-a16->5\n4-a0->8\n4-a4->8\n4-a5->0\n4-a7->4\n4-a11->0\n4-a12->3\n4-a16->0\n4-a19->5\n5-a0->1\n5-a2->1\n5-a5->6\n5-a6->2\n5-a7->9\n5-a9->0\n5-a11->3\n5-a19->5\n6-a0->1\n6-a2->4\n6-a4->7\n6-a9->8\n6-a10->0\n6-a12->1\n6-a18->1\n6-a19->3\n7-a1->6\n7-a5->4\n7-a7->9\n7-a10->9\n7-a12->7\n7-a13->4\n7-a14->6\n7-a15->9\n8-a2->7\n8-a4->1\n8-a5->6\n8-a6->4\n8-a9->0\n8-a11->2\n8-a13->2\n8-a14->7\n9-a2->7\n9-a3->3\n9-a5->4\n9-a6->2\n9-a9->5\n9-a11->2\n9-a16->8\n9-a17->8\n";
+		testWsetDeterministic(machine, new EmptyPermutator(), "testDeterminism1_empty");
+		for(int i=0;i<100;++i)
+			testWsetDeterministic(machine, new RandomPermutator(i), "testDeterminism1_random");
+	}
+	
+	
 	/** Adds an entry to the supplied map of pairs of states to labels which distinguish among those states.
 	 * 
 	 * @param distinguishingLabels map of pairs of states to labels which distinguish among those states

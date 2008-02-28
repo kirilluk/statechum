@@ -37,12 +37,12 @@ import java.io.FileOutputStream;
 import java.io.StringWriter;
 
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -55,8 +55,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	
 	protected void update(StatePair pair)
 	{
-		pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
-		pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
+		pair.getQ().setHighlight(true);
+		pair.getR().setHighlight(true);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
 		updateGraph(scoreComputer.paths.getGraph());
 	}
 	
@@ -196,7 +196,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
-				boolean accepted = isAccept(pair.getQ());
+				boolean accepted = pair.getQ().isAccept();
 				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
@@ -205,7 +205,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					return null;
 				}
 				
-				Vertex tempVertex = temp.getVertex(question);
+				CmpVertex tempVertex = temp.getVertex(question);
 				if (tempVertex == null)
 					System.out.println();
 				
@@ -216,7 +216,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					newPTA.paths.augmentPTA(question, true);++plusSize;
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
 					
-					if(!isAccept(tempVertex))
+					if(!tempVertex.isAccept())
 					{
 						pairsMerged=pairsMerged+"ABOUT TO RESTART due to acceptance of a reject vertex for a pair "+pair+" ========\n";
 						restartLearning = true;break;
@@ -234,7 +234,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						// instance should ever receive calls to augmentPTA
 						
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-						if( (answer < question.size()-1) || isAccept(tempVertex))
+						if( (answer < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
 							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";

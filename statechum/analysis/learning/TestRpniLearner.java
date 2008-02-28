@@ -35,7 +35,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.notification.Failure;
 
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -1005,11 +1004,13 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		for(StatePair elem:pairs)
 		{
 			doneEdges = new HashSet();
-			int currentScore = computeScore(g, new OrigStatePair(elem.getQ(),elem.getR()));
+			DeterministicVertex q = RPNIBlueFringeLearner.findVertexNamed(elem.getQ().getName(), g);
+			DeterministicVertex r = RPNIBlueFringeLearner.findVertexNamed(elem.getR().getName(), g);
+			int currentScore = computeScore(g, new OrigStatePair(q,r));
 			PairScore elA = new PairScore(elem.getQ(),elem.getR(),currentScore, currentScore);
 			PairScore elB = new PairScore(elem.getR(),elem.getQ(),currentScore, currentScore);
-			Assert.assertTrue(elem.getR().getUserDatum(JUConstants.COLOUR).equals(JUConstants.RED));
-			Assert.assertTrue(elem.getQ().getUserDatum(JUConstants.COLOUR).equals(JUConstants.BLUE));
+			Assert.assertTrue(elem.getR().getColour() == JUConstants.RED);
+			Assert.assertTrue(elem.getQ().getColour() == JUConstants.BLUE);
 			Assert.assertTrue(currentScore >= 0);
 			Assert.assertTrue("unexpected pair returned: "+elem+", score "+currentScore,distribution.containsKey(currentScore));
 			Set<PairScore> ps = distribution.get(currentScore);

@@ -19,6 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.spin;
 
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -111,7 +112,7 @@ public class BlueFringeSpinLearner extends
 			while (questionIt.hasNext() && !restartLearning) {
 
 				List<String> question = questionIt.next();
-				boolean accepted = isAccept(pair.getQ());
+				boolean accepted = pair.getQ().isAccept();
 				int answer = checkWithSPIN(question);
 				if(answer<0)
 					answer = checkWithEndUser(scoreComputer.paths.getGraph(),
@@ -122,7 +123,7 @@ public class BlueFringeSpinLearner extends
 					return null;
 				}
 
-				Vertex tempVertex = temp.getVertex(question);
+				CmpVertex tempVertex = temp.getVertex(question);
 				if (tempVertex == null)
 					System.out.println();
 
@@ -134,7 +135,7 @@ public class BlueFringeSpinLearner extends
 					// System.out.println(setByAuto+question.toString()+ "
 					// <yes>");
 
-					if (!isAccept(tempVertex)) {
+					if (!tempVertex.isAccept()) {
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART due to acceptance of a reject vertex for a pair "
 								+ pair + " ========\n";
@@ -156,7 +157,7 @@ public class BlueFringeSpinLearner extends
 
 					// System.out.println(setByAuto+question.toString()+ " <no>
 					// at position "+answer+", element "+question.get(answer));
-					if ((answer < question.size() - 1) || isAccept(tempVertex)) {
+					if ((answer < question.size() - 1) || tempVertex.isAccept()) {
 						assert accepted == true;
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART because accept vertex was rejected for a pair "

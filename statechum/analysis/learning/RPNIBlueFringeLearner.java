@@ -18,8 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
-
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -36,6 +34,7 @@ import javax.swing.event.ListSelectionListener;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -47,7 +46,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
 	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, 
-		minCertaintyThreshold = 0, klimit=-1;
+		minCertaintyThreshold = 0, klimit=0;
 	protected int questionCounter = 0;
 	protected boolean askQuestions = true;
 	
@@ -879,8 +878,8 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @return whether the two are different.
 	 */
 	protected static boolean different(StatePair pair){
-		boolean qAcceptedO = isAccept(pair.getQ());
-		boolean rAcceptedO = isAccept(pair.getR());
+		boolean qAcceptedO = pair.getQ().isAccept();
+		boolean rAcceptedO = pair.getR().isAccept();
 
 		return qAcceptedO != rAcceptedO;
 	}
@@ -1039,13 +1038,15 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 	
-	/** Checks if the supplied vertex is an accept one or not.
+	/** Checks if the supplied vertex is an accept one or not. If the vertex is not annotated, returns true.
 	 * 
 	 * @param v vertex to check
 	 * @return true if the vertex is an accept-vertex
 	 */
 	public final static boolean isAccept(final Vertex v)
 	{
+		if (!v.containsUserDatumKey(JUConstants.ACCEPTED))
+			return true;
 		return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
 	}	
 	
@@ -1104,10 +1105,13 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param origVertex the vertex to copy
 	 * @return a copy of the vertex
 	 */
-	private static CmpVertex copyVertex(Map<String,CmpVertex> newVertices, DirectedSparseGraph g,Vertex origVertex)
+	private static DeterministicVertex copyVertex(Map<String,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
 	{
-		String vertName = (String)origVertex.getUserDatum(JUConstants.LABEL);
-		CmpVertex newVertex = newVertices.get(vertName);
+		if (!(orig instanceof DeterministicVertex))
+			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
+		DeterministicVertex origVertex = (DeterministicVertex)orig;
+		String vertName = origVertex.getName();
+		DeterministicVertex newVertex = newVertices.get(vertName);
 		if (newVertex == null) { 
 			newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(vertName);
 			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
@@ -1125,10 +1129,10 @@ public class RPNIBlueFringeLearner extends Observable {
 	public static DirectedSparseGraph copy(Graph g)
 	{
 		DirectedSparseGraph result = new DirectedSparseGraph();
-		Map<String,CmpVertex> newVertices = new TreeMap<String,CmpVertex>();
+		Map<String,DeterministicVertex> newVertices = new TreeMap<String,DeterministicVertex>();
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
 		{
-			CmpVertex newSrc = copyVertex(newVertices,result,e.getSource()),
+			DeterministicVertex newSrc = copyVertex(newVertices,result,e.getSource()),
 				newDst = copyVertex(newVertices, result, e.getDest());
 			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
 			newEdge.addUserDatum(JUConstants.LABEL, ((HashSet<String>)e.getUserDatum(JUConstants.LABEL)).clone(), UserData.SHARED);
@@ -1143,9 +1147,9 @@ public class RPNIBlueFringeLearner extends Observable {
 	 * @param g the graph to search in
 	 * @return vertex found.
 	 */
-	public static CmpVertex findVertexNamed(String name,Graph g)
+	public static DeterministicVertex findVertexNamed(String name,Graph g)
 	{
-		return (CmpVertex)findVertex(JUConstants.LABEL,name,g);
+		return (DeterministicVertex)findVertex(JUConstants.LABEL,name,g);
 	}
 	
 	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){

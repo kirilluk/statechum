@@ -18,69 +18,29 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
-public class StatePair implements Comparable<StatePair> {
-	
-	private CmpVertex q, r;
+public class StatePair extends Pair<CmpVertex,CmpVertex> implements Comparable<StatePair> 
+{
 	
 	public StatePair(CmpVertex blue, CmpVertex red){
-		this.q = blue;
-		this.r = red;
+		super(blue,red);
 	}
-	
-	private static String strLabel(CmpVertex v){
-		String vLabel = v.getUserDatum(JUConstants.LABEL).toString();
-		return vLabel;
-	}
-	
-	public int compareTo(StatePair pB){
-		int qLabels = strLabel(q).compareTo(strLabel(pB.getQ()));
-		int rLabels = strLabel(r).compareTo(strLabel(pB.getR()));
-		
-		if(qLabels != 0)
-			return qLabels; 
-		return rLabels;
-	}
-	
+
 	public CmpVertex getQ(){
-		return q;
+		return firstElem;
 	}
 	
 	public CmpVertex getR(){
-		return r;
+		return secondElem;
 	}
 	
 	public String toString(){
-		return "[ "+((q == null)?"NULL":q.getUserDatum(JUConstants.LABEL))+", "+((r == null)?"NULL":r.getUserDatum(JUConstants.LABEL))+" ]";
+		return "[ "+((getQ() == null)?"NULL":getQ().getName())+", "+((getR() == null)?"NULL":getR().getName())+" ]";
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode(){
-		final int PRIME = 31;
-		return q.getUserDatum(JUConstants.LABEL).hashCode()+PRIME*r.getUserDatum(JUConstants.LABEL).hashCode();
-	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object o){
-		if(o == null)
-			return false;
-		if(o instanceof StatePair){
-			StatePair other = (StatePair)o;
-			Object otherQ = other.getQ().getUserDatum(JUConstants.LABEL);
-			Object otherR = other.getR().getUserDatum(JUConstants.LABEL);
-			Object thisQ = q.getUserDatum(JUConstants.LABEL);
-			Object thisR = r.getUserDatum(JUConstants.LABEL);
-			if(thisQ.equals(otherQ)&&thisR.equals(otherR))
-				return true;
-		}
-		return false;
+	public int compareTo(StatePair o) {
+		return super.compareTo(o);
 	}
 }

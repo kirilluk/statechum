@@ -47,7 +47,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
 	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, 
-		minCertaintyThreshold = 0, klimit=0;
+		minCertaintyThreshold = 0, klimit=-1;
 	protected int questionCounter = 0;
 	protected boolean askQuestions = true;
 	

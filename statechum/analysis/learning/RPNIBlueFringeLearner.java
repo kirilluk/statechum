@@ -52,6 +52,8 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	public void setAskQuestions(boolean askQuestions){
 		this.askQuestions = askQuestions;
+		if(askQuestions)
+			klimit = -1;
 	}
 	
 	

@@ -93,10 +93,13 @@ public class PickNegativesVisualiser extends Visualiser{
 		        	else
 		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, Configuration.getDefaultConfiguration());
 		        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
-					l.setKlimit(k);
-		        	if(!active)
-		        		l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
-					l.setDebugMode(true);
+		        	if(!active){
+		        		l.setKlimit(k);
+		        		l.setAskQuestions(false); 
+		        	}
+		        	else
+		        		l.setKlimit(-1);
+		        	l.setDebugMode(true);
 		        	l.addObserver(PickNegativesVisualiser.this);
 		        	l.setAnswers(ans);
 		        	if (whomToNotify != null) whomToNotify.threadStarted();
@@ -120,9 +123,13 @@ public class PickNegativesVisualiser extends Visualiser{
 			public void run()
 			{
 				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae);
-				l.setKlimit(k);
-				if(!active)
-					l.setMinCertaintyThreshold(400000); //Needs nicer solution, currently simply sets minumum threshold too high
+				
+				if(!active){
+					l.setKlimit(k);
+					l.setAskQuestions(false); //Needs nicer solution, currently simply sets minumum threshold too high
+				}
+				else
+					l.setKlimit(-1);
 				l.setDebugMode(true);
 	        	l.addObserver(PickNegativesVisualiser.this);
 	        	l.setAnswers(ans);

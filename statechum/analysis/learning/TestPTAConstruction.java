@@ -27,7 +27,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraph.IDMode;
 import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import edu.uci.ics.jung.graph.Vertex;
@@ -44,7 +43,10 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
-			actualC = new LearnerGraph().setMode(IDMode.POSITIVE_NEGATIVE).paths.augmentPTA(plusStrings, true).paths.getGraph();
+			actualC = null;
+		Configuration config = new Configuration();config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		LearnerGraph l = new LearnerGraph(config);
+		actualC = l.paths.augmentPTA(plusStrings, true).paths.getGraph();
 		RPNIBlueFringeLearner.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		TestFSMAlgo.checkM(actualA, expectedPTA);
@@ -68,8 +70,9 @@ public class TestPTAConstruction
 
 		try
 		{
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
-			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
+			Configuration config = new Configuration();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.getScoreComputer().paths.getGraph();
 		}
@@ -149,9 +152,9 @@ public class TestPTAConstruction
 
 		try
 		{
-			
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null);
-			l.getScoreComputer().setMode(IDMode.POSITIVE_NEGATIVE);
+			Configuration config = new Configuration();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.getScoreComputer().paths.getGraph();
 		}

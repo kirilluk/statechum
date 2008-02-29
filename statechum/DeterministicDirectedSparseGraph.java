@@ -137,8 +137,8 @@ public class DeterministicDirectedSparseGraph {
 			
 			if (label == null)
 				return other.label == null;
-			else
-				return label.equals(other.label);
+			
+			return label.equals(other.label);
 		}
 		
 		public String getName() {
@@ -151,6 +151,7 @@ public class DeterministicDirectedSparseGraph {
 
 		public void setAccept(boolean accept) 
 		{
+			removeUserDatum(JUConstants.ACCEPTED);
 			addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
 		}
 
@@ -171,10 +172,9 @@ public class DeterministicDirectedSparseGraph {
 		}
 
 		public void setHighlight(boolean hightlight) {
+			removeUserDatum(JUConstants.HIGHLIGHT);
 			if (hightlight)
 				addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
-			else
-				removeUserDatum(JUConstants.HIGHLIGHT);
 		}
 
 		public boolean isHighlight() {

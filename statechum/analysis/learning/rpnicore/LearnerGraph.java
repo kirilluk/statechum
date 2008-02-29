@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -29,15 +30,18 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.StringVertex;
+import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.oracles.*;
+import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 
 /** This class and its wholly-owned subsidiaries perform computation of scores, state merging and question generation. */
 public class LearnerGraph implements Cloneable {
@@ -50,55 +54,6 @@ public class LearnerGraph implements Cloneable {
 	/** Stores all red-blue pairs; has to be backed by array for the optimal performance of the sort function. */
 	protected List<PairScore> pairsAndScores;
 
-	public static class Configuration implements Cloneable
-	{
-		protected int generalisationThreshold=0;
-		protected int pairsMergedPerHypothesis=0;
-		
-		protected boolean bumpPositives = false, useCompatibilityScore = false;
-
-		public int getGeneralisationThreshold() {
-			return generalisationThreshold;
-		}
-
-		public void setGeneralisationThreshold(int generalisationThresholdArg) {
-			this.generalisationThreshold = generalisationThresholdArg;
-		}
-
-		public int getPairsMergedPerHypothesis() {
-			return pairsMergedPerHypothesis;
-		}
-
-		public void setPairsMergedPerHypothesis(int pairsMergedPerHypothesisArg) {
-			this.pairsMergedPerHypothesis = pairsMergedPerHypothesisArg;
-		}
-
-		public boolean isBumpPositives() {
-			return bumpPositives;
-		}
-
-		public void setBumpPositives(boolean bumpPositivesArg) {
-			this.bumpPositives = bumpPositivesArg;
-		}
-
-		public boolean isUseCompatibilityScore() {
-			return useCompatibilityScore;
-		}
-
-		public void setUseCompatibilityScore(boolean useCompatibilityScoreArg) {
-			this.useCompatibilityScore = useCompatibilityScoreArg;
-		}
-
-		@Override
-		public Object clone() {
-			try {
-				return super.clone();
-			} catch (CloneNotSupportedException e) {
-				IllegalArgumentException ex = new IllegalArgumentException("clone of Configuration failed - should not happen");
-				ex.initCause(e);throw ex;
-			}
-		}
-	};
 	public final Configuration config;
 	
 	/** Used to switch on a variety of consistency checks. */
@@ -124,41 +79,57 @@ public class LearnerGraph implements Cloneable {
 	 * 
 	 * @param g the graph it will be used on 
 	 */
-	public LearnerGraph(DirectedSparseGraph g)
+	public LearnerGraph(DirectedSparseGraph g,Configuration conf)
 	{
-		init = (CmpVertex)RPNIBlueFringeLearner.findInitial(g);
-		config = new Configuration();
-		
+		config = conf;
+		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
-		for(CmpVertex v:(Set<CmpVertex>)g.getVertices())
+		
+		
+		synchronized (LearnerGraph.syncObj) 
 		{
-			transitionMatrix.put(v,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
-			v.setColour(null);
-		}
-		init.setColour(JUConstants.RED);
-	
+			for(DeterministicVertex v:(Set<DeterministicVertex>)g.getVertices())
+			{
+				CmpVertex vert = null;
+				if (config.isLearnerUseStrings())
+					vert = new StringVertex(v.getName());
+				else
+					if (config.isLearnerCloneGraph())
+						vert = new DeterministicVertex(v.getName());
+					else
+						vert = v;
+				
+				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
+				vert.setColour(v.getColour());vert.setAccept(v.isAccept());vert.setHighlight(v.isHighlight());
+				origToCmp.put(v, vert);
+				if (RPNIBlueFringeLearner.isInitial(v))// special case for the initial vertex.
+					init = vert;
+			}
+			init.setColour(JUConstants.RED);
+		} // synchronized (LearnerGraph.syncObj)
+		
 		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
 		while(edgeIter.hasNext())
 		{	
 			DirectedSparseEdge e = edgeIter.next();
-			Map<String,CmpVertex> outgoing = transitionMatrix.get(e.getSource());
+			Map<String,CmpVertex> outgoing = transitionMatrix.get(origToCmp.get(e.getSource()));
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
 			for(String label:(Collection<String>)e.getUserDatum(JUConstants.LABEL))
-				outgoing.put(label, (CmpVertex)e.getDest());			
+				outgoing.put(label, origToCmp.get(e.getDest()));			
 		}
 	}
 	
-	protected LearnerGraph(Configuration conf)
+	public LearnerGraph(Configuration conf)
 	{
-		config = (Configuration)conf.clone();
-		initEmpty();
+		config = conf;
+		initPTA();
 	}
 
 	/** Constructs a graph with an initial state. */
-	public LearnerGraph()
+	private LearnerGraph()
 	{
-		config = new Configuration();
-		initPTA();
+		config = Configuration.getDefaultConfiguration();
+		initEmpty();
 	}
 
 	/**
@@ -282,6 +253,7 @@ public class LearnerGraph implements Cloneable {
 	public Object clone()
 	{
 		LearnerGraph result = new LearnerGraph(config);
+		result.initEmpty();
 		result.init = init;
 		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
@@ -316,23 +288,14 @@ public class LearnerGraph implements Cloneable {
 	 * gets increased by Jung in the course of object creation.
 	 */
 	public static final Object syncObj = new Object();
-	
+		
 	protected int vertPositiveID = 1;
 	protected int vertNegativeID = 1;
-	
-	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY };
-	
-	protected IDMode id_mode = IDMode.NONE; // creation of new vertices is prohibited.
-	
-	public LearnerGraph setMode(IDMode m)
-	{
-		id_mode = m;return this;
-	}
-	
+
 	/** Generates vertice IDs. */
 	public String nextID(boolean accepted)
 	{
-		if (id_mode == IDMode.POSITIVE_ONLY)
+		if (config.getMode() == IDMode.POSITIVE_ONLY)
 			return "V"+vertPositiveID++;
 		return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
 	}
@@ -348,25 +311,35 @@ public class LearnerGraph implements Cloneable {
 	CmpVertex addVertex(CmpVertex prevState, boolean accepted, String input)
 	{
 		assert Thread.holdsLock(syncObj);
-		CmpVertex newVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(nextID(accepted));
+		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted));
 		newVertex.setAccept(accepted);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);
 		return newVertex;
 	}
 
+	public CmpVertex generateNewCmpVertex(String name)
+	{
+		synchronized(syncObj)
+		{
+			return config.isLearnerUseStrings()? 
+					new StringVertex(name):
+					new DeterministicVertex(name);			
+		}		
+	}
+	
 	public void initPTA()
 	{
-		initEmpty();
-		init = new DeterministicDirectedSparseGraph.DeterministicVertex("Init"); 
+		initEmpty(); 
+		init = generateNewCmpVertex("Init");
 		init.setAccept(true);init.setColour(JUConstants.RED);
-		//graph.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
+		
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
 	}
 	
 	public void initEmpty()
 	{
-		transitionMatrix.clear();
+		transitionMatrix.clear();init=null;
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
 	}
 

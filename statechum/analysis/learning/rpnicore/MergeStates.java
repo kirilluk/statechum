@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import edu.uci.ics.jung.graph.Edge;
@@ -130,15 +131,18 @@ public class MergeStates {
 		return result;
 	}
 	
-	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair)
+	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair, Configuration conf)
 	{
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
-			DeterministicVertex newBlue = RPNIBlueFringeLearner.findVertexNamed(pair.getQ().toString(),g);
-			DeterministicVertex newRed = RPNIBlueFringeLearner.findVertexNamed(pair.getR().toString(),g);
-			pair = new StatePair(newBlue,newRed);
+			DeterministicVertex newBlue = RPNIBlueFringeLearner.findVertexNamed(pair.getQ().getName(),g);
+			DeterministicVertex newRed = RPNIBlueFringeLearner.findVertexNamed(pair.getR().getName(),g);
 			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
-			LearnerGraph s=new LearnerGraph(g);
-			if (s.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
+			
+			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
+			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.
+			Configuration VertexCloneConf = (Configuration)conf.clone();VertexCloneConf.setLearnerUseStrings(false);VertexCloneConf.setLearnerCloneGraph(false);
+			LearnerGraph s=new LearnerGraph(g,VertexCloneConf);
+			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ().getName()),s.findVertex(pair.getR().getName())),mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
 			// make a loop

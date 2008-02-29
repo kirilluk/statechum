@@ -69,12 +69,12 @@ public class PairScore extends StatePair implements Comparable<StatePair>
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
-			return false;
 		if (!(obj instanceof PairScore))
 			return false;
 		final PairScore other = (PairScore) obj;
 		if (score != other.score)
+			return false;
+		if (!super.equals(obj))
 			return false;
 		return true;
 	}

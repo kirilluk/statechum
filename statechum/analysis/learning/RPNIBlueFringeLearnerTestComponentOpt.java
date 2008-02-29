@@ -48,9 +48,11 @@ import edu.uci.ics.jung.utils.UserData;
 
 public class RPNIBlueFringeLearnerTestComponentOpt extends
 		RPNIBlueFringeLearnerTestComponent {
-
-	public RPNIBlueFringeLearnerTestComponentOpt(Frame parent) {
-		super(parent);
+	final protected Configuration conf;
+	
+	public RPNIBlueFringeLearnerTestComponentOpt(Frame parent, Configuration c) {
+		super(parent);conf=c;
+		scoreComputer = new LearnerGraph(conf);
 	}
 	
 	protected void update(StatePair pair)
@@ -60,7 +62,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(scoreComputer.paths.getGraph());
 	}
 	
-	protected LearnerGraph scoreComputer = new LearnerGraph();
+	protected LearnerGraph scoreComputer = null;
 
 	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 

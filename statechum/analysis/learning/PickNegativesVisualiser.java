@@ -91,7 +91,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		        		
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this);
+		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, Configuration.getDefaultConfiguration());
 		        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
 					l.setKlimit(k);
 		        	if(!active)

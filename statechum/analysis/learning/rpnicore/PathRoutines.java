@@ -214,7 +214,8 @@ public class PathRoutines {
 		if (currentState == null)
 		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
 
-			synchronized (LearnerGraph.syncObj) {
+			synchronized (LearnerGraph.syncObj) 
+			{
 				while(inputIt.hasNext())
 				{
 					prevState = coregraph.addVertex(prevState, true, lastInput);
@@ -271,9 +272,7 @@ public class PathRoutines {
 				DeterministicVertex vert = new DeterministicVertex(source.getName());
 				if (coregraph.init == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				vert.setAccept(source.isAccept());
-				vert.setColour(source.getColour());
-				vert.setHighlight(source.isHighlight());
+				vert.setAccept(source.isAccept());vert.setColour(source.getColour());vert.setHighlight(source.isHighlight());
 				result.addVertex(vert);
 				oldToNew.put(source,vert);
 			}

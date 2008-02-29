@@ -41,8 +41,8 @@ public class RPNIBlueFringeSootLearner extends
 	
 
 	
-	public RPNIBlueFringeSootLearner(Frame parentFrame){
-		super(parentFrame);
+	public RPNIBlueFringeSootLearner(Frame parent){
+		super(parent,Configuration.getDefaultConfiguration());
 	}
 	
 	private String getFromMethod(int i, List<String> question){

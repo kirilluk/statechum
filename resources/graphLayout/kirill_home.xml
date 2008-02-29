@@ -6,12 +6,12 @@
    <string>testNewLearner1b</string> 
   </void> 
   <void method="put"> 
-   <string>ASSERT</string> 
-   <string>true</string> 
-  </void> 
-  <void method="put"> 
    <string>STOP</string> 
    <string>testNewLearner_2_1aa</string> 
+  </void> 
+  <void method="put"> 
+   <string>ASSERT</string> 
+   <string>true</string> 
   </void> 
  </object> 
  <object class="java.util.HashMap"> 

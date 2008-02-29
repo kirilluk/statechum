@@ -24,7 +24,6 @@ import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.xmachine.model.testset.*;
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -43,7 +42,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -52,8 +50,8 @@ public class BlueFringeSpinLearner extends
 
 	private Set<String> ltl;
 
-	public BlueFringeSpinLearner(Frame parentFrame, Set<String> ltlFormulae) {
-		super(parentFrame);
+	public BlueFringeSpinLearner(Frame parent, Set<String> ltlFormulae) {
+		super(parent, Configuration.getDefaultConfiguration());
 		ltl = ltlFormulae;
 	}
 

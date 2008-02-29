@@ -51,13 +51,14 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
+import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraph.IDMode;
 import statechum.xmachine.model.testset.*;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
@@ -177,6 +178,13 @@ public class PathCompressionExperiment {
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
+		/** Configuration for the learner and related.
+		 * Important: clone is there to prevent subsequent changes to 
+		 * configuration for a given evaluator from changing the 
+		 * global (default) configuration. 
+		 */
+		protected Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		
 		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
 		{
 			super(inputFile, outputDir, per,instanceID);
@@ -184,10 +192,7 @@ public class PathCompressionExperiment {
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParametersOnComputeStateScores(LearnerGraph c);
-
-		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParametersOnLearner(RPNIBlueFringeLearner l);
+		protected abstract void changeParameters(Configuration c);
 		
 		protected static int stringCollectionSize(Collection<List<String>> strings){
 			int size = 0;
@@ -301,12 +306,7 @@ public class PathCompressionExperiment {
 				return new RPNIEvaluator(inputFile,outputDir, percent, instanceID)
 				{
 					@Override
-					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-					{
-					}
-					
-					@Override
-					protected void changeParametersOnComputeStateScores(LearnerGraph c) 
+					protected void changeParameters(Configuration c) 
 					{
 						c.setMode(IDMode.POSITIVE_NEGATIVE);						
 					}

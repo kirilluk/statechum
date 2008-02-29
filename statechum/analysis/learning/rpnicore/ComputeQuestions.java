@@ -32,6 +32,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.StringVertex;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 
@@ -192,7 +193,7 @@ public class ComputeQuestions {
 			return red;
 		}
 	
-		public final CmpVertex junkVertex = new DeterministicDirectedSparseGraph.DeterministicVertex("JUNK");
+		public final CmpVertex junkVertex = coregraph.generateNewCmpVertex("JUNK");
 				
 		public Object getNextState(Object currentState, String input) 
 		{

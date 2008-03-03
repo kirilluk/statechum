@@ -108,9 +108,6 @@ public class RPNIBlueFringeLearner extends Observable {
 		return g;
 	}
 	
-	/** Determines whether the interface pops up during test execution - the interface helps debugging but slows down execution termendously.
-	 */
-	protected boolean debugMode = false;
 
 	/** Updates listeners only if this object has been modified and debug mode is on, by calling
 	 * <pre>
@@ -120,7 +117,7 @@ public class RPNIBlueFringeLearner extends Observable {
 	 */
 	public void updateGraph(Graph g)
 	{
-		if (debugMode)
+		if (config.getDebugMode())
 			notifyObservers(g);
 	}
 	

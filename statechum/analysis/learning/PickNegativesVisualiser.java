@@ -68,7 +68,7 @@ public class PickNegativesVisualiser extends Visualiser{
 	{
 		if(!active){
 			config.setKlimit(k);
-			config.setAskQuestions(false); //Needs nicer solution, currently simply sets minumum threshold too high
+			config.setAskQuestions(false); 
 		}
 		else
 			config.setKlimit(-1);

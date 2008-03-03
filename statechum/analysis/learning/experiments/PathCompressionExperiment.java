@@ -22,11 +22,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
-import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,34 +33,22 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.swing.SwingUtilities;
-
 import edu.uci.ics.jung.graph.impl.*;
-import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
-import statechum.JUConstants;
 import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.TestFSMAlgo;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Configuration.IDMode;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.xmachine.model.testset.*;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
-import static statechum.xmachine.model.testset.WMethod.getGraphData;
-import static statechum.xmachine.model.testset.WMethod.tracePath;
 
 public class PathCompressionExperiment {
 
@@ -262,8 +248,8 @@ public class PathCompressionExperiment {
 		Iterator<List<String>> sMinusIt = sMinus.iterator();
 		while(sMinusIt.hasNext()){
 			List<String> currentString = sMinusIt.next();
-			final FSMStructure expected = getGraphData(g);
-			int reject = tracePath(expected, currentString);
+			final LearnerGraph expected = new LearnerGraph(g,Configuration.getDefaultConfiguration());
+			int reject = expected.paths.tracePath(currentString);
 			returnSet.add(currentString.subList(0, reject+1));
 		}
 		return returnSet;
@@ -308,7 +294,7 @@ public class PathCompressionExperiment {
 					@Override
 					protected void changeParameters(Configuration c) 
 					{
-						c.setMode(IDMode.POSITIVE_NEGATIVE);						
+						c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
 					}
 
 					@Override
@@ -365,15 +351,13 @@ public class PathCompressionExperiment {
 		final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
-		else
-		{// the number is valid.
-			int learnerStep = fileName.size()*stageNumber;
-			int learnerType = Number / learnerStep;
-			int fileNumber = (Number % learnerStep) / stageNumber;
-			int percentStage = (Number % learnerStep) % stageNumber;
-			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
-			return 0;
-		}
+		// the number is valid.
+		int learnerStep = fileName.size()*stageNumber;
+		int learnerType = Number / learnerStep;
+		int fileNumber = (Number % learnerStep) / stageNumber;
+		int percentStage = (Number % learnerStep) % stageNumber;
+		results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
+		return 0;
 	}
 
 	public int computeMaxNumber(Reader fileNameListReader)

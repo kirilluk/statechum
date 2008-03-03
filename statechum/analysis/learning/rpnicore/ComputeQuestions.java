@@ -28,13 +28,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.StringVertex;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 
 public class ComputeQuestions {
 	final LearnerGraph coregraph;
@@ -181,42 +178,6 @@ public class ComputeQuestions {
 		}
 	}
 
-	private class NonExistingPaths implements FSMAbstraction
-	{
-		private final CmpVertex red = ComputeQuestions.this.coregraph.init;
-		
-		public NonExistingPaths()
-		{
-		}
-		
-		public Object getInitState() {
-			return red;
-		}
-	
-		public final CmpVertex junkVertex = coregraph.generateNewCmpVertex("JUNK");
-				
-		public Object getNextState(Object currentState, String input) 
-		{
-			CmpVertex result = null;
-			Map<String,CmpVertex> row = ComputeQuestions.this.coregraph.transitionMatrix.get(currentState);
-			if (row != null)
-				result = row.get(input);
-			if (result == null)
-				result = junkVertex;
-
-			return result;
-		}
-	
-		public boolean isAccept(@SuppressWarnings("unused")	Object currentState) 
-		{
-			return true;
-		}
-
-		public boolean shouldBeReturned(Object elem) {
-			return elem == junkVertex;
-		}
-	}
-
 	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
 	/** Given a pair of states merged in a graph and the result of merging, 
@@ -230,7 +191,7 @@ public class ComputeQuestions {
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();
-		engine.init(original.questions.new NonExistingPaths());
+		engine.init(original.new NonExistingPaths());
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
 		PTATestSequenceEngine.sequenceSet initp = engine.new sequenceSet();initp.setIdentity();
 

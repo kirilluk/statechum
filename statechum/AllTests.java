@@ -47,7 +47,7 @@ public class AllTests {
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
 		statechum.analysis.learning.TestFSMParser.class,
-		statechum.analysis.learning.TestFSMAlgo.class
+		statechum.analysis.learning.TestFSMAlgo.class,
 	})
 	public static class FSMTests {
 		@Override
@@ -71,7 +71,8 @@ public class AllTests {
 		statechum.analysis.learning.TestGraphBasicAlgorithms.class,
 		statechum.analysis.learning.TestGraphGeneration.class,
 		statechum.analysis.learning.TestPathTracing.class,
-		statechum.analysis.learning.TestGraphConstruction.class
+		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
+		statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class
 	})
 	public static class BasicGraphTests {
 	}

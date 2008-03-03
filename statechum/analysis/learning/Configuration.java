@@ -21,12 +21,19 @@ package statechum.analysis.learning;
 import java.util.Arrays;
 import java.util.Collection;
 
+/** Represents a configuration for a learner. The purpose is a possibility of a 
+ * global customisation of all objects used by a learner in the course of 
+ * learning by the same object.
+ * <p> 
+ * When you add to this class, please add the corresponding entries to hashCode and equals. 
+ */
 public class Configuration implements Cloneable
 {
 	protected int generalisationThreshold=0;
 	protected int pairsMergedPerHypothesis=0;
 	
 	Configuration() {}
+	
 	protected final static Configuration defaultConfig = new Configuration();
 	
 	public static Configuration getDefaultConfiguration()
@@ -60,16 +67,16 @@ public class Configuration implements Cloneable
 	 * sequential numbers; POSITIVE_NEGATIVE gives negative numbers to reject vertices
 	 * and positive ones to accept ones.
 	 */
-	protected IDMode id_mode = IDMode.NONE; // creation of new vertices is prohibited.
+	protected IDMode learnerIdMode = IDMode.NONE; // creation of new vertices is prohibited.
 
-	public void setMode(IDMode m)
+	public void setLearnerIdMode(IDMode m)
 	{
-		id_mode = m;
+		learnerIdMode = m;
 	}
 	
 	public IDMode getMode()
 	{
-		return id_mode;
+		return learnerIdMode;
 	}
 	
 	public int getGeneralisationThreshold() {
@@ -136,6 +143,19 @@ public class Configuration implements Cloneable
 		LearnerUseStrings = learnerUseStrings;
 	}
 	
+	/** The initial state in a PTA has to be given some name, this is the default. */
+	protected String defaultInitialPTAName = "Init";
+	
+	public void setDefaultInitialPTAName(String name)
+	{
+		defaultInitialPTAName = name;
+	}
+	
+	public String getDefaultInitialPTAName()
+	{
+		return defaultInitialPTAName;
+	}
+	
 	public static Collection<Object[]> configurationsForTesting() 
 	{
 		Configuration same = new Configuration();same.setLearnerUseStrings(false);same.setLearnerCloneGraph(true);
@@ -144,4 +164,78 @@ public class Configuration implements Cloneable
 		return Arrays.asList(new Object[][] { { same }, { clone }, { strings }} );
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (LearnerCloneGraph ? 1231 : 1237);
+		result = prime * result + (LearnerUseStrings ? 1231 : 1237);
+		result = prime * result + (bumpPositives ? 1231 : 1237);
+		result = prime * result + generalisationThreshold;
+		result = prime * result + ((learnerIdMode == null) ? 0 : learnerIdMode.hashCode());
+		result = prime * result + pairsMergedPerHypothesis;
+		result = prime * result + (useCompatibilityScore ? 1231 : 1237);
+		result = prime * result + (allowedToCloneNonCmpVertex? 1231 : 1237);
+		result = prime * result + defaultInitialPTAName.hashCode();
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof Configuration))
+			return false;
+		final Configuration other = (Configuration) obj;
+		if (LearnerCloneGraph != other.LearnerCloneGraph)
+			return false;
+		if (LearnerUseStrings != other.LearnerUseStrings)
+			return false;
+		if (bumpPositives != other.bumpPositives)
+			return false;
+		if (generalisationThreshold != other.generalisationThreshold)
+			return false;
+		if (learnerIdMode == null) {
+			if (other.learnerIdMode != null)
+				return false;
+		} else if (!learnerIdMode.equals(other.learnerIdMode))
+			return false;
+		if (pairsMergedPerHypothesis != other.pairsMergedPerHypothesis)
+			return false;
+		if (useCompatibilityScore != other.useCompatibilityScore)
+			return false;
+		if (allowedToCloneNonCmpVertex != other.allowedToCloneNonCmpVertex)
+			return false;
+		if (!defaultInitialPTAName.equals(other.defaultInitialPTAName))
+			return false;
+		return true;
+	}
+
+	/** For testing, I'd like to mix pure Jung routines and LearnerGraph 
+	 * ones, hence it should be possible to build a LearnerGraph
+	 * out of whatever Jung graph I was given. In production use, 
+	 * graphs are either to be built from GraphML or obtained from 
+	 * LearnerGraph. In both cases these will be deterministic graphs.
+	 * For this reason, it is good to be able to detect when we've been
+	 * passed a graph which does not consist of deterministic vertices.
+	 */
+	protected boolean allowedToCloneNonCmpVertex = false;
+	
+	public boolean isAllowedToCloneNonCmpVertex() 
+	{
+		return allowedToCloneNonCmpVertex;
+	}
+
+	public void setAllowedToCloneNonCmpVertex(boolean allowed)
+	{
+		allowedToCloneNonCmpVertex = allowed;
+	}
 }

@@ -43,6 +43,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.ArrayOperations;
+import statechum.StringVertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
@@ -73,15 +75,15 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	/** The configuration to use when running tests. */
 	private Configuration config = null, mainConfiguration = null;
 
-	static public PairScore constructPairScore(String a,String b, int score)
+	static public PairScore constructPairScore(String a,String b, int score, Configuration config)
 	{
-		DeterministicVertex aV = new DeterministicVertex(a), bV = new DeterministicVertex(b);
+		CmpVertex aV = LearnerGraph.generateNewCmpVertex(a, config), bV = LearnerGraph.generateNewCmpVertex(b,config);
 		return new PairScore(aV,bV, score,score);
 	}
 
-	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS)
+	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS, Configuration config)
 	{
-		StatePair p = constructPairScore(a,b,abS), q=constructPairScore(c,d,cdS);
+		StatePair p = constructPairScore(a,b,abS,config), q=constructPairScore(c,d,cdS,config);
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -93,26 +95,26 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public void testPairScoreEquality()
 	{
-		StatePair p = constructPairScore("a","b",4), q=constructPairScore("a","b",4);
+		StatePair p = constructPairScore("a","b",4,config), q=constructPairScore("a","b",4,config);
 		assertTrue(p.equals(p));
 		assertTrue(p.equals(q));
 		assertFalse(p.equals(null));
 		assertFalse(p.equals("test"));
-		assertFalse(p.equals(constructPairScore("a","c",4)));
-		assertFalse(p.equals(constructPairScore("a","b",6)));
-		assertFalse(p.equals(constructPairScore("b","b",4)));
+		assertFalse(p.equals(constructPairScore("a","c",4,config)));
+		assertFalse(p.equals(constructPairScore("a","b",6,config)));
+		assertFalse(p.equals(constructPairScore("b","b",4,config)));
 	}
 	
 	@Test
 	public void testStatePairScoreComparison()
 	{
-		checkLess("a","b",4,"a","b",6);
-		checkLess("z","z",4,"a","b",6);
-		checkLess("a","b",4,"z","z",6);
+		checkLess("a","b",4,"a","b",6,config);
+		checkLess("z","z",4,"a","b",6,config);
+		checkLess("a","b",4,"z","z",6,config);
 
-		checkLess("a","b",4,"c","d",4);
-		checkLess("a","b",4,"a","c",4);
-		checkLess("a","b",4,"c","b",4);
+		checkLess("a","b",4,"c","d",4,config);
+		checkLess("a","b",4,"a","c",4,config);
+		checkLess("a","b",4,"c","b",4,config);
 	}
 
 	@Test

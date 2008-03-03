@@ -118,14 +118,20 @@ public class PTATestSequenceEngine
 		{
 			if (!isAccept())
 				return "REJECT";
-			else
-				return ""+ID+"("+fsmState+")";
+
+			return ""+ID+"("+fsmState+")";
 		}
 	}
 	
 	/** The initial node of the pta */
 	protected PTATestSequenceEngine.Node init = null; 
 	
+	/** I cannot simply use LearnerGraph here because LearnerGraph is a normal data 
+	 * structure while what we need is a programmatical extraction of FSM. This 
+	 * permits a lazy generation of those machines on the fly, potentially introducing
+	 * infinite machines like what is possible with infinite lists in Haskell 
+	 * and the like. 
+	 */
 	public interface FSMAbstraction 
 	{
 		/** the next-state function, returning a map from inputs to next states. */

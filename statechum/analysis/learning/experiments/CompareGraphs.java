@@ -22,12 +22,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import statechum.xmachine.model.testset.WMethod;
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 /**
  * Compares two graphs (fed as string inputs using Kirill's notation) and provides feedback
@@ -44,12 +43,13 @@ public class CompareGraphs {
 	public static void main(String[] args) {
 		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "specGraph");
 		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "impGraph");
-		WMethod wm = new WMethod(impGraph,1);
-		Collection testset = wm.getFullTestSet();
-		testset.addAll(wm.getTransitionCover());
+		LearnerGraph wm = new LearnerGraph(impGraph,Configuration.getDefaultConfiguration());
+		final int extraStateNumber = 1;
+		Collection<List<String>> testset = wm.wmethod.getFullTestSet(extraStateNumber);
+		testset.addAll(wm.wmethod.getTransitionCover());
 		PrecisionRecall pr = computePrecisionRecall(specGraph, impGraph, testset);
 		System.out.println("precision: "+pr.getPrecision()+", recall: "+pr.getRecall());
-		printTests(wm.getFullTestSet());
+		printTests(wm.wmethod.getFullTestSet(extraStateNumber));
 		
 	}
 	
@@ -73,39 +73,39 @@ public class CompareGraphs {
 				retneg.add(list);
 			}
 			else if((hypVertex == null)&(correctVertex != null)){
-				if(isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					relpos.add(list);
 					retneg.add(list);
 				}
-				else if(!isAccept(correctVertex)){
+				else if(!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					relneg.add(list);
 					retneg.add(list);
 				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(isAccept(hypVertex)&&!isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)&&!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					retpos.add(list);
 					relneg.add(list);
 				}
-				else if(!isAccept(hypVertex)&&isAccept(correctVertex)){
+				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)&&DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					retneg.add(list);
 					relpos.add(list);
 				}
-				else if(!isAccept(hypVertex)&&!isAccept(correctVertex)){
+				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)&&!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					retneg.add(list);
 					relneg.add(list);
 				}
-				else if(isAccept(hypVertex)&&isAccept(correctVertex)){ 
+				else if(DeterministicDirectedSparseGraph.isAccept(hypVertex)&&DeterministicDirectedSparseGraph.isAccept(correctVertex)){ 
 					retpos.add(list);
 					relpos.add(list);
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(isAccept(hypVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)){
 					retpos.add(list);
 					relneg.add(list);
 				}
-				else if(!isAccept(hypVertex)){
+				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)){
 					retneg.add(list);
 					relneg.add(list);
 				}

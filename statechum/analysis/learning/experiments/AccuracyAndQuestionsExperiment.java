@@ -22,11 +22,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
-import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,33 +33,26 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.swing.SwingUtilities;
-
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Configuration.IDMode;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.xmachine.model.testset.*;
-import static statechum.xmachine.model.testset.WMethod.getGraphData;
-import static statechum.xmachine.model.testset.WMethod.tracePath;
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 public class AccuracyAndQuestionsExperiment {
 
@@ -97,10 +88,17 @@ public class AccuracyAndQuestionsExperiment {
 		protected Collection<List<String>> sPlus=null, sMinus=null;
 		protected DirectedSparseGraph graph=null;
 		protected String inputFileName = null, outputDir = null;
-		protected Collection<List<String>> tests = null;
+		protected ArrayList<List<String>> tests = null;
 		protected int percent;
 		protected final int instanceID;
 		
+		/** Configuration for the learner and related.
+		 * Important: clone is there to prevent subsequent changes to 
+		 * configuration for a given evaluator from changing the 
+		 * global (default) configuration. 
+		 */
+		protected Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+
 		public LearnerEvaluator(String inputFile, String outputD, int per, int inID) 
 		{
 			inputFileName = inputFile;outputDir = outputD;percent = per;instanceID = inID;			
@@ -155,8 +153,8 @@ public class AccuracyAndQuestionsExperiment {
 			loadGraph();
 			int size = (graph.numVertices()*graph.numVertices())/2;
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size/2,5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,0);
-			tests = (Collection<List<String>>)tester.getFullTestSet();
+	    	LearnerGraph tester = new LearnerGraph(graph,config);
+			tests = new ArrayList<List<String>>();tests.addAll(tester.wmethod.getFullTestSet(0));
 			tests.removeAll(rpg.getAllPaths());
 			Set<List<String>> currentSamples = new LinkedHashSet<List<String>>();
 			int number = size*percent/100;
@@ -172,21 +170,24 @@ public class AccuracyAndQuestionsExperiment {
 			System.out.println("total at this percentage: "+currentSamples.size()+", plus : "+sPlus.hashCode()+"-"+sPlus.size()+" minus: "+sMinus.hashCode()+"-"+sMinus.size());
 		}
 		
-		public List<String> pickNegativeTest(FSMStructure graph){
+		public List<String> pickNegativeTest(LearnerGraph fsm){
 			Random generator = new Random();
 			boolean accepted = true;
-			Object[] testArray = tests.toArray();
-			List<String> string = null;
+			List<String> negativeString = null;
 			while(accepted){
-				int randomIndex = generator.nextInt(testArray.length-1);
-				string = WMethod.trimSequence(graph, (List<String>)testArray[randomIndex]);
-				if(string == null)
-					continue;
-				if(!sMinus.contains(string))
-					accepted=false;
+				int randomIndex = generator.nextInt(tests.size()-1);
+				List<String> testSequence = tests.get(randomIndex);
+
+				int pos = fsm.paths.tracePath(testSequence);
+				if (pos >= 0)
+				{// Note: the part from pos = until the line with subList (both inclusive) have been tested as a part of testing of truncateSequence
+					negativeString = testSequence.subList(0, pos+1);// up to a rejected position plus one
+					if(!sMinus.contains(negativeString))
+						accepted=false;
+				}
 			}
-			tests.remove(string);
-			return string;
+			tests.remove(negativeString);
+			return negativeString;
 		}
 		
 		protected void buildSets()
@@ -194,8 +195,8 @@ public class AccuracyAndQuestionsExperiment {
 			loadGraph();
 			int size = graph.getEdges().size()*4;
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size,5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,2);
-			tests = (Collection<List<String>>)tester.getFullTestSet();
+	    	LearnerGraph tester = new LearnerGraph(graph,config);
+	    	tests = new ArrayList<List<String>>();tests.addAll(tester.wmethod.getFullTestSet(2));
 			//tests = randomHalf(fullTestSet,new Random(0));
 			//Collection<List<String>> fullSampleSet = WMethod.crossWithSet(rpg.getAllPaths(),WMethod.computeAlphabet(graph));
 			
@@ -232,12 +233,6 @@ public class AccuracyAndQuestionsExperiment {
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
-		/** Configuration for the learner and related.
-		 * Important: clone is there to prevent subsequent changes to 
-		 * configuration for a given evaluator from changing the 
-		 * global (default) configuration. 
-		 */
-		protected Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
 		public RPNIEvaluator(String inputFile, String outputDir, int per, int instanceID)
 		{
 			super(inputFile, outputDir, per,instanceID);			
@@ -255,12 +250,12 @@ public class AccuracyAndQuestionsExperiment {
 			
 			buildSetsHalfNegative();
 			
-			final FSMStructure fsm = WMethod.getGraphData(graph);
+			final LearnerGraph fsm = new LearnerGraph(graph,config);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 				{
-					return tracePath(fsm, question);
+					return fsm.paths.tracePath(question);
 				}
 			};
 			//l.setCertaintyThreshold(10);
@@ -315,19 +310,19 @@ public class AccuracyAndQuestionsExperiment {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
 			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex != null)){
-				if(isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(isAccept(hypVertex) != isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex) != DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(isAccept(hypVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)){
 					//updateFrame(learned, correct);
 					failed++;
 				}
@@ -357,18 +352,6 @@ public class AccuracyAndQuestionsExperiment {
 		return current;
 	}
 	
-	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Collection<List<String>> sMinus ){
-		Set<List<String>> returnSet = new HashSet<List<String>>();
-		Iterator<List<String>> sMinusIt = sMinus.iterator();
-		while(sMinusIt.hasNext()){
-			List<String> currentString = sMinusIt.next();
-			final FSMStructure expected = getGraphData(g);
-			int reject = tracePath(expected, currentString);
-			returnSet.add(currentString.subList(0, reject+1));
-		}
-		return returnSet;
-	}
-
 	public static Collection<List<String>> getPositiveStrings(DirectedSparseGraph graph, Collection<List<String>> samples){
 		Iterator<List<String>> sampleIt = samples.iterator();
 		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
@@ -420,7 +403,7 @@ public class AccuracyAndQuestionsExperiment {
 					@Override
 					protected void changeParameters(Configuration c) 
 					{
-						c.setMode(IDMode.POSITIVE_NEGATIVE);						
+						c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
 					}
 
 					@Override
@@ -535,29 +518,25 @@ public class AccuracyAndQuestionsExperiment {
 			throw new IllegalArgumentException("no usable files found");
 	}
 	
-	/** The set of possible numbers (non-negative) is divided into sets for each learner, and then into a number
-	 * of percent divisions.
+	/** The set of possible numbers (non-negative) is divided into sets for 
+	 * each learner, and then into a number of percent divisions.
 	 * 
 	 * @param inputFile the input file
-	 * @param Number the parameter of the array task. negative means "return the highest positive number which can be passed" 
-	 * @return what Java process should return
+	 * @param Number the parameter of the array task.
 	 */
-	public int processDataSet(Reader fileNameListReader, int Number)
+	public void processDataSet(Reader fileNameListReader, int Number)
 	{
 		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		final int LearnerNumber = learnerGenerators.length;
 		final int NumberMax = fileName.size()*stageNumber*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
-		else
-		{// the number is valid.
-			int learnerStep = fileName.size()*stageNumber;
-			int learnerType = Number / learnerStep;
-			int fileNumber = (Number % learnerStep) / stageNumber;
-			int percentStage = (Number % learnerStep) % stageNumber;
-			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
-			return 0;
-		}
+		// the number is valid.
+		int learnerStep = fileName.size()*stageNumber;
+		int learnerType = Number / learnerStep;
+		int fileNumber = (Number % learnerStep) / stageNumber;
+		int percentStage = (Number % learnerStep) % stageNumber;
+		results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, 100*(1+percentStage)/stageNumber, Number)));
 	}
 
 	public int computeMaxNumber(Reader fileNameListReader)

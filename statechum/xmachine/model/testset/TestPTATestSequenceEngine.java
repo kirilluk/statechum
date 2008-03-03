@@ -34,8 +34,9 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.JUConstants;
+import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.Node;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
@@ -45,7 +46,9 @@ import static org.junit.Assert.assertTrue;
 
 public class TestPTATestSequenceEngine 
 {
-
+	/** The configuration to use in these tests. */
+	private Configuration config = Configuration.getDefaultConfiguration();
+	
 	static void vertifyPTA(PTATestSequenceEngine en, String [][] expected)
 	{
 		Set<List<String>> actual = new HashSet<List<String>>();actual.addAll(en.getData());
@@ -62,8 +65,8 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
-		vertifyPTA(en, new String[][] { 
+		PTATestSequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config));
+		vertifyPTA(engine, new String[][] { 
 				new String[] {}
 			});
 	}
@@ -77,8 +80,8 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
-		vertifyPTA(en, new String[][] {
+		PTATestSequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config));
+		vertifyPTA(engine, new String[][] {
 				new String[] {}
 		});
 	}
@@ -132,12 +135,12 @@ public class TestPTATestSequenceEngine
 	}
 
 	private PTATestSequenceEngine en = null; 
-	private FSMStructure fsm = null;
+	private LearnerGraph fsm = null;
 	
 	@Before
 	public final void setUp()
 	{
-		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "test_sequenceSet1-3_4"));
+		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
 		en = new PTA_FSMStructure(fsm);		
 	}
 	
@@ -497,7 +500,7 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void test_sequenceSet3_5() // a more complex composition
 	{
-		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5"));
+		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5"),config);
 		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		sequenceSet temp2 = seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
@@ -528,7 +531,7 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void test_sequenceSet3_6() // a more complex composition
 	{
-		fsm = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
 		en = new PTA_FSMStructure(fsm);		
 		sequenceSet seq = en.new sequenceSet();seq.setIdentity();
 		Map<String,String> actual = en.getDebugDataMap(seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
@@ -552,11 +555,10 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1() // a test for shouldBeReturned
 	{
-		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned1"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
-				fsm = machine;
-				init(new FSM(){
+				init(machine.new FSMImplementation(){
 					@Override
 					public boolean shouldBeReturned(Object elem) {
 						// elem is null for REJECT states
@@ -581,11 +583,10 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned2() // a test for shouldBeReturned
 	{
-		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
-				fsm = machine;
-				init(new FSM(){
+				init(machine.new FSMImplementation(){
 					@Override
 					public boolean shouldBeReturned(Object elem) {
 						return false;
@@ -608,11 +609,11 @@ public class TestPTATestSequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned3() // a test for shouldBeReturned
 	{
-		final FSMStructure machine = WMethod.getGraphData(TestFSMAlgo.buildGraph("A-a->A-b->B", "sample automaton"));
+		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned3"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				fsm = machine;
-				init(new FSM(){
+				init(machine.new FSMImplementation(){
 					@Override
 					public boolean shouldBeReturned(Object elem) {
 						// elem is null for REJECT states

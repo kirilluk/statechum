@@ -35,6 +35,7 @@ import edu.uci.ics.jung.visualization.control.ScalingGraphMousePlugin;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import java.awt.*;
 import java.awt.event.*;
@@ -408,10 +409,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		}
 		
 		public Shape getShape(Vertex v) {
-			if (RPNIBlueFringeLearner.isInitial(v))
+			if (DeterministicDirectedSparseGraph.isInitial(v))
 				return factory.getRegularStar(v, 7);
 			else
-				if ( !RPNIBlueFringeLearner.isAccept(v) )
+				if ( !DeterministicDirectedSparseGraph.isAccept(v) )
 					return factory.getRectangle(v);
 			return factory.getEllipse(v);
 		}

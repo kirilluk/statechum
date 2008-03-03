@@ -16,47 +16,55 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.analysis.learning.rpnicore;
+
+import static org.junit.Assert.fail;
+import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.JUConstants;
+import junit.framework.Assert;
+
+import statechum.Pair;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.xmachine.model.testset.PTA_FSMStructure;
+import statechum.xmachine.model.testset.PrefixFreeCollection;
+import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
-import edu.uci.ics.jung.graph.Edge;
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-
-
-
 public class WMethod {
+	final LearnerGraph coregraph;
+	
+	/** Associates this object to ComputeStateScores it is using for data to operate on. 
+	 * Important: the constructor should not access any data in computeStateScores 
+	 * because it is usually invoked during the construction phase of ComputeStateScores 
+	 * when no data is yet available.
+	 */
+	WMethod(LearnerGraph computeStateScores) 
+	{
+		coregraph = computeStateScores;
+	}
 
-	private DirectedSparseGraph machineGraph;
-	private FSMStructure fsm;
-	private int numberOfExtraStates;
 	private Collection<List<String>> fullTestSet;
 	private List<List<String>> transitionCover, characterisationSet;
 	
-	public WMethod(DirectedSparseGraph g, int numberOfExtraStates){
-		this.machineGraph = g;
-		this.fsm = null;
-		this.numberOfExtraStates = numberOfExtraStates;
+	public Set<String> computeAlphabet()
+	{
+		Set<String> result = new HashSet<String>();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+			result.addAll(entry.getValue().keySet());
+		return result;
 	}
 	
-	public WMethod(FSMStructure fsm, int numberOfExtraStates){
-		this.machineGraph = null;
-		this.fsm = fsm;
-		this.numberOfExtraStates = numberOfExtraStates;
-	}
-	
-	public Collection<List<String>> getFullTestSet(){
+	public Collection<List<String>> getFullTestSet(int extraStates){
 		if (fullTestSet == null)
-			fullTestSet = computeNewTestSet();
+			fullTestSet = computeNewTestSet(extraStates);
 		return fullTestSet;
 	}
 	
@@ -68,195 +76,54 @@ public class WMethod {
 		return transitionCover;
 	}
 
-	/** Builds fsm structures corresponding to the Jung graph passed as an argument. The aim is
-	 * to use the constructed structure for the comparison of different Jung graphs.
-	 * 
-	 * @param g graph from which to extract data
-	 * @return the class storing transition information.
-	 */
-	public static FSMStructure getGraphData(DirectedSparseGraph g)
-	{
-		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
-		FSMStructure extractedFSM = new FSMStructure();
-		while(edgeIt.hasNext())
-		{
-			DirectedSparseEdge edge = edgeIt.next();
-			Vertex fromVertex = edge.getSource(), toVertex = edge.getDest();
-			String from = (String)fromVertex.getUserDatum(JUConstants.LABEL),
-				to = (String)toVertex.getUserDatum(JUConstants.LABEL);
-			Map<String,String> labelToTargetState = extractedFSM.trans.get(from);
-			if (labelToTargetState == null)
-			{
-				labelToTargetState = new TreeMap<String,String>();extractedFSM.trans.put(from, labelToTargetState);
-			}
-
-			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),to,labelToTargetState);
-		}
-		
-		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		while(vertexIt.hasNext())
-		{
-			Vertex v = vertexIt.next();
-			String name = (String)v.getUserDatum(JUConstants.LABEL);
-
-			if (name == null)
-				throw new IllegalArgumentException("unlabelled state encountered");
-			
-			if (extractedFSM.accept.containsKey(name))
-				throw new IllegalArgumentException("multiple states with the same name "+name);
-			
-			if (!extractedFSM.trans.containsKey(name))
-			{// This state is a state with no outgoing transitions
-				extractedFSM.trans.put(name, new HashMap<String,String>());
-			}
-			
-			extractedFSM.accept.put(name, 
-					new Boolean(RPNIBlueFringeLearner.isAccept(v)));
-
-			if (RPNIBlueFringeLearner.isInitial(v))
-			{
-				Object initValue = v.getUserDatum(JUConstants.INITIAL); 
-				if ( !(initValue instanceof Boolean) || ((Boolean)initValue).booleanValue() == false)
-					throw new IllegalArgumentException("invalid init property");
-
-				if (extractedFSM.init != null)
-					throw new IllegalArgumentException("duplicate initial state "+name);
-
-				extractedFSM.init = name;
-			}
-		}
-		if (extractedFSM.init == null)
-			throw new IllegalArgumentException("missing initial state");
-		
-		return extractedFSM;
-	}
-	
-	/** Given a set of labels and a target state, this method adds to a supplied map an association 
-	 * of every label with the specified target state.
-	 * 
-	 * @param labels labels
-	 * @param to target state
-	 * @param map a map associating state <i>to</i> with each of the labels. If this is <i>null</i>, a new map is created.
-	 * @return an updated map.
-	 */ 
-	public static Map<String,String> createLabelToStateMap(Collection<String> labels,String to,Map<String,String> map)
-	{
-		Map<String,String> result = (map == null)? new LinkedHashMap<String,String>() : map;
-		for(String label:labels)
-		{
-			if (result.containsKey(label))
-				throw new IllegalArgumentException("nondeterminism detected for label "+label);
-			result.put(label,to);
-		}
-		return result;
-	}
-
-	public static int tracePath(FSMStructure fsm, List<String> path)
-	{
-		return tracePath(fsm,path,fsm.init);
-	}
-	
-	public static int tracePath(FSMStructure fsm, List<String> path, String startState)
-	{
-		String current = startState;
-		int pos = -1;
-		for(String label:path)
-		{
-			++pos;
-			Map<String,String> exitingTrans = fsm.trans.get(current);
-			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
-				return pos;
-		}
-		return fsm.accept.get(current).booleanValue()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
-	}
-	
-	public static List<String> trimSequence(FSMStructure fsm, List<String> path)
-	{
-		ArrayList<String> rejectPath = new ArrayList<String>();
-		if(tracePath(fsm, path)<0)
-			return null;
-		String current = fsm.init;
-		for(String label:path)
-		{
-			rejectPath.add(label);
-			Map<String,String> exitingTrans = fsm.trans.get(current);
-			current = exitingTrans.get(label);
-			int accepted = tracePath(fsm, rejectPath);
-			if (exitingTrans == null || current == null || accepted>=0){
-				return rejectPath;
-			}
-		}
-		return null;
-	}
-
-	
-	/** converts a given sequence into
-	 * a fundamental test sequence.
-	 * 
-	 * @return truncated sequence
-	 */
-	public static List<String> truncateSequence(FSMStructure fsm, List<String> path)
-	{
-		int pos = tracePath(fsm, path);
-		List<String> seq = path;
-		assert(pos == RPNIBlueFringeLearner.USER_ACCEPTED || pos < path.size());
-		if (pos >= 0)
-				seq = path.subList(0, pos+1);// up to a rejected position plus one
-		return seq;
-	}
-	
 	/** Given a database of sequences and a test sequence, converts a given sequence into
 	 * a fundamental test sequence and appends a the result to the <em>sequences</em> set 
 	 * if the fundamental test sequence is not a prefix of an existing sequence in that set.  
 	 */
-	public static void appendSequence(FSMStructure fsm, PrefixFreeCollection sequences, List<String> path)
+	public void appendSequence(PrefixFreeCollection sequences, List<String> path)
 	{
-		List<String> seq = truncateSequence(fsm, path);
+		List<String> seq = coregraph.paths.truncateSequence(path);
 		sequences.addSequence(seq);
 	}
 	
-	public static void appendAllSequences(FSMStructure fsm, PrefixFreeCollection sequences, List<List<String>> paths)
+	public void appendAllSequences(PrefixFreeCollection sequences, List<List<String>> paths)
 	{
 		for(List<String> path:paths)
-			appendSequence(fsm, sequences, path);
+			appendSequence(sequences, path);
 	}
 	
-	Collection<List<String>> computeOldTestSet()
+	public Collection<List<String>> computeOldTestSet(int numberOfExtraStates)
 	{
-		if (fsm == null)
-			fsm = getGraphData(machineGraph);
-		Set<String> alphabet =  computeAlphabet(fsm);
-		List<List<String>> partialSet = computeStateCover(fsm);
-		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		Set<String> alphabet =  computeAlphabet();
+		List<List<String>> partialSet = computeStateCover();
+		characterisationSet = computeWSet(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
 		SlowPrefixFreeCollection testsequenceCollection = new SlowPrefixFreeCollection();
 		
-		appendAllSequences(fsm, testsequenceCollection, cross(partialSet,characterisationSet));
-		for(int i=0;i<=this.numberOfExtraStates;i++)
+		appendAllSequences(testsequenceCollection, cross(partialSet,characterisationSet));
+		for(int i=0;i<=numberOfExtraStates;i++)
 		{
 			partialSet=crossWithSet(partialSet,alphabet);
-			appendAllSequences(fsm, testsequenceCollection, cross(partialSet,characterisationSet));
+			appendAllSequences(testsequenceCollection, cross(partialSet,characterisationSet));
 		}
 		
 		return testsequenceCollection.getData();
 	}
 
-	Collection<List<String>> computeNewTestSet()
+	public Collection<List<String>> computeNewTestSet(int numberOfExtraStates)
 	{
-		if (fsm == null)
-			fsm = getGraphData(machineGraph);
-		Set<String> alphabet =  computeAlphabet(fsm);
-		List<List<String>> stateCover = computeStateCover(fsm);
-		characterisationSet = computeWSet(fsm);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		Set<String> alphabet =  computeAlphabet();
+		List<List<String>> stateCover = computeStateCover();
+		characterisationSet = computeWSet(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
-		PTATestSequenceEngine engine = new PTA_FSMStructure(fsm);
+		PTATestSequenceEngine engine = new PTA_FSMStructure(coregraph);
 		sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(stateCover);
 		
 		partialPTA.cross(characterisationSet);
-		for(int i=0;i<=this.numberOfExtraStates;i++)
+		for(int i=0;i<=numberOfExtraStates;i++)
 		{
 			partialPTA = partialPTA.crossWithSet(alphabet);
 			partialPTA.cross(characterisationSet);
@@ -267,16 +134,15 @@ public class WMethod {
 
 	/** Checks if the supplied FSM has unreachable states.
 	 * 
-	 * @param fsm the machine to check
 	 * @return true if there are any unreachable states.
 	 */
-	public static boolean checkUnreachableStates(FSMStructure fsm)
+	public boolean checkUnreachableStates()
 	{
-		return computeStateCover(fsm).size() != fsm.accept.size();
+		return computeStateCover().size() != coregraph.transitionMatrix.size();
 	}
 	
 	/** Checks if the supplied FSM has equivalent states. */
-	public static boolean checkEquivalentStates(FSMStructure fsm)
+	public static boolean checkEquivalentStates(LearnerGraph fsm)
 	{
 		try
 		{
@@ -312,8 +178,8 @@ public class WMethod {
 				elemA.add(element);
 			return a;
 		}
-		else
-			return crossWithSet(a, b);
+
+		return crossWithSet(a, b);
 	}
 	
 	public static List<List<String>> crossWithSet(Collection<List<String>> a, Collection<String> b){
@@ -328,27 +194,16 @@ public class WMethod {
 		}
 		return returnVect;
 	}
-
-	public static Set<String> computeAlphabet(DirectedSparseGraph g)
-	{
-		Set<String> alphabet = new TreeSet<String>();
-
-		for(Edge e:(Set<Edge>)g.getEdges())
-				alphabet.addAll( (Set<String>)e.getUserDatum(JUConstants.LABEL) );
-		return alphabet;
-	}
-
-	public static Set<String> computeAlphabet(FSMStructure fsm)
-	{
-		LinkedHashSet<String> alphabet = new LinkedHashSet<String>();
-		for(Entry<String,Map<String,String>> row:fsm.trans.entrySet())
-			alphabet.addAll(row.getValue().keySet());
-		return alphabet;
-	}
 	
-	public static List<List<String>> makeSingleton(Collection<String> stimuli){
+	/** Turns a collection of strings into a collection consisting of singleton lists, 
+	 * each of which containing an element of <i>alphabet</i>.
+	 * 
+	 * @param alphabet the collection to turn into 
+	 * @return a collection of singleton sequences.
+	 */
+	public static List<List<String>> makeSingleton(Collection<String> alphabet){
 		List<List<String>> functionList = new LinkedList<List<String>>();
-		for(String stim:stimuli){
+		for(String stim:alphabet){
 			List<String> path = new LinkedList<String>();
 			path.add(stim);
 			functionList.add(path);
@@ -356,20 +211,22 @@ public class WMethod {
 		return functionList;
 	}
 	
-	public static List<List<String>> computeStateCover(FSMStructure fsm){
-		Queue<String> fringe = new LinkedList<String>();
-		Set<String> statesInFringe = new HashSet<String>();// in order not to iterate through the list all the time.
-		Map<String,LinkedList<String>> stateToPath = new HashMap<String,LinkedList<String>>();stateToPath.put(fsm.init, new LinkedList<String>());
-		fringe.add(fsm.init);statesInFringe.add(fsm.init);
+	/** Computes a state cover (a collection of sequences to reach every state in this machine). */
+	public List<List<String>> computeStateCover()
+	{
+		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(coregraph.init, new LinkedList<String>());
+		fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
 		while(!fringe.isEmpty())
 		{
-			String currentState = fringe.remove();
+			CmpVertex currentState = fringe.remove();
 			LinkedList<String> currentPath = stateToPath.get(currentState);
-			Map<String,String> targets = fsm.trans.get(currentState);
+			Map<String,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
 			if(targets != null && !targets.isEmpty())
-				for(Entry<String,String> labelstate:targets.entrySet())
+				for(Entry<String,CmpVertex> labelstate:targets.entrySet())
 				{
-					String target = labelstate.getValue();
+					CmpVertex target = labelstate.getValue();
 					if (!statesInFringe.contains(target))
 					{
 						LinkedList<String> newPath = (LinkedList<String>)currentPath.clone();newPath.add(labelstate.getKey());
@@ -390,20 +247,20 @@ public class WMethod {
 		 */
 		private static final long serialVersionUID = 6988899034488999997L;
 		
-		private final String stateA, stateB;
+		private final CmpVertex stateA, stateB;
 		private int NumberOfEquivalentStates;
 		
-		public String getA()
+		public CmpVertex getA()
 		{
 			return stateA;
 		}
 		
-		public String getB()
+		public CmpVertex getB()
 		{
 			return stateB;
 		}
 		
-		public EquivalentStatesException(String a, String b, int Number)
+		public EquivalentStatesException(CmpVertex a, CmpVertex b, int Number)
 		{
 			stateA = a;stateB = b;NumberOfEquivalentStates = Number;
 		}
@@ -415,10 +272,11 @@ public class WMethod {
 		}
 	}
 	
-	/** Computes a set of inputs which distinguish a given pair of states, when supplied with a map between states and their equivalence classes.
+	/** Computes a set of inputs which distinguish a given pair of states, 
+	 * when supplied with a map between states and their equivalence classes.
 	 * 
 	 */
-	private static Set<String> computeDistinguishingLabel(String stateA, String stateB, Map<String,Map<String,Integer>> newMap)
+	private static Set<String> computeDistinguishingLabel(CmpVertex stateA, CmpVertex stateB, Map<CmpVertex,Map<String,Integer>> newMap)
 	{
 		Map<String,Integer> mapA = newMap.get(stateA), mapB = newMap.get(stateB);
 		Set<String> distInputs = new HashSet<String>();
@@ -450,24 +308,24 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static List<List<String>> computeWSetOrig(FSMStructure fsm) throws EquivalentStatesException
+	public static List<List<String>> computeWSetOrig(LearnerGraph fsm) throws EquivalentStatesException
 	{
 		
-		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
+		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
-		Map<String,Map<String,List<String>>> Wdata = new HashMap<String,Map<String,List<String>>>();
+		Map<CmpVertex,Map<CmpVertex,List<String>>> Wdata = new HashMap<CmpVertex,Map<CmpVertex,List<String>>>();
 		
-		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
-			equivalenceClasses.put(stateEntry.getKey(), 0);
-		for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
+			equivalenceClasses.put(state, 0);
+		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 		{
-			Map<String,List<String>> row = new HashMap<String,List<String>>();
+			Map<CmpVertex,List<String>> row = new HashMap<CmpVertex,List<String>>();
 			Wdata.put(stateA.getKey(), row);
 
-			Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
-				Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 				row.put(stateB.getKey(), new LinkedList<String>());
 			}
 		}
@@ -476,14 +334,14 @@ public class WMethod {
 		do
 		{
 			oldEquivalenceClassNumber = equivalenceClassNumber;
-			Map<String,Map<String,Integer>> newMap = new HashMap<String,Map<String,Integer>>();
+			Map<CmpVertex,Map<String,Integer>> newMap = new HashMap<CmpVertex,Map<String,Integer>>();
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
-			for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet())
+			for(Entry<CmpVertex,Map<String,CmpVertex>> stateEntry:fsm.transitionMatrix.entrySet())
 			{
 				Map<String,Integer> map = new HashMap<String,Integer>();
-				Map<String,String> labelNSmap = fsm.trans.get(stateEntry.getKey());
+				Map<String,CmpVertex> labelNSmap = stateEntry.getValue();
 				if (labelNSmap != null)
-					for(Entry<String,String> labelstate:labelNSmap.entrySet())
+					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 						map.put(labelstate.getKey(), equivalenceClasses.get(labelstate.getValue()));
 				
 				newMap.put(stateEntry.getKey(), map);
@@ -496,12 +354,12 @@ public class WMethod {
 					newEquivClasses.put(stateEntry.getKey(), sortedRows.get(map));
 			}
 
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 
 					if (stateA.getValue().equals(stateB.getValue()) &&
 							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
@@ -517,8 +375,8 @@ public class WMethod {
 						
 						// the two states used to be equivalent but not any more, find the different element
 						String label = computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap).iterator().next();
-						String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(label);
-						String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(label);
+						CmpVertex toA = fsm.transitionMatrix.get(stateA.getKey()).get(label);
+						CmpVertex toB = fsm.transitionMatrix.get(stateB.getKey()).get(label);
 						Wsequence.add(label);
 						if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
 						{
@@ -536,19 +394,19 @@ public class WMethod {
 				}			
 			}			
 
-			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<String,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
 		List<List<String>> result = new LinkedList<List<String>>();
-		if (oldEquivalenceClassNumber == fsm.accept.entrySet().size() )
+		if (oldEquivalenceClassNumber == fsm.transitionMatrix.size() )
 		{
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					List<String> seq = Wdata.get(stateA.getKey()).get(stateB.getKey());
 					if (!seq.isEmpty()) 
 						result.add(seq);
@@ -557,13 +415,13 @@ public class WMethod {
 		}
 		else
 		{// report equivalent states
-			LinkedHashSet<String> equivalentStates = new LinkedHashSet<String>();
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
 					{
 						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
@@ -571,7 +429,7 @@ public class WMethod {
 				}
 			}
 			assert equivalentStates.size() > 0: "equivalent states were not found";
-			Iterator<String> equivIt = equivalentStates.iterator(); 
+			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
 			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
 		}
 		return result;
@@ -583,13 +441,13 @@ public class WMethod {
 	 * @param distinguishingLabels a map from pairs of states to sets of distinguishing labels.
 	 * @return
 	 */ 
-	public static String computeTopLabel(Map<String,Map<String,Set<String>>> distinguishingLabels)
+	public static String computeTopLabel(Map<CmpVertex,Map<CmpVertex,Set<String>>> distinguishingLabels)
 	{
 		Map<String,AtomicInteger> distLabelUsage = new HashMap<String,AtomicInteger>();// reset the histogram ...
 		String topLabel = null;int topLabelCounter = -1;// ... and the top element
-		for(Entry<String,Map<String,Set<String>>> stateAdist:distinguishingLabels.entrySet())
+		for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> stateAdist:distinguishingLabels.entrySet())
 		{
-			for(Entry<String,Set<String>> stateB:stateAdist.getValue().entrySet())
+			for(Entry<CmpVertex,Set<String>> stateB:stateAdist.getValue().entrySet())
 			{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
 				for(String label:stateB.getValue())
 				{
@@ -616,25 +474,25 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static List<List<String>> computeWSet(FSMStructure fsm) throws EquivalentStatesException
+	public static List<List<String>> computeWSet(LearnerGraph fsm) throws EquivalentStatesException
 	{
 		
-		Map<String,Integer> equivalenceClasses = new LinkedHashMap<String,Integer>(), newEquivClasses = new LinkedHashMap<String,Integer>();
+		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
-		Map<String,Map<String,List<String>>> Wdata = new HashMap<String,Map<String,List<String>>>();
-		Map<String,Map<String,Set<String>>> distinguishingLabels = new HashMap<String,Map<String,Set<String>>>();
+		Map<CmpVertex,Map<CmpVertex,List<String>>> Wdata = new HashMap<CmpVertex,Map<CmpVertex,List<String>>>();
+		Map<CmpVertex,Map<CmpVertex,Set<String>>> distinguishingLabels = new HashMap<CmpVertex,Map<CmpVertex,Set<String>>>();
 
-		for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet()) 
-			equivalenceClasses.put(stateEntry.getKey(), 0);
-		for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
+			equivalenceClasses.put(state, 0);
+		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 		{
-			Map<String,List<String>> row = new HashMap<String,List<String>>();
+			Map<CmpVertex,List<String>> row = new HashMap<CmpVertex,List<String>>();
 			Wdata.put(stateA.getKey(), row);
 
-			Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
-				Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 				row.put(stateB.getKey(), new LinkedList<String>());
 			}
 		}
@@ -643,14 +501,14 @@ public class WMethod {
 		do
 		{
 			oldEquivalenceClassNumber = equivalenceClassNumber;
-			Map<String,Map<String,Integer>> newMap = new HashMap<String,Map<String,Integer>>();
+			Map<CmpVertex,Map<String,Integer>> newMap = new HashMap<CmpVertex,Map<String,Integer>>();
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
-			for(Entry<String,Boolean> stateEntry:fsm.accept.entrySet())
+			for(Entry<CmpVertex,Map<String,CmpVertex>> stateEntry:fsm.transitionMatrix.entrySet())
 			{
 				Map<String,Integer> map = new HashMap<String,Integer>();
-				Map<String,String> labelNSmap = fsm.trans.get(stateEntry.getKey());
+				Map<String,CmpVertex> labelNSmap = stateEntry.getValue();
 				if (labelNSmap != null)
-					for(Entry<String,String> labelstate:labelNSmap.entrySet())
+					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 						map.put(labelstate.getKey(), equivalenceClasses.get(labelstate.getValue()));
 				
 				newMap.put(stateEntry.getKey(), map);
@@ -666,12 +524,12 @@ public class WMethod {
 
 			distinguishingLabels.clear();// clear a map from pairs of states to sets of labels which distinguish between them
 			
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 
 					if (stateA.getValue().equals(stateB.getValue()) &&
 							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
@@ -680,8 +538,8 @@ public class WMethod {
 						// the two states used to be equivalent but not any more, find inputs which 
 						// distinguish between them and update the histogram to count the number
 						// of inputs which can be used distuigish between states at this stage.
-						Map<String,Set<String>> stateToDist = distinguishingLabels.get(stateA.getKey());
-						if (stateToDist == null) stateToDist = new HashMap<String,Set<String>>();
+						Map<CmpVertex,Set<String>> stateToDist = distinguishingLabels.get(stateA.getKey());
+						if (stateToDist == null) stateToDist = new HashMap<CmpVertex,Set<String>>();
 						stateToDist.put(stateB.getKey(), computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap));
 						distinguishingLabels.put(stateA.getKey(), stateToDist);
 					}
@@ -694,9 +552,9 @@ public class WMethod {
 			{
 				
 				// Now topLabel is the most often used one, we use it to separate all relevant states
-				for(Entry<String,Map<String,Set<String>>> stateA:distinguishingLabels.entrySet())
+				for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> stateA:distinguishingLabels.entrySet())
 				{
-					for(Entry<String,Set<String>> stateB:stateA.getValue().entrySet())
+					for(Entry<CmpVertex,Set<String>> stateB:stateA.getValue().entrySet())
 					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
 	
 						if (distinguishingLabels.get(stateA.getKey()).get(stateB.getKey()).contains(topLabel))
@@ -709,10 +567,10 @@ public class WMethod {
 							assert Wsequence != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is null";
 							assert Wsequence.isEmpty() : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+Wsequence;
 
-							assert topLabel != null;
+							//assert topLabel != null;
 														
-							String toA = null;if (fsm.trans.containsKey(stateA.getKey())) toA = fsm.trans.get(stateA.getKey()).get(topLabel);
-							String toB = null;if (fsm.trans.containsKey(stateB.getKey())) toB = fsm.trans.get(stateB.getKey()).get(topLabel);
+							CmpVertex toA = fsm.transitionMatrix.get(stateA.getKey()).get(topLabel);
+							CmpVertex toB = fsm.transitionMatrix.get(stateB.getKey()).get(topLabel);
 							Wsequence.add(topLabel);
 							if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
 							{
@@ -736,19 +594,19 @@ public class WMethod {
 				topLabel = computeTopLabel(distinguishingLabels);
 			} // while(topLabel != null)
 			
-			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<String,Integer>();
+			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
 		List<List<String>> result = new LinkedList<List<String>>();
-		if (oldEquivalenceClassNumber == fsm.accept.entrySet().size() )
+		if (oldEquivalenceClassNumber == fsm.transitionMatrix.size() )
 		{
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					List<String> seq = Wdata.get(stateA.getKey()).get(stateB.getKey());
 					if (!seq.isEmpty()) 
 						result.add(seq);
@@ -757,13 +615,13 @@ public class WMethod {
 		}
 		else
 		{// report equivalent states
-			LinkedHashSet<String> equivalentStates = new LinkedHashSet<String>();
-			for(Entry<String,Integer> stateA:equivalenceClasses.entrySet())
+			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
-				Iterator<Entry<String,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<String,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
 					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
 					{
 						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
@@ -771,9 +629,137 @@ public class WMethod {
 				}
 			}
 			assert equivalentStates.size() > 0: "equivalent states were not found";
-			Iterator<String> equivIt = equivalentStates.iterator(); 
+			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
 			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
 		}
 		return result;
 	}
+
+	/** This one is used to indicate that a two machines are not accepting the same language - 
+	 * I need to check that it is the incompatibility exception thrown by the <i>checkM</i> 
+	 * method and not any other <i>IllegalArgumentException</i>.
+	 */
+	public static class DifferentFSMException extends IllegalArgumentException 
+	{
+		/**
+		 *  Serialisation ID.
+		 */
+		private static final long serialVersionUID = 6126662147586264877L;
+
+		public DifferentFSMException(String arg)
+		{
+			super(arg);
+		}
+	}
+	
+	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
+	 * Unreachable states are ignored. 
+	 */
+	public static void checkM(LearnerGraph graph, LearnerGraph expected, CmpVertex stateGraph, CmpVertex stateExpected)
+	{
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+
+		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
+		currentExplorationBoundary.add(new StatePair(stateGraph,stateExpected));statesAddedToBoundary.add(new StatePair(stateGraph,stateExpected));
+		
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			StatePair statePair = currentExplorationBoundary.remove();
+			assert graph.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
+			assert expected.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
+			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
+				throw new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
+						
+			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem), expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
+			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
+				throw new DifferentFSMException("different number of transitions from state "+statePair);
+				
+			for(Entry<String,CmpVertex> labelstate:targets.entrySet())
+			{
+				String label = labelstate.getKey();
+				if (!expectedTargets.containsKey(label))
+					throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.secondElem);
+				CmpVertex tState = labelstate.getValue();// the original one
+				CmpVertex expectedState = expectedTargets.get(label);
+				
+				StatePair nextPair = new StatePair(tState,expectedState);
+				if (!statesAddedToBoundary.contains(nextPair))
+				{
+					currentExplorationBoundary.offer(nextPair);
+					statesAddedToBoundary.add(nextPair);
+				}
+			}
+		}
+		
+	}
+
+	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
+	 * Unreachable states are ignored. 
+	 */
+	public static void checkM(LearnerGraph graph, LearnerGraph expected)
+	{
+		checkM(graph, expected, graph.init,expected.init);
+	}
+
+	/** Given an FSM and a W set, checks if it is a valid W set and throws if not.
+	 * 
+	 * @param fsm the machine
+	 * @param wset the set to check validity of.
+	 */
+	public void checkW_is_corrent(Collection<List<String>> wset)
+	{
+		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
+		{
+			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
+				if (stateA != stateB)
+				{
+					boolean foundString = false;
+					Iterator<List<String>> pathIt = wset.iterator();
+					while(pathIt.hasNext() && !foundString)
+					{
+						List<String> path = pathIt.next();
+						int aResult = coregraph.paths.tracePath(path, stateA),
+							bResult = coregraph.paths.tracePath(path, stateB);
+						
+						if ( (aResult == RPNIBlueFringeLearner.USER_ACCEPTED && bResult >= 0) ||
+								(bResult == RPNIBlueFringeLearner.USER_ACCEPTED && aResult >= 0))
+							foundString = true;
+					}
+					
+					if (!foundString)
+						fail("W set does not distinguish between "+stateA+" and "+stateB);
+				}
+		}
+	}
+	
+	public interface FsmPermutator {
+		/** Returns a collection representing an order in which elements of an FSM should be placed in a string. */
+		ArrayList<Pair<CmpVertex,String>> getPermutation(Collection<Pair<CmpVertex,String>> from);
+	}
+
+	/** This method permutes states of a supplied machine using the permutation function provided.
+	 * 
+	 * @param perm the permutator to use.
+	 * @return the state machine permuted from the current one using the supplied permutator.
+	 */
+	public LearnerGraph Permute(FsmPermutator perm)
+	{
+		ArrayList<Pair<CmpVertex,String>> transitionList = new ArrayList<Pair<CmpVertex,String>>();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> row:coregraph.transitionMatrix.entrySet())
+			for(Entry<String,CmpVertex> nextState:row.getValue().entrySet())
+				transitionList.add(new Pair<CmpVertex,String>(row.getKey(),nextState.getKey()));
+		
+		ArrayList<Pair<CmpVertex,String>> permutation = perm.getPermutation(transitionList);
+		Assert.assertEquals(transitionList.size(), permutation.size());
+		StringBuffer newFsm = new StringBuffer();
+		for(Pair<CmpVertex,String> p:permutation)
+		{
+			CmpVertex from = p.firstElem;String label = p.secondElem;
+			newFsm.append("\n"+from+"-"+label+"->"+coregraph.transitionMatrix.get(from).get(label));
+		}
+		LearnerGraph permFsm = new LearnerGraph(buildGraph(newFsm.toString(), "testDeterminism_perm"),coregraph.config);
+		permFsm.init = permFsm.findVertex(coregraph.init.getName());
+		return permFsm;
+	}
 }
+

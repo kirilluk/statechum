@@ -18,8 +18,19 @@
 
 package statechum;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import edu.uci.ics.jung.graph.Edge;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -59,10 +70,6 @@ public class DeterministicDirectedSparseGraph {
 			addUserDatum(JUConstants.LABEL, string, UserData.SHARED);
 		}
 
-		private DeterministicVertex() {
-			super();
-		}
-
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -97,7 +104,11 @@ public class DeterministicDirectedSparseGraph {
 
 		@Override
 		public int hashCode() {
-			return hashCode;
+			int labelHashCode = hashCode;
+			if (!isAccept())
+				labelHashCode = ~labelHashCode;
+			
+			return labelHashCode;
 		}
 
 		/*
@@ -113,14 +124,21 @@ public class DeterministicDirectedSparseGraph {
 			return super.toString();
 		}
 
+		/** The ordering is based on names only ignoring whether this is an
+		 * accept or a reject vertex. This is necessary if we wish to adjust
+		 * an order of traversal in experiments. In cases where accepts or
+		 * rejects should appear earlier/later, the <i>nextID</i> method
+		 * will generate the appropriate number. 
+		 */
 		public int compareTo(CmpVertex o) {
 			assert o != null;
-			assert o instanceof DeterministicVertex : "an attempt to compare "
-					+ toString() + " with a non-DeterministicVertex " + o.toString();
-			DeterministicVertex v = (DeterministicVertex) o;
+/*			if (!(o instanceof CmpVertex))
+				throw new IllegalArgumentException("an attempt to compare "
+					+ toString() + " with a non-CmpVertex " + o.getName());*/
+			CmpVertex v = o;
 			if (this == v)
 				return 0;
-			return label.compareTo(v.label);
+			return label.compareTo(v.getName());
 		}
 		
 		/** Compares this vertex with a different one, based on label alone.
@@ -130,15 +148,16 @@ public class DeterministicDirectedSparseGraph {
 		public boolean equals(Object obj) {
 			if (this == obj)
 				return true;
-			if (!(obj instanceof DeterministicVertex))
+			if (!(obj instanceof CmpVertex))
 				return false;
 			
-			final DeterministicVertex other = (DeterministicVertex) obj;
-			
+			final CmpVertex other = (CmpVertex) obj;
+			if (isAccept() != other.isAccept())
+				return false;
 			if (label == null)
-				return other.label == null;
+				return other.getName() == null;
 			
-			return label.equals(other.label);
+			return label.equals(other.getName());
 		}
 		
 		public String getName() {
@@ -146,7 +165,7 @@ public class DeterministicDirectedSparseGraph {
 		}
 
 		public boolean isAccept() {
-			return RPNIBlueFringeLearner.isAccept(this);
+			return DeterministicDirectedSparseGraph.isAccept(this);
 		}
 
 		public void setAccept(boolean accept) 
@@ -162,11 +181,12 @@ public class DeterministicDirectedSparseGraph {
 
 		public void setColour(JUConstants colour) 
 		{
+			if (colour != null && colour != JUConstants.RED && colour != JUConstants.BLUE)
+				throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
+
 			removeUserDatum(JUConstants.COLOUR);
 			if (colour != null)
 			{
-				if (colour != JUConstants.RED && colour != JUConstants.BLUE)
-					throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
 				addUserDatum(JUConstants.COLOUR, colour, UserData.SHARED);
 			}
 		}
@@ -212,4 +232,247 @@ public class DeterministicDirectedSparseGraph {
 		}
 
 	}
+
+	/** Checks for shallow compatibility between states, in other words if the two are both accept or both reject states
+	 * 
+	 * @param pair a pair states to check for compatibility. 
+	 * @return whether the two are different.
+	 */
+	public static boolean different(RPNIBlueFringeLearner.OrigStatePair pair){
+		boolean qAcceptedO = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
+		boolean rAcceptedO = DeterministicDirectedSparseGraph.isAccept(pair.getR());
+	
+		return qAcceptedO != rAcceptedO;
+	}
+
+	/** Checks if the supplied vertex is an accept one or not. If the vertex is not annotated, returns true.
+	 * 
+	 * @param v vertex to check
+	 * @return true if the vertex is an accept-vertex
+	 */
+	public final static boolean isAccept(final Vertex v)
+	{
+		if (!v.containsUserDatumKey(JUConstants.ACCEPTED))
+			return true;
+		return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
+	}
+
+	/** Finds a vertex with a given name.
+	 * 
+	 * @param name the name of the node to look for.
+	 * @param g the graph to search in
+	 * @return vertex found.
+	 */
+	public static DeterministicVertex findVertexNamed(String name,Graph g)
+	{
+		return (DeterministicVertex)DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,name,g);
+	}
+
+	/** Given a graph, this method computes an alphabet of it. */
+	public static Set<String> computeAlphabet(DirectedSparseGraph g)
+	{
+		Set<String> alphabet = new TreeSet<String>();
+	
+		for(Edge e:(Set<Edge>)g.getEdges())
+				alphabet.addAll( (Set<String>)e.getUserDatum(JUConstants.LABEL) );
+		return alphabet;
+	}
+
+	/** If the supplied vertex is already known (its label is stored in the map), the one from the map is returned;
+	 * otherwise a reasonable copy is made, it is then both returned and stored in the map.
+	 * 
+	 * @param newVertices the map from labels to new vertices
+	 * @param g the graph which will have the new vertex added to it
+	 * @param origVertex the vertex to copy
+	 * @return a copy of the vertex
+	 */
+	public static DeterministicVertex copyVertex(Map<String,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
+	{
+		if (!(orig instanceof DeterministicVertex))
+			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
+		DeterministicVertex origVertex = (DeterministicVertex)orig;
+		String vertName = origVertex.getName();
+		DeterministicVertex newVertex = newVertices.get(vertName);
+		if (newVertex == null) { 
+			newVertex = new DeterministicVertex(vertName);
+			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
+			if (DeterministicDirectedSparseGraph.isInitial(origVertex))
+				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			newVertices.put(vertName,newVertex);g.addVertex(newVertex);
+		}
+		return newVertex;
+	}
+
+	/** Checks if the supplied vertex is an initial state.
+	 * 
+	 * @param v vertex to check
+	 * @return true if the vertex is an initial state
+	 */
+	public final static boolean isInitial(final Vertex v)
+	{
+		return v.containsUserDatumKey(JUConstants.INITIAL);		
+	}
+
+	/** Creates a graph with a single accept-vertex. */
+	public static DirectedSparseGraph initialise(){
+		DirectedSparseGraph pta = new DirectedSparseGraph();
+		DirectedSparseVertex init = new DirectedSparseVertex();
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+		pta.setUserDatum(JUConstants.TITLE, "Hypothesis machine", UserData.SHARED);
+		pta.addVertex(init);
+		DeterministicDirectedSparseGraph.numberVertices(pta);
+		return pta;
+	}
+
+	/** Computes an alphabet of a given graph and adds transitions to a 
+	 * reject state from all states A and inputs a from which there is no B such that A-a->B
+	 * (A-a-#REJECT) gets added. Note: such transitions are even added to reject vertices.
+	 * The behaviour is not defined if reject vertex already exists.
+	 * 
+	 * @param g the graph to add transitions to
+	 * @param reject the name of the reject state, to be added to the graph.
+	 * @return true if any transitions have been added
+	 */   
+	public static boolean completeGraph(DirectedSparseGraph g, String reject)
+	{
+		DirectedSparseVertex rejectVertex = new DirectedSparseVertex();
+		boolean transitionsToBeAdded = false;// whether and new transitions have to be added.
+		rejectVertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
+		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
+		
+		// first pass - computing an alphabet
+		Set<String> alphabet = computeAlphabet(g);
+		
+		// second pass - checking if any transitions need to be added.
+		Set<String> outLabels = new HashSet<String>();
+		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+		while(vertexIt.hasNext() && !transitionsToBeAdded)
+		{
+			Vertex v = vertexIt.next();
+			outLabels.clear();
+			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
+			while(outEdgeIt.hasNext()){
+				DirectedSparseEdge outEdge = outEdgeIt.next();
+				outLabels.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+			}
+			transitionsToBeAdded = !alphabet.equals(outLabels);
+		}
+		
+		if (transitionsToBeAdded)
+		{
+			// third pass - adding transitions
+			g.addVertex(rejectVertex);
+			vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
+			while(vertexIt.hasNext())
+			{
+				Vertex v = vertexIt.next();
+				if (v != rejectVertex)
+				{// no transitions should start from the reject vertex
+					Set<String> outgoingLabels = new TreeSet<String>();outgoingLabels.addAll(alphabet);
+					
+					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
+					while(outEdgeIt.hasNext()){
+						DirectedSparseEdge outEdge = outEdgeIt.next();
+						outgoingLabels.removeAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+					}
+					if (!outgoingLabels.isEmpty())
+					{
+						// add a transition
+						DirectedSparseEdge edge = new DirectedSparseEdge(v,rejectVertex);
+						edge.addUserDatum(JUConstants.LABEL, outgoingLabels, UserData.CLONE);
+						g.addEdge(edge);
+					}
+				}
+			}
+		}
+		
+		return transitionsToBeAdded;
+	}
+
+	/**
+	 * Labels vertices according to breadth-first search
+	 * KIRR: this should label vertices according to their Jung ID instead, because those IDs 
+	 * are shown in the debugger and it is pain to dig through to find labels in user-added data.
+	 * 
+	 * @param pta the graph to operate on.
+	 */
+	public static void numberVertices(DirectedSparseGraph pta){
+		Iterator<Vertex> vertexIt = RPNIBlueFringeLearner.getBFSList(pta).iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			v.removeUserDatum(JUConstants.LABEL);// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
+			v.addUserDatum(JUConstants.LABEL, v.toString(), UserData.SHARED);
+		}
+	}
+
+	/** Finds a vertex with a given property set to a specified value. 
+	 * 
+	 * @param property property to search
+	 * @param value what it has to be set to, cannot be null
+	 * @param g the graph to search in
+	 * @return vertex found.
+	 */
+	public static Vertex findVertex(JUConstants property, Object value, Graph g){
+		if (value == null)
+			throw new IllegalArgumentException("value to search for cannot be null");
+		
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			if(v.getUserDatum(property) == null)
+				continue;
+			if(v.getUserDatum(property).equals(value))
+				return v;
+		}
+		return null;
+	}
+
+	/** Finds an initial state in a graph. Returns null if the initial state was not found.
+	 * 
+	 * @param g graph to search for an initial state in.
+	 * @return initial vertex, null if not found.
+	 */
+	public static Vertex findInitial(Graph g){
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			if (isInitial(v))
+				return v;
+		}
+		return null;
+	}
+
+	public static Set<Vertex> findVertices(JUConstants property, Object value, Graph g){
+		Set<Vertex> vertices = new HashSet<Vertex>();
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		while(vertexIt.hasNext()){
+			Vertex v = vertexIt.next();
+			if(v.getUserDatum(property) == null)
+				continue;
+			if(v.getUserDatum(property).equals(value))
+				vertices.add(v);
+		}
+		return vertices;
+	}
+
+	/** A fast graph copy, which only copies labels and accept labelling. Transition labels are cloned.
+	 * This one only copies vertices which participate in transitions. 
+	 */
+	@SuppressWarnings("unchecked")
+	public static DirectedSparseGraph copy(Graph g)
+	{
+		DirectedSparseGraph result = new DirectedSparseGraph();
+		Map<String,DeterministicVertex> newVertices = new TreeMap<String,DeterministicVertex>();
+		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
+		{
+			DeterministicVertex newSrc = DeterministicDirectedSparseGraph.copyVertex(newVertices,result,e.getSource()),
+				newDst = DeterministicDirectedSparseGraph.copyVertex(newVertices, result, e.getDest());
+			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
+			newEdge.addUserDatum(JUConstants.LABEL, ((HashSet<String>)e.getUserDatum(JUConstants.LABEL)).clone(), UserData.SHARED);
+			result.addEdge(newEdge);
+		}
+		return result;
+	}
+	
 }

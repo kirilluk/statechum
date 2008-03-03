@@ -24,15 +24,15 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
 
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.experiments.PosNegPrecisionRecall;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /** Computes precision and recall by tracing a given pta structure through this machine. 
  * In order to exclude specific paths, it is possible to multiply this one by their pta. 
  */
 public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 
-	public PTA_computePrecisionRecall(FSMStructure machine) {
+	public PTA_computePrecisionRecall(LearnerGraph machine) {
 		super(machine);
 	}
 

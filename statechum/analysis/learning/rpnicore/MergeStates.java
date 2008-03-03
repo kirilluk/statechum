@@ -29,11 +29,11 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.Configuration;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
@@ -58,9 +58,14 @@ public class MergeStates {
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)
 	{
 		if (LearnerGraph.testMode) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
+		assert original.transitionMatrix.containsKey(pair.firstElem);
+		assert original.transitionMatrix.containsKey(pair.secondElem);
 		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 		LearnerGraph result;
-		result = (LearnerGraph)original.clone();
+		Configuration shallowCopy = (Configuration)original.config.clone();shallowCopy.setLearnerCloneGraph(false);
+		result = original.copy(shallowCopy);
+		assert result.transitionMatrix.containsKey(pair.firstElem);
+		assert result.transitionMatrix.containsKey(pair.secondElem);
 		if (LearnerGraph.testMode) PathRoutines.checkPTAConsistency(result, pair.getQ());
 		
 		if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
@@ -134,8 +139,8 @@ public class MergeStates {
 	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair, Configuration conf)
 	{
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
-			DeterministicVertex newBlue = RPNIBlueFringeLearner.findVertexNamed(pair.getQ().getName(),g);
-			DeterministicVertex newRed = RPNIBlueFringeLearner.findVertexNamed(pair.getR().getName(),g);
+			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ().getName(),g);
+			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR().getName(),g);
 			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal

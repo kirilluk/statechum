@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.analysis.learning.rpnicore;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,24 +25,27 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Set;
 
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
+import statechum.StringVertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.Configuration;
 
 public class AngluinLearner extends Observable {
-	public static final String rejectState = "REJECT";
+	public static final CmpVertex rejectState = new StringVertex("REJECT");
 	
-	FSMStructure fsm = new FSMStructure();
-	Set<String> coreStates = new HashSet<String>();// core states, from which we do transition cover
+	LearnerGraph fsm = null;
+	Set<CmpVertex> coreStates = new HashSet<CmpVertex>();// core states, from which we do transition cover
 	
 	private int stateNumber = 1;
 	
-	protected String inventNameForNextState()
+	protected CmpVertex inventNameForNextState()
 	{
-		return "S"+stateNumber++;
+		return new StringVertex("S" + stateNumber++);
 	}
 	
-	public AngluinLearner()
+	public AngluinLearner(Configuration config)
 	{
-		fsm.init = "INIT";coreStates.add(fsm.init);
+		fsm = new LearnerGraph(config);
+		fsm.init = new StringVertex("INIT");coreStates.add(fsm.init);
 	}
 	
 	/** Given a sequence of inputs, adds all its prefixes to the graph.
@@ -54,14 +57,14 @@ public class AngluinLearner extends Observable {
 	{
 		assert rejectNumber < seq.size();
 		if (seq.isEmpty()) return;
-		String state = fsm.init;
+		CmpVertex state = fsm.init;
 		int i=0;
 		Iterator<String> inputIt = seq.iterator();
 		while(inputIt.hasNext() && i < rejectNumber)
 		{
 			String input = inputIt.next();
-			Map<String,String> nextStateMap = fsm.trans.get(state);
-			String nextState = nextStateMap.get(input);
+			Map<String,CmpVertex> nextStateMap = fsm.transitionMatrix.get(state);
+			CmpVertex nextState = nextStateMap.get(input);
 			if (nextState == rejectState)
 				throw new IllegalArgumentException("a positive sequence entered a reject state");
 			
@@ -84,8 +87,8 @@ public class AngluinLearner extends Observable {
 		if (i == rejectNumber)
 		{
 			String input = seq.get(i);
-			Map<String,String> nextStateMap = fsm.trans.get(state);
-			String nextState = nextStateMap.get(input);
+			Map<String,CmpVertex> nextStateMap = fsm.transitionMatrix.get(state);
+			CmpVertex nextState = nextStateMap.get(input);
 
 			if (nextState != null && nextState != rejectState)
 				throw new IllegalArgumentException("a negative sequence is entering a previously-accepted state");

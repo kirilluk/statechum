@@ -15,10 +15,10 @@
  * You should have received a copy of the GNU General Public License along with
  * StateChum. If not, see <http://www.gnu.org/licenses/>.
  */ 
-package statechum.analysis.learning;
+package statechum;
 
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+
 
 public class StringVertex implements CmpVertex {
 	protected JUConstants colour;
@@ -28,11 +28,6 @@ public class StringVertex implements CmpVertex {
 	public StringVertex(String nameArg)
 	{
 		label = nameArg;accept = true;highlight=false;colour=null;
-	}
-	
-	private StringVertex()
-	{
-		label = null;
 	}
 	
 	public JUConstants getColour() {
@@ -56,6 +51,8 @@ public class StringVertex implements CmpVertex {
 	}
 
 	public void setColour(JUConstants c) {
+		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE)
+			throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
 		colour = c;
 	}
 
@@ -63,19 +60,30 @@ public class StringVertex implements CmpVertex {
 		highlight = h;
 	}
 
+	/** The ordering is based on names only ignoring whether this is an
+	 * accept or a reject vertex. This is necessary if we wish to adjust
+	 * an order of traversal in experiments. In cases where accepts or
+	 * rejects should appear earlier/later, the <i>nextID</i> method
+	 * will generate the appropriate number. 
+	 */
 	public int compareTo(CmpVertex o) {
 		assert o != null;
-		assert o instanceof StringVertex : "an attempt to compare "
-				+ toString() + " with a non-StringVertex " + o.toString();
-		StringVertex v = (StringVertex) o;
+/*		if (!(o instanceof CmpVertex))
+			throw new IllegalArgumentException("an attempt to compare "
+				+ toString() + " with a non-CmpVertex " + o.getName());*/
+		CmpVertex v = o;
 		if (this == v)
 			return 0;
-		return label.compareTo(v.label);
+		return label.compareTo(v.getName());
 	}
 
 	@Override
 	public int hashCode() {
-		return label == null?super.hashCode():label.hashCode();
+		int labelHashCode = label == null?super.hashCode():label.hashCode();
+		if (!isAccept())
+			labelHashCode = ~labelHashCode;
+		
+		return labelHashCode;
 	}
 
 	@Override
@@ -83,15 +91,17 @@ public class StringVertex implements CmpVertex {
 	{
 		if (this == obj)
 			return true;
-		if (!(obj instanceof StringVertex))
+		if (!(obj instanceof CmpVertex))
 			return false;
 		
-		final StringVertex other = (StringVertex) obj;
+		final CmpVertex other = (CmpVertex) obj;
+		if (isAccept() != other.isAccept())
+			return false;
 		
 		if (label == null)
-			return other.label == null;
+			return other.getName() == null;
 		
-		return label.equals(other.label);
+		return label.equals(other.getName());
 		
 	}
 

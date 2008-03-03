@@ -35,15 +35,19 @@ public class PTASequenceSetAutomaton implements FSMAbstraction {
 		return theOnlyState;
 	}
 
-	public Object getNextState(Object currentState, String input) {
+	public Object getNextState(
+			@SuppressWarnings("unused")	Object currentState, 
+			@SuppressWarnings("unused")	String input) {
 		return theOnlyState;
 	}
 
-	public boolean isAccept(Object currentState) {
+	public boolean isAccept(
+			@SuppressWarnings("unused")	Object currentState) {
 		return true;
 	}
 
-	public boolean shouldBeReturned(Object elem) {
+	public boolean shouldBeReturned(
+			@SuppressWarnings("unused")	Object elem) {
 		return true;
 	}
 }

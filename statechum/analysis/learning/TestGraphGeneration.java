@@ -18,16 +18,12 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-import java.awt.Point;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import javax.swing.SwingUtilities;
 
 import junit.framework.JUnit4TestAdapter;
 
@@ -38,7 +34,6 @@ import org.junit.Test;
 import statechum.JUConstants;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
-import statechum.xmachine.model.testset.TestWMethod;
 
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -98,7 +93,7 @@ public class TestGraphGeneration {
 			 v.removeUserDatum(VERTEX);
 		}
 		//updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
-		TestFSMAlgo.checkM(g,expected);
+		TestFSMAlgo.checkM(g,expected, Configuration.getDefaultConfiguration());
 	}
 	
 	@Test

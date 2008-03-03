@@ -22,50 +22,62 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
-import static statechum.xmachine.model.testset.WMethod.getGraphData;
-
 import junit.framework.Assert;
 
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
 
 import statechum.ArrayOperations;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.Pair;
+import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner.OrigStatePair;
-import statechum.xmachine.model.testset.WMethod;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Map.Entry;
+
 import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
 
 public class TestFSMAlgo {
 
-	static protected StatePair constructPair(String a,String b)
+	public TestFSMAlgo()
 	{
-		DeterministicVertex aV = new DeterministicVertex(a), bV = new DeterministicVertex(b);
-		return new StatePair(aV,bV);
+		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
+	
+	/** Make sure that whatever changes a test have made to the 
+	 * configuration, next test is not affected.
+	 */
+	@Before
+	public void beforeTest()
+	{
+		
+		config = (Configuration)mainConfiguration.clone();
+	}
+
+	/** The configuration to use when running tests. */
+	private Configuration config = null, mainConfiguration = null;
 
 	static protected OrigStatePair constructOrigPair(String a,String b)
 	{
@@ -73,6 +85,257 @@ public class TestFSMAlgo {
 		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
 		bV.addUserDatum(JUConstants.LABEL, b, UserData.SHARED);
 		return new OrigStatePair(aV,bV);
+	}
+
+	/** Used to check that equality checking is implemented correctly. 
+	 * The first two arguments are supposed to be independently constructed and they 
+	 * are checked for equality.
+	 * The last two arguments are supposed to be different from any of the first two. 
+	 */
+	static public void equalityTestingHelper(Object p, Object q, 
+			Object differentA, Object differentB)
+	{
+		assertTrue(p.equals(p));assertTrue(q.equals(q));
+		assertTrue(p.equals(q));assertTrue(q.equals(p));
+		assertTrue(p.hashCode() == q.hashCode());assertTrue(p.hashCode() != 0);assertTrue(q.hashCode() != 0);
+		assertFalse(p.equals(null));assertFalse(q.equals(null));
+		
+		assertFalse(p.equals("test"));assertFalse(q.equals("test"));
+		assertFalse("test".equals(p));assertFalse("test".equals(q));
+		
+		Object obj = new Object();assertTrue(obj.equals(obj));
+		assertFalse(p.equals(obj));assertFalse(q.equals(obj));
+		assertFalse(obj.equals(p));assertFalse(obj.equals(q));
+		
+		assertFalse(p.equals(differentA));assertFalse(q.equals(differentA));
+		if (differentA != null)
+		{
+			assertFalse(differentA.equals(p));assertFalse(differentA.equals(q));
+			assertFalse(p.hashCode() == differentA.hashCode());assertFalse(q.hashCode() == differentA.hashCode());
+		}
+		if (differentB != null)
+		{
+			assertFalse(differentB.equals(p));assertFalse(differentB.equals(q));
+			assertFalse(p.hashCode() == differentB.hashCode());assertFalse(q.hashCode() == differentB.hashCode());
+		}
+	}
+	
+	@Test
+	public void testConfigurationEquals()
+	{
+		Configuration confA = new Configuration(), confB = new Configuration(),
+			confC = new Configuration(), confD = new Configuration();
+		confA.setBumpPositives(true);confA.setLearnerIdMode(Configuration.IDMode.NONE);confA.setDefaultInitialPTAName("test");
+		confB.setBumpPositives(true);confB.setLearnerIdMode(Configuration.IDMode.NONE);confB.setDefaultInitialPTAName("test");
+		confC.setBumpPositives(true);confC.setLearnerIdMode(Configuration.IDMode.NONE);confC.setDefaultInitialPTAName("a");
+		confD.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		equalityTestingHelper(confA, confB, confC, confD);
+		confC.setDefaultInitialPTAName("test");confA.setDefaultInitialPTAName("b");
+		equalityTestingHelper(confC, confB, confA, confD);
+	}
+	
+	@Test
+	public void testConfigurationClone()
+	{
+		Configuration confA = new Configuration(),
+		confC = new Configuration(), confD = new Configuration();
+		confA.setBumpPositives(true);confA.setLearnerIdMode(Configuration.IDMode.NONE);confA.setDefaultInitialPTAName("test");
+		confC.setBumpPositives(true);confC.setLearnerIdMode(Configuration.IDMode.NONE);confC.setDefaultInitialPTAName("a");
+		Configuration confClone = (Configuration)confA.clone();
+		equalityTestingHelper(confA, confClone, confC, confD);
+		
+		confClone.setDefaultInitialPTAName("avalue");// mess up the clone
+		equalityTestingHelper(confA, confA, confClone, confD);
+		equalityTestingHelper(confA.clone(), confA, confClone, confD);
+		
+		confA.setDefaultInitialPTAName("avalue");// mess up the original the same way as the clone was messed up
+		equalityTestingHelper(confA, confClone, confC, confD);
+	}
+	
+	/** An obvious problem with Configuration is forgetting to include all 
+	 * the necessary variables in equals and hashcode methods. This one
+	 * checks that each change to instance variables affects the response from 
+	 * those methods. This is accomplished by collecting all fields, identifying
+	 * the corresponding setter methods and choosing two values for each
+	 * of those fields. Subsequently, I can assign the first value to all fields
+	 * and go through the fields setting the second one and checking that 
+	 * this affects hashCode and equals. 
+	 */ 
+	@Test
+	public void testConfigurationUsesAllItsVariables()
+	{
+		class MethodAndArgs {
+			public MethodAndArgs(Method m, Field f, Object a, Object b)
+			{
+				method=m;Arg=a;AlternativeArg=b;field = f;
+			}
+			Field field;
+			Method method;Object Arg, AlternativeArg;
+		}
+
+		List<MethodAndArgs> MethodsArgs=new LinkedList<MethodAndArgs>();
+		for(Field var:Configuration.class.getDeclaredFields())
+		{
+			if (var.getType() != Configuration.class)
+			{
+				String varName = var.getName();
+				String setterName = "set"+(Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
+				Method setter = null;
+				try {
+					setter = Configuration.class.getMethod(setterName, new Class[]{var.getType()});
+				} catch (Exception e) {
+					Assert.fail("failed to obtain setter method "+setterName+" for field "+varName);
+				}
+				Object valueA = null, valueB = null;
+				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+				{
+					valueA = new Boolean(true);valueB=new Boolean(false);
+				}
+				else
+					if (var.getType().equals(String.class))
+					{
+						valueA = varName+", value A";valueB=varName+", value B";
+					}
+					else
+						if (var.getType().equals(IDMode.class))
+						{
+							valueA = IDMode.POSITIVE_NEGATIVE;valueB=IDMode.POSITIVE_ONLY;
+						}
+						else
+							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+							{
+								valueA = varName.hashCode();valueB=setterName.hashCode();// just some integers likely to be different from each other between different variables.
+							}
+							else
+								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+				
+				MethodsArgs.add(new MethodAndArgs(setter,var,valueA,valueB));
+			}
+		}
+		
+		try {
+			// Now check that hashCode and equals are affected by values of different fields.
+			for(MethodAndArgs currentMethod:MethodsArgs)
+			{
+				Configuration 
+					configA = (Configuration)Configuration.getDefaultConfiguration().clone(),
+					configB = (Configuration)Configuration.getDefaultConfiguration().clone();
+				for(MethodAndArgs orig:MethodsArgs)
+				{
+					orig.method.invoke(configA, new Object[]{orig.Arg});
+					orig.method.invoke(configB, new Object[]{orig.Arg});
+				}
+				Assert.assertEquals(configB, configA);
+				currentMethod.method.invoke(configB, new Object[]{currentMethod.AlternativeArg});
+				String errMsg = "configurations differ: field "+currentMethod.field+" is not in use for ";
+				Assert.assertFalse(errMsg+"equals",configB.equals(configA));
+				Assert.assertFalse(errMsg+"equals",configA.equals(configB));
+				Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
+			}
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+	
+	private final DeterministicVertex DvertA = new DeterministicVertex("a"),DvertB = new DeterministicVertex("a");
+	private final DeterministicVertex DdifferentA = new DeterministicVertex("b");
+
+	private final StringVertex SvertA = new StringVertex("a"),SvertB = new StringVertex("a");
+	private final StringVertex SdifferentA = new StringVertex("b");
+
+	/** Resets the attributes on vertices used for equality testing. */
+	@Before
+	public void beforeTests()
+	{
+		DvertA.setAccept(true);DvertB.setAccept(true);DvertA.setColour(null);DvertB.setColour(null);DvertA.setHighlight(false);DvertB.setHighlight(false);
+		SvertA.setAccept(true);SvertB.setAccept(true);SvertA.setColour(null);SvertB.setColour(null);SvertA.setHighlight(false);SvertB.setHighlight(false);
+	}
+	
+	@Test
+	public void checkDEquality1()
+	{
+		DvertA.setAccept(true);DvertB.setAccept(true);
+		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+	}
+
+	@Test
+	public void checkDEquality2()
+	{
+		DvertA.setAccept(false);DvertB.setAccept(false);
+		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+	}
+
+	@Test
+	public void checkDEquality3()
+	{
+		DvertA.setAccept(true);DvertB.setAccept(false);
+		equalityTestingHelper(DvertA,DvertA,DvertB,DdifferentA);equalityTestingHelper(DvertB,DvertB,DvertA,DdifferentA);
+	}
+	
+	@Test
+	/** Checks that attributes other than accept and name are ignored. */
+	public void checkDEquality_ignoresAttrs()
+	{
+		DvertA.setAccept(true);DvertB.setAccept(true);
+		DvertA.setColour(JUConstants.RED);DvertA.setHighlight(true);DvertA.addUserDatum(JUConstants.INITIAL, "", UserData.SHARED);DvertA.addUserDatum(JUConstants.JUNKVERTEX, "a", UserData.SHARED);
+		DvertB.setColour(JUConstants.BLUE);DvertB.setHighlight(true);DvertB.removeUserDatum(JUConstants.INITIAL);DvertB.addUserDatum(JUConstants.JUNKVERTEX, "b", UserData.SHARED);
+		equalityTestingHelper(DvertA,DvertB,DdifferentA,SdifferentA);
+	}
+	
+	@Test
+	public void checkSEquality1()
+	{
+		SvertA.setAccept(true);SvertB.setAccept(true);
+		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+	}
+
+	@Test
+	public void checkSEquality2()
+	{
+		SvertA.setAccept(false);SvertB.setAccept(false);
+		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+	}
+
+	@Test
+	/** Checks that if one is accept and another one is reject, they are different. */ 
+	public void checkSEquality3()
+	{
+		SvertA.setAccept(true);SvertB.setAccept(false);
+		equalityTestingHelper(SvertA,SvertA,SvertB,SdifferentA);
+		equalityTestingHelper(SvertB,SvertB,SvertA,SdifferentA);
+	}	
+
+	@Test
+	/** Checks that attributes other than accept and name are ignored. */
+	public void checkSEquality_ignoresAttrs()
+	{
+		SvertA.setAccept(true);SvertB.setAccept(true);
+		SvertA.setColour(JUConstants.RED);SvertA.setHighlight(true);
+		SvertB.setColour(JUConstants.BLUE);SvertB.setHighlight(true);
+		equalityTestingHelper(SvertA,SvertB,SdifferentA,DdifferentA);
+	}
+
+	/** Checks that if CmpVertex implemented with different types 
+	 * (StringVertex v.s. DeterminisitcVertex), equals returns false.
+	 * Right now, we allow comparisons between different types, hence the test is commented out. 
+	@Test
+	public void checkSEquality4()
+	{
+		DvertA.setAccept(true);DvertB.setAccept(true);SvertA.setAccept(true);SvertB.setAccept(true);
+		equalityTestingHelper(DvertA,DvertB,SvertA,SvertB);
+	}	
+	 */ 
+
+	/** Checks that implementations of different types can be compared. 
+	 */
+	@Test
+	public void checkEquality_differentTypes()
+	{
+		equalityTestingHelper(SvertA,DvertA,SdifferentA,DdifferentA);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -85,29 +348,81 @@ public class TestFSMAlgo {
 		assertEquals(0,p.compareTo(p));
 		assertEquals(0,q.compareTo(q));
 	}
-	
-	static protected void checkLess(String a, String b, String c, String d)
+
+	@Test
+	public void checkDComparison1()
 	{
-		checkLessHelper(constructPair(a,b),constructPair(c,d));
-		checkLessHelper(constructOrigPair(a,b),constructOrigPair(c,d));
-	}
-	
-	@SuppressWarnings("unchecked")
-	static private void PairEqualityTestingHelper(Comparable p, Comparable q)
-	{
-		assertTrue(p.equals(p));
-		assertTrue(p.equals(q));
-		assertFalse(p.equals(null));
-		assertFalse(p.equals("test"));
-		assertFalse(p.equals(constructPair("a","c")));
-		assertFalse(p.equals(constructPair("b","b")));
+		checkLessHelper(DvertA, new DeterministicVertex("b"));
 	}
 	
 	@Test
+	public void checkSComparison1()
+	{
+		checkLessHelper(SvertA, new StringVertex("b"));
+	}
+	
+	@Test
+	public void checkComparison_differentTypes()
+	{
+		checkLessHelper(DvertA, new StringVertex("b"));
+		checkLessHelper(SvertA, new DeterministicVertex("b"));
+	}
+
+	/** Checks that it is not possible to compare implementations of different types. 
+	 * The restriction is useful to detect programming errors when I end up putting elements of unrelated graphs into the same collection.
+	 * Decided to comment this out since the restriction makes life hard: if I have
+	 * a collection of StringVertices and another one of Deterministic ones, they may
+	 * actually be equal, but the way Java5 collections compare them makes it impossible
+	 * to use equals without causing a comparison between vertices of the two types. 
+	@Test(expected=IllegalArgumentException.class)
+	public void checkComparison_fail1()
+	{
+		SvertA.compareTo(DvertA);
+	}
+		
+	@Test(expected=IllegalArgumentException.class)
+	public void checkComparison_fail2()
+	{
+		DvertA.compareTo(SvertA);
+	}
+	 */
+		
+	/** Tests of comparison/equality of string/deterministic pairs of vertices
+	 * (string-"a"/string "b"/det-"a"/det-"b")
+	 * each pair of above, against another pair. 
+	 */
+	@Test
 	public void testStatePairEquality()
 	{
-		PairEqualityTestingHelper(constructPair("a","b"), constructPair("a","b"));
-		PairEqualityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"));
+		final Object samePairs[] = new StatePair[]{
+				new StatePair(new StringVertex("a"), new StringVertex("b")),
+				new StatePair(new DeterministicVertex("a"), new StringVertex("b")),
+				new StatePair(new StringVertex("a"), new DeterministicVertex("b")),
+				new StatePair(new DeterministicVertex("a"), new DeterministicVertex("b"))				
+		},
+		differentPairs[] = new Object[] {
+				new StatePair(new StringVertex("a"), new StringVertex("c")),
+				new StatePair(new StringVertex("d"), new StringVertex("b")),
+				new StatePair(new StringVertex("d"), new StringVertex("e")),
+				constructOrigPair("a", "b")
+		};
+		for(int sameFirst=0;sameFirst<samePairs.length;++sameFirst)
+			for(int sameSecond=0;sameSecond<samePairs.length;++sameSecond)
+				for(int different=0;different<differentPairs.length;++different)
+					equalityTestingHelper(samePairs[sameFirst],samePairs[sameSecond],differentPairs[different],differentPairs[differentPairs.length-different-1]);
+
+		equalityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"),
+				constructOrigPair("a","c"),constructOrigPair("b","b"));
+		for(int i=0;i<samePairs.length;++i)
+			equalityTestingHelper(constructOrigPair("a","b"), constructOrigPair("a","b"),
+					samePairs[i],samePairs[samePairs.length-i-1]);
+	}
+	
+	private static void checkLess(String a,String b,String c,String d)
+	{
+		checkLessHelper(new StatePair(new StringVertex(a), new StringVertex(b)), new StatePair(new StringVertex(c), new StringVertex(d)));
+		checkLessHelper(new StatePair(new DeterministicVertex(a), new StringVertex(b)), new StatePair(new DeterministicVertex(c), new StringVertex(d)));
+		checkLessHelper(new StatePair(new StringVertex(a), new DeterministicVertex(b)), new StatePair(new StringVertex(c), new DeterministicVertex(d)));
 	}
 	
 	@Test
@@ -166,7 +481,7 @@ public class TestFSMAlgo {
 						g.addVertex(toVertex);
 					}
 					else
-						if (RPNIBlueFringeLearner.isAccept(toVertex) != accept)
+						if (DeterministicDirectedSparseGraph.isAccept(toVertex) != accept)
 							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
 				
 				StatePair pair = new StatePair(fromVertex,toVertex);
@@ -197,46 +512,6 @@ public class TestFSMAlgo {
 		return g;
 	}
 
-	/** This data store represents an FSM and is used by tests. */
-	public static class FSMStructure
-	{
-		/** The transition transition diagram, in which every state is mapped to a map between an input (label) and a target state. */
-		public final Map<String,Map<String,String>> trans;
-		
-		/** All states of the machine should be in the domain of this function; 
-		 * for a given state, this function will return <pre>true</pre> if it is an accept state and <pre>false</pre> for a reject one.
-		 */ 
-		public final Map<String,Boolean> accept;// TODO: to test consistency of this one against elements of CmpVertex once strings have been replaced with cmpvertices
-		
-		/** The initial state. */
-		public String init;
-		
-		public FSMStructure(Map<String,Map<String,String>> transitions,Map<String,Boolean> a,String initState)
-		{
-			trans = transitions;accept = a;init = initState;
-		}
-		
-		public FSMStructure()
-		{
-			trans = new TreeMap<String,Map<String,String>>();accept = new TreeMap<String,Boolean>();
-		}
-		
-		public boolean equals(Object o)
-		{
-			if (this == o)
-				return true;
-			if (o == null || !(o instanceof FSMStructure))
-				return false;
-			
-			FSMStructure otherStruct= (FSMStructure)o;
-			return 
-				accept.equals(otherStruct.accept) &&
-				trans.equals(otherStruct.trans) &&
-				init.equals(otherStruct.init);		
-		}
-		
-	}
-		
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
 	 * @param g graph to check
@@ -245,11 +520,10 @@ public class TestFSMAlgo {
 	public void checkEq(DirectedSparseGraph g, String fsm)
 	{
 		DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
-		final FSMStructure graph = getGraphData(g);
-		final FSMStructure expected = getGraphData(expectedGraph);
-		assertEquals("incorrect initial state",expected.init, graph.init);
-		assertEquals("incorrect vertice set",true,expected.accept.equals(graph.accept));
-		assertEquals("incorrect transition set",true,expected.trans.equals(graph.trans));		
+		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
+		final LearnerGraph expected = new LearnerGraph(expectedGraph,Configuration.getDefaultConfiguration());
+		
+		assertEquals("incorrect data",true,expected.equals(graph));
 	}
 
 	@Test
@@ -259,139 +533,25 @@ public class TestFSMAlgo {
 		checkEq(g,"P-c->P<-b-Q_State<-a-P");
 	}
 	
-	/** This one is used to indicate that a two machines are not accepting the same language - 
-	 * I need to check that it is the incompatibility exception thrown by the <i>checkM</i> 
-	 * method and not any other <i>IllegalArgumentException</i>.
-	 */
-	public static class DifferentFSMException extends IllegalArgumentException 
+	/** Verifies the equivalence of a supplied graph to the supplied machine. */
+	public static void checkM(DirectedSparseGraph g,String fsm,Configuration conf)
 	{
-		/**
-		 *  Serialization ID.
-		 */
-		private static final long serialVersionUID = 6126662147586264877L;
-
-		public DifferentFSMException(String arg)
-		{
-			super(arg);
-		}
-	}
-	
-	
-	public static void checkM(DirectedSparseGraph g,String fsm)
-	{
-		final FSMStructure graph = getGraphData(g);
+		final LearnerGraph graph = new LearnerGraph(g,conf);
 		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
-		final FSMStructure expected = getGraphData(expectedGraph);
-		checkM(graph,expected,graph.init,expected.init);
+		final LearnerGraph expected = new LearnerGraph(expectedGraph,conf);
+		WMethod.checkM(graph,expected);
 	}
-	
-	public static class StringPair extends Pair<String,String> implements Comparable<StringPair>
-	{		
-		public StringPair(String aStr,String bStr)
-		{
-			super(aStr,bStr);
-		}
-
-		@Override
-		public String toString() {
-			return "( "+firstElem+","+secondElem+" )";
-		}
-
-		public int compareTo(StringPair pB) {
-			int aStr = firstElem.compareTo(pB.firstElem);
-			int bStr = secondElem.compareTo(pB.secondElem);
-			
-			if(aStr != 0)
-				return aStr; 
-			return bStr;
-		}
-	}
-	
-	static protected void checkStatePairLess(String a, String b, String c, String d)
-	{
-		StringPair p = new StringPair(a,b), q=new StringPair(c,d);
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-	
-	@Test
-	public void testStringPairEquality()
-	{
-		StringPair p = new StringPair("a","b"), q=new StringPair("a","b");
-		assertTrue(p.equals(p));
-		assertTrue(p.equals(q));
-		assertFalse(p.equals(null));
-		assertFalse(p.equals("test"));
-		assertFalse(p.equals(new StringPair("a","c")));
-		assertFalse(p.equals(new StringPair("b","b")));
 		
-		assertTrue(p.hashCode() != 0);
-		assertTrue(q.hashCode() != 0);
-	}
-	
-	@Test
-	public void testStringPairComparison()
-	{
-		checkStatePairLess("a","b","c","d");
-		checkStatePairLess("a","b","a","c");
-		checkStatePairLess("a","b","c","b");
-	}
-	
-	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
-	 * Unreachable states are ignored. 
-	 */
-	public static void checkM(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
-	{
-		Queue<StringPair> currentExplorationBoundary = new LinkedList<StringPair>();// FIFO queue
-
-		Set<StringPair> statesAddedToBoundary = new HashSet<StringPair>();
-		currentExplorationBoundary.add(new StringPair(stateGraph,stateExpected));statesAddedToBoundary.add(new StringPair(stateGraph,stateExpected));
-		
-		while(!currentExplorationBoundary.isEmpty())
-		{
-			StringPair statePair = currentExplorationBoundary.remove();
-			assert graph.accept.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
-			assert expected.accept.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
-			if (!graph.accept.get(statePair.firstElem).equals(expected.accept.get(statePair.secondElem)))
-				throw new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
-						
-			Map<String,String> targets = graph.trans.get(statePair.firstElem), expectedTargets = expected.trans.get(statePair.secondElem);
-			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
-				throw new DifferentFSMException("different number of transitions from state "+statePair);
-				
-			for(Entry<String,String> labelstate:targets.entrySet())
-			{
-				String label = labelstate.getKey();
-				if (!expectedTargets.containsKey(label))
-					throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.secondElem);
-				String tState = labelstate.getValue();// the original one
-				String expectedState = expectedTargets.get(label);
-				
-				StringPair nextPair = new StringPair(tState,expectedState);
-				if (!statesAddedToBoundary.contains(nextPair))
-				{
-					currentExplorationBoundary.offer(nextPair);
-					statesAddedToBoundary.add(nextPair);
-				}
-			}
-		}
-		
-	}
-	
 	@Test
 	public void testCheckM1()
 	{
-		checkM(buildGraph("A-a->B-b->C", "testCheck1"), "B-a->C-b->D");
+		checkM(buildGraph("A-a->B-b->C", "testCheck1"), "B-a->C-b->D",config);
 	}
 	
 	@Test
 	public void testCheckM2()
 	{
-		checkM(buildGraph("A-a->B-b->C-d-#F#-b-A", "testCheck2"), "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ");
+		checkM(buildGraph("A-a->B-b->C-d-#F#-b-A", "testCheck2"), "B-a->C-b->D\nB-b-#REJ\nD-d-#REJ",config);
 	}
 
 	@Test
@@ -399,7 +559,7 @@ public class TestFSMAlgo {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-b-#F#-d-A";
-		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck3"), expected);
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck3"), expected,config);
 	}
 
 	@Test
@@ -407,29 +567,29 @@ public class TestFSMAlgo {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ\nA-b-#REJ2\nB-a-#REJ2\nB-c-#REJ3";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B";
-		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), expected);
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), expected,config);
 	}
 
 	@Test
 	public void testCheckM5()
 	{
-		checkM(buildGraph("A-a->B-b->B-a->C", "testCheck5"), "S-a->U<-b-U\nQ<-a-U");
+		checkM(buildGraph("A-a->B-b->B-a->C", "testCheck5"), "S-a->U<-b-U\nQ<-a-U",config);
 	}
 
 	@Test
 	public void testCheckM6()
 	{
-		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->B-a->C", "testCheck6"));
-		final FSMStructure expected = getGraphData(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"));
-		checkM(graph,expected,"A","S");
-		checkM(graph,expected,"B","U");
-		checkM(graph,expected,"C","Q");
+		final LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-b->B-a->C", "testCheck6"),config);
+		final LearnerGraph expected = new LearnerGraph(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"),config);
+		assertTrue(checkMBoolean(graph,expected,"A","S"));
+		assertTrue(checkMBoolean(graph,expected,"B","U"));
+		assertTrue(checkMBoolean(graph,expected,"C","Q"));
 	}
 
 	@Test
 	public final void testCheckM_multipleEq1() // equivalent states
 	{
-		final FSMStructure graph = getGraphData(buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1"));
+		final LearnerGraph graph = new LearnerGraph(buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1"),config);
 		assertTrue(checkMBoolean(graph,graph,"D","C2"));
 		assertTrue(checkMBoolean(graph,graph,"C2","D"));
 		
@@ -450,7 +610,7 @@ public class TestFSMAlgo {
 	public final void testCheckM_multipleEq2() // equivalent states
 	{
 		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->N-b->N","testCheckM_multipleEq2");
-		final FSMStructure graph = getGraphData(g);
+		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
 		for(String stA:states)
 			for(String stB:states)
@@ -461,7 +621,7 @@ public class TestFSMAlgo {
 	public final void testCheckM_multipleEq3() // equivalent states
 	{
 		final DirectedSparseGraph g = buildGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N","testCheckM_multipleEq3");
-		final FSMStructure graph = getGraphData(g);
+		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
 		for(String stA:states)
 			for(String stB:states)
@@ -472,7 +632,7 @@ public class TestFSMAlgo {
 	public final void testCheckM_multipleEq4() // non-equivalent states
 	{
 		final DirectedSparseGraph g = buildGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4");
-		final FSMStructure graph = getGraphData(g);
+		final LearnerGraph graph = new LearnerGraph(g,Configuration.getDefaultConfiguration());
 		List<String> states = Arrays.asList(new String[]{"A","B","C"});
 		for(String stA:states)
 			for(String stB:states)
@@ -483,11 +643,11 @@ public class TestFSMAlgo {
 	}
 	
 	/** Same as checkM, but returns a boolean false instead of an exception. */
-	public static boolean checkMBoolean(FSMStructure graph, FSMStructure expected, String stateGraph, String stateExpected)
+	public static boolean checkMBoolean(LearnerGraph graph, LearnerGraph expected, String stateGraph, String stateExpected)
 	{
 		try
 		{
-			checkM(graph,expected,stateGraph,stateExpected);
+			WMethod.checkM(graph,expected,graph.findVertex(stateGraph),expected.findVertex(stateExpected));
 		}
 		catch(DifferentFSMException ex)
 		{
@@ -499,8 +659,8 @@ public class TestFSMAlgo {
 	@Test
 	public void testCheckM6_f1()
 	{
-		final FSMStructure graph = getGraphData(buildGraph("A-a->B-b->B-a->C", "testCheck6"));
-		final FSMStructure expected = getGraphData(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"));
+		final LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-b->B-a->C", "testCheck6"), Configuration.getDefaultConfiguration());
+		final LearnerGraph expected = new LearnerGraph(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"),Configuration.getDefaultConfiguration());
 		Assert.assertTrue(checkMBoolean(graph,graph,"A","A"));
 		Assert.assertTrue(checkMBoolean(graph,graph,"B","B"));
 		Assert.assertTrue(checkMBoolean(graph,graph,"C","C"));
@@ -519,37 +679,37 @@ public class TestFSMAlgo {
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD1()
 	{
-		checkM(buildGraph("A-a->B-b->C", "testCheckMD1"), "B-a->C-b->B");		
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD1"), "B-a->C-b->B",config);		
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD2() // different reject states
 	{
-		checkM(buildGraph("A-a->B-b->C", "testCheckMD2"), "B-a->C-b-#D");
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD2"), "B-a->C-b-#D",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD3() // missing transition
 	{
-		checkM(buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3"), "B-a->C-b->D");
+		checkM(buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3"), "B-a->C-b->D",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD4() // extra transition
 	{
-		checkM(buildGraph("A-a->B-b->C", "testCheckMD4"), "B-a->C-b->D\nB-b->C");
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD4"), "B-a->C-b->D\nB-b->C",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD5() // missing transition
 	{
-		checkM(buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5"), "B-a->C-b->D");
+		checkM(buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5"), "B-a->C-b->D",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD6() // extra transition
 	{
-		checkM(buildGraph("A-a->B-b->C", "testCheckMD6"), "B-a->C-b->D\nC-c->C");
+		checkM(buildGraph("A-a->B-b->C", "testCheckMD6"), "B-a->C-b->D\nC-c->C",config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
@@ -557,162 +717,147 @@ public class TestFSMAlgo {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), expected);
-	}
-	
-	/** Computes an alphabet of a given graph and adds transitions to a 
-	 * reject state from all states A and inputs a from which there is no B such that A-a->B
-	 * (A-a-#REJECT) gets added. Note: such transitions are even added to reject vertices.
-	 * 
-	 * @param g the graph to add transitions to
-	 * @param reject the name of the reject state, to be added to the graph.
-	 * @return true if any transitions have been added
-	 */   
-	public static boolean completeGraph(DirectedSparseGraph g, String reject)
-	{
-		DirectedSparseVertex rejectVertex = new DirectedSparseVertex();
-		boolean transitionsToBeAdded = false;// whether and new transitions have to be added.
-		rejectVertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
-		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
-		
-		// first pass - computing an alphabet
-		Set<String> alphabet = WMethod.computeAlphabet(g);
-		
-		// second pass - checking if any transitions need to be added.
-		Set<String> outLabels = new HashSet<String>();
-		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-		while(vertexIt.hasNext() && !transitionsToBeAdded)
-		{
-			Vertex v = vertexIt.next();
-			outLabels.clear();
-			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-			while(outEdgeIt.hasNext()){
-				DirectedSparseEdge outEdge = outEdgeIt.next();
-				outLabels.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
-			}
-			transitionsToBeAdded = !alphabet.equals(outLabels);
-		}
-		
-		if (transitionsToBeAdded)
-		{
-			// third pass - adding transitions
-			g.addVertex(rejectVertex);
-			vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
-			while(vertexIt.hasNext())
-			{
-				Vertex v = vertexIt.next();
-				if (v != rejectVertex)
-				{// no transitions should start from the reject vertex
-					Set<String> outgoingLabels = new TreeSet<String>();outgoingLabels.addAll(alphabet);
-					
-					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
-					while(outEdgeIt.hasNext()){
-						DirectedSparseEdge outEdge = outEdgeIt.next();
-						outgoingLabels.removeAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
-					}
-					if (!outgoingLabels.isEmpty())
-					{
-						// add a transition
-						DirectedSparseEdge edge = new DirectedSparseEdge(v,rejectVertex);
-						edge.addUserDatum(JUConstants.LABEL, outgoingLabels, UserData.CLONE);
-						g.addEdge(edge);
-					}
-				}
-			}
-		}
-		
-		return transitionsToBeAdded;
+		checkM(buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), expected,config);
 	}
 
 	@Test
 	public void completeComputeAlphabet0()
 	{
-		Set<String> alphabet = WMethod.computeAlphabet(new DirectedSparseGraph());
+		Set<String> alphabet = DeterministicDirectedSparseGraph.computeAlphabet(new DirectedSparseGraph());
 		Assert.assertTrue(alphabet.isEmpty());
 	}
 
+	/** Tests alphabet computation in the presence of unreachable states. */
 	@Test
-	public void completeComputeAlphabet1()
+	public final void testComputeFSMAlphabet1()
 	{
-		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A", "completeComputeAlphabet1"));
-		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a"}));
-		Assert.assertTrue(alphabet.equals(expected));
-		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
+		Set<String> expected = new HashSet<String>();
+		expected.add("p");
+		DirectedSparseGraph g = buildGraph("A-p->A","testComputeFSMAlphabet1");
+		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));
 	}
 
 	@Test
-	public void completeComputeAlphabet2()
+	public void testComputeFSMAlphabet2()
 	{
-		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A<-b-A", "completeComputeAlphabet2"));
-		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a","b"}));
-		Assert.assertTrue(alphabet.equals(expected));
-		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
+		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3");
+		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b"}));
+		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
+	}
+	
+	/** Tests alphabet computation in the presence of unreachable states. */
+	@Test
+	public final void testComputeFSMAlphabet3()
+	{
+		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
+		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3");
+		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
+	}
+
+
+	@Test
+	public final void testComputeFSMAlphabet4() {
+		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4");
+		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
+		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
 
 	@Test
-	public void completeComputeAlphabet3()
+	public void completeComputeAlphabet5()
 	{
-		Set<String> alphabet = WMethod.computeAlphabet(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeComputeAlphabet3"));
-		Set<String> expected = new HashSet<String>();expected.addAll( Arrays.asList(new String[] {"a","b","c","d"}));
-		Assert.assertTrue(alphabet.equals(expected));
-		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
-	}
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5");
+		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b","c"}));
+		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 
+		LearnerGraph clone = new LearnerGraph(g,config).copy(config);
+		Assert.assertFalse( clone.paths.completeGraph("REJECT"));
+		Assert.assertFalse(DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));
+	}
+	
+	/** Given a graph, this one calls completeGraph and checks that the returned value is whetherToBeCompleted
+	 * and that the final graph is equivalent to the one provided. Note that this also checks that in case
+	 * a graph does not need to be completed, the result of completion is the same graph.
+	 * 
+	 * @param originalGraph the graph to complete
+	 * @param expectedOutcome the graph to be expected
+	 * @param whetherToBeCompleted whether graph "machine" is incomplete.
+	 * @param testName the name of the test to give to the above graph.
+	 */
+	private void completeGraphTestHelper(String originalGraph, String expectedOutcome, boolean whetherToBeCompleted, String testName)
+	{
+		DirectedSparseGraph g = buildGraph(originalGraph, testName);
+		Assert.assertEquals(whetherToBeCompleted,DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));checkM(g, expectedOutcome,config);		
+		LearnerGraph fsm = new LearnerGraph(buildGraph(originalGraph, testName),config);
+		Assert.assertEquals(whetherToBeCompleted,fsm.paths.completeGraph("REJECT"));
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph(expectedOutcome,testName),config));				
+	}
+	
+	/** Checks that passing a name of an existing state causes an exception to be thrown. */
+	@Test(expected=IllegalArgumentException.class)
+	public void complete_fail()
+	{
+		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).paths.completeGraph("B");
+	}
+	
 	@Test
 	public void completeGraphTest1()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A", "completeGraphTest1");Assert.assertFalse(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->A");		
+		completeGraphTestHelper("A-a->A", "A-a->A",false,"completeGraphTest1");
 	}
 	
 	@Test
 	public void completeGraphTest2()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->B-a->A", "completeGraphTest2");Assert.assertFalse(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->A");		
+		completeGraphTestHelper("A-a->B-a->A", "A-a->A", false, "completeGraphTest2");
 	}
 	
 	@Test
 	public void completeGraphTest3()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeGraphTest3");Assert.assertFalse(completeGraph(g,"REJECT"));
-		checkM(g, "A-b->A-a->A");		
+		completeGraphTestHelper("A-a->A<-b-A", "A-b->A-a->A", false, "completeGraphTest3");
 	}
 	
 	@Test
-	public void completeGraphTest4()
+	public void completeGraphTest4a()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->B-b->A", "completeGraphTest4");Assert.assertTrue(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->B-b->A\nA-b-#REJECT#-a-B");		
+		completeGraphTestHelper("A-a->B-b->A", "A-a->B-b->A\nA-b-#REJECT#-a-B", true, "completeGraphTest4a");
 	}
 	
 	@Test
 	public void completeGraphTest4b()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->B-b->A-b->A", "completeGraphTest4b");Assert.assertTrue(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->B-b->A-b->A\nREJECT#-a-B");		
+		completeGraphTestHelper("A-a->B-b->A-b->A", "A-a->B-b->A-b->A\nREJECT#-a-B", true, "completeGraphTest4b");
 	}
 
 	@Test
 	public void completeGraphTest5()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B", "completeGraphTest5");Assert.assertTrue(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->A-b->B-c->B\nA-c-#REJECT#-a-B-b-#REJECT");		
+		completeGraphTestHelper("A-a->A-b->B-c->B", "A-a->A-b->B-c->B\nA-c-#REJECT#-a-B-b-#REJECT", true, "completeGraphTest5");
 	}	
 	
 	@Test
 	public void completeGraphTest6()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C", "completeGraphTest6");Assert.assertTrue(completeGraph(g,"REJECT"));
-		checkM(g, "A-a->A-b->B-c->B-a->C\nA-c-#REJECT#-b-B\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT");		
+		completeGraphTestHelper("A-a->A-b->B-c->B-a->C", "A-a->A-b->B-c->B-a->C\nA-c-#REJECT#-b-B\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT", true, "completeGraphTest6");
 	}	
 	
 	@Test
 	public void completeGraphTest7()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "completeGraphTest7");Assert.assertTrue(completeGraph(g,"REJECT"));
-		final FSMStructure graph = getGraphData(g);
-		final FSMStructure expected = getGraphData(buildGraph("A-a->A-b->B-c->B-a->C\nA-c-#REJECT\nA-d-#REJECT\nB-b-#REJECT\nB-d-#REJECT\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT\nC-d-#REJECT\nS-a-#REJECT\nS-b-#REJECT\nS-c-#REJECT\nS-d-#REJECT\nQ-a-#REJECT\nQ-b-#REJECT\nQ-c-#REJECT\nQ-d->S","expected graph"));
+		String fsmOrig = "A-a->A-b->B-c->B-a->C\nQ-d->S",
+			fsmExpected = "A-a->A-b->B-c->B-a->C\nA-c-#REJECT\nA-d-#REJECT\nB-b-#REJECT\nB-d-#REJECT\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT\nC-d-#REJECT\nS-a-#REJECT\nS-b-#REJECT\nS-c-#REJECT\nS-d-#REJECT\nQ-a-#REJECT\nQ-b-#REJECT\nQ-c-#REJECT\nQ-d->S";
+		completeGraphTestHelper(fsmOrig,fsmExpected,true,"completeGraphTest7");
+		
+		// Additional checking.
+		DirectedSparseGraph g = buildGraph(fsmOrig, "completeGraphTest7");
+		final LearnerGraph graph = new LearnerGraph(g,config);
+		Assert.assertTrue(graph.paths.completeGraph("REJECT"));
+		final LearnerGraph expected = new LearnerGraph(buildGraph(fsmExpected,"completeGraphTest7"),config);
 		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"B","B"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"Q","Q"));
@@ -723,13 +868,13 @@ public class TestFSMAlgo {
 	@Test(expected = IllegalArgumentException.class)
 	public void testFindVertex0()
 	{
-		RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, null, new DirectedSparseGraph());
+		DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, null, new DirectedSparseGraph());
 	}
 
 	@Test
 	public void testFindVertex1()
 	{
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, "bb", new DirectedSparseGraph()));
+		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, "bb", new DirectedSparseGraph()));
 	}
 	
 	@Test
@@ -737,7 +882,7 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2");
 		//Visualiser.updateFrame(g, g);Visualiser.waitForKey();
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.JUNKVERTEX, "bb", g));
+		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, "bb", g));
 	}
 		
 	@Test
@@ -745,48 +890,48 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3");
 		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
-		Assert.assertNull(RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "D", g));
+		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "D", g));
 	}
 
 	@Test
 	public void testFindVertex4a()
 	{
-		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a"));
 		Assert.assertNull(v);
 	}
 
 	@Test
 	public void testFindVertex4b()
 	{
-		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
 		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
 	}
 
 	@Test
 	public void testFindVertex5()
 	{
-		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "A", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "A", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
 		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex6()
 	{
-		Vertex v =  RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "C", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "C", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
 		Assert.assertEquals("C", v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex7()
 	{
-		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "S", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "S", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
 		Assert.assertEquals("S", v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex8()
 	{
-		Vertex v = RPNIBlueFringeLearner.findVertex(JUConstants.LABEL, "Q", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "Q", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
 		Assert.assertEquals("Q", v.getUserDatum(JUConstants.LABEL));
 	}
 
@@ -794,14 +939,14 @@ public class TestFSMAlgo {
 	@Test
 	public void testFindInitial1()
 	{
-		Vertex v = RPNIBlueFringeLearner.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
+		Vertex v = DeterministicDirectedSparseGraph.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
 		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindInitial2()
 	{
-		Vertex v = RPNIBlueFringeLearner.findInitial(new DirectedSparseGraph());
+		Vertex v = DeterministicDirectedSparseGraph.findInitial(new DirectedSparseGraph());
 		Assert.assertNull(v);
 	}
 
@@ -1031,47 +1176,6 @@ public class TestFSMAlgo {
 				new Object[]{new String[]{"b"},null}
 		})));
 	}
-
-	/** Converts a transition into an FSM structure, by taking a copy.
-	 * 
-	 * @param tTable table, where tTable[source][input]=targetstate
-	 * @param vFrom the order in which elements from tTable are to be used.
-	 * @param rejectNumber the value of an entry in a tTable which is used to denote an absence of a transition.
-	 * @return the constructed transition structure.
-	 */
-	public static FSMStructure convertTableToFSMStructure(final int [][]tTable, final int []vFrom, int rejectNumber)
-	{
-		if (vFrom.length == 0 || tTable.length == 0) throw new IllegalArgumentException("array is zero-sized");
-		int alphabetSize = tTable[vFrom[0]].length;
-		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
-		String stateName[] = new String[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]="S"+i;
-		String inputName[] = new String[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
-		FSMStructure fsm = new FSMStructure();
-		fsm.init = stateName[vFrom[0]];
-		Set<String> statesUsed = new HashSet<String>();
-		for(int i=0;i<vFrom.length;++i)
-		{
-			int currentState = vFrom[i];
-			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
-			if (tTable[currentState].length != alphabetSize) throw new IllegalArgumentException("rows of inconsistent size");
-			Map<String,String> row = new LinkedHashMap<String,String>();
-			fsm.accept.put(stateName[currentState], true);
-			for(int input=0;input < tTable[currentState].length;++input)
-				if (tTable[currentState][input] != rejectNumber)
-				{
-					int nextState = tTable[currentState][input];
-					if (nextState < 0 || nextState > tTable.length)
-						throw new IllegalArgumentException("transition from state "+currentState+" leads to an invalid state "+nextState);
-					row.put(inputName[input], stateName[nextState]);
-					statesUsed.add(stateName[nextState]);
-				}
-			fsm.trans.put(stateName[currentState], row);
-		}
-		statesUsed.removeAll(fsm.accept.keySet());
-		if (!statesUsed.isEmpty())
-			throw new IllegalArgumentException("Some states in the transition table are not included in vFrom");
-		return fsm;
-	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testConvertTableToFSMStructure1a()
@@ -1080,7 +1184,7 @@ public class TestFSMAlgo {
 			{4,5,1,6}, 
 			{7,7}
 		};
-		convertTableToFSMStructure(table, new int[0], -1);
+		LearnerGraph.convertTableToFSMStructure(table, new int[0], -1	,config);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -1090,7 +1194,7 @@ public class TestFSMAlgo {
 			{}, 
 			{1,1}
 		};
-		convertTableToFSMStructure(table, new int[]{1,0}, -1);
+		LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0}, -1	,config);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -1100,7 +1204,7 @@ public class TestFSMAlgo {
 				{1,0,1,0}, 
 				{0,1}
 			};
-			convertTableToFSMStructure(table, new int[]{0,1}, -1);
+		LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1}, -1	,config);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -1110,7 +1214,7 @@ public class TestFSMAlgo {
 				{1,0,1,0}, 
 				{0,1,0,1}
 			};
-			convertTableToFSMStructure(table, new int[]{0,-1}, -1);
+		LearnerGraph.convertTableToFSMStructure(table, new int[]{0,-1}, -1	,config);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -1122,8 +1226,8 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4a"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -1135,8 +1239,8 @@ public class TestFSMAlgo {
 			{0,0,0,-4},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4b"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 	
 	@Test
@@ -1148,8 +1252,8 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{0,1,3}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,3}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 	
 	@Test
@@ -1161,8 +1265,8 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{1,0,3}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0,3}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 
 	@Test
@@ -1174,8 +1278,8 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{3,0,1}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 	
 	@Test
@@ -1187,8 +1291,8 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		FSMStructure fsm = convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1);
-		checkM(fsm, getGraphData(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure4")), "S0", "S0");
+		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1	,config);
+		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
 	}
 
 	@Test

@@ -51,7 +51,7 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 		if(a==0||b==0){
 			return (a+b)/2;
 		}
-		else return ((2*a*b)/(a+b));
+		return ((2*a*b)/(a+b));
 	}
 
 	public double getNegprecision() {

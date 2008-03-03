@@ -31,16 +31,16 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import soot.jbco.bafTransformations.FindDuplicateSequences;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.Configuration;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTATestSequenceEngine;
-import statechum.xmachine.model.testset.WMethod;
-import statechum.xmachine.model.testset.WMethod.EquivalentStatesException;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -192,7 +192,6 @@ public class PathRoutines {
 	 * @param accepted whether the last element is accept or reject.
 	 * @return the current (updated) graph. 
 	 */
-	
 	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted)
 	{
 		CmpVertex currentState = coregraph.init, prevState = null;
@@ -250,7 +249,10 @@ public class PathRoutines {
 	}
 	
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
-	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
+	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (DeterministicVertex).
+	 * The fact that we need to return a Jung graph implies that all nodes are always cloned;
+	 * this way we do not have to check if we've been asked to keep the original nodes and
+	 * keep them unless they were StringVertices.
 	 * 
 	 * @param the name to give to the graph to be built.
 	 * @return constructed graph.
@@ -258,6 +260,7 @@ public class PathRoutines {
 	public DirectedSparseGraph getGraph(String name)
 	{
 		DirectedSparseGraph result = null;
+		Configuration cloneConfig = (Configuration)coregraph.config.clone();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
 		synchronized (LearnerGraph.syncObj) 
 		{
 			result = new DirectedSparseGraph();
@@ -269,10 +272,9 @@ public class PathRoutines {
 			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
 			{
 				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = new DeterministicVertex(source.getName());
+				DeterministicVertex vert = (DeterministicVertex)LearnerGraph.cloneCmpVertex(source,cloneConfig);
 				if (coregraph.init == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				vert.setAccept(source.isAccept());vert.setColour(source.getColour());vert.setHighlight(source.isHighlight());
 				result.addVertex(vert);
 				oldToNew.put(source,vert);
 			}
@@ -283,7 +285,9 @@ public class PathRoutines {
 				DeterministicVertex source = oldToNew.get(entry.getKey());
 				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
 				{
-					DeterministicVertex target = oldToNew.get(tgtEntry.getKey());
+					CmpVertex targetOld = tgtEntry.getKey();
+					assert coregraph.findVertex(targetOld.getName()) == targetOld;
+					DeterministicVertex target = oldToNew.get(targetOld);
 					DeterministicEdge e = new DeterministicEdge(source,target);
 					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
 					result.addEdge(e);
@@ -329,6 +333,55 @@ public class PathRoutines {
 		return result;
 	}
 	
+	/** The original version of the routine which builds a Jung graph 
+	 * corresponding to the state machine stored in transitionMatrix.
+	 * This one does not support configuration and anything of its sort
+	 * but is useful for testing of the "real" getGraph. 
+	 * It should do the same as getGraph in the "clone graph" configuration.
+	 *  
+	 * @param the name to give to the graph to be built.
+	 * @return constructed graph.
+	 */
+	public DirectedSparseGraph OrigGetGraph(String name)
+	{
+		DirectedSparseGraph result = null;
+		synchronized (LearnerGraph.syncObj) 
+		{
+			result = new DirectedSparseGraph();
+			if (name != null)
+				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
+			Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = getFlowgraph();
+			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
+			// add states
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
+			{
+				CmpVertex source = entry.getKey();
+				DeterministicVertex vert = new DeterministicVertex(source.getName());
+				if (coregraph.init == source)
+					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+				vert.setAccept(source.isAccept());
+				vert.setColour(source.getColour());
+				vert.setHighlight(source.isHighlight());
+				result.addVertex(vert);
+				oldToNew.put(source,vert);
+			}
+			
+			// now add transitions
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
+			{
+				DeterministicVertex source = oldToNew.get(entry.getKey());
+				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
+				{
+					DeterministicVertex target = oldToNew.get(tgtEntry.getKey());
+					DeterministicEdge e = new DeterministicEdge(source,target);
+					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
+					result.addEdge(e);
+				}
+			}
+		}
+		return result;
+	}
+	
 	/** Calculates statistics on the learned machine
 	 * 
 	 * @param computeW whether to compute the W set - not a good idea on 13500 state PTA, for instance.
@@ -339,17 +392,17 @@ public class PathRoutines {
 		for(Entry<CmpVertex,Map<String,CmpVertex>> v:coregraph.transitionMatrix.entrySet())
 			edgeCounter+=v.getValue().size();
 		
-		FSMStructure fsm = WMethod.getGraphData(getGraph());
+		LearnerGraph fsm = new LearnerGraph(getGraph(), coregraph.config);
 		
 		String wsetDetails = "";
 		try
 		{
 			if (computeW) wsetDetails = "Wset: "+WMethod.computeWSet(fsm).size()+" seq";
 		}
-		catch (EquivalentStatesException e) {
+		catch (statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException e) {
 			wsetDetails = e.toString();
 		}
-		return "vert: "+coregraph.transitionMatrix.keySet().size()+" edges: "+edgeCounter+" alphabet: "+WMethod.computeAlphabet(fsm).size()+" unreachable: "+WMethod.checkUnreachableStates(fsm)+" "+wsetDetails;
+		return "vert: "+coregraph.transitionMatrix.keySet().size()+" edges: "+edgeCounter+" alphabet: "+fsm.wmethod.computeAlphabet().size()+" unreachable: "+fsm.wmethod.checkUnreachableStates()+" "+wsetDetails;
 	}
 
 	protected static void checkPTAConsistency(LearnerGraph original, CmpVertex blueState)
@@ -497,7 +550,7 @@ public class PathRoutines {
 					System.out.println();
 					CmpVertex newV = original.transitionMatrix.get(v).get(input);
 					if (newV != null) v=newV;
-					else v=original.findNextRed(mergedVertices,v,input);
+					else v=original.pairscores.findNextRed(mergedVertices,v,input);
 				}
 				System.out.println("final state is "+v);
 
@@ -518,5 +571,80 @@ public class PathRoutines {
 			throw new IllegalArgumentException("vertices "+unreachables.toString()+" are unreachable and "+remaining+" are non-PTA vertices");
 				
 		}
+	}
+
+	/** Computes an alphabet of a given graph and adds transitions to a 
+	 * reject state from all states A and inputs a from which there is no B such that A-a->B
+	 * (A-a-#REJECT) gets added. Note: (1) such transitions are even added to reject vertices.
+	 * (2) if such a vertex already exists, an IllegalArgumentException is thown.
+	 * 
+	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
+	 * @return true if any transitions have been added
+	 */   
+	public boolean completeGraph(String reject)
+	{
+		if (coregraph.findVertex(reject) != null)
+			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");
+		
+		CmpVertex rejectVertex = null;
+		
+		// first pass - computing an alphabet
+		Set<String> alphabet = coregraph.wmethod.computeAlphabet();
+		
+		// second pass - checking if any transitions need to be added and adding them.
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			Set<String> labelsToRejectState = new HashSet<String>();
+			labelsToRejectState.addAll(alphabet);labelsToRejectState.removeAll(entry.getValue().keySet());
+			if (!labelsToRejectState.isEmpty())
+			{
+				if (rejectVertex == null)
+				{
+					rejectVertex = LearnerGraph.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
+				}
+				Map<String,CmpVertex> row = entry.getValue();
+				for(String rejLabel:labelsToRejectState)
+					row.put(rejLabel, rejectVertex);
+			}
+		}
+
+		if (rejectVertex != null)
+			coregraph.transitionMatrix.put(rejectVertex,new TreeMap<String,CmpVertex>());
+		return rejectVertex != null;
+	}
+
+	public int tracePath(List<String> path)
+	{
+		return tracePath(path,coregraph.init);
+	}
+	
+	public int tracePath(List<String> path, CmpVertex startState)
+	{
+		CmpVertex current = startState;
+		if (current == null)
+			return 0;// if we start from null (i.e. not found) state, fail immediately.
+		int pos = -1;
+		for(String label:path)
+		{
+			++pos;
+			Map<String,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
+			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+				return pos;
+		}
+		return current.isAccept()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
+	}
+	
+	/** converts a given sequence into a fundamental test sequence.
+	 * 
+	 * @return truncated sequence
+	 */
+	public List<String> truncateSequence(List<String> path)
+	{// TODO: I think this should only be used for testing of PTATestSequenceEngine and the like.
+		int pos = tracePath(path);
+		List<String> seq = path;
+		assert(pos == RPNIBlueFringeLearner.USER_ACCEPTED || pos < path.size());
+		if (pos >= 0)
+				seq = path.subList(0, pos+1);// up to a rejected position plus one
+		return seq;
 	}
 }

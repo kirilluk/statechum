@@ -26,31 +26,29 @@ import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public class TestPTAConstruction
 {
-	public TestPTAConstruction() {
-		
-	}
-
 	@Test
 	public void testAugmentPTA() // only two traces, both accept
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
-		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(RPNIBlueFringeLearner.initialise(), plusStrings, true),
+		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
-		Configuration config = new Configuration();config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
+		Configuration config = new Configuration();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		config.setAllowedToCloneNonCmpVertex(true);
 		LearnerGraph l = new LearnerGraph(config);
 		actualC = l.paths.augmentPTA(plusStrings, true).paths.getGraph();
-		RPNIBlueFringeLearner.numberVertices(actualA);
+		DeterministicDirectedSparseGraph.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
-		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualC, expectedPTA);
+		TestFSMAlgo.checkM(actualA, expectedPTA,config);
+		TestFSMAlgo.checkM(actualC, expectedPTA,config);
 	}
 
 	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings)
@@ -60,7 +58,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
+			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -72,7 +70,7 @@ public class TestPTAConstruction
 		{
 			Configuration config = new Configuration();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
-			config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.getScoreComputer().paths.getGraph();
 		}
@@ -95,10 +93,10 @@ public class TestPTAConstruction
 				throw eA;
 			}
 				
-		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualA.getEdges().size());
 
-		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualC.getEdges().size());
 	}
 	
@@ -142,7 +140,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(RPNIBlueFringeLearner.initialise(), plusStrings, minusStrings);
+			actualA = new RPNIBlueFringeLearner(null).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -154,7 +152,7 @@ public class TestPTAConstruction
 		{
 			Configuration config = new Configuration();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
-			config.setMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.getScoreComputer().paths.getGraph();
 		}
@@ -176,9 +174,10 @@ public class TestPTAConstruction
 				throw eA;
 			}
 
-	 //updateFrame(g,null);
-		TestFSMAlgo.checkM(actualA, expectedPTA);
-		TestFSMAlgo.checkM(actualC, expectedPTA);
+		Configuration config = new Configuration();
+		config.setAllowedToCloneNonCmpVertex(true);
+		TestFSMAlgo.checkM(actualA, expectedPTA,config);
+		TestFSMAlgo.checkM(actualC, expectedPTA,config);
 	}
 	
 	@Test

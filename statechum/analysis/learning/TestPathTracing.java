@@ -18,7 +18,6 @@
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 
 import java.util.Arrays;
@@ -32,11 +31,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.WMethod;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -53,10 +51,10 @@ public class TestPathTracing {
 		mainConfiguration = conf;
 	}
 
-	@Before
 	/** Make sure that whatever changes a test have made to the 
 	 * configuration, next test is not affected.
 	 */
+	@Before
 	public void beforeTest()
 	{
 		
@@ -75,12 +73,12 @@ public class TestPathTracing {
 	 * @param The name of the vertex which is expected to be returned by getVertex
 	 * @param config the configuration to pass to LearnerGraph
 	 */
-	public static void checkPath(String fsmString, String []path, int ExpectedResult, String enteredName, Configuration conf)
+	public void checkPath(String fsmString, String []path, int ExpectedResult, String enteredName, Configuration conf)
 	{
 		assert (enteredName == null)? (ExpectedResult >= 0):true;
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
-		final FSMStructure graph = getGraphData(g);
-		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path)));
+		final LearnerGraph fsm = new LearnerGraph(g,config);
+		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
 		Vertex received = RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path));
 		if (expected == null)
@@ -88,7 +86,7 @@ public class TestPathTracing {
 		else
 		{
 			assertEquals(expected.getName(),received.getUserDatum(JUConstants.LABEL));
-			assertEquals(expected.isAccept(),RPNIBlueFringeLearner.isAccept(received));
+			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
 		}
 	}
 	
@@ -101,13 +99,13 @@ public class TestPathTracing {
 	 * @param The name of the vertex which is expected to be returned by getVertex
 	 * @param config the configuration to pass to LearnerGraph
 	 */
-	public static void checkPathFrom(String fsmString, String startingState, String []path, int ExpectedResult, String enteredName, Configuration conf)
+	public void checkPathFrom(String fsmString, String startingState, String []path, int ExpectedResult, String enteredName, Configuration conf)
 	{
 		assert (enteredName == null) == (ExpectedResult >= 0);
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
-		final FSMStructure graph = getGraphData(g);
-		assertEquals(ExpectedResult, WMethod.tracePath(graph, Arrays.asList(path),startingState));
-		Vertex starting = RPNIBlueFringeLearner.findVertexNamed(startingState,g);
+		final LearnerGraph fsm = new LearnerGraph(g,config);
+		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState)));
+		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(startingState,g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
 		Vertex received = RPNIBlueFringeLearner.getVertex(g, starting, Arrays.asList(path));
 		if (expected == null)
@@ -115,7 +113,7 @@ public class TestPathTracing {
 		else
 		{
 			assertEquals(expected.getName(),received.getUserDatum(JUConstants.LABEL));
-			assertEquals(expected.isAccept(),RPNIBlueFringeLearner.isAccept(received));
+			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
 		}
 	}
 	

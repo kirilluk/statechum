@@ -18,8 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.oracles;
 
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
-
 import java.awt.Frame;
 import java.io.StringWriter;
 import java.util.*;

@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -169,6 +170,27 @@ public class PairScoreComputation {
 	}
 	
 	
+	/** Takes states associated with red in mergedVertices and finds a target state for a given input
+	 * 
+	 * @param mergedVertices vertices linked to r
+	 * @param r the red state
+	 * @param input the input to consider
+	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
+	 * using mergedVertices. 
+	 */
+	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, String input)
+	{
+		CmpVertex target = null;
+		List<CmpVertex> associatedVertices = mergedVertices.get(r);
+		if (associatedVertices != null)
+		{
+			Iterator<CmpVertex> associatedIt = associatedVertices.iterator();
+			while(associatedIt.hasNext() && target == null)
+				target = coregraph.transitionMatrix.get(associatedIt.next()).get(input);
+		}
+		return target;
+	}
+	
 	/** After merging, a graph may exhibit non-determinism, in which case it is made deterministic
 	 * by merging nodes. For instance, for A->B and A->C being a non-deterministic choice at node A, 
 	 * nodes B and C are to
@@ -232,7 +254,7 @@ public class PairScoreComputation {
 				}
 				else
 				{// the current red state cannot make a transition, perhaps PTA states associated with it can
-					nextRedState = coregraph.findNextRed(mergedVertices,currentPair.getR(),blueEntry.getKey());
+					nextRedState = findNextRed(mergedVertices,currentPair.getR(),blueEntry.getKey());
 					if (nextRedState != null)
 					{// both states can make a transition - this would be the case of "non-determinism" for Merge&Determinize
 					 // The red state is the one originally from a previously-merged PTA branch, so here we are merging PTA with itself. 

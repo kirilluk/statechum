@@ -25,8 +25,8 @@ package statechum.analysis.learning.spin;
 import java.io.*;
 import java.util.*;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -159,7 +159,7 @@ public class SpinUtil {
 		Iterator<DirectedEdge> outgoingIt = v.getOutEdges().iterator();
 		while(outgoingIt.hasNext()){
 			DirectedEdge e = outgoingIt.next();
-			if(RPNIBlueFringeLearner.isAccept(e.getDest()))
+			if(DeterministicDirectedSparseGraph.isAccept(e.getDest()))
 				succs++;
 		}
 		return succs;
@@ -173,7 +173,7 @@ public class SpinUtil {
 		
 		while (stateIt.hasNext()) {
 			DirectedSparseVertex v = stateIt.next();
-			if (!RPNIBlueFringeLearner.isAccept(v))
+			if (!DeterministicDirectedSparseGraph.isAccept(v))
 				continue;
 			String currentState = v.getUserDatum(JUConstants.LABEL).toString();
 			if (!stateMap.keySet().contains(currentState)) {
@@ -191,7 +191,7 @@ public class SpinUtil {
 					DirectedEdge e = outEdges.next();
 					Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 					
-					if(!RPNIBlueFringeLearner.isAccept(e.getDest()))
+					if(!DeterministicDirectedSparseGraph.isAccept(e.getDest()))
 							continue;
 					String toState = e.getDest().getUserDatum(JUConstants.LABEL).toString();
 					if (!stateMap.keySet().contains(toState)) {
@@ -311,7 +311,7 @@ public class SpinUtil {
 	private static void setup(DirectedSparseGraph g,
 			Map<String, Integer> stateMap, Map<String, Integer> functionMap) {
 		sw = new StringWriter();
-		DirectedSparseVertex v = (DirectedSparseVertex) RPNIBlueFringeLearner
+		DirectedSparseVertex v = (DirectedSparseVertex) DeterministicDirectedSparseGraph
 				.findInitial(g);
 		String state = v.getUserDatum(JUConstants.LABEL).toString();
 		if (!stateMap.keySet().contains(state)) {

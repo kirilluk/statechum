@@ -48,19 +48,18 @@ import javax.swing.SwingUtilities;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Configuration.IDMode;
-import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.xmachine.model.testset.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
-import static statechum.xmachine.model.testset.WMethod.getGraphData;
-import static statechum.xmachine.model.testset.WMethod.tracePath;
-import static statechum.analysis.learning.RPNIBlueFringeLearner.isAccept;
 
 public class IncrementalAccuracyAndQuestionsExperiment {
 
@@ -153,9 +152,10 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		{
 			
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),size,5);// the seed for Random should be the same for each file
-	    	WMethod tester = new WMethod(graph,1);
-			tests = (Collection<List<String>>)tester.getFullTestSet();
-			tests.addAll(tester.getTransitionCover());
+	    	final int numberOfExtraStates = 1;
+	    	LearnerGraph tester = new LearnerGraph(graph,Configuration.getDefaultConfiguration());
+			tests = (Collection<List<String>>)tester.wmethod.getFullTestSet(numberOfExtraStates);
+			tests.addAll(tester.wmethod.getTransitionCover());
 			tests.removeAll(rpg.getAllPaths());
 			tests.removeAll(rpg.getNegativePaths());
 			
@@ -208,13 +208,13 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			sMinus = new HashSet<List<String>>();
 			sPlus = new HashSet<List<String>>();
 			Collection<List<String>> allPositive = rpg.getAllPaths();
-			final FSMStructure fsm = WMethod.getGraphData(graph);
-			WMethod wm = new WMethod(fsm,1);
+			final LearnerGraph fsm = new LearnerGraph(graph,config);
+			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 				{
-					return tracePath(fsm, question);
+					return fsm.paths.tracePath(question);
 				}
 			};
 			l.setCertaintyThreshold(3);
@@ -226,35 +226,34 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				if(/*percent!=30/*&*/percent!=100)
 					continue;
 				sMinus = rpg.makeCollectionNegative(sPlus, 1);
-				//posNegExperiment(fsm, l, wm);
-				questionsExperiment(fsm, l, wm);
+				questionsExperiment(fsm, l);
 			}
 			
 			return inputFileName+"success";
 		}
-		
-		private void questionsExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
-			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
+
+		private void questionsExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
+			PosNegPrecisionRecall prNeg = computePR(fsm, l, new HashSet<List<String>>(), sMinus);
 			System.out.println(prNeg.precision+", "+prNeg.recall);
 		}
 		
-		private void posNegExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
-			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
-			PosNegPrecisionRecall pr= computePR(fsm, l, wm, sPlus, new HashSet<List<String>>());
+		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
+			PosNegPrecisionRecall prNeg = computePR(fsm, l, new HashSet<List<String>>(), sMinus);
+			PosNegPrecisionRecall pr= computePR(fsm, l, sPlus, new HashSet<List<String>>());
 			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
 		}
 		
-		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm, Collection<List<String>> splus, Collection<List<String>> sminus){
+		private PosNegPrecisionRecall computePR(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> splus, Collection<List<String>> sminus){
 			
-			FSMStructure learned = learn(l,splus, sminus);
+			LearnerGraph learned = learn(l,splus, sminus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 			PTATestSequenceEngine engine = new PTA_FSMStructure(fsm);
 			sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
-			partialPTA = partialPTA.cross(wm.getFullTestSet());
+			partialPTA = partialPTA.cross(fsm.wmethod.getFullTestSet(1));
 			return precRec.crossWith(engine);
 		}
-		
-		private FSMStructure learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+
+		private LearnerGraph learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
 			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
@@ -266,7 +265,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				System.out.println(l.getQuestionCounter());
 			*/
 			l.setQuestionCounter(0);
-			return WMethod.getGraphData(learningOutcome);
+			return new LearnerGraph(learningOutcome,config);
 		}
 		
 	
@@ -301,19 +300,19 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
 			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex != null)){
-				if(isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex !=null & correctVertex!=null){
-				if(isAccept(hypVertex) != isAccept(correctVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex) != DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					//updateFrame(learned, correct);
 					failed ++;
 				}
 			}
 			else if(hypVertex!=null & correctVertex == null){
-				if(isAccept(hypVertex)){
+				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)){
 					//updateFrame(learned, correct);
 					failed++;
 				}
@@ -344,18 +343,6 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		return current;
 	}
 	
-	public static Set<List<String>> trimToNegatives(DirectedSparseGraph g, Collection<List<String>> sMinus ){
-		Set<List<String>> returnSet = new HashSet<List<String>>();
-		Iterator<List<String>> sMinusIt = sMinus.iterator();
-		while(sMinusIt.hasNext()){
-			List<String> currentString = sMinusIt.next();
-			final FSMStructure expected = getGraphData(g);
-			int reject = tracePath(expected, currentString);
-			returnSet.add(currentString.subList(0, reject+1));
-		}
-		return returnSet;
-	}
-
 	public static Collection<List<String>> getPositiveStrings(DirectedSparseGraph graph, Collection<List<String>> samples){
 		Iterator<List<String>> sampleIt = samples.iterator();
 		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
@@ -395,7 +382,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					@Override
 					protected void changeParameters(Configuration c) 
 					{
-						c.setMode(IDMode.POSITIVE_NEGATIVE);						
+						c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
 					}
 
 					@Override

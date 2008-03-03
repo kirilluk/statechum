@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.5.0_14" class="java.beans.XMLDecoder"> 
+<java version="1.5.0_10" class="java.beans.XMLDecoder"> 
  <object class="java.util.HashMap"> 
   <void method="put"> 
    <int>68</int> 
@@ -77,6 +77,12 @@
     </void> 
     <void index="3"> 
      <double>1.0</double> 
+    </void> 
+    <void index="4"> 
+     <double>-81.0</double> 
+    </void> 
+    <void index="5"> 
+     <double>-77.0</double> 
     </void> 
    </array> 
   </void> 

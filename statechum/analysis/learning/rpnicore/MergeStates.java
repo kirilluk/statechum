@@ -133,6 +133,7 @@ public class MergeStates {
 		}
 		
 		if (LearnerGraph.testMode) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
+		result.learnerCache.invalidate();
 		return result;
 	}
 	
@@ -212,6 +213,7 @@ public class MergeStates {
 				g.removeEdges(outEdges);
 				g.removeVertex(currentVert);
 			}
+			
 			return g;
 	}	
 }

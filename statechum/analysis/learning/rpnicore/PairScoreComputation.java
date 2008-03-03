@@ -142,6 +142,7 @@ public class PairScoreComputation {
 
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
+		coregraph.buildCachedData();
 		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
@@ -315,25 +316,22 @@ public class PairScoreComputation {
 		int score = 0;
 		int currentExplorationDepth=1;
 		assert pair.getQ() != pair.getR();
+		boolean foundKTail = false;
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		currentExplorationBoundary.add(pair);currentExplorationBoundary.offer(null);
 		
-		while(!currentExplorationBoundary.isEmpty())
+		while(!foundKTail)
 		{
 			StatePair currentPair = currentExplorationBoundary.remove();
 			if (currentPair == null)
 			{// we got to the end of a wave
-				if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
-						currentExplorationDepth >= coregraph.config.getKlimit())
-					break;// if we got to the end of a wave and the exploration depth matches the desired one, stop the loop.
+				if (currentExplorationBoundary.isEmpty())
+					break;// we are at the end of the last wave, stop looping.
 				else
-					if (currentExplorationBoundary.isEmpty())
-						break;// we are at the end of the last wave, stop looping.
-					else
-					{// mark the end of a wave.
-						currentExplorationBoundary.offer(null);currentExplorationDepth++;
-					}
+				{// mark the end of a wave.
+					currentExplorationBoundary.offer(null);currentExplorationDepth++;
+				}
 			}
 			else
 			{
@@ -348,6 +346,13 @@ public class PairScoreComputation {
 						if (redEntry.getValue().isAccept() != nextBlueState.isAccept())
 							return -1;// incompatible states
 						
+						if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
+								currentExplorationDepth >= coregraph.config.getKlimit())
+						{
+							foundKTail = true;
+							break;// we found a path of the "currentExplorationDepth" length and using the KTAILS method, hence stop the loop.
+						}
+
 						++score;
 	
 						StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
@@ -361,6 +366,11 @@ public class PairScoreComputation {
 		if (coregraph.config.isBumpPositives() && pair.getQ().isAccept())
 			score++;// bumpPositives is used to give an extra weight to state pairs which are both compatible and positive (i.e. discourage reject-reject state pairs).
 		
+		if (foundKTail)
+		{// If we are operating in a k-tails mode, report a very high number if we found a k-tail.
+			coregraph.buildCachedData();
+			score = coregraph.learnerCache.maxScore+1;
+		}
 		return score;
 	}
 }

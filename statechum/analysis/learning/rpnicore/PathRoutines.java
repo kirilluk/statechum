@@ -234,6 +234,7 @@ public class PathRoutines {
 			
 		}
 	
+		coregraph.learnerCache.invalidate();
 		return coregraph;
 	}
 	
@@ -265,10 +266,10 @@ public class PathRoutines {
 			result = new DirectedSparseGraph();
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-			Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = getFlowgraph();
+			coregraph.buildCachedData();
 			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
 			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.flowgraph.entrySet())
 			{
 				CmpVertex source = entry.getKey();
 				DeterministicVertex vert = (DeterministicVertex)LearnerGraph.cloneCmpVertex(source,cloneConfig);
@@ -279,7 +280,7 @@ public class PathRoutines {
 			}
 			
 			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.flowgraph.entrySet())
 			{
 				DeterministicVertex source = oldToNew.get(entry.getKey());
 				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
@@ -609,6 +610,8 @@ public class PathRoutines {
 
 		if (rejectVertex != null)
 			coregraph.transitionMatrix.put(rejectVertex,new TreeMap<String,CmpVertex>());
+		
+		coregraph.learnerCache.invalidate();
 		return rejectVertex != null;
 	}
 

@@ -189,7 +189,8 @@ public class ComputeQuestions {
 		CmpVertex mergedRed = merged.findVertex(pair.getR().toString());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
-
+		original.buildCachedData();merged.buildCachedData();
+		
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();
 		engine.init(original.new NonExistingPaths());
 		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();

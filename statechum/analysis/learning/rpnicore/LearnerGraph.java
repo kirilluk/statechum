@@ -132,12 +132,40 @@ public class LearnerGraph {
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 	
+	final class cachedData
+	{
+		/** The flowgraph representing the transition diagram (i.e. parallel 
+		 * edges between every pair of states are collapsed into a single 
+		 * edge associated with a set of labels of those edges).
+		 */   
+		protected Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
+		
+		/** The maximal score which can be returned by score computation routines. */
+		protected int maxScore = -1;
+
+		/** Whether cache data is valid. */
+		public boolean valid = false;
+		
+		public void invalidate()
+		{
+			valid = false;flowgraph=null;maxScore=-1;
+		}
+	}
+	
+	final cachedData learnerCache = new cachedData();
+	
 	/** Resets all the colour labelling to the initial value. */
 	public void clearColours()
 	{
 		for(CmpVertex v:transitionMatrix.keySet())
 			v.setColour(null);
 		init.setColour(JUConstants.RED);
+	}
+	
+	/** Returns the number of states in the state machine. */
+	public int getStateNumber()
+	{
+		return transitionMatrix.size();
 	}
 	
 	final public ComputeQuestions questions = new ComputeQuestions(this);
@@ -194,6 +222,30 @@ public class LearnerGraph {
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
 		}
+	}
+	
+	/** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
+	 * Used to rebuild max score and flow graph.
+	 * This method is performing the rebuilding.
+	 */
+	public void buildCachedData() {
+		if (!learnerCache.valid)
+		{
+			learnerCache.flowgraph = paths.getFlowgraph();
+			learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
+			learnerCache.valid = true;
+		}
+	}
+
+	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
+	 * This is particularly useful for testing.
+	 */ 
+	public void setMaxScore(int score)
+	{
+		buildCachedData();
+		if (learnerCache.maxScore > score)
+			throw new IllegalArgumentException("cannot set the max score below the actual maximum");
+		learnerCache.maxScore=score;
 	}
 	
 	/** Given a set of labels and a target state, this method adds to a supplied map an association 
@@ -520,6 +572,7 @@ public class LearnerGraph {
 		init.setAccept(true);init.setColour(JUConstants.RED);
 		
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
+		learnerCache.invalidate();
 	}
 	
 	/** Initialises this graph with an empty graph. */
@@ -527,6 +580,7 @@ public class LearnerGraph {
 	{
 		transitionMatrix.clear();init=null;
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
+		learnerCache.invalidate();
 	}
 
 	@Override

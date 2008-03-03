@@ -175,6 +175,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertEquals(-1, newScoreA);
 	}
 	
+	/** Typically the max score is computed depending on a graph which 
+	 * is not convenient for testing. We hence set it to a predefined constant.
+	 */
+	public final int maxScoreConstant = 9000;
+	
 	/** Checks that both the old and the two new algorithms report the same score for a pair of states and ask the same questions.
 	 * @param states being merged are called "A" and "B". 
 	 */
@@ -1094,7 +1099,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				s.findVertex("A"));
 
 		doneEdges = new HashSet();
-		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
+		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);s.setMaxScore(maxScoreConstant-1);
 		int origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew);
@@ -1106,6 +1111,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 		s.config.setKlimit(10000);
 		assertEquals(expectedComputedScore, s.pairscores.computeStateScore(pairNew));
+		
+		//Visualiser.updateFrame(g,null);Visualiser.waitForKey();
 		
 		s.config.setKlimit(1);
 		assertEquals(k1, s.pairscores.computeStateScore(pairNew));
@@ -1122,8 +1129,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-a->B-a->C-b->D\n"+
 				"A-b->E",
 				1,0,
-				1,1,1,
-				"testPairCompatible1");// for k-tails of zero, score should be 0 and for 100 it should be orig
+				maxScoreConstant,1,1,
+				"testPairCompatible1");
 	}
 
 	@Test
@@ -1133,7 +1140,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-a->B-a->C-b->D\n"+
 				"A-b-#E",
 				1,-1,
-				1,1,1,
+				maxScoreConstant,1,1,
 				"testPairCompatible2");
 	}
 
@@ -1141,63 +1148,66 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void testPairCompatible3()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid1,11,-1,
-				3,3+4,3+4+4,"testPairCompatible3");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible3");
 	}
 
 	@Test
 	public final void testPairCompatible4()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid2,11,-1,
-				3,3+4,3+4+4,"testPairCompatible4");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible4");
 	}
 
 	@Test
 	public final void testPairCompatible5()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid3,-1,-1,
-				3,3+4,-1,"testPairCompatible5");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible5");
+					// the fact that there is a path of length 3 which is 
+					// incompatible may or may not cause ktails to choke, 
+					// depending on the order of traversal. At present, it does not.
 	}
 
 	@Test
 	public final void testPairCompatible6()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid4,-1,-1,
-				3,3+4,-1,"testPairCompatible6");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible6");
 	}
 
 	@Test
 	public final void testPairCompatible7()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid5,11,-1,
-				3,3+4,3+4+4,"testPairCompatible7");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible7");
 	}
 
 	@Test
 	public final void testPairCompatible2_1()
 	{
 		testScoreAndCompatibilityComputation(largeGraph2,5,2,
-				1,2,3,"testPairCompatibl2_1");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatibl2_1");
 	}
 
 	@Test
 	public final void testPairCompatible2_2()
 	{
 		testScoreAndCompatibilityComputation(largeGraph3,5,2,
-				1,2,3,"testPairCompatible2_2");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_2");
 	}
 
 	@Test
 	public final void testPairCompatible2_3()
 	{
 		testScoreAndCompatibilityComputation(largeGraph2_invalid1,5,-1,
-				1,2,3,"testPairCompatible2_3");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_3");
 	}
 
 	@Test
 	public final void testPairCompatible2_4()
 	{
 		testScoreAndCompatibilityComputation(largeGraph4_invalid1,5,-1,
-				1,2,3,"testPairCompatible2_4");
+				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_4");
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////

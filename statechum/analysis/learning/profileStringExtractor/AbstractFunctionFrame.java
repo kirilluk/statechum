@@ -23,6 +23,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 
+import statechum.Configuration;
 import statechum.analysis.learning.*;
 
 import javax.xml.parsers.*;
@@ -210,7 +211,9 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null, true,0);
+				Configuration config = Configuration.getDefaultConfiguration();
+				PickNegativesVisualiser.setSimpleConfiguration(config, true,0);
+				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null, config);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

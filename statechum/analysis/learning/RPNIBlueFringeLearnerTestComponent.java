@@ -21,6 +21,7 @@ package statechum.analysis.learning;
 import java.awt.Frame;
 import java.util.*;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 
@@ -32,8 +33,8 @@ import edu.uci.ics.jung.utils.*;
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 
-	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
-		super(parentFrame);
+	public RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c){
+		super(parent,c);
 	}
 	
 	
@@ -55,9 +56,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			List<List<String>> questions = new ArrayList<List<String>>();
 			doneEdges = new HashSet();
 			int score = computeScore(model, pair);
-			if(score<klimit)
-				continue;
-			if((score<this.certaintyThreshold&&score>=minCertaintyThreshold)&&askQuestions){
+			if(shouldAskQuestions(score)){
 				questions = generateQuestions(model, temp, pair);
 				// questions = trimSet(questions); // KIRR: unnecessary by construction of questions
 			}

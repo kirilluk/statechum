@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
@@ -142,7 +143,7 @@ public class PairScoreComputation {
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
 		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
-		if (coregraph.config.isUseCompatibilityScore())
+		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
 		}
@@ -246,7 +247,16 @@ public class PairScoreComputation {
 					if (nextRedState == origPair.getQ())
 					{
 						nextRedState = origPair.getR(); // emulates the new loop
-						redFromPta = !coregraph.config.isUseCompatibilityScore(); // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
+						redFromPta = coregraph.config.getLearnerScoreMode() != Configuration.ScoreMode.COMPATIBILITY; // and since the original score computation algorithm cannot do this, we pretend to be unable to do this either
+						// The problem is that since we effectively merge the
+						// states at this point, a loop introduced by merging
+						// adjacent states may suck many PTA states into it, 
+						// so that two transitions which would not normally be
+						// near each other will be merged. For this reason, it
+						// is possible that our score computation will deliver
+						// a higher value that the conventional matching 
+						// (where in the considered situation we'll be 
+						// matching PTA with itself and PTA may be sparse).
 					}
 
 					StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
@@ -265,7 +275,7 @@ public class PairScoreComputation {
 						assert nextRedState != origPair.getQ() : "inconsistent PTA";
 						
 						StatePair nextStatePair = new StatePair(blueEntry.getValue(),nextRedState);
-						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(!coregraph.config.isUseCompatibilityScore());// from now on, no increments to the score
+						currentExplorationBoundary.offer(nextStatePair);currentRedFromPta.offer(coregraph.config.getLearnerScoreMode() != Configuration.ScoreMode.COMPATIBILITY);// from now on, no increments to the score
 					}
 					else
 					{
@@ -303,32 +313,48 @@ public class PairScoreComputation {
 			return -1;
 
 		int score = 0;
-		
+		int currentExplorationDepth=1;
 		assert pair.getQ() != pair.getR();
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-		currentExplorationBoundary.add(pair);
+		currentExplorationBoundary.add(pair);currentExplorationBoundary.offer(null);
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair currentPair = currentExplorationBoundary.remove();
-			Map<String,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
-				targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
-
-			for(Entry<String,CmpVertex> redEntry:targetRed.entrySet())
+			if (currentPair == null)
+			{// we got to the end of a wave
+				if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
+						currentExplorationDepth >= coregraph.config.getKlimit())
+					break;// if we got to the end of a wave and the exploration depth matches the desired one, stop the loop.
+				else
+					if (currentExplorationBoundary.isEmpty())
+						break;// we are at the end of the last wave, stop looping.
+					else
+					{// mark the end of a wave.
+						currentExplorationBoundary.offer(null);currentExplorationDepth++;
+					}
+			}
+			else
 			{
-				CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
-				if (nextBlueState != null)
-				{// both states can make a transition
-					if (redEntry.getValue().isAccept() != nextBlueState.isAccept())
-						return -1;// incompatible states
-					
-					++score;
-
-					StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
-					currentExplorationBoundary.offer(nextStatePair);
+				Map<String,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
+					targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
+	
+				for(Entry<String,CmpVertex> redEntry:targetRed.entrySet())
+				{
+					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
+					if (nextBlueState != null)
+					{// both states can make a transition
+						if (redEntry.getValue().isAccept() != nextBlueState.isAccept())
+							return -1;// incompatible states
+						
+						++score;
+	
+						StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
+						currentExplorationBoundary.offer(nextStatePair);
+					}
+					// if the red can make a move, but the blue one cannot, ignore this case.
 				}
-				// if the red can make a move, but the blue one cannot, ignore this case.
 			}
 		}
 		

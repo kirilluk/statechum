@@ -48,13 +48,13 @@ import javax.swing.SwingUtilities;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.Configuration;
+import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -217,8 +217,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 					return fsm.paths.tracePath(question);
 				}
 			};
-			l.setCertaintyThreshold(3);
-			l.setMinCertaintyThreshold(0); //question threshold
+			config.setCertaintyThreshold(3);
+			config.setMinCertaintyThreshold(0); //question threshold
 			int number = size/10;
 			for(int percent=10;percent<101;percent=percent+10){
 				this.percent = percent;

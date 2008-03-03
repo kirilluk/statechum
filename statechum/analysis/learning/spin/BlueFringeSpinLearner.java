@@ -18,6 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.spin;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
@@ -50,8 +51,8 @@ public class BlueFringeSpinLearner extends
 
 	private Set<String> ltl;
 
-	public BlueFringeSpinLearner(Frame parent, Set<String> ltlFormulae) {
-		super(parent, Configuration.getDefaultConfiguration());
+	public BlueFringeSpinLearner(Frame parent, Set<String> ltlFormulae, Configuration conf) {
+		super(parent, conf);
 		ltl = ltlFormulae;
 	}
 
@@ -84,8 +85,6 @@ public class BlueFringeSpinLearner extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			if(score<klimit)
-				continue;
 			boolean restartLearning = false;// whether we need to rebuild a PTA
 											// and restart learning.
 
@@ -100,8 +99,7 @@ public class BlueFringeSpinLearner extends
 				++minusSize;
 				restartLearning = true;
 			}
-			if ((score < this.certaintyThreshold && score > minCertaintyThreshold)
-					&& !restartLearning && askQuestions) {
+			if (shouldAskQuestions(score) && !restartLearning) {
 				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;

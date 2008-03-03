@@ -35,7 +35,7 @@ package statechum.analysis.learning;
 import java.io.*;
 import java.util.*;
 
-import statechum.analysis.learning.oracles.*;
+import statechum.Configuration;
 
 public class QSMTool {
 	
@@ -62,12 +62,14 @@ public class QSMTool {
 		}
 		// new PickNegativesVisualiser(new
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
+		Configuration config = Configuration.getDefaultConfiguration();
+		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
 		if (!includeLTL)
 			new PickNegativesVisualiser()
-					.construct(sPlus, sMinus, null, active,k);
+					.construct(sPlus, sMinus, null, config);
 		else
 			new PickNegativesVisualiser().construct(sPlus, sMinus, ltl, null,
-					active,k);
+					config);
 	}
 
 	private static void process(String fileString, Set<List<String>> sPlus,

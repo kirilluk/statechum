@@ -29,11 +29,11 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.StatePair;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;

@@ -16,7 +16,7 @@
  * StateChum. If not, see <http://www.gnu.org/licenses/>.
  */ 
 
-package statechum.analysis.learning;
+package statechum;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,10 +29,15 @@ import java.util.Collection;
  */
 public class Configuration implements Cloneable
 {
+	/** Pairs with scores lower than this are not considered for merging. */
 	protected int generalisationThreshold=0;
+	
+	/** Limits the number of pairs returns from a method looking for pairs to merge. 
+	 * Zero inhibits the limitation. 
+	 */
 	protected int pairsMergedPerHypothesis=0;
 	
-	Configuration() {}
+	public Configuration() {}
 	
 	protected final static Configuration defaultConfig = new Configuration();
 	
@@ -48,16 +53,6 @@ public class Configuration implements Cloneable
 	 */
 	protected boolean bumpPositives = false;
 	
-	/** Classical score computation matches two nodes but does not look at parts of a PTA being 
-	 * traversed during the computation of those scores. In particular, if there is a transition
-	 * with some label a from a blue node and a transition with the same label leads from the
-	 * red node to blue one, classical score computation proceeds to the target states of these
-	 * two transitions and keeps matching, in effect comparing a PTA branch with itself which 
-	 * seems strange. This variable prevents score computation routine to enter the 
-	 * PTA branch which starts with the blue node.  
-	 */
-	protected boolean useCompatibilityScore = false;
-	
 	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY };
 
 	/** Some algorithms depend on the order in which elements of a graph are traversed;
@@ -69,6 +64,32 @@ public class Configuration implements Cloneable
 	 */
 	protected IDMode learnerIdMode = IDMode.NONE; // creation of new vertices is prohibited.
 
+	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS };
+	
+	/** The are a few ways in which one can compute scores associated to pairs of states,
+	 * using a conventional computation, using compatibility scores (during traversal of pairs,
+	 * ensures that the red state does not enter the PTA) and the k-tails traversal
+	 * (scores are only updated on paths from the blue state of length k and less).
+	 * Classical score computation matches two nodes but does not look at parts of a PTA being 
+	 * traversed during the computation of those scores. In particular, if there is a transition
+	 * with some label a from a blue node and a transition with the same label leads from the
+	 * red node to blue one, classical score computation proceeds to the target states of these
+	 * two transitions and keeps matching, in effect comparing a PTA branch with itself which 
+	 * seems strange. This variable prevents score computation routine to enter the 
+	 * PTA branch which starts with the blue node.  
+	 */
+	protected ScoreMode learnerScoreMode = ScoreMode.CONVENTIONAL;
+	
+	public void setLearnerScoreMode(ScoreMode mode)
+	{
+		learnerScoreMode = mode;
+	}
+	
+	public ScoreMode getLearnerScoreMode()
+	{
+		return learnerScoreMode;
+	}
+	
 	public void setLearnerIdMode(IDMode m)
 	{
 		learnerIdMode = m;
@@ -101,14 +122,6 @@ public class Configuration implements Cloneable
 
 	public void setBumpPositives(boolean bumpPositivesArg) {
 		this.bumpPositives = bumpPositivesArg;
-	}
-
-	public boolean isUseCompatibilityScore() {
-		return useCompatibilityScore;
-	}
-
-	public void setUseCompatibilityScore(boolean useCompatibilityScoreArg) {
-		this.useCompatibilityScore = useCompatibilityScoreArg;
 	}
 
 	@Override
@@ -176,10 +189,16 @@ public class Configuration implements Cloneable
 		result = prime * result + (bumpPositives ? 1231 : 1237);
 		result = prime * result + generalisationThreshold;
 		result = prime * result + ((learnerIdMode == null) ? 0 : learnerIdMode.hashCode());
+		result = prime * result + ((learnerScoreMode == null)?0: learnerScoreMode.hashCode());
 		result = prime * result + pairsMergedPerHypothesis;
-		result = prime * result + (useCompatibilityScore ? 1231 : 1237);
 		result = prime * result + (allowedToCloneNonCmpVertex? 1231 : 1237);
 		result = prime * result + defaultInitialPTAName.hashCode();
+		result = prime * result + (debugMode? 1231 : 1237);
+		result = prime * result + certaintyThreshold;
+		result = prime * result + minCertaintyThreshold;
+		result = prime * result + klimit;
+		result = prime * result + (askQuestions? 1231 : 1237);
+
 		return result;
 	}
 
@@ -208,14 +227,28 @@ public class Configuration implements Cloneable
 				return false;
 		} else if (!learnerIdMode.equals(other.learnerIdMode))
 			return false;
-		if (pairsMergedPerHypothesis != other.pairsMergedPerHypothesis)
+		if (learnerScoreMode == null) {
+			if (other.learnerScoreMode != null)
+				return false;
+		} else if (!learnerScoreMode.equals(other.learnerScoreMode))
 			return false;
-		if (useCompatibilityScore != other.useCompatibilityScore)
+		if (pairsMergedPerHypothesis != other.pairsMergedPerHypothesis)
 			return false;
 		if (allowedToCloneNonCmpVertex != other.allowedToCloneNonCmpVertex)
 			return false;
 		if (!defaultInitialPTAName.equals(other.defaultInitialPTAName))
 			return false;
+		if (debugMode != other.debugMode)
+			return false;
+		if (certaintyThreshold != other.certaintyThreshold)
+			return false;
+		if (minCertaintyThreshold != other.minCertaintyThreshold)
+			return false;
+		if (klimit != other.klimit)
+			return false;
+		if (askQuestions != other.askQuestions)
+			return false;
+		
 		return true;
 	}
 
@@ -237,5 +270,79 @@ public class Configuration implements Cloneable
 	public void setAllowedToCloneNonCmpVertex(boolean allowed)
 	{
 		allowedToCloneNonCmpVertex = allowed;
+	}
+
+	/** Used to pop up auxiliary information when under test. */
+	protected boolean debugMode;
+	
+	public void setDebugMode(boolean debug) {
+		this.debugMode = debug;
+	}
+
+	public boolean getDebugMode()
+	{
+		return debugMode;
+	}
+	
+	/** Pairs with very high scores should perhaps be merged anyway.
+	 * For this reason, we do not ask questions if we get a score at least that high.
+	 * Negative number inhibits the check.
+	 */ 
+	protected int certaintyThreshold = -1;
+	
+	public void setCertaintyThreshold(int threshold) 
+	{
+		certaintyThreshold = threshold;
+	}
+
+	public int getCertaintyThreshold()
+	{
+		return certaintyThreshold;
+	}
+
+	/** Pairs with scores of zero or just over tend to remain at the end, 
+	 * generating loads of questions.
+	 * One way to avoid them is to silently merge those states. If a score
+	 * is less than the number below, the corresponding pair will be 
+	 * silently merged.
+	 */ 
+	protected int minCertaintyThreshold = -1;
+	
+	public void setMinCertaintyThreshold(int minThreshold) {
+		this.minCertaintyThreshold = minThreshold;
+	}
+
+	public int getMinCertaintyThreshold() {
+		return minCertaintyThreshold;
+	}
+
+	/** When doing k-tail merging, this number determines how far we go when computing
+	 * a positive/zero number. Negatives are always computed by a full traversal - 
+	 * without this, we'll be attempting to merge incompatible vertices.
+	 * The lowest number is 1 which corresponds to looking just one transition ahead
+	 * from the red-blue state pair. 
+	 */
+	protected int klimit;
+	
+	public int getKlimit() 
+	{
+		return klimit;
+	}
+
+	public void setKlimit(int limit) {
+		klimit = limit;
+	}
+
+	/** Whether we should try auto-answer questions no matter what or ask a user. */
+	protected boolean askQuestions = true;
+
+	public void setAskQuestions(boolean ask)
+	{
+		askQuestions = ask;
+	}
+	
+	public boolean getAskQuestions()
+	{
+		return askQuestions;
 	}
 }

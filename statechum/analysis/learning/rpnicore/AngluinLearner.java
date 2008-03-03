@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Set;
 
+import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Configuration;
 
 public class AngluinLearner extends Observable {
 	public static final CmpVertex rejectState = new StringVertex("REJECT");

@@ -43,9 +43,9 @@ import java.util.concurrent.Future;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.io.GraphMLFile;
-import statechum.analysis.learning.Configuration;
+import statechum.Configuration;
+import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.xmachine.model.testset.*;

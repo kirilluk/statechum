@@ -43,6 +43,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.ArrayOperations;
+import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -60,7 +61,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	}
 	
 	public TestGraphBasicAlgorithms(Configuration conf) {
-		super(null);mainConfiguration = conf;
+		super(null,conf);mainConfiguration = conf;
 	}
 
 	@Before

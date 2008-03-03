@@ -30,9 +30,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.StringVertex;
-import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;

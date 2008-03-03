@@ -30,12 +30,14 @@ import org.junit.Test;
 import org.junit.BeforeClass;
 
 import statechum.ArrayOperations;
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.StringVertex;
+import statechum.Configuration.IDMode;
+import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -201,6 +203,11 @@ public class TestFSMAlgo {
 						{
 							valueA = IDMode.POSITIVE_NEGATIVE;valueB=IDMode.POSITIVE_ONLY;
 						}
+						else
+							if (var.getType().equals(ScoreMode.class))
+							{
+								valueA = ScoreMode.KTAILS;valueB=ScoreMode.COMPATIBILITY;
+							}
 						else
 							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
 							{

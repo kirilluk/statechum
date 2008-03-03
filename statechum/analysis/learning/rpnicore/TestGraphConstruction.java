@@ -37,12 +37,12 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.Visualiser;

@@ -31,14 +31,14 @@ import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.StringVertex;
+import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Vertex;

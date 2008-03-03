@@ -19,11 +19,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning;
 
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 import javax.swing.*;
 import edu.uci.ics.jung.graph.*;
@@ -31,10 +26,7 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
-import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.*;
-import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
-import statechum.analysis.learning.oracles.*;
 import statechum.analysis.learning.spin.*;
 
 public class PickNegativesVisualiser extends Visualiser{
@@ -71,6 +63,17 @@ public class PickNegativesVisualiser extends Visualiser{
 	public interface ThreadStartedInterface {
 		public void threadStarted();
 	}
+
+	public static void setSimpleConfiguration(Configuration config,final boolean active, final int k)
+	{
+		if(!active){
+			config.setKlimit(k);
+			config.setAskQuestions(false); //Needs nicer solution, currently simply sets minumum threshold too high
+		}
+		else
+			config.setKlimit(-1);
+		config.setDebugMode(true);
+	}
 	
 	/** Starts the learning thread with the supplied sets of positive and negative examples.
 	 * 
@@ -78,32 +81,25 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final boolean active, final int k)
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final Configuration config)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
 			public void run()
 			{
-					if (split != null) {
-		        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this);
-		        		
-		        		//l.setPairsMergedPerHypothesis(2);
-		        		
-		        	}
-		        	else
-		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, Configuration.getDefaultConfiguration());
-		        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
-		        	if(!active){
-		        		l.setKlimit(k);
-		        		l.setAskQuestions(false); 
-		        	}
-		        	else
-		        		l.setKlimit(-1);
-		        	l.setDebugMode(true);
-		        	l.addObserver(PickNegativesVisualiser.this);
-		        	l.setAnswers(ans);
-		        	if (whomToNotify != null) whomToNotify.threadStarted();
-	        		l.learnMachine(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);
+				if (split != null) {
+	        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
+	        		
+	        		//l.setPairsMergedPerHypothesis(2);
+	        		
+	        	}
+	        	else
+	        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, config);
+	        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
+	        	l.addObserver(PickNegativesVisualiser.this);
+	        	l.setAnswers(ans);
+	        	if (whomToNotify != null) whomToNotify.threadStarted();
+        		l.learnMachine(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();
@@ -116,21 +112,14 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final boolean active, final int k)
+	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final Configuration config)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
 			public void run()
 			{
-				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae);
+				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae,config);
 				
-				if(!active){
-					l.setKlimit(k);
-					l.setAskQuestions(false); //Needs nicer solution, currently simply sets minumum threshold too high
-				}
-				else
-					l.setKlimit(-1);
-				l.setDebugMode(true);
 	        	l.addObserver(PickNegativesVisualiser.this);
 	        	l.setAnswers(ans);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
@@ -164,10 +153,12 @@ public class PickNegativesVisualiser extends Visualiser{
 				{
 					learnerThread.join();
 					sMinus.add(negatives);
+					Configuration config = Configuration.getDefaultConfiguration();
 					boolean active = true;
-					if(l.getMinCertaintyThreshold()>200000)
+					if(l.getConfig().getMinCertaintyThreshold()>200000)
 						active = false;
-					construct(sPlus, sMinus, this, active,l.getMinCertaintyThreshold());
+					setSimpleConfiguration(config, active, l.getConfig().getMinCertaintyThreshold());
+					construct(sPlus, sMinus, this, l.getConfig());
 					synchronized (this) {
 						while(!learnerStarted)
 							wait();// here we wait for the learner thread to start - if we do not wait for this, 
@@ -194,15 +185,11 @@ public class PickNegativesVisualiser extends Visualiser{
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
-		else {
-			final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
-			l.terminateLearner();
-			// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
-			// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
-			new Thread(new LearnerRestarter(negatives),"learner restarter").start();
-		}
-		
-		
+		final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
+		l.terminateLearner();
+		// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
+		// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
+		new Thread(new LearnerRestarter(negatives),"learner restarter").start();
 	}
 	
 	private List<String> pickNegativeStrings(Edge selected){

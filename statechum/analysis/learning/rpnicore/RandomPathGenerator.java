@@ -26,10 +26,10 @@ import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 
 import java.util.*;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.xmachine.model.testset.*;
 

@@ -36,6 +36,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.StringWriter;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -48,11 +49,10 @@ import edu.uci.ics.jung.utils.UserData;
 
 public class RPNIBlueFringeLearnerTestComponentOpt extends
 		RPNIBlueFringeLearnerTestComponent {
-	final protected Configuration conf;
 	
 	public RPNIBlueFringeLearnerTestComponentOpt(Frame parent, Configuration c) {
-		super(parent);conf=c;
-		scoreComputer = new LearnerGraph(conf);
+		super(parent,c);
+		scoreComputer = new LearnerGraph(c);
 	}
 	
 	protected void update(StatePair pair)
@@ -183,9 +183,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			if(score<=klimit)
-				continue;
-			if((score <this.certaintyThreshold&&score>=minCertaintyThreshold) && askQuestions)
+
+			if(shouldAskQuestions(score))
 			{
 				questions = ComputeQuestions.computeQS(pair, scoreComputer,temp);
 				if (questions.isEmpty())

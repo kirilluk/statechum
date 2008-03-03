@@ -31,9 +31,9 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -44,17 +44,35 @@ public class RPNIBlueFringeLearner extends Observable {
 	protected Graph currentGraph = DeterministicDirectedSparseGraph.initialise();
 	protected HashSet doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
-	protected int pairsMergedPerHypothesis, certaintyThreshold=100000, 
-		minCertaintyThreshold = 0, klimit=0;
 	protected int questionCounter = 0;
-	protected boolean askQuestions = true;
 	
-	public void setAskQuestions(boolean askQuestions){
-		this.askQuestions = askQuestions;
-		if(askQuestions)
-			klimit = -1;
+	protected final Configuration config;
+	
+	/** Retrieves the configuration used by this learner. */
+	public Configuration getConfig()
+	{
+		return config;
 	}
 	
+	/** Given a score, we need to determine whether to ask questions. This depends on a number
+	 * of configuration parameters.
+	 * 
+	 * @param score score we are looking at
+	 * @return whether any questions should be asked or we could just proceed with merging.
+	 */ 
+	protected boolean shouldAskQuestions(int score)
+	{
+		if (!config.getAskQuestions())
+			return false;
+		
+		if (config.getCertaintyThreshold() >= 0 && score > config.getCertaintyThreshold())
+			return false;
+		
+		if (score < config.getMinCertaintyThreshold())
+			return false;
+		
+		return true;
+	}
 	
 	public static Collection<String> getAlphabetForEdges(Collection<Edge> edges){
 		HashSet<String> alphabet = new HashSet<String>();
@@ -108,9 +126,9 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	protected Frame parentFrame;
 
-	public RPNIBlueFringeLearner(Frame parentFrame){
-		this.pairsMergedPerHypothesis = 0;
-		this.parentFrame = parentFrame;
+	public RPNIBlueFringeLearner(Frame parent, Configuration c){
+		config = c;
+		this.parentFrame = parent;
 	}
 	
 	/** Takes all red-labelled nodes; non-red nodes which can be reached by a single transition from any 
@@ -245,7 +263,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				setChanged();
 				List<List<String>> questions;
-				if(askQuestions)
+				if(config.getAskQuestions())
 					questions = generateQuestions(model, pair);
 				else
 					questions = new ArrayList<List<String>>();
@@ -800,7 +818,7 @@ public class RPNIBlueFringeLearner extends Observable {
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){
 					// singleSet maps scores to pairs which have those scores
-					if(score<klimit)
+					if(score<config.getKlimit())
 						continue;
 					if(singleSet.get(score) == null){
 						// nothing yet with this score
@@ -845,10 +863,10 @@ public class RPNIBlueFringeLearner extends Observable {
 	
 	protected Stack<OrigStatePair> createOrderedStack(TreeMap<Integer,Vector<OrigStatePair> > sets){
 		Stack<OrigStatePair> values = new Stack<OrigStatePair>();
-		if(this.pairsMergedPerHypothesis>0){
+		if(config.getPairsMergedPerHypothesis()>0){
 			Stack<Integer> keys = new Stack<Integer>();
 			keys.addAll(sets.keySet());
-			for(int i = 0;i< this.pairsMergedPerHypothesis; i++){
+			for(int i = 0;i< config.getPairsMergedPerHypothesis(); i++){
 				if(keys.isEmpty())
 					continue;
 				Vector<OrigStatePair> pairs = sets.get(keys.pop());
@@ -996,10 +1014,6 @@ public class RPNIBlueFringeLearner extends Observable {
 		return null;
 	}
 
-	public void setPairsMergedPerHypothesis(int pairsMergedPerHypothesis) {
-		this.pairsMergedPerHypothesis = pairsMergedPerHypothesis;
-	}
-
 	public int getQuestionCounter() {
 		return questionCounter;
 	}
@@ -1007,31 +1021,4 @@ public class RPNIBlueFringeLearner extends Observable {
 	public void setQuestionCounter(int questionCounter) {
 		this.questionCounter = questionCounter;
 	}
-
-	public void setCertaintyThreshold(int certaintyThreshold) {
-		this.certaintyThreshold = certaintyThreshold;
-	}
-
-	public void setDebugMode(boolean debugMode) {
-		this.debugMode = debugMode;
-	}
-
-	public void setMinCertaintyThreshold(int minCertaintyThreshold) {
-		this.minCertaintyThreshold = minCertaintyThreshold;
-	}
-
-	public int getMinCertaintyThreshold() {
-		return minCertaintyThreshold;
-	}
-
-
-	public int getKlimit() {
-		return klimit;
-	}
-
-
-	public void setKlimit(int klimit) {
-		this.klimit = klimit;
-	}
-
 }

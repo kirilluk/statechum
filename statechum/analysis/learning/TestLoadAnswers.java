@@ -22,17 +22,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
 
-import junit.framework.JUnit4TestAdapter;
-
 import org.junit.Assert;
 import org.junit.Test;
 
-import statechum.analysis.learning.oracles.*;
-import statechum.xmachine.model.testset.TestWMethod;
-
 public class TestLoadAnswers {
 	@Test
-	public void testLoadAnswers1() throws IOException
+	public void testLoadAnswers1()
 	{
 		StoredAnswers sa = new StoredAnswers();
 		Assert.assertEquals(0,sa.getCount());

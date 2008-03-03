@@ -44,12 +44,12 @@ import java.util.concurrent.Future;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.Configuration;
+import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.Configuration.IDMode;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.xmachine.model.testset.*;
@@ -259,7 +259,7 @@ public class AccuracyAndQuestionsExperiment {
 				}
 			};
 			//l.setCertaintyThreshold(10);
-			l.setMinCertaintyThreshold(500000); //question threshold
+			config.setMinCertaintyThreshold(500000); //question threshold
 			DirectedSparseGraph learningOutcome = null;
 			String result = "";
 			String stats = "Instance: "+instanceID+", learner: "+this+", sPlus: "+sPlus.size()+" sMinus: "+sMinus.size()+" tests: "+tests.size()+ "\n";

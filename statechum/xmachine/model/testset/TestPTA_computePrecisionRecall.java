@@ -23,7 +23,7 @@ import java.util.Arrays;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.analysis.learning.Configuration;
+import statechum.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;

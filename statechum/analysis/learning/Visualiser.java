@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.uci.ics.jung.visualization.*;
@@ -37,6 +38,7 @@ import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
@@ -81,6 +83,15 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	protected VisualizationViewer viewer = null;
 
+	/** We'd like to store a number of graphs and switch between them, but 
+	 * knowing the name (i.e. the layout) is not enough - we need to store
+	 * graphs themselves, which is accomplished using this map.
+	 */
+	protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
+
+	/** Current position in the above list. */
+	protected int currentGraph;
+	
 	/**
 	 * The name under which to store window information. The default value is
 	 * null which inhibits saving of a layout.
@@ -108,6 +119,155 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		propName = null;
 	}
 
+	/** Key bindings. */
+	Map<Integer,Action> keyToActionMap = new TreeMap<Integer, Action>();
+	
+	/** Actions to switch to picking/transform mode. */
+	Action pickAction, transformAction;
+	
+	
+	
+	/** A kind action used by this interface. */
+	public abstract class graphAction extends AbstractAction
+	{
+		public graphAction() {}
+		public graphAction(String name, String description)
+		{
+			super(name);putValue(SHORT_DESCRIPTION, description);
+		}
+	}
+	
+	protected void setKeyBindings()
+	{
+		keyToActionMap.put(KeyEvent.VK_F2, new graphAction("saveLayout", "save the layout of the visible graph") {
+			/** Serial number. */
+			private static final long serialVersionUID = 1L;
+
+			public void actionPerformed(ActionEvent e) {
+		        try {
+		        	if (propName != null)
+		        	{
+		            	String fileName = getLayoutFileName(graphs.get(currentGraph));
+		                XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
+		        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist(encoder);
+		        		
+		        		XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
+		        		trV.setFromAffineTransform(viewer.getViewTransformer().getTransform());encoder.writeObject(trV);
+		        		XMLAffineTransformSerialised trL = new XMLAffineTransformSerialised();
+		        		trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());encoder.writeObject(trL);
+		        		((XMLModalGraphMouse)viewer.getGraphMouse()).store(encoder);
+		                encoder.close();
+		        	}
+		        } catch (Exception e1) {
+		            e1.printStackTrace();
+		        }		
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_F3, new graphAction("loadLayout", "loads the previously saved layout the visible graph") {
+			/** Serial number. */
+			private static final long serialVersionUID = 2L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+		    		reloadLayout(false);
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_F9, new graphAction("loadPreviousLayout", "loads the layout of the previous graph in the list") {
+			/** Serial number. */
+			private static final long serialVersionUID = 3L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				if (currentGraph > 0)
+					restoreLayout(false,currentGraph-1);
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_F4, new graphAction("saveWindows", "save the current position/size of graph windows") {
+			/** Serial number. */
+			private static final long serialVersionUID = 4L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				saveFrame(Visualiser.this, propName);
+				saveConfiguration();
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
+			/** Serial number. */
+			private static final long serialVersionUID = 5L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				setVisible(false);dispose();
+				Visualiser.syncValue.set(true);
+				synchronized (Visualiser.syncObject) {
+					Visualiser.syncObject.notify();
+				}
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
+			/** Serial number. */
+			private static final long serialVersionUID = 6L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				Visualiser.syncValue.set(false);
+				synchronized (Visualiser.syncObject) {
+					Visualiser.syncObject.notify();
+				}
+			}
+		});
+
+		pickAction = new graphAction("pick", "Switches Jung into picking mode") {
+			/** Serial number. */
+			private static final long serialVersionUID = 7L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.PICKING);
+			}
+		};
+		keyToActionMap.put(KeyEvent.VK_F11,pickAction); 
+		
+		transformAction = new graphAction("transform", "Switches Jung into transformation mode") {
+			/** Serial number. */
+			private static final long serialVersionUID = 8L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.TRANSFORMING);
+			}
+		};
+		keyToActionMap.put(KeyEvent.VK_F12,transformAction); 
+
+		keyToActionMap.put(KeyEvent.VK_UP, new graphAction("previous", "loads the previous graph") {
+			/** Serial number. */
+			private static final long serialVersionUID = 9L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				if (currentGraph > 0)
+				{
+					--currentGraph;
+					reloadLayout(false);
+				}
+			}
+		});
+		keyToActionMap.put(KeyEvent.VK_DOWN, new graphAction("next", "loads the next graph") {
+			/** Serial number. */
+			private static final long serialVersionUID = 10L;
+
+			public void actionPerformed(ActionEvent e) 
+			{
+				if (currentGraph < graphs.size()-1)
+				{
+					++currentGraph;
+					reloadLayout(false);
+				}
+			}
+		});
+	}
+	
 	protected void construct(Graph g) {
 		boolean assertsEnabled = false;
 		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
@@ -118,41 +278,17 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		this.addKeyListener(new KeyListener() {
 
 			public void keyPressed(KeyEvent arg0) {
-				switch (arg0.getKeyCode()) {
-				case KeyEvent.VK_F2:// save the current layout
-					storeLayout();
-					break;
-				case KeyEvent.VK_F3:// load a layout
-					reloadLayout(false);
-					break;
-				case KeyEvent.VK_F4:// save the current window position
-					saveFrame(Visualiser.this, propName);
-					saveConfiguration();
-					break;
-				}
+				Action act = keyToActionMap.get(arg0.getKeyCode());
+				if (act != null)
+					act.actionPerformed(null);
 			}
 
-			public void keyReleased(KeyEvent arg0) {
+			public void keyReleased(KeyEvent arg0) 
+			{
 			}
 
 			public void keyTyped(KeyEvent key) 
 			{
-				switch(key.getKeyChar())
-				{
-					case KeyEvent.VK_ESCAPE:// terminate
-						setVisible(false);dispose();
-						Visualiser.syncValue.set(true);
-						synchronized (Visualiser.syncObject) {
-							Visualiser.syncObject.notify();
-						}
-						break;
-					case KeyEvent.VK_SPACE:// single-step
-						Visualiser.syncValue.set(false);
-						synchronized (Visualiser.syncObject) {
-							Visualiser.syncObject.notify();
-						}
-						break;
-				}
 			}
 			
 		});
@@ -170,12 +306,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         popupMenu = new JPopupMenu();
         JMenuItem item = new JMenuItem("pick");item.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.PICKING);
+				pickAction.actionPerformed(e);
 			}
         });popupMenu.add(item);
         item = new JMenuItem("transform");item.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
-				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.TRANSFORMING);
+				transformAction.actionPerformed(e);
 			}
         });popupMenu.add(item);
         
@@ -183,10 +319,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 		// Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
 		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+System.getProperty("file.separator")+"icon.jpg");if (icon != null)	setIconImage(icon);
-		
+
+		setKeyBindings();
 		//getContentPane().removeAll();
 		getContentPane().add(panel);pack();
-		restoreLayout(true);loadFrame(this, propName);
+		restoreLayout(true,currentGraph);loadFrame(this, propName);
         setVisible(true);
 	}
 
@@ -212,34 +349,42 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			encoder.writeObject( ((ScalingGraphMousePlugin)scalingPlugin).getOut());
 		}
 	}
-	
-	
+		
 	/** Loads or reloads a graph. Used during initialisation on the Swing thread, when graph changes or user hits F3 (reload).
 	 * 
 	 * @param ignoreErrors Whether to ignore loading errors - they are ignored on auto-load, but honoured on user load.
 	 */
 	protected void reloadLayout(boolean ignoreErrors)
 	{
+		/** The graph currently being displayed. */
+		final Graph graph = graphs.get(currentGraph);
+		
 		assert graph != null;
+		String title = (String)graph.getUserDatum(JUConstants.TITLE)+" ("+(currentGraph+1)+"/"+graphs.size()+")"; 
 		if (!wasInitialised)
 		{
 			construct(graph);
-			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
+			setTitle(title);
 			wasInitialised = true;
 		}
 		else
 		{
 			viewer.getModel().setGraphLayout( new XMLPersistingLayout(propName != null? new FRLayout(graph):new KKLayout(graph)) );
-			setTitle((String)graph.getUserDatum(JUConstants.TITLE));
-			restoreLayout(ignoreErrors);
+			setTitle(title);
+			restoreLayout(ignoreErrors,currentGraph);
 			viewer.setRenderer(constructRenderer(graph));
 		}
 	}
 	
-	protected void restoreLayout(boolean ignoreErrors)
+	/** Loads the layout of the specific graph in the list.
+	 * 
+	 *  @param whether to ignore loading errors.
+	 *  @param graphNumber the number of the graph to load.
+	 */
+	protected void restoreLayout(boolean ignoreErrors, int graphNumber)
 	{
         try {
-        	String fileName = getLayoutFileName(graph);
+        	String fileName = getLayoutFileName(graphs.get(graphNumber));
         	if (propName != null && (new File(fileName)).canRead())
         	{
     	    	XMLDecoder decoder = new XMLDecoder (new FileInputStream(fileName));
@@ -334,28 +479,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			tr.getMatrix(matrix);
 		}
 	}
-	
-	protected void storeLayout()
-	{
-        try {
-        	if (propName != null)
-        	{
-            	String fileName = getLayoutFileName(graph);
-                XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
-        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist(encoder);
-        		
-        		XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
-        		trV.setFromAffineTransform(viewer.getViewTransformer().getTransform());encoder.writeObject(trV);
-        		XMLAffineTransformSerialised trL = new XMLAffineTransformSerialised();
-        		trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());encoder.writeObject(trL);
-        		((XMLModalGraphMouse)viewer.getGraphMouse()).store(encoder);
-                encoder.close();
-        	}
-        } catch (Exception e1) {
-            e1.printStackTrace();
-        }		
-	}
-	
+		
 	protected static PluggableRenderer constructRenderer(Graph g)
 	{
 		PluggableRenderer r = new PluggableRenderer();
@@ -368,17 +492,15 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 * all classes responsible for it; once it is build and only our 
 	 * graph changed, it is enough to replace the layout to update the graph. */
 	protected boolean wasInitialised = false;
-	
-	/** The graph currently being displayed, null if none is being displayed. */
-	protected Graph graph = null;
-	
+		
 	public void run()
 	{
-			reloadLayout(true);
+		reloadLayout(true);
 	}
 
 	public void update(final Observable s, Object arg){
-		graph = (Graph)((Graph)arg).copy();
+		graphs.add( (DirectedSparseGraph)((DirectedSparseGraph)arg).copy() );
+		currentGraph = graphs.size()-1;
 		SwingUtilities.invokeLater(this);
 	}
 

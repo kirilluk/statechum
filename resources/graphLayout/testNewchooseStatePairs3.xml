@@ -2,35 +2,35 @@
 <java version="1.5.0_10" class="java.beans.XMLDecoder"> 
  <object class="java.util.HashMap"> 
   <void method="put"> 
-   <int>73</int> 
-   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
-    <void property="x"> 
-     <double>237.11399841308594</double> 
-    </void> 
-    <void property="y"> 
-     <double>599.2328491210938</double> 
-    </void> 
-   </object> 
-  </void> 
-  <void method="put"> 
    <int>2095</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>254.80645751953125</double> 
+     <double>388.4939880371094</double> 
     </void> 
     <void property="y"> 
-     <double>333.6770935058594</double> 
+     <double>446.783447265625</double> 
     </void> 
    </object> 
   </void> 
   <void method="put"> 
-   <int>2098</int> 
+   <int>2065</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>119.91112518310547</double> 
+     <double>397.0660400390625</double> 
     </void> 
     <void property="y"> 
-     <double>146.73147583007812</double> 
+     <double>291.66253662109375</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-2511515</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>492.4752197265625</double> 
+    </void> 
+    <void property="y"> 
+     <double>505.644775390625</double> 
     </void> 
    </object> 
   </void> 
@@ -38,10 +38,21 @@
    <int>65</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>211.38418579101562</double> 
+     <double>275.2247619628906</double> 
     </void> 
     <void property="y"> 
-     <double>476.20233154296875</double> 
+     <double>429.41705322265625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-2511516</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>490.4803466796875</double> 
+    </void> 
+    <void property="y"> 
+     <double>417.1134033203125</double> 
     </void> 
    </object> 
   </void> 
@@ -49,21 +60,21 @@
    <int>2096</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>303.2179870605469</double> 
+     <double>127.27285766601562</double> 
     </void> 
     <void property="y"> 
-     <double>224.18145751953125</double> 
+     <double>278.3214416503906</double> 
     </void> 
    </object> 
   </void> 
   <void method="put"> 
-   <int>66</int> 
+   <int>2064</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>261.6404724121094</double> 
+     <double>288.248779296875</double> 
     </void> 
     <void property="y"> 
-     <double>476.210205078125</double> 
+     <double>294.98114013671875</double> 
     </void> 
    </object> 
   </void> 
@@ -71,10 +82,10 @@
    <int>2097</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>184.3460235595703</double> 
+     <double>529.7363891601562</double> 
     </void> 
     <void property="y"> 
-     <double>243.6723175048828</double> 
+     <double>286.00469970703125</double> 
     </void> 
    </object> 
   </void> 
@@ -95,22 +106,13 @@
   <void property="m"> 
    <array class="double" length="6"> 
     <void index="0"> 
-     <double>0.006288238020997879</double> 
-    </void> 
-    <void index="1"> 
-     <double>1.0000809950854992</double> 
-    </void> 
-    <void index="2"> 
-     <double>-1.0001520860402848</double> 
+     <double>1.0</double> 
     </void> 
     <void index="3"> 
-     <double>-0.012254498918219087</double> 
-    </void> 
-    <void index="4"> 
-     <double>767.1329380208715</double> 
+     <double>1.0</double> 
     </void> 
     <void index="5"> 
-     <double>170.56594445767047</double> 
+     <double>40.0</double> 
     </void> 
    </array> 
   </void> 

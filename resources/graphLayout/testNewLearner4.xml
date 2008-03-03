@@ -46,13 +46,24 @@
    </object> 
   </void> 
   <void method="put"> 
-   <int>2096</int> 
+   <int>-2066</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 
-     <double>303.2179870605469</double> 
+     <double>6.439347743988037</double> 
     </void> 
     <void property="y"> 
-     <double>224.18145751953125</double> 
+     <double>476.2635498046875</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>2064</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>125.57484436035156</double> 
+    </void> 
+    <void property="y"> 
+     <double>474.5047607421875</double> 
     </void> 
    </object> 
   </void> 
@@ -64,6 +75,17 @@
     </void> 
     <void property="y"> 
      <double>476.210205078125</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-2097</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>335.5601501464844</double> 
+    </void> 
+    <void property="y"> 
+     <double>234.32675170898438</double> 
     </void> 
    </object> 
   </void> 

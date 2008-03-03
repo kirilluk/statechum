@@ -200,6 +200,17 @@
    </object> 
   </void> 
   <void method="put"> 
+   <int>-2067</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>22.965152740478516</double> 
+    </void> 
+    <void property="y"> 
+     <double>388.7132873535156</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
    <int>65166</int> 
    <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
     <void property="x"> 

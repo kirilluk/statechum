@@ -43,18 +43,6 @@ public class RPNIBlueFringeSootLearner extends
 		super(parent,Configuration.getDefaultConfiguration());
 	}
 	
-	private String getFromMethod(int i, List<String> question){
-		List<String> l = new ArrayList<String>();
-		l.addAll(question.subList(0, i));
-		i--;
-		String prev = l.get(i);
-		while(prev.equals("ret")){
-			i--;
-			prev = question.get(i);
-		}
-		return prev;
-	}
-	
 	public DirectedSparseGraph learnMachine() {
 		SootCallGraphOracle oracle = (SootCallGraphOracle)ans;
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
@@ -67,7 +55,7 @@ public class RPNIBlueFringeSootLearner extends
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
-		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
+		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
@@ -156,15 +144,5 @@ public class RPNIBlueFringeSootLearner extends
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		updateGraph(result);
 		return result;
-	}
-	
-	private Collection<List<String>> removeNegatives(Collection<List<String>> questions, LearnerGraph temp){
-		Collection<List<String>> filteredQuestions = new HashSet<List<String>>();
-		for (List<String> list : questions) {
-			CmpVertex v = temp.getVertex(list);
-			if(v.isAccept())
-				filteredQuestions.add(list);
-		}
-		return filteredQuestions;
 	}
 }

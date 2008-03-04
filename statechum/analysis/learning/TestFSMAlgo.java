@@ -38,7 +38,7 @@ import statechum.Configuration.IDMode;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.RPNIBlueFringeLearner.OrigStatePair;
+import statechum.analysis.learning.RPNIBlueFringeLearnerOrig.OrigStatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;

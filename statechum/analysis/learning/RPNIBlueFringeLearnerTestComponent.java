@@ -30,14 +30,12 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.utils.*;
 
-public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
+public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOrig {
 	
 
 	public RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c){
 		super(parent,c);
 	}
-	
-	
 	
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) 	{
 		this.sPlus = sPlus;
@@ -179,7 +177,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 			Vertex v = getVertex(model, pathToPoint);
 			if(v == null)
 				questions.add(pathToPoint);
-			else if(DeterministicDirectedSparseGraph.different(new OrigStatePair(v, tempV)))
+			else if(RPNIBlueFringeLearnerOrig.different(new OrigStatePair(v, tempV)))
 				questions.add(pathToPoint);
 			
 		}

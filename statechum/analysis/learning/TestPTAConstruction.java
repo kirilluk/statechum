@@ -39,7 +39,7 @@ public class TestPTAConstruction
 	public void testAugmentPTA() // only two traces, both accept
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
-		DirectedSparseGraph actualA = new RPNIBlueFringeLearner(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
+		DirectedSparseGraph actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
 		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
 		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
@@ -59,7 +59,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearner(null,Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
+			actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -73,7 +73,7 @@ public class TestPTAConstruction
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.getScoreComputer().paths.getGraph();
+			actualC = l.scoreComputer.paths.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -101,8 +101,9 @@ public class TestPTAConstruction
 		Assert.assertEquals(0, actualC.getEdges().size());
 	}
 	
+	/** An empty accept trace. */
 	@Test
-	public void testPTAconstruction1a()// an empty accept trace
+	public void testPTAconstruction1a()
 	{
 		checkEmptyPTA(
 				new String[][] { new String[]{}},
@@ -110,8 +111,9 @@ public class TestPTAConstruction
 			);
 	}
 
+	/** An empty reject trace. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction1b()// an empty reject trace
+	public void testPTAconstruction1b()
 	{
 		checkEmptyPTA(
 				new String[][] { },
@@ -119,8 +121,9 @@ public class TestPTAConstruction
 			);
 	}
 
+	/** Empty traces. */
 	@Test
-	public void testPTAconstruction1c()// empty traces
+	public void testPTAconstruction1c()
 	{
 		checkEmptyPTA(
 				new String[][] {},
@@ -141,7 +144,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearner(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
+			actualA = new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -155,7 +158,7 @@ public class TestPTAConstruction
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.getScoreComputer().paths.getGraph();
+			actualC = l.scoreComputer.paths.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{

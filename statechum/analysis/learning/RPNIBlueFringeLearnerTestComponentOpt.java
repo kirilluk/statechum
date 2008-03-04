@@ -43,12 +43,10 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 
-import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
-public class RPNIBlueFringeLearnerTestComponentOpt extends
-		RPNIBlueFringeLearnerTestComponent {
+public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner {
 	
 	public RPNIBlueFringeLearnerTestComponentOpt(Frame parent, Configuration c) {
 		super(parent,c);
@@ -59,7 +57,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	{
 		pair.getQ().setHighlight(true);
 		pair.getR().setHighlight(true);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
-		updateGraph(scoreComputer.paths.getGraph());
 	}
 	
 	protected LearnerGraph scoreComputer = null;
@@ -139,29 +136,20 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return result;
 	}
 
-	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
-	{
-		sPlus = plus;sMinus = minus;
-		scoreComputer.initPTA();
-		scoreComputer.paths.augmentPTA(sMinus, false);
-		scoreComputer.paths.augmentPTA(sPlus, true);
-	}
 	
-	public LearnerGraph getScoreComputer()
-	{
-		return scoreComputer;
-	}
-	
-	
+	/** The size of the initial plus/minus sets. */
+	protected int origPlusSize, origMinusSize;
 	
 	@Override
-	public DirectedSparseGraph learnMachine(
-			@SuppressWarnings("unused")	DirectedSparseGraph model, 
-			Collection<List<String>> plus, Collection<List<String>> minus) {
-		init(plus, minus);
-		return learnMachine();
+	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
+	{
+		scoreComputer.initPTA();
+		scoreComputer.paths.augmentPTA(minus, false);
+		scoreComputer.paths.augmentPTA(plus, true);
+		origMinusSize = plus.size();origMinusSize = minus.size();
 	}
-
+	
+	@Override
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
@@ -171,16 +159,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
-		setChanged();
 
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
-		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
+		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-			setChanged();
+
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 
@@ -252,7 +239,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
-				setChanged();++counterRestarted;
+				++counterRestarted;
 				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
@@ -293,7 +280,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(result);
 		return result;
 	}
 	
@@ -314,55 +300,4 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			ex.initCause(e);throw ex;
 		}		
 	}
-
-	@Override
-	protected List<List<String>> generateQuestions(
-			@SuppressWarnings("unused")	DirectedSparseGraph model,
-			@SuppressWarnings("unused")	DirectedSparseGraph temp, 
-			@SuppressWarnings("unused")	OrigStatePair pair) 
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected Stack chooseStatePairs(
-			@SuppressWarnings("unused")	DirectedSparseGraph g,
-			@SuppressWarnings("unused")	Collection<List<String>> plus, 
-			@SuppressWarnings("unused")	Collection<List<String>> minus) 
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected int computeScore(
-			@SuppressWarnings("unused")	DirectedSparseGraph original, 
-			@SuppressWarnings("unused")	OrigStatePair blueRed) 
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected DirectedSparseGraph createAugmentedPTA(
-			@SuppressWarnings("unused")	DirectedSparseGraph model,
-			@SuppressWarnings("unused")	Collection<List<String>> plus, 
-			@SuppressWarnings("unused")	Collection<List<String>> minus) 
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected List<List<String>> generateQuestions(
-			@SuppressWarnings("unused")	DirectedSparseGraph model,
-			@SuppressWarnings("unused")	OrigStatePair pair) 
-	{
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected DirectedSparseGraph mergeAndDeterminize(
-			@SuppressWarnings("unused")	Graph model,
-			@SuppressWarnings("unused")	OrigStatePair pair) 
-	{
-		throw new UnsupportedOperationException();
-	}	
 }

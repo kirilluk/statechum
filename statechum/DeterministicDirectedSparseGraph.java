@@ -20,12 +20,13 @@ package statechum;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -233,18 +234,6 @@ public class DeterministicDirectedSparseGraph {
 
 	}
 
-	/** Checks for shallow compatibility between states, in other words if the two are both accept or both reject states
-	 * 
-	 * @param pair a pair states to check for compatibility. 
-	 * @return whether the two are different.
-	 */
-	public static boolean different(RPNIBlueFringeLearner.OrigStatePair pair){
-		boolean qAcceptedO = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
-		boolean rAcceptedO = DeterministicDirectedSparseGraph.isAccept(pair.getR());
-	
-		return qAcceptedO != rAcceptedO;
-	}
-
 	/** Checks if the supplied vertex is an accept one or not. If the vertex is not annotated, returns true.
 	 * 
 	 * @param v vertex to check
@@ -398,12 +387,34 @@ public class DeterministicDirectedSparseGraph {
 	 * @param pta the graph to operate on.
 	 */
 	public static void numberVertices(DirectedSparseGraph pta){
-		Iterator<Vertex> vertexIt = RPNIBlueFringeLearner.getBFSList(pta).iterator();
+		Iterator<Vertex> vertexIt = getBFSList(pta).iterator();
 		while(vertexIt.hasNext()){
 			Vertex v = vertexIt.next();
 			v.removeUserDatum(JUConstants.LABEL);// since we'd like this method to run multiple times, once immediately after initialisation and subsequently when sPlus and sMinus are added.
 			v.addUserDatum(JUConstants.LABEL, v.toString(), UserData.SHARED);
 		}
+	}
+
+	public static List<Vertex> getBFSList(Graph g){
+		List<Vertex> queue = new LinkedList<Vertex>();
+		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
+		queue.add(0,init);
+		int i=0;
+		int j= queue.size();
+		Set<Vertex> done = new HashSet<Vertex>();
+		while(i<j){
+			DirectedSparseVertex v = (DirectedSparseVertex)queue.get(i);
+			done.add(v);
+			Iterator succIt = v.getSuccessors().iterator();
+			while(succIt.hasNext()){
+				Vertex succ = (Vertex)succIt.next();
+				if(!done.contains(succ))
+					queue.add(succ);
+			}
+			j = queue.size();
+			i++;
+		}
+		return queue;
 	}
 
 	/** Finds a vertex with a given property set to a specified value. 

@@ -81,7 +81,7 @@ public class TestPathTracing {
 		final LearnerGraph fsm = new LearnerGraph(g,config);
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
-		Vertex received = RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path));
+		Vertex received = RPNIBlueFringeLearnerOrig.getVertex(g, Arrays.asList(path));
 		if (expected == null)
 			Assert.assertNull(received);
 		else
@@ -108,7 +108,7 @@ public class TestPathTracing {
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState)));
 		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(startingState,g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
-		Vertex received = RPNIBlueFringeLearner.getVertex(g, starting, Arrays.asList(path));
+		Vertex received = RPNIBlueFringeLearnerOrig.getVertex(g, starting, Arrays.asList(path));
 		if (expected == null)
 			Assert.assertNull(received);
 		else

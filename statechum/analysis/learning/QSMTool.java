@@ -69,8 +69,7 @@ public class QSMTool {
 			new PickNegativesVisualiser()
 					.construct(sPlus, sMinus, null, config);
 		else
-			new PickNegativesVisualiser().construct(sPlus, sMinus, ltl, null,
-					config);
+			new PickNegativesVisualiser().construct(sPlus, sMinus, ltl, config);
 	}
 
 	private static void process(String fileString, Set<List<String>> sPlus,

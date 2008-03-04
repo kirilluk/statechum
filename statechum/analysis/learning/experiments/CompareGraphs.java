@@ -67,8 +67,8 @@ public class CompareGraphs {
 		Collection<List<String>> retpos = new HashSet<List<String>>();
 		Collection<List<String>> relpos = new HashSet<List<String>>();
 		for (List<String> list : tests) {
-			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
-			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
+			Vertex hypVertex = RPNIBlueFringeLearnerOrig.getVertex(learned, list);
+			Vertex correctVertex = RPNIBlueFringeLearnerOrig.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex == null)){
 				relneg.add(list);
 				retneg.add(list);

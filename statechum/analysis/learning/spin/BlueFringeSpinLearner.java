@@ -74,7 +74,7 @@ public class BlueFringeSpinLearner extends
 		setChanged();
 
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
-		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
+		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while (!possibleMerges.isEmpty()) {
 
 			iterations++;

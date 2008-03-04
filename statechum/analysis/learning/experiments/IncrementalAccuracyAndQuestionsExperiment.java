@@ -22,7 +22,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
-import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -34,7 +33,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -43,21 +41,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.swing.SwingUtilities;
-
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.JUConstants;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.xmachine.model.testset.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
@@ -297,8 +290,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
-			Vertex hypVertex = RPNIBlueFringeLearner.getVertex(learned, list);
-			Vertex correctVertex = RPNIBlueFringeLearner.getVertex(correct, list);
+			Vertex hypVertex = RPNIBlueFringeLearnerOrig.getVertex(learned, list);
+			Vertex correctVertex = RPNIBlueFringeLearnerOrig.getVertex(correct, list);
 			if((hypVertex == null)&(correctVertex != null)){
 				if(DeterministicDirectedSparseGraph.isAccept(correctVertex)){
 					//updateFrame(learned, correct);
@@ -348,7 +341,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
 		while(sampleIt.hasNext()){
 			List<String> v = sampleIt.next();
-			if(RPNIBlueFringeLearner.getVertex(graph, v) != null)
+			if(RPNIBlueFringeLearnerOrig.getVertex(graph, v) != null)
 				positiveStrings.add(v);
 		}
 		return positiveStrings;
@@ -359,7 +352,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		HashSet<List<String>> negativeStrings = new HashSet<List<String>>();
 		while(sampleIt.hasNext()){
 			List<String> v = sampleIt.next();
-			if(RPNIBlueFringeLearner.getVertex(graph, v) == null)
+			if(RPNIBlueFringeLearnerOrig.getVertex(graph, v) == null)
 				negativeStrings.add(v);
 		}
 		return negativeStrings;

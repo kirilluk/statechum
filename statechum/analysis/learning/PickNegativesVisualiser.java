@@ -29,7 +29,7 @@ import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.*;
 import statechum.analysis.learning.spin.*;
 
-public class PickNegativesVisualiser extends Visualiser{
+public class PickNegativesVisualiser extends Visualiser {
     /**
 	 *  ID for serialization.
 	 */
@@ -75,36 +75,14 @@ public class PickNegativesVisualiser extends Visualiser{
 		config.setDebugMode(true);
 	}
 	
-	/** Starts the learning thread with the supplied sets of positive and negative examples.
-	 * 
-	 * @param sPlus positives
-	 * @param sMinus negatives
-	 * @param whomToNotify this one is called just before learning commences.
-	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final ThreadStartedInterface whomToNotify, final Configuration config)
-    {
-	   	learnerThread = new Thread(new Runnable()
-		{
-			public void run()
-			{
-				if (split != null) {
-	        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
-	        		
-	        		//l.setPairsMergedPerHypothesis(2);
-	        		
-	        	}
-	        	else
-	        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, config);
-	        		//l = new RPNIBlueFringeSootLearner(PickNegativesVisualiser.this);
-	        	l.addObserver(PickNegativesVisualiser.this);
-	        	l.setAnswers(ans);
-	        	if (whomToNotify != null) whomToNotify.threadStarted();
-        		l.learnMachine(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);
-			}
-		},"RPNI learner thread");
-	   	learnerThread.start();
-		
-    }
+	/** Collections of positive and negative samples. */
+	private Collection<List<String>> sPlus, sMinus;
+	
+	/** The ltl formula to check against. */
+	private Set<String> ltlFormulae = null;
+	
+	/** Configuration for learners. */
+	private Configuration config = null; 
 	
 	/** Starts the learning thread with the supplied sets of positive and negative examples.
 	 * 
@@ -112,18 +90,30 @@ public class PickNegativesVisualiser extends Visualiser{
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> sPlus, final Collection<List<String>> sMinus,final Set<String> ltlFormulae, final ThreadStartedInterface whomToNotify, final Configuration config)
+	public void construct(final Collection<List<String>> plus, final Collection<List<String>> minus,final Set<String> ltl, final Configuration conf)
+    {
+		sPlus=plus;sMinus=minus;ltlFormulae=ltl;config=conf;
+    }
+	public void startLearner(final ThreadStartedInterface whomToNotify)
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
 			public void run()
 			{
-				l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae,config);
+				if (ltlFormulae != null)
+					l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae,config);
+				else
+					if (split != null) {
+		        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
+		        	}
+		        	else
+		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, config);
 				
 	        	l.addObserver(PickNegativesVisualiser.this);
 	        	l.setAnswers(ans);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
-        		l.learnMachine(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);
+	        	l.init(sPlus, sMinus);
+        		l.learnMachine();
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();
@@ -147,8 +137,6 @@ public class PickNegativesVisualiser extends Visualiser{
 				// to make sure that even if a user clicks on the edge multiple times, 
 				// only one learner terminator will be active.
 				
-				final Collection<List<String>> sPlus = l.getSPlus();
-				final Collection<List<String>> sMinus = l.getSMinus();
 				try
 				{
 					learnerThread.join();
@@ -158,7 +146,7 @@ public class PickNegativesVisualiser extends Visualiser{
 					if(l.getConfig().getMinCertaintyThreshold()>200000)
 						active = false;
 					setSimpleConfiguration(config, active, l.getConfig().getMinCertaintyThreshold());
-					construct(sPlus, sMinus, this, l.getConfig());
+					startLearner(this);
 					synchronized (this) {
 						while(!learnerStarted)
 							wait();// here we wait for the learner thread to start - if we do not wait for this, 
@@ -188,7 +176,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
 		l.terminateLearner();
 		// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
-		// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch
+		// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch the learner.
 		new Thread(new LearnerRestarter(negatives),"learner restarter").start();
 	}
 	
@@ -199,7 +187,7 @@ public class PickNegativesVisualiser extends Visualiser{
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
 		DijkstraShortestPath p = new DijkstraShortestPath(g);
 		List<Edge> shortPrefix = p.getPath(init, e.getSource());
-		Set<List<String>> prefixStrings = RPNIBlueFringeLearner.getPaths(shortPrefix);
+		Set<List<String>> prefixStrings = RPNIBlueFringeLearnerOrig.getPaths(shortPrefix);
 		List<Edge> picked = new ArrayList<Edge>();
 		picked.add(e);
 		Set<List<String>> successors = RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
@@ -208,11 +196,8 @@ public class PickNegativesVisualiser extends Visualiser{
 		
 		 Object[] possibleValues = questions.toArray();
 		 Object selectedValue = JOptionPane.showInputDialog(null,
-
 		             "Choose one", "Add Negative String",
-
 		             JOptionPane.INFORMATION_MESSAGE, null,
-
 		             possibleValues, possibleValues[0]);
 		System.out.println(selectedValue);
 		return (List<String>)selectedValue;

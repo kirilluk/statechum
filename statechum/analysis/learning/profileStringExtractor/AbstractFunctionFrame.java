@@ -213,7 +213,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 				}
 				Configuration config = Configuration.getDefaultConfiguration();
 				PickNegativesVisualiser.setSimpleConfiguration(config, true,0);
-				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null, config);
+				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null,config);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

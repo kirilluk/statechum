@@ -29,7 +29,7 @@ import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
@@ -68,7 +68,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 	        }
         }
         else{
-        	e = RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
+        	e = RPNIBlueFringeLearnerOrig.findEdge(sourceVertex, targetVertex);
         	HashSet labels = (HashSet)e.getUserDatum(JUConstants.LABEL);
         	labels.add(attributeMap.get("EDGE"));
         }

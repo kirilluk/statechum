@@ -47,7 +47,7 @@ public class AllTests {
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
 		statechum.analysis.learning.TestFSMParser.class,
-		statechum.analysis.learning.TestFSMAlgo.class,
+		statechum.analysis.learning.TestFSMAlgo.class
 	})
 	public static class FSMTests {
 		@Override

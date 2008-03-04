@@ -46,8 +46,27 @@ import static org.junit.Assert.assertTrue;
 
 public class TestPTATestSequenceEngine 
 {
-	/** The configuration to use in these tests. */
-	private Configuration config = Configuration.getDefaultConfiguration();
+	private PTATestSequenceEngine en = null; 
+	private LearnerGraph fsm = null;
+	
+	/** Set up the graphs to use. Additionally,  
+	 * make sure that whatever changes a test have made to the 
+	 * configuration, next test is not affected.
+	 */
+	@Before
+	public final void setUp()
+	{
+		config = (Configuration)mainConfiguration.clone();config.setAllowedToCloneNonCmpVertex(true);
+		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
+		en = new PTA_FSMStructure(fsm);		
+	}
+	
+
+	/** The working configuration to use when running tests. */
+	private Configuration config = null;
+	
+	/** Each test starts with this configuration. */
+	private Configuration mainConfiguration = Configuration.getDefaultConfiguration();
 	
 	static void vertifyPTA(PTATestSequenceEngine en, String [][] expected)
 	{
@@ -134,16 +153,6 @@ public class TestPTATestSequenceEngine
 		assertTrue(c.hashCode() != engine.rejectNode.hashCode());
 	}
 
-	private PTATestSequenceEngine en = null; 
-	private LearnerGraph fsm = null;
-	
-	@Before
-	public final void setUp()
-	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
-		en = new PTA_FSMStructure(fsm);		
-	}
-	
 	@Test
 	public final void test_sequenceSet1()
 	{

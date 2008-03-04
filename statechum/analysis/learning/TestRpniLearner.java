@@ -98,8 +98,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			assert RPNIBlueFringeLearner.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
 		for(String [] path:minus)
 			assert RPNIBlueFringeLearner.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
-
-		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(Visualiser.getVisualiser(),testConfig)
+		// Visualiser.getVisualiser()
+		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 		{
 			protected int checkWithEndUser(
 					@SuppressWarnings("unused")	DirectedSparseGraph model,

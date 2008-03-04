@@ -44,6 +44,8 @@
          <path refid="classpath.full" />
          <pathelement location="${bin}"/>
          </classpath>
+       	
+       	<formatter type="plain"/>
        	<!--       	
   <batchtest>
     <fileset dir="${src}">

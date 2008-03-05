@@ -13,7 +13,7 @@
    id="svg2659"
    sodipodi:version="0.32"
    inkscape:version="0.45.1"
-   sodipodi:docbase="/home/kirill/workspace/XMachineTool/resources/graphLayout"
+   sodipodi:docbase="D:\experiment\XMachineTool\resources\graphLayout"
    sodipodi:docname="ptapaths.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <defs
@@ -32,8 +32,8 @@
      id="namedview2663"
      inkscape:window-width="1575"
      inkscape:window-height="1175"
-     inkscape:window-x="0"
-     inkscape:window-y="0" />
+     inkscape:window-x="1935"
+     inkscape:window-y="-13" />
   <metadata
      id="metadata2665">
     <rdf:RDF>
@@ -1037,5 +1037,55 @@
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 512.41562,259.58451 C 511.63699,259.26778 508.61883,260.00637 507.22178,260.1616 C 505.98334,260.2992 505.55744,260.94862 504.46456,261.4654 C 503.89521,261.73463 503.36345,263.14248 503.07526,263.58141 C 502.45815,264.52132 502.51512,265.26185 502.22031,266.14626 C 501.92202,267.04114 502.28092,266.67156 502.34855,267.2577 C 502.39486,267.65902 502.66037,267.95928 502.77603,268.21952 C 502.87929,268.45186 503.35236,268.76195 503.50274,268.90349 C 503.57852,268.97481 503.45202,268.87474 504.14395,269.26684"
        id="path3298" />
-  </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 432.4156,269.3331 C 433.17658,268.27624 437.31652,264.38756 438.11599,261.18968"
+       id="path2436" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 445.44507,259.56099 C 445.04896,258.6495 447.14587,253.49301 448.70244,251.41757"
+       id="path2438" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 456.84586,248.97455 C 457.7203,246.0329 465.32659,241.30816 467.43231,239.20245"
+       id="path2440" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 473.94704,232.68771 C 476.52643,233.64281 483.81999,231.0086 486.97651,229.43034"
+       id="path2442" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 493.49125,226.17297 C 494.93175,223.75177 503.1729,223.74804 507.33506,222.91561"
+       id="path2444" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 514.66414,223.72995 C 515.79464,223.72995 522.30388,223.72995 526.06493,223.72995"
+       id="path2446" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 532.57967,225.35863 C 537.6377,225.33994 545.47,232.05206 551.30953,235.94508"
+       id="path2448" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 561.89598,239.20245 C 564.97658,241.02707 567.98355,249.36173 570.85374,252.23192 C 573.16879,254.54697 570.07434,253.66575 574.11111,254.67494 L 562.71032,257.93231"
+       id="path2450" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 575.73979,242.45981 C 579.00845,245.72847 574.92545,251.68105 574.92545,256.30363 C 574.92545,256.84652 574.92545,257.38942 574.92545,257.93231"
+       id="path2452" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 512.22112,206.62877 C 512.22112,209.55234 504.0777,206.96256 504.0777,209.88613 C 504.0777,214.87424 508.63237,213.1435 513.03546,213.1435 C 516.07203,213.1435 512.10671,219.65824 507.33506,219.65824 C 504.95178,219.65824 504.67036,219.1253 503.26335,218.8439"
+       id="path2454" />
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot2456"
+       transform="translate(-78.176832,-79.805516)"><flowRegion
+         id="flowRegion2458"><rect
+           id="rect2460"
+           width="162.86841"
+           height="63.518673"
+           x="472.31836"
+           y="170.79771" /></flowRegion><flowPara
+         id="flowPara2464">If the s transition is present, the current impl will not include ab in most paths which is not right</flowPara></flowRoot>  </g>
 </svg>

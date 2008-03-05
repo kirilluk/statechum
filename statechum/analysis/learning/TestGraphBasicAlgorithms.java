@@ -42,6 +42,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.StringVertex;
@@ -167,157 +169,348 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertEquals("Init", s.findVertex("Init").getName());
 	}
 	
+	/** Helps testing the routines which find the shortest path between a pair of nodes in a graph.
+	 * 
+	 * @param machine the graph to deal with
+	 * @param testName the name to give to the graph
+	 * @param FirstState the state to find a path from
+	 * @param SecondState the state to find a path to
+	 * @param initSeq the set of sequences to which the paths found should be concatenated.
+	 * @param expectedResult the expected outcome.
+	 */
+	private void TestComputePathsBetweenHelper(String machine, String testName, String FirstState, String SecondState, String[][] initSeq, Object[][] expectedResult)
+	{
+		Map<String,String> expected = new HashMap<String,String>();
+		if (initSeq != null)
+			for(Entry<String,String> expSrc:TestFSMAlgo.buildStringMap(expectedResult).entrySet())
+				for(List<String> is:TestFSMAlgo.buildSet(initSeq)) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
+		else // initSeq == null
+			expected.putAll(TestFSMAlgo.buildStringMap(expectedResult));
+		
+		{// testing the orig part
+			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), config);
+			PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+			PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
+			PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
+			s.paths.ORIGcomputePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
+			Map<String,String> actual = engine.getDebugDataMap(paths);
+			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		}
+
+		{// testing the new part
+			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), config);
+			PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+			PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
+			PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
+			s.paths.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
+			Map<String,String> actual = engine.getDebugDataMap(paths);
+			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		}
+	}
+	
+	
 	/** Similar to testComputePathsToRed2 but tests the contents of a set returned by computePathsSBetween. */
 	@Test
 	public final void testComputePathsSBetween1()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween1"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween1", 
+				"A","C",
+				null,
+				new Object [][]{
+					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	@Test
 	public final void testComputePathsSBetween2()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween2"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("A"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
-				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->A", "testComputePathsSBetween2",
+				"A","A",
+				null,
+				new Object[][] {
+					new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	/** Similar to testComputePathsToRed3 but tests that all four nodes are returned. */
 	@Test
 	public final void testComputePathsSBetween3()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsSBetween3"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C", "testComputePathsSBetween3",
+				"A","C",
+				null,
+			new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	/** Similar to testComputePathsToRed5 but tests that all four nodes are returned. */
 	@Test
 	public final void testComputePathsSBetween4()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expected=TestFSMAlgo.buildStringMap(new Object[][] {
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4",
+				"A","C",
+				null,
+			new Object[][] {
 				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 
 	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
 	@Test
 	public final void testComputePathsSBetween5()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
-		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
-				new String[] { "sequenceA","sequenceB" },
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween5",
+				"A","C",
+				new String[][]{
+					new String[] { "sequenceA","sequenceB" }},
+				new Object[][] {
+					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		initSet = initSet.cross(initSeq);
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
-		});
-		Map<String,String> expected = new HashMap<String,String>();
-		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
 	
 	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
 	@Test
 	public final void testComputePathsSBetween6()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween4"), config);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity();
-		Collection<List<String>> initSeq = TestFSMAlgo.buildSet(new String[][]{
-				new String[] { "sequenceA","sequenceB" },
-				new String[] { "sequenceC" },
-				new String[] { "sA","sB","sC"}
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween6",
+				"A","C",
+				new String[][]{
+					new String[] { "sequenceA","sequenceB" },
+					new String[] { "sequenceC" },
+					new String[] { "sA","sB","sC"}},
+				new Object[][] {
+					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		initSet = initSet.cross(initSeq);
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		s.paths.computePathsSBetween(s.findVertex("A"), s.findVertex("C"),initSet,paths);
-		Map<String,String> actual = engine.getDebugDataMap(paths),expectedSrc=TestFSMAlgo.buildStringMap(new Object[][] {
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+	}
+
+	private final String complexGraphA = "A-a->B-d->C-d->D-a->D-c->D-b->C\nA-c->B-b->C-c->B-e->A-d->A\nB-a->A\nC-b->A\nC-a->E\nC-e->E\nF-a->D\nF-b->D\nG-a->G";
+	
+	@Test
+	public final void testComputePathsSBetween7()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"A","A",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween8()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"A","B",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween9()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"A","C",
+				null,
+			new Object[][] {
 				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Map<String,String> expected = new HashMap<String,String>();
-		for(Entry<String,String> expSrc:expectedSrc.entrySet()) for(List<String> is:initSeq) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
+	}
+
+	@Test
+	public final void testComputePathsSBetween10()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"C","C",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	/** Similar to testComputePathsToRed5 but tests that all four nodes are returned. */
+	@Test
+	public final void testComputePathsSBetween11()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"D","D",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween12()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"F","B",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween13()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"F","A",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween14()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"C","A",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween15()
+	{
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"F","E",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a","b","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b","e"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","e"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	/** Checks that concatenation works for real paths, using the new routine. */
+	@Test
+	public final void testComputePathsSBetween16()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), config);
+		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
+		PTATestSequenceEngine.sequenceSet pathsA = engine.new sequenceSet();
+		s.paths.ORIGcomputePathsSBetween(s.findVertex("F"), s.findVertex("D"),initSet,pathsA);
+		PTATestSequenceEngine.sequenceSet pathsB = engine.new sequenceSet();
+		s.paths.ORIGcomputePathsSBetween(s.findVertex("B"), s.findVertex("C"),pathsA,pathsB);
+		PTATestSequenceEngine.sequenceSet pathsC = engine.new sequenceSet();
+		s.paths.ORIGcomputePathsSBetween(s.findVertex("C"), s.findVertex("A"),pathsB,pathsC);
+		Map<String,String> actual = engine.getDebugDataMap(pathsC),expected = TestFSMAlgo.buildStringMap(
+			new Object[][] {
+				new Object[]{new String[] {"a","d","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","d","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
+	@Test
+	public final void testComputePathsSBetween17()
+	{
+		TestComputePathsBetweenHelper("A-q->A\nB-a->A\nB-b->A\nB-c->A\nB-d->B-e->B", "testComputePathsSBetween16",
+				"B","A",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	private final String simpleGraphA = "A-a->B-a->D-d->B\nD-b->C-c->A";
 	
+	@Test
+	public final void testComputePathsSBetween18()
+	{
+		TestComputePathsBetweenHelper(simpleGraphA, "ComputePathsSBetween_simpleGraphA",
+				"B","A",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween19()
+	{
+		TestComputePathsBetweenHelper(simpleGraphA, "ComputePathsSBetween_simpleGraphA",
+				"A","C",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"a","a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	@Test
+	public final void testComputePathsSBetween20()
+	{
+		TestComputePathsBetweenHelper(simpleGraphA, "ComputePathsSBetween_simpleGraphA",
+				"D","B",
+				null,
+			new Object[][] {
+				new Object[]{new String[] {"d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0a()
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), config);
-		Set<List<String>> expected = buildSet(new String[][] {
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(new StringVertex("non-existing-vertex")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		s.paths.computePathsToRed(new StringVertex("non-existing-vertex"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0b()
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), config);
-		Set<List<String>> expected = buildSet(new String[][] {
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(null));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		s.paths.computePathsToRed(null);
 	}
 	
+	/** Unreachable vertex. */
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0c()
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"), config);
-		Set<List<String>> expected = buildSet(new String[][] {
-			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("Q")));
-			
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		s.paths.computePathsToRed(s.findVertex("Q"));
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testComputePathsToRed0d()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), config);
+		s.paths.computePathsToRed(new StringVertex("F"));
+	}
+
 	/** State to look for is the initial one. */
 	@Test
 	public final void testComputePathsToRed1()
@@ -378,7 +571,8 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	@Test
 	public final void testComputePathsToRed5()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5"), config);
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5");
+		LearnerGraph s = new LearnerGraph(g, config);
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},

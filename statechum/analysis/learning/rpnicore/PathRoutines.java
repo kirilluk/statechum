@@ -95,6 +95,94 @@ public class PathRoutines {
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
+		coregraph.buildCachedData();
+		if (LearnerGraph.testMode)
+			if (!coregraph.learnerCache.flowgraph.containsKey(vertSource) || !coregraph.learnerCache.flowgraph.containsKey(vertTarget))
+				throw new IllegalArgumentException("either source or target vertex is not in the graph");
+		
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
+		
+		// FIFO queue containing sequences of states labelling paths to states to be explored.
+		// Important, after processing of each wave, we add a null, in order to know when
+		// to stop when scanning to the end of the current wave when a path to the target state
+		// has been found.
+		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
+		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
+		if (vertSource == vertTarget)
+		{
+			result.setIdentity();
+			return ;// nothing to do, return an empty sequence.
+		}
+		
+		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
+		currentExplorationPath.offer(null);currentExplorationState.offer(null);// mark the end of the first (singleton) wave.
+		CmpVertex currentVert = null;List<CmpVertex> currentPath = null;
+		boolean pathFound = false;
+		while(!currentExplorationPath.isEmpty())
+		{
+			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
+			if (currentVert == null)
+			{// we got to the end of a wave
+				if (pathFound)
+					break;// if we got to the end of a wave and the target vertex has been found on some paths in this wave, stop scanning.
+				else
+					if (currentExplorationPath.isEmpty())
+						break;// we are at the end of the last wave, stop looping.
+					else
+					{// mark the end of a wave.
+						currentExplorationPath.offer(null);currentExplorationState.offer(null);
+					}
+			}
+			else
+			{
+				visitedStates.add(currentVert);
+				for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.flowgraph.get(currentVert).entrySet())
+				{
+					if (entry.getKey() == vertTarget)
+					{// found the vertex we are looking for
+						pathFound = true;
+						// now we need to go through all our states in a path and update pathsToVertSource
+						PTATestSequenceEngine.sequenceSet paths = pathsToVertSource;currentPath.add(vertTarget);CmpVertex curr = vertSource;
+						// process vertices
+						for(CmpVertex tgt:currentPath)
+						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
+							paths = paths.crossWithSet(coregraph.learnerCache.flowgraph.get(curr).get(tgt));
+							curr = tgt;
+						}
+						result.unite( paths );// update the result.
+					}
+					else
+						if (!visitedStates.contains(entry.getKey()))
+						{
+							List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(entry.getKey());
+							currentExplorationPath.offer(newPath);currentExplorationState.offer(entry.getKey());
+						}
+				}
+			}
+		}
+
+		if (!pathFound)
+			throw new IllegalArgumentException("path from state "+vertSource+" to state "+vertTarget+" was not found");
+	}
+	
+	/** Computes all possible shortest paths from the supplied source state to the 
+	 * supplied target state and returns a PTA corresponding to them. The easiest 
+	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
+	 * this also permits one to trace them in some automaton and junk irrelevant ones.
+	 * 
+	 * @param vertSource the source state
+	 * @param vertTarget the target state
+	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
+	 * or obtained using PTATestSequenceEngine-related operations.
+	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
+	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
+	 */	
+	public void ORIGcomputePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget,
+			PTATestSequenceEngine.sequenceSet pathsToVertSource,
+			PTATestSequenceEngine.sequenceSet result)
+	{
+		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
+			throw new IllegalArgumentException("null arguments to computePathsSBetween");
 		if (LearnerGraph.testMode)
 			if (!coregraph.transitionMatrix.containsKey(vertSource) || !coregraph.transitionMatrix.containsKey(vertTarget))
 				throw new IllegalArgumentException("either source or target vertex is not in the graph");
@@ -172,7 +260,7 @@ public class PathRoutines {
 		}
 
 		if (!pathFound)
-			throw new IllegalArgumentException("path to state "+vertTarget+" was not found");
+			throw new IllegalArgumentException("path from state "+vertSource+" to state "+vertTarget+" was not found");
 		
 		return ;
 	}

@@ -48,7 +48,6 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;

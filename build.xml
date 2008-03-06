@@ -34,11 +34,11 @@
   </target>
 
   <target name="test" depends="compile" description="run unit tests">
-       <junit  fork="on" maxmemory="512m" forkmode="once" printsummary="yes" haltonfailure="yes">
+       <junit  fork="on" maxmemory="1024m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>
-
+	<jvmarg value="-XX:+CITime"/>
 
        <classpath>
          <path refid="classpath.full" />

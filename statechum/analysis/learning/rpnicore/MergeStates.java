@@ -55,6 +55,21 @@ public class MergeStates {
 		coregraph = computeStateScores;
 	}
 
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original,StatePair pair)
+	{
+		if (LearnerGraph.testMode) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
+		assert original.transitionMatrix.containsKey(pair.firstElem);
+		assert original.transitionMatrix.containsKey(pair.secondElem);
+		
+		Configuration shallowCopy = (Configuration)original.config.clone();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph result = original.copy(shallowCopy);
+		assert result.transitionMatrix.containsKey(pair.firstElem);
+		assert result.transitionMatrix.containsKey(pair.secondElem);
+
+		
+		return null;
+	}
+	
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)
 	{
 		if (LearnerGraph.testMode) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }

@@ -501,7 +501,7 @@ public class TestArrayOperations {
 	   */
 	  protected void setseqCompare(Object [][]what, Object [][]with)
 	  {
-	    class comp implements Comparator
+	    class comp implements Comparator<Object>
 	    {
 	        public int compare( Object cmp_what, Object cmp_with )
 	        {

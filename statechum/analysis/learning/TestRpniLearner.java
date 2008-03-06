@@ -1090,7 +1090,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		StatePair pairNew = new StatePair(
 				s.findVertex("B"),
 				s.findVertex("A"));
-
 		doneEdges = new HashSet();
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);s.setMaxScore(maxScoreConstant-1);
 		int origScore = computeScore(g, pairOrig),
@@ -1098,8 +1097,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew);
 		assertEquals(expectedComputedScore, origScore); 
 		assertEquals(expectedComputedScore, newScoreA); 
-		assertEquals(pairCompatibility,newScoreB); 
-
+		assertEquals(pairCompatibility,newScoreB);
+		
 		// Now check what happens in the KTails mode.
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 		s.config.setKlimit(10000);
@@ -1125,6 +1124,56 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				maxScoreConstant,1,1,
 				"testPairCompatible1");
 	}
+	
+	private static void matchCollectionsOfVertices(Collection<Collection<CmpVertex>> what, String[][] expectedSrc)
+	{
+		Set<Set<String>> expectedSets = new HashSet<Set<String>>();
+		for(String []seq:expectedSrc)
+		{
+			Set<String> whatToAdd = new HashSet<String>();
+			whatToAdd.addAll(Arrays.asList(seq));expectedSets.add(whatToAdd);
+		}
+		
+		for(Collection<CmpVertex> coll:what) 
+		{
+			Set<String> oneOfTheSets = new HashSet<String>();
+			for(CmpVertex vert:coll) oneOfTheSets.add(vert.getName());
+			Assert.assertTrue("received an unexpected set "+oneOfTheSets,expectedSets.contains(oneOfTheSets));expectedSets.remove(oneOfTheSets);
+		}
+		Assert.assertEquals(0, expectedSets.size());		
+	}
+	
+	private void testGeneralPairScoreComputation(String machine, String graphName, int expectedScore,
+			String[][] expectedSrc)
+	{
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machine, graphName);
+		LearnerGraph fsm = new LearnerGraph(g,config);
+		Collection<Collection<CmpVertex>> result = new LinkedList<Collection<CmpVertex>>();
+		//Visualiser.updateFrame(g, null);
+		int score = -2;
+		//Visualiser.waitForKey();
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("A"),fsm.findVertex("B")),result);
+		Assert.assertEquals(expectedScore, score);
+		if (score >=0)
+			matchCollectionsOfVertices(result, expectedSrc);
+		
+		result.clear();score = -2;
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("A"),fsm.findVertex("B")),result);
+		Assert.assertEquals(expectedScore, score);
+		if (score >=0)
+			matchCollectionsOfVertices(result, expectedSrc);
+	}
+	
+	@Test
+	public final void testPairCompatible1_general()
+	{
+		testGeneralPairScoreComputation(
+				"A-a->B-a->C-b->D\n"+
+				"A-b->E",
+				"testPairCompatible1",
+				2, new String[][] {new String[]{"A","B","C"}, new String[]{"D","E"} }
+		);
+	}
 
 	@Test
 	public final void testPairCompatible2()
@@ -1135,6 +1184,48 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				1,-1,
 				maxScoreConstant,1,1,
 				"testPairCompatible2");
+	}
+
+	@Test
+	public final void testPairCompatible2_general()
+	{
+		testGeneralPairScoreComputation(
+				"A-a->B-a->C-b->D\n"+
+				"A-b-#E",
+				"testPairCompatible1",
+				-1, null
+		);
+	}
+	
+	@Test
+	public final void testPairCompatible_general_A()
+	{
+		testGeneralPairScoreComputation(
+				"A-a->P1-c->B1-b->C1-e->D1\n"+
+				"B-a->P2-c->B\n"+
+				"A-b->C2-e->D2\n"+
+				"B-b->C3-e->D3",
+				"testPairCompatible_general_A",
+				8, new String[][] {new String[]{"A","B1","B"}, new String[]{"P1","P2"},
+						new String[]{"C1","C2","C3"}, new String[]{"D1","D2","D3"}}
+		);
+	}
+
+	@Test
+	public final void testPairCompatible_general_B()
+	{
+		testGeneralPairScoreComputation(
+				"A-a->B\nA-b->B\nA-e->B\n"+
+				"B-e->B4-c->D3-a->T1\n"+
+				"B-e->B4-d->C3-e->T1\n"+
+				"B-c->D1-a->T2\n"+
+				"B-b->B5-c->D2-a->T3\n"+
+				"B-a->B1-d->C1-e->T4\n"+
+				"B1-a->B2-a->B3-d->C2-e->T5",
+				"testPairCompatible_general_B",
+				33, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5"}, new String[]{"C1","C2","C3"},
+						new String[]{"D1","D2","D3"}, new String[]{"T1","T2","T3","T4","T5"}}
+		);
 	}
 
 	@Test

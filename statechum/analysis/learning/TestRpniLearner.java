@@ -1147,9 +1147,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			String[][] expectedSrc)
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machine, graphName);
+		//Visualiser.updateFrame(g, null);
 		LearnerGraph fsm = new LearnerGraph(g,config);
 		Collection<Collection<CmpVertex>> result = new LinkedList<Collection<CmpVertex>>();
-		//Visualiser.updateFrame(g, null);
 		int score = -2;
 		//Visualiser.waitForKey();
 		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("A"),fsm.findVertex("B")),result);
@@ -1171,7 +1171,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-a->B-a->C-b->D\n"+
 				"A-b->E",
 				"testPairCompatible1",
-				2, new String[][] {new String[]{"A","B","C"}, new String[]{"D","E"} }
+				3, new String[][] {new String[]{"A","B","C"}, new String[]{"D","E"} }
 		);
 	}
 
@@ -1206,7 +1206,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"A-b->C2-e->D2\n"+
 				"B-b->C3-e->D3",
 				"testPairCompatible_general_A",
-				8, new String[][] {new String[]{"A","B1","B"}, new String[]{"P1","P2"},
+				7, new String[][] {new String[]{"A","B1","B"}, new String[]{"P1","P2"},
 						new String[]{"C1","C2","C3"}, new String[]{"D1","D2","D3"}}
 		);
 	}
@@ -1223,8 +1223,45 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 				"B-a->B1-d->C1-e->T4\n"+
 				"B1-a->B2-a->B3-d->C2-e->T5",
 				"testPairCompatible_general_B",
-				33, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5"}, new String[]{"C1","C2","C3"},
+				14, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5"}, new String[]{"C1","C2","C3"},
 						new String[]{"D1","D2","D3"}, new String[]{"T1","T2","T3","T4","T5"}}
+		);
+	}
+
+	@Test
+	public final void testPairCompatible_general_C()
+	{
+		testGeneralPairScoreComputation(
+				"A-a->B\nA-b->B\nA-e->B\n"+
+				"B4-c->D3-a->T1\n"+
+				"B-e->B10-e->B11-e->B12-e->B13-e->B14-e->B15-e->B4-d->C3-e->T1\n"+
+				"B-c->D1-a->T2\n"+
+				"B-b->B5-c->D2-a->T3\n"+
+				"B-a->B1-d->C1-e->T4\n"+
+				"B1-a->B2-a->B3-d->C2-e->T5",
+				"testPairCompatible_general_C",
+				20, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5","B10","B11","B12","B13","B14","B15"}, new String[]{"C1","C2","C3"},
+						new String[]{"D1","D2","D3"}, new String[]{"T1","T2","T3","T4","T5"}}
+		);
+	}
+	
+	@Test
+	public final void testPairCompatible_general_D()
+	{
+		testGeneralPairScoreComputation(
+		"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA-c->A2-c->A3\n"+"A5<-a-A3-b->A4\n"+
+		"A-d->B\n"+
+		"B-c->B1-b->B2-a->B3-b->B4-d->B5\n"+
+			"B1-c->B6-b->B7\n"+
+		"B-a->BD1-a->BD2-a->BD3-b->BD4-c->BD5\n"+
+		"B-b->BB1-b->BB2",
+		"testPairCompatible5",
+		12, new String[][] {
+				new String[]{"A","B"}, new String[]{"BB1","B1","A2" },
+				new String[]{"BB2","B2","B6","A3","BD2"},
+				new String[]{"A1","BD1"},new String[]{"B7","A4"},
+				new String[]{"B3","A5","BD3"}, new String[]{"B4","BD4"},
+				new String[]{"B5"}, new String[]{"BD5"},new String[]{"S"}}
 		);
 	}
 
@@ -1233,6 +1270,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid1,11,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible3");
+		testGeneralPairScoreComputation(largeGraph1_invalid1, "testPairCompatible3",-1,null);
 	}
 
 	@Test
@@ -1240,6 +1278,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid2,11,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible4");
+		testGeneralPairScoreComputation(largeGraph1_invalid2, "testPairCompatible4",-1,null);
 	}
 
 	@Test
@@ -1250,6 +1289,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 					// the fact that there is a path of length 3 which is 
 					// incompatible may or may not cause ktails to choke, 
 					// depending on the order of traversal. At present, it does not.
+		testGeneralPairScoreComputation(largeGraph1_invalid3, "testPairCompatible5",-1,null);
 	}
 
 	@Test
@@ -1257,6 +1297,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid4,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible6");
+		testGeneralPairScoreComputation(largeGraph1_invalid4, "testPairCompatible6",-1,null);
 	}
 
 	@Test
@@ -1264,6 +1305,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid5,11,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible7");
+		testGeneralPairScoreComputation(largeGraph1_invalid5, "testPairCompatible7",-1,null);
 	}
 
 	@Test
@@ -1271,6 +1313,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph2,5,2,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatibl2_1");
+		testGeneralPairScoreComputation(largeGraph2, "testPairCompatible2_1",
+				8,new String[][] {
+				new String[]{"S","BL1","BL6"}, new String[]{"A","B","BL2","BL3","BL7","BL8"},
+				new String[]{"BL9","BL4"},new String[]{"BL5"}}
+			);
 	}
 
 	@Test
@@ -1278,6 +1325,11 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph3,5,2,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_2");
+		testGeneralPairScoreComputation(largeGraph3, "testPairCompatible2_2",
+				8,new String[][] {
+				new String[]{"S","BL1","BL6"}, new String[]{"A","B","BL2","BL3","BL7","BL8"},
+				new String[]{"BL9","BL4"},new String[]{"BL5"}, new String[]{"B1"}}
+		);
 	}
 
 	@Test
@@ -1285,6 +1337,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph2_invalid1,5,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_3");
+		testGeneralPairScoreComputation(largeGraph2_invalid1, "testPairCompatible2_3",-1,null);
 	}
 
 	@Test
@@ -1292,6 +1345,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		testScoreAndCompatibilityComputation(largeGraph4_invalid1,5,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_4");
+		testGeneralPairScoreComputation(largeGraph4_invalid1, "testPairCompatible2_4",-1,null);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////

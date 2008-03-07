@@ -400,7 +400,7 @@ public class PairScoreComputation {
 			}
 		}
 		
-		if (mergedVertices != null)	mergedVertices.clear();
+		mergedVertices.clear();
 		int equivalenceClassNumber = 0;
 		Map<CmpVertex,EquivalenceClass> stateToEquivalenceClass = new TreeMap<CmpVertex,EquivalenceClass>();
 		int score = 0;// compatibility score between states in the pair
@@ -448,7 +448,7 @@ public class PairScoreComputation {
 					{
 						// if the two are the same, we've seen this pair before - ignore this case
 						// neither are null, hence it looks like we have to merge the two equivalent classes - doing this via inplace update
-						// TODO: to write a test to explore this case
+						// Tested by testPairCompatible_general_C()
 						equivalenceClass = firstClass;
 						equivalenceClass.setTo(secondClass);// merge equivalence classes
 					}
@@ -489,14 +489,16 @@ public class PairScoreComputation {
 		
 		assert stateToEquivalenceClass.size() > 0;
 		//System.out.println(stateToEquivalenceClass);
-		if (score >=0 && mergedVertices != null)
+		if (score >=0)
 		{// merge successful - collect vertices from the equivalence classes
+			int equivalenceClasses = 0;
 			Map<Integer,Collection<CmpVertex>> classToVertices = new TreeMap<Integer,Collection<CmpVertex>>();
 			for(Entry<CmpVertex,EquivalenceClass> entry:stateToEquivalenceClass.entrySet())
 			{
 				int eqClass = entry.getValue().getNumber();Collection<CmpVertex> merged = classToVertices.get(eqClass);
 				if (merged == null)
 				{
+					equivalenceClasses++;
 					merged = new LinkedList<CmpVertex>();classToVertices.put(eqClass, merged);
 				}
 				merged.add(entry.getKey());
@@ -504,10 +506,11 @@ public class PairScoreComputation {
 			mergedVertices.addAll(classToVertices.values());
 			Collection<CmpVertex> verticesNotMerged = new HashSet<CmpVertex>();verticesNotMerged.addAll(coregraph.transitionMatrix.keySet());
 			verticesNotMerged.removeAll(stateToEquivalenceClass.keySet());
+			equivalenceClasses+=verticesNotMerged.size();score=coregraph.transitionMatrix.size()-equivalenceClasses;
 			for(CmpVertex vert:verticesNotMerged)
 				mergedVertices.add(Arrays.asList(new CmpVertex[]{vert}));
 		}
-		
+
 		return score;
 	}
 	

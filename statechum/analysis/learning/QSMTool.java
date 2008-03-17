@@ -65,11 +65,13 @@ public class QSMTool {
 		Configuration config = Configuration.getDefaultConfiguration();
 		config.setDebugMode(true);
 		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
+		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		if (!includeLTL)
-			new PickNegativesVisualiser()
-					.construct(sPlus, sMinus, null, config);
+			pnv.construct(sPlus, sMinus, null, config);
 		else
-			new PickNegativesVisualiser().construct(sPlus, sMinus, ltl, config);
+			pnv.construct(sPlus, sMinus, ltl, config);
+		
+		pnv.startLearner(null);
 	}
 
 	private static void process(String fileString, Set<List<String>> sPlus,

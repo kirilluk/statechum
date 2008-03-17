@@ -89,6 +89,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	 */
 	public void updateGraph(DirectedSparseGraph g)
 	{
+		setChanged();
 		if (config.getDebugMode())
 			notifyObservers(g);
 	}

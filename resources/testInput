@@ -1,9 +1,6 @@
 active
-k 0
-+ load close exit
-+ load edit edit save exit
++ load edit close exit
++ load edit edit save edit exit
 + load edit save close load exit
-- close
-- load save load
 #ltl s ![] ((save_as) -> ((save_as) U (ok)))
-#ltl s ![] (exit -> ([] exit))
+#ltl s []((exit) -> [](exit))

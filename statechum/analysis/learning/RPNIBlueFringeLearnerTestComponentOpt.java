@@ -181,7 +181,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-
+			if(config.getDebugMode())
+				updateGraph(temp.paths.getGraph());
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 
@@ -294,6 +295,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
+		updateGraph(result);
 		return result;
 	}
 	

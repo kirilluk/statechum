@@ -19,211 +19,297 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.impl.*;
-import edu.uci.ics.jung.graph.*;
-import edu.uci.ics.jung.utils.*;
-import edu.uci.ics.jung.statistics.*;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 
 import java.util.*;
+import java.util.Map.Entry;
 
-import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.TestFSMAlgo;
-import statechum.xmachine.model.testset.*;
+import statechum.xmachine.model.testset.PTASequenceSet;
+import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 
 public class RandomPathGenerator {
 	
-	protected DirectedSparseGraph g;
-	private PTASequenceSet sPlus, sMinus;
-	private int extradiameter=0;
+	protected LearnerGraph g;
+	final int pathLength;
+	final Random randomNumberGenerator;
+	
+	/** An array representation of the transition matrix of the graph, needed for fast computation of random walks. */
+	private Map<CmpVertex,ArrayList<Entry<String,CmpVertex>>> transitions = new TreeMap<CmpVertex,ArrayList<Entry<String,CmpVertex>>>();
+	/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
+	private Map<CmpVertex,ArrayList<String>> inputsRejected = new TreeMap<CmpVertex,ArrayList<String>>();
 	
 	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
 	 * to java's Random being non-serialisable.
 	 *  
-	 * @param baseGraph
-	 * @param randomGenerator
-	 * @param extraToDiameter the length of paths will be diameter plus this value.
+	 * @param baseGraph the graph to operate on
+	 * @param random the random number generator.
+	 * @param extra the length of paths will be diameter plus this value.
 	 */ 
-	public RandomPathGenerator(DirectedSparseGraph baseGraph, Random randomGenerator, int number,  int extraToDiameter) {
-		pathRandomNumberGenerator = randomGenerator;
-		sPlus = new PTASequenceSet();
-		sMinus = new PTASequenceSet();
-		g = baseGraph;
-		this.extradiameter = extraToDiameter;
-		this.populateRandomWalksC(number, diameter(g)+extradiameter);
-		this.populateNegativeRandomWalksC(number, diameter(g)+extradiameter);
-	}
-	
-	public static int diameter(DirectedSparseGraph graph)
-	{// TODO: to rewrite using a flowgraph or not?
-		DijkstraDistance dd = new DijkstraDistance(graph);
-		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(graph)).values();
-		ArrayList<Double> distancesList = new ArrayList<Double>(distances);
-		Collections.sort(distancesList);
-		return distancesList.get(distancesList.size()-1).intValue();
-	}
-
-	private void populateRandomWalksC(int number, int maxLength){
-		int counter=0, unsucc = 0;
-		LearnerGraph fsm = new LearnerGraph(g,Configuration.getDefaultConfiguration());
-		Random length = new Random(0);
-		while(counter<number){
-			List<String> path = new ArrayList<String>(maxLength);
-			CmpVertex current = fsm.init;
-			if(unsucc>100)
-				return;
-			int randomLength =  0;
-			while(randomLength == 0)
-				randomLength=length.nextInt(maxLength+1);
-			for(int i=0;i<randomLength;i++){
-				Map<String,CmpVertex> row = fsm.transitionMatrix.get(current);
-				if(row.isEmpty())
-					break;
-				String nextInput= (String)pickRandom(row.keySet());
-				path.add(nextInput);
-				current = row.get(nextInput);
-			}
-			int oldSize = sPlus.size();	
-			sPlus.add(new ArrayList<String>(path));
-			if(sPlus.size()>oldSize){
-				counter++;
-				unsucc=0;
-			}
-			else{
-				unsucc++;
-				
-			}
-		}
-	}
-
-	private void populateNegativeRandomWalksC(int number, int maxLength){
-		int counter=0, unsucc = 0;
-		LearnerGraph fsm = new LearnerGraph(g,Configuration.getDefaultConfiguration());
-		Set<String> alphabet = fsm.wmethod.computeAlphabet();
-		Random length = new Random(0);
-		while(counter<number){
-			boolean skip = false;
-			List<String> path = new ArrayList<String>(maxLength);
-			CmpVertex current = fsm.init;
-			if(unsucc>100)
-				return;
-			int randomLength =  0;
-			while(randomLength == 0)
-				randomLength=length.nextInt(maxLength+1)+1;
-			for(int i=0;i<randomLength;i++){
-				Map<String,CmpVertex> row = fsm.transitionMatrix.get(current);
-				if(row.isEmpty()){
-					skip = true;
-					break;
-				}
-				if(i==randomLength-1){
-					Set<String> negatives = new HashSet<String>();
-					negatives.addAll(alphabet);
-					negatives.removeAll(row.keySet());
-					if(negatives.isEmpty()){
-						skip = true;
-						break;
-					}
-					path.add((String)pickRandom(negatives));
-				}
-				else{
-					String nextInput= (String)pickRandom(row.keySet());
-					path.add(nextInput);
-					current = row.get(nextInput);
-				}
-			}
-			if(skip){
-				skip = false;
-				continue;
-			}
-			int oldSize = sMinus.size();	
-			sMinus.add(new ArrayList<String>(path));
-			if(sMinus.size()>oldSize){
-				counter++;
-				unsucc=0;
-			}
-			else{
-				unsucc++;
-				
-			}
-		}
-	}
-	
-	public Collection<List<String>> makeCollectionNegative(Collection<List<String>> pathCollection, int negativesPerPositive){
-		Set<List<String>> negativePaths = new HashSet<List<String>>(); 
-		Iterator<List<String>> collectionIt = pathCollection.iterator();
-		LearnerGraph fsm = new LearnerGraph(g,Configuration.getDefaultConfiguration());
-		while(collectionIt.hasNext()){
-			List<String> path = collectionIt.next();
-			CmpVertex current = fsm.init;
-			Map<String,CmpVertex> row = null;
-			for(int i=0;i<path.size();i++){
-				row = fsm.transitionMatrix.get(current);
-				String next = path.get(i);
-				current = row.get(next);
-			}
-			for(int i=0;i<negativesPerPositive;i++){
-				List<String> negativeString = makeNegative(fsm, path, current, negativePaths);
-				if(negativeString.size()>0)
-					negativePaths.add(negativeString);
-			}
-		}
-		return negativePaths;
-	}
-	
-	private List<String> makeNegative(LearnerGraph fsm, List<String> positivePath, CmpVertex current, Set<List<String>> negativePaths){
-		Map<String,CmpVertex>row = fsm.transitionMatrix.get(current);
-		List<String> negativePath = new ArrayList<String>();
-		Set<String> alphabet = fsm.wmethod.computeAlphabet();
-		Vector<String> negatives = new Vector<String>();
-		negatives.addAll(alphabet);
-		negatives.removeAll(row.keySet());
-		negativePath.addAll(positivePath);
-		for(int i=0;i<negatives.size();i++){
-			String negative = negatives.get(i);
-			negativePath.add(negative);
-			if(!negativePaths.contains(negativePath))
-				return negativePath;
-			else
-				negativePath.remove(negativePath.size()-1);
-		}
-		return new ArrayList<String>();
-	}
-
-	
-	private final Random pathRandomNumberGenerator; 
-	
-	private Object pickRandom(Collection c){
-		Object[] array = c.toArray();
-		if(array.length==1)
-			return array[0];
-		else{
-			int random = pathRandomNumberGenerator.nextInt(array.length);
-			return array[random];
-		}
-	}
-
-	public Collection<List<String>> getSPlus() {
-		return sPlus;
-	}
-	
-	public Collection<List<String>> getNegativePaths(){
-		Collection<List<String>> allPaths = new LinkedList<List<String>>();
+	public RandomPathGenerator(LearnerGraph graph, Random random, int extra) {
+		g = graph;randomNumberGenerator = random;
+		pathLength = diameter(g)+extra;
 		
-		allPaths.addAll(sMinus.getData());
-		return allPaths;
+		transitions.clear();inputsRejected.clear();
+		/** The alphabet of the graph. */
+		Set<String> alphabet = g.wmethod.computeAlphabet();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		{
+			ArrayList<Entry<String,CmpVertex>> row = new ArrayList<Entry<String,CmpVertex>>();row.addAll(entry.getValue().entrySet());
+			transitions.put(entry.getKey(), row);
+			
+			Set<String> negatives = new LinkedHashSet<String>();
+			negatives.addAll(alphabet);negatives.removeAll(entry.getValue().keySet());
+			ArrayList<String> rejects = new ArrayList<String>();rejects.addAll(negatives);
+			inputsRejected.put(entry.getKey(), rejects);
+		}
 	}
 	
-	public Collection<List<String>> getAllPaths(){
-		Collection<List<String>> allPaths = new LinkedList<List<String>>();
-		
-		allPaths.addAll(sPlus.getData());
-		return allPaths;
+	public static int diameter(LearnerGraph graph)
+	{// TODO: to rewrite using a flowgraph or not, given that this is only used once per experiment? 
+		DirectedSparseGraph g = graph.paths.getGraph();
+		DijkstraDistance dd = new DijkstraDistance(g);
+		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(g)).values();
+		Double result =-1.;
+		for(Double distance:distances) if (result<distance) result=distance;
+		return result.intValue();
 	}
-	
-	
 
+	/** All new states will be given this %%. Used to change names for states, 
+	 * in order to ensure that tail states have special names 
+	 * (i.e. %% of a full set of walk they belong to), 
+	 * which can subsequently be used to filter the PTA.
+	 */
+	Integer tag = 0;
+
+	/** When generating a PTA for a specific %%, this variable is 
+	 * used to filter out all nodes with %% over filter. 
+	 */
+	int filter =0;
+	
+	class PercentLabelledPTA extends PTASequenceSetAutomaton
+	{
+		// The automaton to back a PTA tree containing all walks generated.
+		@Override
+		public Object getTheOnlyState() {
+			return tag;
+		}
+		
+		@Override
+		public boolean shouldBeReturned(Object elem) {
+			return ((Integer)elem).intValue() <= filter;
+		}
+	}
+	
+	protected PTASequenceSet allSequences = new PTASequenceSet(new PercentLabelledPTA()),
+		extraSequences = new PTASequenceSet(new PercentLabelledPTA());
+	
+	/** Generates a random walk through the graph. Since it attempts to add elements to a graph
+	 * in the course of checking whether they belong to it, it should be used to add
+	 * elements longest-first (this is also important to prevent short paths blocking walks
+	 * if an automaton has a narrow path leading to some parts of it). 
+	 * A path is only generated if it is not contained in the <em>allSequences</em> collection.
+	 *  
+	 * @param walkLength the length of a walk. 
+	 * @param prefixLen the length of the path to check for existence in a PTA. This is 
+	 * useful for generation of negative paths such that for each such path,
+	 * where a positive prefix is unique in a PTA. 
+	 * @param positive whether to generate a positive walk.
+	 * @param allSequences contains all sequences generated.
+	 * @return the path computed. Throws IllegalArgument exception if arguments are wrong. 
+	 * Returns null if the requested number of paths cannot be computed (because graph does not 
+	 * have enough transitions).
+	 */
+	List<String> generateRandomWalk(int walkLength, int prefixLen, boolean positive)
+	{
+		if (walkLength < 1) 
+			throw new IllegalArgumentException("cannot generate paths with length less than one");
+		if (prefixLen < 1 || prefixLen > walkLength)
+			throw new IllegalArgumentException("invalid prefix length");
+		
+		int generationAttempt = 0;
+		List<String> path = new ArrayList<String>(walkLength);
+		do
+		{
+			path.clear();
+			CmpVertex current = g.init;
+
+			int positiveLength = positive?walkLength:walkLength-1;
+			if (positiveLength>0)
+			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
+				for(int i=0;i<positiveLength;i++)
+				{
+					ArrayList<Entry<String,CmpVertex>> row = transitions.get(current);
+					if(row.isEmpty())
+						break;// cannot make a transition
+					Entry<String,CmpVertex> inputState = row.get(randomNumberGenerator.nextInt(row.size()));
+					path.add(inputState.getKey());current = inputState.getValue();
+				}
+			}
+			
+			if (path.size() == positiveLength && !positive)
+			{// successfully generated a positive path of the requested length, append a negative transition.
+				// In the situation where we'd like to generate both negatives and 
+				// one element shorter positives, we'd have to copy our positive 
+				// and then append a negative to the copy. It takes as long to take 
+				// all negatives and make copy of all but one elements, given that 
+				// they are ArrayLists. 
+				ArrayList<String> rejects = inputsRejected.get(current);
+				if (!rejects.isEmpty())
+					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
+			}
+			
+			generationAttempt++;
+				
+			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
+				return null;
+		}
+		while(path.size() < walkLength || allSequences.contains(path.subList(0, prefixLen)));
+		return path;
+	}
+		
+	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
+	 * 
+	 * @param upToChunk how many chunks to combine before returning the result.
+	 * @return the result. 
+	 */
+	public PTASequenceEngine getAllSequences(int upToChunk)
+	{
+		filter = upToChunk;return allSequences.filter();
+	}
+	
+	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
+	 * 
+	 * @param upToChunk how many chunks to combine before returning the result.
+	 * @return the result. 
+	 */
+	public PTASequenceEngine getExtraSequences(int upToChunk)
+	{
+		filter = upToChunk;return extraSequences.filter();
+	}
+	
+	/** Generates positive and negative paths where negatives are just 
+	 * positives with an extra element added at the end. 
+	 * Data added is split into a number of parts, with a specific 
+	 * number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 * @param length the maximal length of paths, minimal is 1.
+	 */
+	public void generatePosNeg(int numberPerChunk, int chunks)
+	{
+		if (pathLength < 2)
+			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
+		if (numberPerChunk % 2 != 0)
+			throw new IllegalArgumentException("Number of sequences per chunk must be even");
+		
+		int seqNumber = chunks*numberPerChunk/2;
+		int distribution [] = new int[seqNumber];
+		RandomLengthGenerator rnd = new RandomLengthGenerator(){
+
+			public int getLength() {
+				return randomNumberGenerator.nextInt(pathLength-1)+2;// the shortest length is 2
+			}
+
+			public int getPrefixLength(int len) {
+				return len-1;
+			}
+			
+		};
+		for(int i=0;i < seqNumber;++i)
+			distribution[i]= rnd.getLength();
+		Arrays.sort(distribution);
+		//for(int i=0;i<distribution.length;++i)
+		//	System.out.println("distribution[i] = "+distribution[i]);
+		for(int i=seqNumber-1;i>=0;--i)
+		{
+			tag = i % chunks;
+			//System.out.println("generating for chunk "+tag+" with length "+distribution[i]);
+			List<String> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
+			allSequences.add(path);
+			extraSequences.add(path.subList(0, path.size()-1));// all positives go there
+		}
+	}
+	
+	interface RandomLengthGenerator 
+	{
+		public int getLength();
+		public int getPrefixLength(int len);
+	}
+	
+	
+	/** Generates random positive and negative paths. 
+	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 */
+	public void generateRandomPosNeg(int numberPerChunk, int chunks)
+	{
+		if (pathLength < 2)
+			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
+
+		int seqNumber = chunks*numberPerChunk/2;
+		int distribution [] = new int[seqNumber];
+		RandomLengthGenerator rnd = new RandomLengthGenerator(){
+
+			public int getLength() {
+				return randomNumberGenerator.nextInt(pathLength)+1;
+			}
+
+			public int getPrefixLength(int len) {
+				return len;
+			}
+			
+		};
+		
+		for(int i=0;i < seqNumber;++i)
+			distribution[i]=rnd.getLength();
+		Arrays.sort(distribution);
+		for(int i=seqNumber-1;i>=0;--i)
+		{
+			tag = i % chunks;
+			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,false));
+			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,true));
+		}
+	}
+	
+	/** Counts the number of times sequence length was revised during
+	 * sequence generation. 0 means that the length was never revised. 
+	 */
+	private List<String> fudgeDetails = new LinkedList<String>();
+	
+	public List<String> getFudgeDetails()
+	{
+		return fudgeDetails;
+	}
+	
+	/** Generates a walk, but if none can be produced for a given seq length, 
+	 * attempts to randomly choose a different length.
+	 */
+	List<String> generateRandomWalkWithFudge(int origWalkLength, RandomLengthGenerator rnd,boolean positive)
+	{
+		List<String> path = generateRandomWalk(origWalkLength, rnd.getPrefixLength(origWalkLength), positive);
+		if (path != null)
+			return path;
+
+		for(int i=1;i<g.config.getRandomPathAttemptFudgeThreshold();++i)
+		{
+			int revisedWalkLength = rnd.getLength();
+			path = generateRandomWalk(revisedWalkLength, rnd.getPrefixLength(revisedWalkLength), positive);
+			if (path != null)
+			{
+				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength));
+				return path;
+			}
+		}
+		
+		throw new IllegalArgumentException("failed to generate a "+(positive?"positive":"negative")+
+				" path of length "+origWalkLength+" (prefix length "+rnd.getPrefixLength(origWalkLength)+") after even after trying to fudge it "+
+				g.config.getRandomPathAttemptFudgeThreshold()+" times");
+	}
 }

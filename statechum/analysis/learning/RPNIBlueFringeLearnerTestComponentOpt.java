@@ -42,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -140,6 +141,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 	/** The size of the initial plus/minus sets. */
 	protected int origPlusSize, origMinusSize;
 	
+	public void initWithPTA(PTASequenceEngine engine)
+	{
+		scoreComputer.initPTA();
+	}
+	
 	@Override
 	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
@@ -149,6 +155,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		origMinusSize = plus.size();origMinusSize = minus.size();
 	}
 	
+	public void init(PTASequenceEngine en, int plusSize, int minusSize)
+	{
+		scoreComputer.initPTA();
+		scoreComputer.paths.augmentPTA(en);
+
+		origMinusSize = plusSize;origMinusSize = minusSize;
+	}
+
 	@Override
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
@@ -217,7 +231,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						++counterRejected;
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
 						//sMinus.add(subAnswer);
-						newPTA.paths.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs is 
+						newPTA.paths.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs are 
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
 						

@@ -21,7 +21,9 @@ package statechum.analysis.learning;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,6 +31,10 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
+import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine.DebugDataValues;
+import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -52,11 +58,69 @@ public class TestPTAConstruction
 		TestFSMAlgo.checkM(actualC, expectedPTA,config);
 	}
 
+	private static PTASequenceEngine buildPTA(Set<List<String>> plusStrings,Set<List<String>> minusStrings)
+	{
+		final Boolean accept = new Boolean(true), reject = new Boolean(false);
+		boolean theOnlyStateReject = false;
+		for(List<String> seq:minusStrings)
+			if (seq.isEmpty())
+			{
+				theOnlyStateReject = true;break;
+			}
+		final Boolean rejectAllStates = new Boolean(theOnlyStateReject);
+		final AtomicBoolean statesAccept = new AtomicBoolean(true);
+		PTASequenceEngine allSequences = new PTASequenceEngine();
+		allSequences.init(new PTASequenceSetAutomaton()
+		{
+			@Override
+			public Object getTheOnlyState() {
+				return statesAccept.get()?accept:reject;
+			}
+			@Override
+			public boolean shouldBeReturned(Object elem) {
+				return elem != null && ((Boolean)elem).booleanValue();
+			}
+			@Override
+			public boolean isAccept(@SuppressWarnings("unused")	Object elem)
+			{
+				return !rejectAllStates.booleanValue();
+			}
+		});
+		SequenceSet initSeq = allSequences.new SequenceSet();initSeq.setIdentity();
+		initSeq.cross(plusStrings);statesAccept.getAndSet(false);initSeq.cross(minusStrings);
+		
+		return allSequences;
+	}
+
+	/** Checks if a PTA constructed is consistent with provided sequences. */
+	private void checkPTAConsistency(PTASequenceEngine engine,Set<List<String>> sequences, boolean accept)
+	{
+		SequenceSet initSeq = engine.new SequenceSet();initSeq.setIdentity();
+		// Now we check the consistency
+		for(List<String> seq:sequences)
+		{
+			SequenceSet endOfSeq = initSeq.crossWithSequence(seq);
+			Map<String,String> map = engine.getDebugDataMapDepth(endOfSeq);
+			assert map.size() == 1: "expected size of 1, got "+map.size();
+			String attrs = map.values().iterator().next();
+			// For reject-sequences,
+			// If the end of the sequence is not a leaf, it should be considered positive, hence throw.
+			// If the end of the sequence is a leaf but should be returned, throw.
+			// The only remaining case is that the end is a leaf and should not be returned - this is ok.
+			if (!accept && !attrs.equals(DebugDataValues.booleanToString(true,false)))
+				throw new IllegalArgumentException("reject-sequence "+seq+" is present in PTA with a positive ending");
+			// For accept-sequences, the only erroneous case is when a leaf is not returned.
+			// (we assume that non-leaf is always returned.) 
+			if (accept && attrs.equals(DebugDataValues.booleanToString(true,false)))
+				throw new IllegalArgumentException("reject-sequence "+seq+" is present in PTA with a negative ending");
+		}		
+	}
+	
 	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualC = null;
-		IllegalArgumentException eA = null, eC = null;
+		DirectedSparseGraph actualA = null, actualC = null, actualD = null, actualE = null;
+		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
 		try
 		{
 			actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
@@ -81,24 +145,62 @@ public class TestPTAConstruction
 			eC = e;
 		}
 
+		try
+		{
+			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
+			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
+			l.init(engine,0,0);
+			actualD = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eD = e;
+		}
+
+		try
+		{
+			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
+			for(List<String> seq:minusStrings)
+				l.scoreComputer.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
+			actualE = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eE = e;
+		}
+
 		if (eA != null)
 		{
 			Assert.assertNotNull(eC);
+			Assert.assertNotNull(eD);
+			Assert.assertNotNull(eE);
 			throw eA;
 		}
-		else
-			if (eC != null)
-			{
-				Assert.assertNotNull(eA);
-				Assert.assertNotNull(eC);
-				throw eA;
-			}
+		
+		Assert.assertNull(eA);
+		Assert.assertNull(eC);
+		Assert.assertNull(eD);
+		Assert.assertNull(eE);
 				
 		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualA.getEdges().size());
 
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualC.getEdges().size());
+
+		Assert.assertEquals(1, actualD.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0, actualD.getEdges().size());
+
+		Assert.assertEquals(1, actualE.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0, actualE.getEdges().size());
 	}
 	
 	/** An empty accept trace. */
@@ -140,8 +242,8 @@ public class TestPTAConstruction
 	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualC =null;
-		IllegalArgumentException eA = null, eC = null;
+		DirectedSparseGraph actualA = null, actualC =null, actualD = null, actualE = null;
+		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
 		try
 		{
 			actualA = new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
@@ -166,22 +268,58 @@ public class TestPTAConstruction
 			eC = e;
 		}
 		
+		try
+		{
+			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
+			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
+			l.init(engine,0,0);
+			actualD = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eD = e;
+		}
+
+		try
+		{
+			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
+			for(List<String> seq:minusStrings)
+				l.scoreComputer.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
+			actualE = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eE = e;
+		}
+
 		if (eA != null)
 		{
 			Assert.assertNotNull(eC);
+			Assert.assertNotNull(eD);
+			Assert.assertNotNull(eE);
 			throw eA;
 		}
-		else
-			if (eC != null)
-			{
-				Assert.assertNotNull(eA);
-				throw eA;
-			}
+
+		Assert.assertNull(eA);
+		Assert.assertNull(eC);
+		Assert.assertNull(eD);
+		Assert.assertNull(eE);
 
 		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
 		config.setAllowedToCloneNonCmpVertex(true);
 		TestFSMAlgo.checkM(actualA, expectedPTA,config);
 		TestFSMAlgo.checkM(actualC, expectedPTA,config);
+		//Visualiser.updateFrame(actualE,TestFSMAlgo.buildGraph(expectedPTA,"expected graph"));Visualiser.waitForKey();
+		TestFSMAlgo.checkM(actualD,expectedPTA ,config);
+		TestFSMAlgo.checkM(actualE,expectedPTA ,config);
 	}
 	
 	@Test

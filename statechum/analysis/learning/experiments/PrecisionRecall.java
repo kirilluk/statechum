@@ -32,7 +32,7 @@ public class PrecisionRecall {
 	
 	public PrecisionRecall(){}
 
-	public PrecisionRecall(Collection ret, Collection rel){
+	public PrecisionRecall(Collection<List<String>> ret, Collection<List<String>> rel){
 		precision = computePrecision(ret, rel);
 		recall = computeRecall(ret,rel);
 		fMeasure = (2*precision*recall)/(precision+recall);
@@ -40,24 +40,24 @@ public class PrecisionRecall {
 	
 	
 	
-	protected double computePrecision(Collection ret, Collection rel){
-		Collection relret = new HashSet();
+	protected double computePrecision(Collection<List<String>> ret, Collection<List<String>> rel){
+		Collection<List<String>> relret = new HashSet<List<String>>();
 		relret.addAll(ret);
 		relret.retainAll(rel);
 		if(relret.isEmpty())
 			return 0;
-		else
-			return (double)relret.size()/(double)ret.size();
+		
+		return (double)relret.size()/(double)ret.size();
 	}
 	
-	protected double computeRecall(Collection ret, Collection rel){
-		Collection relret = new HashSet();
+	protected double computeRecall(Collection<List<String>> ret, Collection<List<String>> rel){
+		Collection<List<String>> relret = new HashSet<List<String>>();
 		relret.addAll(ret);
 		relret.retainAll(rel);
 		if(relret.isEmpty())
 			return 0;
-		else
-			return (double)relret.size()/(double)rel.size();
+
+		return (double)relret.size()/(double)rel.size();
 	}
 
 	public double getFMeasure() {

@@ -40,7 +40,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.oracles.*;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
+import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -73,6 +73,8 @@ public class LearnerGraph {
 	
 		public boolean isAccept(Object currentState) 
 		{
+			if (currentState == null)
+				return true;// always return reject-nodes
 			return ((CmpVertex)currentState).isAccept();
 		}
 

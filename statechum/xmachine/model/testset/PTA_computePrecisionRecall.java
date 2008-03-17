@@ -20,6 +20,7 @@ package statechum.xmachine.model.testset;
 
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
@@ -40,9 +41,10 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	
 	protected static class PosNegPrecisionRecallNum extends PosNegPrecisionRecall
 	{
-// Very strange: if we do not expect any negative (or any positive) sequences, the final precision is always zero.
+// FIXME: strange: if we do not expect any negative (or any positive) sequences, the final precision is always zero.
 		public PosNegPrecisionRecallNum(int pos_Ret, int pos_Rel, int pos_relret, int neg_Ret, int neg_Rel, int neg_relret) {
-			super(new HashSet(),new HashSet(), new HashSet(), new HashSet());
+			super(new HashSet<List<String>>(),new HashSet<List<String>>(), 
+					new HashSet<List<String>>(), new HashSet<List<String>>());
 			
 			negprecision = neg_Ret>0?(double)neg_relret/(double)neg_Ret:0;
 			posprecision = pos_Ret>0?(double)pos_relret/(double)pos_Ret:0;
@@ -54,7 +56,7 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 		}
 	}
 
-	private void updateCounters(Node currentExplorationNode, Node currentLearntNode,PTATestSequenceEngine pc)
+	private void updateCounters(Node currentExplorationNode, Node currentLearntNode,PTASequenceEngine pc)
 	{
 		//System.out.println("matching "+currentExplorationNode+" and "+currentLearntNode);
 		/* First, we process a pair of the two nodes being considered. */ 
@@ -86,7 +88,7 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	 * @param pc the set of sequences.
 	 * @return precision/recall values 
 	 */
-	public PosNegPrecisionRecall crossWith(PTATestSequenceEngine pc)
+	public PosNegPrecisionRecall crossWith(PTASequenceEngine pc)
 	{
 		pos_Ret = 0;pos_Rel = 0;pos_relret = 0;neg_Ret = 0;neg_Rel = 0;neg_relret = 0;
 		

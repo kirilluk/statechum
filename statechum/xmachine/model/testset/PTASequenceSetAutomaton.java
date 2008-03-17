@@ -18,7 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.xmachine.model.testset;
 
-import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
+import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
 
 /**
  * @author kirill
@@ -26,19 +26,24 @@ import statechum.xmachine.model.testset.PTATestSequenceEngine.FSMAbstraction;
  */
 public class PTASequenceSetAutomaton implements FSMAbstraction {
 	public static final String theOnlyState = "TheOnlyState";
-	
+		
 	public PTASequenceSetAutomaton() 
 	{ 
 	}
 	
-	public Object getInitState() {
+	public Object getInitState() 
+	{
+		return getTheOnlyState();
+	}
+	public Object getTheOnlyState() 
+	{
 		return theOnlyState;
 	}
 
 	public Object getNextState(
 			@SuppressWarnings("unused")	Object currentState, 
 			@SuppressWarnings("unused")	String input) {
-		return theOnlyState;
+		return getTheOnlyState();
 	}
 
 	public boolean isAccept(

@@ -26,23 +26,34 @@ import java.util.Set;
 
 public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
 {
-	protected PTATestSequenceEngine engine = new PTATestSequenceEngine();
-	protected PTATestSequenceEngine.sequenceSet initSet;
+	protected PTASequenceEngine engine = new PTASequenceEngine();
+	protected PTASequenceEngine.SequenceSet initSet;
 
 	protected boolean empty = true;
 	
 	public PTASequenceSet()
 	{
 		engine.init(new PTASequenceSetAutomaton());		
-		initSet = engine.new sequenceSet();initSet.setIdentity();
+		initSet = engine.new SequenceSet();initSet.setIdentity();
 	}
 	
+	/** Creates this set with a specific automaton implementing PTA. Important when
+	 * such an automaton can be an odd one, such is the one with changing state or
+	 * changing accept-condition.
+	 * 
+	 * @param automaton
+	 */
+	public PTASequenceSet(PTASequenceSetAutomaton automaton)
+	{
+		engine.init(automaton);		
+		initSet = engine.new SequenceSet();initSet.setIdentity();
+	}
 	
 	public boolean add(List<String> o) {
 		initSet.crossWithSequence(o);empty = false;
 		return true;
 	}
-
+	
 	public boolean addAll(Collection<? extends List<String>> c) {
 		if (empty && c.size() > 0)
 			empty = false;
@@ -55,11 +66,13 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 	}
 
 	public boolean contains(Object o) {
-		throw new UnsupportedOperationException();
+		return engine.containsSequence( (List<String>)o);
 	}
 
 	public boolean containsAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
+		for(Object elem:c)
+			if (!contains(elem)) return false;
+		return true;
 	}
 
 	public boolean isEmpty() {
@@ -82,27 +95,27 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 					throw new UnsupportedOperationException();
 				}
 			};
-		else
-			return getData().iterator();
+		
+		return getData().iterator();
 	}
 
-	public boolean remove(Object o) {
+	public boolean remove(@SuppressWarnings("unused") Object o) {
 		throw new UnsupportedOperationException();
 	}
 
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	public boolean retainAll(Collection<?> c) {
+	public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
 		throw new UnsupportedOperationException();
 	}
 
-	/** Extremely slow. */
+	/** Fairly fast. */
 	public int size() {
 		if (empty) 
 			return 0;
-		return getData().size();
+		return engine.numberOfLeafNodes();
 	}
 	
 	public int treeSize() {
@@ -115,7 +128,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		throw new UnsupportedOperationException();
 	}
 
-	public <T> T[] toArray(T[] a) {
+	public <T> T[] toArray(@SuppressWarnings("unused") T[] a) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -130,4 +143,8 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		return engine.getData();
 	}
 
+	public PTASequenceEngine filter()
+	{
+		return engine.filter();
+	}
 }

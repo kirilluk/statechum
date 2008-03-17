@@ -31,6 +31,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -38,8 +39,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
+import statechum.xmachine.model.testset.PTAExploration;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -70,9 +72,9 @@ public class PathRoutines {
 	 */	
 	Collection<List<String>> computePathsBetween(CmpVertex vertSource, CmpVertex vertTarget)
 	{
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();paths.setIdentity(); 
+		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();paths.setIdentity(); 
 		computePathsSBetween(vertSource, vertTarget,initSet,paths);
 		return engine.getData();
 	}
@@ -90,8 +92,8 @@ public class PathRoutines {
 	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
 	 */	
 	public void computePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget,
-			PTATestSequenceEngine.sequenceSet pathsToVertSource,
-			PTATestSequenceEngine.sequenceSet result)
+			PTASequenceEngine.SequenceSet pathsToVertSource,
+			PTASequenceEngine.SequenceSet result)
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
@@ -142,7 +144,7 @@ public class PathRoutines {
 					{// found the vertex we are looking for
 						pathFound = true;
 						// now we need to go through all our states in a path and update pathsToVertSource
-						PTATestSequenceEngine.sequenceSet paths = pathsToVertSource;currentPath.add(vertTarget);CmpVertex curr = vertSource;
+						PTASequenceEngine.SequenceSet paths = pathsToVertSource;currentPath.add(vertTarget);CmpVertex curr = vertSource;
 						// process vertices
 						for(CmpVertex tgt:currentPath)
 						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
@@ -178,8 +180,8 @@ public class PathRoutines {
 	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
 	 */	
 	public void ORIGcomputePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget,
-			PTATestSequenceEngine.sequenceSet pathsToVertSource,
-			PTATestSequenceEngine.sequenceSet result)
+			PTASequenceEngine.SequenceSet pathsToVertSource,
+			PTASequenceEngine.SequenceSet result)
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
@@ -229,7 +231,7 @@ public class PathRoutines {
 					{// found the vertex we are looking for
 						pathFound = true;
 						// now we need to go through all our states in a path and update pathsToVertSource
-						PTATestSequenceEngine.sequenceSet paths = pathsToVertSource;
+						PTASequenceEngine.SequenceSet paths = pathsToVertSource;
 						CmpVertex curr = vertSource;Collection<String> inputsToMultWith = new LinkedList<String>();
 						
 						// process all but one vertices
@@ -326,6 +328,77 @@ public class PathRoutines {
 		return coregraph;
 	}
 	
+	/** Adds all paths from a supplied PTA to the graph. Whether a path is an accept or a 
+	 * reject one is determined by looking at that tail node of the PTA supplied. 
+	 * An accept-path added in its entirety; reject-path has the last node as reject and the rest are accept ones.
+	 * 
+	 * @param graph the graph to update
+	 */
+	public LearnerGraph augmentPTA(PTASequenceEngine engine)
+	{
+		PTAExploration<CmpVertex> exploration = new PTAExploration<CmpVertex>(engine) {
+			@Override
+			public CmpVertex newUserObject() {
+				return null;
+			}
+	
+			public void addVertex(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit, boolean accepted) 
+			{
+				CmpVertex ourVertex = null;
+				if (pathToInit.isEmpty())
+				{// processing the first vertex in a PTA
+					ourVertex = coregraph.init;
+				}
+				else
+				{// not the first vertex in a PTA
+					PTAExplorationNode prevNode = pathToInit.getFirst();
+					ourVertex = coregraph.transitionMatrix.get(prevNode.userObject).get(prevNode.getInput());
+					if (ourVertex == null)
+					{
+						synchronized (LearnerGraph.syncObj) 
+						{
+							ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());
+						}
+					}
+				}
+				currentNode.userObject = ourVertex;
+
+				if (ourVertex.isAccept() != accepted)
+				{ 
+					ourVertex.setHighlight(true);
+					boolean first = true;
+					StringBuffer result = new StringBuffer();
+					for(PTAExplorationNode node:pathToInit) { if (first) first=false;else result.insert(0,ArrayOperations.separator);result.insert(0,node.getInput()); }
+					throw new IllegalArgumentException("incompatible accept "+(accepted?"accept":"reject")+" labelling: "+result);
+				}					
+			}
+	
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit) {
+				addVertex(currentNode, pathToInit,true);// all states which are not leaf (tail) nodes should be accept states.
+			}
+			
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				addVertex(currentNode, pathToInit,currentNode.shouldBeReturned());// this is a leaf node, whether accept or 
+					// not depends on its labelling by the PTA; this one is determined 
+					// via shouldBeReturned method since the regular isAccept is reserved 
+					// to determine whether paths in a PTA grow. 
+			}
+	
+			@Override
+			public void nodeLeft(
+					@SuppressWarnings("unused") PTAExplorationNode currentNode,
+					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+			}
+		};
+		exploration.walkThroughAllPaths();
+		coregraph.learnerCache.invalidate();
+		return coregraph;
+	}
+
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
 	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
 	 * 

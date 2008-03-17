@@ -31,7 +31,7 @@ import java.util.Map.Entry;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 
 public class ComputeQuestions {
 	final LearnerGraph coregraph;
@@ -49,9 +49,9 @@ public class ComputeQuestions {
 	private static class ExplorationElement
 	{
 		public final Pair<CmpVertex,CmpVertex> pair;
-		public final PTATestSequenceEngine.sequenceSet pathsInOriginal;
+		public final PTASequenceEngine.SequenceSet pathsInOriginal;
 		
-		public ExplorationElement(CmpVertex first, CmpVertex second, PTATestSequenceEngine.sequenceSet paths)
+		public ExplorationElement(CmpVertex first, CmpVertex second, PTASequenceEngine.SequenceSet paths)
 		{
 			pair = new Pair<CmpVertex, CmpVertex>(first,second);pathsInOriginal=paths;
 		}
@@ -60,7 +60,7 @@ public class ComputeQuestions {
 	private static void buildQuestionsFromPair(
 			LearnerGraph original, CmpVertex originalRed, 
 			LearnerGraph merged, CmpVertex mergedRed, 
-			PTATestSequenceEngine.sequenceSet pathsInOriginal)
+			PTASequenceEngine.SequenceSet pathsInOriginal)
 	{
 		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
 		
@@ -80,7 +80,7 @@ public class ComputeQuestions {
 				secondRow = original.transitionMatrix.get(current.pair.secondElem);
 			targetToInputSet.clear();
 			System.out.println("before multiplying: "+current.pathsInOriginal.getDebugData());
-			PTATestSequenceEngine.sequenceSet multResult = current.pathsInOriginal.crossWithSet(firstRow.keySet());// transition cover of merged
+			PTASequenceEngine.SequenceSet multResult = current.pathsInOriginal.crossWithSet(firstRow.keySet());// transition cover of merged
 			System.out.println("about to multiply by "+firstRow.keySet());
 			System.out.println("after state cover: "+multResult.getDebugData());
 			if (LearnerGraph.testMode)
@@ -118,7 +118,7 @@ public class ComputeQuestions {
 			{
 				visitedStates.add(target.getKey());
 				CmpVertex newMergedVertex = firstRow.get(target.getValue().iterator().next());
-				PTATestSequenceEngine.sequenceSet stateCoverSoFar = current.pathsInOriginal.crossWithSet(target.getValue()); 
+				PTASequenceEngine.SequenceSet stateCoverSoFar = current.pathsInOriginal.crossWithSet(target.getValue()); 
 				currentExplorationBoundary.offer(new ExplorationElement(target.getKey(), newMergedVertex, 
 						stateCoverSoFar));
 				System.out.println("\tnew pair: "+target.getKey()+","+newMergedVertex+
@@ -134,14 +134,14 @@ public class ComputeQuestions {
 	 * @param pathsInOriginal
 	 */ 
 	private void buildQuestionsFromPair_Compatible(
-			CmpVertex mergedRed,PTATestSequenceEngine.sequenceSet pathsInOriginal)
+			CmpVertex mergedRed,PTASequenceEngine.SequenceSet pathsInOriginal)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
 
 		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(mergedRed);
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
-		Queue<PTATestSequenceEngine.sequenceSet> currentExplorationTargetStates = new LinkedList<PTATestSequenceEngine.sequenceSet>();
+		Queue<PTASequenceEngine.SequenceSet> currentExplorationTargetStates = new LinkedList<PTASequenceEngine.SequenceSet>();
 		currentExplorationBoundary.add(mergedRed);
 		currentExplorationTargetStates.add(pathsInOriginal);
 
@@ -149,7 +149,7 @@ public class ComputeQuestions {
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			CmpVertex currentVert = currentExplorationBoundary.remove();
-			PTATestSequenceEngine.sequenceSet currentPaths = currentExplorationTargetStates.remove();
+			PTASequenceEngine.SequenceSet currentPaths = currentExplorationTargetStates.remove();
 			targetToInputSet.clear();
 			
 			currentPaths.crossWithSet(coregraph.transitionMatrix.get(currentVert).keySet());
@@ -191,10 +191,10 @@ public class ComputeQuestions {
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		original.buildCachedData();merged.buildCachedData();
 		
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();
+		PTASequenceEngine engine = new PTASequenceEngine();
 		engine.init(original.new NonExistingPaths());
-		PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
-		PTATestSequenceEngine.sequenceSet initp = engine.new sequenceSet();initp.setIdentity();
+		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
+		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
 		merged.paths.computePathsSBetween(merged.init,mergedRed, initp, paths);
 		

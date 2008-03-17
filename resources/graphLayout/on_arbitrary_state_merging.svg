@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="297mm"
+   height="210mm"
+   id="svg2160"
+   sodipodi:version="0.32"
+   inkscape:version="0.45.1"
+   sodipodi:docbase="/home/kirill/workspace/XMachineTool/resources/graphLayout"
+   sodipodi:docname="on_arbitrary_state_merging.svg"
+   inkscape:output_extension="org.inkscape.output.svg.inkscape">
+  <defs
+     id="defs2162" />
+  <sodipodi:namedview
+     inkscape:document-units="mm"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.2279853"
+     inkscape:cx="490"
+     inkscape:cy="380"
+     inkscape:current-layer="layer1"
+     id="namedview2164"
+     inkscape:window-width="1259"
+     inkscape:window-height="1071"
+     inkscape:window-x="10"
+     inkscape:window-y="48" />
+  <metadata
+     id="metadata2166">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <flowRoot
+       xml:space="preserve"
+       id="flowRoot2169"><flowRegion
+         id="flowRegion2171"><rect
+           id="rect2173"
+           width="357.62653"
+           height="277.04727"
+           x="44.117672"
+           y="25.603308" /></flowRegion><flowPara
+         id="flowPara2175">When a pair of states is deemed incompatible by the blue-fringe, it cannot become compatible even if we merge states in an arbitrary graph because merging only increases a language accepted from every state (i.e. order-preserving), however a detected incompatibility is a consequence of a known negative transition contradicting a known positive one.</flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot2992"><flowRegion
+         id="flowRegion2994"><rect
+           id="rect2996"
+           width="369.71127"
+           height="254.07471"
+           x="70.847755"
+           y="171.61205" /></flowRegion><flowPara
+         id="flowPara2998">Generation of random walks:</flowPara><flowPara
+         id="flowPara3000">by tracking a progress on a PTA, I can make sure that I do not create a trace which subsumes an existing one.</flowPara><flowPara
+         id="flowPara3002" /><flowPara
+         id="flowPara3004">The overall problem is to ensure that for each %% I get the same distribution of sequence length. Ideally, the can be performed by doing GetData and picking sequences according to length.</flowPara><flowPara
+         id="flowPara3006" /><flowPara
+         id="flowPara3008">Maybe better to generate the whole initial set of sequences such that we get a known number of sequences of specific length. We could then associate tail nodes with sequence length and when given %%, filter out those which do not end at expected tails, by tracking nodes and computing a set of nodes which needs to be removed. </flowPara></flowRoot>  </g>
+</svg>

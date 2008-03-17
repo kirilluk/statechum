@@ -32,11 +32,11 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 import statechum.xmachine.model.testset.PTA_FSMStructure;
 import statechum.xmachine.model.testset.PrefixFreeCollection;
 import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
-import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
+import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
 
 public class WMethod {
 	final LearnerGraph coregraph;
@@ -118,8 +118,8 @@ public class WMethod {
 		characterisationSet = computeWSet(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
-		PTATestSequenceEngine engine = new PTA_FSMStructure(coregraph);
-		sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
+		PTASequenceEngine engine = new PTA_FSMStructure(coregraph);
+		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(stateCover);
 		
 		partialPTA.cross(characterisationSet);

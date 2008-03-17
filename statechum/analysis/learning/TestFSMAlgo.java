@@ -112,13 +112,17 @@ public class TestFSMAlgo {
 		assertFalse(p.equals(differentA));assertFalse(q.equals(differentA));
 		if (differentA != null)
 		{
-			assertFalse(differentA.equals(p));assertFalse(differentA.equals(q));
-			assertFalse(p.hashCode() == differentA.hashCode());assertFalse(q.hashCode() == differentA.hashCode());
+			assertFalse(differentA.equals(p));
+			assertFalse(differentA.equals(q));
+			assertFalse(p.hashCode() == differentA.hashCode());
+			assertFalse(q.hashCode() == differentA.hashCode());
 		}
 		if (differentB != null)
 		{
-			assertFalse(differentB.equals(p));assertFalse(differentB.equals(q));
-			assertFalse(p.hashCode() == differentB.hashCode());assertFalse(q.hashCode() == differentB.hashCode());
+			assertFalse(differentB.equals(p));
+			assertFalse(differentB.equals(q));
+			assertFalse(p.hashCode() == differentB.hashCode());
+			assertFalse(q.hashCode() == differentB.hashCode());
 		}
 	}
 	

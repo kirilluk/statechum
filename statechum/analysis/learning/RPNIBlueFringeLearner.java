@@ -127,8 +127,11 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 		return questionList;
 	}
 	
-	/** The dialog to be displayed to a user with questions to select. */
-	protected JDialog dialog = null;
+	/** The dialog to be displayed to a user with questions to select. 
+	 * This field should not really be public, but since different packages refer to it, 
+	 * I chose to make it public for the time being. 
+	 */
+	public JDialog dialog = null;
 	
 	/** the option pane. */
 	protected JOptionPane jop = null;	
@@ -175,8 +178,8 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 				setByAuto = QUESTION_AUTO;
 				return AutoAnswer;
 			}
-			else
-				setByAuto = "";
+			
+			setByAuto = "";
 		}
 		
 		final List<String> questionList = beautifyQuestionList(question);

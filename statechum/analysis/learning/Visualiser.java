@@ -21,7 +21,6 @@ package statechum.analysis.learning;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
@@ -143,7 +142,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 1L;
 
-			public void actionPerformed(ActionEvent e) {
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
 		        try {
 		        	if (propName != null)
 		        	{
@@ -167,7 +166,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 2L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 		    		reloadLayout(false);
 			}
@@ -176,7 +175,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 3L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph > 0)
 					restoreLayout(false,currentGraph-1);
@@ -186,7 +185,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 4L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				saveFrame(Visualiser.this, propName);
 				saveConfiguration();
@@ -196,7 +195,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 5L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused")	ActionEvent e) 
 			{
 				setVisible(false);dispose();
 				Visualiser.syncValue.set(true);
@@ -209,7 +208,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 6L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				Visualiser.syncValue.set(false);
 				synchronized (Visualiser.syncObject) {
@@ -222,7 +221,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 7L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.PICKING);
 			}
@@ -233,7 +232,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 8L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.TRANSFORMING);
 			}
@@ -244,7 +243,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 9L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph > 0)
 				{
@@ -257,7 +256,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 10L;
 
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph < graphs.size()-1)
 				{
@@ -283,11 +282,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 					act.actionPerformed(null);
 			}
 
-			public void keyReleased(KeyEvent arg0) 
+			public void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
 			{
 			}
 
-			public void keyTyped(KeyEvent key) 
+			public void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
 			{
 			}
 			
@@ -681,9 +680,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 	/** Used to make it possible to single-step through graph transforms. */
-	private final static Object syncObject = new Object();
+	final static Object syncObject = new Object();
 	/** Value to return to a thread which is waiting. */
-	private final static AtomicBoolean syncValue = new AtomicBoolean();
+	final static AtomicBoolean syncValue = new AtomicBoolean();
 	
 	/** Waits for a user to hit space on any of the visualiser windows. 
 	 * 
@@ -770,7 +769,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static String getLayoutFileName(Graph g)
 	{
 		String file = (String)g.getUserDatum(JUConstants.TITLE);
-		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
+		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
 		if (file == null)
 			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.toString()+" property has not been set on the graph");
 		
@@ -783,8 +782,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */
 	protected static String getConfigurationFileName()
 	{
-		String path = System.getenv(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
-		String file = System.getenv(VIZ_ENV_PROPERTIES.VIZ_CONFIG.toString());
+		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
+		String file = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_CONFIG.toString());
 		String result = null;
 		if (file != null)
 			result = path+System.getProperty("file.separator")+file+".xml";
@@ -816,14 +815,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			System.err.println("Configuration file "+configFileName+" does not exist.");
 		}
 		else
-		try {
-			if (configFileName != null)
-			{
-				XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
-				properties = (Properties) decoder.readObject();
-				windowCoords = (HashMap<String, Rectangle>) decoder.readObject();
-				decoder.close();
-			}
+		try 
+		{
+			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
+			properties = (Properties) decoder.readObject();
+			windowCoords = (HashMap<String, Rectangle>) decoder.readObject();
+			decoder.close();
 		} catch (Exception e) 
 		{// failed loading, (almost) ignore this.
 			System.err.println("Failed to load "+configFileName);
@@ -901,7 +898,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	     * 
 	     * @param decode XML decoder to use
 	     */
-	    public void restore(XMLDecoder decoder) throws IOException, ClassNotFoundException {
+	    public void restore(XMLDecoder decoder) 
+	    {
 	        Map<Integer,DoublePair> sourceMap = (Map<Integer,DoublePair>) decoder.readObject();
 	        for(Iterator<Map.Entry<Integer,DoublePair> > mi=sourceMap.entrySet().iterator();mi.hasNext();)
 	        {
@@ -914,13 +912,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 
-	public void mouseClicked(MouseEvent e) {
+	public void mouseClicked(@SuppressWarnings("unused") MouseEvent e) {
 	}
 
-	public void mouseEntered(MouseEvent e) {
+	public void mouseEntered(@SuppressWarnings("unused") MouseEvent e) {
 	}
 
-	public void mouseExited(MouseEvent e) {
+	public void mouseExited(@SuppressWarnings("unused") MouseEvent e) {
 	}
 
 	// The following is from http://java.sun.com/docs/books/tutorial/uiswing/components/menu.html#popup

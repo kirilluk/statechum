@@ -459,8 +459,8 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		}
 		if(!returnSet.isEmpty())
 			return returnSet.get(returnSet.lastKey());
-		else
-			return new HashSet<List<String>>();
+		
+		return new HashSet<List<String>>();
 	}
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */
@@ -656,8 +656,8 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			DirectedSparseEdge e = edgesOut.next();
 			if(this.doneEdges.contains(e))
 				continue;
-			else
-				doneEdges.add(e);
+			
+			doneEdges.add(e);
 			HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 			Iterator<String> labelIt = labels.iterator();
 			while(labelIt.hasNext()){

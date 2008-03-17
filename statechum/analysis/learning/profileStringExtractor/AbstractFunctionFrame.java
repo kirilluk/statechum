@@ -39,9 +39,11 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 	 */
 	private static final long serialVersionUID = 2716853779702531560L;
 	
-	private Map<String, List<TreePath>> namesToMethods;
+	Map<String, List<TreePath>> namesToMethods;
 	private Map<File,ClassMethodDefsHandler> filesToHandlers;
-	private JList names, methods;
+	JList names;
+
+	JList methods;
 	private List<String> nameList;
 	private SplitFrame split;
 	
@@ -257,7 +259,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		return sPlus;
 	}
 	
-	private String[] pathToStrings(List<TreePath> list){
+	String[] pathToStrings(List<TreePath> list){
 		Iterator<TreePath> listIt = list.iterator();
 		String[] returnArray = new String[list.size()];
 		for(int i=0;i<list.size();i++){

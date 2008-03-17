@@ -31,8 +31,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
 public class SplitFrame extends JFrame implements ActionListener{
-	private List<TreePath> list; 
-	private JList methodList;
+	List<TreePath> list; 
+	JList methodList;
 	private JScrollPane treePanel;
 	private AbstractFunctionFrame frame;
 	private Map<File,ClassMethodDefsHandler> filesToHandlers;
@@ -175,7 +175,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 		return methodList;
 	}
 	
-	private String[] pathToStrings(){
+	String[] pathToStrings(){
 		Iterator<TreePath> listIt = list.iterator();
 		String[] returnArray = new String[list.size()];
 		for(int i=0;i<list.size();i++){

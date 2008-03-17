@@ -19,6 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 import java.util.Collection;
+import java.util.List;
 
 public class PosNegPrecisionRecall extends PrecisionRecall {
 	
@@ -32,7 +33,8 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 	 * @param retneg
 	 * @param relneg
 	 */
-	public PosNegPrecisionRecall(Collection retpos, Collection relpos, Collection retneg, Collection relneg){
+	public PosNegPrecisionRecall(Collection<List<String>> retpos, Collection<List<String>> relpos, 
+			Collection<List<String>> retneg, Collection<List<String>> relneg){
 		super();
 		negprecision = computePrecision(retneg, relneg);
 		posprecision = computePrecision(retpos, relpos);

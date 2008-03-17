@@ -198,7 +198,8 @@ public class Configuration implements Cloneable
 		result = prime * result + minCertaintyThreshold;
 		result = prime * result + klimit;
 		result = prime * result + (askQuestions? 1231 : 1237);
-
+		result = prime * result + randomPathAttemptThreshold;
+		result = prime * result + randomPathAttemptFudgeThreshold;
 		return result;
 	}
 
@@ -248,7 +249,10 @@ public class Configuration implements Cloneable
 			return false;
 		if (askQuestions != other.askQuestions)
 			return false;
-		
+		if (randomPathAttemptThreshold != other.randomPathAttemptThreshold)
+			return false;
+		if (randomPathAttemptFudgeThreshold != other.randomPathAttemptFudgeThreshold)
+			return false;
 		return true;
 	}
 
@@ -344,5 +348,35 @@ public class Configuration implements Cloneable
 	public boolean getAskQuestions()
 	{
 		return askQuestions;
+	}
+
+	/** When looking for random paths of a specific size, one of the easy ways 
+	 * is to make a number of attempts and fail if cannot get a path of 
+	 * the expected length. 
+	 */
+	protected int randomPathAttemptThreshold = 100; 
+	
+	public int getRandomPathAttemptThreshold() 
+	{
+		return randomPathAttemptThreshold;
+	}
+	
+	public void setRandomPathAttemptThreshold(int thr)
+	{
+		randomPathAttemptThreshold = thr;
+	}
+	/** When we failed to generate a path for a specific length, we'll try a different length.
+	 * The number of attempts at this is constrained by the constant below.
+	 */
+	protected int randomPathAttemptFudgeThreshold = 100; 
+	
+	public int getRandomPathAttemptFudgeThreshold() 
+	{
+		return randomPathAttemptFudgeThreshold;
+	}
+	
+	public void setRandomPathAttemptFudgeThreshold(int thr)
+	{
+		randomPathAttemptFudgeThreshold = thr;
 	}
 }

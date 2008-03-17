@@ -51,7 +51,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTATestSequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine;
 
 @RunWith(Parameterized.class)
 public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
@@ -189,23 +189,23 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		
 		{// testing the orig part
 			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), testConfig);
-			PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-			PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-			PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
 			s.paths.ORIGcomputePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
-			Map<String,String> actual = engine.getDebugDataMap(paths);
+			Map<String,String> actual = engine.getDebugDataMapDepth(paths);
 			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 		}
 
 		{// testing the new part
 			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), testConfig);
-			PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-			PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-			PTATestSequenceEngine.sequenceSet paths = engine.new sequenceSet();
+			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
 			s.paths.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
-			Map<String,String> actual = engine.getDebugDataMap(paths);
+			Map<String,String> actual = engine.getDebugDataMapDepth(paths);
 			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 		}
 	}
@@ -219,7 +219,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","C",
 				null,
 				new Object [][]{
-					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+					new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -230,7 +230,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","A",
 				null,
 				new Object[][] {
-					new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+					new Object[]{new String[] {}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -242,10 +242,10 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","C",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -257,11 +257,11 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","C",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"p","q"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -274,11 +274,11 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				new String[][]{
 					new String[] { "sequenceA","sequenceB" }},
 				new Object[][] {
-					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+					new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"a","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"p","q"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 	
@@ -293,11 +293,11 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 					new String[] { "sequenceC" },
 					new String[] { "sA","sB","sC"}},
 				new Object[][] {
-					new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-					new Object[]{new String[] {"p","q"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+					new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"a","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+					new Object[]{new String[] {"p","q"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -310,7 +310,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","A",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -321,8 +321,8 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","B",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -333,10 +333,10 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","C",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c","d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -347,7 +347,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"C","C",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -359,7 +359,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"D","D",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -370,8 +370,8 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"F","B",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -382,8 +382,8 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"F","A",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -394,7 +394,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"C","A",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -405,10 +405,10 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"F","E",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","b","e"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","b","a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","b","e"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b","e"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","e"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -417,20 +417,20 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	public final void testComputePathsSBetween16()
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), testConfig);
-		PTATestSequenceEngine engine = new PTATestSequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTATestSequenceEngine.sequenceSet initSet = engine.new sequenceSet();initSet.setIdentity(); 
-		PTATestSequenceEngine.sequenceSet pathsA = engine.new sequenceSet();
+		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+		PTASequenceEngine.SequenceSet pathsA = engine.new SequenceSet();
 		s.paths.ORIGcomputePathsSBetween(s.findVertex("F"), s.findVertex("D"),initSet,pathsA);
-		PTATestSequenceEngine.sequenceSet pathsB = engine.new sequenceSet();
+		PTASequenceEngine.SequenceSet pathsB = engine.new SequenceSet();
 		s.paths.ORIGcomputePathsSBetween(s.findVertex("B"), s.findVertex("C"),pathsA,pathsB);
-		PTATestSequenceEngine.sequenceSet pathsC = engine.new sequenceSet();
+		PTASequenceEngine.SequenceSet pathsC = engine.new SequenceSet();
 		s.paths.ORIGcomputePathsSBetween(s.findVertex("C"), s.findVertex("A"),pathsB,pathsC);
-		Map<String,String> actual = engine.getDebugDataMap(pathsC),expected = TestFSMAlgo.buildStringMap(
+		Map<String,String> actual = engine.getDebugDataMapDepth(pathsC),expected = TestFSMAlgo.buildStringMap(
 			new Object[][] {
-				new Object[]{new String[] {"a","d","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"a","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","d","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b","b","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","d","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"a","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","d","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -442,9 +442,9 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"B","A",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)},
-				new Object[]{new String[] {"c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
+				new Object[]{new String[] {"c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -457,7 +457,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"B","A",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","b","c"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -468,7 +468,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"A","C",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"a","a","b"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"a","a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 
@@ -479,7 +479,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 				"D","B",
 				null,
 			new Object[][] {
-				new Object[]{new String[] {"d"}, PTATestSequenceEngine.DebugDataValues.booleanToString(true, true)}
+				new Object[]{new String[] {"d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
 	}
 

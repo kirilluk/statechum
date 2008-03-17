@@ -20,7 +20,7 @@ package statechum.xmachine.model.testset;
 
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class PTA_FSMStructure extends PTATestSequenceEngine 
+public class PTA_FSMStructure extends PTASequenceEngine 
 {
 	public PTA_FSMStructure(LearnerGraph machine) 
 	{

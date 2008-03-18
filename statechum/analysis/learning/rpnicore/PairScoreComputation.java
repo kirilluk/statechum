@@ -67,8 +67,6 @@ public class PairScoreComputation {
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
 		currentExplorationBoundary.addAll(reds);
 		List<CmpVertex> BlueStatesConsideredSoFar = new LinkedList<CmpVertex>();
-		if(coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
-			coregraph.config.setGeneralisationThreshold(coregraph.learnerCache.maxScore);
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			CmpVertex currentRed = currentExplorationBoundary.remove();
@@ -166,6 +164,9 @@ public class PairScoreComputation {
 				if (compatibilityScore < 0)
 					computedScore = -1;
 			}
+			if (computedScore <= coregraph.learnerCache.maxScore &&
+					coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
+					    computedScore = -1; 
 			if (LearnerGraph.testMode)
 				assert computePairCompatibilityScore(pairToComputeFrom) <= computedScore;
 		}

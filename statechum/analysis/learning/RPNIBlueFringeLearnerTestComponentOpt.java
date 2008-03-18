@@ -173,6 +173,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
+		Visualiser.updateFrame(newPTA.paths.getGraph("merge_debug"), null);
 
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
@@ -192,6 +193,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
+
+			Visualiser.updateFrame(temp.paths.getGraph("merge_debug"+iterations), null);
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			

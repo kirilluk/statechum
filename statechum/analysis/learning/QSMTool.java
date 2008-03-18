@@ -63,7 +63,6 @@ public class QSMTool {
 		// new PickNegativesVisualiser(new
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
 		Configuration config = Configuration.getDefaultConfiguration();
-		config.setDebugMode(true);
 		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		if (!includeLTL)

@@ -1,0 +1,9 @@
+passive
+k 1
++ load edit edit save edit exit
++ load edit save close load exit
++ load edit close exit
+- close
+- load edit save load
+- load close save
+#ltl s ((!save)U(edit))&&[]((save)->X((!save)U(edit)))

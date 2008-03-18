@@ -90,7 +90,7 @@ public class BlueFringeSpinLearner extends
 
 			// System.out.println(Thread.currentThread()+ " "+pair + "
 			// "+questions);
-			
+			updateGraph(temp.paths.getGraph());
 			if (!SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
@@ -265,7 +265,6 @@ public class BlueFringeSpinLearner extends
 			} else
 				setByAuto = "";
 		}
-		updateGraph(model);
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 

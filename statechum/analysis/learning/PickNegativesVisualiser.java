@@ -69,6 +69,8 @@ public class PickNegativesVisualiser extends Visualiser {
 		if(!active){
 			config.setKlimit(k);
 			config.setAskQuestions(false); 
+			if(k>=0)
+				config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 		}
 		else
 			config.setKlimit(-1);

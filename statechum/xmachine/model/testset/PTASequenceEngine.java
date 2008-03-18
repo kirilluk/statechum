@@ -339,8 +339,31 @@ public class PTASequenceEngine
 		return nextCurrentNode;
 	}
 
-	/** Checks whether the supplied sequence is contained in this PTA. */
+	/** Checks whether the supplied sequence is contained in this PTA. 
+	 * 
+	 * @param inputSequence the sequence to check the existence of.
+	 */
 	public boolean containsSequence(List<String> inputSequence)
+	{
+		return containsSequence(inputSequence,false);
+	}
+	
+	/** Checks whether the supplied sequence is contained in this PTA. 
+	 * Returns true if the current sequence leads to a leaf in this PTA.
+	 * 
+	 * @param inputSequence the sequence to check the existence of.
+	 */
+	public boolean containsAsLeaf(List<String> inputSequence)
+	{
+		return containsSequence(inputSequence,true);
+	}
+
+	/** Checks whether the supplied sequence is contained in this PTA. 
+	 * @param inputSequence the sequence to check the existence of
+	 * @param checkLeaf if false, only checks whether the current sequence exists,
+	 * if true, returns true if the current sequence leads to a leaf in this PTA. 
+	 */
+	private boolean containsSequence(List<String> inputSequence, boolean checkLeaf)
 	{
 		PTASequenceEngine.Node currentNode = init;if (!currentNode.isAccept()) throw new IllegalArgumentException("untested on empty graphs");
 		Iterator<String> seqIt = inputSequence.iterator();
@@ -356,7 +379,8 @@ public class PTASequenceEngine
 		if (seqIt.hasNext())
 			return false;// reached a reject state but not the end of the sequence
 
-		return true;
+		return !checkLeaf || 
+			pta.get(currentNode).isEmpty();
 	}
 
 	/** Turns this PTA into a set of sequences and returns this set. */
@@ -389,6 +413,18 @@ public class PTASequenceEngine
 	
 	public Collection<List<String>> getData()
 	{
+		return getData(null);
+	}
+	
+	/** Returns the data from the PTA where only paths ending at nodes marked as 
+	 * true by the supplied predicate are returned. 
+	 * If null, uses the internal predicate of the fsm.
+	 * 
+	 * @param predicate determines which paths are returned.
+	 * @return the collection of paths for which the predicate holds.
+	 */ 
+	public Collection<List<String>> getData(final FilterPredicate predicate)
+	{
 		final Collection<List<String>> result = new LinkedList<List<String>>();
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
@@ -403,7 +439,9 @@ public class PTASequenceEngine
 			@Override
 			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
 			{
-				if (currentNode.shouldBeReturned())
+				if ((predicate == null && currentNode.shouldBeReturned()) ||
+						(predicate != null && predicate.shouldBeReturned(currentNode.ptaNode.getState()))
+						)
 				{
 					LinkedList<String> newSeq = new LinkedList<String>();
 					for(PTAExplorationNode elem:pathToInit)	newSeq.addFirst(elem.inputFromThisNode);
@@ -579,12 +617,30 @@ public class PTASequenceEngine
 		return result;
 	}
 
-		
+	public interface FilterPredicate 
+	{
+		/** Whether a node with a specified name should be returned. Used during filtering. */
+		public boolean shouldBeReturned(Object name);
+	}
+	
+	/** Returned a filter predicate determined by the underlying fsm. */
+	public FilterPredicate getFSM_filterPredicate()
+	{
+		return new FilterPredicate()
+		{
+			public boolean shouldBeReturned(Object name) {
+				return fsm.shouldBeReturned(name);
+			}
+		};
+	}
+	
 	/** Returns a subset of this PTA, with all paths leading to rejected nodes removed.
-	 * Nodes to be rejected are determined via fsm.shouldBeReturned. 
-	 * Important: no nodes are cloned, in the expectation of them to be immutable. 
+	 * Nodes to be rejected are determined via filterPredicate.shouldBeReturned(). 
+	 * Important: no nodes are cloned, in the expectation of them to be immutable.
+	 * 
+	 *  @param filterPredicate determines which nodes are to be retained.
 	 */
-	public PTASequenceEngine filter()
+	public PTASequenceEngine filter(final FilterPredicate filterPredicate)
 	{
 		PTASequenceEngine result = new PTASequenceEngine();
 		result.init = init;result.rejectNode = rejectNode;result.fsm=fsm;
@@ -622,7 +678,7 @@ public class PTASequenceEngine
 			@Override
 			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
 			{
-				currentNode.userObject = !currentNode.shouldBeReturned();
+				currentNode.userObject = !filterPredicate.shouldBeReturned(currentNode.ptaNode.getState());
 				handleAcceptCondition(currentNode, pathToInit);
 			}
 

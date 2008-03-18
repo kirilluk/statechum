@@ -33,6 +33,8 @@ import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo;
+import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class TestRandomPathGenerator {
 	private Configuration config = Configuration.getDefaultConfiguration();
@@ -111,10 +113,10 @@ public class TestRandomPathGenerator {
 		{
 			List<String> path = generator.generateRandomWalk(length, prefixLength, false);generator.allSequences.add(path);
 		}
-		Set<List<String>> actualA = new HashSet<List<String>>();actualA.addAll(generator.allSequences.getData());
+		Set<List<String>> actualA = new HashSet<List<String>>();actualA.addAll(generator.allSequences.getData(truePred));
 		Assert.assertEquals(expected, actualA);
 		Assert.assertNull(generator.generateRandomWalk(length, prefixLength, false));
-		Set<List<String>> actualB = new HashSet<List<String>>();actualB.addAll(generator.allSequences.getData());
+		Set<List<String>> actualB = new HashSet<List<String>>();actualB.addAll(generator.allSequences.getData(truePred));
 		Assert.assertEquals(expected, actualB);
 	}
 	
@@ -251,16 +253,18 @@ public class TestRandomPathGenerator {
 		for(int i=0;i<chunkNumber;++i)
 		{
 			{
-				Collection<List<String>> currentNeg = generator.getAllSequences(i).getData();
+				Collection<List<String>> currentNeg = generator.getAllSequences(i).getData(truePred);
 				Assert.assertEquals("chunk "+i+" (neg) should be of length "+(posOrNegPerChunk*(i+1))+" but it was "+currentNeg.size(),(posOrNegPerChunk*(i+1)), currentNeg.size());
 				for(List<String> s:currentNeg)
 					Assert.assertTrue("path "+s+" should not exist",graph.paths.tracePath(s) >=0);
+				Assert.assertEquals(0, generator.getAllSequences(i).getData().size());// all seq reject ones
 				if (previousChunkNeg != null) currentNeg.containsAll(previousChunkNeg);
 				previousChunkNeg = currentNeg;
 			}
 			{
-				Collection<List<String>> currentPos = generator.getExtraSequences(i).getData();
+				Collection<List<String>> currentPos = generator.getExtraSequences(i).getData(truePred);
 				Assert.assertEquals("chunk "+i+" (pos) should be of length "+(posOrNegPerChunk*(i+1))+" but it was "+currentPos.size(),(posOrNegPerChunk*(i+1)), currentPos.size());
+				Assert.assertEquals((posOrNegPerChunk*(i+1)), generator.getExtraSequences(i).getData().size());// all seq accept ones
 				for(List<String> s:currentPos)
 					Assert.assertTrue("path "+s+" should exist",graph.paths.tracePath(s) == RPNIBlueFringeLearner.USER_ACCEPTED);
 				if (previousChunkPos != null) currentPos.containsAll(previousChunkPos);
@@ -271,13 +275,18 @@ public class TestRandomPathGenerator {
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk, previousChunkPos.size());
 	}
 	
-	@Test
-	public void test_generateRandomPosNeg1()
+	private FilterPredicate truePred = new FilterPredicate()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F-e->F\nA-g->A-h->A","test_generateRandomPosNeg1"),config);
+		public boolean shouldBeReturned(@SuppressWarnings("unused") Object name) {
+			return true;
+		}
+	};
+	
+	public RandomPathGenerator generateRandomPosNegHelper(String automaton, String automatonName,int chunkNumber,int posOrNegPerChunk)
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph(automaton,automatonName),config);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
-		final int chunkNumber = 4, posOrNegPerChunk = 3;
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
 		//System.out.println("fudges: "+generator.getFudgeDetails());
 		
@@ -285,45 +294,54 @@ public class TestRandomPathGenerator {
 
 		for(int i=0;i<chunkNumber;++i)
 		{
-			Collection<List<String>> current = generator.getAllSequences(i).getData();
-			Assert.assertEquals("chunk "+i+" (neg) should be of length "+(2*posOrNegPerChunk*(i+1))+" but it was "+current.size(),(2*posOrNegPerChunk*(i+1)), current.size());
+			final PTASequenceEngine currentPTA = generator.getAllSequences(i);
+			Collection<List<String>> currentSequences = currentPTA.getData(truePred);
+			Assert.assertEquals("chunk "+i+" (neg) should be of length "+(2*posOrNegPerChunk*(i+1))+" but it was "+currentSequences.size(),(2*posOrNegPerChunk*(i+1)), currentSequences.size());
 			int positive = 0,negative=0;
-			for(List<String> s:current)
-				if(graph.paths.tracePath(s) >=0) ++negative;else ++positive;
-			Assert.assertEquals(posOrNegPerChunk*(i+1), positive);
-			Assert.assertEquals(posOrNegPerChunk*(i+1), negative);
-			if (previousChunk != null) current.containsAll(previousChunk);
-			previousChunk= current;
+			PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
+			PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
+				FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
+				public boolean shouldBeReturned(Object name) {
+					return !origFilter.shouldBeReturned(name);
+				}
+			});
+			for(List<String> s:currentSequences)
+				if(graph.paths.tracePath(s) >=0) 
+				{
+					++negative;
+					Assert.assertFalse(positivePTA.containsSequence(s));Assert.assertTrue(negativePTA.containsSequence(s));
+				}
+				else
+				{
+					++positive;
+					Assert.assertTrue(positivePTA.containsSequence(s));Assert.assertFalse(negativePTA.containsSequence(s));
+				}
+			Assert.assertEquals(posOrNegPerChunk*(i+1), positive);Assert.assertEquals(positive,positivePTA.getData(truePred).size());
+			Assert.assertEquals(positive,positivePTA.getData().size());// all seq are accept ones
+			Assert.assertEquals(posOrNegPerChunk*(i+1), negative);Assert.assertEquals(negative,negativePTA.getData(truePred).size());
+			Assert.assertEquals(0,negativePTA.getData().size());// all seq are reject ones
+			if (previousChunk != null) currentSequences.containsAll(previousChunk);
+			previousChunk= currentSequences;
 		}
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk*2, previousChunk.size());
+		return generator;
+	}
+	
+	@Test
+	public void test_generateRandomPosNeg1()
+	{
+		RandomPathGenerator generator = generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F-e->F\nA-g->A-h->A","test_generateRandomPosNeg1",
+				4,3);
+		Assert.assertFalse(generator.getFudgeDetails().toString().contains("FAILED"));
 	}
 	
 	/** A slightly more difficult automaton than the above. */
 	@Test
 	public void test_generateRandomPosNeg2()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg1"),config);
-		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
-		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),4);
-		final int chunkNumber = 4, posOrNegPerChunk = 3;
-		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
-		//System.out.println("fudges: "+generator.getFudgeDetails());
-		
-		Collection<List<String>> previousChunk = null;
-
-		for(int i=0;i<chunkNumber;++i)
-		{
-			Collection<List<String>> current = generator.getAllSequences(i).getData();
-			Assert.assertEquals("chunk "+i+" (neg) should be of length "+(2*posOrNegPerChunk*(i+1))+" but it was "+current.size(),(2*posOrNegPerChunk*(i+1)), current.size());
-			int positive = 0,negative=0;
-			for(List<String> s:current)
-				if(graph.paths.tracePath(s) >=0) ++negative;else ++positive;
-			Assert.assertEquals(posOrNegPerChunk*(i+1), positive);
-			Assert.assertEquals(posOrNegPerChunk*(i+1), negative);
-			if (previousChunk != null) current.containsAll(previousChunk);
-			previousChunk= current;
-		}
-		Assert.assertEquals(chunkNumber*posOrNegPerChunk*2, previousChunk.size());
+		RandomPathGenerator generator = generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",
+				18,12);
+		Assert.assertTrue(generator.getFudgeDetails().toString().contains("FAILED"));
 	}
 	
 	

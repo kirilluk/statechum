@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
+
 public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
 {
 	protected PTASequenceEngine engine = new PTASequenceEngine();
@@ -67,6 +69,11 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 
 	public boolean contains(Object o) {
 		return engine.containsSequence( (List<String>)o);
+	}
+	
+	public boolean containsAsLeaf(Object o)
+	{
+		return engine.containsAsLeaf( (List<String>)o);
 	}
 
 	public boolean containsAll(Collection<?> c) {
@@ -142,9 +149,14 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		if (isEmpty()) return Collections.emptySet();
 		return engine.getData();
 	}
+	
+	public Collection<List<String>> getData(FilterPredicate pred) {
+		if (isEmpty()) return Collections.emptySet();
+		return engine.getData(pred);
+	}
 
-	public PTASequenceEngine filter()
+	public PTASequenceEngine filter(final FilterPredicate predicate)
 	{
-		return engine.filter();
+		return engine.filter(predicate);
 	}
 }

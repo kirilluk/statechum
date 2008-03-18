@@ -39,7 +39,6 @@ import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.xmachine.model.testset.PTASequenceEngine.Node;
 import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -79,9 +78,9 @@ public class TestPTASequenceEngine
 	static void vertifyPTA(PTASequenceEngine en, int engineSize, String [][] expected)
 	{
 		Set<List<String>> actualA = new HashSet<List<String>>();actualA.addAll(en.getData());
-		Set<List<String>> actualB = new HashSet<List<String>>();actualB.addAll(en.filter().getData());
+		Set<List<String>> actualB = new HashSet<List<String>>();actualB.addAll(en.filter(en.getFSM_filterPredicate()).getData());
 		Set<List<String>> actualC = new HashSet<List<String>>();actualC.addAll(en.getDataORIG());
-		Set<List<String>> actualD = new HashSet<List<String>>();actualD.addAll(en.filter().getDataORIG());
+		Set<List<String>> actualD = new HashSet<List<String>>();actualD.addAll(en.filter(en.getFSM_filterPredicate()).getDataORIG());
 		Set<List<String>> expectedSet = TestFSMAlgo.buildSet(expected);
 		assertTrue("expected: "+expectedSet+" received : "+actualA,expectedSet.equals(actualA));
 		assertTrue("expected: "+expectedSet+" received : "+actualB,expectedSet.equals(actualB));
@@ -633,7 +632,7 @@ public class TestPTASequenceEngine
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		SequenceSet nodeD = seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
 			.crossWithSet(Arrays.asList(new String[] {"b","a"}));
-		PTASequenceEngine filtered = en.filter();
+		PTASequenceEngine filtered = en.filter(en.getFSM_filterPredicate());
 		vertifyPTA(filtered, 2, new String[][] {
 				new String[] {"a","b"},
 				new String[] {"b","b"}
@@ -1105,13 +1104,22 @@ public class TestPTASequenceEngine
 				new String[] {"a","a"},
 				new String[] {"c"}
 		}));
-		assertTrue(en.containsSequence(Arrays.asList(new String[]{"a","a"})));
 		assertTrue(en.containsSequence(Arrays.asList(new String[]{"c"})));
+		assertTrue(en.containsAsLeaf(Arrays.asList(new String[]{"c"})));
 		assertFalse(en.containsSequence(Arrays.asList(new String[]{"a","a","b"})));
-		assertTrue(en.containsSequence(Arrays.asList(new String[]{"a"})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"a","a","b"})));
+		assertFalse(en.containsSequence(Arrays.asList(new String[]{"a","a","a"})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"a","a","a"})));
+		assertTrue (en.containsSequence(Arrays.asList(new String[]{"a","a"})));
+		assertTrue (en.containsAsLeaf(Arrays.asList(new String[]{"a","a"})));
+		assertTrue (en.containsSequence(Arrays.asList(new String[]{"a"})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"a"})));
 		assertTrue(en.containsSequence(Arrays.asList(new String[]{})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{})));
 		assertFalse(en.containsSequence(Arrays.asList(new String[]{"c","c"})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"c","c"})));
 		assertFalse(en.containsSequence(Arrays.asList(new String[]{"b"})));
+		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"b"})));
 	}
 	
 	/** Test for Union: adding something to an empty set. */

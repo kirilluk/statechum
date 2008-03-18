@@ -29,6 +29,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.xmachine.model.testset.PTASequenceSet;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class RandomPathGenerator {
 	
@@ -66,6 +67,7 @@ public class RandomPathGenerator {
 			ArrayList<String> rejects = new ArrayList<String>();rejects.addAll(negatives);
 			inputsRejected.put(entry.getKey(), rejects);
 		}
+		initAllSequences();
 	}
 	
 	public static int diameter(LearnerGraph graph)
@@ -78,17 +80,23 @@ public class RandomPathGenerator {
 		return result.intValue();
 	}
 
-	/** All new states will be given this %%. Used to change names for states, 
+	/** All new states will be given this %% and accept condition. Used to change names for states, 
 	 * in order to ensure that tail states have special names 
 	 * (i.e. %% of a full set of walk they belong to), 
 	 * which can subsequently be used to filter the PTA.
 	 */
-	Integer tag = 0;
-
-	/** When generating a PTA for a specific %%, this variable is 
-	 * used to filter out all nodes with %% over filter. 
-	 */
-	int filter =0;
+	class StateName
+	{
+		final int percent;
+		final boolean accept;
+		
+		public StateName(int per,boolean ac)
+		{
+			percent = per;accept=ac;
+		}
+	}
+	
+	StateName tag;
 	
 	class PercentLabelledPTA extends PTASequenceSetAutomaton
 	{
@@ -100,12 +108,12 @@ public class RandomPathGenerator {
 		
 		@Override
 		public boolean shouldBeReturned(Object elem) {
-			return ((Integer)elem).intValue() <= filter;
+			return ((StateName)elem).accept;
 		}
 	}
 	
-	protected PTASequenceSet allSequences = new PTASequenceSet(new PercentLabelledPTA()),
-		extraSequences = new PTASequenceSet(new PercentLabelledPTA());
+	protected PTASequenceSet allSequences = null,
+		extraSequences = null;
 	
 	/** Generates a random walk through the graph. Since it attempts to add elements to a graph
 	 * in the course of checking whether they belong to it, it should be used to add
@@ -170,7 +178,21 @@ public class RandomPathGenerator {
 		while(path.size() < walkLength || allSequences.contains(path.subList(0, prefixLen)));
 		return path;
 	}
+	
+	class PercentFilter implements FilterPredicate
+	{
+		private final int filter; 
+		public PercentFilter(int percent)
+		{
+			filter=percent;
+		}
 		
+		public boolean shouldBeReturned(Object name) {
+			return ((StateName)name).percent <= filter;
+		}
+		
+	};
+	
 	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
 	 * 
 	 * @param upToChunk how many chunks to combine before returning the result.
@@ -178,7 +200,7 @@ public class RandomPathGenerator {
 	 */
 	public PTASequenceEngine getAllSequences(int upToChunk)
 	{
-		filter = upToChunk;return allSequences.filter();
+		return allSequences.filter(new PercentFilter(upToChunk));
 	}
 	
 	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
@@ -188,7 +210,7 @@ public class RandomPathGenerator {
 	 */
 	public PTASequenceEngine getExtraSequences(int upToChunk)
 	{
-		filter = upToChunk;return extraSequences.filter();
+		return extraSequences.filter(new PercentFilter(upToChunk));
 	}
 	
 	/** Generates positive and negative paths where negatives are just 
@@ -225,12 +247,14 @@ public class RandomPathGenerator {
 		Arrays.sort(distribution);
 		//for(int i=0;i<distribution.length;++i)
 		//	System.out.println("distribution[i] = "+distribution[i]);
+		initAllSequences();
 		for(int i=seqNumber-1;i>=0;--i)
 		{
-			tag = i % chunks;
+			tag = new StateName(i % chunks,false);
 			//System.out.println("generating for chunk "+tag+" with length "+distribution[i]);
 			List<String> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
 			allSequences.add(path);
+			tag = new StateName(i % chunks,true);
 			extraSequences.add(path.subList(0, path.size()-1));// all positives go there
 		}
 	}
@@ -240,7 +264,15 @@ public class RandomPathGenerator {
 		public int getLength();
 		public int getPrefixLength(int len);
 	}
-	
+
+	/** Initialises the collection of data. Used to reset the whole thing before
+	 * generating walks.
+	 */
+	protected void initAllSequences()
+	{
+		tag = new StateName(0,false);
+		allSequences = new PTASequenceSet(new PercentLabelledPTA());extraSequences = new PTASequenceSet(new PercentLabelledPTA());
+	}
 	
 	/** Generates random positive and negative paths. 
 	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
@@ -270,10 +302,12 @@ public class RandomPathGenerator {
 		for(int i=0;i < seqNumber;++i)
 			distribution[i]=rnd.getLength();
 		Arrays.sort(distribution);
+		initAllSequences();
 		for(int i=seqNumber-1;i>=0;--i)
 		{
-			tag = i % chunks;
+			tag = new StateName(i % chunks,false);
 			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,false));
+			tag = new StateName(i % chunks,true);
 			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,true));
 		}
 	}
@@ -303,8 +337,20 @@ public class RandomPathGenerator {
 			path = generateRandomWalk(revisedWalkLength, rnd.getPrefixLength(revisedWalkLength), positive);
 			if (path != null)
 			{
-				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength));
-				return path;
+				boolean notPrefix = true;
+				int pathPrefixLen=rnd.getPrefixLength(revisedWalkLength)-1;
+				for(;
+					pathPrefixLen>0 && !allSequences.contains(path.subList(0, pathPrefixLen));
+					--pathPrefixLen);
+				if (pathPrefixLen > 0)
+				{// there is a sequence path.subList(0, pathPrefixLen) in our PTA, check that
+				 // the end of it is not a tail node.
+					notPrefix = !allSequences.containsAsLeaf(path.subList(0, pathPrefixLen));
+				}
+				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength)+
+						" "+(notPrefix?"done":"ATTEMPT FAILED"));
+				if (notPrefix)
+					return path;
 			}
 		}
 		

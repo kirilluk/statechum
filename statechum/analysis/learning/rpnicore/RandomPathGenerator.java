@@ -248,14 +248,17 @@ public class RandomPathGenerator {
 		//for(int i=0;i<distribution.length;++i)
 		//	System.out.println("distribution[i] = "+distribution[i]);
 		initAllSequences();
+		StateName [] positives = new StateName[chunks], negatives = new StateName[chunks];
+		for(int i=0;i< chunks;++i) { positives[i]=new StateName(i,true);negatives[i]=new StateName(i,false); }
+
 		for(int i=seqNumber-1;i>=0;--i)
 		{
-			tag = new StateName(i % chunks,false);
+			tag = negatives[i % chunks];
 			//System.out.println("generating for chunk "+tag+" with length "+distribution[i]);
 			List<String> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
 			allSequences.add(path);
-			tag = new StateName(i % chunks,true);
-			extraSequences.add(path.subList(0, path.size()-1));// all positives go there
+			tag = positives[i % chunks];
+			extraSequences.add(path.subList(0, rnd.getPrefixLength(path.size())));// all positives go there
 		}
 	}
 	
@@ -303,11 +306,15 @@ public class RandomPathGenerator {
 			distribution[i]=rnd.getLength();
 		Arrays.sort(distribution);
 		initAllSequences();
+
+		StateName [] positives = new StateName[chunks], negatives = new StateName[chunks];
+		for(int i=0;i< chunks;++i) { positives[i]=new StateName(i,true);negatives[i]=new StateName(i,false); }
+
 		for(int i=seqNumber-1;i>=0;--i)
 		{
-			tag = new StateName(i % chunks,false);
+			tag = negatives[i % chunks];
 			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,false));
-			tag = new StateName(i % chunks,true);
+			tag = positives[i % chunks];
 			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,true));
 		}
 	}
@@ -337,16 +344,8 @@ public class RandomPathGenerator {
 			path = generateRandomWalk(revisedWalkLength, rnd.getPrefixLength(revisedWalkLength), positive);
 			if (path != null)
 			{
-				boolean notPrefix = true;
-				int pathPrefixLen=rnd.getPrefixLength(revisedWalkLength)-1;
-				for(;
-					pathPrefixLen>0 && !allSequences.contains(path.subList(0, pathPrefixLen));
-					--pathPrefixLen);
-				if (pathPrefixLen > 0)
-				{// there is a sequence path.subList(0, pathPrefixLen) in our PTA, check that
-				 // the end of it is not a tail node.
-					notPrefix = !allSequences.containsAsLeaf(path.subList(0, pathPrefixLen));
-				}
+				boolean notPrefix = verifyNoPrefixOf(path, allSequences, rnd) &&
+					verifyNoPrefixOf(path, extraSequences, rnd);
 				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength)+
 						" "+(notPrefix?"done":"ATTEMPT FAILED"));
 				if (notPrefix)
@@ -357,5 +356,28 @@ public class RandomPathGenerator {
 		throw new IllegalArgumentException("failed to generate a "+(positive?"positive":"negative")+
 				" path of length "+origWalkLength+" (prefix length "+rnd.getPrefixLength(origWalkLength)+") after even after trying to fudge it "+
 				g.config.getRandomPathAttemptFudgeThreshold()+" times");
+	}
+	
+	/** Checks that the path supplied does not have a prefix currently in the collection supplied.
+	 * 
+	 * @param path path to check
+	 * @param engine the collection
+	 * @param rnd used to determine how long prefix to look for
+	 * @return true if there is no prefix leading to a leaf in the collection.
+	 */
+	private static boolean verifyNoPrefixOf(List<String> path,PTASequenceSet engine,RandomLengthGenerator rnd)
+	{
+		boolean notPrefix = true;
+		int pathPrefixLen=rnd.getPrefixLength(path.size())-1;
+		for(;
+			pathPrefixLen>0 && !engine.contains(path.subList(0, pathPrefixLen));
+			--pathPrefixLen);
+		if (pathPrefixLen > 0)
+		{// there is a sequence path.subList(0, pathPrefixLen) in our PTA, check that
+		 // the end of it is not a tail node.
+			notPrefix = !engine.containsAsLeaf(path.subList(0, pathPrefixLen));
+		}
+		
+		return notPrefix;
 	}
 }

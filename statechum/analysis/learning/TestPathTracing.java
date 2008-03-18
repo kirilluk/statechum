@@ -58,8 +58,8 @@ public class TestPathTracing {
 	@Before
 	public void beforeTest()
 	{
-		
 		config = (Configuration)mainConfiguration.clone();
+		LearnerGraph.testMode=true;
 	}
 
 	/** The configuration to use when running tests. */

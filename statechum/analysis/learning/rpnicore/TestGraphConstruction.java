@@ -75,6 +75,7 @@ public class TestGraphConstruction
 		testGraphJung=new LearnerGraph(testGraph,(Configuration)confJung.clone());// clone here makes it possible to change the configuration later without affecting objects in this object
 		testGraphString=new LearnerGraph(testGraph,(Configuration)confString.clone());
 		testGraphSame=new LearnerGraph(testGraph,(Configuration)confSame.clone());
+		LearnerGraph.testMode = true;		
 	}
 
 	/** Graph used in tests of cloning. */

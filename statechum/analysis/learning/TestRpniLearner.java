@@ -73,10 +73,10 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		super(null,conf);mainConfiguration = conf;
 	}
 
-	@Before
 	/** Make sure that whatever changes a test have made to the 
 	 * configuration, next test is not affected.
 	 */
+	@Before
 	public void beforeTest()
 	{
 		testConfig = (Configuration)mainConfiguration.clone();

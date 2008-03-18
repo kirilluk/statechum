@@ -78,7 +78,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	}
 	
 	/** Collections of positive and negative samples. */
-	private Collection<List<String>> sPlus, sMinus;
+	Collection<List<String>> sPlus, sMinus;
 	
 	/** The ltl formula to check against. */
 	Set<String> ltlFormulae = null;

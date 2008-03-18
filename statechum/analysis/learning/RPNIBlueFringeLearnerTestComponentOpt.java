@@ -173,7 +173,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
-		Visualiser.updateFrame(newPTA.paths.getGraph("merge_debug"), null);
+		if(config.getDebugMode())
+			updateGraph(newPTA.paths.getGraph("merge_debug"+0));
 
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
@@ -183,7 +184,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
 			if(config.getDebugMode())
-				updateGraph(temp.paths.getGraph());
+				updateGraph(temp.paths.getGraph("merge_debug"+iterations));
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 
@@ -194,8 +195,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 					++counterEmptyQuestions;
 			} 
 
-			Visualiser.updateFrame(temp.paths.getGraph("merge_debug"+iterations), null);
-			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
 			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);

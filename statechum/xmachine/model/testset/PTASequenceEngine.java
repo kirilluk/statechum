@@ -623,6 +623,14 @@ public class PTASequenceEngine
 		public boolean shouldBeReturned(Object name);
 	}
 	
+	/** A predicate which always returns true. */
+	public static final FilterPredicate truePred = new FilterPredicate()
+	{
+		public boolean shouldBeReturned(@SuppressWarnings("unused") Object name) {
+			return true;
+		}
+	};
+	
 	/** Returned a filter predicate determined by the underlying fsm. */
 	public FilterPredicate getFSM_filterPredicate()
 	{

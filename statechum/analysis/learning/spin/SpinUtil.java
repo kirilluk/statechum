@@ -61,11 +61,20 @@ public class SpinUtil {
 		defines = new String();
 		generatePromela(g);
 		createInverseMap();
-		for (String string : ltl) {
-			if(!checkLTL(string))
-				return false;
-		}
+		if(!checkLTL(concatenatedLTL(ltl)))
+			return false;
 		return true;
+	}
+	
+	private static String concatenatedLTL(Set<String> ltl){
+		String ltlString = "";
+		for (String string : ltl) {
+			if(!ltlString.equals(""))
+				ltlString = ltlString.concat(" && "+string);
+			else
+				ltlString = ltlString.concat(string);
+		}
+		return ltlString;
 	}
 	
 	public static boolean check (List<String> question, Set<String> ltl){
@@ -75,10 +84,8 @@ public class SpinUtil {
 		defines = new String();
 		generatePromela(question);
 		createInverseMap();
-		for (String string : ltl) {
-			if(!checkLTL(string))
-				return false;
-		}
+		if(!checkLTL(concatenatedLTL(ltl)))
+			return false;
 		return true;
 	}
 	

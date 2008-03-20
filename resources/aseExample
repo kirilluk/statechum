@@ -5,4 +5,8 @@ active
 - close
 - load edit save load
 - load close save
-ltl s ((!save)U(edit))&&[]((save)->X((!save)U(edit)))
+#ltl s !(((load) V (!close))&&[](close -> X(((load) V (!close))))&&[]((load) -> X((close) V (!load)))&&(((edit) V (!save))&&[](save -> X(((edit) V (!save)))))&&[]((exit) -> [](exit)))
+#ltl s ((load) V (!close)) && [](close -> X(((load) V (!close))))
+#ltl s []((load) -> X((close) V (!load)))
+#ltl s ((edit) V (!save)) && [](save -> X(((edit) V (!save))))
+ltl s []((exit) -> [](exit)))

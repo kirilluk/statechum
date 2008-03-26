@@ -70,7 +70,7 @@ public class SpinUtil {
 		String ltlString = "";
 		for (String string : ltl) {
 			if(!ltlString.equals(""))
-				ltlString = ltlString.concat(" && "+string);
+				ltlString = ltlString.concat(" || "+string);
 			else
 				ltlString = ltlString.concat(string);
 		}
@@ -104,11 +104,11 @@ public class SpinUtil {
 	}
 	
 	private static boolean checkLTL(String ltl){
-		addLtl(ltl.substring(1));
+		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(fileRef);
 		write(sw, promelaMachine);
-		return runSpin(ltl.charAt(0));
+		return runSpin('s');
 	}
 
 	private static void createInverseMap() {

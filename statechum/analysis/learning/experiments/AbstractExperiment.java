@@ -42,7 +42,6 @@ import java.util.concurrent.Future;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
 abstract public class AbstractExperiment 
@@ -116,10 +115,7 @@ abstract public class AbstractExperiment
 			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 		    	GraphMLFile graphmlFile = new GraphMLFile();
 		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-		    	DirectedSparseGraph g = new DirectedSparseGraph();
-		    	g.getEdgeConstraints().clear();
-		    	g = (DirectedSparseGraph)graphmlFile.load(inputFileName);
-		    	graph = new LearnerGraph(g,config);
+		    	graph = new LearnerGraph(graphmlFile.load(inputFileName),config);
 			}
 		}
 
@@ -166,7 +162,7 @@ abstract public class AbstractExperiment
 		
 		protected String getFileName(FileType fileNameType)
 		{
-			return fileNameType.getFileName(experiment.getOutputDir()+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),"-"); 
+			return fileNameType.getFileName(experiment.getOutputDir()+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),""); 
 		}
 	}			
 
@@ -263,7 +259,7 @@ abstract public class AbstractExperiment
 	 * <FILENAMES_FILE> <OUTPUT_DIR> <NUMBER1> <NUMBER2> <NUMBER3> ... 
 	 * where FILENAMES_FILE contains files to process, OUTPUT_DIR is where to store output and NUMBER1 ... are task numbers
 	 */
-	public void main(String[] args)
+	public void runExperiment(String[] args)
 	{
         if (100 % getStageNumber() != 0)
         	throw new IllegalArgumentException("wrong stageNumber="+getStageNumber()+": it should be a divisor of 100");
@@ -327,7 +323,7 @@ abstract public class AbstractExperiment
 		if (results != null)
 	        for(Future<String> computationOutcome:results)
 				try {
-					System.out.println("RESULT: "+computationOutcome.get()+"\n");
+					System.out.println("RESULT: "+computationOutcome.get());
 				} catch (Exception e) {
 					System.out.println("FAILED");
 					e.printStackTrace();
@@ -337,8 +333,5 @@ abstract public class AbstractExperiment
 					executorService.shutdown();
 				}
 				
-	}
-	
-	
-	
+	}	
 }

@@ -52,7 +52,7 @@ public class WMethod {
 	}
 
 	private Collection<List<String>> fullTestSet;
-	private List<List<String>> transitionCover, characterisationSet;
+	private Collection<List<String>> transitionCover, characterisationSet;
 	
 	public Set<String> computeAlphabet()
 	{
@@ -68,11 +68,11 @@ public class WMethod {
 		return fullTestSet;
 	}
 	
-	public List<List<String>> getCharacterisationSet() {
+	public Collection<List<String>> getCharacterisationSet() {
 		return characterisationSet;
 	}
 
-	public List<List<String>> getTransitionCover() {
+	public Collection<List<String>> getTransitionCover() {
 		return transitionCover;
 	}
 
@@ -474,7 +474,7 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static List<List<String>> computeWSet(LearnerGraph fsm) throws EquivalentStatesException
+	public static Collection<List<String>> computeWSet(LearnerGraph fsm) throws EquivalentStatesException
 	{
 		
 		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
@@ -549,7 +549,10 @@ public class WMethod {
 			// First, we compute the histogram of label usage
 			String topLabel = computeTopLabel(distinguishingLabels);
 			while(topLabel != null)
-			{
+			{// distinguishingLabels contains all labels we may use; the choice of an optimal subset is NP, hence we simply pick
+			 // those which look best until we collect enough to distinguish all states (the loop is guaranteed to terminate
+			 // because we have enough data in distinguishingLabels for this, by the virtue of us getting as far as this
+		     // in the current procedure).
 				
 				// Now topLabel is the most often used one, we use it to separate all relevant states
 				for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> stateA:distinguishingLabels.entrySet())
@@ -598,7 +601,7 @@ public class WMethod {
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
 
-		List<List<String>> result = new LinkedList<List<String>>();
+		Collection<List<String>> result = new HashSet<List<String>>();
 		if (oldEquivalenceClassNumber == fsm.transitionMatrix.size() )
 		{
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
@@ -708,6 +711,13 @@ public class WMethod {
 	 */
 	public void checkW_is_corrent(Collection<List<String>> wset)
 	{
+		String result = checkW_is_corrent_boolean(wset);
+		if (result != null)
+			fail(result);
+	}
+	
+	public String checkW_is_corrent_boolean(Collection<List<String>> wset)
+	{
 		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
 		{
 			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
@@ -727,9 +737,11 @@ public class WMethod {
 					}
 					
 					if (!foundString)
-						fail("W set does not distinguish between "+stateA+" and "+stateB);
+						return "W set does not distinguish between "+stateA+" and "+stateB;
 				}
 		}
+		
+		return null;
 	}
 	
 	public interface FsmPermutator {

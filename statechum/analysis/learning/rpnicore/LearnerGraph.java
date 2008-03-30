@@ -41,9 +41,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
+import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -180,7 +180,7 @@ public class LearnerGraph {
 	 *
 	 * @param g the graph it will be used on 
 	 */
-	public LearnerGraph(DirectedSparseGraph g,Configuration conf)
+	public LearnerGraph(Graph g,Configuration conf)
 	{//TODO: to check that all exceptions are thrown for appropriate graphs.
 		config = conf;initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();

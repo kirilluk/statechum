@@ -296,7 +296,7 @@ public class ArrayOperations {
      * if this function returns <code>false</code>.
      * @return true if the two contain equal elements (according to their <code>equals</code> function).
      */
-    protected static boolean cmp(Object [] what, Object [] with, StringBuffer comparisonResult)
+    public static boolean cmp(Object [] what, Object [] with, StringBuffer comparisonResult)
     {
       if ( (what == null && with != null) || (what != null && with == null))
       {

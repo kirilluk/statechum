@@ -26,6 +26,10 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.xmachine.model.testset.PTA_FSMStructure;
+import statechum.xmachine.model.testset.PTA_computePrecisionRecall;
+import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -42,16 +46,25 @@ public class CompareGraphs {
 	 * @param hypothesis followed by actual graph
 	 */
 	public static void main(String[] args) {
-		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "specGraph");
-		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "impGraph");
-		LearnerGraph wm = new LearnerGraph(impGraph,Configuration.getDefaultConfiguration());
-		final int extraStateNumber = 1;
-		Collection<List<String>> testset = wm.wmethod.getFullTestSet(extraStateNumber);
-		testset.addAll(wm.wmethod.getTransitionCover());
-		PrecisionRecall pr = computePrecisionRecall(specGraph, impGraph, testset);
-		System.out.println("precision: "+pr.getPrecision()+", recall: "+pr.getRecall());
-		printTests(wm.wmethod.getFullTestSet(extraStateNumber));
-		
+		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph(args[0], "specGraph");
+		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph(args[1], "impGraph");
+		compare(specGraph, impGraph);
+	}
+	
+	public static void compare(String spec, DirectedSparseGraph imp){
+		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph(spec, "specGraph");
+		compare(specGraph, imp);
+	}
+	
+	public static void compare(DirectedSparseGraph spec, DirectedSparseGraph imp){
+		LearnerGraph specfsm =new LearnerGraph(spec, Configuration.getDefaultConfiguration()); 
+		LearnerGraph wm = new LearnerGraph(imp,Configuration.getDefaultConfiguration());
+		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(wm);
+		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);
+		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
+		partialPTA = partialPTA.cross(specfsm.wmethod.getFullTestSet(1));
+		PosNegPrecisionRecall pr =  precRec.crossWith(engine);
+		System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall());
 	}
 	
 	private static void printTests(Collection<List<String>> tests){
@@ -59,7 +72,7 @@ public class CompareGraphs {
 			System.out.println(list);
 		}
 	}
-
+/*  //I believe this can be removed
 	public static PosNegPrecisionRecall computePrecisionRecall(DirectedSparseGraph learned, 
 			DirectedSparseGraph correct, Collection<List<String>> tests){
 		Collection<List<String>> retneg = new HashSet<List<String>>();
@@ -115,5 +128,5 @@ public class CompareGraphs {
 		}
 		return new PosNegPrecisionRecall(retpos,relpos, retneg, relneg);
 	}
-
+*/
 }

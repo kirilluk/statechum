@@ -201,10 +201,7 @@ public class AddTransitions {
 				}
 */
 				if (changed)
-				{
-					//result+="\nAdded "+label+" to state "+entry.getKey().getName()+", result: "+description+" \n"+getVectors(newGraph, wSet);
 					++changesForThisState;
-				}
 				++total;
 			}
 			changeNumber+=changesForThisState;
@@ -214,9 +211,10 @@ public class AddTransitions {
 		double wsize = wSet.size();
 		double expectedNrOfChanges = wsize*2*fillFactor*(1-fillFactor)*Math.pow(fillFactor*fillFactor+(1-fillFactor)*(1-fillFactor), wsize-1)*
 			stateNumber*(stateNumber-1)/2;
-		for(Entry<String,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
+		result+="Distribution of labels: ";for(Entry<String,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
+		result+="Distribution of elements of W: ";for(String wElem:Walphabet) result+=" "+labelUsage.get(wElem);result+="\n";
 		return Math.abs(expectedNrOfChanges-changeNumber)/changeNumber+"\n"+result+"W size: "+wSet.size()+" W changes: "+changeNumber+ " out of "+total+" (expected "+average+"), \nfill factor is "+fillFactor+"\n "+
-			expectedNrOfChanges
+			"Expected number of changes is: "+expectedNrOfChanges
 		;
 	}
 	

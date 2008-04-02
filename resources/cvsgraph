@@ -1,0 +1,10 @@
+active
++ initialise connect login setfiletype storefile appendfile setfiletype rename storefile setfiletype rename logout disconnect
++ initialise connect login changedirectory listnames changedirectory listnames delete delete delete changedirectory listnames delete appendfile logout disconnect
++ initialise connect login makedir makedir makedir makedir logout disconnect
++ initialise connect login storefile logout disconnect
++ initialise connect login listfiles retrievefile retrievefile logout disconnect
++ initialise connect login listfiles changedirectory listfiles changedirectory listfiles retrievefile retrievefile logout disconnect
+ltl false
+#ltl ![]((initialise) -> X(connect))
+#ltl !XX(initialise)

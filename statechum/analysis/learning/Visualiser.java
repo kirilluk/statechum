@@ -267,7 +267,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		});
 	}
 	
-	protected void construct(Graph g) {
+	public void construct(Graph g) {
 		boolean assertsEnabled = false;
 		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 		if (!assertsEnabled && Boolean.getBoolean(getProperty(VIZ_PROPERTIES.ASSERT, "true")))

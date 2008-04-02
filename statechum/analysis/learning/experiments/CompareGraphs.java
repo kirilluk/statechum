@@ -47,7 +47,7 @@ public class CompareGraphs {
 	 */
 	public static void main(String[] args) {
 		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph(args[0], "specGraph");
-		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph(args[1], "impGraph");
+		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph(args[0], "impGraph");
 		compare(specGraph, impGraph);
 	}
 	
@@ -58,6 +58,8 @@ public class CompareGraphs {
 	
 	public static void compare(DirectedSparseGraph spec, DirectedSparseGraph imp){
 		LearnerGraph specfsm =new LearnerGraph(spec, Configuration.getDefaultConfiguration()); 
+		Visualiser v = new Visualiser(Visualiser.VIZ_PROPERTIES.UPPER);
+		v.construct(specfsm.paths.getGraph());
 		LearnerGraph wm = new LearnerGraph(imp,Configuration.getDefaultConfiguration());
 		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(wm);
 		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);

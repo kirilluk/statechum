@@ -56,14 +56,17 @@ public class BlueFringeSpinLearner extends
 		ltl = ltlFormulae;
 	}
 
+	enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT };
+
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
-		LearnerGraph newPTA = scoreComputer;// no need to clone - this
-													// is the job of
-													// mergeAndDeterminize
-													// anyway
+		final Configuration shallowCopy = (Configuration)scoreComputer.config.clone();shallowCopy.setLearnerCloneGraph(false);
+		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		LearnerGraph ptaSoftFacts = scoreComputer;
+		
+		
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted = 0;
@@ -85,7 +88,7 @@ public class BlueFringeSpinLearner extends
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			boolean restartLearning = false;// whether we need to rebuild a PTA
+			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA
 											// and restart learning.
 
 			// System.out.println(Thread.currentThread()+ " "+pair + "
@@ -94,18 +97,18 @@ public class BlueFringeSpinLearner extends
 			if (!SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
-				newPTA.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
+				ptaSoftFacts.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
 				System.out.println(counterexample.subList(0, counterexample.size()-1));
 				++minusSize;
-				restartLearning = true;
+				restartLearning = RestartLearningEnum.restartSOFT;
 			}
-			if (shouldAskQuestions(score) && !restartLearning) {
+			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) {
 				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			}
 			Iterator<List<String>> questionIt = questions.iterator();
-			while (questionIt.hasNext() && !restartLearning) {
+			while (questionIt.hasNext() && restartLearning == RestartLearningEnum.restartNONE) {
 
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
@@ -126,7 +129,7 @@ public class BlueFringeSpinLearner extends
 				if (answer == USER_ACCEPTED) {
 					++counterAccepted;
 					// sPlus.add(question);
-					newPTA.paths.augmentPTA(question, true);
+					ptaHardFacts.paths.augmentPTA(question, true);
 					++plusSize;
 					// System.out.println(setByAuto+question.toString()+ "
 					// <yes>");
@@ -135,7 +138,7 @@ public class BlueFringeSpinLearner extends
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART due to acceptance of a reject vertex for a pair "
 								+ pair + " ========\n";
-						restartLearning = true;
+						restartLearning = RestartLearningEnum.restartHARD;
 						break;
 					}
 				} else if (answer >= 0) {// The sequence has been rejected by
@@ -145,7 +148,7 @@ public class BlueFringeSpinLearner extends
 					LinkedList<String> subAnswer = new LinkedList<String>();
 					subAnswer.addAll(question.subList(0, answer + 1));
 					// sMinus.add(subAnswer);
-					newPTA.paths.augmentPTA(subAnswer, false);
+					ptaHardFacts.paths.augmentPTA(subAnswer, false);
 					++minusSize;// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// once
@@ -158,14 +161,14 @@ public class BlueFringeSpinLearner extends
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART because accept vertex was rejected for a pair "
 								+ pair + " ========\n";
-						restartLearning = true;
+						restartLearning = RestartLearningEnum.restartHARD;
 						break;
 					}
 				} else if(answer==-4){
 					String newLtl = JOptionPane.showInputDialog("New LTL formula:");
 					if(newLtl.length() != 0){
 						ltl.add(newLtl);
-						restartLearning = true;
+						restartLearning = RestartLearningEnum.restartHARD;
 						break;
 					}
 				}
@@ -175,18 +178,15 @@ public class BlueFringeSpinLearner extends
 				}
 			}
 
-			if (restartLearning) {// restart learning
-				// ComputeStateScores expected = createAugmentedPTA(sPlus,
-				// sMinus);// KIRR: node labelling is done by createAugmentedPTA
-				scoreComputer = newPTA;// no need to clone - this is the job of
-										// mergeAndDeterminize anyway
+			if (restartLearning != RestartLearningEnum.restartNONE) {// restart learning
+				if (restartLearning == RestartLearningEnum.restartHARD)
+					ptaSoftFacts = ptaHardFacts.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+				scoreComputer = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				setChanged();
 				++counterRestarted;
-				pairsMerged = pairsMerged + "========== RESTART "
-						+ counterRestarted + " ==========\n";
-				AtomicInteger count = restartScoreDistribution.get(pair
-						.getScore());
+				pairsMerged = pairsMerged + "========== RESTART " + counterRestarted + " ==========\n";
+				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null) {
 					count = new AtomicInteger();
 					restartScoreDistribution.put(pair.getScore(), count);

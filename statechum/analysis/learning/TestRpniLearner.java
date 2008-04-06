@@ -124,7 +124,6 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		l.init(plusPTA, minusPTA);
 		DirectedSparseGraph learningOutcomeB = l.learnMachine();
 		LearnerGraph learntStructureB = new LearnerGraph(learningOutcomeB,testConfig);
-		
 		WMethod.checkM(learntStructureA, learntStructureB);
 		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
 	}

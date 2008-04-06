@@ -39,7 +39,6 @@ import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
@@ -389,7 +388,8 @@ public class LearnerGraph {
 	{
 		LearnerGraph result = new LearnerGraph(copyConfiguration);
 		result.initEmpty();
-		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 
+		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
+		result.vertNegativeID = vertNegativeID;result.vertPositiveID=vertPositiveID;
 
 		Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
 		
@@ -436,16 +436,21 @@ public class LearnerGraph {
 	 * gets increased by Jung in the course of object creation.
 	 */
 	public static final Object syncObj = new Object();
-		
-	protected int vertPositiveID = 1;
-	protected int vertNegativeID = 1;
+	
+	/** Important: when a graph is cloned, these should be cloned too in order to avoid creating duplicate vertices at some point in future. */
+	protected int vertPositiveID = 1000;
+	protected int vertNegativeID = 1000;
 
 	/** Generates vertice IDs. */
 	public String nextID(boolean accepted)
 	{
+		String result = null;
 		if (config.getMode() == IDMode.POSITIVE_ONLY)
-			return "V"+vertPositiveID++;
-		return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
+			result = "V"+vertPositiveID++;
+		else
+			result = (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
+
+		return result;
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
@@ -460,6 +465,7 @@ public class LearnerGraph {
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
+		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
 		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
 		transitionMatrix.get(prevState).put(input,newVertex);

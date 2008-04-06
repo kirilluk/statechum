@@ -87,6 +87,7 @@ public class MergeStates {
 				origToNew.put(v, equivalenceClass);
 		}
 		result.init = origToNew.get(original.init).mergedVertex;
+		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
 		result.stateLearnt=origToNew.get(pair.getR()).mergedVertex;
 		Queue<AMEquivalenceClass> currentExplorationBoundary = new LinkedList<AMEquivalenceClass>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.init));

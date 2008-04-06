@@ -467,7 +467,7 @@ public class PathRoutines {
 				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
 				{
 					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld.getName()) == targetOld;
+					assert coregraph.findVertex(targetOld.getName()) == targetOld : "was looking for vertex with name "+targetOld.getName()+", got "+coregraph.findVertex(targetOld.getName());
 					DeterministicVertex target = oldToNew.get(targetOld);
 					DeterministicEdge e = new DeterministicEdge(source,target);
 					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);

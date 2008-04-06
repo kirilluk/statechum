@@ -141,11 +141,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 	/** The size of the initial plus/minus sets. */
 	protected int origPlusSize, origMinusSize;
 	
-	public void initWithPTA(PTASequenceEngine engine)
-	{
-		scoreComputer.initPTA();
-	}
-	
 	@Override
 	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
@@ -173,6 +168,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
+		setChanged();
 		if(config.getDebugMode())
 			updateGraph(newPTA.paths.getGraph("merge_debug"+0));
 
@@ -183,6 +179,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			setChanged();
 			if(config.getDebugMode())
 				updateGraph(temp.paths.getGraph("merge_debug"+iterations));
 			Collection<List<String>> questions = new LinkedList<List<String>>();
@@ -211,8 +208,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				}
 				
 				CmpVertex tempVertex = temp.getVertex(question);
-				if (tempVertex == null)
-					System.out.println();
 				
 				if(answer == USER_ACCEPTED)
 				{
@@ -237,8 +232,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						newPTA.paths.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs are 
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
-						
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+						
 						if( (answer < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
@@ -297,7 +292,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(result);
+		if(config.getDebugMode())
+			updateGraph(result);
 		return result;
 	}
 	

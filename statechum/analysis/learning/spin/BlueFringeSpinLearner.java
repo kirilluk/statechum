@@ -57,7 +57,8 @@ public class BlueFringeSpinLearner extends
 	}
 
 	enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT };
-
+	public static final String learntGraphName="tmp/GRAPH_BEING_LEARNT";
+	
 	public DirectedSparseGraph learnMachine() {
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
@@ -65,7 +66,8 @@ public class BlueFringeSpinLearner extends
 		final Configuration shallowCopy = (Configuration)scoreComputer.config.clone();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
-		
+
+		//updateGraph(ptaHardFacts.paths.getGraph());Visualiser.waitForKey();
 		
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
@@ -75,7 +77,7 @@ public class BlueFringeSpinLearner extends
 		counterEmptyQuestions = 0;
 		report.write("\n[ PTA: " + scoreComputer.paths.getStatistics(false) + " ] ");
 		setChanged();
-
+		updateGraph(scoreComputer.paths.getGraph(learntGraphName+"_init"));
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while (!possibleMerges.isEmpty()) {
@@ -93,7 +95,8 @@ public class BlueFringeSpinLearner extends
 
 			// System.out.println(Thread.currentThread()+ " "+pair + "
 			// "+questions);
-			updateGraph(temp.paths.getGraph());
+			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
+			updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			if (!SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
@@ -237,7 +240,7 @@ public class BlueFringeSpinLearner extends
 		report.write("\n[ Pairs restarted (score-number of times):"
 				+ HistogramToSeries(restartScoreDistribution, "RESTARTED"));
 		report.write("\n Pair merge details: \n" + pairsMerged);
-		DirectedSparseGraph result = scoreComputer.paths.getGraph();
+		DirectedSparseGraph result = scoreComputer.paths.getGraph(learntGraphName+"_result");
 		result.addUserDatum(JUConstants.STATS, report.toString(),
 				UserData.SHARED);
 		updateGraph(result);

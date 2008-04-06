@@ -27,10 +27,10 @@
   <void method="put"> 
    <string>UPPER</string> 
    <object class="java.awt.Rectangle"> 
-    <int>1614</int> 
-    <int>0</int> 
-    <int>737</int> 
-    <int>754</int> 
+    <int>11</int> 
+    <int>5</int> 
+    <int>833</int> 
+    <int>723</int> 
    </object> 
   </void> 
  </object> 

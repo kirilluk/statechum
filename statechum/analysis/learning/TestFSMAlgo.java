@@ -36,9 +36,11 @@ import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.ScoreMode;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig.OrigStatePair;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -397,7 +399,49 @@ public class TestFSMAlgo {
 		DvertA.compareTo(SvertA);
 	}
 	 */
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testEqClassEquality0()
+	{
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{}));
+	}
+	
+	@Test
+	public void testEqClassEquality1()
+	{
+		equalityTestingHelper(
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("C")})),
+				
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("C")})),
+
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("A"),new StringVertex("A"),new StringVertex("C")})),
 		
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}))
+		);
+	}
+
+	@Test
+	public void testEqClassEquality2()
+	{
+		equalityTestingHelper(
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B")})),
+				
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B")})),
+
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("A"),new StringVertex("A"),new StringVertex("C")})),
+		
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}))
+		);
+	}
+
 	/** Tests of comparison/equality of string/deterministic pairs of vertices
 	 * (string-"a"/string "b"/det-"a"/det-"b")
 	 * each pair of above, against another pair. 

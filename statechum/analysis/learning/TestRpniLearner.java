@@ -50,6 +50,7 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.ComputeQuestions.QSMQuestionGenerator;
 import statechum.xmachine.model.testset.PTASequenceSet;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
@@ -197,27 +198,37 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertEquals(false, tempG.wmethod.checkUnreachableStates());Assert.assertEquals(false, tempBG.wmethod.checkUnreachableStates());
 		WMethod.checkM(tempG, tempBG);
 		
+		
 		doneEdges = new HashSet();
 		int origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
-			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1);
+			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<Collection<CmpVertex>>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex("B"),learner2.findVertex("A"));
+		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).paths.getGraph(learnerName));Visualiser.waitForKey();
 		Collection<List<String>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
-			questionsB = ComputeQuestions.computeQS(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2));
-				
+			questionsB = ComputeQuestions.computeQS(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
+			questionsC = ComputeQuestions.computeQS(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
+			questionsD = ComputeQuestions.computeQS_general(pairNew2, learner2, MergeStates.mergeAndDeterminize_general(learner2, pairNew2), 
+					new QSMQuestionGenerator());
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		Assert.assertEquals(expectedScore, origScore);
 		Assert.assertEquals(expectedScore, newScoreA);
 		Assert.assertTrue( expectedScore < 0? (newScoreB < 0):(newScoreB >= 0));
+		Assert.assertTrue( expectedScore < 0? (newScoreC < 0):(newScoreC >= 0));
 		if (expectedScore != -1)
 		{
 			Set<List<String>> oldQuestions = new HashSet<List<String>>();oldQuestions.addAll(generateQuestions(g,temp, pairOrig));
 			//Assert.assertTrue(oldQuestions.size() > 0);
 			Set<List<String>> newQuestionsB = new HashSet<List<String>>();newQuestionsB.addAll(questionsB);
+			Set<List<String>> newQuestionsC = new HashSet<List<String>>();newQuestionsC.addAll(questionsC);
+			Set<List<String>> newQuestionsD = new HashSet<List<String>>();newQuestionsD.addAll(questionsD);
 			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsB,oldQuestions.equals(newQuestionsB));
+			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsC,oldQuestions.equals(newQuestionsC));
+			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsD,oldQuestions.equals(newQuestionsD));
 		}
 	}
 	
@@ -623,6 +634,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			mergeResultA = new LearnerGraph(new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).mergeAndDeterminize(g, pairOrig),testConfig), 
 			mergeResultB = new LearnerGraph(MergeStates.mergeAndDeterminize(g2, pairNew1,testConfig),testConfig),
 			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).paths.getGraph(),testConfig),
+			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).paths.getGraph(),testConfig),
 			expectedMachine = new LearnerGraph(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"),testConfig);
 
 		TestFSMAlgo.checkM(g2, machineToMerge,testConfig);
@@ -630,6 +642,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertFalse("unreachable states - original",mergeResultA.wmethod.checkUnreachableStates());
 		Assert.assertFalse("unreachable states",mergeResultB.wmethod.checkUnreachableStates());
 		Assert.assertFalse("unreachable states",mergeResultC.wmethod.checkUnreachableStates());
+		Assert.assertFalse("unreachable states",mergeResultD.wmethod.checkUnreachableStates());
 		Assert.assertFalse("unreachable states",expectedMachine.wmethod.checkUnreachableStates());
 		
 		if (checkWithEquals)
@@ -644,6 +657,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			WMethod.checkM(mergeResultB, expectedMachine);
 			WMethod.checkM(mergeResultC, expectedMachine);
 		}
+		WMethod.checkM(mergeResultD, expectedMachine);
 	}
 
 	@Test
@@ -877,7 +891,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 
 	
 	@Test(expected = IllegalArgumentException.class)
-	public final void testMerge_fail1()
+	public final void testMerge_fail1a()
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail1");
 		CmpVertex 
@@ -886,7 +900,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		StatePair pair = new StatePair(b,a);// A is red
 		MergeStates.mergeAndDeterminize(g, pair,testConfig);
 	}
-	
+		
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail2()
 	{
@@ -896,6 +910,17 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			b = l.findVertex("B");
 		StatePair pair = new StatePair(b,a);// A is red
 		MergeStates.mergeAndDeterminize(l, pair);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testMerge_fail3()
+	{
+		LearnerGraph l=new LearnerGraph(TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail2"),testConfig);
+		CmpVertex 
+			a = l.findVertex("A"),
+			b = l.findVertex("B");
+		StatePair pair = new StatePair(b,a);// A is red
+		MergeStates.mergeAndDeterminize_general(l, pair);
 	}
 
 	protected interface InterfaceChooserToTest {

@@ -39,6 +39,7 @@ import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
@@ -123,6 +124,14 @@ public class LearnerGraph {
 	 */
 	protected List<PairScore> pairsAndScores;
 
+	/** After merging using mergeAndDeterminize_general,
+	 * this variable stores equivalence classes. Used by the pluggable
+	 * question generator.
+	 */ 
+	protected Collection<AMEquivalenceClass> mergedStates = null;
+
+	protected CmpVertex stateLearnt = null;
+	
 	/** The configuration stores parameters used by a variety methods
 	 * involved in learning;
 	 */

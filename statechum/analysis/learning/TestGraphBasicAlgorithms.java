@@ -183,7 +183,10 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		Map<String,String> expected = new HashMap<String,String>();
 		if (initSeq != null)
 			for(Entry<String,String> expSrc:TestFSMAlgo.buildStringMap(expectedResult).entrySet())
-				for(List<String> is:TestFSMAlgo.buildSet(initSeq)) expected.put(ArrayOperations.seqToString(is)+ArrayOperations.separator+expSrc.getKey(), expSrc.getValue());
+			{
+				String expectedSequence = expSrc.getKey().length()>0? ArrayOperations.separator+expSrc.getKey():"";
+				for(List<String> is:TestFSMAlgo.buildSet(initSeq)) expected.put(ArrayOperations.seqToString(is)+expectedSequence, expSrc.getValue());
+			}
 		else // initSeq == null
 			expected.putAll(TestFSMAlgo.buildStringMap(expectedResult));
 		
@@ -284,7 +287,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	
 	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
 	@Test
-	public final void testComputePathsSBetween6()
+	public final void testComputePathsSBetween6a()
 	{
 		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween6",
 				"A","C",
@@ -298,6 +301,21 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 					new Object[]{new String[] {"c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 					new Object[]{new String[] {"c","d"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 					new Object[]{new String[] {"p","q"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
+		});
+	}
+
+	/** Similar to testComputePathsToRed5 but tests that all four nodes are concatenated with existing sequences. */
+	@Test
+	public final void testComputePathsSBetween6b()
+	{
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsSBetween6",
+				"A","A",
+				new String[][]{
+					new String[] { "sequenceA","sequenceB" },
+					new String[] { "sequenceC" },
+					new String[] { "sA","sB","sC"}},
+				new Object[][] {
+					new Object[]{new String[] {}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 		});
 	}
 

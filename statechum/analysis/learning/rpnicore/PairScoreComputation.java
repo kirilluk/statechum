@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +34,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -458,13 +458,13 @@ public class PairScoreComputation {
 			}
 
 			
-			// We reconsider every equivalence class which has changed. However, there may be still
-			// pairs from the past which may have originally belonged to the two classes which 
-			// got merged an considered early. Since the equivalence class did not change, we 
-			// do not need to consider it here.
+			// We reconsider every equivalence class which has changed which is the case if equivalenceClass != null. 
+			// Note there may be still pairs from the past which may have originally 
+			// belonged to the two classes which got subsequently merged. These pairs 
+			// will remain on the exploration stack and will be ignored below.
 			if (equivalenceClass != null)
 			{
-				// Now we have a single equivalence class in the form of a list of string-next vertex entries, explore all matching transitions.
+				// Now we have a single equivalence class in the form of a list of <label,next vertex> entries, explore all matching transitions.
 				ListIterator<Entry<String,CmpVertex>> firstTransitionIter = equivalenceClass.getOutgoing().listIterator();
 				while(firstTransitionIter.hasNext())
 				{// quadratic-time search is not nice, but I'd like to ensure that even if I end up with more than two
@@ -476,8 +476,8 @@ public class PairScoreComputation {
 						Entry<String,CmpVertex> secondTransition = secondTransitionIter.next();
 						if (firstTransition.getKey().equals(secondTransition.getKey()))
 						{
-							EquivalenceClass fClass = stateToEquivalenceClass.get(firstTransition.getValue());
-							EquivalenceClass sClass= stateToEquivalenceClass.get(secondTransition.getValue());
+							EquivalenceClass fClass = stateToEquivalenceClass.get (firstTransition.getValue());
+							EquivalenceClass sClass = stateToEquivalenceClass.get(secondTransition.getValue());
 							if (fClass == null || sClass == null || !fClass.equals(sClass))
 							{// this is the case when a pair of states will have to be merged.
 								StatePair nextPair = new StatePair(firstTransition.getValue(),secondTransition.getValue());

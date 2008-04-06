@@ -28,10 +28,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
 
 public class ComputeQuestions {
 	final LearnerGraph coregraph;
@@ -46,88 +46,110 @@ public class ComputeQuestions {
 		coregraph = computeStateScores;
 	}
 
-	private static class ExplorationElement
+	public interface QuestionConstructor 
 	{
-		public final Pair<CmpVertex,CmpVertex> pair;
-		public final PTASequenceEngine.SequenceSet pathsInOriginal;
+		/** Constructs an engine which is used to store trees of sequences representing questions to ask. */
+		public PTASequenceEngine constructEngine(LearnerGraph original, LearnerGraph learnt);
 		
-		public ExplorationElement(CmpVertex first, CmpVertex second, PTASequenceEngine.SequenceSet paths)
-		{
-			pair = new Pair<CmpVertex, CmpVertex>(first,second);pathsInOriginal=paths;
-		}
+		/** Called for each state in the merged machine. Expected to update the collection of questions.
+		 * 
+		 * @param state the equivalence class to process
+		 * @param original the original graph
+		 * @param learnt the result of merging
+		 * @param pairOrig the pair of states which was merged in the original graph
+		 * @param stateLearnt the state in the merged graph corresponding to those two states. 
+		 */
+		public void addQuestionsForState(AMEquivalenceClass state, LearnerGraph original, LearnerGraph learnt, 
+				StatePair pairOrig,CmpVertex stateLearnt,MergeData data);
 	}
 	
-	private static void buildQuestionsFromPair(
-			LearnerGraph original, CmpVertex originalRed, 
-			LearnerGraph merged, CmpVertex mergedRed, 
-			PTASequenceEngine.SequenceSet pathsInOriginal)
+	/** We may be able to supply question generate with lots of different pieces of data, but
+	 * not all of it will be needed - no point wasting time computing irrelevant stuff.
+	 */
+	public interface MergeData
 	{
-		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
+		/** Returns shortest paths in the original graph to the blue state. */
+		public SequenceSet getPathsToBlue();
+		/** Returns shortest paths in the original graph to the red state. */
+		public SequenceSet getPathsToRed();
+		/** Returns shortest paths in the learnt graph to the stateLearnt state. */
+		public SequenceSet getPathsToLearnt();
+	}
+	
+	public static Collection<List<String>> computeQS_general(final StatePair pairToMerge, 
+			final LearnerGraph original, final LearnerGraph learnt,final QuestionConstructor qConstructor)
+	{
+		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
 		
-		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
-		// build a path from tempRed to it, at the same time tracing it through the current machine.
-
-		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(originalRed);
-		Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue containing vertices to be explored
-		currentExplorationBoundary.add(new ExplorationElement(originalRed,mergedRed, pathsInOriginal));
-
-		//List<String> nextInput = new ArrayList<String>(1);
-		while(!currentExplorationBoundary.isEmpty())
-		{
-			ExplorationElement current = currentExplorationBoundary.remove();
-			
-			Map<String,CmpVertex> firstRow = merged.transitionMatrix.get(current.pair.firstElem),
-				secondRow = original.transitionMatrix.get(current.pair.secondElem);
-			targetToInputSet.clear();
-			System.out.println("before multiplying: "+current.pathsInOriginal.getDebugData());
-			PTASequenceEngine.SequenceSet multResult = current.pathsInOriginal.crossWithSet(firstRow.keySet());// transition cover of merged
-			System.out.println("about to multiply by "+firstRow.keySet());
-			System.out.println("after state cover: "+multResult.getDebugData());
-			if (LearnerGraph.testMode)
-			{
-				Set<String> moreOrigInputs = new HashSet<String>();moreOrigInputs.addAll(secondRow.keySet());
-				moreOrigInputs.removeAll(firstRow.keySet());
-				assert moreOrigInputs.isEmpty() : 
-					"inconsistent merge: merged automaton has fewer paths, merged: "+firstRow.keySet()+
-					", original: "+secondRow.keySet();
-			}
-			System.out.println("from states "+current.pair.firstElem+","+current.pair.secondElem);
-			for(Entry<String,CmpVertex> entry:firstRow.entrySet())
-				// When generating questions for PTA merging, we should be trying 
-				// to enter all states of the merged automaton - 
-				// traversing states of the original one generates long sequences 
-				// and is likely to lead to numerous spurious questions being generated 
-				// because for a group of states merged into one, the closest one to the 
-				// initial state will be the most representative (the further from the initial 
-				// state, the more sparse a PTA becomes). The important point here is that the first state
-				// of a group of merged states is the one closest to the initial state in the PTA.
-				// In contrast, where states in an arbitrary automaton are being merged, 
-				// we might be better off checking states further away
-				// because they may just happen to contain more structure.
-				if (!visitedStates.contains(entry.getValue()))
+		final SequenceSet identity = engine.new SequenceSet();identity.setIdentity();
+		for(AMEquivalenceClass eq:learnt.mergedStates)
+			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, learnt.stateLearnt,new MergeData(){
+				public SequenceSet getPathsToBlue() 
 				{
-					List<String> inputs = targetToInputSet.get(entry.getValue());
-					if (inputs == null)
-					{
-						inputs = new LinkedList<String>();targetToInputSet.put(entry.getValue(),inputs);
-					}
-					inputs.add(entry.getKey());
+					SequenceSet toBlue = engine.new SequenceSet();
+					original.buildCachedData();original.paths.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
+					return toBlue;
 				}
-			
-			for(Entry<CmpVertex,List<String>> target:targetToInputSet.entrySet())
+
+				public SequenceSet getPathsToRed() 
+				{
+					SequenceSet toRed = engine.new SequenceSet();
+					original.buildCachedData();original.paths.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
+					return toRed;
+				}
+
+				public SequenceSet getPathsToLearnt() 
+				{
+					SequenceSet toLearnt = engine.new SequenceSet();
+					learnt.buildCachedData();learnt.paths.computePathsSBetween(learnt.init, learnt.stateLearnt, identity, toLearnt);
+					return toLearnt;
+				}
+
+			});
+		
+		return engine.getData();
+	}
+	
+	/** Replicates QSM question generator using the new question generation framework. */
+	static public class QSMQuestionGenerator implements QuestionConstructor
+	{
+		private PTASequenceEngine engine = null;
+		
+		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
+		{
+			engine = new PTASequenceEngine();
+			engine.init(original.new NonExistingPaths());
+			return engine;
+		}
+
+		private SequenceSet pathsToMergedRed = null;
+		
+		public void addQuestionsForState(AMEquivalenceClass state, 
+				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
+				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
+				MergeData data) 
+		{
+			if (pathsToMergedRed == null)
 			{
-				visitedStates.add(target.getKey());
-				CmpVertex newMergedVertex = firstRow.get(target.getValue().iterator().next());
-				PTASequenceEngine.SequenceSet stateCoverSoFar = current.pathsInOriginal.crossWithSet(target.getValue()); 
-				currentExplorationBoundary.offer(new ExplorationElement(target.getKey(), newMergedVertex, 
-						stateCoverSoFar));
-				System.out.println("\tnew pair: "+target.getKey()+","+newMergedVertex+
-						" inputs: "+target.getValue());
+				Collection<String> inputsToMultWith = new LinkedList<String>();
+				for(Entry<String,CmpVertex> loopEntry:learnt.transitionMatrix.get(stateLearnt).entrySet())
+					if (loopEntry.getValue() == stateLearnt)
+					{// Note an input corresponding to any loop in temp can be followed in the original machine, since
+					 // a loop in temp is either due to the merge or because it was there in the first place.
+						inputsToMultWith.add(loopEntry.getKey());
+					}
+				pathsToMergedRed = data.getPathsToLearnt();
+				pathsToMergedRed.unite(pathsToMergedRed.crossWithSet(inputsToMultWith));// the resulting path does a "transition cover" on all transitions leaving the red state.
 			}
+						
+			SequenceSet pathsToCurrentState = engine.new SequenceSet();
+			if (learnt.paths.computePathsSBetweenBoolean(stateLearnt, state.mergedVertex, pathsToMergedRed, pathsToCurrentState))
+				// if a path from the merged red state to the current one can be found, update the set of questions. 
+				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
 		}
 		
 	}
-
+	
 	/** Given a result of merging, computes a set of questions in the way it was implemented in 2007.
 	 * 
 	 * @param mergedRed
@@ -172,8 +194,7 @@ public class ComputeQuestions {
 // new red state is allowed by the original automaton), we still proceed to enumerate states. Another strange feature is 
 // that we're taking shortest paths to all states in the new automaton, while there could be multiple different paths. 
 // This means that it is possible that there would be paths to some states in the new automaton which will also be possible 
-// in the original one, but will not be found because they are not the shortest ones. In turn, this means that many potential
-
+// in the original one, but will not be found because they are not the shortest ones. 
 			}
 		}
 	}
@@ -182,7 +203,6 @@ public class ComputeQuestions {
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
-	 * 
 	 */
 	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{

@@ -95,6 +95,27 @@ public class PathRoutines {
 			PTASequenceEngine.SequenceSet pathsToVertSource,
 			PTASequenceEngine.SequenceSet result)
 	{
+		if (!computePathsSBetweenBoolean(vertSource, vertTarget, pathsToVertSource, result))
+			throw new IllegalArgumentException("path from state "+vertSource+" to state "+vertTarget+" was not found");
+	}
+	
+	/** Computes all possible shortest paths from the supplied source state to the 
+	 * supplied target state and returns a PTA corresponding to them. The easiest 
+	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
+	 * this also permits one to trace them in some automaton and junk irrelevant ones.
+	 * 
+	 * @param vertSource the source state
+	 * @param vertTarget the target state
+	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
+	 * or obtained using PTATestSequenceEngine-related operations.
+	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
+	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
+	 * @return false if a path cannot be found and true otherwise.
+	 */	
+	public boolean computePathsSBetweenBoolean(CmpVertex vertSource, CmpVertex vertTarget,
+			PTASequenceEngine.SequenceSet pathsToVertSource,
+			PTASequenceEngine.SequenceSet result)
+	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
 		coregraph.buildCachedData();
@@ -112,8 +133,8 @@ public class PathRoutines {
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		if (vertSource == vertTarget)
 		{
-			result.setIdentity();
-			return ;// nothing to do, return an empty sequence.
+			result.unite(pathsToVertSource);
+			return true;// nothing to do, return paths to an initial state.
 		}
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
@@ -163,8 +184,7 @@ public class PathRoutines {
 			}
 		}
 
-		if (!pathFound)
-			throw new IllegalArgumentException("path from state "+vertSource+" to state "+vertTarget+" was not found");
+		return pathFound;
 	}
 	
 	/** Computes all possible shortest paths from the supplied source state to the 
@@ -199,8 +219,8 @@ public class PathRoutines {
 		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
 		if (vertSource == vertTarget)
 		{
-			result.setIdentity();
-			return ;// nothing to do, return an empty sequence.
+			result.unite(pathsToVertSource);
+			return;// nothing to do, return paths to an initial state.
 		}
 		
 		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);

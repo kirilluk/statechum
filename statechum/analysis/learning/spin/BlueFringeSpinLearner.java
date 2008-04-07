@@ -106,7 +106,7 @@ public class BlueFringeSpinLearner extends
 				restartLearning = RestartLearningEnum.restartSOFT;
 			}
 			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) {
-				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
+				questions = ComputeQuestions.computeQS(pair, ptaHardFacts, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			}
@@ -116,9 +116,11 @@ public class BlueFringeSpinLearner extends
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
 				int answer = checkWithSPIN(question);
-				if(answer<0)
+				if(answer<0){
+					System.out.println("--");
 					answer = checkWithEndUser(scoreComputer.paths.getGraph(),
 						question, new Object[] { "LTL"});
+				}
 				this.questionCounter++;
 				if (answer == USER_CANCELLED) {
 					System.out.println("CANCELLED");

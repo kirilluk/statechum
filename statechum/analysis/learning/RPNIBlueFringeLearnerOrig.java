@@ -42,7 +42,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	}
 
 	protected Graph currentGraph = DeterministicDirectedSparseGraph.initialise();
-	protected HashSet doneEdges;
+	protected HashSet<DirectedSparseEdge> doneEdges;
 	protected Collection<List<String>> sPlus, sMinus;
 
 	public static Collection<String> getAlphabetForEdges(Collection<Edge> edges){
@@ -65,10 +65,10 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	
 
 	protected Graph removeNegatives(Graph g){
-		Iterator vertexIt = g.getVertices().iterator();
-		HashSet remove = new HashSet();
+		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+		HashSet<Vertex> remove = new HashSet<Vertex>();
 		while(vertexIt.hasNext()){
-			Vertex v = (Vertex)vertexIt.next();
+			Vertex v = vertexIt.next();
 			if(!DeterministicDirectedSparseGraph.isAccept(v)&&!DeterministicDirectedSparseGraph.isInitial(v))
 				remove.add(v);
 		}
@@ -160,10 +160,10 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 				return false;
 			if(o instanceof OrigStatePair){
 				OrigStatePair other = (OrigStatePair)o;
-				Object otherQ = (Object)other.getQ().getUserDatum(JUConstants.LABEL);
-				Object otherR = (Object)other.getR().getUserDatum(JUConstants.LABEL);
-				Object thisQ = (Object)q.getUserDatum(JUConstants.LABEL);
-				Object thisR = (Object)r.getUserDatum(JUConstants.LABEL);
+				Object otherQ = other.getQ().getUserDatum(JUConstants.LABEL);
+				Object otherR = other.getR().getUserDatum(JUConstants.LABEL);
+				Object thisQ = q.getUserDatum(JUConstants.LABEL);
+				Object thisR = r.getUserDatum(JUConstants.LABEL);
 				if(thisQ.equals(otherQ)&&thisR.equals(otherR))
 					return true;
 			}
@@ -172,7 +172,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	}	
 	
 	/** Makes a copy of the graph given to it and merges states in the pair supplied. */
-	protected DirectedSparseGraph mergeAndDeterminize(Graph model, OrigStatePair pair){
+	public static DirectedSparseGraph mergeAndDeterminize(Graph model, OrigStatePair pair){
 		Graph original = (Graph)model.copy();
 		Vertex q = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
 		Vertex qDash = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
@@ -212,9 +212,9 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
 		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 
-		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
+		Stack<OrigStatePair> possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
-			OrigStatePair pair = (OrigStatePair)possibleMerges.pop();
+			OrigStatePair pair = possibleMerges.pop();
 
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
 			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
@@ -332,12 +332,12 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		if(loopToR||redAndBlueNeighbours){ //there either exists a loop to r or will do if r and b merge
 			if(loopToR){
 				Edge e = findEdge(r, r);
-				HashSet labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+				HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 			if(redAndBlueNeighbours){
 				Edge e = findEdge(r,q);
-				HashSet labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+				HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 		}
@@ -377,7 +377,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
 			if(DeterministicDirectedSparseGraph.isAccept(e.getOpposite(v))){
-				ArrayList l = new ArrayList();
+				ArrayList<Edge> l = new ArrayList<Edge>();
 				l.add(e);
 				returnStrings.addAll(getPaths(l));
 			}
@@ -471,7 +471,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		List<String> list = new ArrayList<String>();
 		while(pathIt.hasNext()){
 			Edge e = pathIt.next();
-			Set s = (HashSet)e.getUserDatum(JUConstants.LABEL);
+			Set<String> s = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 			Object[] strings = s.toArray();
 			list.add(strings[0].toString());
 		}
@@ -494,14 +494,14 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			else{
 				Edge existing = findEdge(e.getSource(), qDash);
 				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);// KIRR: if you use UserData.SHARED, you do not need to copy the result back using put
-				labels.addAll((Set)e.getUserDatum(JUConstants.LABEL));
+				labels.addAll((Set<String>)e.getUserDatum(JUConstants.LABEL));
 				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
 		}
-		Iterator outEdges = q.getOutEdges().iterator();
+		Iterator<DirectedSparseEdge> outEdges = q.getOutEdges().iterator();
 		while(outEdges.hasNext()){
-			DirectedSparseEdge e = (DirectedSparseEdge)outEdges.next();
+			DirectedSparseEdge e = outEdges.next();
 			DirectedSparseEdge eDash = new DirectedSparseEdge(qDash, e.getDest());
 			eDash.addUserDatum(JUConstants.LABEL, e.getUserDatum(JUConstants.LABEL), UserData.CLONE);
 			if(!qDash.getSuccessors().contains(e.getDest())) 
@@ -509,7 +509,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			else{
 				Edge existing = findEdge(qDash, e.getDest());
 				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);
-				labels.addAll((Set)e.getUserDatum(JUConstants.LABEL));
+				labels.addAll((Set<String>)e.getUserDatum(JUConstants.LABEL));
 				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
@@ -661,7 +661,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
 			Iterator<String> labelIt = labels.iterator();
 			while(labelIt.hasNext()){
-				List string = new ArrayList();
+				List<String> string = new ArrayList<String>();
 				string.add(labelIt.next());
 				Vertex qi = e.getDest();
 				Vertex qj = getVertex(original,blueRed.getR(), string);
@@ -671,10 +671,9 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 					if(equivalent<0){
 						return -1;
 					}
-					else{
-						returnValue++;
-						returnValue= returnValue + equivalent;
-					}
+					
+					returnValue++;
+					returnValue= returnValue + equivalent;
 				}
 			}
 		}
@@ -750,10 +749,10 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		return getVertex(g, DeterministicDirectedSparseGraph.findInitial(g), string);
 	}
 
-	public static DirectedSparseEdge getEdgeWithLabel(Set edges, String label){
-		Iterator edgeIt = edges.iterator();
+	public static DirectedSparseEdge getEdgeWithLabel(Set<DirectedSparseEdge> edges, String label){
+		Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
-			DirectedSparseEdge e = (DirectedSparseEdge)edgeIt.next();
+			DirectedSparseEdge e = edgeIt.next();
 			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
 			if(labels.contains(label))
 				return e;

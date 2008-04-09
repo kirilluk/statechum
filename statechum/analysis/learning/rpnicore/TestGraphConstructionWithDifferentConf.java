@@ -19,7 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
-
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import java.util.Collection;
 
 import junit.framework.Assert;
@@ -233,7 +233,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail2()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "B", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("B"), UserData.SHARED);
 		checkWithVertex(v, "multiple", "testGraphConstructionFail2");
 	}
 	
@@ -241,23 +241,31 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail3()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "CONFL", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("CONFL"), UserData.SHARED);
 		checkWithVertex(v, "multiple", "testGraphConstructionFail3");
 	}
 	
 	@Test
-	public void testGraphConstructionFail4()
+	public void testGraphConstructionFail4a()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		checkWithVertex(v, "labelled as initial states", "testGraphConstructionFail4");
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("Q"), UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		checkWithVertex(v, "labelled as initial states", "testGraphConstructionFail4a");
+	}
+	
+	@Test
+	public void testGraphConstructionFail4b()
+	{
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("Q"), UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, new VertexID("aa"), UserData.SHARED);
+		checkWithVertex(v, "invalid init property", "testGraphConstructionFail4b");
 	}
 	
 	@Test
 	public void testGraphConstructionFail5a()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, "aa", UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("Q"), UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, "aa", UserData.SHARED);
 		checkWithVertex(v, "invalid init property", "testGraphConstructionFail5a");
 	}
 	
@@ -265,7 +273,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail5b()
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, "Q", UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, false, UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("Q"), UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, false, UserData.SHARED);
 		checkWithVertex(v, "invalid init property", "testGraphConstructionFail5b");
 	}
 

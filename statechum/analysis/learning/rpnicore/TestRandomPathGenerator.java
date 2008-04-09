@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -38,8 +39,15 @@ import statechum.xmachine.model.testset.PTASequenceEngine;
 import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class TestRandomPathGenerator {
-	private Configuration config = Configuration.getDefaultConfiguration();
+	private Configuration config = null;
 
+	@Before
+	public void InitConfig()
+	{
+		config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		simpleGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
+	}
+	
 	@Test
 	public void test_diameter0()
 	{
@@ -63,7 +71,7 @@ public class TestRandomPathGenerator {
 	}
 
 	/** One of the test graphs. Should not contain reject states since these methods assume that all states are accepts. */
-	private LearnerGraph simpleGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
+	private LearnerGraph simpleGraph = null;
 	
 	@Test
 	public void test_generateRandomWalk1()
@@ -240,6 +248,34 @@ public class TestRandomPathGenerator {
 		generator.generateRandomWalk(2,-1, false);
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generateRandomWalk_tooshort_PosNeg_fail1()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100);
+		generator.generatePosNeg(10, 10);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generateRandomWalk_tooshort_PosNeg_fail2()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		generator.generatePosNeg(11, 10);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generateRandomWalk_tooshort_Random_fail1()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100);
+		generator.generateRandomPosNeg(10, 10);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generateRandomWalk_tooshort_Random_fail2()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		generator.generateRandomPosNeg(11, 10);
+	}
+	
 	public RandomPathGenerator generatePosNegTestHelper(String automaton, String automatonName,
 			final int chunkNumber,final int posOrNegPerChunk)
 	{
@@ -290,6 +326,14 @@ public class TestRandomPathGenerator {
 		RandomPathGenerator generator = generatePosNegTestHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F-e->F","test_generatePosNeg1",
 				3,30);
 		Assert.assertTrue(generator.getFudgeDetails().toString().contains("FAILED"));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generatePosNeg_fail()
+	{
+		config.setRandomPathAttemptFudgeThreshold(1);
+		generatePosNegTestHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F-e->F","test_generatePosNeg1",
+				3,30);
 	}
 
 	public RandomPathGenerator generateRandomPosNegHelper(String automaton, String automatonName,int chunkNumber,int posOrNegPerChunk)
@@ -351,6 +395,14 @@ public class TestRandomPathGenerator {
 		RandomPathGenerator generator = generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",
 				18,12);
 		Assert.assertTrue(generator.getFudgeDetails().toString().contains("FAILED"));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void test_generateRandomPosNeg_fail()
+	{
+		config.setRandomPathAttemptFudgeThreshold(1);
+		generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",
+				18,12);
 	}
 	
 	@BeforeClass

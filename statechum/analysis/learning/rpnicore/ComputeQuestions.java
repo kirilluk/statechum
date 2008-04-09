@@ -206,7 +206,7 @@ public class ComputeQuestions {
 	 */
 	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
-		CmpVertex mergedRed = merged.findVertex(pair.getR().toString());
+		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		original.buildCachedData();merged.buildCachedData();

@@ -186,7 +186,7 @@ public class AddTransitions {
 			for(String label:newLabels)
 			{
 				LearnerGraph newGraph = graph.copy(graph.config);
-				CmpVertex currState = newGraph.findVertex(entry.getKey().getName());
+				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
 				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet);
 				boolean changed = (description != null);
@@ -205,7 +205,7 @@ public class AddTransitions {
 				++total;
 			}
 			changeNumber+=changesForThisState;
-			result+="changes for "+entry.getKey().getName()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
+			result+="changes for "+entry.getKey().getID().toString()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
 		}
 		double stateNumber = graph.getStateNumber();
 		double wsize = wSet.size();

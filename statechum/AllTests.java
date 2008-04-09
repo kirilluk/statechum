@@ -52,11 +52,6 @@ public class AllTests {
 		statechum.analysis.learning.TestFSMAlgo.class
 	})
 	public static class FSMTests {
-		@Override
-		public String toString()
-		{
-			return "FSM tests";
-		}
 	}
 
 	@RunWith(Suite.class)
@@ -70,7 +65,7 @@ public class AllTests {
 
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
-		statechum.analysis.learning.TestGraphBasicAlgorithms.class,
+		statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
 		statechum.analysis.learning.TestGraphGeneration.class,
 		statechum.analysis.learning.TestPathTracing.class,
 		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,

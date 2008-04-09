@@ -38,6 +38,8 @@ import statechum.StringVertex;
 import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.oracles.*;
 import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
@@ -94,7 +96,7 @@ public class LearnerGraph {
 			return red;
 		}
 	
-		public final CmpVertex junkVertex = LearnerGraph.generateNewCmpVertex("JUNK",config);
+		public final CmpVertex junkVertex = LearnerGraph.generateNewCmpVertex(new VertexID("JUNK"),config);
 				
 		public Object getNextState(Object currentState, String input) 
 		{
@@ -202,8 +204,8 @@ public class LearnerGraph {
 				CmpVertex vert = cloneCmpVertex(srcVert,config);
 				origToCmp.put(srcVert, vert);
 
-				if (findVertex(vert.getName()) != null)
-					throw new IllegalArgumentException("multiple states with the same name "+vert.getName());
+				if (findVertex(vert.getID()) != null)
+					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
 				
 				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
 				if (DeterministicDirectedSparseGraph.isInitial(srcVert))// special case for the initial vertex.
@@ -411,18 +413,27 @@ public class LearnerGraph {
 		return result;
 	}
 
-	/** Finds a vertex with a supplied name in a transition matrix.
+	/** Finds a vertex with a supplied identifier in a transition matrix.
 	 * Important: do not change the acceptance condition on the returned vertex: it will mess up the
 	 * transition matrix since hash code is dependent on acceptance.
 	 */
 	public CmpVertex findVertex(String name)
+	{
+		return findVertex(new VertexID(name));
+	}
+	
+	/** Finds a vertex with a supplied identifier in a transition matrix.
+	 * Important: do not change the acceptance condition on the returned vertex: it will mess up the
+	 * transition matrix since hash code is dependent on acceptance.
+	 */
+	public CmpVertex findVertex(VertexID name)
 	{
 		CmpVertex result = null;
 		Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryIt = transitionMatrix.entrySet().iterator();
 		while(entryIt.hasNext() && result == null)
 		{
 			CmpVertex currentVert = entryIt.next().getKey();
-			String vertName = currentVert.getName();
+			VertexID vertName = currentVert.getID();
 			if (vertName.equals(name))
 				result = currentVert;
 		}
@@ -441,16 +452,24 @@ public class LearnerGraph {
 	protected int vertPositiveID = 1000;
 	protected int vertNegativeID = 1000;
 
-	/** Generates vertice IDs. */
-	public String nextID(boolean accepted)
+	/** Generates vertex IDs. Since it modifies instance ID-related variables, it has to be synchronized. */
+	public synchronized VertexID nextID(boolean accepted)
 	{
-		String result = null;
+		VertexID result = null;
 		if (config.getMode() == IDMode.POSITIVE_ONLY)
-			result = "V"+vertPositiveID++;
+			result = new VertexID(VertKind.NEUTRAL,vertPositiveID++);
 		else
-			result = (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
+			result = (accepted?new VertexID(VertKind.POSITIVE,vertPositiveID++):
+					new VertexID(VertKind.NEGATIVE,vertNegativeID++));
 
 		return result;
+	}
+
+	public synchronized VertexID getDefaultInitialPTAName()
+	{
+		if (config.getDefaultInitialPTAName().length() > 0)
+			return new VertexID(config.getDefaultInitialPTAName());
+		return new VertexID(VertKind.INIT,vertPositiveID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
@@ -479,7 +498,7 @@ public class LearnerGraph {
 	 * @param conf the configuration to use when deciding what to produce.
 	 * @return the new vertex.
 	 */
-	public static CmpVertex generateNewCmpVertex(String name,Configuration conf)
+	public static CmpVertex generateNewCmpVertex(VertexID name,Configuration conf)
 	{
 		synchronized(syncObj)
 		{
@@ -514,7 +533,7 @@ public class LearnerGraph {
 				result = vert;
 			else
 			{
-				result = generateNewCmpVertex(vert.getName(),conf);
+				result = generateNewCmpVertex(vert.getID(),conf);
 				result.setColour(vert.getColour());result.setAccept(vert.isAccept());result.setHighlight(vert.isHighlight());
 			}
 		}
@@ -530,7 +549,14 @@ public class LearnerGraph {
 				throw new IllegalArgumentException("vertex "+srcVert+" is not labelled");
 			
 			// Copying the attributes associated with the vertex
-			result = generateNewCmpVertex((String)srcVert.getUserDatum(JUConstants.LABEL), conf);
+			Object label = srcVert.getUserDatum(JUConstants.LABEL);
+			if (label instanceof VertexID)
+				result = generateNewCmpVertex((VertexID)label, conf);
+			else
+				if (label instanceof String)
+					result = generateNewCmpVertex(new VertexID((String)label), conf);
+				else
+					throw new IllegalArgumentException("vertex with label "+label+" has an unsupported type");// TODO: to test that this exception is thrown
 			result.setAccept(DeterministicDirectedSparseGraph.isAccept(srcVert));
 			if (srcVert.containsUserDatumKey(JUConstants.COLOUR))
 				result.setColour((JUConstants)srcVert.getUserDatum(JUConstants.COLOUR));
@@ -561,7 +587,8 @@ public class LearnerGraph {
 		{
 			int currentState = vFrom[i];
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
-			if (tTable[currentState].length != alphabetSize) throw new IllegalArgumentException("rows of inconsistent size");
+			if (tTable[currentState].length != alphabetSize) 
+				throw new IllegalArgumentException("rows of inconsistent size");
 			Map<String,CmpVertex> row = new LinkedHashMap<String,CmpVertex>();
 			stateName[currentState].setAccept(true);
 			for(int input=0;input < tTable[currentState].length;++input)
@@ -585,7 +612,7 @@ public class LearnerGraph {
 	public void initPTA()
 	{
 		initEmpty(); 
-		init = generateNewCmpVertex(config.getDefaultInitialPTAName(),config);
+		init = generateNewCmpVertex(getDefaultInitialPTAName(),config);
 		init.setAccept(true);init.setColour(JUConstants.RED);
 		
 		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
@@ -603,7 +630,7 @@ public class LearnerGraph {
 	@Override
 	public String toString()
 	{
-		return "states: "+transitionMatrix.size()+" (hash "+transitionMatrix.hashCode()+")";
+		return "states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
 	}
 
 	/** This one does not consider configuration or IDs - only states/transitions 

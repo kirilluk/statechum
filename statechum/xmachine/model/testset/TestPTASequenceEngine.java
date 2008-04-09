@@ -18,6 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.xmachine.model.testset;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -138,6 +139,13 @@ public class TestPTASequenceEngine
 		assertFalse(a.equals(null));
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public final void testNode0_fail()
+	{
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.new Node(null);
+	}
+	
 	@Test
 	public final void testNode1()
 	{
@@ -168,6 +176,25 @@ public class TestPTASequenceEngine
 		assertTrue(c.hashCode() != engine.rejectNode.hashCode());
 	}
 
+	/** Similar to testNode2 but uses a helper method. */
+	@Test
+	public final void testNode3()
+	{
+		PTASequenceEngine engine = new PTASequenceEngine();
+		Node a = engine.new Node("A"), c = engine.new Node("B"),d = engine.new Node("C");
+		equalityTestingHelper(a,a,c,d);
+	}
+	
+	/** Similar to testNode2 but uses a helper method. */
+	@Test
+	public final void testNode_toString()
+	{
+		PTASequenceEngine engine = new PTASequenceEngine();
+		Node a = engine.new Node("A");
+		Assert.assertEquals("1(A)", a.toString());
+		Assert.assertEquals("REJECT",engine.rejectNode.toString());
+	}
+	
 	/** Checks that the two ways of obtaining debug data return the same results. */
 	public static final Map<String,String> getDebugDataMap(PTASequenceEngine engine, SequenceSet set)
 	{
@@ -1096,9 +1123,23 @@ public class TestPTASequenceEngine
 		equalityTestingHelper(seqStartOne,seqStartTwo,seqDifferent1,seqDifferent2);
 	}
 
+	/** Tests that we choke on an empty graph. */
+	@Test(expected=IllegalArgumentException.class)
+	public final void test_containsSequence1_fail()
+	{
+		DirectedSparseGraph g = new DirectedSparseGraph();
+		DirectedSparseVertex init = new DirectedSparseVertex();
+		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
+		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
+		g.addVertex(init);
+		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config));
+		engine.containsSequence(new ArrayList<String>());
+	}
+	
 	/** Tests containsSequence. */
 	@Test
-	public final void test_containsSequence()
+	public final void test_containsSequence2()
 	{
 		SequenceSet seqStart = en.new SequenceSet();seqStart.setIdentity();
 		seqStart.cross(TestFSMAlgo.buildList(new String[][] {

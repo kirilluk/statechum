@@ -37,6 +37,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.xmachine.model.testset.PTAExploration;
@@ -467,7 +468,7 @@ public class PathRoutines {
 				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
 				{
 					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld.getName()) == targetOld : "was looking for vertex with name "+targetOld.getName()+", got "+coregraph.findVertex(targetOld.getName());
+					assert coregraph.findVertex(targetOld.getID()) == targetOld : "was looking for vertex with name "+targetOld.getID()+", got "+coregraph.findVertex(targetOld.getID());
 					DeterministicVertex target = oldToNew.get(targetOld);
 					DeterministicEdge e = new DeterministicEdge(source,target);
 					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
@@ -537,7 +538,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
 			{
 				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = new DeterministicVertex(source.getName());
+				DeterministicVertex vert = new DeterministicVertex(source.getID());
 				if (coregraph.init == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				vert.setAccept(source.isAccept());
@@ -762,7 +763,7 @@ public class PathRoutines {
 	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
 	 * @return true if any transitions have been added
 	 */   
-	public boolean completeGraph(String reject)
+	public boolean completeGraph(VertexID reject)
 	{
 		if (coregraph.findVertex(reject) != null)
 			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");

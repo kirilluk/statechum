@@ -125,12 +125,6 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		return engine.numberOfLeafNodes();
 	}
 	
-	public int treeSize() {
-		if (empty) 
-			return 0;
-		return engine.treeSize();
-	}
-
 	public Object[] toArray() {
 		throw new UnsupportedOperationException();
 	}

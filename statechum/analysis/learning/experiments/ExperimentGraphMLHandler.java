@@ -29,6 +29,7 @@ import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
@@ -84,7 +85,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         }
 
         String idString = (String) attributeMap.remove("id");
-        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(idString));
+        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString)));
 
         try {
             mLabeller.setLabel((Vertex) vertex,idString);

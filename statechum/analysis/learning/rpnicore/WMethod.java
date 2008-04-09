@@ -770,7 +770,7 @@ public class WMethod {
 			newFsm.append("\n"+from+"-"+label+"->"+coregraph.transitionMatrix.get(from).get(label));
 		}
 		LearnerGraph permFsm = new LearnerGraph(buildGraph(newFsm.toString(), "testDeterminism_perm"),coregraph.config);
-		permFsm.init = permFsm.findVertex(coregraph.init.getName());
+		permFsm.init = permFsm.findVertex(coregraph.init.getID());
 		return permFsm;
 	}
 }

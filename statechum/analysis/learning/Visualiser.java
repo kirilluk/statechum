@@ -122,7 +122,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	Map<Integer,Action> keyToActionMap = new TreeMap<Integer, Action>();
 	
 	/** Actions to switch to picking/transform mode. */
-	Action pickAction, transformAction;
+	Action pickAction, transformAction, persistAction;
 	
 	
 	
@@ -138,7 +138,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	protected void setKeyBindings()
 	{
-		keyToActionMap.put(KeyEvent.VK_F2, new graphAction("saveLayout", "save the layout of the visible graph") {
+		persistAction = new graphAction("saveLayout", "save the layout of the visible graph") {
 			/** Serial number. */
 			private static final long serialVersionUID = 1L;
 
@@ -148,8 +148,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		        	{
 		            	String fileName = getLayoutFileName(graphs.get(currentGraph));
 		                XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
-		        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist(encoder);
-		        		
+		                Map<Integer,DoublePair> layout = ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist();
+		        		encoder.writeObject(layout);
 		        		XMLAffineTransformSerialised trV = new XMLAffineTransformSerialised();
 		        		trV.setFromAffineTransform(viewer.getViewTransformer().getTransform());encoder.writeObject(trV);
 		        		XMLAffineTransformSerialised trL = new XMLAffineTransformSerialised();
@@ -161,7 +161,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		            e1.printStackTrace();
 		        }		
 			}
-		});
+		};
+		keyToActionMap.put(KeyEvent.VK_F2, persistAction);
 		keyToActionMap.put(KeyEvent.VK_F3, new graphAction("loadLayout", "loads the previously saved layout the visible graph") {
 			/** Serial number. */
 			private static final long serialVersionUID = 2L;
@@ -349,9 +350,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		}
 	}
 		
-	/** Loads or reloads a graph. Used during initialisation on the Swing thread, when graph changes or user hits F3 (reload).
+	/** Loads or reloads a graph. Used during initialisation on the Swing thread, 
+	 * when graph changes or user hits F3 (reload).
 	 * 
-	 * @param ignoreErrors Whether to ignore loading errors - they are ignored on auto-load, but honoured on user load.
+	 * @param ignoreErrors Whether to ignore loading errors - they are ignored 
+	 * on auto-load, but honoured on user load.
 	 */
 	protected void reloadLayout(boolean ignoreErrors)
 	{
@@ -387,9 +390,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         	if (propName != null && (new File(fileName)).canRead())
         	{
     	    	XMLDecoder decoder = new XMLDecoder (new FileInputStream(fileName));
-        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(decoder);
+    	    	Map<Integer,DoublePair> map = (Map<Integer,DoublePair>)decoder.readObject();
+        		((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
         		
-        		// most rotate/share/translate are stateless, so I only need to get the cumulative transform 
+        		// Most rotate/share/translate are stateless, so I only need to get the cumulative transform 
         		// for layout and view via getTransform() which should return AffineTransform 
         		// which I should be able to persist into XML.
         		// Only ScalingGraphMousePlugin has a state
@@ -401,12 +405,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         		((XMLModalGraphMouse)viewer.getGraphMouse()).restore(decoder);
         		decoder.close();
         		
-        		viewer.repaint();
+        		viewer.invalidate();
         	}
         } catch (Exception e1) {
         	if (!ignoreErrors)
         		e1.printStackTrace();
-        }		
+        }
 	}
 	
 	/** Used to serialise graph layout information into XML where XMLEncoder requires a top-level class.
@@ -506,6 +510,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	private static PluggableRenderer labelEdges(PluggableRenderer render){
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
+            	String result = "";
+            	
             	if(e.containsUserDatumKey(JUConstants.LABEL)){
             		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
             		Iterator<String> labelIt = labels.iterator();
@@ -513,9 +519,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             		while(labelIt.hasNext()){
             			label = label.concat(labelIt.next()+" ");
             		}
-            		return label+" ]";
+            		result = label+" ]";
             	}
-            	else return "";
+            	
+            	return result;
             }
         };
         render.setEdgeStringer(stringer);
@@ -623,29 +630,30 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */
 	public static void disposeFrame()
 	{
-		try
-		{
-			SwingUtilities.invokeAndWait(new Runnable() 
+		if (upperGraphViz != null && lowerGraphViz != null)
+			try
 			{
-				public void run()
+				SwingUtilities.invokeAndWait(new Runnable() 
 				{
-					if (upperGraphViz != null)
+					public void run()
 					{
-						upperGraphViz.setVisible(false);upperGraphViz.dispose();upperGraphViz=null;							
+						if (upperGraphViz != null)
+						{
+							upperGraphViz.setVisible(false);upperGraphViz.dispose();upperGraphViz=null;							
+						}
+						if (lowerGraphViz != null)
+						{
+							lowerGraphViz.setVisible(false);lowerGraphViz.dispose();lowerGraphViz=null;							
+						}
 					}
-					if (lowerGraphViz != null)
-					{
-						lowerGraphViz.setVisible(false);lowerGraphViz.dispose();lowerGraphViz=null;							
-					}
-				}
-			});
-		} catch (InterruptedException e) {
-			// cannot do much about this
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// cannot do much about this
-			e.printStackTrace();
-		}
+				});
+			} catch (InterruptedException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// cannot do much about this
+				e.printStackTrace();
+			}
 	}
 
 	/** Displays twos graphs passed as arguments in the Jung window.
@@ -873,34 +881,44 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		public XMLPersistingLayout(Layout layout) {
 			super(layout);
 		}
-		
+				
 	    /** Almost verbatim from Jung source code.
 	     * 
-	     * Saves all the vertex locations to a file - this is enough to rebuild the layout 
+	     * Saves all the vertex locations to a map - this is enough to rebuild the layout 
 	     * later since we'll know the connections later anyway.
 	     * 
-	     * @param encoder XML encoder to use	
-	     * @throws an IOException if the file cannot be used
+	     * @return map containing the layout.
 	     */
-	    public void persist(XMLEncoder encoder) {
+	    public Map<Integer,DoublePair> persist() {
+	    	if (sourceMap == null)
+	    		sourceMap = new TreeMap<Integer,DoublePair>();
 	        Set set = getGraph().getVertices();
 	        for (Iterator iterator = set.iterator(); iterator.hasNext();) 
 	        {
 	            Vertex v = (Vertex) iterator.next();
 	            DoublePair p = new DoublePair(getX(v), getY(v));
-	            map.put(new Integer(v.hashCode()), p);
+	            sourceMap.put(new Integer(v.hashCode()), p);
 	        }
-	        encoder.writeObject(map);
+	        //encoder.writeObject(sourceMap);
+	        return sourceMap;
 	    }
 
+	    /** Stores the layout loaded from a file. The idea is to merge it with new one before 
+	     * storing it back. This permits storing positions of vertices not in the layout,
+	     * thus permitting the same layout file to be used for different graphs. */
+	    private Map<Integer,DoublePair> sourceMap = null;
+	    
 	    /** Almost verbatim from Jung source code.
 	     * Restores all vertex locations from a file; does nothing if loading fails.
 	     * 
-	     * @param decode XML decoder to use
+	     * @param map to load from
 	     */
-	    public void restore(XMLDecoder decoder) 
+	    public void restore(Map<Integer,DoublePair> loadedMap) 
 	    {
-	        Map<Integer,DoublePair> sourceMap = (Map<Integer,DoublePair>) decoder.readObject();
+	    	if (sourceMap == null)
+	    		sourceMap = new TreeMap<Integer,DoublePair>();
+	    	//Map<Integer,DoublePair> loadedMap = (Map<Integer,DoublePair>) decoder.readObject();
+	    	sourceMap.putAll(loadedMap);
 	        for(Iterator<Map.Entry<Integer,DoublePair> > mi=sourceMap.entrySet().iterator();mi.hasNext();)
 	        {
 	        	Map.Entry<Integer, DoublePair> e = mi.next();DoublePair p = e.getValue();

@@ -18,6 +18,7 @@
 
 package statechum;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -37,10 +38,153 @@ import edu.uci.ics.jung.utils.UserData;
 
 public class DeterministicDirectedSparseGraph {
 
-	public interface CmpVertex extends Comparable<CmpVertex> {
-		/** Returns a name of this vertex. */
-		String getName();
+	final public static class VertexID implements Comparable<VertexID>, Serializable
+	{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -6367197525198958482L;
 
+		/** A kind of a state. INIT does not really have to be a special kind but it is convenient to 
+		 * be able to look at an ID and know exactly the sort of state one is looking at.
+		 * <ul>
+		 * <li>INIT is used to designate an initial state.</li>
+		 * <li>NONE is for states which only have string IDs.</li>
+		 * <li>NEUTRAL is used if I wish to give uniform IDs to accept and reject states. 
+		 * This is useful if I would like not to consider all accept states before reject
+		 * states and such - this is useful to test how sensitive the learner is to such
+		 * an ordering.</li>
+		 * <li>NEGATIVE means that this is a reject-state.</li>
+		 * <li>POSITIVE means that this is an accept-state.</li>
+		 */
+		public enum VertKind { INIT, NEUTRAL, NEGATIVE, POSITIVE, NONE };
+		
+		/** Textual representation of this ID, definite value if kind == VertKind.NONE
+		 * and a cached version of a numerical ID if not.
+		 */
+		private String idString; 
+		private VertKind kind;
+		private int idInteger;
+		
+		/** Cached hash code. */
+		private int cachedHash;
+		
+		public VertexID()
+		{// default values to ensure failure of operations
+			idString = null;kind = VertKind.NONE;idInteger=-1;cachedHash=0;
+		}
+		
+		public VertexID(String id)
+		{
+			if (id == null) throw new IllegalArgumentException("invalid id");
+			idString = id;kind=VertKind.NONE;idInteger=0;cachedHash = idString.hashCode();
+		}
+		
+		/** In order to enable comparison between vertex ID which are 
+		 * represented by Strings and/or integer, 
+		 * the two need need to be converted to a common form.
+		 */
+		@SuppressWarnings("incomplete-switch") // NONE action is impossible by construction.
+		public String getStringId()
+		{
+			String result = null;
+			switch(kind)
+			{
+			case INIT:
+				result = "Init";break;
+			case NEGATIVE:
+				result = "N"+idInteger;break;
+			case POSITIVE:
+				result = "P"+idInteger;break;
+			case NEUTRAL:
+				result = "V"+idInteger;break;
+			}
+			
+			return result;
+		}
+		
+		public VertexID(VertKind k, int i)
+		{
+			if (k == VertKind.NONE) throw new IllegalArgumentException("invalid id kind");
+			idString = null;kind = k;idInteger=i;
+			cachedHash = getStringId().hashCode();
+		}
+
+		public String toString()
+		{
+			return idString;
+		}
+		
+		public int compareTo(VertexID o) {
+			if (kind != VertKind.NONE && o.kind != VertKind.NONE)
+			{// if both this one and the other ID are numeric, use a numeric comparison.
+				int kindDifference = kind.compareTo(o.kind);
+				if (kindDifference != 0)
+					return kindDifference;
+				
+				return idInteger - o.idInteger;				
+			}
+			
+			if (idString == null)
+			{// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
+				idString = getStringId();
+			}
+			
+			if (o.idString == null)
+			{// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
+				o.idString = o.getStringId();
+			}
+
+			return idString.compareTo(o.idString);
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			return cachedHash;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof VertexID))
+				return false;
+			final VertexID other = (VertexID) obj;
+			
+			if (kind != VertKind.NONE && other.kind != VertKind.NONE)
+			{
+				if (kind != other.kind)
+					return false;
+				return idInteger == other.idInteger;
+			}
+			
+			if (idString == null)
+			{// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
+				idString = getStringId();
+			}
+			
+			if (other.idString == null)
+			{// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
+				other.idString = other.getStringId();
+			}
+
+			return idString.equals(other.idString);
+		}
+		
+	}
+	
+	public interface CmpVertex extends Comparable<CmpVertex> {
+		/** Returns an ID of this vertex. */
+		VertexID getID();
+		
 		/** Returns true if this is an accept vertex and false for a reject one. */
 		boolean isAccept();
 		/** Makes this state an accept/reject one. */
@@ -62,15 +206,22 @@ public class DeterministicDirectedSparseGraph {
 	 * performance.
 	 */
 	public static class DeterministicVertex extends DirectedSparseVertex implements Comparable<CmpVertex>, CmpVertex {
-		protected String label = null;
+		protected VertexID vertexID = null;
 
 		protected int hashCode = super.hashCode();
 
-		public DeterministicVertex(String string) {
+		public DeterministicVertex(VertexID thisVertexID) {
 			super();
-			addUserDatum(JUConstants.LABEL, string, UserData.SHARED);
+			addUserDatum(JUConstants.LABEL, thisVertexID, UserData.SHARED);
 		}
 
+		public DeterministicVertex(String name)
+		{
+			super();
+			addUserDatum(JUConstants.LABEL, 
+					new DeterministicDirectedSparseGraph.VertexID(name), UserData.SHARED);
+		}
+		
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -78,10 +229,11 @@ public class DeterministicDirectedSparseGraph {
 		 *      java.lang.Object,
 		 *      edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
 		 */
+		@SuppressWarnings("unchecked")
 		@Override
 		public void addUserDatum(Object key, Object datum, CopyAction copyAct) {
 			if (key == JUConstants.LABEL) {
-				label = (String) datum;
+				vertexID = (VertexID) datum;
 				hashCode = datum.hashCode();
 			}
 			super.addUserDatum(key, datum, copyAct);
@@ -94,10 +246,11 @@ public class DeterministicDirectedSparseGraph {
 		 *      java.lang.Object,
 		 *      edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
 		 */
+		@SuppressWarnings("unchecked")
 		@Override
 		public void setUserDatum(Object key, Object datum, CopyAction copyAct) {
 			if (key == JUConstants.LABEL) {
-				label = (String) datum;
+				vertexID = (VertexID) datum;
 				hashCode = datum.hashCode();
 			}
 			super.setUserDatum(key, datum, copyAct);
@@ -119,8 +272,8 @@ public class DeterministicDirectedSparseGraph {
 		 */
 		@Override
 		public String toString() {
-			if (label != null)
-				return label;
+			if (vertexID != null)
+				return vertexID.toString();
 
 			return super.toString();
 		}
@@ -139,7 +292,7 @@ public class DeterministicDirectedSparseGraph {
 			CmpVertex v = o;
 			if (this == v)
 				return 0;
-			return label.compareTo(v.getName());
+			return vertexID.compareTo(v.getID());
 		}
 		
 		/** Compares this vertex with a different one, based on label alone.
@@ -155,14 +308,14 @@ public class DeterministicDirectedSparseGraph {
 			final CmpVertex other = (CmpVertex) obj;
 			if (isAccept() != other.isAccept())
 				return false;
-			if (label == null)
-				return other.getName() == null;
+			if (vertexID == null)
+				return other.getID() == null;
 			
-			return label.equals(other.getName());
+			return vertexID.equals(other.getID());
 		}
 		
-		public String getName() {
-			return label;
+		public VertexID getID() {
+			return vertexID;
 		}
 
 		public boolean isAccept() {
@@ -183,7 +336,7 @@ public class DeterministicDirectedSparseGraph {
 		public void setColour(JUConstants colour) 
 		{
 			if (colour != null && colour != JUConstants.RED && colour != JUConstants.BLUE)
-				throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
+				throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+vertexID.toString()+")");
 
 			removeUserDatum(JUConstants.COLOUR);
 			if (colour != null)
@@ -252,7 +405,7 @@ public class DeterministicDirectedSparseGraph {
 	 * @param g the graph to search in
 	 * @return vertex found.
 	 */
-	public static DeterministicVertex findVertexNamed(String name,Graph g)
+	public static DeterministicVertex findVertexNamed(Object name,Graph g)
 	{
 		return (DeterministicVertex)DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,name,g);
 	}
@@ -275,19 +428,19 @@ public class DeterministicDirectedSparseGraph {
 	 * @param origVertex the vertex to copy
 	 * @return a copy of the vertex
 	 */
-	public static DeterministicVertex copyVertex(Map<String,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
+	public static DeterministicVertex copyVertex(Map<VertexID,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
 	{
 		if (!(orig instanceof DeterministicVertex))
 			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
 		DeterministicVertex origVertex = (DeterministicVertex)orig;
-		String vertName = origVertex.getName();
-		DeterministicVertex newVertex = newVertices.get(vertName);
+		VertexID vertID = origVertex.getID();
+		DeterministicVertex newVertex = newVertices.get(vertID);
 		if (newVertex == null) { 
-			newVertex = new DeterministicVertex(vertName);
+			newVertex = new DeterministicVertex(vertID);
 			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
 			if (DeterministicDirectedSparseGraph.isInitial(origVertex))
 				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-			newVertices.put(vertName,newVertex);g.addVertex(newVertex);
+			newVertices.put(vertID,newVertex);g.addVertex(newVertex);
 		}
 		return newVertex;
 	}
@@ -474,7 +627,7 @@ public class DeterministicDirectedSparseGraph {
 	public static DirectedSparseGraph copy(Graph g)
 	{
 		DirectedSparseGraph result = new DirectedSparseGraph();
-		Map<String,DeterministicVertex> newVertices = new TreeMap<String,DeterministicVertex>();
+		Map<VertexID,DeterministicVertex> newVertices = new TreeMap<VertexID,DeterministicVertex>();
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
 		{
 			DeterministicVertex newSrc = DeterministicDirectedSparseGraph.copyVertex(newVertices,result,e.getSource()),

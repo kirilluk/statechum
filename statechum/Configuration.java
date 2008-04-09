@@ -156,8 +156,12 @@ public class Configuration implements Cloneable
 		LearnerUseStrings = learnerUseStrings;
 	}
 	
-	/** The initial state in a PTA has to be given some name, this is the default. */
-	protected String defaultInitialPTAName = "Init";
+	/** The initial state in a PTA has to be given some name, this is the default.
+	 * Important: "" means "generate a numerical identifier" which is almost
+	 * always the best choice, but in some specific tests, I'd like to use
+	 * one with a known name. 
+	 */
+	protected String defaultInitialPTAName = "";
 	
 	public void setDefaultInitialPTAName(String name)
 	{

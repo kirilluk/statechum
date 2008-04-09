@@ -31,10 +31,8 @@ public class AMEquivalenceClass
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((mergedVertex == null) ? 0 : mergedVertex.hashCode());
-		result = prime * result
-				+ ((vertices == null) ? 0 : vertices.hashCode());
+		result = prime * result + mergedVertex.hashCode();
+		result = prime * result + vertices.hashCode();
 		return result;
 	}
 
@@ -50,22 +48,14 @@ public class AMEquivalenceClass
 		if (!(obj instanceof AMEquivalenceClass))
 			return false;
 		final AMEquivalenceClass other = (AMEquivalenceClass) obj;
-		if (mergedVertex == null) {
-			if (other.mergedVertex != null)
-				return false;
-		} else if (!mergedVertex.equals(other.mergedVertex))
+		if (!mergedVertex.equals(other.mergedVertex))
 			return false;
-		if (vertices == null) {
-			if (other.vertices != null)
-				return false;
-		} else if (!vertices.equals(other.vertices))
-			return false;
-		return true;
+		return vertices.equals(other.vertices);
 	}
 
 	public AMEquivalenceClass(Collection<CmpVertex> eqclass)
 	{
-		if (eqclass.isEmpty()) throw new IllegalArgumentException("cannot create an empty equivalence class");
+		if (eqclass == null || eqclass.isEmpty()) throw new IllegalArgumentException("cannot create an empty equivalence class");
 		vertices = eqclass;mergedVertex=eqclass.iterator().next();
 	}
 	
@@ -80,11 +70,11 @@ public class AMEquivalenceClass
 	 */
 	@Override
 	public String toString() {
-		StringBuffer result = new StringBuffer("["+mergedVertex.getName()+"->{");
+		StringBuffer result = new StringBuffer("["+mergedVertex.getID().toString()+"->{");
 		Iterator<CmpVertex> vertIter = vertices.iterator();
-		result.append(vertIter.next().getName());
-		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getName());
-		result.append('}');
+		result.append(vertIter.next().getID().toString());
+		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getID().toString());
+		result.append("}]");
 		return result.toString();
 	}
 }

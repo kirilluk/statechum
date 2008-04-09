@@ -35,6 +35,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -86,7 +87,7 @@ public class TestPathTracing {
 			Assert.assertNull(received);
 		else
 		{
-			assertEquals(expected.getName(),received.getUserDatum(JUConstants.LABEL));
+			assertEquals(expected.getID(),received.getUserDatum(JUConstants.LABEL));
 			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
 		}
 	}
@@ -106,14 +107,14 @@ public class TestPathTracing {
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final LearnerGraph fsm = new LearnerGraph(g,config);
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState)));
-		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(startingState,g);
-		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
+		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(startingState),g);
+		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(new VertexID(enteredName));
 		Vertex received = RPNIBlueFringeLearnerOrig.getVertex(g, starting, Arrays.asList(path));
 		if (expected == null)
 			Assert.assertNull(received);
 		else
 		{
-			assertEquals(expected.getName(),received.getUserDatum(JUConstants.LABEL));
+			assertEquals(expected.getID(),received.getUserDatum(JUConstants.LABEL));
 			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
 		}
 	}

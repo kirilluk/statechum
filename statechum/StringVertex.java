@@ -18,26 +18,32 @@
 package statechum;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 
 
 public class StringVertex implements CmpVertex {
-	protected JUConstants colour;
-	protected boolean accept,highlight;
-	final protected String label;
+	protected JUConstants colour = null;
+	protected boolean accept = true,highlight = false;
+	final protected VertexID vertexId;
 
 	public StringVertex(String nameArg)
 	{
-		label = nameArg;accept = true;highlight=false;colour=null;
+		vertexId = new DeterministicDirectedSparseGraph.VertexID(nameArg);
+	}
+	
+	public StringVertex(VertexID nameArg)
+	{
+		vertexId = nameArg;
 	}
 	
 	public JUConstants getColour() {
 		return colour;
 	}
 
-	public String getName() {
-		return label;
+	public VertexID getID() {
+		return vertexId;
 	}
-
+	
 	public boolean isAccept() {
 		return accept;
 	}
@@ -52,7 +58,7 @@ public class StringVertex implements CmpVertex {
 
 	public void setColour(JUConstants c) {
 		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE)
-			throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getName()+")");
+			throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+getID().toString()+")");
 		colour = c;
 	}
 
@@ -74,12 +80,12 @@ public class StringVertex implements CmpVertex {
 		CmpVertex v = o;
 		if (this == v)
 			return 0;
-		return label.compareTo(v.getName());
+		return vertexId.compareTo(v.getID());
 	}
 
 	@Override
 	public int hashCode() {
-		int labelHashCode = label == null?super.hashCode():label.hashCode();
+		int labelHashCode = vertexId == null?super.hashCode():vertexId.hashCode();
 		if (!isAccept())
 			labelHashCode = ~labelHashCode;
 		
@@ -98,16 +104,16 @@ public class StringVertex implements CmpVertex {
 		if (isAccept() != other.isAccept())
 			return false;
 		
-		if (label == null)
-			return other.getName() == null;
+		if (vertexId == null)
+			return other.getID() == null;
 		
-		return label.equals(other.getName());
+		return vertexId.equals(other.getID());
 		
 	}
 
 	@Override
 	public String toString()
 	{
-		return label == null?"NULL":label;
+		return vertexId == null?"NULL":vertexId.toString();
 	}
 }

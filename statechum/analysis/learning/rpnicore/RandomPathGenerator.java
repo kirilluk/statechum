@@ -287,6 +287,8 @@ public class RandomPathGenerator {
 	{
 		if (pathLength < 2)
 			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
+		if (numberPerChunk % 2 != 0)
+			throw new IllegalArgumentException("Number of sequences per chunk must be even");
 
 		int seqNumber = chunks*numberPerChunk/2;
 		int distribution [] = new int[seqNumber];

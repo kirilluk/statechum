@@ -39,6 +39,7 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -92,6 +93,14 @@ public class TestGraphConstruction
 	/** Used as arguments to equalityTestingHelper. */
 	private LearnerGraph differentA = null, differentB = null;
 	
+	@Test
+	public final void testLearnerGraph_toString()
+	{
+		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confJung).toString());
+		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confString).toString());
+		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confSame).toString());
+	}
+	
 	/** Non graph vertex to copy. */
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail1()
@@ -113,20 +122,40 @@ public class TestGraphConstruction
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail3()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();
+		LearnerGraph.cloneCmpVertex(vertex, conf);
+	}
+	
+	/** Copying of a vertex with a label which is neither a string nor a VertexID is denied. */
+	@Test(expected = IllegalArgumentException.class) 
+	public final void testVertexClone_fail4()
+	{
+		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, true, UserData.SHARED);
 		LearnerGraph.cloneCmpVertex(vertex, conf);
 	}
 	
 	
 	/** Normal copying successful. */
 	@Test
-	public final void testVertexClone1()
+	public final void testVertexClone1a()
 	{
 		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
 		CmpVertex result = LearnerGraph.cloneCmpVertex(vertex, conf);
-		Assert.assertEquals("name", result.getName());
+		Assert.assertEquals("name", result.getID().toString());
+		Assert.assertTrue(result.isAccept());Assert.assertFalse(result.isHighlight());Assert.assertNull(result.getColour());
+	}
+	
+	/** Normal copying successful. */
+	@Test
+	public final void testVertexClone1b()
+	{
+		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);
+		CmpVertex result = LearnerGraph.cloneCmpVertex(vertex, conf);
+		Assert.assertEquals("name", result.getID().toString());
 		Assert.assertTrue(result.isAccept());Assert.assertFalse(result.isHighlight());Assert.assertNull(result.getColour());
 	}
 	
@@ -141,7 +170,7 @@ public class TestGraphConstruction
 		vertex.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		
 		CmpVertex result = LearnerGraph.cloneCmpVertex(vertex, conf);
-		Assert.assertEquals("name", result.getName());
+		Assert.assertEquals("name", result.getID().toString());
 		Assert.assertEquals(JUConstants.BLUE, result.getColour());
 		Assert.assertFalse(result.isAccept());Assert.assertTrue(result.isHighlight());
 		
@@ -218,7 +247,7 @@ public class TestGraphConstruction
 	{
 		vert.setAccept(true);
 		CmpVertex vert_clone = LearnerGraph.cloneCmpVertex(vert, conf);
-		Assert.assertNotSame(vert, vert_clone);Assert.assertEquals("test vertex", vert_clone.getName());Assert.assertEquals(vert, vert_clone);
+		Assert.assertNotSame(vert, vert_clone);Assert.assertEquals("test vertex", vert_clone.getID().toString());Assert.assertEquals(vert, vert_clone);
 		
 		vert.setAccept(false);
 		Assert.assertEquals(JUConstants.RED, vert_clone.getColour());
@@ -364,8 +393,9 @@ public class TestGraphConstruction
 			LearnerGraph cloneSame = g.copy(copyConfig);
 			Assert.assertTrue(cloneSame.init.getClass().equals(g.init.getClass()));
 			Assert.assertSame(cloneSame.init, g.init);
-			if (g.config == confSame) // if the graph we are playing with is the 
-				Assert.assertSame(cloneSame.init, testGraphSame.init);// verify (of sorts) that the same vertices are being used.
+			if (g.config == confSame) // if the graph we are playing with is the
+				Assert.assertTrue(false);
+				//Assert.assertSame(cloneSame.init, testGraphSame.init);// verify (of sorts) that the same vertices are being used.
 			same.add(cloneJung);same.add(cloneStrings);same.add(cloneSame);
 			
 			// Now add results of getGraph, considering all combinations of "getGraph" configuration and "new LearnerGraph" configuration
@@ -503,7 +533,7 @@ public class TestGraphConstruction
 		expected.transitionMatrix.put(C, createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null));
 		expected.init = expected.findVertex("A");
 		
-		assertEquals("A", graph.init.getName());
+		assertEquals("A", graph.init.getID().toString());
 		//Visualiser.updateFrame(graph.paths.getGraph(), expected.paths.getGraph());Visualiser.waitForKey();
 		assertEquals("incorrect transition set",true,graph.transitionMatrix.equals(expected.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);		
@@ -522,7 +552,7 @@ public class TestGraphConstruction
 		expected.transitionMatrix.put(D, createLabelToStateMap(Collections.EMPTY_LIST,null,null));
 		expected.init = expected.findVertex("A");
 		
-		assertEquals("A", graph.init.getName());
+		assertEquals("A", graph.init.getID().toString());
 		//Visualiser.updateFrame(graph.paths.getGraph(), expected.paths.getGraph());Visualiser.waitForKey();
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);		
@@ -539,7 +569,7 @@ public class TestGraphConstruction
 		expected.transitionMatrix.put(C, createLabelToStateMap(Arrays.asList(new String[] {"b"}),B,createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null)));
 		expected.init = expected.findVertex("A");
 		
-		assertEquals("A", graph.init.getName());
+		assertEquals("A", graph.init.getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -561,7 +591,7 @@ public class TestGraphConstruction
 		expected.findVertex("C").setAccept(false);
 		expected.findVertex("D").setAccept(true);
 		
-		assertEquals("A", graph.init.getName());
+		assertEquals("A", graph.init.getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -578,7 +608,7 @@ public class TestGraphConstruction
 		expected.transitionMatrix.put(C, createLabelToStateMap(Collections.EMPTY_LIST,null,null));
 		expected.init = expected.findVertex("A");
 		
-		assertEquals("A", graph.init.getName());
+		assertEquals("A", graph.init.getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -593,7 +623,7 @@ public class TestGraphConstruction
 		expected.transitionMatrix.put(Q_State, createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,createLabelToStateMap(Arrays.asList(new String[] {"b"}),P,null)));
 		expected.init = expected.findVertex("P");
 		
-		assertEquals("P", graph.init.getName());
+		assertEquals("P", graph.init.getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		TestFSMAlgo.equalityTestingHelper(graph,expected,differentA,differentB);
 	}

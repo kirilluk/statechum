@@ -34,7 +34,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -228,7 +227,6 @@ public class PairScoreComputation {
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
 		Queue<Boolean> currentRedFromPta = new LinkedList<Boolean>();// FIFO queue containing true if the red node comes from a branch of a PTA which has been previously already merged into the machine
 		currentExplorationBoundary.add(origPair);currentRedFromPta.add(false);
-		
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{

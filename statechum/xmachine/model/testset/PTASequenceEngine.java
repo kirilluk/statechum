@@ -110,9 +110,7 @@ public class PTASequenceEngine
 			if (getClass() != obj.getClass())
 				return false;
 			final PTASequenceEngine.Node other = (PTASequenceEngine.Node) obj;
-			if (ID != other.ID)
-				return false;
-			return true;
+			return ID == other.ID;// Since every two different instances of Node have different IDs, this comparison is always false, but I decided to keep it in case this changes in future. 
 		}
 		
 		@Override
@@ -582,11 +580,6 @@ public class PTASequenceEngine
 		}
 		
 		return setToBeReturned;
-	}
-
-	/** Returns the number of nodes in this PTA. */
-	public int treeSize(){
-		return positiveNodeID-1;
 	}
 
 	/** Returns the number of tail accept nodes in this PTA. */

@@ -204,15 +204,15 @@ public class MergeStates {
 	public static DirectedSparseGraph mergeAndDeterminize(Graph graphToMerge, StatePair pair, Configuration conf)
 	{
 			DirectedSparseGraph g = (DirectedSparseGraph)graphToMerge.copy();
-			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ().getName(),g);
-			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR().getName(),g);
+			DeterministicVertex newBlue = DeterministicDirectedSparseGraph.findVertexNamed(pair.getQ().getID(),g);
+			DeterministicVertex newRed = DeterministicDirectedSparseGraph.findVertexNamed(pair.getR().getID(),g);
 			Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
 			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.
 			Configuration VertexCloneConf = (Configuration)conf.clone();VertexCloneConf.setLearnerUseStrings(false);VertexCloneConf.setLearnerCloneGraph(false);
 			LearnerGraph s=new LearnerGraph(g,VertexCloneConf);
-			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ().getName()),s.findVertex(pair.getR().getName())),mergedVertices) < 0)
+			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ().getID()),s.findVertex(pair.getR().getID())),mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
 			// make a loop

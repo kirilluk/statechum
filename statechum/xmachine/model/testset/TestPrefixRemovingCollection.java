@@ -39,6 +39,11 @@ public class TestPrefixRemovingCollection
 		Assert.assertEquals(0, c.size());
 		Assert.assertFalse(c.getData().iterator().hasNext());
 		Assert.assertTrue(c.getData().isEmpty());
+
+		Assert.assertTrue(c.containsAll(c));
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
 	}
 	
 	@Test 
@@ -51,6 +56,13 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
+
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -64,7 +76,14 @@ public class TestPrefixRemovingCollection
 				new String[]{}
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
+		Assert.assertFalse(c.getData().isEmpty());
 		Assert.assertTrue(expected.equals(actual));
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -78,6 +97,14 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -92,6 +119,15 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -107,6 +143,15 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -123,6 +168,15 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -140,6 +194,15 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -157,6 +220,15 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -176,6 +248,17 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -195,6 +278,17 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -218,6 +312,17 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 	
 	@Test 
@@ -237,5 +342,16 @@ public class TestPrefixRemovingCollection
 		}),actual = new HashSet<List<String>>();actual.addAll(c);
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
+		Assert.assertFalse(c.getData().isEmpty());
+
+		Assert.assertTrue(c.contains(new LinkedList<String>()));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		
+		Assert.assertTrue(c.containsAll(expected));
+		Assert.assertTrue(c.containsAll(c));
 	}
 }

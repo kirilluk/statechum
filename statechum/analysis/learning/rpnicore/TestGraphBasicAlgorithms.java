@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -48,8 +48,12 @@ import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.TestFSMAlgo;
+import statechum.analysis.learning.Visualiser;
 import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
 import statechum.xmachine.model.testset.PTASequenceEngine;
 
@@ -72,7 +76,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	 */
 	public void beforeTest()
 	{
-		testConfig = (Configuration)mainConfiguration.clone();
+		testConfig = (Configuration)mainConfiguration.clone();testConfig.setDefaultInitialPTAName("Init");
 	}
 
 	/** The configuration to use when running tests. */
@@ -80,13 +84,15 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 
 	static public PairScore constructPairScore(String a,String b, int score, Configuration config)
 	{
-		CmpVertex aV = LearnerGraph.generateNewCmpVertex(a, config), bV = LearnerGraph.generateNewCmpVertex(b,config);
+		CmpVertex aV = LearnerGraph.generateNewCmpVertex(new VertexID(a), config), 
+			bV = LearnerGraph.generateNewCmpVertex(new VertexID(b),config);
 		return new PairScore(aV,bV, score,score);
 	}
 
 	static protected void checkLess(String a, String b, int abS, String c, String d, int cdS, Configuration config)
 	{
-		StatePair p = constructPairScore(a,b,abS,config), q=constructPairScore(c,d,cdS,config);
+		StatePair p = constructPairScore(a,b,abS,config), 
+				q=constructPairScore(c,d,cdS,config);
 		assertFalse(p.equals(q));
 		assertTrue(p.compareTo(q)<0);
 		assertTrue(q.compareTo(p)>0);
@@ -121,44 +127,12 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	}
 
 	@Test
-	public void testDeterministicVertexComparison1()
-	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-		
-	@Test
-	public void testDeterministicVertexComparison2()
-	{
-		DeterministicVertex p = new DeterministicVertex("A"), q= new DeterministicVertex("B");
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-
-	@Test
-	public void testDeterministicVertexComparison3()
-	{
-		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
-		assertTrue(p.equals(q));
-		assertTrue(p.compareTo(q)==0);
-	}
-
-	@Test
 	public final void testFindVertex0()
 	{
 		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testFindVertex"), testConfig);
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("A", s.findVertex("A").getName());
-		Assert.assertEquals("C", s.findVertex("C").getName());
+		Assert.assertEquals("A", s.findVertex("A").getID().toString());
+		Assert.assertEquals("C", s.findVertex("C").getID().toString());
 	}
 	
 	@Test
@@ -166,7 +140,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	{
 		LearnerGraph s = new LearnerGraph(testConfig);
 		Assert.assertNull(s.findVertex("Z"));
-		Assert.assertEquals("Init", s.findVertex("Init").getName());
+		Assert.assertEquals("Init", s.findVertex("Init").getID().toString());
 	}
 	
 	/** Helps testing the routines which find the shortest path between a pair of nodes in a graph.
@@ -530,6 +504,44 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		s.paths.computePathsToRed(new StringVertex("F"));
 	}
 
+	private final void checkOrigException(LearnerGraph s, CmpVertex vert)
+	{
+		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();paths.setIdentity(); 
+		s.paths.computePathsSBetween(s.init, vert,initSet,paths);
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testComputePathsToRed0a_ORIG()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
+		checkOrigException(s,new StringVertex("non-existing-vertex"));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testComputePathsToRed0b_ORIG()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
+		checkOrigException(s,null);
+	}
+	
+	/** Unreachable vertex. */
+	@Test(expected = IllegalArgumentException.class)
+	public final void testComputePathsToRed0c_ORIG()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"), testConfig);
+		checkOrigException(s,s.findVertex("Q"));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testComputePathsToRed0d_ORIG()
+	{
+		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), testConfig);
+		checkOrigException(s,new StringVertex("F"));
+	}
+	
+
 	/** State to look for is the initial one. */
 	@Test
 	public final void testComputePathsToRed1()
@@ -608,14 +620,14 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	public final void testGetVertex1()
 	{
 		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-b->D\n","testFindVertex1"), testConfig);
-		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getName().equals("A"));
+		Assert.assertTrue(score.getVertex(new LinkedList<String>()).getID().toString().equals("A"));
 	}
 
 	@Test
 	public final void testGetVertex2()
 	{
 		LearnerGraph score = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-b->D\n","testFindVertex2"), testConfig);
-		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getName().equals("C"));
+		Assert.assertTrue(score.getVertex(Arrays.asList(new String[]{"a","b"})).getID().toString().equals("C"));
 	}
 
 	@Test

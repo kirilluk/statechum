@@ -80,6 +80,6 @@ public class PairScore extends StatePair implements Comparable<StatePair>
 	}
 	
 	public String toString(){
-		return "[ "+getQ().getName()+"("+getQ().isAccept()+"), "+getR().getName()+"("+getR().isAccept()+") : "+score+","+compatibilityScore+" ]";
+		return "[ "+getQ().getID().toString()+"("+getQ().isAccept()+"), "+getR().getID().toString()+"("+getR().isAccept()+") : "+score+","+compatibilityScore+" ]";
 	}
 }

@@ -39,6 +39,8 @@ import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig.OrigStatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -128,6 +130,18 @@ public class TestFSMAlgo {
 		}
 	}
 	
+	/** Used to check that compareTo method works well. */ 
+	@SuppressWarnings("unchecked")
+	static private void checkLessHelper(Comparable p, Comparable q)
+	{
+		assertFalse(p.equals(q));assertFalse(p.hashCode() == q.hashCode());
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+
 	@Test
 	public void testConfigurationEquals()
 	{
@@ -159,7 +173,7 @@ public class TestFSMAlgo {
 		confA.setDefaultInitialPTAName("avalue");// mess up the original the same way as the clone was messed up
 		equalityTestingHelper(confA, confClone, confC, confD);
 	}
-	
+
 	/** An obvious problem with Configuration is forgetting to include all 
 	 * the necessary variables in equals and hashcode methods. This one
 	 * checks that each change to instance variables affects the response from 
@@ -184,7 +198,8 @@ public class TestFSMAlgo {
 		List<MethodAndArgs> MethodsArgs=new LinkedList<MethodAndArgs>();
 		for(Field var:Configuration.class.getDeclaredFields())
 		{
-			if (var.getType() != Configuration.class)
+			if (var.getType() != Configuration.class && 
+					var.getName() != "$VRc")// added by eclemma (coverage analysis) 
 			{
 				String varName = var.getName();
 				String setterName = "set"+(Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
@@ -248,6 +263,90 @@ public class TestFSMAlgo {
 		} catch (Exception e) {
 			Assert.fail(e.getMessage());
 		}
+	}
+	
+	/** Tests that it is not possible to create an invalid vertexid. */
+	@Test(expected=IllegalArgumentException.class)
+	public void testCannotCreateNoneVertexID1()
+	{
+		new VertexID(VertKind.NONE,3);
+	}
+	
+	/** Tests that it is not possible to create an invalid vertexid. */
+	@Test(expected=IllegalArgumentException.class)
+	public void testCannotCreateNoneVertexID2()
+	{
+		new VertexID(null);
+	}
+	
+	/** Tests equality for VertexIDs. */
+	@Test
+	public void testVertexIDEquals1()
+	{
+		equalityTestingHelper(new VertexID("A"), new VertexID("A"), new VertexID("B"), new VertexID("C"));
+	}
+
+	/** Tests equality for VertexIDs. */
+	@Test
+	public void testVertexIDEquals2()
+	{
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.INIT,9));
+	}
+
+	public final static String 
+		idP5 = new VertexID(VertKind.POSITIVE,5).getStringId(),
+		idN5 = new VertexID(VertKind.NEGATIVE,5).getStringId(),
+		idP6 = new VertexID(VertKind.POSITIVE,6).getStringId();
+	
+	/** Tests equality for VertexIDs. */
+	@Test
+	public void testVertexIDEquals3()
+	{
+		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.INIT,5));
+	}
+	
+	/** Tests equality for VertexIDs with string and numerical IDs. */
+	@Test
+	public void testVertexIDEquals4()
+	{
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(idP5), new VertexID(idN5), new VertexID(VertKind.INIT,9));
+	}
+
+	/** Tests equality for VertexIDs with string and numerical IDs, checking that cached representation works. */
+	@Test
+	public void testVertexIDEquals_cached()
+	{
+		VertexID p=new VertexID(VertKind.POSITIVE,5), q=new VertexID(idP5), 
+		differentA=new VertexID(VertKind.POSITIVE,6), differentB=new VertexID(VertKind.INIT,9);
+		equalityTestingHelper(p, p, differentA, differentB);// at this point, numeric ID will have a textual representation added
+
+		equalityTestingHelper(p, q, differentA, differentB);
+		equalityTestingHelper(p, new VertexID(idP5), differentA, differentB);
+		equalityTestingHelper(new VertexID(idP5), q, differentA, differentB);
+		equalityTestingHelper(new VertexID(idP5), q, new VertexID(idP6), new VertexID(VertKind.POSITIVE,6));
+		equalityTestingHelper(new VertexID(idP5), q, new VertexID(idN5), new VertexID(VertKind.POSITIVE,6));
+	}
+
+	@Test
+	public void testVertexIDLess1()
+	{
+		VertexID pA=new VertexID(VertKind.POSITIVE,5), pB=new VertexID(idP5),
+			qA = new VertexID(VertKind.POSITIVE,6);
+		checkLessHelper(pA,qA);
+		checkLessHelper(pB,qA);// now qA has a cached representation of its string value.
+		checkLessHelper(pB,qA);
+		checkLessHelper(pA,qA);
+	}
+	
+	@Test
+	public void testVertexIDLess2()
+	{
+		VertexID pA=new VertexID(idP5), pB=new VertexID(VertKind.POSITIVE,5),
+			qA = new VertexID(idP6);
+		checkLessHelper(pA,qA);
+		checkLessHelper(pB,qA);// now pB has a cached representation of its string value.
+		checkLessHelper(pB,qA);
+		checkLessHelper(pA,qA);
 	}
 	
 	private final DeterministicVertex DvertA = new DeterministicVertex("a"),DvertB = new DeterministicVertex("a");
@@ -351,17 +450,6 @@ public class TestFSMAlgo {
 		equalityTestingHelper(SvertA,DvertA,SdifferentA,DdifferentA);
 	}
 
-	@SuppressWarnings("unchecked")
-	static private void checkLessHelper(Comparable p, Comparable q)
-	{
-		assertFalse(p.equals(q));
-		assertTrue(p.compareTo(q)<0);
-		assertTrue(q.compareTo(p)>0);
-		assertFalse(p.hashCode() == q.hashCode());
-		assertEquals(0,p.compareTo(p));
-		assertEquals(0,q.compareTo(q));
-	}
-
 	@Test
 	public void checkDComparison1()
 	{
@@ -399,11 +487,65 @@ public class TestFSMAlgo {
 		DvertA.compareTo(SvertA);
 	}
 	 */
+	
+	@Test
+	public void testDeterministicVertexComparison1_old()
+	{
+		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+		
+	@Test
+	public void testDeterministicVertexComparison2_old()
+	{
+		DeterministicVertex p = new DeterministicVertex("A"), q= new DeterministicVertex("B");
+		assertFalse(p.equals(q));
+		assertTrue(p.compareTo(q)<0);
+		assertTrue(q.compareTo(p)>0);
+		assertFalse(p.hashCode() == q.hashCode());
+		assertEquals(0,p.compareTo(p));
+		assertEquals(0,q.compareTo(q));
+	}
+
+	@Test
+	public void testDeterministicVertexComparison3_old()
+	{
+		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
+		assertTrue(p.equals(q));
+		assertTrue(p.compareTo(q)==0);
+	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testEqClassEquality0()
+	public void testEqClassEquality_fail1()
 	{
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{}));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testEqClassEquality_fail2()
+	{
+				new AMEquivalenceClass(null);
+	}
+	
+	@Test
+	public void testEqClass_toString1()
+	{
+		Assert.assertEquals("[B->{B,A,D}]",
+		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("B"),new StringVertex("A"),new StringVertex("D")})).toString());		
+	}
+	
+	@Test
+	public void testEqClass_toString2()
+	{
+		Assert.assertEquals("[B->{B}]",
+		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("B")})).toString());		
 	}
 	
 	@Test
@@ -439,6 +581,24 @@ public class TestFSMAlgo {
 		
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
 						new StringVertex("B"),new StringVertex("A"),new StringVertex("D")}))
+		);
+	}
+
+	@Test
+	public void testEqClassEquality3()
+	{
+		equalityTestingHelper(
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("A"),new StringVertex("B"),new StringVertex("C")})),
+				
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("A"),new StringVertex("B"),new StringVertex("C")})),
+
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("A"),new StringVertex("B"),new StringVertex("D")})),
+		
+				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+						new StringVertex("B"),new StringVertex("A"),new StringVertex("C")}))
 		);
 	}
 
@@ -559,7 +719,7 @@ public class TestFSMAlgo {
 				put(from,to,label,false);
 			}
 		});
-		
+
 		if (isGraphTransformationDebug(g))
 		{
 			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
@@ -830,7 +990,8 @@ public class TestFSMAlgo {
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 
 		LearnerGraph clone = new LearnerGraph(g,config).copy(config);
-		Assert.assertFalse( clone.paths.completeGraph("REJECT"));
+		Assert.assertFalse( clone.paths.completeGraph(
+				new VertexID("REJECT")));
 		Assert.assertFalse(DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));
 	}
 	
@@ -848,7 +1009,8 @@ public class TestFSMAlgo {
 		DirectedSparseGraph g = buildGraph(originalGraph, testName);
 		Assert.assertEquals(whetherToBeCompleted,DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));checkM(g, expectedOutcome,config);		
 		LearnerGraph fsm = new LearnerGraph(buildGraph(originalGraph, testName),config);
-		Assert.assertEquals(whetherToBeCompleted,fsm.paths.completeGraph("REJECT"));
+		Assert.assertEquals(whetherToBeCompleted,fsm.paths.completeGraph(
+				new VertexID("REJECT")));
 		WMethod.checkM(fsm, new LearnerGraph(buildGraph(expectedOutcome,testName),config));				
 	}
 	
@@ -856,7 +1018,8 @@ public class TestFSMAlgo {
 	@Test(expected=IllegalArgumentException.class)
 	public void complete_fail()
 	{
-		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).paths.completeGraph("B");
+		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).paths.completeGraph(
+				new VertexID("B"));
 	}
 	
 	@Test
@@ -911,7 +1074,8 @@ public class TestFSMAlgo {
 		// Additional checking.
 		DirectedSparseGraph g = buildGraph(fsmOrig, "completeGraphTest7");
 		final LearnerGraph graph = new LearnerGraph(g,config);
-		Assert.assertTrue(graph.paths.completeGraph("REJECT"));
+		Assert.assertTrue(graph.paths.completeGraph(
+				new DeterministicDirectedSparseGraph.VertexID("REJECT")));
 		final LearnerGraph expected = new LearnerGraph(buildGraph(fsmExpected,"completeGraphTest7"),config);
 		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"B","B"));
@@ -959,35 +1123,35 @@ public class TestFSMAlgo {
 	public void testFindVertex4b()
 	{
 		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
-		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 
 	@Test
 	public void testFindVertex5()
 	{
-		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "A", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
-		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
+		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex6()
 	{
-		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "C", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
-		Assert.assertEquals("C", v.getUserDatum(JUConstants.LABEL));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("C"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
+		Assert.assertEquals(new VertexID("C"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex7()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "S", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
-		Assert.assertEquals("S", v.getUserDatum(JUConstants.LABEL));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
+		Assert.assertEquals(new VertexID("S"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public void testFindVertex8()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "Q", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
-		Assert.assertEquals("Q", v.getUserDatum(JUConstants.LABEL));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
+		Assert.assertEquals(new VertexID("Q"), v.getUserDatum(JUConstants.LABEL));
 	}
 
 	
@@ -995,7 +1159,7 @@ public class TestFSMAlgo {
 	public void testFindInitial1()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
-		Assert.assertEquals("A", v.getUserDatum(JUConstants.LABEL));
+		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
@@ -1232,47 +1396,74 @@ public class TestFSMAlgo {
 		})));
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	public final void checkForCorrectException(final int [][]tTable, final int []vFrom, String exceptionString)
+	{
+		try
+		{
+			LearnerGraph.convertTableToFSMStructure(tTable, vFrom, -1	,config);
+			Assert.fail("Exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			Assert.assertTrue(ex.getMessage().contains(exceptionString));
+		}
+	}
+	
+	/** Zero-sized array. */
+	@Test
+	public final void testConvertTableToFSMStructure0()
+	{
+		int [][]table = new int[][] {
+		};
+		checkForCorrectException(table, new int[0], "array is zero-sized");
+	}
+
+	/** Zero-sized alphabet. */
+	@Test
 	public final void testConvertTableToFSMStructure1a()
 	{
 		int [][]table = new int[][] {
-			{4,5,1,6}, 
-			{7,7}
+			{}, 
+			{1,1}
 		};
-		LearnerGraph.convertTableToFSMStructure(table, new int[0], -1	,config);
+		checkForCorrectException(table, new int[]{0,1}, "alphabet is zero-sized");
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	/** "rows of inconsistent size" */
+	@Test
 	public final void testConvertTableToFSMStructure1b()
 	{
 		int [][]table = new int[][] {
 			{}, 
 			{1,1}
 		};
-		LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0}, -1	,config);
+		checkForCorrectException(table, new int[]{1,0}, "rows of inconsistent size");
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	/** "rows of inconsistent size" */
+	@Test
 	public final void testConvertTableToFSMStructure2()
 	{
 		int [][]table = new int[][] {
 				{1,0,1,0}, 
 				{0,1}
 			};
-		LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1}, -1	,config);
+		checkForCorrectException(table, new int[]{0,1}, "rows of inconsistent size");
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	/** Reject number in vfrom. */
+	@Test
 	public final void testConvertTableToFSMStructure3()
 	{
 		int [][]table = new int[][] {
 				{1,0,1,0}, 
 				{0,1,0,1}
 			};
-		LearnerGraph.convertTableToFSMStructure(table, new int[]{0,-1}, -1	,config);
+		checkForCorrectException(table, new int[]{0,-1}, "reject number in vFrom");
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	/** Transition to illegal state 6 */
+	@Test
 	public final void testConvertTableToFSMStructure4a()
 	{
 		int [][]table = new int[][] {
@@ -1281,11 +1472,11 @@ public class TestFSMAlgo {
 			{0,0,0,6},
 			{-1,-1,-1,-1}
 		};
-		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4a"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		checkForCorrectException(table, new int[]{0,1,2,3}, "leads to an invalid state");
 	}
 	
-	@Test(expected = IllegalArgumentException.class)
+	/** Transition to illegal state -4 */
+	@Test
 	public final void testConvertTableToFSMStructure4b()
 	{
 		int [][]table = new int[][] {
@@ -1294,10 +1485,21 @@ public class TestFSMAlgo {
 			{0,0,0,-4},
 			{-1,-1,-1,-1}
 		};
-		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,2,3}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0\nS2-i0->S0\nS2-i1->S0\nS2-i2->S0\nS2-i3->S0", "testConvertTableToFSMStructure4b"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		checkForCorrectException(table, new int[]{0,1,2,3}, "leads to an invalid state");
 	}
-	
+
+	@Test
+	public final void testConvertTableToFSMStructure_missing_elements_in_vFrom()
+	{
+		int [][]table = new int[][] {
+			{0,	1,	-1,	3}, 
+			{0, 3,	0,	-1},
+			{0,0,0,6},
+			{-1,-1,-1,-1}
+		};
+		checkForCorrectException(table, new int[]{0,1}, "Some states in the transition table are not included in vFrom");
+	}
+
 	@Test
 	public final void testConvertTableToFSMStructure5()
 	{

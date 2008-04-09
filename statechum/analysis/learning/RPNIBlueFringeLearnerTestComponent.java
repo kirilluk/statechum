@@ -282,7 +282,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 		String first = question.get(0);
 		int length = question.size();
 		while(stringIt.hasNext()){
-			ArrayList list = (ArrayList)stringIt.next();
+			List<String> list = stringIt.next();
 			for(int i=0;i<list.size();i++){
 				if(list.get(i).equals(first)){
 					if(list.subList(i, i+length).equals(question))

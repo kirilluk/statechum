@@ -135,6 +135,7 @@ public class BlueFringeSpinLearner extends
 					++counterAccepted;
 					// sPlus.add(question);
 					ptaHardFacts.paths.augmentPTA(question, true);
+					ptaSoftFacts.paths.augmentPTA(question, true);
 					++plusSize;
 					// System.out.println(setByAuto+question.toString()+ "
 					// <yes>");

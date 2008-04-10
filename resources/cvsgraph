@@ -6,44 +6,17 @@ active
 + initialise connect login listfiles retrievefile retrievefile logout disconnect
 + initialise connect login listfiles changedirectory listfiles changedirectory listfiles retrievefile retrievefile logout disconnect
 ltl false
-ltl ![]((initialise) -> X(connect))
-ltl !(XX(initialise))
-ltl ![]((connect) -> X(login))
-ltl ![]((makedir)-> X((makedir) || (logout)))
-ltl ![]((setfiletype)->X((storefile) || (rename)))
-ltl ![]((listfiles) -> X(!listfiles))
-ltl !((changedirectory) V (!listnames))
-ltl !((listnames) V (!delete))
-ltl ![]((listnames) -> X((changedirectory) V (!listnames)))
-+ initialise connect login changedirectory listnames delete delete delete changedirectory listnames delete appendfile logout disconnect
-ltl ![]((changedirectory) -> X(!delete))
-ltl ![]((changedirectory) -> X(!makedir))
-+ initialise connect login listfiles retrievefile changedirectory listfiles changedirectory listfiles retrievefile retrievefile logout disconnect
-+ initialise connect login listfiles retrievefile logout disconnect
-+ initialise connect login listfiles logout disconnect
-ltl ![]((storefile) -> X((logout) || (setfiletype) || (appendfile)))
-+ initialise connect login makedir makedir logout disconnect
-+ initialise connect login makedir logout disconnect
-ltl !((logout) V (!disconnect))
-- initialise connect login listfiles logout disconnect disconnect
-- initialise connect login listfiles retrievefile logout disconnect disconnect
-ltl ![]((disconnect) -> [](disconnect))
-- initialise connect login makedir makedir logout disconnect disconnect
-- initialise connect login storefile logout disconnect disconnect
-+ initialise connect login changedirectory listnames delete appendfile logout disconnect
-ltl ![]((logout) -> X((disconnect)))
-ltl !(((setfiletype) || (listnames)) V (!appendfile))
-+ initialise connect login setfiletype rename storefile setfiletype rename storefile setfiletype rename logout disconnect
-ltl ![]((rename) -> X(!(rename)))
-- initialise connect login storefile setfiletype
-ltl ![]((retrievefile) -> X( []((!storefile)&&(!setfiletype))))
-+ initialise connect login setfiletype rename logout disconnect
-- initialise connect login setfiletype storefile  setfiletype
-- initialise connect login changedirectory listfiles
-- initialise connect login makedir logout disconnect disconnect
-ltl ![]((listfiles) -> [](!listnames))
-ltl ![]((listfiles) -> [](!storefile))
-- initialise  connect  login  changedirectory  listnames  changedirectory  appendfile
-+ initialise  connect  login  setfiletype  rename  storefile  setfiletype  rename  logout  disconnect
-- initialise  connect  login  setfiletype  storefile  appendfile  makedir
-+ initialise  connect  login  setfiletype  rename  storefile  setfiletype  storefile  appendfile
+#ltl ![]((initialise) -> X(connect))
+#ltl !(XX(initialise))
+#ltl ![]((connect) -> X(login))
+#ltl ![]((makedir)-> X((makedir) || (logout)))
+#ltl ![]((setfiletype)->X((storefile) || (rename)))
+#ltl ![]((listfiles) -> X(!listfiles))
+#ltl !((changedirectory) V (!listnames))
+#ltl !((listnames) V (!delete))
+#ltl ![]((listnames) -> X((changedirectory) V (!listnames)) && ((changedirectory) -> X((listnames) || (listfiles))))
+#ltl ![]((listfiles)->X([](!listnames)))
+#+ initialise connect login changedirectory listnames delete delete delete changedirectory listnames delete appendfile logout disconnect
+#+ initialise connect login listfiles retrievefile changedirectory listfiles changedirectory listfiles retrievefile retrievefile logout disconnect
+#ltl ![]((listfiles)->X([](!listnames)))
+

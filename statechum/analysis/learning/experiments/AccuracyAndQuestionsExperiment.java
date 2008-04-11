@@ -26,6 +26,7 @@ import edu.uci.ics.jung.graph.*;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
@@ -72,12 +73,12 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
-				protected int checkWithEndUser(
+				protected Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	DirectedSparseGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
-					return graph.paths.tracePath(question);
+					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			};
 			//l.setCertaintyThreshold(10);

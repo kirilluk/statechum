@@ -18,39 +18,33 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.oracles;
 
-import java.io.File;
 import java.util.*;
 
-import javax.swing.*;
-
 import soot.*;
-import soot.options.*;
-import soot.util.*;
-import soot.jimple.*;
-import soot.jimple.spark.*;
 import soot.jimple.toolkits.callgraph.*;
 
+import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 
 
 public class SootCallGraphOracle  implements AbstractOracle {
 	
-	private SootCallGraphManager scm;
+	//private SootCallGraphManager scm;
 	private String from = new String();
 	
 	public SootCallGraphOracle(){
-		scm = new SootCallGraphManager();
+		//scm = new SootCallGraphManager();
 	}
 	
 	
 
-	public int getAnswer(List<String> question) {
+	public Pair<Integer,String> getAnswer(List<String> question) {
 		HashMap<MethodOrMethodContext,String> methodToString = new HashMap<MethodOrMethodContext,String>();
 		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();
 		int length = question.size();
 		if(question.get(0).equals("ret"))
-			return 0;
+			return new Pair<Integer,String>(0,null);
 		MethodOrMethodContext fromMethod = getSootMethod(question.get(0));
 		methodToString.put(fromMethod, question.get(0));
 		methodStack.push(fromMethod);
@@ -63,8 +57,8 @@ public class SootCallGraphOracle  implements AbstractOracle {
 					methodStack.pop();
 					continue;
 				}
-				else
-					return i;
+				
+				return new Pair<Integer,String>(i,null);
 			}
 			MethodOrMethodContext toMethod = getSootMethod(next);
 			methodToString.put(toMethod, next);
@@ -82,12 +76,12 @@ public class SootCallGraphOracle  implements AbstractOracle {
 				if(!found){
 					System.out.println("not found: "+methodStack.peek().method().getSignature()+ "->"+ toMethod.method().getSignature());
 					from = methodToString.get(methodStack.peek());
-					return i;
+					return new Pair<Integer,String>(i,null);
 				}
 			}
 			methodStack.push(toMethod);
 		}
-		return RPNIBlueFringeLearner.USER_ACCEPTED;
+		return new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null);
 	}
 	
 	private List<Type> getTypes(String params){

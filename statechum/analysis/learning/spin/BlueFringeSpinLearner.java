@@ -20,6 +20,7 @@ package statechum.analysis.learning.spin;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -39,15 +40,16 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
-public class BlueFringeSpinLearner extends
-		RPNIBlueFringeLearnerTestComponentOpt {
+public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt {
 
 	private Set<String> ltl;
 
@@ -60,6 +62,8 @@ public class BlueFringeSpinLearner extends
 	public static final String learntGraphName="tmp/GRAPH_BEING_LEARNT";
 	
 	public DirectedSparseGraph learnMachine() {
+		LearnerGraph.testMode = true;
+		setAutoOracle();
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
@@ -67,7 +71,8 @@ public class BlueFringeSpinLearner extends
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 
-		//updateGraph(ptaHardFacts.paths.getGraph());Visualiser.waitForKey();
+		if (!SpinUtil.check(ptaHardFacts.paths.getGraph(), ltl))
+			throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl));
 		
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
@@ -85,106 +90,122 @@ public class BlueFringeSpinLearner extends
 			iterations++;
 			// populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = MergeStates.mergeAndDeterminize(
-					scoreComputer, pair);
+			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA
 											// and restart learning.
 
-			// System.out.println(Thread.currentThread()+ " "+pair + "
-			// "+questions);
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
-			updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
+			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			if (!SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
+				System.out.println("<temp> "+counterexample.subList(0, counterexample.size()-1));
 				ptaSoftFacts.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
-				System.out.println(counterexample.subList(0, counterexample.size()-1));
 				++minusSize;
 				restartLearning = RestartLearningEnum.restartSOFT;
 			}
 			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) {
+				updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 				questions = ComputeQuestions.computeQS(pair, ptaHardFacts, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			}
 			Iterator<List<String>> questionIt = questions.iterator();
+			boolean questionAnswered = true;
+			List<String> question = null;
 			while (questionIt.hasNext() && restartLearning == RestartLearningEnum.restartNONE) {
-
-				List<String> question = questionIt.next();
-				boolean accepted = pair.getQ().isAccept();
-				int answer = checkWithSPIN(question);
-				if(answer<0){
-					System.out.println("--");
-					answer = checkWithEndUser(scoreComputer.paths.getGraph(),
-						question, new Object[] { "LTL"});
-				}
+				if (questionAnswered) question = questionIt.next();// only pick next question if we've got an answer to the previous one
+				questionAnswered = false;
+				
+				boolean accepted = pair.getQ().isAccept();howAnswerWasObtained="";
+				Pair<Integer,String> answer = new Pair<Integer,String>(checkWithSPIN(question),null);
+				if(answer.firstElem >= 0) 
+					howAnswerWasObtained=QUESTION_SPIN;// label reject with <spin>
+				else
+					answer = checkWithEndUser(scoreComputer.paths.getGraph(), question, new Object[] { "LTL"});
+				
 				this.questionCounter++;
-				if (answer == USER_CANCELLED) {
+				if (answer.firstElem == USER_CANCELLED) {
 					System.out.println("CANCELLED");
 					return null;
 				}
 
 				CmpVertex tempVertex = temp.getVertex(question);
-				if (tempVertex == null)
-					System.out.println();
 
-				if (answer == USER_ACCEPTED) {
+				if (answer.firstElem == USER_ACCEPTED) {
 					++counterAccepted;
-					// sPlus.add(question);
-					ptaHardFacts.paths.augmentPTA(question, true);
+					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
+						ptaHardFacts.paths.augmentPTA(question, true);
 					ptaSoftFacts.paths.augmentPTA(question, true);
 					++plusSize;
-					// System.out.println(setByAuto+question.toString()+ "
-					// <yes>");
-
+					if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
+					questionAnswered = true;
 					if (!tempVertex.isAccept()) {
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART due to acceptance of a reject vertex for a pair "
 								+ pair + " ========\n";
-						restartLearning = RestartLearningEnum.restartHARD;
+						if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO)
+							restartLearning = RestartLearningEnum.restartHARD;
+						else
+							restartLearning = RestartLearningEnum.restartSOFT;
 						break;
 					}
-				} else if (answer >= 0) {// The sequence has been rejected by
-											// a user
-					assert answer < question.size();
+				} else if (answer.firstElem >= 0) {// The sequence has been rejected by a user
+					assert answer.firstElem < question.size();
 					++counterRejected;
+					questionAnswered = true;
 					LinkedList<String> subAnswer = new LinkedList<String>();
-					subAnswer.addAll(question.subList(0, answer + 1));
-					// sMinus.add(subAnswer);
-					ptaHardFacts.paths.augmentPTA(subAnswer, false);
+					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
+					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
+						ptaHardFacts.paths.augmentPTA(subAnswer, false);
+					ptaSoftFacts.paths.augmentPTA(subAnswer, false);
 					++minusSize;// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
-					// once
-					// instance should ever receive calls to augmentPTA
+					// one instance should ever receive calls to augmentPTA
 
-					// System.out.println(setByAuto+question.toString()+ " <no>
-					// at position "+answer+", element "+question.get(answer));
-					if ((answer < question.size() - 1) || tempVertex.isAccept()) {
+					if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
+					if ((answer.firstElem < question.size() - 1) || tempVertex.isAccept()) {
 						assert accepted == true;
 						pairsMerged = pairsMerged
 								+ "ABOUT TO RESTART because accept vertex was rejected for a pair "
 								+ pair + " ========\n";
-						restartLearning = RestartLearningEnum.restartHARD;
+						if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO)
+							restartLearning = RestartLearningEnum.restartHARD;
+						else
+							restartLearning = RestartLearningEnum.restartSOFT;
 						break;
 					}
-				} else if(answer==-4){
-					String newLtl = JOptionPane.showInputDialog("New LTL formula:");
-					if(newLtl.length() != 0){
-						ltl.add(newLtl);
-						restartLearning = RestartLearningEnum.restartHARD;
-						break;
+				} else if(answer.firstElem == USER_LTL){
+					String newLtl = answer.secondElem;
+					if (newLtl == null) newLtl = JOptionPane.showInputDialog("New LTL formula:");
+					if(newLtl != null && newLtl.length() != 0){
+						if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <ltl> "+newLtl);
+						Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ltl);tmpLtl.add(newLtl);
+						if (!SpinUtil.check(ptaHardFacts.paths.getGraph(), tmpLtl))
+						{
+							if (howAnswerWasObtained == QUESTION_AUTO) // cannot recover from autosetting, otherwise warn a user
+								throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(tmpLtl));
+							
+							System.out.println(getHardFactsContradictionErrorMessage(tmpLtl));
+						}
+						else // LTL does not contradict hard facts
+						{
+							ltl.add(newLtl);
+							restartLearning = RestartLearningEnum.restartHARD;
+							break;
+						}
 					}
+					// no formula was entered, do not set the question to answered, hence re-pop the previous question.
 				}
-				else{
-					System.out.println(answer);
-					throw new IllegalArgumentException("unexpected user choice");
-				}
+				else
+					throw new IllegalArgumentException("unexpected user choice "+answer);
 			}
 
 			if (restartLearning != RestartLearningEnum.restartNONE) {// restart learning
+				System.out.println("RESTART - "+restartLearning);
 				if (restartLearning == RestartLearningEnum.restartHARD)
 					ptaSoftFacts = ptaHardFacts.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				scoreComputer = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
@@ -208,14 +229,12 @@ public class BlueFringeSpinLearner extends
 				// temp is different too, hence there is no way for me to
 				// compute compatibility score here.
 				// This is hence computed inside the obtainPair method.
-				pairsMerged = pairsMerged + pair + " questions: "
-						+ questions.size() + "\n";
+				pairsMerged = pairsMerged + pair + " questions: " + questions.size() + "\n";
 
 				// keep going with the existing model
 				scoreComputer = temp;
 				// now update the statistics
-				AtomicInteger count = whichScoresWereUsedForMerging.get(pair
-						.getScore());
+				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null) {
 					count = new AtomicInteger();
 					whichScoresWereUsedForMerging.put(pair.getScore(), count);
@@ -249,28 +268,30 @@ public class BlueFringeSpinLearner extends
 		updateGraph(result);
 		return result;
 	}
+
+	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl)
+	{
+		String errString = "LTL formula contradicts hard facts, counter-example is "+SpinUtil.getCurrentCounterExample()+"\n";
+		for(String elem:tmpLtl) errString+=elem+"\n";
+		return errString;
+	}
 	
 	protected int checkWithSPIN (List<String> question){
 		int ret = -1;
 		if(!SpinUtil.check(question, ltl)){
 			List<String> counterExample = SpinUtil.getCurrentCounterExample();
-			System.out.println(counterExample.subList(0, counterExample.size()));
+			//System.out.println(counterExample.subList(0, counterExample.size()));
 			return counterExample.size()-1;
 		}
-		else
-			return ret;
+		
+		return ret;
 	}
 	
-	protected int checkWithEndUser(DirectedSparseGraph model,
-			List<String> question, final Object[] moreOptions) {
-		if (ans != null) {
-			int AutoAnswer = processAnswer(question);
-			if (AutoAnswer != USER_CANCELLED) {
-				setByAuto = QUESTION_AUTO;
-				return AutoAnswer;
-			} else
-				setByAuto = "";
-		}
+	protected Pair<Integer,String> checkWithEndUser(@SuppressWarnings("unused") DirectedSparseGraph model,
+			List<String> question, final Object[] moreOptions) 
+	{
+		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
+
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 
@@ -286,7 +307,7 @@ public class BlueFringeSpinLearner extends
 							moreOptions.length);
 					final JLabel label = new JLabel(
 							"<html><font color=red>Click on the first non-accepting element below",
-							JLabel.CENTER);
+							SwingConstants.CENTER);
 					jop = new JOptionPane(new Object[] { label,
 							null, rejectElements },
 							JOptionPane.QUESTION_MESSAGE,
@@ -298,10 +319,9 @@ public class BlueFringeSpinLearner extends
 
 					// the following chunk is partly from
 					// http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
-					dialog
-							.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+					dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 					dialog.addWindowListener(new WindowAdapter() {
-						public void windowClosing(WindowEvent we) {
+						public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
 							jop.setValue(new Integer(JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
 						}
 					});
@@ -377,7 +397,7 @@ public class BlueFringeSpinLearner extends
 		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an
 														// exception was thrown
 			answer.getAndSet(USER_CANCELLED);
-		return answer.get();
+		return new Pair<Integer,String>(answer.get(),null);
 	}
 
 }

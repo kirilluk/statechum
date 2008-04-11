@@ -173,6 +173,19 @@ public class Configuration implements Cloneable
 		return defaultInitialPTAName;
 	}
 	
+	/** Used to define the file name to be used for auto-loading answers. Zero-length means no auto. */
+	protected String autoAnswerFileName = "";
+	
+	public void setAutoAnswerFileName(String name)
+	{
+		autoAnswerFileName = name;
+	}
+	
+	public String getAutoAnswerFileName()
+	{
+		return autoAnswerFileName;
+	}
+	
 	public static Collection<Object[]> configurationsForTesting() 
 	{
 		Configuration same = new Configuration();same.setLearnerUseStrings(false);same.setLearnerCloneGraph(true);

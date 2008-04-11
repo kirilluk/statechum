@@ -27,10 +27,12 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import statechum.Pair;
+
 
 public class StoredAnswers implements AbstractOracle
 {
-	private Map<String,Integer> answers = new HashMap<String, Integer>();
+	private Map<String,Pair<Integer,String>> answers = new HashMap<String, Pair<Integer,String>>();
 	
 	protected void throwEx(String line)
 	{
@@ -39,9 +41,9 @@ public class StoredAnswers implements AbstractOracle
 
 	public synchronized void setAnswers(Reader src) throws IOException
 	{
-		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6;
+		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8;
 
-		final Pattern pat = Pattern.compile("[ \\t]*("+RPNIBlueFringeLearner.QUESTION_AUTO+")* *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*))");
+		final Pattern pat = Pattern.compile("[ \\t]*("+RPNIBlueFringeLearner.QUESTION_AUTO+")* *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
 		BufferedReader reader = new BufferedReader(src);//new FileReader(src));
 		String line = reader.readLine();
 		while( line != null )
@@ -56,17 +58,26 @@ public class StoredAnswers implements AbstractOracle
 				String text = "["+lexer.group(GROUP_TEXT)+"]";
 				if (lexer.group(GROUP_YES) != null)
 				{
-					if (lexer.group(GROUP_NO) != null || lexer.group(GROUP_NO_NUM) != null)
+					if (lexer.group(GROUP_NO) != null || lexer.group(GROUP_NO_NUM) != null || 
+							lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null)
 						throwEx(line);
 					
-					answers.put(text, RPNIBlueFringeLearner.USER_ACCEPTED);
+					answers.put(text, new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null));
 				}
 				else
-				{
-					if (lexer.group(GROUP_NO) == null)
+					if (lexer.group(GROUP_NO) != null)
+					{
+						if (lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null)
 						throwEx(line);
-					answers.put(text, Integer.parseInt(lexer.group(GROUP_NO_NUM)));				
-				}
+
+						answers.put(text, new Pair<Integer,String>(Integer.parseInt(lexer.group(GROUP_NO_NUM)),null));				
+					}
+					else
+					{
+						if (lexer.group(GROUP_LTL) == null || lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0)
+							throwEx(line);
+						answers.put(text, new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
+					}
 			}			
 			line = reader.readLine();
 		}
@@ -80,9 +91,9 @@ public class StoredAnswers implements AbstractOracle
 	}
 	
 	/** Retrieves a stored answer. */
-	public int getAnswer(List<String> question)
+	public Pair<Integer,String> getAnswer(List<String> question)
 	{
-		int result = RPNIBlueFringeLearner.USER_CANCELLED;
+		Pair<Integer,String> result = null;
 		String q = question.toString();
 		if (answers != null && answers.containsKey(q))
 			result = answers.get(q);

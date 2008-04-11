@@ -22,6 +22,7 @@ package statechum.analysis.learning.experiments;
 import java.util.*;
 import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
+import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -56,12 +57,12 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 			rpg.generatePosNeg(size/experiment.getStageNumber(), experiment.getStageNumber());
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
-				protected int checkWithEndUser(
+				protected Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	DirectedSparseGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
-					return graph.paths.tracePath(question);
+					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			};
 			sPlus = rpg.getExtraSequences(percent);sMinus = rpg.getAllSequences(percent);
@@ -74,12 +75,12 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 			PosNegPrecisionRecall prNeg = computePR(fsm, l, sMinus);
 			System.out.println(prNeg.precision+", "+prNeg.recall);
 		}
-		
-		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
-			PosNegPrecisionRecall prNeg = computePR(fsm, l, sMinus);
-			PosNegPrecisionRecall pr= computePR(fsm, l, sPlus);
-			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
-		}
+
+//		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
+//			PosNegPrecisionRecall prNeg = computePR(fsm, l, sMinus);
+//			PosNegPrecisionRecall pr= computePR(fsm, l, sPlus);
+//			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
+//		}
 		
 		private PosNegPrecisionRecall computePR(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
 				PTASequenceEngine pta)

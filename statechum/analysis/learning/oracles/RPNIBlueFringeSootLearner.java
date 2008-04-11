@@ -28,6 +28,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
@@ -74,19 +75,19 @@ public class RPNIBlueFringeSootLearner extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
-				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
-				if(answer>=0){
+				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
-					String to = question.get(answer);
+					String to = question.get(answer.firstElem);
 					newPTA.augmentPairs(new StringPair(from, to), false);
 					++counterRejected;
-					if( (answer < question.size()-1) || tempVertex.isAccept()){
+					if( (answer.firstElem < question.size()-1) || tempVertex.isAccept()){
 						pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
 				}
-				else if(answer == USER_ACCEPTED)
+				else if(answer.firstElem == USER_ACCEPTED)
 				{
 					++counterAccepted;
 					newPTA.paths.augmentPTA(question, true);++plusSize;

@@ -327,6 +327,19 @@ public class TestFSMAlgo {
 		equalityTestingHelper(new VertexID(idP5), q, new VertexID(idN5), new VertexID(VertKind.POSITIVE,6));
 	}
 
+	/** Tests VertexID toString methods. */
+	@Test
+	public void testVertexIDToString()
+	{
+		Assert.assertEquals("P5", new VertexID(idP5).toString());
+		Assert.assertEquals("N5", new VertexID(idN5).toString());
+		Assert.assertEquals("P5", new VertexID(VertKind.POSITIVE,5).toString());
+		Assert.assertEquals("N5", new VertexID(VertKind.NEGATIVE,5).toString());
+
+		Assert.assertEquals("JustAnything", new VertexID("JustAnything").toString());
+		Assert.assertEquals("V5", new VertexID(VertKind.NEUTRAL,5).toString());
+	}
+	
 	@Test
 	public void testVertexIDLess1()
 	{

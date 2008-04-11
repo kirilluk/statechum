@@ -714,6 +714,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	public enum VIZ_ENV_PROPERTIES {
 		VIZ_DIR,// the path to visualisation-related information, such as graph layouts and configuration file.
 		VIZ_CONFIG,// the configuration file containing window positions and whether to display an assert-related warning.
+		VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions
 	}
 	
 	public enum VIZ_PROPERTIES { // internal properties

@@ -23,6 +23,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.FileReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +33,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
+import statechum.Pair;
 
 import edu.uci.ics.jung.graph.impl.*;
 
@@ -161,28 +163,43 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	
 	public static final int USER_CANCELLED = -2;
 	public static final int USER_ACCEPTED = -3;
+	public static final int USER_LTL = -4;
 	public static final int USER_WAITINGFORSELECTION = -1;
 	
-	public final static String QUESTION_AUTO = "<auto> "; 
-	protected String setByAuto = "";
+	public final static String QUESTION_AUTO = "<auto>"; 
+	public final static String QUESTION_SPIN = "<spin>"; 
+	public final static String QUESTION_USER = "<USER>"; 
+	protected String howAnswerWasObtained = "";
 	
-	protected int processAnswer(List<String> question){
-		return ans.getAnswer(question);
-	}
-	
-	protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions){
-		if (ans != null)
+	protected Pair<Integer,String> handleAutoAnswer(List<String> question)
+	{
+		howAnswerWasObtained = QUESTION_USER;
+		Pair<Integer,String> AutoAnswer = ans == null? null:ans.getAnswer(question);
+		if (AutoAnswer != null)
 		{
-			int AutoAnswer = processAnswer(question);
-			if (AutoAnswer != USER_CANCELLED)
-			{
-				setByAuto = QUESTION_AUTO;
-				return AutoAnswer;
-			}
-			
-			setByAuto = "";
+			howAnswerWasObtained = QUESTION_AUTO;
+			return AutoAnswer;
 		}
 		
+		return null;
+	}
+	
+	protected void setAutoOracle()
+	{
+		if (config.getAutoAnswerFileName().length() > 0)
+		{
+			ans = new StoredAnswers();
+			try {
+				((StoredAnswers)ans).setAnswers(new FileReader(config.getAutoAnswerFileName()));
+			} catch (Exception e) {
+				ans = null;
+			}
+		}
+	}
+	
+	protected Pair<Integer,String> checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions){
+		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
+
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
 		updateGraph(model);
@@ -190,11 +207,11 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					final Object[] options = new Object[1+moreOptions.length];
-					final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
+					//final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
 					final JList rejectElements = new JList(questionList.toArray());
 					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
-					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", JLabel.CENTER);
-					jop = new JOptionPane(new Object[] {label,nonrejectElements,rejectElements},
+					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
+					jop = new JOptionPane(new Object[] {label,rejectElements},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
 					dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
@@ -270,14 +287,14 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 		}
 		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an exception was thrown
 			answer.getAndSet(USER_CANCELLED);
-		return answer.get();
+		return new Pair<Integer,String>(answer.get(),null);
 	}
 	
 	public int getQuestionCounter() {
 		return questionCounter;
 	}
 
-	public void setQuestionCounter(int questionCounter) {
-		this.questionCounter = questionCounter;
+	public void setQuestionCounter(int questionCnt) {
+		this.questionCounter = questionCnt;
 	}
 }

@@ -20,6 +20,7 @@ import java.util.Vector;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Pair;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
 import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
@@ -231,19 +232,19 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
-					int response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
+					Pair<Integer,String> response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
 					questionCounter++;
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
-					if(response == USER_ACCEPTED){
+					if(response.firstElem == USER_ACCEPTED){
 						sPlus.add(question);
-						System.out.println(setByAuto+question+ " <yes>");
+						System.out.println(howAnswerWasObtained+question+ " <yes>");
 						if(accepted == false)// KIRR: how can this be true? If it were so, there would be no questions to ask
 							return learnMachine(DeterministicDirectedSparseGraph.initialise());
 					}
 					else{
-						sMinus.add(question.subList(0, response));
-						System.out.println(setByAuto+question+ " <no>");
+						sMinus.add(question.subList(0, response.firstElem));
+						System.out.println(howAnswerWasObtained+question+ " <no>");
 						if(accepted == true){// KIRR: this cannot be false either
 							return learnMachine(DeterministicDirectedSparseGraph.initialise());
 						}
@@ -571,7 +572,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			while(!redStack.isEmpty()){
 				Vertex redVertex = redStack.pop();
 				OrigStatePair pair = new OrigStatePair(blueVertex, redVertex);
-				doneEdges = new HashSet();
+				doneEdges = new HashSet<DirectedSparseEdge>();
 				Integer score = new Integer(computeScore(g,pair));
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
 				if(compatible(temp, sPlus, sMinus)){

@@ -127,14 +127,16 @@ public class SpinUtil {
 		if( safetyLiveness == 's'){ //compile pan for checking safety properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE",  "-DBFS", "-DSAFETY", "-DNXT",
-				"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
+				//"-DNOREDUCE", 
+				"-DNOFAIR", "pan.c").toArray());
 			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
 				"-m10000", "-w19", "-A", "-i", "-c1").toArray());
 		}
 		else{ //compile pan for checking liveness properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 					"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
-					"-DNOREDUCE", "-DNOFAIR", "pan.c").toArray());
+					//"-DNOREDUCE", 
+					"-DNOFAIR", "pan.c").toArray());
 			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
 					"-m10000", "-w19", "-a", "-c1").toArray());
 		}
@@ -153,6 +155,8 @@ public class SpinUtil {
 					 if(line.contains("errors: 0"))
 						 return true;
 				}
+				if (proc.waitFor() != 0)
+					return false;
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
@@ -288,8 +292,8 @@ public class SpinUtil {
 
 	public static List<String> getCurrentCounterExample() {
 		List<String> counterExample = new ArrayList<String>();
-		String[] trace = (String[]) Arrays.asList("spin", "-t", "-p",
-				"promelaMachine").toArray();
+		String[] trace = new String[]{"spin", "-t", "-p", "promelaMachine"};
+		LinkedList<String> SpinData = new LinkedList<String>(); 
 		try {
 			String line;
 			ProcessBuilder pb = new ProcessBuilder(trace);
@@ -299,11 +303,12 @@ public class SpinUtil {
 			BufferedReader input = new BufferedReader(new InputStreamReader(
 					proc.getInputStream()));
 			while ((line = input.readLine()) != null) {
+				SpinData.add(line);
 				if (line.contains("[input")) {
 					int inputIndex = line.indexOf("[input =") + 8;
 					int closingBracket = line.indexOf("]", inputIndex);
 					counterExample.add(inverseFunctionMap.get(Integer
-							.valueOf((String) line.substring(inputIndex,
+							.valueOf(line.substring(inputIndex,
 									closingBracket).trim())));
 				} else if (line.contains("<<<<<"))
 					break;
@@ -311,6 +316,14 @@ public class SpinUtil {
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();
+		}
+		if (counterExample.isEmpty())
+		{
+			String errMessage = "empty counter-example was returned from Spin "+
+			(!SpinData.isEmpty()?"even though some data was returned by Spin, below\n":"because no data was returned");
+			for(String text:SpinData)
+				errMessage+=text+"\n";
+			throw new IllegalArgumentException(errMessage);
 		}
 		return counterExample;
 	}

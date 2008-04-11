@@ -112,7 +112,14 @@ public class DeterministicDirectedSparseGraph {
 
 		public String toString()
 		{
+			assignStringID_ifNeeded();
 			return idString;
+		}
+	
+		protected void assignStringID_ifNeeded()
+		{
+			if (idString == null)
+				idString = getStringId();
 		}
 		
 		public int compareTo(VertexID o) {
@@ -125,15 +132,11 @@ public class DeterministicDirectedSparseGraph {
 				return idInteger - o.idInteger;				
 			}
 			
-			if (idString == null)
-			{// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
-				idString = getStringId();
-			}
+			// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
+			assignStringID_ifNeeded();
 			
-			if (o.idString == null)
-			{// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
-				o.idString = o.getStringId();
-			}
+			// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
+			o.assignStringID_ifNeeded();
 
 			return idString.compareTo(o.idString);
 		}
@@ -166,15 +169,10 @@ public class DeterministicDirectedSparseGraph {
 				return idInteger == other.idInteger;
 			}
 			
-			if (idString == null)
-			{// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
-				idString = getStringId();
-			}
-			
-			if (other.idString == null)
-			{// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
-				other.idString = other.getStringId();
-			}
+			// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
+			assignStringID_ifNeeded();
+			// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
+			other.assignStringID_ifNeeded();
 
 			return idString.equals(other.idString);
 		}

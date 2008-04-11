@@ -24,11 +24,14 @@ import java.util.*;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Pair;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
-import edu.uci.ics.jung.graph.impl.*;
-import edu.uci.ics.jung.graph.*;
-import edu.uci.ics.jung.utils.*;
+import edu.uci.ics.jung.graph.Edge;
+import edu.uci.ics.jung.graph.Vertex;
+import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
 
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOrig {
 	
@@ -37,22 +40,23 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 		super(parent,c);
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) 	{
-		this.sPlus = sPlus;
-		this.sMinus = sMinus;
+	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> argSPlus, Collection<List<String>> argSMinus) 	{
+		this.sPlus = argSPlus;
+		this.sMinus = argSMinus;
+		setAutoOracle();
 		model = createAugmentedPTA(model, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 		DeterministicDirectedSparseGraph.findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
 
-		Stack possibleMerges = chooseStatePairs(model, sPlus, sMinus);
+		Stack<OrigStatePair> possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		while(!possibleMerges.isEmpty()){
-			OrigStatePair pair = (OrigStatePair)possibleMerges.pop();
+			OrigStatePair pair = possibleMerges.pop();
 			DirectedSparseGraph temp = mergeAndDeterminize(model, pair);
 			pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 			pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
 			List<List<String>> questions = new ArrayList<List<String>>();
-			doneEdges = new HashSet();
+			doneEdges = new HashSet<DirectedSparseEdge>();
 			int score = computeScore(model, pair);
 			if(shouldAskQuestions(score)){
 				questions = generateQuestions(model, temp, pair);
@@ -65,30 +69,30 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
-				int answer = checkWithEndUser(model,question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(model,question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer == USER_CANCELLED)
+				if (answer.firstElem == USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
 				}
 				Vertex tempVertex = getVertex(temp, question);
-				if(answer == USER_ACCEPTED){
+				if(answer.firstElem == USER_ACCEPTED){
 					sPlus.add(question);
-					//System.out.println(setByAuto+question.toString()+ " <yes>");
+					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					
 					if(!DeterministicDirectedSparseGraph.isAccept(tempVertex))
 					{
 							restartLearning = true;break;
 					}
 				}
-				else if(answer >= 0){
-					assert answer < question.size();
-					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));sMinus.add(subAnswer);
+				else if(answer.firstElem >= 0){
+					assert answer.firstElem < question.size();
+					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));sMinus.add(subAnswer);
 					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
 
-					//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
-					if((answer==question.size()-1)&&!DeterministicDirectedSparseGraph.isAccept(tempVertex)){
+					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element.firstelem "+question.get(answer.firstElem));
+					if((answer.firstElem==question.size()-1)&&!DeterministicDirectedSparseGraph.isAccept(tempVertex)){
 						continue;
 					}
 					else{
@@ -96,7 +100,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 						restartLearning = true;break;
 					}
 				}
-				else if (answer == USER_ACCEPTED-1){
+				else if (answer.firstElem == USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);
 					if(sPlus == null)
 						return model;

@@ -43,6 +43,7 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -103,12 +104,12 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		// Visualiser.getVisualiser()
 		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 		{
-			protected int checkWithEndUser(
+			protected Pair<Integer,String> checkWithEndUser(
 					@SuppressWarnings("unused")	DirectedSparseGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return expected.paths.tracePath(question);
+				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 			}
 		};
 		config.setDebugMode(false);
@@ -635,7 +636,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		LearnerGraph l = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(l.findVertex(new VertexID(stateBlue)),l.findVertex(new VertexID(stateRed)));
 		LearnerGraph 
-			mergeResultA = new LearnerGraph(new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).mergeAndDeterminize(g, pairOrig),testConfig), 
+			mergeResultA = new LearnerGraph(RPNIBlueFringeLearnerOrig.mergeAndDeterminize(g, pairOrig),testConfig), 
 			mergeResultB = new LearnerGraph(MergeStates.mergeAndDeterminize(g2, pairNew1,testConfig),testConfig),
 			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).paths.getGraph(),testConfig),
 			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).paths.getGraph(),testConfig),

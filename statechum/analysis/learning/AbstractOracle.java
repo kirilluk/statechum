@@ -20,9 +20,13 @@ package statechum.analysis.learning;
 
 import java.util.List;
 
+import statechum.Pair;
+
 public interface AbstractOracle {
 	
-	/** Retrieves a stored answer. */
-	public int getAnswer(List<String> question);
-
+	/** Retrieves a stored answer. 
+	 * This can either be a number corresponding to accept/reject or a 
+	 * string representation of an LTL formula or something else. 
+	 */
+	public Pair<Integer,String> getAnswer(List<String> question);
 }

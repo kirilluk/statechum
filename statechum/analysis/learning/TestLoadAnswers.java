@@ -25,6 +25,8 @@ import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Pair;
+
 public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers1()
@@ -46,7 +48,7 @@ public class TestLoadAnswers {
 	{
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader(""));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED,sa.getAnswer(Arrays.asList(new String[]{})));
+		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new String[]{})));
 	}
 
 	@Test
@@ -55,7 +57,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("[test] <yes>"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 	
 	@Test
@@ -64,7 +66,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader(" \t\t    [test] <no> at position 5, junk"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 
 	@Test
@@ -73,7 +75,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("\n\n[test] <no> at position 5, junk\n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 
 	@Test
@@ -82,8 +84,26 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
+	@Test
+	public void testLoadAnswers5D() throws IOException
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("  [test] <ltl> some ltl formula"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+	}
+
+	@Test
+	public void testLoadAnswers5E() throws IOException
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl, formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+	}
+
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail1() throws IOException
@@ -98,9 +118,21 @@ public class TestLoadAnswers {
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
-	public void testLoadAnswersFail3() throws IOException
+	public void testLoadAnswersFail3a() throws IOException
 	{
 		new StoredAnswers().setAnswers(new StringReader("[valid string] <no>"));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testLoadAnswersFail3b() throws IOException
+	{
+		new StoredAnswers().setAnswers(new StringReader("[valid string] <ltl>"));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testLoadAnswersFail3c() throws IOException
+	{
+		new StoredAnswers().setAnswers(new StringReader("[valid string] <ltl>    "));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -135,15 +167,19 @@ public class TestLoadAnswers {
 		sa.setAnswers(new StringReader("[test] <no> at position 5, junk\n "
 				+RPNIBlueFringeLearner.QUESTION_AUTO+" [some text, more of it] <yes> whatever\n\n\n"
 				+"[teststr, another, more] <no> at position 0, junk\n"				
+				+" [ difficult one] <ltl> some ltl 1\n"
 				+RPNIBlueFringeLearner.QUESTION_AUTO+"[teststr, a, more] <no> at position 2, junk\n"				
-				+"[teststr, p, more] <yes> junk\n"				
+				+"[teststr, p, more] <yes> junk\n"
+				+" [ difficult second one] <ltl> some ltl 2\n"
 		));
-		Assert.assertEquals(5,sa.getCount());
-		Assert.assertEquals(5, sa.getAnswer(Arrays.asList(new String[]{"test"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
-		Assert.assertEquals(0, sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
-		Assert.assertEquals(2, sa.getAnswer(Arrays.asList(new String[]{"teststr","a", "more"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_ACCEPTED, sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
-		Assert.assertEquals(RPNIBlueFringeLearner.USER_CANCELLED, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
+		Assert.assertEquals(7,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
+		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(2,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","a", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
+		Assert.assertEquals(null, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl 1"), sa.getAnswer(Arrays.asList(new String[]{" difficult one"})));
+		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl 2"), sa.getAnswer(Arrays.asList(new String[]{" difficult second one"})));
 	}
 }

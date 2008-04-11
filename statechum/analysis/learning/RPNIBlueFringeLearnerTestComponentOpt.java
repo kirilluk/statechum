@@ -38,6 +38,7 @@ import java.io.StringWriter;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -160,6 +161,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 
 	@Override
 	public DirectedSparseGraph learnMachine() {
+		setAutoOracle();
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
@@ -199,9 +201,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
-				int answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer == USER_CANCELLED)
+				if (answer.firstElem == USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
@@ -209,12 +211,12 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				
 				CmpVertex tempVertex = temp.getVertex(question);
 				
-				if(answer == USER_ACCEPTED)
+				if(answer.firstElem == USER_ACCEPTED)
 				{
 					++counterAccepted;
 					//sPlus.add(question);
 					newPTA.paths.augmentPTA(question, true);++plusSize;
-					//System.out.println(setByAuto+question.toString()+ " <yes>");
+					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					
 					if(!tempVertex.isAccept())
 					{
@@ -223,18 +225,18 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 					}
 				}
 				else 
-					if(answer >= 0)
+					if(answer.firstElem >= 0)
 					{// The sequence has been rejected by a user
-						assert answer < question.size();
+						assert answer.firstElem < question.size();
 						++counterRejected;
-						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer+1));
+						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
 						//sMinus.add(subAnswer);
 						newPTA.paths.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs are 
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
-						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
+						if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
 						
-						if( (answer < question.size()-1) || tempVertex.isAccept())
+						if( (answer.firstElem < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
 							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";

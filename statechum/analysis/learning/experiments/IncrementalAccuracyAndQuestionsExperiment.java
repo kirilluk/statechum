@@ -27,8 +27,8 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.xmachine.model.testset.*;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.*;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
 {	

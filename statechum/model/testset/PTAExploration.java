@@ -16,13 +16,13 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
-import statechum.xmachine.model.testset.PTASequenceEngine.Node;
+import statechum.model.testset.PTASequenceEngine.Node;
 
 /** Performs a depth-first walk through all nodes in a PTA, calling the user-supplied callback routine. */
 public abstract class PTAExploration<USEROBJECT>

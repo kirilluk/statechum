@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
 import java.util.Arrays;
 
@@ -26,7 +26,7 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import static org.junit.Assert.assertEquals;
 

@@ -30,8 +30,8 @@ import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class ComputeQuestions {
 	final LearnerGraph coregraph;

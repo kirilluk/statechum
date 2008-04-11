@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
 import java.util.Collection;
 import java.util.Iterator;

@@ -32,11 +32,11 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTA_FSMStructure;
-import statechum.xmachine.model.testset.PrefixFreeCollection;
-import statechum.xmachine.model.testset.SlowPrefixFreeCollection;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTA_FSMStructure;
+import statechum.model.testset.PrefixFreeCollection;
+import statechum.model.testset.SlowPrefixFreeCollection;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class WMethod {
 	final LearnerGraph coregraph;

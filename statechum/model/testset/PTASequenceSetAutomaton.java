@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
-import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
+import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 
 /**
  * @author kirill

@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
 import static org.junit.Assert.*;
 import static statechum.analysis.learning.rpnicore.WMethod.cross;
@@ -60,7 +60,7 @@ import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.TestFSMAlgo.buildList;
-import static statechum.xmachine.model.testset.PrefixFreeCollection.isPrefix;
+import static statechum.model.testset.PrefixFreeCollection.isPrefix;
 
 /**
  * @author kirr

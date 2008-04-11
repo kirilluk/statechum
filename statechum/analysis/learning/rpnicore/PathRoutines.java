@@ -40,9 +40,9 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.xmachine.model.testset.PTAExploration;
-import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTAExploration;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 

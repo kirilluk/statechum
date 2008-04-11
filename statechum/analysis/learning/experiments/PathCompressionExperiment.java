@@ -32,8 +32,8 @@ import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.xmachine.model.testset.*;
-import static statechum.xmachine.model.testset.PTASequenceEngine.stringCollectionSize;
+import statechum.model.testset.*;
+import static statechum.model.testset.PTASequenceEngine.stringCollectionSize;
 public class PathCompressionExperiment extends AbstractExperiment {
 
 	

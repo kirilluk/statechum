@@ -25,7 +25,7 @@ import java.util.List;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.AddTransitions;
-import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine;
 
 /**
  * @author kirill

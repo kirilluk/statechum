@@ -31,10 +31,10 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTASequenceEngine.DebugDataValues;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.model.testset.PTASequenceEngine.DebugDataValues;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;

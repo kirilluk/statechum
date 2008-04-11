@@ -35,8 +35,8 @@ import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.TestFSMAlgo;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class TestRandomPathGenerator {
 	private Configuration config = null;

@@ -54,8 +54,8 @@ import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
-import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
 
 @RunWith(Parameterized.class)
 public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent

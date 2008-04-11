@@ -52,7 +52,7 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.xmachine.model.testset.PTASequenceSet;
+import statechum.model.testset.PTASequenceSet;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;

@@ -16,53 +16,21 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model;
+package statechum.model.testset;
 
-public class State {
-	
-	private String label;
-	private MemState memory;
-	boolean start, term;
-	
-	public State(String label){
-		this.label=label;
-	}
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-	public MemState getMemory() {
-		return memory;
+public class PTA_FSMStructure extends PTASequenceEngine 
+{
+	public PTA_FSMStructure(LearnerGraph machine) 
+	{
+		init(machine.new FSMImplementation() {
+			@Override
+			public boolean shouldBeReturned(@SuppressWarnings("unused")	Object elem) 
+			{
+				return true;
+			}
+			
+		});
 	}
-
-	public void setMemory(MemState memory) {
-		this.memory = memory;
-	}
-
-	public String getLabel() {
-		return label;
-	}
-	
-	public boolean equals(State s){
-		if(s.getLabel().equals(this.getLabel())){
-			return true;
-		}
-		else
-			return false;
-	}
-
-	public boolean isStart() {
-		return start;
-	}
-
-	public void setStart(boolean start) {
-		this.start = start;
-	}
-
-	public boolean isTerm() {
-		return term;
-	}
-
-	public void setTerm(boolean term) {
-		this.term = term;
-	}
-	
-
 }

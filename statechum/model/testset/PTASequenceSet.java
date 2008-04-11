@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.xmachine.model.testset;
+package statechum.model.testset;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
 {

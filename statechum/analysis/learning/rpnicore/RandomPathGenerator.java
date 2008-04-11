@@ -26,10 +26,10 @@ import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.xmachine.model.testset.PTASequenceSet;
-import statechum.xmachine.model.testset.PTASequenceSetAutomaton;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSet;
+import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class RandomPathGenerator {
 	

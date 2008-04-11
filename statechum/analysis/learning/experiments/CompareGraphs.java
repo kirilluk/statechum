@@ -26,10 +26,10 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.xmachine.model.testset.PTASequenceEngine;
-import statechum.xmachine.model.testset.PTA_FSMStructure;
-import statechum.xmachine.model.testset.PTA_computePrecisionRecall;
-import statechum.xmachine.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTA_FSMStructure;
+import statechum.model.testset.PTA_computePrecisionRecall;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 

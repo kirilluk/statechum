@@ -42,7 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.oracles.*;
-import statechum.xmachine.model.testset.PTASequenceEngine.FSMAbstraction;
+import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;

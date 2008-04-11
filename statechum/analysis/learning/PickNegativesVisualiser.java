@@ -27,6 +27,7 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.*;
+import statechum.analysis.learning.util.*;
 import statechum.analysis.learning.spin.*;
 
 public class PickNegativesVisualiser extends Visualiser {
@@ -115,7 +116,10 @@ public class PickNegativesVisualiser extends Visualiser {
 	        	l.setAnswers(ans);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
 	        	l.init(sPlus, sMinus);
-        		l.learnMachine();
+        		DirectedSparseGraph learnt = l.learnMachine();
+        		if(config.isGenerateTextOutput())
+        			OutputUtil.generateTextOutput(learnt);
+        		
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();

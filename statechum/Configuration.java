@@ -39,6 +39,8 @@ public class Configuration implements Cloneable
 	
 	public Configuration() {}
 	
+	protected boolean generateTextOutput = false;
+	
 	protected final static Configuration defaultConfig = new Configuration();
 	
 	public static Configuration getDefaultConfiguration()
@@ -395,5 +397,13 @@ public class Configuration implements Cloneable
 	public void setRandomPathAttemptFudgeThreshold(int thr)
 	{
 		randomPathAttemptFudgeThreshold = thr;
+	}
+
+	public boolean isGenerateTextOutput() {
+		return generateTextOutput;
+	}
+
+	public void setGenerateTextOutput(boolean generateTextOutput) {
+		this.generateTextOutput = generateTextOutput;
 	}
 }

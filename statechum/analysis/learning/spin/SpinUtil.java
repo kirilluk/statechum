@@ -27,6 +27,7 @@ import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.analysis.learning.util.*;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -89,25 +90,13 @@ public class SpinUtil {
 		return true;
 	}
 	
-	private static void write(StringWriter writer, File f){
-		try {
-			f.getParentFile().mkdirs();
-			f.createNewFile();
-			FileOutputStream fos = new FileOutputStream(f);
-			OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
-			out.write(defines.concat(writer.toString()));
-			out.close();
-			fos.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	
 	
 	private static boolean checkLTL(String ltl){
 		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(fileRef);
-		write(sw, promelaMachine);
+		OutputUtil.write(defines.concat(sw.toString()), promelaMachine);
 		return runSpin('s');
 	}
 

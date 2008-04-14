@@ -214,9 +214,20 @@ public class WMethod {
 	/** Computes a state cover (a collection of sequences to reach every state in this machine). */
 	public List<List<String>> computeStateCover()
 	{
+		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(computeShortPathsToAllStates().values());
+		return outcome;
+	}
+	
+	/** Computes a mapping from every state to a shortest path to that state. The term
+	 * "a shorest path" is supposed to mean that we are talking of one of the shortest pats.
+	 *  
+	 * @return map from states to paths reaching those states.
+	 */
+	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates()
+	{
+		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(coregraph.init, new LinkedList<String>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(coregraph.init, new LinkedList<String>());
 		fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
 		while(!fringe.isEmpty())
 		{
@@ -236,8 +247,7 @@ public class WMethod {
 					}
 				}
 		}
-		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(stateToPath.values());
-		return outcome;
+		return stateToPath;
 	}
 	
 	public static class EquivalentStatesException extends Error 

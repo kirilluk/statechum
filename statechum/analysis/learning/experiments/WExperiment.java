@@ -17,14 +17,23 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.experiments;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AddTransitions;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 
 /**
@@ -32,7 +41,8 @@ import statechum.model.testset.PTASequenceEngine;
  *
  */
 public class WExperiment extends AbstractExperiment {
-
+	public static ArrayList<LearnerGraph> graphs = new ArrayList<LearnerGraph>();
+	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class WEvaluator extends LearnerEvaluator
 	{
@@ -60,8 +70,10 @@ public class WExperiment extends AbstractExperiment {
 			{
 				changeParameters(config);
 //				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph.paths.getGraph(),tests);
-				AddTransitions addTr = new AddTransitions(graph);
-				result += addTr.checkWChanged()+"\n"+addTr.ComputeHamming(true);
+				graphs.add(graph);
+				//AddTransitions addTr = new AddTransitions(graph);
+				//addTr.populatePairToNumber();
+				//result += addTr.toOctaveMatrix();//addTr.checkWChanged()+"\n"+addTr.ComputeHamming(true);
 				currentOutcome = OUTCOME.SUCCESS;
 			}
 			catch(Throwable th)
@@ -116,5 +128,42 @@ public class WExperiment extends AbstractExperiment {
 	public static void main(String []args)
 	{
 		new WExperiment().runExperiment(args);
+		
+		// at this point, we've got all the graphs, hence try to merge states in them.
+		LearnerGraph result = graphs.get(0);
+		Random rnd = new Random(0);
+		int graphNumber = 1;
+		for(LearnerGraph gr:graphs)
+			if (gr != result)
+			{
+				AddTransitions.relabel(gr, 13, "gr_"+graphNumber++);
+				CmpVertex newInit = AddTransitions.addToGraph(result, gr);
+				int score = -1;
+				do
+				{
+					CmpVertex vertResult = AddTransitions.pickRandomState(result,rnd);
+					StatePair whatToMerge = new StatePair(vertResult,newInit);
+					LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
+					score = result.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge);
+					if (score >= 0) result = MergeStates.mergeAndDeterminize_general(result, whatToMerge,collectionOfVerticesToMerge);
+					else throw new IllegalArgumentException("failed to merge states");// no easy way to restart with a different pair since result has already been modified, should've cloned perhaps, but absence of negative states ensures that no failure is possible.
+				}
+				while(score < 0);
+				System.out.println(result.toString());
+			}
+		System.out.println();
+		System.out.println(result.toString());
+		//Collection<List<String>> wset = WMethod.computeWSet(result);
+		//System.out.println(" w set size: "+wset.size());
+		
+		// Now start to merge some of those states
+		
+		try {
+			AddTransitions.writeGraphML(result, "resources/tmp/experiment_tmpresult.xml");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}			
+		//AddTransitions.writeGraphML(graph, "resources/tmp/"+new File(inputFileName).getName()+"_tmpresult.xml");
 	}
 }

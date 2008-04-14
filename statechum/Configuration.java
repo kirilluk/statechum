@@ -39,8 +39,6 @@ public class Configuration implements Cloneable
 	
 	public Configuration() {}
 	
-	protected boolean generateTextOutput = false;
-	
 	protected final static Configuration defaultConfig = new Configuration();
 	
 	public static Configuration getDefaultConfiguration()
@@ -219,6 +217,8 @@ public class Configuration implements Cloneable
 		result = prime * result + (askQuestions? 1231 : 1237);
 		result = prime * result + randomPathAttemptThreshold;
 		result = prime * result + randomPathAttemptFudgeThreshold;
+		result = prime * result + (generateTextOutput? 1231 : 1237);
+		result = prime * result + ((autoAnswerFileName == null) ?0: autoAnswerFileName.hashCode());
 		return result;
 	}
 
@@ -258,6 +258,8 @@ public class Configuration implements Cloneable
 			return false;
 		if (!defaultInitialPTAName.equals(other.defaultInitialPTAName))
 			return false;
+		if (!autoAnswerFileName.equals(other.autoAnswerFileName))
+			return false;
 		if (debugMode != other.debugMode)
 			return false;
 		if (certaintyThreshold != other.certaintyThreshold)
@@ -271,6 +273,8 @@ public class Configuration implements Cloneable
 		if (randomPathAttemptThreshold != other.randomPathAttemptThreshold)
 			return false;
 		if (randomPathAttemptFudgeThreshold != other.randomPathAttemptFudgeThreshold)
+			return false;
+		if (generateTextOutput != other.generateTextOutput)
 			return false;
 		return true;
 	}
@@ -399,11 +403,13 @@ public class Configuration implements Cloneable
 		randomPathAttemptFudgeThreshold = thr;
 	}
 
+	protected boolean generateTextOutput = false;
+	
 	public boolean isGenerateTextOutput() {
 		return generateTextOutput;
 	}
 
-	public void setGenerateTextOutput(boolean generateTextOutput) {
-		this.generateTextOutput = generateTextOutput;
+	public void setGenerateTextOutput(boolean generateText) {
+		generateTextOutput = generateText;
 	}
 }

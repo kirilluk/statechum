@@ -102,7 +102,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             vertex.setUserDatum(key, value, UserData.SHARED);
         }
         String label = attributeMap.get("VERTEX").toString();
-        vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
+        vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);
         if(label.startsWith("Initial")){
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);

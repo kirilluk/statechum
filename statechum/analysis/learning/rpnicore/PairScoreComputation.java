@@ -18,7 +18,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,16 +27,17 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -311,6 +311,23 @@ public class PairScoreComputation {
 		return score;
 	}
 
+	static public class StringVertexPair extends Pair<String,CmpVertex> implements Comparable<StringVertexPair>
+	{
+		public StringVertexPair(String st,CmpVertex v)
+		{
+			super(st,v);
+		}
+		
+		public int compareTo(StringVertexPair o) {
+			return firstElem.compareTo(o.firstElem);
+		}
+		
+		public String toString()
+		{
+			return "["+firstElem+"->"+secondElem+"]";
+		}
+	}
+
 	/** Similar to computePairCompatibilityScore_internal but can operate 
 	 * on arbitrary graphs rather than just a graph and a PTA.
 	 * 
@@ -319,10 +336,18 @@ public class PairScoreComputation {
 	 */ 
 	public int computePairCompatibilityScore_general(StatePair origPair,Collection<Collection<CmpVertex>> mergedVertices) 
 	{
+		
 		class EquivalenceClass implements Comparable<EquivalenceClass>
 		{
 			/** The list of outgoing transitions from this equivalence class. */ 
-			private List<Entry<String,CmpVertex>> outgoingTransitions = new ArrayList<Entry<String,CmpVertex>>(3);
+			private TreeSet<StringVertexPair> outgoingTransitions = new TreeSet<StringVertexPair>(),
+				newOutgoingTransitions = null;
+			
+			/** When merging multiple equivalence classes, I need to change entries 
+			 * for all states belonging to those classes.
+			 * This set makes it possible to do this.
+			  */
+			private Set<CmpVertex> states = new TreeSet<CmpVertex>();
 			
 			/** The ID of this equivalence class - not really necessary but handy. */
 			int ClassNumber;
@@ -338,31 +363,64 @@ public class PairScoreComputation {
 			}
 			
 			/** Returns transitions leaving states contained in this equivalence class. */ 
-			public List<Entry<String,CmpVertex>> getOutgoing()
+			public TreeSet<StringVertexPair> getOutgoing()
 			{
 				return outgoingTransitions;
+			}
+			
+			/** Returns transitions leaving states contained in this equivalence class. */ 
+			public TreeSet<StringVertexPair> getNewOutgoing()
+			{
+				return newOutgoingTransitions;
+			}
+			
+			public Set<CmpVertex> getStates()
+			{
+				return states;
 			}
 			
 			/** Adds transitions from the supplied collection.
 			 * 
 			 * @param from transitions to add from.
 			 */
-			public void addFrom(Collection<Entry<String,CmpVertex>> from)
+			public void addFrom(CmpVertex vert,Collection<Entry<String,CmpVertex>> from)
 			{
-				outgoingTransitions.addAll(from);
+				states.add(vert);
+				for(Entry<String,CmpVertex> entry:from)
+					outgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
 			}
 			
-			/** Adds the contents of the supplied argument to outgoing transitions 
-			 * of this class and makes the supplied class equal to this class.
+			/** Adds transitions from the supplied collection.
+			 * 
+			 * @param from transitions to add from.
+			 */
+			public void mergeWith(CmpVertex vert,Collection<Entry<String,CmpVertex>> from)
+			{
+				states.add(vert); 
+				newOutgoingTransitions = new TreeSet<StringVertexPair>();
+				for(Entry<String,CmpVertex> entry:from)
+					newOutgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
+			}
+			
+			/** Adds the contents of the supplied argument to outgoing 
+			 * transitions of this class.
 			 * 
 			 * @param to
 			 */
-			public void setTo(EquivalenceClass to)
+			public void mergeWith(EquivalenceClass to)
 			{
-				outgoingTransitions.addAll(to.outgoingTransitions);
-				to.outgoingTransitions=outgoingTransitions;to.ClassNumber=ClassNumber;
+				newOutgoingTransitions = to.outgoingTransitions;states.addAll(to.states);
 			}
 
+			/** When equivalence classes are updated, I do not update "real" data, but just store the changes.
+			 * This is necessary to avoid scanning all pairs of old outgoing transitions, if there is a 1000
+			 * of them it takes a while. This method is invoked when such a scanning is finished to update the data.
+			 */
+			public void populate()
+			{
+				outgoingTransitions.addAll(newOutgoingTransitions);newOutgoingTransitions = null;
+			}
+			
 			public int compareTo(EquivalenceClass o) {
 				return ClassNumber - o.ClassNumber;
 			}
@@ -405,9 +463,11 @@ public class PairScoreComputation {
 		int equivalenceClassNumber = 0;
 		Map<CmpVertex,EquivalenceClass> stateToEquivalenceClass = new TreeMap<CmpVertex,EquivalenceClass>();
 		int score = 0;// compatibility score between states in the pair
+		
+		//System.out.println(coregraph.getStateNumber());
+		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
 		currentExplorationBoundary.add(origPair);
-		
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair currentPair = currentExplorationBoundary.remove();
@@ -424,15 +484,17 @@ public class PairScoreComputation {
 				if (secondClass == null)
 				{// a new pair has been discovered, populate from the current transition matrix.
 					equivalenceClass = new EquivalenceClass(equivalenceClassNumber++);
-					equivalenceClass.addFrom(coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
-					equivalenceClass.addFrom(coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
+					assert coregraph.transitionMatrix.containsKey(currentPair.firstElem) : " state "+currentPair.firstElem+" is not in the graph";
+					assert coregraph.transitionMatrix.containsKey(currentPair.secondElem) : " state "+currentPair.firstElem+" is not in the graph";
+					equivalenceClass.addFrom(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
+					equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
 					stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
 					stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
 				}
 				else
 				{// first is null, second is not, record first as a member of the equivalence class the second one belongs to.
 					equivalenceClass = secondClass;
-					equivalenceClass.addFrom(coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
+					equivalenceClass.mergeWith(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
 					stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
 				}
 			}
@@ -441,17 +503,30 @@ public class PairScoreComputation {
 				if (secondClass == null)
 				{// second is null, first is not, record second as a member of the equivalence class the first one belongs to.
 					equivalenceClass = firstClass;
-					equivalenceClass.addFrom(coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
+					equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
 					stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
 				}
 				else
-					if (firstClass != secondClass)
+					if (firstClass.ClassNumber != secondClass.ClassNumber)
 					{
+						//if (coregraph.getStateNumber() == 1268) 
+						//	System.out.println("merged "+firstClass.ClassNumber+" and "+secondClass.ClassNumber);
 						// if the two are the same, we've seen this pair before - ignore this case
 						// neither are null, hence it looks like we have to merge the two equivalent classes - doing this via inplace update
 						// Tested by testPairCompatible_general_C()
 						equivalenceClass = firstClass;
-						equivalenceClass.setTo(secondClass);// merge equivalence classes
+						equivalenceClass.mergeWith(secondClass);// merge equivalence classes
+						// I cannot keep secondClass in the table because a number of states point to it.
+						// Subsequently, I may wish to merge the first class with another one, but there is
+						// nothing to suggest that the secondClass which I just merged in, has to be merged into
+						// that "another one". For this reason, I keep a collection of all states in each 
+						// equivalence class and remap stateToEquivalenceClass when equivalence classes are merged.
+						
+						for(CmpVertex vert:secondClass.getStates())
+							stateToEquivalenceClass.put(vert,equivalenceClass);
+						if (LearnerGraph.testMode)
+							for(Entry<CmpVertex,EquivalenceClass> entry:stateToEquivalenceClass.entrySet())
+								assert entry.getValue().ClassNumber != secondClass.ClassNumber;
 					}
 			}
 
@@ -462,29 +537,32 @@ public class PairScoreComputation {
 			// will remain on the exploration stack and will be ignored below.
 			if (equivalenceClass != null)
 			{
-				// Now we have a single equivalence class in the form of a list of <label,next vertex> entries, explore all matching transitions.
-				ListIterator<Entry<String,CmpVertex>> firstTransitionIter = equivalenceClass.getOutgoing().listIterator();
+				//if (coregraph.getStateNumber() == 1268) System.out.println(equivalenceClass.getNumber()+" ,"+equivalenceClass.getStates().size());
+				// Now we have a single equivalence class in the form of a list of <label,next vertex> entries, explore all matching transitions,
+				// which correspond to sequences where the first element is the same (we are using sorted sets).
+				Iterator<StringVertexPair> firstTransitionIter = equivalenceClass.getOutgoing().iterator();
+
 				while(firstTransitionIter.hasNext())
-				{// quadratic-time search is not nice, but I'd like to ensure that even if I end up with more than two
-					// transitions from the same equivalence class with the same label, I can handle this case.
-					Entry<String,CmpVertex> firstTransition=firstTransitionIter.next();
-					ListIterator<Entry<String,CmpVertex>> secondTransitionIter = equivalenceClass.getOutgoing().listIterator(firstTransitionIter.nextIndex());
-					while(secondTransitionIter.hasNext())
+				{
+					StringVertexPair firstTransition=firstTransitionIter.next();
+					EquivalenceClass fClass = stateToEquivalenceClass.get (firstTransition.secondElem);
+
+					Iterator<StringVertexPair> secondTransitionIter = equivalenceClass.getNewOutgoing().tailSet(firstTransition).iterator();
+					while (secondTransitionIter.hasNext())
 					{
-						Entry<String,CmpVertex> secondTransition = secondTransitionIter.next();
-						if (firstTransition.getKey().equals(secondTransition.getKey()))
-						{
-							EquivalenceClass fClass = stateToEquivalenceClass.get (firstTransition.getValue());
-							EquivalenceClass sClass = stateToEquivalenceClass.get(secondTransition.getValue());
-							if (fClass == null || sClass == null || !fClass.equals(sClass))
-							{// this is the case when a pair of states will have to be merged.
-								StatePair nextPair = new StatePair(firstTransition.getValue(),secondTransition.getValue());
-								currentExplorationBoundary.offer(nextPair);
-								++score;// every matched pair increments the score.
-							}
+						StringVertexPair secondTransition = secondTransitionIter.next();
+						if (!firstTransition.firstElem.equals(secondTransition.firstElem))
+							break;// go to the end of the sequence of outgoing transitions with the same label.
+						EquivalenceClass sClass = stateToEquivalenceClass.get(secondTransition.secondElem);
+						if (fClass == null || sClass == null || !fClass.equals(sClass))
+						{// this is the case when a pair of states will have to be merged.
+							StatePair nextPair = new StatePair(firstTransition.secondElem,secondTransition.secondElem);
+							currentExplorationBoundary.offer(nextPair);
+							++score;// every matched pair increments the score.
 						}
 					}
 				}
+				equivalenceClass.populate();
 			}
 		}
 		

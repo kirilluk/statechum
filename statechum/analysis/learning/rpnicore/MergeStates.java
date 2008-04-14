@@ -69,7 +69,22 @@ public class MergeStates {
 	{
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Collection<Collection<CmpVertex>> mergedVertices = new LinkedList<Collection<CmpVertex>>();		
+		Collection<Collection<CmpVertex>> mergedVertices = new LinkedList<Collection<CmpVertex>>();
+		return mergeAndDeterminize_general(original,pair,mergedVertices);
+	}
+	
+	/** Merges the supplied pair of states states of the supplied machine. 
+	 * Returns the result of merging and populates the collection containing equivalence classes.
+	 *  
+	 * @param original the machine in which to merge two states
+	 * @param pair the states to merge
+	 * @return result of merging, which is a shallow copy of the original LearnerGraph.
+	 * In addition, mergedStates of the graph returned is set to equivalence classes 
+	 * relating original and merged states.
+	 */
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
+			Collection<Collection<CmpVertex>> mergedVertices)
+	{
 		LearnerGraph result = new LearnerGraph(original.config);
 		result.initEmpty();
 		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 

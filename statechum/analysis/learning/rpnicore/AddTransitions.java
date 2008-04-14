@@ -18,6 +18,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.rpnicore;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,13 +28,19 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class AddTransitions {
 	private final LearnerGraph graph;
@@ -52,6 +61,209 @@ public class AddTransitions {
 			if (!A_Iter.next().equals(B_Iter.next())) ++distance;
 		}
 		return distance;
+	}
+
+	Map<CmpVertex,Map<CmpVertex,Integer>> vertexToNum = new HashMap<CmpVertex,Map<CmpVertex,Integer>>();
+	
+	public static void addAssignement(StringBuffer buffer, Integer A, Integer B, double value)
+	{
+		buffer.append("mat(");
+		buffer.append(A);
+		buffer.append(",");
+		buffer.append(B);
+		buffer.append(")=");buffer.append(value);buffer.append(";");
+	}
+	
+	public final double valueK=0.9;
+	
+	public interface AddToMatrix
+	{
+		public void addMapping(Integer A, Integer B, double value);
+	}
+	
+	public void addToBuffer(AddToMatrix resultReceiver, CmpVertex A, CmpVertex B)
+	{
+		Map<String,CmpVertex> rowB = graph.transitionMatrix.get(B);
+		Set<String> outLabels = new HashSet<String>();outLabels.addAll(rowB.keySet());outLabels.addAll(graph.transitionMatrix.get(A).keySet());
+		int outNumber = outLabels.size();
+		Integer valueFirst = vertexToNum.get(B).get(A);if (valueFirst == null) valueFirst = vertexToNum.get(A).get(B);
+		assert valueFirst != null;
+		int matchedNumber = 0;
+		Map<Integer,Double> targetCnt = new TreeMap<Integer,Double>();targetCnt.put(valueFirst, new Double(outNumber));
+		for(Entry<String,CmpVertex> outLabel:graph.transitionMatrix.get(A).entrySet())
+		{
+			CmpVertex to = rowB.get(outLabel.getKey());
+			if (to != null)
+			{// matched pair of transitions
+				++matchedNumber;
+				Integer valueSecond = vertexToNum.get(outLabel.getValue()).get(to);if (valueSecond == null) valueSecond = vertexToNum.get(to).get(outLabel.getValue());
+				assert valueSecond != null;
+				Double current = targetCnt.get(valueSecond);
+				if (current == null)
+					targetCnt.put(valueSecond,-valueK);
+				else
+					targetCnt.put(valueSecond,current-valueK);
+			}
+		}
+
+		for(Entry<Integer,Double> entry:targetCnt.entrySet())
+			resultReceiver.addMapping(valueFirst,entry.getKey(),entry.getValue());
+	}
+	
+	public void populatePairToNumber()
+	{
+		vertexToNum.clear();int num=0;
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:graph.transitionMatrix.entrySet())
+		{
+			Map<CmpVertex,Integer> row = vertexToNum.get(entryA.getKey());
+			if (row == null)
+			{
+				row = new TreeMap<CmpVertex,Integer>();vertexToNum.put(entryA.getKey(),row);
+			}
+			Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryB_Iter=graph.transitionMatrix.entrySet().iterator();
+			
+			while(entryB_Iter.hasNext())
+			{
+				Entry<CmpVertex,Map<String,CmpVertex>> entryB = entryB_Iter.next();
+				row.put(entryB.getKey(),++num);
+				if (entryB == entryA) break;// only lower triangle of the matrix is processed.
+			}
+		}
+	}
+	
+	public String toOctaveMatrix()
+	{		
+		final StringBuffer result = new StringBuffer();
+		AddToMatrix resultAdder = new AddToMatrix()
+		{
+			public void addMapping(Integer A, Integer B, double value) {
+				addAssignement(result, A, B, value);
+			}
+		};
+		buildMatrix(resultAdder);
+		return result.toString();
+	}
+	
+	public void buildMatrix(AddToMatrix resultAdder)
+	{		
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entryB:graph.transitionMatrix.entrySet())
+				addToBuffer(resultAdder,entryA.getKey(),entryB.getKey());		
+	}
+	
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\"/>\n";		
+
+	protected static void writeNode(Writer writer, CmpVertex node, String namePrefix) throws IOException
+	{
+		writer.write("<node id=\""+node.getID().toString()+
+				"\" VERTEX=\""+(namePrefix == null?"":namePrefix)+node.getID().toString()+"\"");
+		if (!node.isAccept()) writer.write(" "+JUConstants.ACCEPTED+"="+node.isAccept());
+		if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=true");
+		writer.write("/>\n");
+	}
+	
+	/** Writes a graph into a graphml file. All vertices are written. */
+	public static void writeGraphML(LearnerGraph graph, String name) throws IOException
+	{
+		FileWriter writer = new FileWriter(name);
+		writer.write(graphML_header);
+		
+		writeNode(writer, graph.init, "Initial ");
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:graph.transitionMatrix.entrySet())
+			if (vert != graph.init)
+				writeNode(writer, vert.getKey(), null);
+		//<node id="1" VERTEX="Initial State 0" />
+		
+		//<edge source="21" target="19" directed="true" EDGE="a1" />
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:graph.transitionMatrix.entrySet())
+			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
+				writer.write("<edge source=\""+vert.getKey().getID().toString()+
+						"\" target=\""+transition.getValue().getID().toString()+
+						"\" directed=\"true\" EDGE=\""+transition.getKey()+"\"/>\n");
+		writer.write("</graph></graphml>\n");writer.close();
+	}
+	
+	/** Returns a state, randomly chosen according to the supplied random number generator. */
+	public static CmpVertex pickRandomState(LearnerGraph g, Random rnd)
+	{
+		int nr = rnd.nextInt(g.transitionMatrix.size());System.out.print(" st="+nr+" ");
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
+			if (nr-- == 0)
+				return entry.getKey();
+		
+		throw new IllegalArgumentException("something wrong with the graph - expected state was not found");
+	}
+	
+	/** 
+	 * Relabels graph, keeping NrToKeep original labels. All new ones are generated with
+	 * prefix PrefixNew.
+	 * 
+	 * @param g graph to transform.
+	 * @param NrToKeep number of labels to keep.
+	 * @param PrefixNew prefix of new labels.
+	 */
+	public static void relabel(LearnerGraph g, int NrToKeep, String PrefixNew)
+	{
+		Map<String,String> fromTo = new TreeMap<String,String>();
+		int newLabelCnt = 0;
+		TreeMap<CmpVertex,Map<String,CmpVertex>> newMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
+		{
+			Map<String,CmpVertex> newRow = new TreeMap<String,CmpVertex>();
+			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+			{
+				if (NrToKeep > 0 && !fromTo.containsKey(transition.getKey()))
+				{
+					NrToKeep--;fromTo.put(transition.getKey(),transition.getKey());// keep the label and reduce the counter.
+				}
+				else
+					if (!fromTo.containsKey(transition.getKey()))
+							fromTo.put(transition.getKey(), PrefixNew+newLabelCnt++);
+				newRow.put(fromTo.get(transition.getKey()), transition.getValue());
+			}
+			newMatrix.put(entry.getKey(), newRow);
+		}
+		g.transitionMatrix = newMatrix;
+	}
+	
+	/** Adds all states and transitions from graph <em>what</em> to graph <em>g</em>.
+	 * 
+	 * @param g target into which to merge what
+	 * @param what graph to merge into g.
+	 * @return vertex in g corresponding to the initial vertex in what 
+	 */ 
+	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what)
+	{
+		Map<CmpVertex,CmpVertex> whatToG = new HashMap<CmpVertex,CmpVertex>();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
+			whatToG.put(entry.getKey(), 
+					LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config));
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
+		{
+			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
+			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+				row.put(transition.getKey(), whatToG.get(transition.getValue()));
+		}					
+		return whatToG.get(what.init);
+	}
+
+	public static void addToGraph_tmp(LearnerGraph g, List<String> initPath, LearnerGraph what)
+	{
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.init(new PTASequenceSetAutomaton());		
+		SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity();initSet.crossWithSequence(initPath);
+		
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
+		{// for all states in our new machine, compute paths to them.
+			SequenceSet result = engine.new SequenceSet();
+			what.paths.computePathsSBetween(what.init, entry.getKey(), initSet, result);
+			result.crossWithSet(entry.getValue().keySet());
+		}
+		
+		// Now engine contains a sort of a transition cover of "what", except that only 
+		// transitions present in "what" will be covered. All sequences in this set have
+		// initPath prepended to them, so that I can merge the result into g directly.
+		g.paths.augmentPTA(engine);
 	}
 	
 	/** Given a state and a W set, computes a map from those sequences to booleans representing

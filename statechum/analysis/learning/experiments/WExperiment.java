@@ -18,8 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,21 +52,8 @@ public class WExperiment extends AbstractExperiment {
 			super(inputFile, per,instance, exp);			
 		}
 
-		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParameters(Configuration c);
-
-		public String call()
+		public void runTheExperiment()
 		{
-			OUTCOME currentOutcome = OUTCOME.FAILURE;
-			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
-			if (stdOutput != null) return stdOutput;
-			loadGraph();
-
-			String result = "";
-			String stats = "";//"Instance: "+instanceID+ "\n";
-			try
-			{
-				changeParameters(config);
 //				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph.paths.getGraph(),tests);
 				synchronized (graphs) {
 					graphs.add(graph);
@@ -77,20 +62,6 @@ public class WExperiment extends AbstractExperiment {
 				//addTr.populatePairToNumber();
 				result+="\n4,5,"+percent;
 				//result += addTr.toOctaveMatrix();//addTr.checkWChanged()+"\n"+addTr.ComputeHamming(true);
-				currentOutcome = OUTCOME.SUCCESS;
-			}
-			catch(Throwable th)
-			{
-				StringWriter writer = new StringWriter();
-				th.printStackTrace();
-				th.printStackTrace(new PrintWriter(writer));
-				stats = stats+"\nFAILED\nSTACK: "+writer.toString();
-			}
-			
-			// now record the result
-			stdOutput = writeResult(currentOutcome, result + "\n"+ stats);
-			if (stdOutput != null) return stdOutput;
-			return inputFileName+FS+percent+FS+currentOutcome;
 		}
 	}
 
@@ -111,16 +82,10 @@ public class WExperiment extends AbstractExperiment {
 							}
 		
 							@Override
-							public String toString()
-							{
-								return evaluatorName();
+							protected String getLearnerName() {
+								return "W_learner";
 							}
 						};
-					}
-
-					@Override
-					String evaluatorName() {
-						return "W_learner";
 					}
 				}});
 	}
@@ -129,13 +94,18 @@ public class WExperiment extends AbstractExperiment {
 	 * @see statechum.analysis.learning.experiments.AbstractExperiment#getStageNumber()
 	 */
 	@Override
-	public int getStageNumber() {
-		return 1;
+	public int [] getStages() {
+		return null;
 	}
 
 	public static void main(String []args)
 	{
-		new WExperiment().runExperiment(args);
+		try {
+			new WExperiment().runExperiment(args);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return;
+		}
 		
 		// at this point, we've got all the graphs, hence try to merge states in them.
 		LearnerGraph result = graphs.get(0);
@@ -161,8 +131,8 @@ public class WExperiment extends AbstractExperiment {
 			}
 		System.out.println();
 		System.out.println(result.toString());
-		//Collection<List<String>> wset = WMethod.computeWSet(result);
-		//System.out.println(" w set size: "+wset.size());
+		Collection<List<String>> wset = WMethod.computeWSet(result);
+		System.out.println(" w set size: "+wset.size());
 		
 		// Now start to merge some of those states
 		

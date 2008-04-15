@@ -378,8 +378,8 @@ public class TestTransform {
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.transform.writeGraphML(writer);
 		Assert.assertEquals(graphml_beginning+
-				" "+JUConstants.ACCEPTED+"=false"+
-				" "+JUConstants.HIGHLIGHT+"=true"+
+				" "+JUConstants.ACCEPTED+"=\"false\""+
+				" "+JUConstants.HIGHLIGHT+"=\"true\""+
 				" "+JUConstants.COLOUR+"=\""+JUConstants.BLUE+"\""+
 				graphml_ending,
 				writer.toString());

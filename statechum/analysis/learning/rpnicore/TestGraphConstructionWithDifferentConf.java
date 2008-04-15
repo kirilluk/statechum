@@ -215,18 +215,16 @@ public class TestGraphConstructionWithDifferentConf {
 		new LearnerGraph(g,config);// without the vertex being added, everything should be fine.
 		g.addVertex(v);// add the vertex
 		
-		boolean exceptionThrown = false;
 		try
 		{
-			new LearnerGraph(g,config);// now getGraphData should choke.			
+			new LearnerGraph(g,config);// now getGraphData should choke.
+			Assert.fail("exception not thrown");
 		}
 		catch(IllegalArgumentException e)
 		{
 			assertTrue("correct exception not thrown: expected "+expectedExceptionString+" got "+e.getMessage(),e.getMessage().contains(expectedExceptionString) );
-			exceptionThrown = true;
 		}
 		
-		assertTrue("exception not thrown",exceptionThrown);
 	}
 	
 	@Test

@@ -45,13 +45,8 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 		protected abstract void changeParameters(Configuration c);
 
 		/** This method is executed on an executor thread. */
-		public String call()
+		public void runTheExperiment()
 		{
-			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
-			OUTCOME currentOutcome = OUTCOME.FAILURE;
-			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
-			if (stdOutput != null) return stdOutput;
-			loadGraph();
 			int size = 4*graph.getStateNumber();
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file			
 			rpg.generatePosNeg(size/experiment.getStageNumber(), experiment.getStageNumber());
@@ -66,14 +61,8 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 				}
 			};
 			sPlus = rpg.getExtraSequences(percent);sMinus = rpg.getAllSequences(percent);
-			questionsExperiment(graph, l);
-			
-			return inputFileName+"success";
-		}
-
-		private void questionsExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
-			PosNegPrecisionRecall prNeg = computePR(fsm, l, sMinus);
-			System.out.println(prNeg.precision+", "+prNeg.recall);
+			PosNegPrecisionRecall prNeg = computePR(graph, l, sMinus);
+			result = result+prNeg.precision+FS+prNeg.recall;
 		}
 
 //		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
@@ -105,9 +94,9 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 		}
 	}
 	
-	public int getStageNumber()
+	public int [] getStages()
 	{
-		return 1;
+		return null;
 	}
 	
 	public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
@@ -124,18 +113,12 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 							c.setCertaintyThreshold(3);
 							c.setMinCertaintyThreshold(0); //question threshold
 						}
-	
+
 						@Override
-						public String toString()
-						{
-							return evaluatorName();
+						protected String getLearnerName() {
+							return "RPNI_POSITIVE_NEGATIVE";
 						}
 					};
-				}
-
-				@Override
-				String evaluatorName() {
-					return "RPNI_POSITIVE_NEGATIVE";
 				}
 			}
 		});

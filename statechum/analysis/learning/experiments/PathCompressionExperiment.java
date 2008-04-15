@@ -21,9 +21,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.*;
 
 import edu.uci.ics.jung.graph.impl.*;
@@ -51,40 +48,16 @@ public class PathCompressionExperiment extends AbstractExperiment {
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParameters(Configuration c);
 				
-		public String call()
+		public void runTheExperiment()
 		{
-			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
-			OUTCOME currentOutcome = OUTCOME.FAILURE;
-			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
-			if (stdOutput != null) return stdOutput;
-			
 			buildSets();
 			Pair<Integer,Integer> uncompressed_compressed = stringCollectionSize(pta);
 			double uncompressed = uncompressed_compressed.firstElem;
-			String stats = instanceID+","+pta.numberOfLeafNodes()+ ","+uncompressed;
-			try
-			{
-				double compressed = uncompressed_compressed.secondElem;
-				double compression = 100*(uncompressed - compressed)/compressed;
-				//stats = stats + ","+compressed+","+compression;
-				stats = compression+",";
-				currentOutcome = OUTCOME.SUCCESS;
-				if(this.percent == 10)
-					System.out.println();
-				System.out.print(stats);
-			}
-			catch(Throwable th)
-			{
-				StringWriter writer = new StringWriter();
-				th.printStackTrace();
-				th.printStackTrace(new PrintWriter(writer));
-				stats = stats+"\nFAILED\nSTACK: "+writer.toString();
-			}
-			
-			// now record the result
-			stdOutput = writeResult(currentOutcome, stats);
-			if (stdOutput != null) return stdOutput;
-			return inputFileName+FS+percent+FS+currentOutcome;
+			stats = stats + instanceID+FS+pta.numberOfLeafNodes()+ FS+uncompressed;
+			double compressed = uncompressed_compressed.secondElem;
+			double compression = 100*(uncompressed - compressed)/compressed;
+			//stats = stats + ","+compressed+","+compression;
+			result = result+compression;
 		}
 
 		protected void buildSets()
@@ -109,10 +82,9 @@ public class PathCompressionExperiment extends AbstractExperiment {
 	}
 	
 	@Override
-	public int getStageNumber()
-	{
-		return 10;
-	}
+	public int [] getStages() {
+		return new int[]{10,20,30,40,50,60,70,80,90};
+	};
 	
 	@Override
 	public List<LearnerEvaluatorGenerator> getLearnerGenerators()
@@ -130,16 +102,11 @@ public class PathCompressionExperiment extends AbstractExperiment {
 						}
 	
 						@Override
-						public String toString()
-						{
-							return evaluatorName();
+						protected String getLearnerName() {
+							return "Path Compression";
 						}
-					};
-				}
 
-				@Override
-				String evaluatorName() {
-					return "RPNI_POSITIVE_NEGATIVE";
+					};
 				}
 			}
 			// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one

@@ -33,6 +33,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -40,14 +43,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
-
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
 abstract public class AbstractExperiment 
 {
+	/** Field separator in CSV. */
+	protected static final String FS = ",";
+	
+	public enum FileType { 
+		CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
+		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
+
+		abstract String getFileName(String prefix, String suffix);
+	};
+
 	/** The runner of computational threads. */
 	private ExecutorService executorService;
 
@@ -89,7 +100,6 @@ abstract public class AbstractExperiment
 	public abstract static class LearnerEvaluatorGenerator 
 	{
 		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp);
-		abstract String evaluatorName();
 	}
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
@@ -112,6 +122,51 @@ abstract public class AbstractExperiment
 			inputFileName = inputFile;instanceID = inID;percent=per;experiment=exp;		
 		}
 
+		String result = "";
+		String stats = "";//"Instance: "+instanceID+ "\n";
+
+		/** This one may be overridden by subclass to customise the learner. */
+		protected abstract void changeParameters(Configuration c);
+
+		/** This one may be overridden by subclass to run the actual experiment.
+		 * The result of the experiment is expected to be appended to result. The first line will be post-processed into csv.
+		 */
+		protected abstract void runTheExperiment();
+
+		/** Returns the name of this evaluator. */
+		protected abstract String getLearnerName();
+		
+		public String call()
+		{
+			OUTCOME currentOutcome = OUTCOME.FAILURE;
+			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
+			if (stdOutput != null) return stdOutput;
+
+			try
+			{
+				loadGraph();
+				changeParameters(config);
+				runTheExperiment();
+				currentOutcome = OUTCOME.SUCCESS;
+			}
+			catch(Throwable th)
+			{
+				StringWriter writer = new StringWriter();
+				th.printStackTrace();
+				th.printStackTrace(new PrintWriter(writer));
+				stats = stats+"\nFAILED\nSTACK: "+writer.toString();
+			}
+			
+			// now record the result
+			String percentValue = "";
+			if (experiment.getStageNumber() > 1)
+				percentValue = percent+FS;
+			String fileName = new File(inputFileName).getName();
+			stdOutput = writeResult(currentOutcome, fileName + FS + getLearnerName() + FS + percentValue + result + "\n"+ stats);
+			if (stdOutput != null) return stdOutput;
+			return fileName+FS+getLearnerName()+FS+percentValue+currentOutcome;
+		}
+		
 		protected void loadGraph()
 		{
 			synchronized (LearnerGraph.syncObj) 
@@ -123,8 +178,6 @@ abstract public class AbstractExperiment
 		}
 
 		enum OUTCOME { SUCCESS, FAILURE };
-		
-		protected String FS = ",";
 		
 		/** Write the provided string into the result file. 
 		 * 
@@ -143,12 +196,11 @@ abstract public class AbstractExperiment
 				if (experiment.getStageNumber() > 1)
 					percentValue = FS+percent;
 
-				outputWriter.write(inputFileName+percentValue+FS+outcome+(result == null? "":FS+result)+"\n");
+				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(result == null? "":result)+"\n");
 			}
 			catch(IOException e)
 			{
 				StringWriter writer = new StringWriter();
-				e.printStackTrace();
 				e.printStackTrace(new PrintWriter(writer));
 				stdOutput = "\nFAILED TO WRITE A REPORT :"+writer.toString();
 			}
@@ -160,14 +212,7 @@ abstract public class AbstractExperiment
 		}
 		
 		public static Collection<List<String>> plus = null;
-		
-		public enum FileType { 
-			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
-			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
-
-			abstract String getFileName(String prefix, String suffix);
-		};
-		
+				
 		protected String getFileName(FileType fileNameType)
 		{
 			String percentValue = "";
@@ -183,24 +228,26 @@ abstract public class AbstractExperiment
 	 * list of them.
 	 * 
 	 * @param inputFiles the name of a file containing a list of files to load.
+	 * @throws IOException 
 	 */
-	private void loadFileNames(Reader fileNameListReader)
+	private void loadFileNames(Reader fileNameListReader) throws IOException
 	{
-		try {
-			BufferedReader reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
-			String line = reader.readLine();
-			while(line != null)
+		BufferedReader reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
+		String line = reader.readLine();
+		while(line != null)
+		{
+			line = line.trim();
+			if (line.length() > 0 && !line.startsWith("#"))
 			{
-				line = line.trim();
-				if (line.length() > 0 && !line.startsWith("#")
-						&& new File(line).canRead())
+				if (new File(line).canRead())
 					fileName.add(line);
-				
-				line = reader.readLine();
+				else
+					throw new IOException("cannot load file "+line);
 			}
-		} catch (IOException e) {
-			throw new IllegalArgumentException("failed to read the list of files");
-		}		
+			line = reader.readLine();
+		}
+		reader.close();
+		
 		if (fileName.isEmpty())
 			throw new IllegalArgumentException("no usable files found");
 	}
@@ -211,18 +258,19 @@ abstract public class AbstractExperiment
 	 * @param inputFile the input file
 	 * @param Number the parameter of the array task. negative means "return the highest positive number which can be passed" 
 	 * @return what Java process should return
+	 * @throws IOException 
 	 */
-	public void processDataSet(Reader fileNameListReader, int Number)
+	public void processDataSet(Reader fileNameListReader, int Number) throws IOException
 	{
 		results.add(runner.submit(getLearnerEvaluator(fileNameListReader,Number)));
 	}
 
-	private LearnerEvaluator getLearnerEvaluator(Reader fileNameListReader, int Number)
+	private LearnerEvaluator getLearnerEvaluator(Reader fileNameListReader, int Number) throws IOException
 	{
 		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		final int LearnerNumber = evaluatorGenerators.size();
-		final int NumberMax = fileName.size()*LearnerNumber;
+		final int NumberMax = fileName.size()*getStageNumber()*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
 		// the number is valid.
@@ -231,66 +279,76 @@ abstract public class AbstractExperiment
 		int learnerType = Number / learnerStep;
 		int fileNumber = (Number % learnerStep) / getStageNumber();
 		int percentStage = (Number % learnerStep) % getStageNumber();
+		int actualPercent = getStageNumber() > 1? getStages()[percentStage]:100;
 		return 
-			evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), 100*(1+percentStage)/getStageNumber(),Number, this);
+			evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), actualPercent,Number, this);
 	}
+	
+	public int getStageNumber()
+	{
+		if (getStages() != null && getStages().length > 0) return getStages().length;else return 1;
+	}
+	
+	public static final String resultName = "result.csv";
 	
 	/** Performs post-processing of results, by loading all files with results, picking the second line from those 
 	 * start with a line ending on SUCCESS and appends it to a spreadsheet. 
+	 * @throws IOException 
 	 */
-	public void postProcess(Reader fileNameListReader)
+	public void postProcess(Reader fileNameListReader) throws IOException
 	{
 		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		final int LearnerNumber = evaluatorGenerators.size();
-		final int NumberMax = fileName.size()*LearnerNumber;
-		Writer csvWriter[] = new Writer[getStageNumber()];
+		final int NumberMax = fileName.size()*getStageNumber()*LearnerNumber;
 		int failures = 0;
-		try
+		File resultFile = new File(getOutputDir(),resultName);resultFile.delete();
+		Map<String,List<String>> results = new TreeMap<String,List<String>>();
+		
+		for(int Number=0;Number < NumberMax;++Number)
 		{
-			for(int i=0;i<getStageNumber();++i) csvWriter[i]=new FileWriter(getOutputDir()+System.getProperty("file.separator")+"experiment_"+evaluatorGenerators.get(i).evaluatorName()+".csv");
-			for(int Number=0;Number < NumberMax;++Number)
+			LearnerEvaluator evaluator = getLearnerEvaluator(fileNameListReader,Number);
+			String line = null;
+			try
 			{
-				int learnerStep = fileName.size()*getStageNumber();
-				int learnerType = Number / learnerStep;
-				LearnerEvaluator evaluator = getLearnerEvaluator(fileNameListReader,Number);
-				String line = null;
-				try
+				BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(FileType.RESULT)));
+				line = reader.readLine();
+				if (line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
 				{
-					BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(LearnerEvaluator.FileType.RESULT)));
-					line = reader.readLine();
-					if (line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
-					{
-						line = reader.readLine();if (line != null && line.length() == 0) line = null;
-					}
-					else line = null;
+					line = reader.readLine();if (line != null && line.length() == 0) line = null;
 				}
-				catch(IOException e)
-				{
-					line = null;
-				}
-				if (line != null)
-					csvWriter[learnerType].write(line+"\n");
-				else
-					failures++;
+				else line = null;
+				reader.close();
 			}
-			for(int i=0;i<getStageNumber();++i) csvWriter[i].close();
+			catch(IOException e)
+			{
+				line = null;
+			}
+			if (line != null)
+			{
+				List<String> data = results.get(evaluator.getLearnerName());
+				if (data == null) { data = new LinkedList<String>();results.put(evaluator.getLearnerName(),data); }
+				data.add(line);
+			}
+			else
+				failures++;
 		}
-		catch(IOException ex)
-		{
-			System.err.println("failed to post-process, exception "+ex);
-			ex.printStackTrace(System.err);
-		}
+
 		if (failures > 0)
-			System.err.println(failures+" files could not be processed");
+			throw new IOException(failures+" files could not be processed");
+
+		Writer csvWriter=new FileWriter(resultFile);
+		for(Entry<String,List<String>> entry:results.entrySet())
+			for(String str:entry.getValue())
+			csvWriter.write(str+"\n");
+		csvWriter.close();
 	}
 	
 	/** Many experiments involve supplying the learner with a specific %% of 
-	 * data and looking at how it performs. This number reflects the number of
-	 * %% to split 100% into. If set to 5, this means we'll supply the learner
-	 * with 20%,40%,60%,80%,100% of the input data set.
+	 * data and looking at how it performs. This could reflect the number of
+	 * %% to split 100% such as with 20%,40%,60%,80%,100%.
 	 */
-	abstract public int getStageNumber();
+	abstract public int [] getStages();
 	
 	/** Returns a collection of generators for learners. */
 	abstract public List<LearnerEvaluatorGenerator> getLearnerGenerators();
@@ -300,22 +358,19 @@ abstract public class AbstractExperiment
 	 * 
 	 * @param fileNameListReader
 	 * @return
+	 * @throws IOException 
 	 */
-	public int computeMaxNumber(Reader fileNameListReader)
+	public int computeMaxNumber(Reader fileNameListReader) throws IOException
 	{
 		int NumberMax = 0;
-		try
-		{
-			loadFileNames(fileNameListReader);
-			NumberMax = fileName.size()*getLearnerGenerators().size();
-		}
-		catch(Exception e)
-		{// ignore the exception - NumberMax will remain at 0
-		}
+		loadFileNames(fileNameListReader);
+		NumberMax = fileName.size()*getLearnerGenerators().size()*getStageNumber();
 		return NumberMax;
 	}
 	
 	public final int argCMD_COUNT = -1, argCMD_POSTPROCESS = -2;
+	
+	public static final String outputDirName = "output_";
 	
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
@@ -329,21 +384,19 @@ abstract public class AbstractExperiment
 	 * where FILENAMES_FILE contains files to process, OUTPUT_DIR is where to store output and NUMBER1 ... are task numbers
 	 * If <NUMBER1> is -1, returns the number of files to process.
 	 * If <NUMBER1> is -2, post-processes the results.
+	 * @throws NumberFormatException 
+	 * @throws IOException 
 	 */
-	public void runExperiment(String[] args)
+	public int runExperiment(String[] args) throws NumberFormatException, IOException
 	{
-        if (100 % getStageNumber() != 0)
-        	throw new IllegalArgumentException("wrong stageNumber="+getStageNumber()+": it should be a divisor of 100");
+		int result = 0;
         StringReader fileNameListReader = null;
         initExecutors();
         
 		if (args.length < 2)
 		{
 			File graphDir = new File(args[0]);
-					//"C:\\experiment\\graphs-150\\Neil-Data2\\50-6"); 
-					//"D:\\experiment\\Neil-Data2\\50-6");
-					//System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
-					//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +"50-6");
+			if (!graphDir.isDirectory()) throw new IllegalArgumentException("invalid directory");
 	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
 	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
 	        for(int i=0;i<graphFileList.length;i++)
@@ -352,41 +405,50 @@ abstract public class AbstractExperiment
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
 	        fileNameListReader = new StringReader(listOfFileNames);
-	        File outputDirAsFile = new File("output_"+graphDir.getName());
+	        File outputDirAsFile = new File(graphDir.getParent(),outputDirName+graphDir.getName());
 	        if (outputDirAsFile.canRead() || outputDirAsFile.mkdirs())
 	        {
 	        	outputDir = outputDirAsFile.getAbsolutePath();
-		        assert fileNumber*getLearnerGenerators().size() == computeMaxNumber(fileNameListReader);
-	       		for(int number=0;number < fileNumber*getLearnerGenerators().size();++number)
+		        assert fileNumber*getLearnerGenerators().size()*getStageNumber() == computeMaxNumber(fileNameListReader);
+	       		for(int number=0;number < fileNumber*getLearnerGenerators().size()*getStageNumber();++number)
 		        			processDataSet(fileNameListReader, number);
 	        }
 		}
 		else
 		{// args.length >=2
 	        outputDir = args[1];
-            try {
-            	int num = Integer.parseInt(args[2]);
+	        if (args.length < 3) throw new IllegalArgumentException("expected at least three args in grid mode");
+           	int num = Integer.parseInt(args[2]);
+       		Reader reader = null;
+			try
+    		{
+    			reader = new FileReader(args[0]);
             	if (num >= 0)
             	{
             		for(int i=2;i< args.length;++i)
-            			processDataSet(new FileReader(args[0]), Integer.parseInt(args[i]));
+            			processDataSet(reader, Integer.parseInt(args[i]));
             	}
             	else
-            		if (num == argCMD_COUNT)
-	            		try
-	            		{
-	            			System.out.println(computeMaxNumber(new FileReader(args[0])));
-	            		}
-	            		catch(Exception ex)
-	            		{
-	            			System.out.println(0);// if we cannot compute the number of files to process, return zero.
-	            		}
-	            		else
-	            			postProcess(new FileReader(args[0]));
-			} catch (Exception e) {
-				System.out.println("FAILED");
-				e.printStackTrace();
-			}			
+        		if (num == argCMD_COUNT)
+        		{
+    				// the number is placed on the standard output.
+        			result = computeMaxNumber(reader);
+        			System.out.println(result);
+        		}
+            	else
+            		if (num == argCMD_POSTPROCESS)
+            			postProcess(reader);
+            		else throw new IllegalArgumentException("invalid command "+num);
+    		}
+    		catch(IOException ex)
+    		{
+    			System.out.println(0);// if we cannot compute the number of files to process, return zero, but rethrow the exception.
+    			throw ex;
+    		}
+    		finally
+    		{
+    			if (reader != null) reader.close();
+    		}
  		}
 
 		// Everywhere here is it enough to simply say "FAILED" because on failure, the output file will either
@@ -398,7 +460,7 @@ abstract public class AbstractExperiment
 	        for(Future<String> computationOutcome:results)
 				try {
 					System.out.println("RESULT: "+computationOutcome.get());
-				} catch (Exception e) {
+				} catch (Exception e) {// here we ignore the exceptions, since a failure in a learner will manifest itself as a failure recorded in a file. In a grid environment, this (reading a file) is the only way we can learn about a failure, hence let post-processor handle this case. 
 					System.out.println("FAILED");
 					e.printStackTrace();
 				}
@@ -407,6 +469,7 @@ abstract public class AbstractExperiment
 					executorService.shutdown();
 				}
        		if (fileNameListReader != null) postProcess(fileNameListReader);
-		}		
+		}
+		return result;
 	}	
 }

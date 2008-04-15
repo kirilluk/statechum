@@ -13,7 +13,7 @@
    id="svg2160"
    sodipodi:version="0.32"
    inkscape:version="0.45.1"
-   sodipodi:docbase="/home/kirill/workspace/XMachineTool/resources/graphLayout"
+   sodipodi:docbase="D:\experiment\XMachineTool\resources\notes"
    sodipodi:docname="on_arbitrary_state_merging.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <defs
@@ -72,5 +72,15 @@
          id="flowPara3002" /><flowPara
          id="flowPara3004">The overall problem is to ensure that for each %% I get the same distribution of sequence length. Ideally, the can be performed by doing GetData and picking sequences according to length.</flowPara><flowPara
          id="flowPara3006" /><flowPara
-         id="flowPara3008">Maybe better to generate the whole initial set of sequences such that we get a known number of sequences of specific length. We could then associate tail nodes with sequence length and when given %%, filter out those which do not end at expected tails, by tracking nodes and computing a set of nodes which needs to be removed. </flowPara></flowRoot>  </g>
+         id="flowPara3008">Maybe better to generate the whole initial set of sequences such that we get a known number of sequences of specific length. We could then associate tail nodes with sequence length and when given %%, filter out those which do not end at expected tails, by tracking nodes and computing a set of nodes which needs to be removed. </flowPara></flowRoot>    <flowRoot
+       xml:space="preserve"
+       id="flowRoot3614"
+       transform="translate(0,-18.729866)"><flowRegion
+         id="flowRegion3616"><rect
+           id="rect3618"
+           width="322.47943"
+           height="115.63656"
+           x="422.64349"
+           y="43.760365" /></flowRegion><flowPara
+         id="flowPara3620">If a pair of states was deemed compatible, it cannot become incompatible after some later merge because (A) the cause of an incompatibility is an attempted merge between a positive and a negative transition (B) all data is preserved after a merge so an incompatible merge means an inconsistent graph. (C) After every successful merge, a graph is consistent.</flowPara></flowRoot>  </g>
 </svg>

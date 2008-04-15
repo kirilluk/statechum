@@ -158,7 +158,7 @@ public class Transform {
 	}
 	
 	/** The standard beginning of our graphML files. */
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\"/>\n";
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";
 	/** The standard ending of our graphML files. */
 	public static final String graphML_end = "</graph></graphml>\n"; 
 	/** a marker for an initial state in a graphML file. */
@@ -177,8 +177,8 @@ public class Transform {
 			throw new IllegalArgumentException("Invalid node name "+node.getID().toString());
 		writer.write("<node id=\""+transformNodeName(node)+
 				"\" VERTEX=\""+transformNodeName(node)+"\"");
-		if (!node.isAccept()) writer.write(" "+JUConstants.ACCEPTED+"="+node.isAccept());
-		if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=true");
+		if (!node.isAccept()) writer.write(" "+JUConstants.ACCEPTED+"=\""+node.isAccept()+"\"");
+		if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=\""+node.isHighlight()+"\"");
 		if (node.getColour() != null) writer.write(" "+JUConstants.COLOUR+"=\""+node.getColour()+"\"");
 		writer.write("/>\n");
 	}

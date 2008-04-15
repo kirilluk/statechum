@@ -17,8 +17,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 package statechum.analysis.learning.experiments;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.*;
 
 import edu.uci.ics.jung.graph.impl.*;
@@ -62,13 +60,8 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 					tests.add(test);
 		}
 
-		public String call()
+		public void runTheExperiment()
 		{
-			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+percent + "% started at "+Calendar.getInstance().getTime());
-			OUTCOME currentOutcome = OUTCOME.FAILURE;
-			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
-			if (stdOutput != null) return stdOutput;
-			
 			buildSetsHalfNegative();
 			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
@@ -85,38 +78,19 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 			config.setMinCertaintyThreshold(500000); //question threshold
 			DirectedSparseGraph learningOutcome = null;
 			int ptaElements = pta.numberOfLeafNodes();
-			String result = "";
-			String stats = "Instance: "+instanceID+", learner: "+this+", pta: "+ptaElements+" tests: "+tests.size()+ "\n";
-			try
-			{
-				changeParameters(config);
-				l.init(pta, ptaElements/2,ptaElements/2);
 
-				learningOutcome = l.learnMachine();
-				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph.paths.getGraph(),tests);
-				if(this.percent == 10)
-					System.out.println();
-				System.out.print(computeAccuracy(learningOutcome, graph.paths.getGraph(),tests)+",");
-				//System.out.println(instanceID+","+result);
-				//updateFrame(g,learningOutcome);
-				l.setQuestionCounter(0);
-				if (learningOutcome != null)
-					stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
-				//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
-				currentOutcome = OUTCOME.SUCCESS;
-			}
-			catch(Throwable th)
-			{
-				StringWriter writer = new StringWriter();
-				th.printStackTrace();
-				th.printStackTrace(new PrintWriter(writer));
-				stats = stats+"\nFAILED\nSTACK: "+writer.toString();
-			}
-			
-			// now record the result
-			stdOutput = writeResult(currentOutcome, result + "\n"+ stats);
-			if (stdOutput != null) return stdOutput;
-			return inputFileName+FS+percent+FS+currentOutcome;
+			stats = stats+"Instance: "+instanceID+", learner: "+this+", pta: "+ptaElements+" tests: "+tests.size()+ "\n";
+			l.init(pta, ptaElements/2,ptaElements/2);
+
+			learningOutcome = l.learnMachine();
+			result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph.paths.getGraph(),tests);
+			System.out.print(computeAccuracy(learningOutcome, graph.paths.getGraph(),tests)+",");
+			//System.out.println(instanceID+","+result);
+			//updateFrame(g,learningOutcome);
+			l.setQuestionCounter(0);
+			if (learningOutcome != null)
+				stats = stats+(learningOutcome.containsUserDatumKey(JUConstants.STATS)? "\n"+learningOutcome.getUserDatum(JUConstants.STATS).toString():"");
+			//System.out.println(inputFileName+" (instance "+instanceID+"), learner "+this+", "+ percent+"% terminated at "+Calendar.getInstance().getTime());
 		}
 	}
 	
@@ -150,8 +124,8 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 	}
 		
 	@Override
-	public int getStageNumber() {
-		return 10;
+	public int [] getStages() {
+		return new int[]{10,20,30,40,50,60,70,80,90};
 	};
 
 	public List<LearnerEvaluatorGenerator> getLearnerGenerators()
@@ -169,16 +143,10 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 						}
 	
 						@Override
-						public String toString()
-						{
-							return evaluatorName();
+						protected String getLearnerName() {
+							return "RPNI_POSITIVE_NEGATIVE";
 						}
 					};
-				}
-
-				@Override
-				String evaluatorName() {
-					return "RPNI_POSITIVE_NEGATIVE";
 				}
 			}
 		});

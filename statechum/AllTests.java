@@ -31,7 +31,7 @@ import org.junit.runners.Suite;
 	statechum.AllTests.FSMTests.class,
 	statechum.AllTests.WmethodTests.class,
 	statechum.AllTests.BasicGraphTests.class,
-	statechum.analysis.learning.rpnicore.TestAddTransitions.class,
+	statechum.analysis.learning.rpnicore.TestTransform.class,
 	statechum.TestArrayOperations.class
 })
 public class AllTests {

@@ -30,7 +30,7 @@ import java.util.Random;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AddTransitions;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -70,9 +70,12 @@ public class WExperiment extends AbstractExperiment {
 			{
 				changeParameters(config);
 //				result = result+l.getQuestionCounter()+FS+computeAccuracy(learningOutcome, graph.paths.getGraph(),tests);
-				graphs.add(graph);
+				synchronized (graphs) {
+					graphs.add(graph);
+				}
 				//AddTransitions addTr = new AddTransitions(graph);
 				//addTr.populatePairToNumber();
+				result+="\n4,5,"+percent;
 				//result += addTr.toOctaveMatrix();//addTr.checkWChanged()+"\n"+addTr.ComputeHamming(true);
 				currentOutcome = OUTCOME.SUCCESS;
 			}
@@ -110,9 +113,14 @@ public class WExperiment extends AbstractExperiment {
 							@Override
 							public String toString()
 							{
-								return "W learner";
+								return evaluatorName();
 							}
 						};
+					}
+
+					@Override
+					String evaluatorName() {
+						return "W_learner";
 					}
 				}});
 	}
@@ -136,12 +144,12 @@ public class WExperiment extends AbstractExperiment {
 		for(LearnerGraph gr:graphs)
 			if (gr != result)
 			{
-				AddTransitions.relabel(gr, 13, "gr_"+graphNumber++);
-				CmpVertex newInit = AddTransitions.addToGraph(result, gr);
+				Transform.relabel(gr, 13, "gr_"+graphNumber++);
+				CmpVertex newInit = Transform.addToGraph(result, gr);
 				int score = -1;
 				do
 				{
-					CmpVertex vertResult = AddTransitions.pickRandomState(result,rnd);
+					CmpVertex vertResult = Transform.pickRandomState(result,rnd);
 					StatePair whatToMerge = new StatePair(vertResult,newInit);
 					LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
 					score = result.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge);
@@ -159,7 +167,7 @@ public class WExperiment extends AbstractExperiment {
 		// Now start to merge some of those states
 		
 		try {
-			AddTransitions.writeGraphML(result, "resources/tmp/experiment_tmpresult.xml");
+			result.transform.writeGraphML("resources/tmp/experiment_tmpresult.xml");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

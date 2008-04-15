@@ -185,6 +185,7 @@ public class LearnerGraph {
 	final public MergeStates merger = new MergeStates(this);
 	final public PairScoreComputation pairscores = new PairScoreComputation(this);
 	final public WMethod wmethod = new WMethod(this);
+	final public Transform transform = new Transform(this);
 	
 	/** Initialises the class used to compute scores between states.
 	 *

@@ -40,6 +40,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
+
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
@@ -87,6 +89,7 @@ abstract public class AbstractExperiment
 	public abstract static class LearnerEvaluatorGenerator 
 	{
 		abstract LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp);
+		abstract String evaluatorName();
 	}
 	
 	public abstract static class LearnerEvaluator implements Callable<String>
@@ -134,8 +137,13 @@ abstract public class AbstractExperiment
 			String stdOutput = null;
 			try
 			{
+				assert !getFileName(FileType.RESULT).contains(FS);
 				outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
-				outputWriter.write(inputFileName+FS+outcome+(result == null? "":FS+result)+"\n");
+				String percentValue = "";
+				if (experiment.getStageNumber() > 1)
+					percentValue = FS+percent;
+
+				outputWriter.write(inputFileName+percentValue+FS+outcome+(result == null? "":FS+result)+"\n");
 			}
 			catch(IOException e)
 			{
@@ -156,16 +164,19 @@ abstract public class AbstractExperiment
 		public enum FileType { 
 			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
 			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
-			
+
 			abstract String getFileName(String prefix, String suffix);
 		};
 		
 		protected String getFileName(FileType fileNameType)
 		{
-			return fileNameType.getFileName(experiment.getOutputDir()+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),""); 
+			String percentValue = "";
+			if (experiment.getStageNumber() > 1)
+				percentValue = "-"+percent;
+			return fileNameType.getFileName(experiment.getOutputDir()+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),percentValue); 
 		}
 	}			
-
+	
 	protected ArrayList<String> fileName = new ArrayList<String>(100);
 
 	/** Given a name containing a file with file names, this one adds names of those which can be read, to the
@@ -203,6 +214,11 @@ abstract public class AbstractExperiment
 	 */
 	public void processDataSet(Reader fileNameListReader, int Number)
 	{
+		results.add(runner.submit(getLearnerEvaluator(fileNameListReader,Number)));
+	}
+
+	private LearnerEvaluator getLearnerEvaluator(Reader fileNameListReader, int Number)
+	{
 		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		final int LearnerNumber = evaluatorGenerators.size();
@@ -210,13 +226,64 @@ abstract public class AbstractExperiment
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
 		// the number is valid.
-		int learnerStep = fileName.size();
-		int learnerType = Number / learnerStep;
-		int fileNumber = (Number % learnerStep);
-		int percentStage = (Number % learnerStep);
-		results.add(runner.submit(evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), 100*(1+percentStage)/getStageNumber(),Number, this)));
-	}
 
+		int learnerStep = fileName.size()*getStageNumber();
+		int learnerType = Number / learnerStep;
+		int fileNumber = (Number % learnerStep) / getStageNumber();
+		int percentStage = (Number % learnerStep) % getStageNumber();
+		return 
+			evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), 100*(1+percentStage)/getStageNumber(),Number, this);
+	}
+	
+	/** Performs post-processing of results, by loading all files with results, picking the second line from those 
+	 * start with a line ending on SUCCESS and appends it to a spreadsheet. 
+	 */
+	public void postProcess(Reader fileNameListReader)
+	{
+		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
+		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
+		final int LearnerNumber = evaluatorGenerators.size();
+		final int NumberMax = fileName.size()*LearnerNumber;
+		Writer csvWriter[] = new Writer[getStageNumber()];
+		int failures = 0;
+		try
+		{
+			for(int i=0;i<getStageNumber();++i) csvWriter[i]=new FileWriter(getOutputDir()+System.getProperty("file.separator")+"experiment_"+evaluatorGenerators.get(i).evaluatorName()+".csv");
+			for(int Number=0;Number < NumberMax;++Number)
+			{
+				int learnerStep = fileName.size()*getStageNumber();
+				int learnerType = Number / learnerStep;
+				LearnerEvaluator evaluator = getLearnerEvaluator(fileNameListReader,Number);
+				String line = null;
+				try
+				{
+					BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(LearnerEvaluator.FileType.RESULT)));
+					line = reader.readLine();
+					if (line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
+					{
+						line = reader.readLine();if (line != null && line.length() == 0) line = null;
+					}
+					else line = null;
+				}
+				catch(IOException e)
+				{
+					line = null;
+				}
+				if (line != null)
+					csvWriter[learnerType].write(line+"\n");
+				else
+					failures++;
+			}
+			for(int i=0;i<getStageNumber();++i) csvWriter[i].close();
+		}
+		catch(IOException ex)
+		{
+			System.err.println("failed to post-process, exception "+ex);
+			ex.printStackTrace(System.err);
+		}
+		if (failures > 0)
+			System.err.println(failures+" files could not be processed");
+	}
 	
 	/** Many experiments involve supplying the learner with a specific %% of 
 	 * data and looking at how it performs. This number reflects the number of
@@ -247,7 +314,9 @@ abstract public class AbstractExperiment
 		}
 		return NumberMax;
 	}
-		
+	
+	public final int argCMD_COUNT = -1, argCMD_POSTPROCESS = -2;
+	
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
 	 * Quad-core would use -Dthreadnum=4 instead.
@@ -258,12 +327,14 @@ abstract public class AbstractExperiment
 	 * @param args command-line arguments, a directory name to process all files inside it or
 	 * <FILENAMES_FILE> <OUTPUT_DIR> <NUMBER1> <NUMBER2> <NUMBER3> ... 
 	 * where FILENAMES_FILE contains files to process, OUTPUT_DIR is where to store output and NUMBER1 ... are task numbers
+	 * If <NUMBER1> is -1, returns the number of files to process.
+	 * If <NUMBER1> is -2, post-processes the results.
 	 */
 	public void runExperiment(String[] args)
 	{
         if (100 % getStageNumber() != 0)
         	throw new IllegalArgumentException("wrong stageNumber="+getStageNumber()+": it should be a divisor of 100");
-
+        StringReader fileNameListReader = null;
         initExecutors();
         
 		if (args.length < 2)
@@ -280,7 +351,7 @@ abstract public class AbstractExperiment
 	        	{
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
-	        StringReader fileNameListReader = new StringReader(listOfFileNames);
+	        fileNameListReader = new StringReader(listOfFileNames);
 	        File outputDirAsFile = new File("output_"+graphDir.getName());
 	        if (outputDirAsFile.canRead() || outputDirAsFile.mkdirs())
 	        {
@@ -301,15 +372,17 @@ abstract public class AbstractExperiment
             			processDataSet(new FileReader(args[0]), Integer.parseInt(args[i]));
             	}
             	else
-            		try
-            		{
-            			System.out.println(computeMaxNumber(new FileReader(args[0])));
-            		}
-            		catch(Exception ex)
-            		{
-            			System.out.println(0);// if we cannot compute the number of files to process, return zero.
-            		}
-            	
+            		if (num == argCMD_COUNT)
+	            		try
+	            		{
+	            			System.out.println(computeMaxNumber(new FileReader(args[0])));
+	            		}
+	            		catch(Exception ex)
+	            		{
+	            			System.out.println(0);// if we cannot compute the number of files to process, return zero.
+	            		}
+	            		else
+	            			postProcess(new FileReader(args[0]));
 			} catch (Exception e) {
 				System.out.println("FAILED");
 				e.printStackTrace();
@@ -321,6 +394,7 @@ abstract public class AbstractExperiment
 		
 		// now obtain the results of processing.
 		if (results != null)
+		{
 	        for(Future<String> computationOutcome:results)
 				try {
 					System.out.println("RESULT: "+computationOutcome.get());
@@ -332,6 +406,7 @@ abstract public class AbstractExperiment
 				{
 					executorService.shutdown();
 				}
-				
+       		if (fileNameListReader != null) postProcess(fileNameListReader);
+		}		
 	}	
 }

@@ -31,6 +31,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
+import statechum.analysis.learning.rpnicore.Transform;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
@@ -85,7 +86,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         }
 
         String idString = (String) attributeMap.remove("id");
-        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString)));
+        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString)));// this ID will be subsequently modified when we look at the "VERTEX" tag.
 
         try {
             mLabeller.setLabel((Vertex) vertex,idString);
@@ -94,19 +95,20 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
         }
 
-        for (Iterator keyIt = attributeMap.keySet().iterator();
-             keyIt.hasNext();
-                ) {
+        for (Iterator keyIt = attributeMap.keySet().iterator();keyIt.hasNext();) 
+        {
             Object key = keyIt.next();
             Object value = attributeMap.get(key);
             vertex.setUserDatum(key, value, UserData.SHARED);
         }
         String label = attributeMap.get("VERTEX").toString();
-        vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);
-        if(label.startsWith("Initial")){
+        if(label.startsWith(Transform.Initial))
+        {
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+        	label = label.replaceAll(Transform.Initial+" *", "");
         }
+       	vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);
         vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
         return vertex;
     }

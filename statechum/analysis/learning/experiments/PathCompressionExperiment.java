@@ -132,9 +132,14 @@ public class PathCompressionExperiment extends AbstractExperiment {
 						@Override
 						public String toString()
 						{
-							return "RPNI, POSITIVE_NEGATIVE";
+							return evaluatorName();
 						}
 					};
+				}
+
+				@Override
+				String evaluatorName() {
+					return "RPNI_POSITIVE_NEGATIVE";
 				}
 			}
 			// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one

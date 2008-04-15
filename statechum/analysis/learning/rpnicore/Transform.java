@@ -38,16 +38,22 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public class AddTransitions {
-	private final LearnerGraph graph;
+public class Transform {
+	final LearnerGraph coregraph;
 	
-	public AddTransitions(LearnerGraph g)
+	/** Associates this object to ComputeStateScores it is using for data to operate on. 
+	 * Important: the constructor should not access any data in computeStateScores 
+	 * because it is usually invoked during the construction phase of ComputeStateScores 
+	 * when no data is yet available.
+	 */
+	Transform(LearnerGraph g)
 	{
-		graph =g;
+		coregraph =g;
 	}
 	
 	public static int HammingDistance(List<Boolean> A, List<Boolean> B)
@@ -83,14 +89,14 @@ public class AddTransitions {
 	
 	public void addToBuffer(AddToMatrix resultReceiver, CmpVertex A, CmpVertex B)
 	{
-		Map<String,CmpVertex> rowB = graph.transitionMatrix.get(B);
-		Set<String> outLabels = new HashSet<String>();outLabels.addAll(rowB.keySet());outLabels.addAll(graph.transitionMatrix.get(A).keySet());
+		Map<String,CmpVertex> rowB = coregraph.transitionMatrix.get(B);
+		Set<String> outLabels = new HashSet<String>();outLabels.addAll(rowB.keySet());outLabels.addAll(coregraph.transitionMatrix.get(A).keySet());
 		int outNumber = outLabels.size();
 		Integer valueFirst = vertexToNum.get(B).get(A);if (valueFirst == null) valueFirst = vertexToNum.get(A).get(B);
 		assert valueFirst != null;
 		int matchedNumber = 0;
 		Map<Integer,Double> targetCnt = new TreeMap<Integer,Double>();targetCnt.put(valueFirst, new Double(outNumber));
-		for(Entry<String,CmpVertex> outLabel:graph.transitionMatrix.get(A).entrySet())
+		for(Entry<String,CmpVertex> outLabel:coregraph.transitionMatrix.get(A).entrySet())
 		{
 			CmpVertex to = rowB.get(outLabel.getKey());
 			if (to != null)
@@ -113,14 +119,14 @@ public class AddTransitions {
 	public void populatePairToNumber()
 	{
 		vertexToNum.clear();int num=0;
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:coregraph.transitionMatrix.entrySet())
 		{
 			Map<CmpVertex,Integer> row = vertexToNum.get(entryA.getKey());
 			if (row == null)
 			{
 				row = new TreeMap<CmpVertex,Integer>();vertexToNum.put(entryA.getKey(),row);
 			}
-			Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryB_Iter=graph.transitionMatrix.entrySet().iterator();
+			Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryB_Iter=coregraph.transitionMatrix.entrySet().iterator();
 			
 			while(entryB_Iter.hasNext())
 			{
@@ -146,41 +152,59 @@ public class AddTransitions {
 	
 	public void buildMatrix(AddToMatrix resultAdder)
 	{		
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:graph.transitionMatrix.entrySet())
-			for(Entry<CmpVertex,Map<String,CmpVertex>> entryB:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:coregraph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entryB:coregraph.transitionMatrix.entrySet())
 				addToBuffer(resultAdder,entryA.getKey(),entryB.getKey());		
 	}
 	
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\"/>\n";		
-
-	protected static void writeNode(Writer writer, CmpVertex node, String namePrefix) throws IOException
+	/** The standard beginning of our graphML files. */
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\"/>\n";
+	/** The standard ending of our graphML files. */
+	public static final String graphML_end = "</graph></graphml>\n"; 
+	/** a marker for an initial state in a graphML file. */
+	public static final String Initial = "Initial";
+	
+	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
+	protected String transformNodeName(CmpVertex node)
 	{
-		writer.write("<node id=\""+node.getID().toString()+
-				"\" VERTEX=\""+(namePrefix == null?"":namePrefix)+node.getID().toString()+"\"");
+		
+		return (node == coregraph.init? Initial+" ":"")+node.getID().toString(); 
+	}
+	
+	protected void writeNode(Writer writer, CmpVertex node) throws IOException
+	{
+		if (node.getID().toString().contains(Initial))
+			throw new IllegalArgumentException("Invalid node name "+node.getID().toString());
+		writer.write("<node id=\""+transformNodeName(node)+
+				"\" VERTEX=\""+transformNodeName(node)+"\"");
 		if (!node.isAccept()) writer.write(" "+JUConstants.ACCEPTED+"="+node.isAccept());
 		if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=true");
+		if (node.getColour() != null) writer.write(" "+JUConstants.COLOUR+"=\""+node.getColour()+"\"");
 		writer.write("/>\n");
 	}
 	
-	/** Writes a graph into a graphml file. All vertices are written. */
-	public static void writeGraphML(LearnerGraph graph, String name) throws IOException
+	/** Writes a graph into a graphML file. All vertices are written. */
+	public void writeGraphML(String name) throws IOException
 	{
-		FileWriter writer = new FileWriter(name);
+		FileWriter writer = new FileWriter(name);writeGraphML(writer);
+	}
+	
+	/** Writes a graph into a graphML file. All vertices are written. */
+	public void writeGraphML(Writer writer) throws IOException
+	{
 		writer.write(graphML_header);
 		
-		writeNode(writer, graph.init, "Initial ");
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:graph.transitionMatrix.entrySet())
-			if (vert != graph.init)
-				writeNode(writer, vert.getKey(), null);
-		//<node id="1" VERTEX="Initial State 0" />
-		
-		//<edge source="21" target="19" directed="true" EDGE="a1" />
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
+				writeNode(writer, vert.getKey());
+		// Sample initial state entry: <node id="1" VERTEX="Initial State 0" />
+		// For non-initial states, there should be no vertex called "Initial".
+		// Sample edge entry: <edge source="21" target="19" directed="true" EDGE="a1" />
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
 			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
-				writer.write("<edge source=\""+vert.getKey().getID().toString()+
-						"\" target=\""+transition.getValue().getID().toString()+
+				writer.write("<edge source=\""+transformNodeName(vert.getKey())+
+						"\" target=\""+transformNodeName(transition.getValue())+
 						"\" directed=\"true\" EDGE=\""+transition.getKey()+"\"/>\n");
-		writer.write("</graph></graphml>\n");writer.close();
+		writer.write(graphML_end);writer.close();
 	}
 	
 	/** Returns a state, randomly chosen according to the supplied random number generator. */
@@ -201,6 +225,7 @@ public class AddTransitions {
 	 * @param g graph to transform.
 	 * @param NrToKeep number of labels to keep.
 	 * @param PrefixNew prefix of new labels.
+	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
 	 */
 	public static void relabel(LearnerGraph g, int NrToKeep, String PrefixNew)
 	{
@@ -218,7 +243,11 @@ public class AddTransitions {
 				}
 				else
 					if (!fromTo.containsKey(transition.getKey()))
-							fromTo.put(transition.getKey(), PrefixNew+newLabelCnt++);
+					{
+						if(transition.getKey().startsWith(PrefixNew))
+							throw new IllegalArgumentException("there is already a transition with prefix "+PrefixNew+" in the supplied graph");
+						fromTo.put(transition.getKey(), PrefixNew+newLabelCnt++);
+					}
 				newRow.put(fromTo.get(transition.getKey()), transition.getValue());
 			}
 			newMatrix.put(entry.getKey(), newRow);
@@ -227,7 +256,16 @@ public class AddTransitions {
 	}
 	
 	/** Adds all states and transitions from graph <em>what</em> to graph <em>g</em>.
-	 * 
+	 * Very useful for renumbering nodes on graphs loaded from GraphML and such, because
+	 * numerical node IDs are needed for both matrix and W set generation,
+	 * <pre>
+	 * LearnerGraph grTmp = new LearnerGraph(g.config);
+	 * CmpVertex newInit = addToGraph(gr,g);StatePair whatToMerge = new StatePair(g.init,newInit);
+	 * LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
+	 * grTmp.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge);
+	 * LearnerGraph result = MergeStates.mergeAndDeterminize_general(grTmp, whatToMerge,collectionOfVerticesToMerge);
+	 * WMethod.computeWSet(result);
+	 * </pre>
 	 * @param g target into which to merge what
 	 * @param what graph to merge into g.
 	 * @return vertex in g corresponding to the initial vertex in what 
@@ -236,8 +274,13 @@ public class AddTransitions {
 	{
 		Map<CmpVertex,CmpVertex> whatToG = new HashMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-			whatToG.put(entry.getKey(), 
-					LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config));
+		{
+			CmpVertex newVert = LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config);
+			newVert.setAccept(entry.getKey().isAccept());
+			newVert.setHighlight(entry.getKey().isHighlight());
+			newVert.setColour(entry.getKey().getColour());
+			whatToG.put(entry.getKey(),newVert);
+		}
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{
 			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
@@ -292,10 +335,10 @@ public class AddTransitions {
 	 */
 	public String ComputeHamming(boolean produceStatistics)
 	{
-		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet(graph));
+		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet(coregraph));
 		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<CmpVertex,List<Boolean>>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> state:graph.transitionMatrix.entrySet())
-			bitVector.put(state.getKey(),wToBooleans(graph,state.getKey(), wSet));
+		for(Entry<CmpVertex,Map<String,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
+			bitVector.put(state.getKey(),wToBooleans(coregraph,state.getKey(), wSet));
 		int min=Integer.MAX_VALUE,max=0;double average = 0;
 		Map<Integer,AtomicInteger> statistics = new HashMap<Integer,AtomicInteger>();
 		Object stateToBitVector[] = bitVector.entrySet().toArray();
@@ -374,7 +417,7 @@ public class AddTransitions {
 	public String checkWChanged()
 	{
 		String result = "";
-		Collection<List<String>> wSet = WMethod.computeWSet(graph);
+		Collection<List<String>> wSet = WMethod.computeWSet(coregraph);
 		Set<String> Walphabet = new HashSet<String>();
 		for(List<String> wSeq:wSet)
 		{
@@ -382,13 +425,13 @@ public class AddTransitions {
 				throw new IllegalArgumentException("non-singleton W");
 			Walphabet.add(wSeq.iterator().next());
 		}
-		Collection<String> alphabet = graph.wmethod.computeAlphabet();
-		double fillFactor = getEffectiveFillRate(graph, wSet);//transitionsFromEveryState/alphabet.size();
-		result+=getVectors(graph, wSet);
-		double average = (1-fillFactor)*wSet.size()*graph.getStateNumber();
+		Collection<String> alphabet = coregraph.wmethod.computeAlphabet();
+		double fillFactor = getEffectiveFillRate(coregraph, wSet);//transitionsFromEveryState/alphabet.size();
+		result+=getVectors(coregraph, wSet);
+		double average = (1-fillFactor)*wSet.size()*coregraph.getStateNumber();
 		int changeNumber = 0, total =0;
 		Map<String,AtomicInteger> labelUsage = new HashMap<String,AtomicInteger>();for(String l:alphabet) labelUsage.put(l, new AtomicInteger());
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{
 			Collection<String> newLabels = new HashSet<String>();newLabels.addAll(Walphabet);newLabels.removeAll(entry.getValue().keySet());
 			int changesForThisState = 0;
@@ -397,7 +440,7 @@ public class AddTransitions {
 			
 			for(String label:newLabels)
 			{
-				LearnerGraph newGraph = graph.copy(graph.config);
+				LearnerGraph newGraph = coregraph.copy(coregraph.config);
 				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
 				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet);
@@ -419,7 +462,7 @@ public class AddTransitions {
 			changeNumber+=changesForThisState;
 			result+="changes for "+entry.getKey().getID().toString()+" "+changesForThisState+" (max "+newLabels.size()+"), max for add/remove is "+Walphabet.size()+"\n";
 		}
-		double stateNumber = graph.getStateNumber();
+		double stateNumber = coregraph.getStateNumber();
 		double wsize = wSet.size();
 		double expectedNrOfChanges = wsize*2*fillFactor*(1-fillFactor)*Math.pow(fillFactor*fillFactor+(1-fillFactor)*(1-fillFactor), wsize-1)*
 			stateNumber*(stateNumber-1)/2;

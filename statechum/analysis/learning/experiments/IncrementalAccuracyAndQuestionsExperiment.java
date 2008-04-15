@@ -128,9 +128,14 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 						@Override
 						public String toString()
 						{
-							return "RPNI, POSITIVE_NEGATIVE";
+							return evaluatorName();
 						}
 					};
+				}
+
+				@Override
+				String evaluatorName() {
+					return "RPNI_POSITIVE_NEGATIVE";
 				}
 			}
 		});

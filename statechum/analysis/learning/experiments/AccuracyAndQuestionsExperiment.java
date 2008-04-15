@@ -171,9 +171,14 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 						@Override
 						public String toString()
 						{
-							return "RPNI, POSITIVE_NEGATIVE";
+							return evaluatorName();
 						}
 					};
+				}
+
+				@Override
+				String evaluatorName() {
+					return "RPNI_POSITIVE_NEGATIVE";
 				}
 			}
 		});

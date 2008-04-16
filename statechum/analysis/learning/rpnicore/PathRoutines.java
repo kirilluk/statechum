@@ -579,7 +579,7 @@ public class PathRoutines {
 		String wsetDetails = "";
 		try
 		{
-			if (computeW) wsetDetails = "Wset: "+WMethod.computeWSet(fsm).size()+" seq";
+			if (computeW) wsetDetails = "Wset: "+WMethod.computeWSet_reducedmemory(fsm).size()+" seq";
 		}
 		catch (statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException e) {
 			wsetDetails = e.toString();
@@ -816,6 +816,25 @@ public class PathRoutines {
 				return pos;
 		}
 		return current.isAccept()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
+	}
+	
+	/** Traces a path in a graph and returns the entered state; null if a path does not exist.
+	 * 
+	 * @param path path to trace
+	 * @return state which would be entered by the machine if it follows the given path. 
+	 */
+	public CmpVertex getVertex(List<String> path)
+	{
+		CmpVertex current = coregraph.init;
+		int pos = -1;
+		for(String label:path)
+		{
+			++pos;
+			Map<String,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
+			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+				return null;
+		}
+		return current;
 	}
 	
 	/** converts a given sequence into a fundamental test sequence.

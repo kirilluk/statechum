@@ -152,6 +152,11 @@ public class LearnerGraph {
 		 */   
 		protected Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
 		
+		/** The map from vertices to the corresponding numbers. Used for space-saving 
+		 * computation of W method and for computing of state-similarity. 
+		 */
+		protected Map<CmpVertex,Integer> stateToNumber = null;
+		
 		/** The maximal score which can be returned by score computation routines. */
 		protected int maxScore = -1;
 
@@ -160,7 +165,7 @@ public class LearnerGraph {
 		
 		public void invalidate()
 		{
-			valid = false;flowgraph=null;maxScore=-1;
+			valid = false;flowgraph=null;maxScore=-1;stateToNumber = null;
 		}
 	}
 	
@@ -241,11 +246,13 @@ public class LearnerGraph {
 	 * Used to rebuild max score and flow graph.
 	 * This method is performing the rebuilding.
 	 */
-	public void buildCachedData() {
+	public void buildCachedData() 
+	{
 		if (!learnerCache.valid)
 		{
 			learnerCache.flowgraph = paths.getFlowgraph();
 			learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
+			learnerCache.stateToNumber = wmethod.buildStateToIntegerMap();
 			learnerCache.valid = true;
 		}
 	}

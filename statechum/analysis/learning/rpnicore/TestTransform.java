@@ -410,7 +410,7 @@ public class TestTransform {
 	public final void testAddToBuffer1()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->A-b->B",	"testAddToBuffer1"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("B"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(2,2)=2.0;"}));
@@ -421,7 +421,7 @@ public class TestTransform {
 	public final void testAddToBuffer2()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nC-a->D",	"testAddToBuffer2"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("C"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(4,4)=1.0;","mat(4,8)=-"+ad.valueK+";"}));
@@ -432,7 +432,7 @@ public class TestTransform {
 	public final void testAddToBuffer3()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C",	"testAddToBuffer3"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("D"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(7,7)=2.0;","mat(7,5)=-"+ad.valueK+";"}));
@@ -443,7 +443,7 @@ public class TestTransform {
 	public final void testAddToBuffer4()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C\nD-b->C","testAddToBuffer4"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("D"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(7,7)=2.0;","mat(7,5)=-"+ad.valueK+";","mat(7,6)=-"+ad.valueK+";"}));
@@ -454,7 +454,7 @@ public class TestTransform {
 	public final void testAddToBuffer5()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C\nD-b->C\nD-c->A","testAddToBuffer5"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("D"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(7,7)=3.0;","mat(7,5)=-"+ad.valueK+";","mat(7,6)=-"+ad.valueK+";"}));
@@ -465,7 +465,7 @@ public class TestTransform {
 	public final void testAddToBuffer6()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C\nD-b->C\nD-c->A","testAddToBuffer6"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("D"), gr.findVertex("D"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(10,10)=3.0;","mat(10,1)=-"+ad.valueK+";","mat(10,6)=-"+2*ad.valueK+";"}));
@@ -476,7 +476,7 @@ public class TestTransform {
 	public final void testAddToBuffer7()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("D"));
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 				"mat(7,7)=4.0;","mat(7,5)=-"+ad.valueK+";","mat(7,6)=-"+2*ad.valueK+";"}));
@@ -488,7 +488,7 @@ public class TestTransform {
 	public final void testAddToBuffer8()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->B-b->A","testAddToBuffer8"),Configuration.getDefaultConfiguration());
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.populatePairToNumber();
+		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);gr.buildCachedData();
 		ad.buildMatrix(testAdder);
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 			/* AA */ "mat(1,1)=1.0;","mat(1,3)=-"+ad.valueK+";",

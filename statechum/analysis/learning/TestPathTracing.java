@@ -82,13 +82,18 @@ public class TestPathTracing {
 		final LearnerGraph fsm = new LearnerGraph(g,config);
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
-		Vertex received = RPNIBlueFringeLearnerOrig.getVertex(g, Arrays.asList(path));
+		Vertex receivedA = RPNIBlueFringeLearnerOrig.getVertex(g, Arrays.asList(path));
+		CmpVertex receivedB = new LearnerGraph(g,conf).paths.getVertex(Arrays.asList(path));
 		if (expected == null)
-			Assert.assertNull(received);
+		{
+			Assert.assertNull(receivedA);Assert.assertNull(receivedB);
+		}
 		else
 		{
-			assertEquals(expected.getID(),received.getUserDatum(JUConstants.LABEL));
-			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
+			assertEquals(expected.getID(),receivedA.getUserDatum(JUConstants.LABEL));
+			assertEquals(expected.getID(),receivedB.getID());
+			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(receivedA));
+			assertEquals(expected.isAccept(),receivedB.isAccept());
 		}
 	}
 	

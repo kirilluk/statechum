@@ -74,6 +74,12 @@ public class DeterministicDirectedSparseGraph {
 			idString = null;kind = VertKind.NONE;idInteger=-1;cachedHash=0;
 		}
 		
+		/** Returns the kind of this ID. */
+		public VertKind getKind()
+		{
+			return kind;
+		}
+		
 		public VertexID(String id)
 		{
 			if (id == null) throw new IllegalArgumentException("invalid id");

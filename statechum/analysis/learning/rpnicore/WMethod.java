@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.Assert;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
@@ -96,7 +97,7 @@ public class WMethod {
 	{
 		Set<String> alphabet =  computeAlphabet();
 		List<List<String>> partialSet = computeStateCover();
-		characterisationSet = computeWSet(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
 		SlowPrefixFreeCollection testsequenceCollection = new SlowPrefixFreeCollection();
@@ -115,7 +116,7 @@ public class WMethod {
 	{
 		Set<String> alphabet =  computeAlphabet();
 		List<List<String>> stateCover = computeStateCover();
-		characterisationSet = computeWSet(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
 		PTASequenceEngine engine = new PTA_FSMStructure(coregraph);
@@ -146,7 +147,7 @@ public class WMethod {
 	{
 		try
 		{
-			computeWSet(fsm);
+			computeWSet_reducedmemory(fsm);
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -462,7 +463,7 @@ public class WMethod {
 				for(String label:stateB.getValue())
 				{
 					AtomicInteger counter = distLabelUsage.get(label);
-					if (counter == null) counter = new AtomicInteger(0);else counter.addAndGet(1);
+					if (counter == null) counter = new AtomicInteger(1);else counter.addAndGet(1);
 					distLabelUsage.put(label, counter);
 					if (counter.get() > topLabelCounter)
 					{
@@ -474,8 +475,182 @@ public class WMethod {
 		}
 		return topLabel;
 	}
+
+	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
+	 * it will take a bit longer to perform the computation). 
+	 * Additionally, it attempts to reduce the size of W and conserve computer memory. W is not reduced as much
+	 * as per computeWSet_reducedw though because the distribution of labels is not recomputed each time we 
+	 * separate a pair, but is performed once per step.
+	 * 
+	 * @param fsm the machine to process
+	 * @param alphabet
+	 * @return characterising set
+	 */
+	public static Collection<List<String>> computeWSet_reducedmemory(LearnerGraph fsm) throws EquivalentStatesException
+	{
+		fsm.buildCachedData();
+		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
+		int WNext[] = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
+		String WChar[] = new String[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];for(int i=0;i < WNext.length;++i) { WChar[i]=null;WNext[i]=-1; }
+		final Map<String,AtomicInteger> distinguishingLabels = new HashMap<String,AtomicInteger>();
+
+		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
+			equivalenceClasses.put(state, 0);
+		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+		{
+			Map<CmpVertex,List<String>> row = new HashMap<CmpVertex,List<String>>();
+
+			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+			while(stateB_It.hasNext())
+			{
+				Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				row.put(stateB.getKey(), new LinkedList<String>());
+			}
+		}
+
+		int equivalenceClassNumber = 0,oldEquivalenceClassNumber=0;
+		do
+		{
+			oldEquivalenceClassNumber = equivalenceClassNumber;
+			Map<CmpVertex,Map<String,Integer>> newMap = new HashMap<CmpVertex,Map<String,Integer>>();
+			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
+			for(Entry<CmpVertex,Map<String,CmpVertex>> stateEntry:fsm.transitionMatrix.entrySet())
+			{
+				Map<String,Integer> map = new HashMap<String,Integer>();
+				Map<String,CmpVertex> labelNSmap = stateEntry.getValue();
+				if (labelNSmap != null)
+					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
+						map.put(labelstate.getKey(), equivalenceClasses.get(labelstate.getValue()));
+				
+				newMap.put(stateEntry.getKey(), map);
+				if (!sortedRows.containsKey(map))
+				{
+					equivalenceClassNumber++;
+					sortedRows.put(map,equivalenceClassNumber);newEquivClasses.put(stateEntry.getKey(), equivalenceClassNumber);
+				}
+				else
+					newEquivClasses.put(stateEntry.getKey(), sortedRows.get(map));
+			}
+
+
+			distinguishingLabels.clear();// clear a map from pairs of states to sets of labels which distinguish between them
+			
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+
+					if (stateA.getValue().equals(stateB.getValue()) &&
+							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
+						
+						// the two states used to be equivalent but not any more, find inputs which 
+						// distinguish between them and update the histogram to count the number
+						// of inputs which can be used distuigish between states at this stage.
+						for(String distLabel:computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap))
+						{
+							AtomicInteger aint = distinguishingLabels.get(distLabel);
+							if (aint == null) { aint = new AtomicInteger(1);distinguishingLabels.put(distLabel, aint); }
+							else aint.addAndGet(1);
+						}
+					}
+				}
+			}
+
+			// distinguishingLabels contains all labels we may use; the choice of an optimal subset is NP, hence we simply pick
+			// those which look best until we distinguish all states.
+			ArrayList<String> labelList = new ArrayList<String>(distinguishingLabels.size());labelList.addAll(0, distinguishingLabels.keySet());
+			Collections.sort(labelList, new Comparator<String>(){
+
+				public int compare(String o1, String o2) {
+					return -distinguishingLabels.get(o1).get() + distinguishingLabels.get(o2).get();
+				}
+				
+			});
+			
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+				
+					if (stateA.getValue().equals(stateB.getValue()) &&
+							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
+					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
+						Set<String> distLabels = computeDistinguishingLabel(stateA.getKey(), stateB.getKey(), newMap);
+						String topLabel = null;
+						Iterator<String> topLabelIter = labelList.iterator();
+						while(topLabel == null)
+						{
+							String lbl = topLabelIter.next();if (distLabels.contains(lbl)) topLabel = lbl;
+						}
 	
-	
+						CmpVertex toA = fsm.transitionMatrix.get(stateA.getKey()).get(topLabel);
+						CmpVertex toB = fsm.transitionMatrix.get(stateB.getKey()).get(topLabel);
+						int index = fsm.wmethod.vertexToInt(stateA.getKey(),stateB.getKey());
+						assert WChar[index] == null : "In states ("+stateA.getKey()+","+stateB.getKey()+") Wsequence is non-empty and contains "+WChar[index];
+						WChar[index] = topLabel;
+						if (toA != null && toB != null) // these can be null at the first iteration, where states are distinguished based on their response to inputs rather then on the states they lead to.
+						{
+							int previous = fsm.wmethod.vertexToInt(toA,toB);
+							assert WChar[previous] != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
+							WNext[index] = previous;
+						}
+					}						
+				}			
+			}
+			
+			
+			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		}
+		while(equivalenceClassNumber > oldEquivalenceClassNumber);
+
+		Collection<List<String>> result = new HashSet<List<String>>();
+		if (oldEquivalenceClassNumber == fsm.transitionMatrix.size() )
+		{
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					LinkedList<String> seq = new LinkedList<String>();
+					int index = fsm.wmethod.vertexToInt(stateA.getKey(),stateB.getKey());
+					while(index >= 0)
+					{
+						seq.add(WChar[index]);index=WNext[index];
+					}
+					if (!seq.isEmpty()) 
+						result.add(seq);
+				}
+			}			
+		}
+		else
+		{// report equivalent states
+			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
+				while(stateB_It.hasNext())
+				{
+					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
+					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
+					{
+						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
+					}
+				}
+			}
+			assert equivalentStates.size() > 0: "equivalent states were not found";
+			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
+			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
+		}
+		return result;
+	}
+
 	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
 	 * it will take a bit longer to perform the computation). 
 	 * Additionally, it attempts to reduce the size of W.
@@ -484,7 +659,7 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static Collection<List<String>> computeWSet(LearnerGraph fsm) throws EquivalentStatesException
+	public static Collection<List<String>> computeWSet_reducedw(LearnerGraph fsm) throws EquivalentStatesException
 	{
 		
 		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
@@ -782,6 +957,32 @@ public class WMethod {
 		LearnerGraph permFsm = new LearnerGraph(buildGraph(newFsm.toString(), "testDeterminism_perm"),coregraph.config);
 		permFsm.init = permFsm.findVertex(coregraph.init.getID());
 		return permFsm;
+	}
+	
+	public boolean checkGraphNumeric()
+	{
+		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
+			if (vert.getID().getKind() == DeterministicDirectedSparseGraph.VertexID.VertKind.NONE)
+				return false;
+		return true;
+	}
+	
+	Map<CmpVertex,Integer> buildStateToIntegerMap()
+	{
+		Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
+		int num=0;
+		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
+			map.put(vert, num++);
+		return map;
+	}
+	
+	public int vertexToInt(CmpVertex vertexA, CmpVertex vertexB)
+	{
+		int x=coregraph.learnerCache.stateToNumber.get(vertexA), y = coregraph.learnerCache.stateToNumber.get(vertexB);
+		if (x <= y)
+			return x+y*(y+1)/2;
+		else
+			return y+x*(x+1)/2;
 	}
 }
 

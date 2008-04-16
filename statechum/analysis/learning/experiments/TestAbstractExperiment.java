@@ -127,7 +127,7 @@ public class TestAbstractExperiment {
 						return new TestEvaluator(inputFile,percent,instanceID,exp) {
 							@Override
 							protected void runTheExperiment() {
-								result = result + graph.countEdges()*percent + FS + WMethod.computeWSet(graph).size();
+								result = result + graph.countEdges()*percent + FS + WMethod.computeWSet_reducedmemory(graph).size();
 							}
 							@Override
 							public String getLearnerName() { return "learnerTransitions";	}
@@ -166,7 +166,7 @@ public class TestAbstractExperiment {
 			for(int stage:new int[]{30,45,90,99})
 				result.add(gr.getKey()+AbstractExperiment.FS+"learnerTransitions"+AbstractExperiment.FS+stage+
 						AbstractExperiment.FS+gr.getValue().countEdges()*stage+
-						AbstractExperiment.FS+WMethod.computeWSet(gr.getValue()).size());
+						AbstractExperiment.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		multiExpResult = result.toArray(new String[]{});
 	}
 
@@ -337,7 +337,7 @@ public class TestAbstractExperiment {
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+AbstractExperiment.FS+"learnerTransitions"+AbstractExperiment.FS+stage+
 						AbstractExperiment.FS+gr.getValue().countEdges()*stage+
-						AbstractExperiment.FS+WMethod.computeWSet(gr.getValue()).size());
+						AbstractExperiment.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		checkCSV(result.toArray(new String[]{}));
 	}
 

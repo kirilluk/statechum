@@ -36,9 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -69,8 +67,6 @@ public class Transform {
 		return distance;
 	}
 
-	Map<CmpVertex,Map<CmpVertex,Integer>> vertexToNum = new HashMap<CmpVertex,Map<CmpVertex,Integer>>();
-	
 	public static void addAssignement(StringBuffer buffer, Integer A, Integer B, double value)
 	{
 		buffer.append("mat(");
@@ -92,8 +88,7 @@ public class Transform {
 		Map<String,CmpVertex> rowB = coregraph.transitionMatrix.get(B);
 		Set<String> outLabels = new HashSet<String>();outLabels.addAll(rowB.keySet());outLabels.addAll(coregraph.transitionMatrix.get(A).keySet());
 		int outNumber = outLabels.size();
-		Integer valueFirst = vertexToNum.get(B).get(A);if (valueFirst == null) valueFirst = vertexToNum.get(A).get(B);
-		assert valueFirst != null;
+		int valueFirst = 1+coregraph.wmethod.vertexToInt(A,B);
 		int matchedNumber = 0;
 		Map<Integer,Double> targetCnt = new TreeMap<Integer,Double>();targetCnt.put(valueFirst, new Double(outNumber));
 		for(Entry<String,CmpVertex> outLabel:coregraph.transitionMatrix.get(A).entrySet())
@@ -102,8 +97,7 @@ public class Transform {
 			if (to != null)
 			{// matched pair of transitions
 				++matchedNumber;
-				Integer valueSecond = vertexToNum.get(outLabel.getValue()).get(to);if (valueSecond == null) valueSecond = vertexToNum.get(to).get(outLabel.getValue());
-				assert valueSecond != null;
+				int valueSecond = 1+coregraph.wmethod.vertexToInt(outLabel.getValue(),to);
 				Double current = targetCnt.get(valueSecond);
 				if (current == null)
 					targetCnt.put(valueSecond,-valueK);
@@ -114,27 +108,6 @@ public class Transform {
 
 		for(Entry<Integer,Double> entry:targetCnt.entrySet())
 			resultReceiver.addMapping(valueFirst,entry.getKey(),entry.getValue());
-	}
-	
-	public void populatePairToNumber()
-	{
-		vertexToNum.clear();int num=0;
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:coregraph.transitionMatrix.entrySet())
-		{
-			Map<CmpVertex,Integer> row = vertexToNum.get(entryA.getKey());
-			if (row == null)
-			{
-				row = new TreeMap<CmpVertex,Integer>();vertexToNum.put(entryA.getKey(),row);
-			}
-			Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryB_Iter=coregraph.transitionMatrix.entrySet().iterator();
-			
-			while(entryB_Iter.hasNext())
-			{
-				Entry<CmpVertex,Map<String,CmpVertex>> entryB = entryB_Iter.next();
-				row.put(entryB.getKey(),++num);
-				if (entryB == entryA) break;// only lower triangle of the matrix is processed.
-			}
-		}
 	}
 	
 	public String toOctaveMatrix()
@@ -335,7 +308,7 @@ public class Transform {
 	 */
 	public String ComputeHamming(boolean produceStatistics)
 	{
-		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet(coregraph));
+		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet_reducedmemory(coregraph));
 		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<CmpVertex,List<Boolean>>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
 			bitVector.put(state.getKey(),wToBooleans(coregraph,state.getKey(), wSet));
@@ -417,7 +390,7 @@ public class Transform {
 	public String checkWChanged()
 	{
 		String result = "";
-		Collection<List<String>> wSet = WMethod.computeWSet(coregraph);
+		Collection<List<String>> wSet = WMethod.computeWSet_reducedmemory(coregraph);
 		Set<String> Walphabet = new HashSet<String>();
 		for(List<String> wSeq:wSet)
 		{

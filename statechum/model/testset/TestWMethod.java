@@ -51,9 +51,12 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
@@ -617,10 +620,27 @@ public class TestWMethod {
 			Assert.assertEquals(true, equivalentExpected);
 			WMethod.checkM(fsm,fsm,e.getA(),e.getB());
 		}
-		
+
 		try
 		{
-			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet(fsm));
+			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+			Assert.assertEquals(false, equivalentExpected);
+			fsm.wmethod.checkW_is_corrent(wset);// we are not checking for W reduction here since space-saving way to compute W
+			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
+			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
+			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep 
+			// recomputing because it will take a long time, I think. Storing separating characters as per computeWSet_reduced
+			// does not appear to be feasible because of space constraints (we'd like to operate on 16k states in under of 4g memory).
+		}
+		catch(EquivalentStatesException e)
+		{
+			Assert.assertEquals(true, equivalentExpected);
+			WMethod.checkM(fsm,fsm,e.getA(),e.getB());
+		}
+
+		try
+		{
+			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedw(fsm));
 			Assert.assertEquals(false, equivalentExpected);
 			fsm.wmethod.checkW_is_corrent(wset);
 			int reduction = origWset.size() - wset.size();
@@ -655,7 +675,7 @@ public class TestWMethod {
 	public final void testWset4()
 	{
 		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->A","testWset4"),config);
-		Assert.assertTrue(WMethod.computeWSet(fsm).isEmpty());
+		Assert.assertTrue(WMethod.computeWSet_reducedmemory(fsm).isEmpty());
 	}
 
 	@Test
@@ -771,11 +791,11 @@ public class TestWMethod {
 	{
 		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName);
 		LearnerGraph fsm = new LearnerGraph(g,config);//visFrame.update(null, g);
-		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet(fsm));
+		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 		LearnerGraph permFsm = fsm.wmethod.Permute(perm);
 		WMethod.checkM(fsm,permFsm);
 		
-		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet(permFsm));
+		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
 		fsm.wmethod.checkW_is_corrent(newWset);
 		fsm.wmethod.checkW_is_corrent(origWset);
 		permFsm.wmethod.checkW_is_corrent(newWset);
@@ -1023,7 +1043,58 @@ public class TestWMethod {
 	{
 		assertTrue(new LearnerGraph(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"),config).wmethod.checkUnreachableStates());	
 	}
-			
+	
+	@Test
+	public final void testCheckGraphNumeric1()
+	{
+		Assert.assertFalse(new LearnerGraph(buildGraph("A-a->A-c->C","testCheckGraphNumeric"),config).wmethod.checkGraphNumeric());
+	}
+	
+	@Test
+	public final void testCheckGraphNumeric2()
+	{
+		Assert.assertTrue(new LearnerGraph(config).wmethod.checkGraphNumeric());
+	}
+	
+	@Test
+	public final void testCheckGraphNumeric3()
+	{
+		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-c->C","testCheckGraphNumeric"),config);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);
+		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(numericGraph.paths.getVertex(new LinkedList<String>()),newInit));
+		Assert.assertTrue(numericGraph.wmethod.checkGraphNumeric());
+	}
+	
+	@Test
+	public final void testVertexToInt()
+	{
+		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);
+		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<String>())));
+		CmpVertex A = numericGraph.paths.getVertex(Arrays.asList(new String[]{})),
+			B = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b"})),
+			C = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b","c"}));
+		/*  ABC
+		 *A 013
+		 *B 124
+		 *C 345
+		*/
+		numericGraph.buildCachedData();
+		Assert.assertEquals(0,numericGraph.wmethod.vertexToInt(A,A));
+		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(A,B));
+		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(B,A));
+
+		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(A,C));
+		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(C,A));
+
+		Assert.assertEquals(2,numericGraph.wmethod.vertexToInt(B,B));
+
+		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(B,C));
+		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(C,B));
+
+		Assert.assertEquals(5,numericGraph.wmethod.vertexToInt(C,C));
+}
+	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{

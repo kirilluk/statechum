@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -131,8 +132,14 @@ public class WExperiment extends AbstractExperiment {
 			}
 		System.out.println();
 		System.out.println(result.toString());
-		Collection<List<String>> wset = WMethod.computeWSet(result);
-		System.out.println(" w set size: "+wset.size());
+		long tmStarted = new Date().getTime();
+		Collection<List<String>> wset = WMethod.computeWSetOrig(result);//WMethod.computeWSet_reducedmemory(result);
+		long tmFinished = new Date().getTime();
+		System.out.println(" w set size: "+wset.size()+" time taken: "+(tmFinished-tmStarted)/1000);
+		tmStarted = new Date().getTime();
+		wset = WMethod.computeWSet_reducedmemory(result);
+		tmFinished = new Date().getTime();
+		System.out.println(" w set size: "+wset.size()+" time taken: "+(tmFinished-tmStarted)/1000);
 		
 		// Now start to merge some of those states
 		

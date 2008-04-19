@@ -157,6 +157,12 @@ public class LearnerGraph {
 		 */
 		protected Map<CmpVertex,Integer> stateToNumber = null;
 		
+		/** This transition matrix is very similar to the main one except
+		 * that all transitions are pointing in the opposite direction. This matrix
+		 * is used to scan the state comparison matrix columnwise.
+		 */
+		protected Map<CmpVertex,Map<CmpVertex,String>> sortaInverse = null;
+		
 		/** The maximal score which can be returned by score computation routines. */
 		protected int maxScore = -1;
 
@@ -165,7 +171,7 @@ public class LearnerGraph {
 		
 		public void invalidate()
 		{
-			valid = false;flowgraph=null;maxScore=-1;stateToNumber = null;
+			valid = false;flowgraph=null;maxScore=-1;stateToNumber = null;sortaInverse = null;
 		}
 	}
 	
@@ -253,6 +259,7 @@ public class LearnerGraph {
 			learnerCache.flowgraph = paths.getFlowgraph();
 			learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
 			learnerCache.stateToNumber = wmethod.buildStateToIntegerMap();
+			learnerCache.sortaInverse = transform.buildSortaInverse();
 			learnerCache.valid = true;
 		}
 	}

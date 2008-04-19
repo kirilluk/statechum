@@ -35,6 +35,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -230,6 +231,11 @@ public class TestFSMAlgo {
 								valueA = ScoreMode.KTAILS;valueB=ScoreMode.COMPATIBILITY;
 							}
 						else
+							if (var.getType().equals(QuestionGeneratorKind.class))
+							{
+									valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
+							}
+							else
 							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
 							{
 								valueA = varName.hashCode();valueB=setterName.hashCode();// just some integers likely to be different from each other between different variables.

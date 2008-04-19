@@ -108,6 +108,8 @@ public class RandomPathGenerator {
 		
 		@Override
 		public boolean shouldBeReturned(Object elem) {
+			if (elem == null) // the reject-node of a PTA engine
+				return false;
 			return ((StateName)elem).accept;
 		}
 	}

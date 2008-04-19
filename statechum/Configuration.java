@@ -100,6 +100,57 @@ public class Configuration implements Cloneable
 		return learnerIdMode;
 	}
 	
+	/** There could be different ways to query the current strategy for asking questions.
+	 * The enumeration below includes those implemented:
+	 * <ul>
+	 * <li>CONVENTIONAL - this is essentially the QSM question generator.
+	 * </li>
+	 * 
+	 * <li>SYMMETRIC - when asking questions, this question generator does not care which
+	 * state is blue and which is red. Its purpose is to handle graph which do not  
+	 * have a tree as in QSM. In addition to generality, it also aims to address the shortcomings
+	 * in the QSM algorithm. The aim is to query all transitions from all states which were 
+	 * merged together (from all equivalence classes). Paths to those states are chosen from
+	 * both the two original states A and B merged, considering a path between the two states
+	 * (A and B are not necessarily adjacent, even in QSM where they are a red/blue pair).
+	 * </li>
+	 * </ul>
+	 */
+	public enum QuestionGeneratorKind { CONVENTIONAL, SYMMETRIC };
+	
+	protected QuestionGeneratorKind questionGenerator = QuestionGeneratorKind.CONVENTIONAL;
+	
+	public QuestionGeneratorKind getQuestionGenerator()
+	{
+		return questionGenerator;
+	}
+	
+	public void setQuestionGenerator(QuestionGeneratorKind qs)
+	{
+		questionGenerator = qs;
+	}
+	
+	/** In order to reduce the number of questions asked, it might be useful to limit the number of paths
+	 * which get collected when we are looking for all possible shortest paths between pairs of states
+	 * (such as between the initial state and the red one in the original QSM question generator).
+	 * Note that this constant is applied selectively by different question generators.
+	 * <p>
+	 * The default value is negative, i.e. no limit. Zero would generate empty questions since 
+	 * question generation algorithms start with so many paths, then extend them. If no paths
+	 * are initially produced, the set of questions will be empty.
+	 */
+	protected int questionPathUnionLimit = -1;
+	
+	public int getQuestionPathUnionLimit()
+	{
+		return questionPathUnionLimit;
+	}
+	
+	public void setQuestionPathUnionLimit(int limit)
+	{
+		questionPathUnionLimit = limit;
+	}
+	
 	public int getGeneralisationThreshold() {
 		return generalisationThreshold;
 	}
@@ -207,6 +258,7 @@ public class Configuration implements Cloneable
 		result = prime * result + generalisationThreshold;
 		result = prime * result + ((learnerIdMode == null) ? 0 : learnerIdMode.hashCode());
 		result = prime * result + ((learnerScoreMode == null)?0: learnerScoreMode.hashCode());
+		result = prime * result + ((questionGenerator == null)?0: questionGenerator.hashCode());
 		result = prime * result + pairsMergedPerHypothesis;
 		result = prime * result + (allowedToCloneNonCmpVertex? 1231 : 1237);
 		result = prime * result + defaultInitialPTAName.hashCode();
@@ -219,6 +271,7 @@ public class Configuration implements Cloneable
 		result = prime * result + randomPathAttemptFudgeThreshold;
 		result = prime * result + (generateTextOutput? 1231 : 1237);
 		result = prime * result + ((autoAnswerFileName == null) ?0: autoAnswerFileName.hashCode());
+		result = prime * result + questionPathUnionLimit;
 		return result;
 	}
 
@@ -252,6 +305,11 @@ public class Configuration implements Cloneable
 				return false;
 		} else if (!learnerScoreMode.equals(other.learnerScoreMode))
 			return false;
+		if (questionGenerator == null) {
+			if (other.questionGenerator != null)
+				return false;
+		} else if (!questionGenerator.equals(other.questionGenerator))
+			return false;
 		if (pairsMergedPerHypothesis != other.pairsMergedPerHypothesis)
 			return false;
 		if (allowedToCloneNonCmpVertex != other.allowedToCloneNonCmpVertex)
@@ -275,6 +333,8 @@ public class Configuration implements Cloneable
 		if (randomPathAttemptFudgeThreshold != other.randomPathAttemptFudgeThreshold)
 			return false;
 		if (generateTextOutput != other.generateTextOutput)
+			return false;
+		if (questionPathUnionLimit != other.questionPathUnionLimit)
 			return false;
 		return true;
 	}

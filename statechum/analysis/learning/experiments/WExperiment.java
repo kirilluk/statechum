@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -32,7 +33,6 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 
 /**
@@ -132,18 +132,27 @@ public class WExperiment extends AbstractExperiment {
 			}
 		System.out.println();
 		System.out.println(result.toString());
-		long tmStarted = new Date().getTime();
-		Collection<List<String>> wset = WMethod.computeWSetOrig(result);//WMethod.computeWSet_reducedmemory(result);
+		
+		
+		long tmStarted = new Date().getTime();result.buildCachedData();HashSet<List<String>> outcome = new HashSet<List<String>>();
+		result.transform.buildJniMatrix(AbstractExperiment.getCpuNumber());
+		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
+		//WMethod.computeWSet_reducedmemory(result);
 		long tmFinished = new Date().getTime();
-		System.out.println(" w set size: "+wset.size()+" time taken: "+(tmFinished-tmStarted)/1000);
+		/*
+		System.out.println(" w set size: "+outcome.size()+" time taken: "+(tmFinished-tmStarted)/1000);
 		tmStarted = new Date().getTime();
-		wset = WMethod.computeWSet_reducedmemory(result);
+		wset = WMethod.computeWSet_reducedmemory(result);outcome.clear();outcome.addAll(wset);
 		tmFinished = new Date().getTime();
-		System.out.println(" w set size: "+wset.size()+" time taken: "+(tmFinished-tmStarted)/1000);
-		
+		System.out.println(" w set size: "+outcome.size()+" time taken: "+(tmFinished-tmStarted)/1000);
 		// Now start to merge some of those states
-		
+		*/
 		try {
+			//Writer writer = new FileWriter("resources/tmp/experiment");
+			//result.buildCachedData();
+			//result.transform.toOctaveMatrix(writer);writer.close();
+			
+			System.out.println("time taken: "+(tmFinished-tmStarted)/1000);
 			result.transform.writeGraphML("resources/tmp/experiment_tmpresult.xml");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

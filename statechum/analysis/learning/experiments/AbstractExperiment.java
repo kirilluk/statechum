@@ -31,6 +31,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ abstract public class AbstractExperiment
 	{
 	}
 	
-	private void initExecutors()
+	public static int getCpuNumber()
 	{
 		int ThreadNumber = 1; // the default for single-cpu systems.
 		String cpuNum = System.getProperty("threadnum");
@@ -92,7 +93,12 @@ abstract public class AbstractExperiment
 			if (parsedNumber > 0 && parsedNumber < 31)
 				ThreadNumber = parsedNumber;
 		}
-
+		return ThreadNumber;
+	}
+	
+	private void initExecutors()
+	{
+		int ThreadNumber = getCpuNumber();
 		results = new LinkedList<Future<String>>();executorService = Executors.newFixedThreadPool(ThreadNumber);
 		runner = new ExecutorCompletionService<String>(executorService);
 	}
@@ -471,5 +477,109 @@ abstract public class AbstractExperiment
        		if (fileNameListReader != null) postProcess(fileNameListReader);
 		}
 		return result;
-	}	
+	}
+	
+	/** Takes the result and pulls R-bagplot compatible tables out of it. 
+	 * @throws IOException 
+	 */
+	public void postProcessIntoR(int colSort,int colNumber, File result) throws IOException
+	{
+		BufferedReader tableReader = null;
+		Writer resultWriter = null;
+		try
+		{
+			tableReader = new BufferedReader(new FileReader(new File(getOutputDir(),resultName)));
+			resultWriter = new BufferedWriter(new FileWriter(result));
+			postProcessIntoR(colSort,colNumber, tableReader,resultWriter);
+		}
+		finally
+		{
+			if (tableReader != null) tableReader.close();
+			if (resultWriter != null) resultWriter.close();
+		}		
+	}
+	
+
+	/** Takes the result and pulls R-bagplot compatible tables out of it.
+	 * Sorts rows according to the value in column colSort and for each value in that
+	 * column, places values from column colNumber in a column.
+	 * 
+	 * Example:
+	 * 
+	 * A,10,4
+	 * A,15,6
+	 * B,10,8
+	 * B,15,7
+	 * A,10,3
+	 * A,15,5
+	 * 
+	 * postprocessIntoR(1,2) would produce
+	 * 
+	 * 10,15
+	 * 4 ,16
+	 * 8 ,7
+	 * 3 ,5
+	 * 
+	 * postprocessIntoR(0,2) would produce
+	 * 
+	 * A,B
+	 * 4,8
+	 * 6,7
+	 * 3,
+	 * 5,
+	 * 
+	 * @throws IOException 
+	 */
+	public static void postProcessIntoR(int colSort,int colNumber, BufferedReader tableReader,Writer resultWriter) throws IOException
+	{
+		if (colSort < 0 || colNumber < 0)
+			throw new IllegalArgumentException("invalid column number");
+		
+		Map<String,List<String>> resultMap = new TreeMap<String,List<String>>();
+		int maxCol = Math.max(colSort,colNumber);
+		
+		String line = tableReader.readLine();
+		while(line != null)
+		{
+			String splitResult[]=line.split(FS, maxCol+2);
+			if (splitResult.length <= maxCol)
+				throw new IllegalArgumentException("invalid result file: cannot access column "+maxCol+" (failed to parse \""+line+"\")");
+			List<String> col = resultMap.get(splitResult[colSort]);
+			if (col == null) { col = new LinkedList<String>();resultMap.put(splitResult[colSort], col); }
+			col.add(splitResult[colNumber]);
+			line = tableReader.readLine();
+		}
+		if (resultMap.isEmpty())
+			throw new IllegalArgumentException("no data to dump");
+		
+		StringBuffer outHeading = new StringBuffer();
+		List<Iterator<String>> iterators = new LinkedList<Iterator<String>>();
+		boolean isFirst = true;
+		for(Entry<String,List<String>> entry:resultMap.entrySet()) 
+		{
+			if (!isFirst) outHeading.append(FS);isFirst=false;outHeading.append(entry.getKey());
+			iterators.add(entry.getValue().iterator());
+		}
+		outHeading.append("\n");
+		resultWriter.write(outHeading.toString());
+		boolean iteratorsEmpty = true;
+		
+		do
+		{
+			StringBuffer outBuffer = new StringBuffer();
+			isFirst = true;iteratorsEmpty = true;
+			for(Iterator<String> iter:iterators)
+			{
+				if (!isFirst) outBuffer.append(FS);isFirst=false;
+				if (iter.hasNext())
+					outBuffer.append(iter.next());
+				if (iter.hasNext())
+					iteratorsEmpty=false;
+			}
+			outBuffer.append("\n");
+			resultWriter.write(outBuffer.toString());
+		}
+		while(!iteratorsEmpty);
+		
+	}
 }

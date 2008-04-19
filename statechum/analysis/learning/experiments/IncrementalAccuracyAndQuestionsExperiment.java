@@ -19,6 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
+import java.io.File;
 import java.util.*;
 import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
@@ -30,7 +31,7 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
+public abstract class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
 {	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
@@ -48,8 +49,10 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 		public void runTheExperiment()
 		{
 			int size = 4*graph.getStateNumber();
-			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file			
-			rpg.generatePosNeg(size/experiment.getStageNumber(), experiment.getStageNumber());
+			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
+			int nrPerChunk = size/experiment.getStageNumber();nrPerChunk+=nrPerChunk % 2;// make the number even
+			rpg.generatePosNeg(nrPerChunk , experiment.getStageNumber());
+			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
 				protected Pair<Integer,String> checkWithEndUser(
@@ -61,8 +64,7 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 				}
 			};
 			sPlus = rpg.getExtraSequences(percent);sMinus = rpg.getAllSequences(percent);
-			PosNegPrecisionRecall prNeg = computePR(graph, l, sMinus);
-			result = result+prNeg.precision+FS+prNeg.recall;
+			computePR(graph, l, sMinus);
 		}
 
 //		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
@@ -71,15 +73,23 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 //			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
 //		}
 		
-		private PosNegPrecisionRecall computePR(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
-				PTASequenceEngine pta)
-		{// FIXME: need to mark rpg splus/sminus elements as learnt via partialPTA.cross(sminus), since splus consists of prefixes of sminus
-			LearnerGraph learned = learn(l,pta);
+		private void computePR(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
+				PTASequenceEngine ptaMinus)
+		{
+			LearnerGraph learned = learn(l,ptaMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 			PTASequenceEngine engine = new PTA_FSMStructure(fsm);
-			SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
-			partialPTA = partialPTA.cross(fsm.wmethod.getFullTestSet(1));
-			return precRec.crossWith(engine);
+			PosNegPrecisionRecall ptaPR = precRec.crossWith(ptaMinus);
+			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
+			ptaTestSet = ptaTestSet.cross(fsm.wmethod.getFullTestSet(1));
+			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
+			
+			// Columns 2 and 3
+			result = result+prNeg.precision+FS+prNeg.recall;
+			
+			result = result + FS + "AUX"+ FS + 
+				// Columns 5 and 6
+				ptaPR.precision  + FS + ptaPR.recall;
 		}
 
 		private LearnerGraph learn(RPNIBlueFringeLearnerTestComponentOpt l, PTASequenceEngine pta)
@@ -96,32 +106,67 @@ public class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperimen
 	
 	public int [] getStages()
 	{
-		return null;
+		return new int[]{10,50,100};
+	}
+		
+	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
+	{
+		protected final Configuration conf;
+		
+		/** Constructs an experiment class
+		 * 
+		 * @param qg the questioning strategy to use.
+		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
+		 */
+		public Experiment(Configuration.QuestionGeneratorKind qg, int limit)
+		{
+			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);
+		}
+
+		public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
+			return Arrays.asList(new LearnerEvaluatorGenerator[] {
+				new LearnerEvaluatorGenerator() {
+					@Override
+					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
+						return new RPNIEvaluator(inputFile, percent, instanceID, exp)
+						{
+							@Override
+							protected void changeParameters(Configuration c) 
+							{
+								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
+								c.setCertaintyThreshold(3);
+								c.setMinCertaintyThreshold(0); //question threshold
+								
+								c.setQuestionGenerator(conf.getQuestionGenerator());
+								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
+							}
+
+							@Override
+							protected String getLearnerName() {
+								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit();
+							}
+						};
+					}
+				}
+			});
+		}
 	}
 	
-	public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-		return Arrays.asList(new LearnerEvaluatorGenerator[] {
-			new LearnerEvaluatorGenerator() {
-				@Override
-				LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-					return new RPNIEvaluator(inputFile, percent, instanceID, exp)
-					{
-						@Override
-						protected void changeParameters(Configuration c) 
-						{
-							c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-							c.setCertaintyThreshold(3);
-							c.setMinCertaintyThreshold(0); //question threshold
-						}
-
-						@Override
-						protected String getLearnerName() {
-							return "RPNI_POSITIVE_NEGATIVE";
-						}
-					};
-				}
-			}
-		});
+	public static void main(String []args)
+	{
+		try {
+			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{Configuration.QuestionGeneratorKind.CONVENTIONAL, Configuration.QuestionGeneratorKind.SYMMETRIC})
+				for(int limit:new int[]{1,2,-1})
+				{
+					AbstractExperiment experiment = new Experiment(qk,limit);experiment.runExperiment(args);
+					String ending = "_"+qk+"_"+(limit<0?"all":limit)+".csv";
+					experiment.postProcessIntoR(2, 3, new File(experiment.getOutputDir(),"precision"+ending));
+					experiment.postProcessIntoR(2, 4, new File(experiment.getOutputDir(),"recall"+ending));
+				}			
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return;
+		}
 	}
-
 }

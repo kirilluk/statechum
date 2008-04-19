@@ -1066,7 +1066,16 @@ public class TestWMethod {
 	}
 	
 	@Test
-	public final void testVertexToInt()
+	public final void testVertexToInt1()
+	{
+		LearnerGraph textGraph = new LearnerGraph(config);
+		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
+		textGraph.buildCachedData();
+		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
+	}
+	
+	@Test
+	public final void testVertexToInt2()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);

@@ -23,6 +23,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
@@ -223,7 +224,7 @@ public class TestAbstractExperiment {
 		public void run() throws NumberFormatException, IOException;
 	}
 	
-	public final void checkForCorrectException(whatToRun what, Class exceptionClass, String exceptionString)
+	public static final void checkForCorrectException(whatToRun what, Class exceptionClass, String exceptionString)
 	{
 		try
 		{
@@ -598,5 +599,117 @@ public class TestAbstractExperiment {
 			}
 			
 		}, NumberFormatException.class,"");		
+	}
+	
+	final protected String FS = AbstractExperiment.FS; 
+	protected final String array = "A"+FS+"10"+FS+"4"+"\n"+
+	 "A"+FS+"15"+FS+"6"+"\n"+
+	 "B"+FS+"10"+FS+"8"+"\n"+
+	 "B"+FS+"15"+FS+"7"+"\n"+
+	 "A"+FS+"10"+FS+"3"+"\n"+
+	 "A"+FS+"15"+FS+"5"+"\n";
+	
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test(expected=IllegalArgumentException.class)
+	public final void testResultToR_fail1() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(-1, 2, new BufferedReader(new StringReader(array)), wr);
+	}
+	
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test(expected=IllegalArgumentException.class)
+	public final void testResultToR_fail2() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(1, -2, new BufferedReader(new StringReader(array)), wr);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public final void testResultToR_fail3() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(1, 20, new BufferedReader(new StringReader(array)), wr);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public final void testResultToR_fail4() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(10, 2, new BufferedReader(new StringReader(array)), wr);
+	}
+
+	/** Empty buffer. */
+	@Test
+	public final void testResultToR_fail_empty() throws IOException
+	{
+		StringWriter wr = new StringWriter();
+		try
+		{
+			AbstractExperiment.postProcessIntoR(0,0, new BufferedReader(new StringReader("")), wr);
+			Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException e)
+		{
+			Assert.assertEquals("no data to dump", e.getMessage());
+		}
+	}
+
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR1() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(1, 2, new BufferedReader(new StringReader(array)), wr);
+		Assert.assertEquals(
+				"10"+FS+"15"+"\n"+
+				 "4"+FS+"6"+"\n"+
+				 "8"+FS+"7"+"\n"+
+				 "3"+FS+"5"+"\n",
+				 wr.toString());
+	}
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR2() throws IOException
+	{
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(0, 2, new BufferedReader(new StringReader(array)), wr);
+		Assert.assertEquals(
+				"A"+FS+"B"+"\n"+
+				"4"+FS+"8"+"\n"+
+				"6"+FS+"7"+"\n"+
+				"3"+FS+"\n"+
+				"5"+FS+"\n",
+				 wr.toString());
+	}
+	
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR3() throws IOException
+	{
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(0, 1, new BufferedReader(new StringReader(array)), wr);
+		Assert.assertEquals(
+				"A"+FS+"B"+"\n"+
+				"10"+FS+"10"+"\n"+
+				"15"+FS+"15"+"\n"+
+				"10"+FS+"\n"+
+				"15"+FS+"\n",
+				 wr.toString());
 	}
 }

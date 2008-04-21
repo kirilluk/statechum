@@ -59,7 +59,7 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> {
 			return false;
 		if (!(obj instanceof Pair))
 			return false;
-		final Pair other = (Pair) obj;
+		final Pair<A,B> other = (Pair<A,B>) obj;
 		if (firstElem == null) {
 			if (other.firstElem != null)
 				return false;

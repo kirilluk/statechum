@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -171,6 +172,13 @@ public class TestAbstractExperiment {
 		multiExpResult = result.toArray(new String[]{});
 	}
 
+	@After
+	public final void afterTest()
+	{
+		// clean the directories
+		deleteTestDirectories();
+	}
+	
 	protected String [] multiExpResult = null;
 	protected AbstractExperiment multiExp = null;
 
@@ -183,7 +191,7 @@ public class TestAbstractExperiment {
 		}
 
 		@Override
-		protected void changeParameters(Configuration c) {
+		protected void changeParameters(@SuppressWarnings("unused") Configuration c) {
 			// not used
 		}
 	}
@@ -295,7 +303,7 @@ public class TestAbstractExperiment {
 
 	/** No files could be processed. */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator_fail1() throws NumberFormatException, IOException
+	public final void testAllGraphsMultiStageMultiEvaluator_fail1() throws NumberFormatException
 	{
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
@@ -306,7 +314,7 @@ public class TestAbstractExperiment {
 	
 	/** One file cannot be processed because it is not found. */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator_fail2_A() throws NumberFormatException, IOException
+	public final void testAllGraphsMultiStageMultiEvaluator_fail2_A() throws NumberFormatException
 	{
 		String fileToRemove = graphs.entrySet().iterator().next().getKey();
 		Assert.assertTrue(new File(testGraphsDir,fileToRemove).delete());

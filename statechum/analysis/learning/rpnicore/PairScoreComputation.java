@@ -148,7 +148,7 @@ public class PairScoreComputation {
 
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
-		coregraph.buildCachedData();
+		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.wmethod.computeAlphabet().size();
 		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
@@ -657,7 +657,7 @@ public class PairScoreComputation {
 		
 		if (foundKTail)
 		{// If we are operating in a k-tails mode, report a very high number if we found a k-tail.
-			coregraph.buildCachedData();
+			if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.wmethod.computeAlphabet().size();
 			score = coregraph.learnerCache.maxScore+1;
 		}
 		return score;

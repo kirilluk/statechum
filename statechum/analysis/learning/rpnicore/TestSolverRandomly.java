@@ -35,11 +35,11 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
 @RunWith(Parameterized.class)
-public class TestLinearRandomly {
+public class TestSolverRandomly {
 	protected final DoubleFunction randomGenerator;
 	protected final int size;
 	
-	public TestLinearRandomly(final Random conf, int s) {
+	public TestSolverRandomly(final Random conf, int s) {
 		size = s;
 		randomGenerator = new DoubleFunction() {
 			private final Random rnd = conf;

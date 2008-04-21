@@ -38,8 +38,15 @@ AM_PROG_LIBTOOL
 
 JAVAC=javac
 AC_JNI_INCLUDE_DIR()
+
+dnl does not matter if we fail to find pthread - without it we'll not be able to find muti-threaded blas
+ACX_PTHREAD([
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"],)
+
 ACX_BLAS(,
-	AC_MSG_ERROR("failed to find BLAS"))
+	AC_MSG_ERROR(failed to find BLAS))
 
 ACX_UMFPACK()
 

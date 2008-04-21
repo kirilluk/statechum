@@ -134,8 +134,8 @@ public class WExperiment extends AbstractExperiment {
 		System.out.println(result.toString());
 		
 		
-		long tmStarted = new Date().getTime();result.buildCachedData();HashSet<List<String>> outcome = new HashSet<List<String>>();
-		result.transform.buildJniMatrix(AbstractExperiment.getCpuNumber());
+		long tmStarted = new Date().getTime();HashSet<List<String>> outcome = new HashSet<List<String>>();
+		result.transform.buildMatrix(AbstractExperiment.getCpuNumber());
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);
 		long tmFinished = new Date().getTime();

@@ -87,21 +87,21 @@ public class ComputeQuestions {
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
-					original.buildCachedData();original.paths.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
+					original.paths.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
 					return toBlue;
 				}
 
 				public SequenceSet getPathsToRed() 
 				{
 					SequenceSet toRed = engine.new SequenceSet();
-					original.buildCachedData();original.paths.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
+					original.paths.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
 					return toRed;
 				}
 
 				public SequenceSet getPathsToLearnt() 
 				{
 					SequenceSet toLearnt = engine.new SequenceSet();
-					learnt.buildCachedData();learnt.paths.computePathsSBetween(learnt.init, learnt.stateLearnt, identity, toLearnt);
+					learnt.paths.computePathsSBetween(learnt.init, learnt.stateLearnt, identity, toLearnt);
 					return toLearnt;
 				}
 
@@ -209,7 +209,8 @@ public class ComputeQuestions {
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
-		original.buildCachedData();merged.buildCachedData();
+		if (original.learnerCache.flowgraph == null) original.learnerCache.flowgraph = original.paths.getFlowgraph();
+		if (merged.learnerCache.flowgraph == null) merged.learnerCache.flowgraph = merged.paths.getFlowgraph();
 		
 		PTASequenceEngine engine = new PTASequenceEngine();
 		engine.init(original.new NonExistingPaths());

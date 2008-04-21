@@ -78,4 +78,14 @@ jint Control_IRSTEP;
 /** Whether I'm using di_wsolve or di_solve. */
 jboolean useWorkingMemory;
 
+/** Cygwin does not add underscores to names on win32, hence we have to add them ourselves. */
+#ifdef _WIN32
+#define STDCALLFUDGE(NAME) _##NAME
+#else
+#define STDCALLFUDGE(NAME) NAME
+#endif
+
+
 #endif /* !SOLVER_H */
+
+

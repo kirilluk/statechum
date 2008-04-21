@@ -1,5 +1,19 @@
-/**
- * 
+/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+
+This file is part of StateChum.
+
+StateChum is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+StateChum is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 package statechum.analysis.learning.rpnicore;
 
@@ -13,6 +27,99 @@ import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
+/** Interfaces to an external solver.
+ * <p> 
+* Building the external solver is described below. 
+* The procedure is similar for Linux and Win32 (with cygwin). 
+* <ul>
+* <li>
+* You need Atlas (such as version 3.8.1), {@link http://math-atlas.sourceforge.net}.
+* After uncompressing it, create a build directory builddir in its top folder,
+* enter it
+* <pre>
+* cd ATLAS/builddir
+* <pre>
+* and run (replacing the prefix path with the one you'd like Atlas to be installed)
+* <pre>  
+* ../configure --prefix=/usr/local/soft/atlas-3.8.1 -Fa alg -fPIC
+* </pre>
+* Note: on Win32 with cygwin, the configure script may fail to detect the
+* number of cores and decide to abort. Forcing this number to the actual
+* number of processors by modifying the appropriate file would help.
+* <pre>
+* ATLAS/CONFIG/src/config.c
+* </pre>
+* To correct the problem, you need to add one line after the probe "GetIntProbe",
+* as follows:
+* <pre>
+* iret = GetIntProbe(verb, ln, "arch", "NCPU", 2048);
+* if (iret == 0) { printf("\nKIRR ugly hack: forcing NCPU to 2");iret=2;}
+* </pre>
+* After configure succeeds, you need to run "make" to build Atlas, 
+* <pre>
+* make check
+* </pre>
+* to verify that it works and "make install" to install it.<p>
+* Note that when building starts, you need an unloaded PC for it to collect the 
+* relevant times for self-optimising. For this reason,
+* <pre>
+* cpufreq-selector -c 0 -g performance
+* cpufreq-selector -c 1 -g performance
+* </pre>
+* might help to disable power-saving (Atlas calls it "CPU throttling" and 
+* attempts to detect it).
+* </li>
+* 
+* <li>
+* You need UMFPACK, {@link http://www.cise.ufl.edu/research/sparse/umfpack/}
+* which includes AMD and UFconfig. These three need to be uncompressed
+* starting from the same directory.
+* Subsequently, configuration needs to be set. The file to edit is 
+* <pre> 
+* UFconfig/UFconfig.mk
+* </pre>
+* It has to have the following two lines included (which would usually replace
+* the appropriate lines in the file rather than added at the end):
+* <pre>
+* UMFPACK_CONFIG = -DNO_TIMER -fPIC
+* BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lgfortran
+* </pre>
+* Note the reference to the Atlas installation directory. You may also wish 
+* to replace -llf77blas with -lptf77blas, but it should not affect anything.
+* <p>
+* Subsequently, running make in the UMFPACK directory.
+* </li>
+* 
+* <li>
+* If file 
+* <pre>
+* linear/configure
+* </pre>
+* is not present, you need to build it as follows:
+* <pre>
+* cd linear
+* ./bootstrap
+* </pre>
+* </li>
+* 
+* <li>
+* Building the interface involves running
+* <pre>
+* cd linear
+* ./configure --with-blasdir=/usr/local/soft/atlas-3.8.1/lib --with-umfpack=/usr/local/src/umfpack && make
+* </pre>
+* Note that the above includes both Atlas directory and the one into which 
+* UMFPACK was extracted. Subsequently, running make should build the library.
+* </li>
+* 
+* <li>
+* In order for the just built library to be picked by Java, 
+* you need to pass the following as a JVM option: 
+* <pre>
+* -Djava.library.path=linear/.libs
+* </pre> 
+* </li></ul>
+*/
 public class ExternalSolver 
 {
 	public final int j_Ap[];
@@ -113,25 +220,42 @@ public class ExternalSolver
 	private static int currentMaxSize = -1;
 	private static int current_c = 1;
 	
+	/** Attempts to load the library from the specified path 
+	 * implicitly (considering java.library.path variable)
+	 */
+	private static UnsatisfiedLinkError tryLoading(String name)
+	{
+		UnsatisfiedLinkError result = null;
+		
+		try
+		{ System.loadLibrary(name); }
+		catch(UnsatisfiedLinkError ex)
+		{ result = ex; }
+		
+		return result;
+	}
+	
 	public static void loadLibrary()
 	{
-		try
+		if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
 		{
-			if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
-				System.loadLibrary("cygStatechumSolver-1");
+			UnsatisfiedLinkError ex = null;
+			ex = tryLoading("cygStatechumSolver-1");
+			if (ex != null) ex = tryLoading("StatechumSolver");
+
+			if (ex != null)
+			{// failed to load our library.
+				libraryLoaded = LibraryLoadResult.FAILURE;
+				
+				throw new IllegalArgumentException("failed to load the solver library");
+			}
 
 			setIRStep(1);
 			libraryLoaded = LibraryLoadResult.SUCCESS;
 		}
-		catch(Exception ex)
-		{// failed to load
-			IllegalArgumentException e = new IllegalArgumentException("failed to load solver library: "+ex.getMessage());e.initCause(ex);
-			libraryLoaded = LibraryLoadResult.FAILURE;
-			throw e;
-		}
 	}
 	
-	/** Convertes a Colt matrix into the form appopriate for UMFPACK solver. */
+	/** Converts a Colt matrix into the form appropriate for UMFPACK solver. */
 	public ExternalSolver(DoubleMatrix2D matrix)
 	{
 		if (matrix.columns() != matrix.rows())
@@ -166,7 +290,7 @@ public class ExternalSolver
 		}
 	}
 	
-	/** Converts this matrix to Colt format, for a fallback on Colt when external solver is not found. */
+	/** Converts this matrix to Colt format, for a fall back on Colt when external solver is not found. */
 	public DoubleMatrix2D toDoubleMatrix2D()
 	{
 		DoubleMatrix2D result = DoubleFactory2D.sparse.make(j_Ap.length-1, j_Ap.length-1);
@@ -177,7 +301,7 @@ public class ExternalSolver
 		return result;
 	}
 
-	/** Converts the "b" vector to Colt format, for a fallback on Colt when external solver is not found. */
+	/** Converts the "b" vector to Colt format, for a fall back on Colt when external solver is not found. */
 	public DoubleMatrix1D toDoubleMatrix1D()
 	{
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(j_b.length);

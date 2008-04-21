@@ -39,10 +39,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cern.colt.function.IntComparator;
+import cern.colt.list.DoubleArrayList;
+import cern.colt.list.IntArrayList;
+
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.experiments.AbstractExperiment;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -73,46 +76,7 @@ public class Transform {
 		return distance;
 	}
 
-	public static void addAssignement(StringBuffer buffer, Integer A, Integer B, double value)
-	{
-		buffer.append("mat(");
-		buffer.append(A);
-		buffer.append(",");
-		buffer.append(B);
-		buffer.append(")=");buffer.append(value);buffer.append(";");
-	}
-	
-	public final double valueK=0.9;
-	
-	public interface AddToMatrix
-	{
-		public void addMapping(int A, int B, double value);
-	}
-	
-	/** Given a row of a transition matrix this one computes the number of pairs of outgoing transitions
-	 * in common between a state corresponding to that row and all other states in this machine.
-	 * 
-	 * @param rowB the row to consider
-	 * @return the number of common pairs - this is useful to compute the number of nonzero elements in the matrix.
-	 */
-	public int estimateSize(Entry<CmpVertex,Map<String,CmpVertex>> entryA)
-	{
-		int result = 0;
-		Map<String,CmpVertex> rowA = entryA.getValue();
-		Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
-		while(stateB_It.hasNext())
-		{
-			Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();++result;
-			for(Entry<String,CmpVertex> outLabel:stateB.getValue().entrySet())
-			{
-				if (rowA.containsKey(outLabel.getKey()))
-					++result;
-			}
-			if (stateB.getKey() == entryA.getKey()) break; // we only process a triangular subset.
-		}
-		return result;
-	}
-	
+	/*
 	public void addToBuffer(AddToMatrix resultReceiver, CmpVertex A, CmpVertex B)
 	{
 		Map<Integer,Double> targetCnt = new TreeMap<Integer,Double>();
@@ -148,12 +112,12 @@ public class Transform {
 		for(Entry<Integer,Double> entry:targetCnt.entrySet())
 			resultReceiver.addMapping(valueFirst,entry.getKey(),entry.getValue());
 	}
+	*/
 	
 	public interface HandleRow 
 	{
 		/** Called for each row of our transition matrix. */
 		public void handleEntry(Entry<CmpVertex,Map<String,CmpVertex>> entry, int threadNo);
-		public void finished(int threadNo);
 	}
 	
 	protected class Job implements Callable<Integer>
@@ -184,13 +148,17 @@ public class Transform {
 					Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();++currentRow;
 					handler.handleEntry(stateB, threadNo);
 				}
-				handler.finished(threadNo);
 				System.out.println("thread "+threadNo+" finished at row "+currentRow);
 			}
 			return 0;
 	}}
 	
-	/** Runs this handler on all the rows in our matrix, using all the available CPUs. */
+	/** Runs the supplied handler on all the rows in our matrix, using the specified number of threads.
+	 * 
+	 * @param handler called for each row
+	 * @param ThreadNumber the number of threads to create. If this is one, no 
+	 * <em>ExecutorService</em> is created and the handler is called directly.
+	  */
 	protected void performRowTasks(final HandleRow handler, int ThreadNumber)
 	{
 		final int[]workLoad = partitionWorkLoad(ThreadNumber);
@@ -217,7 +185,7 @@ public class Transform {
 		}
 		catch(Exception ex)
 		{
-			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the is problem: "+ex);e.initCause(ex);throw e;
+			IllegalArgumentException e = new IllegalArgumentException("failed to compute, the problem is: "+ex);e.initCause(ex);throw e;
 		}
 		finally
 		{
@@ -229,90 +197,49 @@ public class Transform {
 	 * an opposite direction to the current one. The matrix produced is used to scan 
 	 * the state comparison matrix columnwise.
 	 */
-	protected Map<CmpVertex,Map<CmpVertex,String>> buildSortaInverse()
+	public void prepareForLinear()
 	{
-		Map<CmpVertex,Map<CmpVertex,String>> sortaInverse = new TreeMap<CmpVertex,Map<CmpVertex,String>>();
+		coregraph.learnerCache.stateToNumber = coregraph.wmethod.buildStateToIntegerMap();
+		
+		Map<CmpVertex,Map<String,List<CmpVertex>>> sortaInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{
 			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 			{
-				Map<CmpVertex,String> row = sortaInverse.get(transition.getValue());
+				Map<String,List<CmpVertex>> row = sortaInverse.get(entry.getKey());
 				if (row == null)
 				{
-					row = new TreeMap<CmpVertex,String>();sortaInverse.put(entry.getKey(),row);
+					row = new TreeMap<String,List<CmpVertex>>();sortaInverse.put(entry.getKey(),row);
 				}
-				row.put(entry.getKey(), transition.getKey());
+				List<CmpVertex> sortedSetOfTargets = row.get(transition.getKey());
+				if (sortedSetOfTargets == null)
+				{
+					sortedSetOfTargets=new LinkedList<CmpVertex>();row.put(transition.getKey(), sortedSetOfTargets);
+				}
+				sortedSetOfTargets.add(transition.getValue());
 			}
 		}
-		return sortaInverse;
-	}
-	
-	public void buildJniMatrix(int ThreadNumber)
-	{
-		coregraph.buildCachedData();
-		//int ThreadNumber = AbstractExperiment.getCpuNumber();
-		final int[]arraySize= new int[ThreadNumber];
-		performRowTasks(new HandleRow()
-		{
-			int arrayChunkSize =0; 
-
-			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entry, int threadNo) {
-				arrayChunkSize+=estimateSize(entry);
-			}
-
-			public void finished(int threadNo) {
-				arraySize[threadNo] = arrayChunkSize;
-			}
-		}, ThreadNumber);
-			
-		int s=0;
-		for(int i=0;i< ThreadNumber;++i)
-		{
-			System.out.println(i+" : "+arraySize[i]);s+=arraySize[i];
-		}
-		System.out.println(s);	
-
-		final double buffer[] = new double[s];
-		class MatrixPopulator implements AddToMatrix
-		{
-			private int pos=0;
-			public synchronized void addMapping(int A, int B, double value) {
-				buffer[pos++]=0;
-			}
-			
-			int getSize()
+		
+		coregraph.learnerCache.sortaInverse = sortaInverse;
+		
+		// Now we need to estimate expectedIncomingPerPairOfStates
+		int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:sortaInverse.entrySet())
+			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
 			{
-				return pos;
+				++incomingCnt;
+				int size = transition.getValue().size();indegreeSum+=size;
+				if (size > maxInDegree) maxInDegree=size;
 			}
-		};
-		MatrixPopulator populator = new MatrixPopulator();
-		buildMatrix(populator,ThreadNumber);
-		System.out.println(populator.getSize());
+		
+		// The logic is simple: if maxInDegree is much higher than the 
+		// average, double the average indegree, otherwise leave it unchanged.  
+		coregraph.learnerCache.expectedIncomingPerPairOfStates = 1;
+		if (incomingCnt > 0) coregraph.learnerCache.expectedIncomingPerPairOfStates=indegreeSum/incomingCnt;
+		if (maxInDegree/10 > coregraph.learnerCache.expectedIncomingPerPairOfStates)
+			coregraph.learnerCache.expectedIncomingPerPairOfStates<<=1;// double it
 	}
 	
-	public void toOctaveMatrix(final Writer wr)
-	{		
-		AddToMatrix resultAdder = new AddToMatrix()
-		{
-			public void addMapping(int A, int B, double value) {
-				try
-				{
-				wr.append("mat(");
-				wr.append(""+A);
-				wr.append(",");
-				wr.append(""+B);
-				wr.append(")=");wr.append(""+value);wr.append(";");
-				}
-				catch(IOException ex)
-				{
-					IllegalArgumentException e = new IllegalArgumentException("failed to write file");e.initCause(ex);
-					throw e;
-				}
-			}
-		};
-		buildMatrix(resultAdder, AbstractExperiment.getCpuNumber());
-	}
-
 	/** Processing of data for a triangular matrix using multiple CPUs has to be done by
 	 * identifying subsets of rows and columns to handle.
 	 * 
@@ -342,29 +269,177 @@ public class Transform {
 		return result;
 	}
 	
-	public void buildMatrix(final AddToMatrix resultAdder, int ThreadNumber)
-	{		
+	// TODO: testing by comparing single and multi-threaded performance.
+	public ExternalSolver buildMatrix(final int ThreadNumber)
+	{
+		final int pairsNumber = coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2;
+		final int expectedMatrixSize = coregraph.learnerCache.expectedIncomingPerPairOfStates*pairsNumber;
+		
+		/** This one is supposed to contain indices into Ai where each column starts. Every thread
+		 * processes a continuous sequence of state pairs (ensured by exploring a triangular subset of 
+		 * all the pairs and matching it to calls to vertexToInt()). For this reason, it is easy to 
+		 * compute a range of state pairs handled by every thread and subsequently renumber the array.
+		 */ 
+		final int Ap[]=new int[pairsNumber+1];
+		final int Ap_threadStart[]=new int[ThreadNumber];for(int i=0;i<Ap_threadStart.length;++i) Ap_threadStart[i]=-1;
+		
+		// one array per thread.
+		final IntArrayList Ai_array[]=new IntArrayList[ThreadNumber];
+		final DoubleArrayList Ax_array[]=new DoubleArrayList[ThreadNumber];
+		final double b[] =new double[pairsNumber];
+		final int currentPosition[]=new int[ThreadNumber];// stores the last used index in the Ai and Ax arrays.
+		final double k = coregraph.config.getAttenuationK();
+		
+		// We need next to no locking since state pairs considered are disjoint and work arrays are split between threads.
 		performRowTasks(new HandleRow()
 		{
-			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) {
-				Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+			int tmpAi[] = new int[expectedMatrixSize/ThreadNumber];
+			
+			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+			{
+				//IntArrayList Ap = Ap_array[threadNo];if (Ap == null) Ap=new IntArrayList(coregraph.getStateNumber()+pairsNumber/ThreadNumber);
+				IntArrayList Ai = Ai_array[threadNo];if (Ai == null) Ai=new IntArrayList(expectedMatrixSize/ThreadNumber);
+				DoubleArrayList Ax = Ax_array[threadNo];if (Ax == null) Ax=new DoubleArrayList(expectedMatrixSize/ThreadNumber);
+				Collection<Entry<String,List<CmpVertex>>> rowA_collection = coregraph.learnerCache.sortaInverse.get(entryA.getKey()).entrySet();
+				
+				// Now iterate through states
+				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = coregraph.learnerCache.sortaInverse.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
-					for(Entry<CmpVertex,Map<String,CmpVertex>> entryB:coregraph.transitionMatrix.entrySet())
-						addToBuffer(resultAdder,entryA.getKey(),entryB.getKey());
+					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
+					Map<String,List<CmpVertex>> rowB = stateB.getValue();
+					
+					// At this point, we consider a pair of states (entryA.getKey(),stateB),
+					// by iterating through inputs associated with incoming transitions and
+					// attempting to check if there is a match.
+					
+					int colEntriesNumber =0, 
+						currentStatePair = coregraph.wmethod.vertexToInt(stateB.getKey(),entryA.getKey());// the order 
+							// of arguments is important:
+							// we have to iterate such that each thread has a continuous sequence of state pair number
+							// (and these numbers are never shared).
+					if (Ap_threadStart[threadNo] < 0) Ap_threadStart[threadNo]=currentStatePair;
+					
+					Ai.setQuick(colEntriesNumber++, currentStatePair);// we definitely need a diagonal, hence add it since we may have no matched loops in the current pair of states 
+					for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
+					{
+						List<CmpVertex> to = rowB.get(outLabel.getKey());
+						if (to != null)
+						{// matched pair of transitions, now we need to build a cross-product 
+						 // of the states leading to the current pair of states, that is,
+						 // to (entryA.getKey(),stateB)
+						
+							for(CmpVertex srcA:outLabel.getValue())
+								for(CmpVertex srcB:to)
+									tmpAi[colEntriesNumber++]=coregraph.wmethod.vertexToInt(srcA, srcB);
+						}
+					}
+					
+					b[currentStatePair]=colEntriesNumber-1;// 1 was added for a diagonal.
+					
+					// At this point, we populated Ai and b with elements for the current row (number currentStatePair),
+					// so it is time to sort the entries.
+					cern.colt.Sorting.quickSort(tmpAi,0, colEntriesNumber,new IntComparator() {
+						public int compare(int o1, int o2) { return o2-o1; }});
+					
+					// Now we have to copy the result to the target array.
+					int pos = currentPosition[threadNo];// the position where to start writing into Ai and Ax.
+					Ap[currentStatePair]=pos;// Ap maps each state pair to the corresponding position in Ai and Ax.
+					
+					int prev = -1;
+					boolean diagonalSet = false;
+					for(int i=0;i<colEntriesNumber;++i)
+					{
+						int currentValue = tmpAi[i];
+						if (!diagonalSet && currentValue >= currentStatePair)
+						{// this is the time to handle a diagonal. When this condition becomes true,
+						 // currentValue >= currentStatePair for the first time, it hence cannot
+						 // be equal to prev since we've seen prev before.
+							assert currentValue != prev;
+							
+							prev=currentStatePair;
+							int totalOutgoing = entryA.getValue().size()+coregraph.transitionMatrix.get(stateB.getKey()).size();
+							Ax.setQuick(pos,totalOutgoing);
+							Ai.setQuick(pos++,prev);
+							diagonalSet = true;
+							// Now that we've added a diagonal, the next value may get added to it
+							// or a new element be added if currentValue > currentStatePair
+						}
+						
+						if(currentValue!=prev)
+						{
+							prev=currentValue;
+							Ax.setQuick(pos,-k);
+							Ai.setQuick(pos++,prev);
+						}
+						else Ax.setQuick(pos,Ax.getQuick(pos)-k);
+					}
+					currentPosition[threadNo]=pos;
 					
 					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 				}
-			}
-
-			public void finished(int threadNo) {
+				
 			}
 		}, ThreadNumber);
 		
+		// At this point, we are finished building the matrices, it's time to populate the main arrays.
+		
+		// First, we compute the number of non-zero elements.
+		int size = 0;for(int thread=0;thread<ThreadNumber;++thread) size+=currentPosition[thread];
+		// Second, allocate arrays.
+		int Ai[]=new int[size];double Ax[]=new double[size];
+		
+		// Finally, populate them.
+		for(int thread=0;thread<ThreadNumber;++thread)
+		{
+/* I'll try to draw a picture relating different arrays, 
+
+StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
+				Ap:	0  8 12 | 0 11 16 | 0  4 12
+                            |         |
+  threadNo		  :     0        1         2 		  
+  currentPosition :    20       18        19
+  
+  The above picture with three threads shows the following relation between columns
+  and the number of elements in them:
+	0	8
+	1	12-8
+	2	20-12
+	
+	3	11
+	4	16-11
+	5	18-16
+	
+	....
+	
+  When we copy the outcome into Ai and Ax, we have to introduce sequential numbers, 
+  so column 3 will start where column 2 finished in Ai populated by thread 0, 
+  i.e. at position 20 (last element filled in by thread 0), 
+  column 4 will start at 11+20 and so on until data filled in by thread 2,
+  hence column 6 will start at position 20+18.
+  
+  With the above illustration in mind, the code below updates Ap and fills in Ax and Ai.
+*/
+			
+			// Ap_threadStart[thread] is the state pair where the current thread "thread" has started, hence
+			// the previous thread has finished at state pair Ap_threadStart[thread]-1.
+			// (if the current thread is the first one, this is zero).
+			int prevLastPos = (thread >0)?Ap[Ap_threadStart[thread]-1]:0;
+
+			if(thread > 0)
+			{// renumber elements of Ap considering where the previous thread has finished.
+				
+				int lastPair = (thread == ThreadNumber-1)?pairsNumber:Ap_threadStart[thread+1];// the position where the next thread has started (or would've started if it was not the last thread).
+				for(int i=Ap_threadStart[thread];i<lastPair;++i)
+					Ap[i]+=prevLastPos;
+			}
+			
+			System.arraycopy(Ai_array[thread], 0, Ai, prevLastPos, currentPosition[thread]);
+			System.arraycopy(Ax_array[thread], 0, Ax, prevLastPos, currentPosition[thread]);
+		}
+		Ap[pairsNumber+1]=currentPosition[ThreadNumber];
+		return new ExternalSolver(Ap,Ai,Ax,b,new double[pairsNumber]);
 	}
-	
-	
 	
 	/** The standard beginning of our graphML files. */
 	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";

@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.model.testset;
+package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.*;
 import static statechum.analysis.learning.rpnicore.WMethod.cross;
@@ -54,12 +54,10 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
+import statechum.model.testset.PrefixFreeCollection;
+import statechum.model.testset.SlowPrefixFreeCollection;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.TestFSMAlgo.buildList;
@@ -1070,7 +1068,7 @@ public class TestWMethod {
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
-		textGraph.buildCachedData();
+		textGraph.learnerCache.stateToNumber = textGraph.wmethod.buildStateToIntegerMap();
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
 	}
 	
@@ -1088,7 +1086,8 @@ public class TestWMethod {
 		 *B 124
 		 *C 345
 		*/
-		numericGraph.buildCachedData();
+		numericGraph.learnerCache.stateToNumber = numericGraph.wmethod.buildStateToIntegerMap();
+
 		Assert.assertEquals(0,numericGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(A,B));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(B,A));

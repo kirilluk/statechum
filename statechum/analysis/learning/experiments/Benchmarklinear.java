@@ -39,8 +39,8 @@ public class Benchmarklinear {
 	    			),config);
 		}
 		System.out.println("graph loaded");
-		long tmStarted = new Date().getTime();graph.buildCachedData();//HashSet<List<String>> outcome = new HashSet<List<String>>();
-		graph.transform.buildJniMatrix(1);
+		long tmStarted = new Date().getTime();//HashSet<List<String>> outcome = new HashSet<List<String>>();
+		graph.transform.buildMatrix(AbstractExperiment.getCpuNumber());
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);
 		long tmFinished = new Date().getTime();

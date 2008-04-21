@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -144,34 +145,79 @@ public class LearnerGraph {
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 	
+	/** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
+	 * This includes rebuilding max score and flow graph, as well as routines used for
+	 * going linear.
+	 */
 	final class cachedData
 	{
 		/** The flowgraph representing the transition diagram (i.e. parallel 
 		 * edges between every pair of states are collapsed into a single 
 		 * edge associated with a set of labels of those edges).
+		 * To rebuild the cache (if the reference is zero)
+		 * <pre>
+		 * learnerCache.flowgraph = paths.getFlowgraph();
+		 * </pre>
 		 */   
 		protected Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
 		
 		/** The map from vertices to the corresponding numbers. Used for space-saving 
-		 * computation of W method and for computing of state-similarity. 
+		 * computation of W method and for computing of state-similarity.
+		 * If null, use the following to build:
+		 * <pre>
+		 * learnerCache.stateToNumber = wmethod.buildStateToIntegerMap();
+		 * </pre>
 		 */
 		protected Map<CmpVertex,Integer> stateToNumber = null;
 		
 		/** This transition matrix is very similar to the main one except
-		 * that all transitions are pointing in the opposite direction. This matrix
-		 * is used to scan the state comparison matrix columnwise.
+		 * that all transitions are pointing in the opposite direction. Due to
+		 * nondeterminism this produces, target states are represented using lists.
+		 * This matrix is used to scan the state comparison matrix columnwise.
+		 * <p>
+		 * If null, use the following to build:
+		 * <pre>
+		 * transform.prepareForLinear()
+		 * </pre>
 		 */
-		protected Map<CmpVertex,Map<CmpVertex,String>> sortaInverse = null;
+		protected Map<CmpVertex,Map<String,List<CmpVertex>>> sortaInverse = null;
+
+		/** Consider every state and a map from inputs to transitions leading into
+		 * those states with those inputs (<em>sortaInverse</em>).
+		 * For a pair of states (A,B), there may be some inputs for which both states
+		 * have incoming transitions - this is an intersection
+		 * <pre> 
+		 * cmnInputs = sortaInverse.get(A).getKeys() INTERSECT sortaInverse.get(B).getKeys().
+		 * </pre>
+		 * If we consider the number of incoming states in 
+		 * <pre>
+		 * vertexToInt(getIntsortaInverse.get(cmnInputs).getValues(),getIntsortaInverse.get(cmnInputs).getValues())
+		 * </pre>
+		 * then these states (plus perhaps one, for a diagonal element) should be included
+		 * in a row submitted to UMFPACK.
+		 * We aim to estimate this number in order not to reallocate a target array
+		 * many times.
+		 * <p>
+		 * If negative, use the following to build:
+		 * <pre>
+		 * transform.prepareForLinear()
+		 * </pre>
+		 */
+		protected int expectedIncomingPerPairOfStates = -1;
 		
-		/** The maximal score which can be returned by score computation routines. */
+		/** The maximal score which can be returned by score computation routines. 
+		 * Not set if negative, to rebuild do the following:
+		 * <pre>
+		 * if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
+		 * </pre>
+		 */
 		protected int maxScore = -1;
 
-		/** Whether cache data is valid. */
-		public boolean valid = false;
-		
 		public void invalidate()
 		{
-			valid = false;flowgraph=null;maxScore=-1;stateToNumber = null;sortaInverse = null;
+			flowgraph=null;maxScore=-1;stateToNumber = null;
+			
+			sortaInverse = null;expectedIncomingPerPairOfStates = -1;
 		}
 	}
 	
@@ -248,28 +294,12 @@ public class LearnerGraph {
 		}
 	}
 	
-	/** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
-	 * Used to rebuild max score and flow graph.
-	 * This method is performing the rebuilding.
-	 */
-	public void buildCachedData() 
-	{
-		if (!learnerCache.valid)
-		{
-			learnerCache.flowgraph = paths.getFlowgraph();
-			learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
-			learnerCache.stateToNumber = wmethod.buildStateToIntegerMap();
-			learnerCache.sortaInverse = transform.buildSortaInverse();
-			learnerCache.valid = true;
-		}
-	}
-
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
 	 * This is particularly useful for testing.
 	 */ 
 	public void setMaxScore(int score)
 	{
-		buildCachedData();
+		if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
 		if (learnerCache.maxScore > score)
 			throw new IllegalArgumentException("cannot set the max score below the actual maximum");
 		learnerCache.maxScore=score;

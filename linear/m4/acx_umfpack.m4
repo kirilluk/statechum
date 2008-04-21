@@ -71,7 +71,7 @@ AC_DEFUN([ACX_UMFPACK_CHECKUMF],[
 		[acx_umfpack_include_ok=yes],[acx_umfpack_include_ok=no])
 
 	if test $acx_umfpack_include_ok = yes; then
-		AC_MSG_CHECKING([if a simple UMFPACK program builds])
+		AC_MSG_CHECKING([if data types are the same between UMFPACK and JNI])
 dnl this is from default aclocal.m4, checking both if a simple program can be built
 dnl and whether sizes are appropriate.
 
@@ -102,7 +102,7 @@ EOF
     case x$lt_status in
       x$umf_defsConsistent) 
 	acx_umfpack_ok=yes 
-    	AC_MSG_RESULT([ok])
+    	AC_MSG_RESULT([yes])
 	;; # everything ok, we're finished
       x$umf_defsInconsistent) 
 	AC_MSG_RESULT([inconsistent definitions of int/double between jni and UMFPACK])

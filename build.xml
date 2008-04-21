@@ -38,7 +38,8 @@
 		<assertions>
         	<enable/>
       	</assertions>
-	<jvmarg value="-XX:+CITime"/>
+    	<jvmarg value="-XX:+CITime"/>
+    	<jvmarg value="-Djava.library.path=linear/.libs"/>
 
        <classpath>
          <path refid="classpath.full" />

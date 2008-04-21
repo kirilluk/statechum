@@ -87,7 +87,7 @@ AC_ARG_WITH(blasdir,
 	[AC_HELP_STRING([--with-blasdir=<dir>], [use BLAS libraries in <dir>])])
 BLAS_DIR=
 if test "x$with_blasdir" != x; then
-	BLAS_DIR="-L $with_blasdir"
+	BLAS_DIR="-L$with_blasdir"
 fi
 
 # Get fortran linker names of BLAS functions to check for.
@@ -117,13 +117,13 @@ fi
 
 # BLAS in ATLAS library? (http://math-atlas.sourceforge.net/)
 if test $acx_blas_ok = no; then
-	AC_CHECK_LIB(atlas, ATL_xerbla,
-		[AC_CHECK_LIB(f77blas, $sgemm,
-		[AC_CHECK_LIB(cblas, cblas_dgemm,
-			[acx_blas_ok=yes
-			 BLAS_LIBS="-lcblas -lf77blas -latlas"],
-			[], [-lf77blas -latlas])],
-			[], [-latlas])])
+	AC_CHECK_LIB(atlas, ATL_xerbla,[ATLAS_LIBS="-latlas"],[ATLAS_LIBS=""])	
+	AC_CHECK_LIB(f77blas, $sgemm,[F77BLAS_LIBS="-lf77blas"],[F77BLAS_LIBS=""],[-latlas])
+	AC_CHECK_LIB(ptf77blas, $sgemm,[F77BLAS_LIBS="-lptf77blas"],[],[-latlas])
+	AC_CHECK_LIB(cblas, cblas_dgemm,[acx_blas_ok=yes
+			CBLAS_LIBS="-lcblas"],[CBLAS_LIBS=""],[-latlas])
+	AC_CHECK_LIB(ptcblas, cblas_dgemm,[CBLAS_LIBS="-lptcblas"],[],[-latlas])
+	BLAS_LIBS="$CBLAS_LIBS $F77BLAS_LIBS $ATLAS_LIBS"
 fi
 
 # BLAS in PhiPACK libraries? (requires generic BLAS lib, too)

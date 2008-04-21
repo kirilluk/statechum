@@ -488,7 +488,7 @@ public class WMethod {
 	 */
 	public static Collection<List<String>> computeWSet_reducedmemory(LearnerGraph fsm) throws EquivalentStatesException
 	{
-		fsm.buildCachedData();
+		fsm.learnerCache.stateToNumber = fsm.wmethod.buildStateToIntegerMap();
 		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
 		int WNext[] = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
@@ -981,8 +981,8 @@ public class WMethod {
 		int x=coregraph.learnerCache.stateToNumber.get(vertexA), y = coregraph.learnerCache.stateToNumber.get(vertexB);
 		if (x <= y)
 			return x+y*(y+1)/2;
-		else
-			return y+x*(x+1)/2;
+		
+		return y+x*(x+1)/2;
 	}
 }
 

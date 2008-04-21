@@ -272,6 +272,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (generateTextOutput? 1231 : 1237);
 		result = prime * result + ((autoAnswerFileName == null) ?0: autoAnswerFileName.hashCode());
 		result = prime * result + questionPathUnionLimit;
+		result = prime * result + (int)(attenuationK*100);
 		return result;
 	}
 
@@ -335,6 +336,8 @@ public class Configuration implements Cloneable
 		if (generateTextOutput != other.generateTextOutput)
 			return false;
 		if (questionPathUnionLimit != other.questionPathUnionLimit)
+			return false;
+		if (attenuationK != other.attenuationK)
 			return false;
 		return true;
 	}
@@ -471,5 +474,28 @@ public class Configuration implements Cloneable
 
 	public void setGenerateTextOutput(boolean generateText) {
 		generateTextOutput = generateText;
+	}
+	
+	/** When doing linear, we need a way to attenuate the compatibility score associated
+	 * to states into which we have transitions. This values provides the appropriate 
+	 * attenuation, which has to be under 1, since otherwise the matrix is likely to be
+	 * singular. Using a value of 0 would imply we ignore all outgoing transitions.
+	 */
+	protected double attenuationK=0.9;
+	
+	public double getAttenuationK()
+	{
+		return attenuationK;
+	}
+
+	/** Sets the new value of k.
+	 * 
+	 * @param k the new value of attenuation.
+	 * @throws IllegalArgumentException if k is negative or 1 or over 1.
+	 */
+	public void setAttenuationK(double k)
+	{
+		if (k<0 || k>=1) throw new IllegalArgumentException("attenuation should be within [0,1[");
+		attenuationK = k;
 	}
 }

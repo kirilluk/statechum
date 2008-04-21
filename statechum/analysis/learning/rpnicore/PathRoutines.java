@@ -119,7 +119,7 @@ public class PathRoutines {
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
-		coregraph.buildCachedData();
+		if (coregraph.learnerCache.flowgraph == null) coregraph.learnerCache.flowgraph = coregraph.paths.getFlowgraph();
 		if (LearnerGraph.testMode)
 			if (!coregraph.learnerCache.flowgraph.containsKey(vertSource) || !coregraph.learnerCache.flowgraph.containsKey(vertTarget))
 				throw new IllegalArgumentException("either source or target vertex is not in the graph");
@@ -448,7 +448,8 @@ public class PathRoutines {
 			result = new DirectedSparseGraph();
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-			coregraph.buildCachedData();
+			if (coregraph.learnerCache.flowgraph == null) coregraph.learnerCache.flowgraph = coregraph.paths.getFlowgraph();
+
 			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
 			// add states
 			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.flowgraph.entrySet())

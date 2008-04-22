@@ -4,7 +4,8 @@
 # Essentially from http://www.kevinsheppard.org/research/matlabatlas/
 
 ATLAS=/usr/local/soft/atlas-3.8.1/lib
-UMFROOT=/cygdrive/d/experiment/umfpack
+UMFROOT=/usr/local/src/umfpack
+#UMFROOT=/cygdrive/d/experiment/umfpack
 
 ./bootstrap && ./configure --with-blasdir=${ATLAS} --with-umfpack=${UMFROOT}
 touch umfsolver.c

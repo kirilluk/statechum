@@ -115,7 +115,7 @@ public class WExperiment extends AbstractExperiment {
 		for(LearnerGraph gr:graphs)
 			if (gr != result)
 			{
-				Transform.relabel(gr, 2, "gr_"+graphNumber++);
+				Transform.relabel(gr, 1, "gr_"+graphNumber++);
 				CmpVertex newInit = Transform.addToGraph(result, gr);
 				int score = -1;
 				do
@@ -130,7 +130,7 @@ public class WExperiment extends AbstractExperiment {
 				while(score < 0);
 				System.out.println(result.toString());
 				
-				if (result.getStateNumber() > 500) break;
+				//if (result.getStateNumber() > 1000) break;
 			}
 		System.out.println();
 		System.out.println(result.toString());
@@ -155,7 +155,7 @@ public class WExperiment extends AbstractExperiment {
 			//result.transform.toOctaveMatrix(writer);writer.close();
 			
 			//System.out.println("time taken: "+(tmFinished-tmStarted)/1000);
-			result.transform.writeGraphML("../W_experiment/experiment_500.xml");
+			result.transform.writeGraphML("../../W_experiment/experiment_5000.xml");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

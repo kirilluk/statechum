@@ -31,28 +31,32 @@ public class Benchmarklinear {
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph graph = null;
 		
+		long tmStarted = new Date().getTime();
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 	    	graph = new LearnerGraph(graphmlFile.load(
-	    			"../W_experiment/experiment_500.xml"
+	    			//"../../W_experiment/experiment_4300.xml"
 	    			//"../W_experiment/3000/N_3000_1.xml"
-	    			//"../W_experiment/experiment_1000.xml"
+	    			"../../W_experiment/experiment_1000.xml"
 	    			),config);
 		}
 		System.out.println("graph loaded");
-		long tmStarted = new Date().getTime();//HashSet<List<String>> outcome = new HashSet<List<String>>();
+		long tmFinished = new Date().getTime();
+		System.out.println("graph loaded: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
 		graph.linear.prepareForLinear();
+		tmFinished = new Date().getTime();
+		System.out.println("graph prepared: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
 		ExternalSolver sl  = graph.linear.buildMatrix(AbstractExperiment.getCpuNumber());
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);
-		long tmFinished = new Date().getTime();
-		System.out.println(" time taken: "+(tmFinished-tmStarted)/1000);
+		tmFinished = new Date().getTime();
+		System.out.println("matrix built: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
 		System.out.println("size: "+(sl.j_Ap.length-1)+" non-zeroes: "+sl.j_Ap[sl.j_Ap.length-1]);
 		tmStarted = new Date().getTime();
 		sl.solve();
 		tmFinished = new Date().getTime();
-		System.out.println("solver time taken: "+(tmFinished-tmStarted)/1000);
+		System.out.println("solver time taken: "+((double)tmFinished-tmStarted)/1000+" sec");
 	}
 }

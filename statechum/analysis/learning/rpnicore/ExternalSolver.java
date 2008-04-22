@@ -235,17 +235,17 @@ public class ExternalSolver
 		}
 		catch(IllegalArgumentException ex)
 		{
-			if (Boolean.getBoolean(Visualiser.getProperty(VIZ_PROPERTIES.ASSERT, "false")))
+			if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.EXTERNALSOLVER, "false")))
 			{
-				System.err.println("WARNING: failed to load external solver library");
+				System.err.println("WARNING: failed to load the external solver library");
 				ex.getCause().printStackTrace(System.err);
 			}
 		}
 		
 		if (libraryLoaded == LibraryLoadResult.SUCCESS)
 			solveExternally();
-		
-		solveUsingColt();
+		else
+			solveUsingColt();
 	}
 
 	public void solveUsingColt()
@@ -288,8 +288,8 @@ public class ExternalSolver
 			if (ex != null)
 			{// failed to load our library.
 				libraryLoaded = LibraryLoadResult.FAILURE;
-				
-				throw new IllegalArgumentException("failed to load the solver library");
+				IllegalArgumentException exc = new IllegalArgumentException("failed to load the solver library");
+				exc.initCause(ex);throw exc;
 			}
 
 			setIRStep(1);

@@ -43,7 +43,12 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * <pre>  
 * ../configure --prefix=/usr/local/soft/atlas-3.8.1 -Fa alg -fPIC
 * </pre>
-* Note: on Win32 with cygwin, the configure script may fail to detect the
+* Note: on Win32 with cygwin, 
+* <ul>
+* <li>make sure you include <em>-b 32</em> on the command line of configure 
+* to ensure that it does not attempt to build a 64-bit library and fail.
+* </li> 
+* <li>the configure script may fail to detect the
 * number of cores and decide to abort. Forcing this number to the actual
 * number of processors by modifying the appropriate file would help.
 * <pre>
@@ -55,6 +60,8 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * iret = GetIntProbe(verb, ln, "arch", "NCPU", 2048);
 * if (iret == 0) { printf("\nKIRR ugly hack: forcing NCPU to 2");iret=2;}
 * </pre>
+* </li></ul>
+* 
 * After configure succeeds, you need to run "make" to build Atlas, 
 * <pre>
 * make check
@@ -87,7 +94,11 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * Note the reference to the Atlas installation directory. You may also wish 
 * to replace -llf77blas with -lptf77blas, but it should not affect anything.
 * <p>
-* Subsequently, running make in the UMFPACK directory.
+* Win32/cygwin note: if using gcc version 3 rather than 4, use the following line
+* <pre>
+* BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lg2c
+* </pre>
+* Subsequently, running make in the UMFPACK directory will build UMFPACK (and AMD).
 * </li>
 * 
 * <li>
@@ -100,9 +111,6 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * cd linear
 * ./bootstrap
 * </pre>
-* </li>
-* 
-* <li>
 * Building the interface involves running
 * <pre>
 * cd linear
@@ -110,8 +118,37 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * </pre>
 * Note that the above includes both Atlas directory and the one into which 
 * UMFPACK was extracted. Subsequently, running make should build the library.
+* <p>
+* On Win32 with cygwin's gcc version 3, this will not work because libtool will not link to static libraries
+* (.a import libraries from .dlls are ok). Linking to all the object files from atlas, amd and umfpack will
+* not work either because these .o files have not been built with libtool. The only option is hence to 
+* build a .dll from atlas, amd and umfpack and link to that dll.
+* Multi-threaded support does not work because libptf77blas links to cygwin1.dll which we cannot use - 
+* this dll does not support being dynamically loaded (a well-documented problem) so the library we build 
+* with it will not work with Java (jvm will lock up on LoadLibrary). 
 * </li>
 * 
+* <li>
+* The easiest way to build a library is to edit <em>fullrebuild.sh</em> by adding the relevant paths 
+* to it and then issue 
+* <pre>
+* cd linear
+* ./fullrebuild.sh
+* </pre>
+* On Linux, this runs bootstrap and make. On Win32, 
+* this script takes all .o files from atlas, umfpack and amd, builds a library out of them, converts it to .dll
+* (following {@link http://www.kevinsheppard.org/research/matlabatlas}) and subsequently links the interface module to that .dll.
+* If any changes are made to the .c or .h file, the library can be rebuilt with 
+* <pre>
+* make -f Makefile_win32
+* </pre>
+* where the <em>Makefile_win32</em> is built by <em>fullrebuild.sh</em>.
+* <p>
+* Note that the way the script builds a dll is very ugly but since it seems that cygwin does not do what one would
+* expect it to (build a dll out of static libraries built with -fPIC), 
+* I think it is not appropriate to "fix" configure scripts to work around these problems.
+* </li>
+ 
 * <li>
 * In order for the just built library to be picked by Java, 
 * you need to pass the following as a JVM option: 
@@ -131,14 +168,19 @@ public class ExternalSolver
 	public ExternalSolver(int Ap[], int[] Ai, double []Ax, double b[], double x[])
 	{
 		j_Ap=Ap;j_Ai=Ai;j_Ax=Ax;j_b=b;j_x=x;
-		if (Ap.length <= 2)
+		if (Ap.length <= 1)
 			throw new IllegalArgumentException("zero-sized problem");
 		
+		int nz = j_Ap[j_Ap.length-1];
+		if (nz > Ai.length || nz > Ax.length)
+			throw new IllegalArgumentException("too few elements in Ax or Ai");
+
 		if (Ap.length != b.length+1 || b.length != x.length || Ax.length != Ai.length)
 			throw new IllegalArgumentException("inconsistent dimension of a matrix");
 		
 		if (j_Ap[0] != 0)
-			throw new IllegalArgumentException("Ap[0] should be 0");			
+			throw new IllegalArgumentException("Ap[0] should be 0");
+		
 	}
 	
 	public enum LibraryLoadResult { SUCCESS, FAILURE, NOT_ATTEMPTED };

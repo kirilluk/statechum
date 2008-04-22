@@ -216,6 +216,11 @@ public class TestFSMAlgo {
 					valueA = new Boolean(true);valueB=new Boolean(false);
 				}
 				else
+					if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+					{
+						valueA = new Double(0.4);valueB=new Double(0.5);// note that we have to choose values which fall within the allowed range of values
+					}
+					else
 					if (var.getType().equals(String.class))
 					{
 						valueA = varName+", value A";valueB=varName+", value B";

@@ -79,7 +79,7 @@ jint Control_IRSTEP;
 jboolean useWorkingMemory;
 
 /** Cygwin does not add underscores to names on win32, hence we have to add them ourselves. */
-#ifdef _WIN32
+#if defined(__CYGWIN__)
 #define STDCALLFUDGE(NAME) _##NAME
 #else
 #define STDCALLFUDGE(NAME) NAME

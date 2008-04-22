@@ -19,68 +19,17 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import cern.colt.function.IntComparator;
-import cern.colt.list.IntArrayList;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
-// FIXME: needs to be parameterised for a number of different threads.
 public class TestLinear {
-	final int ThreadNumber = 1;
-	@Test
-	public final void testAddToBuffer0()
-	{
-		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());
-		Transform ad = new Transform(gr);ad.prepareForLinear();
-		ExternalSolver solver = ad.buildMatrix(ThreadNumber);
-	}
 
-	@Test
-	public final void testAddToBuffer1()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->A-b->B",	"testAddToBuffer1"),Configuration.getDefaultConfiguration());
-	}
-	
-	@Test
-	public final void testAddToBuffer2()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nC-a->D",	"testAddToBuffer2"),Configuration.getDefaultConfiguration());
-	}
-
-	@Test
-	public final void testAddToBuffer3()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C",	"testAddToBuffer3"),Configuration.getDefaultConfiguration());
-	}
-	
-	@Test
-	public final void testAddToBuffer4()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C\nD-b->C","testAddToBuffer4"),Configuration.getDefaultConfiguration());
-	}
-
-	@Test
-	public final void testAddToBuffer5()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nD-a->C\nD-b->C\nD-c->A","testAddToBuffer5"),Configuration.getDefaultConfiguration());
-	}
-	
 	int cnt = 0;
 	
 	public final void benchmarkArrayTransformations()
@@ -121,62 +70,34 @@ public class TestLinear {
 		System.out.println("cmp calls: "+cnt+" pos="+pos+" out of "+Ai.length);
 	}
 	
-	@Test
-	public final void testAddToBuffer7()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-c->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
-/*
-		TestMatrixEntryAdder testAdder = new TestMatrixEntryAdder();Transform ad = new Transform(gr);ad.prepareForLinear();
-		ad.addToBuffer(testAdder, gr.findVertex("A"), gr.findVertex("D"));
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
-				"mat(7,7)=4.0;","mat(7,5)=-"+ad.valueK+";","mat(7,6)=-"+2*ad.valueK+";"}));
-		Assert.assertEquals(expected, testAdder.getResult());
-		*/
-	}
-	
-	
-	@Test
-	public final void testAddToBuffer8_1()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->B-b->A","testAddToBuffer8"),Configuration.getDefaultConfiguration());
-		Transform ad = new Transform(gr);ad.prepareForLinear();
-		ad.buildMatrix(ThreadNumber);
-		final double k = gr.config.getAttenuationK(); 
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
-			"mat(1,1)=1.0;","mat(1,3)=-"+k+";",// AA
-			"mat(3,3)="+(2.0-k)+";","mat(3,1)=-"+k+";", // BB
-			"mat(2,2)="+2.0+";","mat(2,3)=-"+k+";"}));// AB
-		//Assert.assertEquals(expected, testAdder.getResult());
-	}
-	
 	LearnerGraph grLoadDistribution=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_1()
 	{
-		grLoadDistribution.transform.partitionWorkLoad(0);
+		grLoadDistribution.linear.partitionWorkLoad(0);
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_2()
 	{
-		grLoadDistribution.transform.partitionWorkLoad(-1);
+		grLoadDistribution.linear.partitionWorkLoad(-1);
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution1()
 	{
-		Assert.assertArrayEquals(new int[]{0,4},grLoadDistribution.transform.partitionWorkLoad(1));
+		Assert.assertArrayEquals(new int[]{0,4},grLoadDistribution.linear.partitionWorkLoad(1));
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution2()
 	{
-		Assert.assertArrayEquals(new int[]{0,2,3,4,4},grLoadDistribution.transform.partitionWorkLoad(4));
+		Assert.assertArrayEquals(new int[]{0,2,3,4,4},grLoadDistribution.linear.partitionWorkLoad(4));
 	}
 	
 	/** Tests the workload distribution. */
@@ -185,32 +106,6 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
 		for(int i=0;i< 4;++i) Transform.addToGraph(gr, grLoadDistribution);
-		Assert.assertArrayEquals(new int[]{0,10,14,17,20},gr.transform.partitionWorkLoad(4));
-	}
-	
-	@Test
-	public final void testEstimation1()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testEstimation1"),Configuration.getDefaultConfiguration());
-		// AA: 3
-	}
-
-	@Test
-	public final void testEstimation2()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A","testEstimation2"),Configuration.getDefaultConfiguration());
-		// ACD
-		//A3
-		//C11
-	}
-	
-	@Test
-	public final void testEstimation3()
-	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A","testEstimation2"),Configuration.getDefaultConfiguration());
-		// ACD
-		//A3
-		//C11
-		//D314
-	}
+		Assert.assertArrayEquals(new int[]{0,10,14,17,20},gr.linear.partitionWorkLoad(4));
+	}	
 }

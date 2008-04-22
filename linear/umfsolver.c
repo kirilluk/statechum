@@ -191,9 +191,8 @@ jboolean mapJavaArrays(struct solverData * data)
   assert(data != NULL && data->java.j_env != NULL);
 
   data->n = (*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ap)-1;
-  data->nz = (*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ai);
 
-  if (data->n <= 1) // zero-sized problem
+  if (data->n <= 0) // zero-sized problem
   {
     throwException(data->java.j_env,"zero-sized problem");return JNI_FALSE;
   }
@@ -209,10 +208,25 @@ jboolean mapJavaArrays(struct solverData * data)
   MAP_ARRAY(Ap,Int);MAP_ARRAY(Ai,Int);
   MAP_ARRAY(Ax,Double);MAP_ARRAY(b,Double);MAP_ARRAY(x,Double);
 
-  if ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ax) != data->nz)
+  data->nz = data->Ap[data->n];
+
+  if ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ai) != 
+      ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ax)))
   {
     unmapJavaArrays(data);
-    throwException(data->java.j_env,"inconsistent dimension of  Ax");return JNI_FALSE;
+    throwException(data->java.j_env,"inconsistent dimensions of  Ai and Ax");return JNI_FALSE;
+  }
+
+  if ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ax) < data->nz)
+  {
+    unmapJavaArrays(data);
+    throwException(data->java.j_env,"too few elements in Ax");return JNI_FALSE;
+  }
+
+  if ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_Ai) < data->nz)
+  {
+    unmapJavaArrays(data);
+    throwException(data->java.j_env,"too few elements in Ai");return JNI_FALSE;
   }
 
   if ((*data->java.j_env)->GetArrayLength(data->java.j_env,data->java.j_b) != data->n)

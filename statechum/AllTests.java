@@ -29,7 +29,8 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
 	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.BasicTests.class,
-	statechum.AllTests.GraphTests.class
+	statechum.AllTests.GraphTests.class,
+	statechum.AllTests.LinearTests.class
 })
 public class AllTests {
 	@RunWith(Suite.class)
@@ -39,9 +40,6 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
 		statechum.analysis.learning.TestLoadAnswers.class,
 		statechum.analysis.learning.experiments.TestAbstractExperiment.class,
-		statechum.analysis.learning.rpnicore.TestLinear.class,
-		statechum.analysis.learning.rpnicore.TestSolverRandomly.class,
-		statechum.analysis.learning.rpnicore.TestSolver.class,
 		statechum.model.testset.TestPTA_computePrecisionRecall.class
 	}) // commas after the last entry compile from within Eclipse but not from ant
 	public static class LearnerTests {
@@ -69,5 +67,14 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestWMethod.class
 	})
 	public static class GraphTests {
+	}
+	
+	@RunWith(Suite.class)
+	@Suite.SuiteClasses({
+		statechum.analysis.learning.rpnicore.TestLinear.class,
+		statechum.analysis.learning.rpnicore.TestSolverRandomly.class,
+		statechum.analysis.learning.rpnicore.TestSolver.class,
+		statechum.analysis.learning.rpnicore.TestLinearWithMultipleThreads.class})
+	public static class LinearTests {
 	}
 }

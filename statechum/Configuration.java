@@ -498,4 +498,11 @@ public class Configuration implements Cloneable
 		if (k<0 || k>=1) throw new IllegalArgumentException("attenuation should be within [0,1[");
 		attenuationK = k;
 	}
+	
+	/** A test-only version of the above, permitting a valuve of 1. */
+	public void setAttenuationK_testOnly(double k)
+	{
+		if (k<0 || k>1) throw new IllegalArgumentException("attenuation should be within [0,1[");
+		attenuationK = k;
+	}
 }

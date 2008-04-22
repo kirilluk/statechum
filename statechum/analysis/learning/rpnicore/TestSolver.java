@@ -123,15 +123,15 @@ public class TestSolver {
 			public void run() throws NumberFormatException {
 				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
-		}, IllegalArgumentException.class,"zero-sized problem");		
+		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new ExternalSolver(Ap, Ai, Ax, b, x);
 			}
-		}, IllegalArgumentException.class,"zero-sized problem");		
+		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
 	
-	
+
 	@Test
 	public final void testExternalSolver_fail1()
 	{
@@ -145,12 +145,12 @@ public class TestSolver {
 			public void run() throws NumberFormatException {
 				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
-		}, IllegalArgumentException.class,"inconsistent dimension");		
+		}, IllegalArgumentException.class,"too few");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new ExternalSolver(Ap, Ai, Ax, b, x);
 			}
-		}, IllegalArgumentException.class,"inconsistent dimension");		
+		}, IllegalArgumentException.class,"too few");		
 	}
 	
 	@Test
@@ -175,11 +175,32 @@ public class TestSolver {
 	}
 	
 	@Test
-	public final void testExternalSolver_fail3()
+	public final void testExternalSolver_fail3a()
 	{
 		final int   Ap [ ] = {0, 2, 5, 9, 10, 12} ;
 		final int    Ai [ ] = { 0,  1,  0,   2,  4,  1,  2,  3,   4,  2,  1,  4,9999} ;
 		final double Ax [ ] = {2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.} ;
+		final double b [ ] = {8., 45., -3., 3., 19.} ;
+		final double x[] = new double[b.length];
+
+		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+			public void run() throws NumberFormatException {
+				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+			}
+		}, IllegalArgumentException.class,"inconsistent dimension");		
+		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+			public void run() throws NumberFormatException {
+				new ExternalSolver(Ap, Ai, Ax, b, x);
+			}
+		}, IllegalArgumentException.class,"inconsistent dimension");		
+	}
+	
+	@Test
+	public final void testExternalSolver_fail3b()
+	{
+		final int   Ap [ ] = {0, 2, 5, 9, 10, 12} ;
+		final int    Ai [ ] = { 0,  1,  0,   2,  4,  1,  2,  3,   4,  2,  1,  4} ;
+		final double Ax [ ] = {2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.,9999} ;
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 
@@ -275,7 +296,7 @@ public class TestSolver {
 	 * The example is verbatim from umftool manual.
 	 */
 	@Test
-	public final void testConversionToUMFTOOL()
+	public final void testConversionToUMFPACK()
 	{
 
 		/*

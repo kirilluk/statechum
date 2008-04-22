@@ -243,6 +243,7 @@ public class LearnerGraph {
 	final public PairScoreComputation pairscores = new PairScoreComputation(this);
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
+	final public Linear linear = new Linear(this);
 	
 	/** Initialises the class used to compute scores between states.
 	 *

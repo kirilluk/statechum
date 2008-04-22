@@ -115,7 +115,7 @@ public class WExperiment extends AbstractExperiment {
 		for(LearnerGraph gr:graphs)
 			if (gr != result)
 			{
-				Transform.relabel(gr, 13, "gr_"+graphNumber++);
+				Transform.relabel(gr, 2, "gr_"+graphNumber++);
 				CmpVertex newInit = Transform.addToGraph(result, gr);
 				int score = -1;
 				do
@@ -129,16 +129,18 @@ public class WExperiment extends AbstractExperiment {
 				}
 				while(score < 0);
 				System.out.println(result.toString());
+				
+				if (result.getStateNumber() > 500) break;
 			}
 		System.out.println();
 		System.out.println(result.toString());
 		
 		
 		long tmStarted = new Date().getTime();HashSet<List<String>> outcome = new HashSet<List<String>>();
-		result.transform.buildMatrix(AbstractExperiment.getCpuNumber());
+		//result.linear.buildMatrix(AbstractExperiment.getCpuNumber());
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);
-		long tmFinished = new Date().getTime();
+		//long tmFinished = new Date().getTime();
 		/*
 		System.out.println(" w set size: "+outcome.size()+" time taken: "+(tmFinished-tmStarted)/1000);
 		tmStarted = new Date().getTime();
@@ -152,8 +154,8 @@ public class WExperiment extends AbstractExperiment {
 			//result.buildCachedData();
 			//result.transform.toOctaveMatrix(writer);writer.close();
 			
-			System.out.println("time taken: "+(tmFinished-tmStarted)/1000);
-			result.transform.writeGraphML("resources/tmp/experiment_tmpresult.xml");
+			//System.out.println("time taken: "+(tmFinished-tmStarted)/1000);
+			result.transform.writeGraphML("../W_experiment/experiment_500.xml");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

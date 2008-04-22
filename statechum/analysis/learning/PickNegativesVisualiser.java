@@ -119,6 +119,8 @@ public class PickNegativesVisualiser extends Visualiser {
         		DirectedSparseGraph learnt = l.learnMachine();
         		if(config.isGenerateTextOutput())
         			OutputUtil.generateTextOutput(learnt);
+        		if(config.isGenerateDotOutput())
+        			OutputUtil.generateDotOutput(learnt);
         		
 			}
 		},"RPNI learner thread");

@@ -270,6 +270,7 @@ public class Configuration implements Cloneable
 		result = prime * result + randomPathAttemptThreshold;
 		result = prime * result + randomPathAttemptFudgeThreshold;
 		result = prime * result + (generateTextOutput? 1231 : 1237);
+		result = prime * result + (generateDotOutput? 1231 : 1237);
 		result = prime * result + ((autoAnswerFileName == null) ?0: autoAnswerFileName.hashCode());
 		result = prime * result + questionPathUnionLimit;
 		result = prime * result + (int)(attenuationK*100);
@@ -334,6 +335,8 @@ public class Configuration implements Cloneable
 		if (randomPathAttemptFudgeThreshold != other.randomPathAttemptFudgeThreshold)
 			return false;
 		if (generateTextOutput != other.generateTextOutput)
+			return false;
+		if (generateDotOutput != other.generateDotOutput)
 			return false;
 		if (questionPathUnionLimit != other.questionPathUnionLimit)
 			return false;
@@ -467,6 +470,7 @@ public class Configuration implements Cloneable
 	}
 
 	protected boolean generateTextOutput = false;
+	protected boolean generateDotOutput = false;
 	
 	public boolean isGenerateTextOutput() {
 		return generateTextOutput;
@@ -474,6 +478,14 @@ public class Configuration implements Cloneable
 
 	public void setGenerateTextOutput(boolean generateText) {
 		generateTextOutput = generateText;
+	}
+	
+	public boolean isGenerateDotOutput() {
+		return generateDotOutput;
+	}
+
+	public void setGenerateDotOutput(boolean generateDot) {
+		generateDotOutput = generateDot;
 	}
 	
 	/** When doing linear, we need a way to attenuate the compatibility score associated

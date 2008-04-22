@@ -43,6 +43,7 @@ public class QSMTool {
 	private static boolean includeLTL =false;
 	private static int k = -1;
 	private static boolean textoutput = false;
+	private static boolean dotoutput = false;
 
 	public static void main(String[] args) {
 		Set<List<String>> sPlus = new HashSet<List<String>>();
@@ -68,6 +69,7 @@ public class QSMTool {
 		String AutoName = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_AUTOFILENAME.toString());
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
 		if(textoutput) config.setGenerateTextOutput(true);
+		if(dotoutput) config.setGenerateDotOutput(true);
 		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		if (!includeLTL)
@@ -102,6 +104,8 @@ public class QSMTool {
 		}
 		else if(fileString.startsWith("textoutput"))
 			textoutput = true;
+		else if(fileString.startsWith("dotoutput"))
+			dotoutput = true;
 
 	}
 

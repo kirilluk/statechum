@@ -17,6 +17,13 @@ public class OutputUtil {
 		write(graphout.toString(), outputMachine);
 	}
 	
+	public static void generateDotOutput(DirectedSparseGraph g){
+		StringWriter graphout = dotGraph(g);
+		String fileRef = "temp"+System.getProperty("file.separator")+"dotOutput.dot";
+		File outputMachine  = new File(fileRef);
+		write(graphout.toString(), outputMachine);
+	}
+	
 	public static void write(String string, File f){
 		try {
 			if(f.getParentFile()!=null)
@@ -48,6 +55,29 @@ public class OutputUtil {
         		}
         	}
 		}
+		return graphout;
+	}
+	
+	protected static StringWriter dotGraph(DirectedSparseGraph g){
+		StringWriter graphout = new StringWriter(); 
+		graphout.write("digraph dotMachine{");
+		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
+			Vertex dest = e.getDest();
+			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
+				continue;
+			String from = e.getSource().toString();
+			String to = e.getDest().toString();
+			if(e.containsUserDatumKey(JUConstants.LABEL)){
+        		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+        		Iterator<String> labelIt = labels.iterator();
+        		graphout.write("\n"+from+" -> "+to+"[label=\"");
+        		while(labelIt.hasNext()){
+        			graphout.write(labelIt.next()+"\\n" );
+        		}
+        		graphout.write("\"]");
+        	}
+		}
+		graphout.write("\n}");
 		return graphout;
 	}
 

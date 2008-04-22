@@ -61,6 +61,12 @@ public class OutputUtil {
 	protected static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
+		
+		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+			if(!v.toString().equals("Init"))
+				graphout.write("\n"+v.toString()+"[label=\"\"]");
+		}
+		
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
 			Vertex dest = e.getDest();
 			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())

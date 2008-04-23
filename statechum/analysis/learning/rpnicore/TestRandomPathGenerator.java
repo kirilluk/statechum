@@ -286,6 +286,8 @@ public class TestRandomPathGenerator {
 		Collection<List<String>> previousChunkNeg = null;
 		Collection<List<String>> previousChunkPos = null;
 
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+		
 		for(int i=0;i<chunkNumber;++i)
 		{
 			{
@@ -307,11 +309,24 @@ public class TestRandomPathGenerator {
 				previousChunkPos = currentPos;
 			}
 		}
+		
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk, previousChunkNeg.size());
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk, previousChunkPos.size());
 		return generator;
 	}
-	
+
 	@Test
 	public void test_generatePosNeg1()
 	{
@@ -345,6 +360,8 @@ public class TestRandomPathGenerator {
 		
 		Collection<List<String>> previousChunk = null;
 
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+
 		for(int i=0;i<chunkNumber;++i)
 		{
 			final PTASequenceEngine currentPTA = generator.getAllSequences(i);
@@ -376,6 +393,19 @@ public class TestRandomPathGenerator {
 			if (previousChunk != null) currentSequences.containsAll(previousChunk);
 			previousChunk= currentSequences;
 		}
+
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk*2, previousChunk.size());
 		return generator;
 	}
@@ -398,11 +428,103 @@ public class TestRandomPathGenerator {
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void test_generateRandomPosNeg_fail()
+	public void test_generateRandomPosNeg_fail1()
 	{
 		config.setRandomPathAttemptFudgeThreshold(1);
 		generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",
 				18,12);
+	}
+
+	@Test
+	public void test_generatePosNeg_failA()
+	{
+		final int chunkNumber = 18,posOrNegPerChunk=12;
+				
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		Assert.assertEquals(0, generator.getChunkNumber());
+		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+		config.setRandomPathAttemptFudgeThreshold(1);
+		
+		try	{ generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertEquals(0, generator.getChunkNumber()); }
+
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(0);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(0);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		config.setRandomPathAttemptFudgeThreshold(10);
+		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+		
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
+	}
+
+	@Test
+	public void test_generateRandomPosNeg_failA()
+	{
+		final int chunkNumber = 18,posOrNegPerChunk=12;
+				
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		Assert.assertEquals(0, generator.getChunkNumber());
+		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+		config.setRandomPathAttemptFudgeThreshold(1);
+		
+		try	{ generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertEquals(0, generator.getChunkNumber()); }
+
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(0);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(0);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		config.setRandomPathAttemptFudgeThreshold(10);
+		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
+		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
+		
+		try	{	generator.getAllSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(-1);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getAllSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		try	{	generator.getExtraSequences(chunkNumber);Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex) { Assert.assertTrue(ex.getMessage().contains("is out of range"));}
+		
+		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
 	}
 	
 	@BeforeClass

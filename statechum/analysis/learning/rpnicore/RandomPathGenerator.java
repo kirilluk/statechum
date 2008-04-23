@@ -202,6 +202,9 @@ public class RandomPathGenerator {
 	 */
 	public PTASequenceEngine getAllSequences(int upToChunk)
 	{
+		if (upToChunk < 0 || upToChunk >= getChunkNumber())
+			throw new IllegalArgumentException("chunk number "+upToChunk+" is out of range 0.."+getChunkNumber());
+		
 		return allSequences.filter(new PercentFilter(upToChunk));
 	}
 	
@@ -212,6 +215,9 @@ public class RandomPathGenerator {
 	 */
 	public PTASequenceEngine getExtraSequences(int upToChunk)
 	{
+		if (upToChunk < 0 || upToChunk >= getChunkNumber())
+			throw new IllegalArgumentException("chunk number "+upToChunk+" is out of range 0.."+getChunkNumber());
+		
 		return extraSequences.filter(new PercentFilter(upToChunk));
 	}
 	
@@ -230,7 +236,7 @@ public class RandomPathGenerator {
 			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
 		if (numberPerChunk % 2 != 0)
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
-		
+		chunksGenerated = 0;
 		int seqNumber = chunks*numberPerChunk/2;
 		int distribution [] = new int[seqNumber];
 		RandomLengthGenerator rnd = new RandomLengthGenerator(){
@@ -262,7 +268,15 @@ public class RandomPathGenerator {
 			tag = positives[i % chunks];
 			extraSequences.add(path.subList(0, rnd.getPrefixLength(path.size())));// all positives go there
 		}
+		chunksGenerated = chunks;
 	}
+	
+	public int getChunkNumber()
+	{
+		return chunksGenerated;
+	}
+	
+	protected int chunksGenerated = 0;
 	
 	interface RandomLengthGenerator 
 	{
@@ -291,6 +305,7 @@ public class RandomPathGenerator {
 			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
 		if (numberPerChunk % 2 != 0)
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
+		chunksGenerated = 0;
 
 		int seqNumber = chunks*numberPerChunk/2;
 		int distribution [] = new int[seqNumber];
@@ -321,6 +336,7 @@ public class RandomPathGenerator {
 			tag = positives[i % chunks];
 			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,true));
 		}
+		chunksGenerated = chunks;
 	}
 	
 	/** Counts the number of times sequence length was revised during

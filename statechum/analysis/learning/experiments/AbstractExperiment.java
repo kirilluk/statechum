@@ -479,10 +479,11 @@ abstract public class AbstractExperiment
 		return result;
 	}
 	
-	/** Takes the result and pulls R-bagplot compatible tables out of it. 
+	/** Takes the result and pulls R-bagplot compatible tables out of it.
+	 * @param numbers whether column headers are numeric (and hence will be sorted as numbers). 
 	 * @throws IOException 
 	 */
-	public void postProcessIntoR(int colSort,int colNumber, File result) throws IOException
+	public void postProcessIntoR(int colSort,boolean numbers,int colNumber, File result) throws IOException
 	{
 		BufferedReader tableReader = null;
 		Writer resultWriter = null;
@@ -490,7 +491,7 @@ abstract public class AbstractExperiment
 		{
 			tableReader = new BufferedReader(new FileReader(new File(getOutputDir(),resultName)));
 			resultWriter = new BufferedWriter(new FileWriter(result));
-			postProcessIntoR(colSort,colNumber, tableReader,resultWriter);
+			postProcessIntoR(colSort,numbers,colNumber, tableReader,resultWriter);
 		}
 		finally
 		{
@@ -530,12 +531,12 @@ abstract public class AbstractExperiment
 	 * 
 	 * @throws IOException 
 	 */
-	public static void postProcessIntoR(int colSort,int colNumber, BufferedReader tableReader,Writer resultWriter) throws IOException
+	public static void postProcessIntoR(int colSort,boolean numbers, int colNumber, BufferedReader tableReader,Writer resultWriter) throws IOException
 	{
 		if (colSort < 0 || colNumber < 0)
 			throw new IllegalArgumentException("invalid column number");
 		
-		Map<String,List<String>> resultMap = new TreeMap<String,List<String>>();
+		Map<Object,List<String>> resultMap = new TreeMap<Object,List<String>>();
 		int maxCol = Math.max(colSort,colNumber);
 		
 		String line = tableReader.readLine();
@@ -544,8 +545,9 @@ abstract public class AbstractExperiment
 			String splitResult[]=line.split(FS, maxCol+2);
 			if (splitResult.length <= maxCol)
 				throw new IllegalArgumentException("invalid result file: cannot access column "+maxCol+" (failed to parse \""+line+"\")");
-			List<String> col = resultMap.get(splitResult[colSort]);
-			if (col == null) { col = new LinkedList<String>();resultMap.put(splitResult[colSort], col); }
+			Object colHeader = numbers?new Integer(splitResult[colSort]):splitResult[colSort];
+			List<String> col = resultMap.get(colHeader);
+			if (col == null) { col = new LinkedList<String>();resultMap.put(colHeader, col); }
 			col.add(splitResult[colNumber]);
 			line = tableReader.readLine();
 		}
@@ -555,7 +557,7 @@ abstract public class AbstractExperiment
 		StringBuffer outHeading = new StringBuffer();
 		List<Iterator<String>> iterators = new LinkedList<Iterator<String>>();
 		boolean isFirst = true;
-		for(Entry<String,List<String>> entry:resultMap.entrySet()) 
+		for(Entry<Object,List<String>> entry:resultMap.entrySet()) 
 		{
 			if (!isFirst) outHeading.append(FS);isFirst=false;outHeading.append(entry.getKey());
 			iterators.add(entry.getValue().iterator());

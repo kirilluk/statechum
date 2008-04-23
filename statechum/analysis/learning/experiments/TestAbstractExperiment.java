@@ -625,7 +625,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(-1, 2, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(-1, true, 2, new BufferedReader(new StringReader(array)), wr);
 	}
 	
 	/** Tests the conversion of a result table into R-friendly format. 
@@ -636,7 +636,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, -2, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(1, true, -2, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -644,7 +644,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, 20, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(1, true, 20, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -652,7 +652,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(10, 2, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(10, true, 2, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	/** Empty buffer. */
@@ -662,7 +662,7 @@ public class TestAbstractExperiment {
 		StringWriter wr = new StringWriter();
 		try
 		{
-			AbstractExperiment.postProcessIntoR(0,0, new BufferedReader(new StringReader("")), wr);
+			AbstractExperiment.postProcessIntoR(0, true,0, new BufferedReader(new StringReader("")), wr);
 			Assert.fail("exception not thrown");
 		}
 		catch(IllegalArgumentException e)
@@ -679,7 +679,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, 2, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(1, true, 2, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"10"+FS+"15"+"\n"+
 				 "4"+FS+"6"+"\n"+
@@ -687,6 +687,17 @@ public class TestAbstractExperiment {
 				 "3"+FS+"5"+"\n",
 				 wr.toString());
 	}
+	
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * @throws IOException 
+	 */
+	@Test(expected=NumberFormatException.class)
+	public final void testResultToR2_fail() throws IOException
+	{
+		StringWriter wr = new StringWriter();
+		AbstractExperiment.postProcessIntoR(0,true, 2, new BufferedReader(new StringReader(array)), wr);
+	}
+	
 	/** Tests the conversion of a result table into R-friendly format. 
 	 * @throws IOException 
 	 */
@@ -694,7 +705,7 @@ public class TestAbstractExperiment {
 	public final void testResultToR2() throws IOException
 	{
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(0, 2, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(0,false, 2, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"A"+FS+"B"+"\n"+
 				"4"+FS+"8"+"\n"+
@@ -711,7 +722,7 @@ public class TestAbstractExperiment {
 	public final void testResultToR3() throws IOException
 	{
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(0, 1, new BufferedReader(new StringReader(array)), wr);
+		AbstractExperiment.postProcessIntoR(0,false, 1, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"A"+FS+"B"+"\n"+
 				"10"+FS+"10"+"\n"+

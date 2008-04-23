@@ -45,13 +45,16 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParameters(Configuration c);
 
+		protected String extraPart = "";
+		
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
 		{
 			int size = 4*graph.getStateNumber();
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-			int nrPerChunk = size/experiment.getStageNumber();nrPerChunk+=nrPerChunk % 2;// make the number even
-			rpg.generatePosNeg(nrPerChunk , experiment.getStageNumber());
+			int percentPerChunk = 10;
+			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
+			rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);extraPart=extraPart+"size:"+size+FS+"chunks: "+(100/percentPerChunk)+FS+"per chunk:"+nrPerChunk;
 			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
@@ -63,7 +66,8 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			};
-			sPlus = rpg.getExtraSequences(percent);sMinus = rpg.getAllSequences(percent);
+			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
+			extraPart =extraPart+FS+percent+"%"+FS+"+:"+sPlus.getData().size()+FS+"-:"+sMinus.getData(PTASequenceEngine.truePred).size();
 			computePR(graph, l, sMinus);
 		}
 
@@ -89,7 +93,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			result = result + FS + "AUX"+ FS + 
 				// Columns 5 and 6
-				ptaPR.precision  + FS + ptaPR.recall;
+				ptaPR.precision  + FS + ptaPR.recall + FS +extraPart;
 		}
 
 		private LearnerGraph learn(RPNIBlueFringeLearnerTestComponentOpt l, PTASequenceEngine pta)
@@ -156,13 +160,16 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	public static void main(String []args)
 	{
 		try {
-			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{Configuration.QuestionGeneratorKind.CONVENTIONAL, Configuration.QuestionGeneratorKind.SYMMETRIC})
-				for(int limit:new int[]{1,2,-1})
+			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
+					//Configuration.QuestionGeneratorKind.CONVENTIONAL, 
+					Configuration.QuestionGeneratorKind.SYMMETRIC
+					})
+				for(int limit:new int[]{-1})
 				{
 					AbstractExperiment experiment = new Experiment(qk,limit);experiment.runExperiment(args);
 					String ending = "_"+qk+"_"+(limit<0?"all":limit)+".csv";
-					experiment.postProcessIntoR(2, 3, new File(experiment.getOutputDir(),"precision"+ending));
-					experiment.postProcessIntoR(2, 4, new File(experiment.getOutputDir(),"recall"+ending));
+					experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));
+					experiment.postProcessIntoR(2,true, 4, new File(experiment.getOutputDir(),"recall"+ending));
 				}			
 		} catch (Exception e1) {
 			e1.printStackTrace();

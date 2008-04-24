@@ -224,6 +224,22 @@ public class Configuration implements Cloneable
 		return defaultInitialPTAName;
 	}
 	
+	/** When computing scores in linear, we may wish to treat all pairs with at least one highlighted state to have negative scores.
+	 * This is used when we originally had negative states, but wish to pretend we did not have them, instead using highlighting 
+	 * for that purpose.
+	 */ 
+	protected boolean linearPairScoreInterpretHighlightAsNegative = false;
+	
+	public boolean getLinearPairScoreInterpretHighlightAsNegative()
+	{
+		return linearPairScoreInterpretHighlightAsNegative;
+	}
+	
+	public void setLinearPairScoreInterpretHighlightAsNegative(boolean newValue)
+	{
+		linearPairScoreInterpretHighlightAsNegative = newValue;
+	}
+	
 	/** Used to define the file name to be used for auto-loading answers. Zero-length means no auto. */
 	protected String autoAnswerFileName = "";
 	
@@ -271,6 +287,7 @@ public class Configuration implements Cloneable
 		result = prime * result + randomPathAttemptFudgeThreshold;
 		result = prime * result + (generateTextOutput? 1231 : 1237);
 		result = prime * result + (generateDotOutput? 1231 : 1237);
+		result = prime * result + (linearPairScoreInterpretHighlightAsNegative? 1231 : 1237);
 		result = prime * result + ((autoAnswerFileName == null) ?0: autoAnswerFileName.hashCode());
 		result = prime * result + questionPathUnionLimit;
 		result = prime * result + (int)(attenuationK*100);
@@ -341,6 +358,8 @@ public class Configuration implements Cloneable
 		if (questionPathUnionLimit != other.questionPathUnionLimit)
 			return false;
 		if (attenuationK != other.attenuationK)
+			return false;
+		if (linearPairScoreInterpretHighlightAsNegative != other.linearPairScoreInterpretHighlightAsNegative)
 			return false;
 		return true;
 	}

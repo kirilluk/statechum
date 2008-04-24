@@ -241,7 +241,7 @@ public class LSolver
 		}
 		catch(IllegalArgumentException ex)
 		{
-			if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.EXTERNALSOLVER, "false")))
+			if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
 			{
 				System.err.println("WARNING: failed to load the external solver library");
 				ex.getCause().printStackTrace(System.err);

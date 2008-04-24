@@ -37,6 +37,9 @@ import cern.colt.function.IntComparator;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Linear.HandleRow;
 
 public class TestLinear {
@@ -194,8 +197,11 @@ public class TestLinear {
 	public final void TestDomainCompatibility()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R\nC-f-#T","TestFindIncompatibleStatesB"),Configuration.getDefaultConfiguration());
-		//Collection<CmpVertex> states = gr.transitionMatrix.keySet();
-		Collection<CmpVertex> states_int = gr.wmethod.buildStateToIntegerMap(false).keySet();
+		CmpVertex [] numberToStateNoReject = new CmpVertex[gr.learnerCache.getAcceptStateNumber()];
+		Map<CmpVertex,Integer> state_to_int_map = gr.wmethod.buildStateToIntegerMap(false,numberToStateNoReject);
+		Collection<CmpVertex> states_int = state_to_int_map.keySet();
+		Assert.assertEquals(gr.learnerCache.getAcceptStateNumber(),state_to_int_map.values().size());
+		Assert.assertArrayEquals(states_int.toArray(),numberToStateNoReject);
 		Collection<CmpVertex> states_sorta = new HashSet<CmpVertex>();states_sorta.addAll(gr.learnerCache.getSortaInverse().keySet());
 		states_sorta.removeAll(states_int);Assert.assertTrue(states_sorta.isEmpty());// verify that states_sorta does not contain more source states than we expect
 		states_sorta.clear();
@@ -253,4 +259,175 @@ public class TestLinear {
 		A.clear(72);
 		Assert.assertFalse(Linear.intersects(A, B));
 	}
+	
+	@Test
+	public final void testCountMatchingOutgoing1()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(2,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing2()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(3,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("A"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing3a()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing3b()
+	{
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
+		gr.linear.highlightNegatives();
+		Assert.assertEquals(-1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing4a()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing4b()
+	{
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
+		gr.linear.highlightNegatives();
+		Assert.assertEquals(-1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing5a()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C"))));
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C"))));
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing5b()
+	{
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
+		gr.linear.highlightNegatives();
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C"))));
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C"))));
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("A"))));
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("S"))));
+	}
+
+
+	@Test
+	public final void testCountMatchingOutgoing6()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("R"))));
+	}
+	
+	
+	/** Adds reject vertices with names starting with a given prefix, and 
+	 * the suffix sequentially increasing 0..number.
+	 * The first reject vertex is just the prefix.
+	 * 
+	 * @param gr graph to update
+	 * @param prefix the prefix for all reject vertices
+	 * @param number number of elements to add
+	 */
+	public static void addRejectVertices(LearnerGraph gr,String prefix, int number)
+	{
+		for(int i=-1;i<number;++i)
+		{
+			VertexID id = new VertexID(prefix+(i>=0?i:""));if (gr.findVertex(id) != null) throw new IllegalArgumentException("vertex already exists");
+			CmpVertex newVertex = LearnerGraph.generateNewCmpVertex(id, gr.config);newVertex.setAccept(false);
+			gr.transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
+		}
+	}
+	
+	@Test
+	public final void testAddRejectVertices0()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A00-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "A0", -1);
+		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nA0-a->A","testAddRejectVertices_result"),Configuration.getDefaultConfiguration());
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("A0")) entry.getValue().clear();
+		WMethod.checkM(expectedResult, gr);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public final void testAddRejectVertices0_fail1()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A00-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "A0", 1);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public final void testAddRejectVertices0_fail2()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A00-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "B", 0);
+	}
+	
+	@Test
+	public final void testAddRejectVertices1()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "QQ0", 4);
+		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A\nQQ01-a->A\nQQ02-a->A\nQQ03-a->A\n","testAddRejectVertices_result"),Configuration.getDefaultConfiguration());
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("QQ0")) entry.getValue().clear();
+		WMethod.checkM(expectedResult, gr);
+	}
+	
+	@Test
+	public final void testAddRejectVertices2()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "QQ0", -10);
+		Assert.assertEquals(gr.transitionMatrix.keySet(), new LearnerGraph(buildGraph("A-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration()).transitionMatrix.keySet());
+	}
+	
+	@Test
+	public final void testAddRejectVertices3()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->C","testAddRejectVertices"),Configuration.getDefaultConfiguration());
+		addRejectVertices(gr, "QQ0", 1);
+		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A","testAddRejectVertices_result3"),Configuration.getDefaultConfiguration());
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("QQ0")) entry.getValue().clear();
+		WMethod.checkM(expectedResult, gr);
+	}
+
+	/** Tests that conversion between numerical state pairs and back works. */
+	@Test
+	public final void testNumberToState_and_Back()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R\nC-f-#T\nC-e->G-a-#K\nG-b->S-a-#U","TestFindIncompatibleStatesB"),Configuration.getDefaultConfiguration());
+		for(CmpVertex A:gr.transitionMatrix.keySet())
+			if (A.isAccept())
+				for(CmpVertex B:gr.transitionMatrix.keySet())
+					if (B.isAccept())
+					{
+						PairScore received1 = gr.linear.getPairScore(gr.wmethod.vertexToIntNR(A,B), 1, 2);
+						Assert.assertTrue(
+								received1.equals(new PairScore(A,B,1,2)) ||
+								received1.equals(new PairScore(B,A,1,2))
+						);
+						
+						PairScore received2 = gr.linear.getPairScore(gr.wmethod.vertexToIntNR(B,A), 1, 2);
+						Assert.assertTrue(
+								received2.equals(new PairScore(A,B,1,2)) ||
+								received2.equals(new PairScore(B,A,1,2))
+						);
+					}
+	}
+	
+
 }

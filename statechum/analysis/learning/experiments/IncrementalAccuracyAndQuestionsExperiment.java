@@ -68,7 +68,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			};
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
 			extraPart =extraPart+FS+percent+"%"+FS+"+:"+sPlus.getData().size()+FS+"-:"+sMinus.getData(PTASequenceEngine.truePred).size();
-			computePR(graph, l, sMinus);
+			computePR(l, sMinus);
 		}
 
 //		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
@@ -77,15 +77,15 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 //			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
 //		}
 		
-		private void computePR(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
+		private void computePR(RPNIBlueFringeLearnerTestComponentOpt l, 
 				PTASequenceEngine ptaMinus)
 		{
 			LearnerGraph learned = learn(l,ptaMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
-			PTASequenceEngine engine = new PTA_FSMStructure(fsm);
+			PTASequenceEngine engine = new PTA_FSMStructure(graph);
 			PosNegPrecisionRecall ptaPR = precRec.crossWith(ptaMinus);
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
-			ptaTestSet = ptaTestSet.cross(fsm.wmethod.getFullTestSet(1));
+			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
 			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
 			
 			// Columns 2 and 3
@@ -93,7 +93,8 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			result = result + FS + "AUX"+ FS + 
 				// Columns 5 and 6
-				ptaPR.precision  + FS + ptaPR.recall + FS +extraPart;
+				ptaPR.precision  + FS + ptaPR.recall + FS +extraPart + FS+"L"+FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
+			result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1);
 		}
 
 		private LearnerGraph learn(RPNIBlueFringeLearnerTestComponentOpt l, PTASequenceEngine pta)
@@ -170,6 +171,8 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					String ending = "_"+qk+"_"+(limit<0?"all":limit)+".csv";
 					experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));
 					experiment.postProcessIntoR(2,true, 4, new File(experiment.getOutputDir(),"recall"+ending));
+					experiment.postProcessIntoR(2,true, 16, new File(experiment.getOutputDir(),"linearA"+ending));
+					experiment.postProcessIntoR(2,true, 17, new File(experiment.getOutputDir(),"linearN"+ending));
 				}			
 		} catch (Exception e1) {
 			e1.printStackTrace();

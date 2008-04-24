@@ -719,7 +719,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	public enum VIZ_PROPERTIES { // internal properties
 		ASSERT,// whether to display assert warning.
-		EXTERNALSOLVER,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
+		LINEARWARNINGS,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
 		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
 		LOWER, UPPER // window positions, not real properties to be stored in a file.
 		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.

@@ -971,13 +971,16 @@ public class WMethod {
 	 * @param includeRejectVertices whether to include reject-vertices in the map.
 	 * @return map from vertices to numbers.
 	 */
-	Map<CmpVertex,Integer> buildStateToIntegerMap(boolean includeRejectVertices)
+	Map<CmpVertex,Integer> buildStateToIntegerMap(boolean includeRejectVertices, CmpVertex[] intToVertexMap)
 	{
 		Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
 		int num=0;
 		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
 			if (includeRejectVertices || vert.isAccept())
-				map.put(vert, num++);
+			{
+				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
+				map.put(vert, num++);// populate the forward map
+			}
 		return map;
 	}
 	

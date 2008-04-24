@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
@@ -34,8 +35,12 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import cern.colt.bitvector.BitVector;
 import cern.colt.function.IntComparator;
 import cern.colt.list.DoubleArrayList;
@@ -44,9 +49,9 @@ import cern.colt.list.IntArrayList;
 public class Linear {
 	final LearnerGraph coregraph;
 	
-	/** Associates this object to ComputeStateScores it is using for data to operate on. 
-	 * Important: the constructor should not access any data in computeStateScores 
-	 * because it is usually invoked during the construction phase of ComputeStateScores 
+	/** Associates this object to LinearGraph it is using for data to operate on. 
+	 * Important: the constructor should not access any data in LinearGraph 
+	 * because it is usually invoked during the construction phase of LinearGraph 
 	 * when no data is yet available.
 	 */
 	Linear(LearnerGraph g)
@@ -76,7 +81,7 @@ public class Linear {
 		
 		public Integer call() throws Exception {
 			if (workLoad[threadNo] >= workLoad[threadNo+1])
-				System.out.println("thread "+threadNo+" nothing to do");
+				;//System.out.println("thread "+threadNo+" nothing to do");
 			else
 			{
 				handler.init(threadNo);
@@ -87,7 +92,7 @@ public class Linear {
 					Entry<CmpVertex,Map<String,CmpVertex>> entry = stateB_It.next();
 					if (entry.getKey().isAccept()) ++currentRow;// only increment the row number if we are at the accept-state
 				}
-				System.out.println("thread "+threadNo+" started from row "+currentRow);
+				//System.out.println("thread "+threadNo+" started from row "+currentRow);
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo+1])
 				{
 					Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
@@ -95,7 +100,7 @@ public class Linear {
 						// but we expect it to be fast on those rows, so no problems.
 					handler.handleEntry(stateB, threadNo);
 				}
-				System.out.println("thread "+threadNo+" finished at row "+currentRow);
+				//System.out.println("thread "+threadNo+" finished at row "+currentRow);
 			}
 			return 0;
 	}}
@@ -179,15 +184,29 @@ public class Linear {
 	 * Hence if A has a,b,c outgoing and B has b,c,e,f, the outcome will be 2 because 
 	 * there are two transitions, b,c in common.
 	 */
-	protected int countMatchingOutgoing(Map<String,CmpVertex> A, Map<String,CmpVertex> B)
+	int countMatchingOutgoing(Map<String,CmpVertex> A, Map<String,CmpVertex> B)
 	{
 		int counter = 0;
+		boolean isHighlight = false;
 		for(Entry<String,CmpVertex> entry:A.entrySet())
 		{
 			CmpVertex to=B.get(entry.getKey());
-			if (to != null && entry.getValue().isAccept() && to.isAccept()) ++counter;
+			if (to != null)
+			{
+				if (entry.getValue().isAccept() && to.isAccept()) ++counter;
+				if (entry.getValue().isHighlight() || to.isHighlight()) isHighlight=true;
+			}
 		}
+		
+		if (coregraph.config.getLinearPairScoreInterpretHighlightAsNegative() && isHighlight)
+			return -1;
 		return counter;
+	}
+	
+	/** Highlights all negative states. */
+	public void highlightNegatives()
+	{
+		for(CmpVertex v:coregraph.transitionMatrix.keySet()) v.setHighlight(!v.isAccept());
 	}
 	
 	/** Used to designate incompatible pairs of states. */
@@ -291,7 +310,7 @@ public class Linear {
 						// Note that we are iterating state pairs consecutively in an increasing order and 
 						// different threads handle non-intersecting ranges of them, hence most of the time,
 						// there should be no "cache thrashing".
-
+						
 						BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
 						if (intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
 						{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
@@ -313,7 +332,7 @@ public class Linear {
 											// in this case, we have to avoid including (B,A) in the list, but 
 											// it is not known in advance if any such case occurs, so we have to store
 											// the pairs we encountered and eliminate them. 
-											int sourcePair = coregraph.wmethod.vertexToIntNR(srcB,srcA);
+											int sourcePair = coregraph.wmethod.vertexToIntNR(srcB,srcA);// Note that it does not matter if we use the correct one or the wrong one (vertexToInt) call here because all it is used for is to identify pairs, both do this uniquely. The queue of pairs to process gets actual state pairs because it need to map from them to the source states. For this reasaon, we are immune from the wrong call at this point. 
 											if (!sourceData.contains(sourcePair))
 											{
 												sourceData.add(sourcePair);
@@ -339,7 +358,6 @@ public class Linear {
 		performRowTasks(handlerList, ThreadNumber);
 		inputsAccepted=null;inputsRejected=null;
 		
-		System.out.println("vertices to do : "+currentExplorationBoundary.size());
 		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
 		// this information further, to states which have transitions leading to the currently considered set of states.
 		while(!currentExplorationBoundary.isEmpty())
@@ -424,14 +442,15 @@ public class Linear {
 		// now fill in the scores in the array.
 		for(int i=0;i<incompatiblePairs.length;++i)
 			if (incompatiblePairs[i] >=0) statePairScores[i]=solver.j_x[incompatiblePairs[i]];
-			else statePairScores[i]=incompatiblePairs[i];// PAIR_REJECT or PAIR_INCOMPATIBLE
+			else statePairScores[i]=incompatiblePairs[i];// PAIR_INCOMPATIBLE
 			
 		return statePairScores;
 	}
 	
 	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber)
-	{// TODO: tests need to cover all cases where vertexToIntNR is different from vertxToInt 
-		System.out.println("Initial number of pairs: "+(coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2)+", after reduction: "+pairsNumber);
+	{ 
+		if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+			System.out.println("Initial number of pairs: "+(coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2)+", after reduction: "+pairsNumber);
 
 		final int expectedMatrixSize = coregraph.learnerCache.getExpectedIncomingPerPairOfStates()*pairsNumber;
 		/** This one is supposed to contain indices into Ai where each column starts. Every thread
@@ -525,7 +544,8 @@ public class Linear {
 									int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
 									if (tmpAi.elements().length < maxSize)
 									{
-										System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread] from "+tmpAi.elements().length+" to "+maxSize);
+										if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+											System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread] from "+tmpAi.elements().length+" to "+maxSize);
 										tmpAi.ensureCapacity(maxSize);
 									}
 									if (debugThread == threadNo) System.out.println("matched "+outLabel.getKey());
@@ -574,7 +594,8 @@ public class Linear {
 							int expectedMaxSize = pos+colEntriesNumber+1;
 							if (Ax.elements().length < expectedMaxSize)
 							{
-								System.out.println("buildMatrix: warning - resizing arrays Ax[thread] and Ai[thread] from "+Ax.elements().length+" to "+expectedMaxSize);
+								if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+									System.out.println("buildMatrix: warning - resizing arrays Ax[thread] and Ai[thread] from "+Ax.elements().length+" to "+expectedMaxSize);
 								Ax.ensureCapacity(expectedMaxSize);
 								Ai.ensureCapacity(expectedMaxSize);
 							}
@@ -682,5 +703,82 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 		}
 		Ap[pairsNumber]=prevLastPos;
 		return new LSolver(Ap,Ai,Ax,b,new double[pairsNumber]);
+	}
+
+	/** This is a kind of an inverse of vertexToIntNR, takes a number and a score returns a corresponding <em>PairScore</em>.
+	 *  
+	 */ 
+	public PairScore getPairScore(int pair, int score, int compat)
+	{
+		int row=(int)(-1+Math.sqrt(pair*8+1))/2;// rounding by truncation
+		int column = pair-row*(row+1)/2;
+		assert row >=0 && column >= 0;
+		assert row < coregraph.learnerCache.getAcceptStateNumber() && column < coregraph.learnerCache.getAcceptStateNumber();
+		assert column <= row;
+		return new PairScore(coregraph.learnerCache.getNumberToStateNoReject()[row],coregraph.learnerCache.getNumberToStateNoReject()[column],score,compat);
+	}
+	
+	/** Returns a stack of states with scores over a given threshold. 
+	 * 
+	 * @param threshold the threshold to use, prior to scaling.
+	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+	 * @param ThreadNumber the number of CPUs to use
+	 * @return
+	 */
+	public Stack<PairScore> chooseStatePairs(double threshold, double scale, int ThreadNumber)
+	{
+		final int [] incompatiblePairs = new int[coregraph.learnerCache.getAcceptStateNumber()*(coregraph.learnerCache.getAcceptStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
+		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+		solver.solve();
+		solver.freeAllButResult();// deallocate memory before creating a large array.
+/*		int size = 0;
+		for(int i=0;i<solver.j_x.length;++i) if (solver.j_x[i]>threshold) ++size;
+	*/	
+		coregraph.pairsAndScores.clear();
+		// now fill in the scores in the array.
+		for(int i=0;i<incompatiblePairs.length;++i)
+		{
+			int index = incompatiblePairs[i];
+			if (index >= 0) 
+			{
+				double value = solver.j_x[incompatiblePairs[i]];
+				if (value > threshold) coregraph.pairsAndScores.add(getPairScore(i, (int)(scale*value), 0));
+			}
+			else // PAIR_INCOMPATIBLE
+				if (threshold < PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(getPairScore(i, (int)(scale*PAIR_INCOMPATIBLE), 0));
+		}
+		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
+	}
+	
+	/** Acts as an oracle, comparing two graphs are returning compatibility score. 
+	 *
+	 * @param forceAccept if true, assumes that all states are accept-states
+	 */
+	public double getSimilarity(LearnerGraph gr, boolean forceAccept, int ThreadNumber)
+	{
+		Configuration copyConfig = (Configuration)coregraph.config;copyConfig.setLearnerCloneGraph(true);
+		LearnerGraph copy = coregraph.copy(copyConfig);
+		CmpVertex grInit = Transform.addToGraph(copy, gr);
+		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
+		copy.learnerCache.invalidate();
+		return copy.linear.computeStateCompatibility(ThreadNumber)[copy.wmethod.vertexToIntNR(copy.init, grInit)]; 
+	}
+
+	
+	/** Acts as an oracle, comparing two graphs are returning compatibility score, however
+	 * reject states are not ignored but where they are used, the corresponding pairs are assigned negative scores. 
+	 */
+	public double getSimilarityWithNegatives(LearnerGraph gr, int ThreadNumber)
+	{
+		Configuration copyConfig = (Configuration)coregraph.config;copyConfig.setLearnerCloneGraph(true);
+		LearnerGraph copy = coregraph.copy(copyConfig);
+		CmpVertex grInit = Transform.addToGraph(copy, gr);
+		copy.linear.highlightNegatives();
+		for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);copy.config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		copy.learnerCache.invalidate();
+		double result = copy.linear.computeStateCompatibility(ThreadNumber)[copy.wmethod.vertexToIntNR(copy.init, grInit)];
+		
+		return result;
 	}
 }

@@ -119,6 +119,12 @@ public class PairScoreComputation {
 				}
 		}
 
+		return getSortedPairsAndScoresStackFromUnsorted();
+	}		
+
+	/** Used to sort the collection of pairs and scores and do the filtering if needed. */
+	Stack<PairScore>  getSortedPairsAndScoresStackFromUnsorted()
+	{
 		Collections.sort(coregraph.pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 
 		Stack<PairScore> result = new Stack<PairScore>();
@@ -127,25 +133,11 @@ public class PairScoreComputation {
 			int numberOfElements = Math.min(coregraph.pairsAndScores.size(),coregraph.config.getPairsMergedPerHypothesis());
 			result.addAll(coregraph.pairsAndScores.subList(0, numberOfElements));
 		}
-/*		
-		else
-			if (bumpPositives && !pairsAndScores.isEmpty())
-			{// here we only append elements with the same score as the max score
-				
-				ComputeStateScores.PairScore topPair = pairsAndScores.get(pairsAndScores.size()-1);result.add(topPair);
-				
-				for(int i=0;i< pairsAndScores.size();++i)
-				{// we iterage until we get to the end; pairsAndScores is an array
-					ComputeStateScores.PairScore p = pairsAndScores.get(i);
-					if (p.getScore() == topPair.getScore()) result.add(p);
-				}
-			}
-*/			
 		else result.addAll(coregraph.pairsAndScores);
 
-		return result;
-	}		
-
+		return result;		
+	}
+	
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
 		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.wmethod.computeAlphabet().size();

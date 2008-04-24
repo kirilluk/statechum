@@ -30,6 +30,7 @@ import java.util.*;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex.MiniPair;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.rpnicore.Transform;
 
@@ -51,23 +52,23 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
                  mLabeller.getVertex(targetId);
 
         String direction = (String) attributeMap.remove("directed");
-        boolean directed = true;
+        boolean directed = Boolean.parseBoolean(direction);
         Edge e;
         if(!(sourceVertex.getSuccessors().contains(targetVertex))){
 	        if (directed)
 	            e = mGraph.addEdge(new DirectedSparseEdge(sourceVertex, targetVertex));
 	        else
 	            e = mGraph.addEdge(new UndirectedSparseEdge(sourceVertex, targetVertex));
-	        for (Iterator keyIt = attributeMap.keySet().iterator();
-	             keyIt.hasNext();
-	                ) {
+	        
+	        for (Iterator keyIt = attributeMap.keySet().iterator();keyIt.hasNext();) 
+	        {
 	            Object key = keyIt.next();
 	            Object value = attributeMap.get(key);
 	            e.setUserDatum(key, value, UserData.SHARED);
-	            HashSet labels = new HashSet();
-	            labels.add(attributeMap.get("EDGE"));
-	            e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
 	        }
+	        HashSet labels = new HashSet();
+	        labels.add(attributeMap.get("EDGE"));
+	        e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
         }
         else{
         	e = RPNIBlueFringeLearnerOrig.findEdge(sourceVertex, targetVertex);
@@ -86,7 +87,9 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         }
 
         String idString = (String) attributeMap.remove("id");
-        ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString)));// this ID will be subsequently modified when we look at the "VERTEX" tag.
+        DeterministicDirectedSparseGraph.DeterministicVertex vertex = 
+        	new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString));// this ID will be subsequently modified when we look at the "VERTEX" tag.
+        mGraph.addVertex(vertex);
 
         try {
             mLabeller.setLabel((Vertex) vertex,idString);
@@ -99,17 +102,23 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         {
             Object key = keyIt.next();
             Object value = attributeMap.get(key);
-            vertex.setUserDatum(key, value, UserData.SHARED);
+            
+            MiniPair p=new MiniPair(key,value);
+            vertex.setUserDatum(p.getKey(), p.getValue(), UserData.SHARED);
         }
-        String label = attributeMap.get("VERTEX").toString();
+			
+       String label = attributeMap.get("VERTEX").toString();
         if(label.startsWith(Transform.Initial))
         {
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
         	label = label.replaceAll(Transform.Initial+" *", "");
         }
+        
        	vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);
-        vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+       	if (!vertex.containsUserDatumKey(JUConstants.ACCEPTED))
+       		vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+        
         return vertex;
     }
 

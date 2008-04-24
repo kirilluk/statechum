@@ -119,9 +119,8 @@ public class PathRoutines {
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
-		if (coregraph.learnerCache.flowgraph == null) coregraph.learnerCache.flowgraph = coregraph.paths.getFlowgraph();
 		if (LearnerGraph.testMode)
-			if (!coregraph.learnerCache.flowgraph.containsKey(vertSource) || !coregraph.learnerCache.flowgraph.containsKey(vertTarget))
+			if (!coregraph.learnerCache.getFlowgraph().containsKey(vertSource) || !coregraph.learnerCache.getFlowgraph().containsKey(vertTarget))
 				throw new IllegalArgumentException("either source or target vertex is not in the graph");
 		
 		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
@@ -160,7 +159,7 @@ public class PathRoutines {
 			else
 			{
 				visitedStates.add(currentVert);
-				for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.flowgraph.get(currentVert).entrySet())
+				for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
 				{
 					if (entry.getKey() == vertTarget)
 					{// found the vertex we are looking for
@@ -170,7 +169,7 @@ public class PathRoutines {
 						// process vertices
 						for(CmpVertex tgt:currentPath)
 						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
-							paths = paths.crossWithSet(coregraph.learnerCache.flowgraph.get(curr).get(tgt));
+							paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
 							curr = tgt;
 						}
 						result.unite( paths );// update the result.
@@ -448,11 +447,10 @@ public class PathRoutines {
 			result = new DirectedSparseGraph();
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-			if (coregraph.learnerCache.flowgraph == null) coregraph.learnerCache.flowgraph = coregraph.paths.getFlowgraph();
 
 			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
 			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.flowgraph.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
 				CmpVertex source = entry.getKey();
 				DeterministicVertex vert = (DeterministicVertex)LearnerGraph.cloneCmpVertex(source,cloneConfig);
@@ -463,7 +461,7 @@ public class PathRoutines {
 			}
 			
 			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.flowgraph.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
 				DeterministicVertex source = oldToNew.get(entry.getKey());
 				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())

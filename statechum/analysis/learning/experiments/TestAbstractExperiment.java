@@ -72,7 +72,15 @@ public class TestAbstractExperiment {
 			for(File f:directory.listFiles())
 			{
 				Assert.assertFalse(f.isDirectory());
-				Assert.assertTrue("cannot delete file "+f,f.delete());
+				if (!f.delete())
+				{
+					try {
+						Thread.sleep(1000);// wait for a sec
+					} catch (InterruptedException e) {
+						// ignore
+					}
+					Assert.assertTrue("cannot delete file "+f,f.delete());
+				}
 			}
 			directory.delete();
 		}

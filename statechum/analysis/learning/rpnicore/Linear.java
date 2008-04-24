@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -34,6 +35,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.StatePair;
+import cern.colt.bitvector.BitVector;
 import cern.colt.function.IntComparator;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
@@ -51,44 +54,6 @@ public class Linear {
 		coregraph =g;
 	}
 
-	/*
-	public void addToBuffer(AddToMatrix resultReceiver, CmpVertex A, CmpVertex B)
-	{
-		Map<Integer,Double> targetCnt = new TreeMap<Integer,Double>();
-		Map<String,CmpVertex> rowB = coregraph.transitionMatrix.get(B);
-		int totalOutgoing = coregraph.transitionMatrix.get(A).size()+rowB.size();
-		int valueFirst = 1+coregraph.wmethod.vertexToInt(A,B);
-		int matchedNumber = 0;targetCnt.clear();
-		for(Entry<String,CmpVertex> outLabel:coregraph.transitionMatrix.get(A).entrySet())
-		{
-			CmpVertex to = rowB.get(outLabel.getKey());
-			if (to != null)
-			{// matched pair of transitions
-				++matchedNumber;
-				int valueSecond = 1+coregraph.wmethod.vertexToInt(outLabel.getValue(),to);
-				Double current = targetCnt.get(valueSecond);
-				if (current == null)
-					targetCnt.put(valueSecond,-valueK);
-				else
-					targetCnt.put(valueSecond,current-valueK);
-			}
-		}
-		if (totalOutgoing == 0)
-			targetCnt.put(valueFirst, new Double(1));
-		else
-		{
-			Double current = targetCnt.get(valueFirst);
-			double increment = (double)totalOutgoing-matchedNumber;
-			if (current == null)
-				targetCnt.put(valueFirst, increment);
-			else
-				targetCnt.put(valueFirst,increment+current);
-		}
-		for(Entry<Integer,Double> entry:targetCnt.entrySet())
-			resultReceiver.addMapping(valueFirst,entry.getKey(),entry.getValue());
-	}
-	*/
-	
 	public interface HandleRow 
 	{
 		/** Initialises this job. */
@@ -119,12 +84,15 @@ public class Linear {
 				Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo])
 				{
-					stateB_It.next();++currentRow;
+					Entry<CmpVertex,Map<String,CmpVertex>> entry = stateB_It.next();
+					if (entry.getKey().isAccept()) ++currentRow;// only increment the row number if we are at the accept-state
 				}
 				System.out.println("thread "+threadNo+" started from row "+currentRow);
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo+1])
 				{
-					Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();++currentRow;
+					Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
+					if (stateB.getKey().isAccept()) ++currentRow;// only increment the row number if we are at the accept-state. We still run our worker on all the reject-rows, 
+						// but we expect it to be fast on those rows, so no problems.
 					handler.handleEntry(stateB, threadNo);
 				}
 				System.out.println("thread "+threadNo+" finished at row "+currentRow);
@@ -152,6 +120,7 @@ public class Linear {
 			if (ThreadNumber > 1)
 			{// Run multi-threaded
 				executorService = Executors.newFixedThreadPool(ThreadNumber);
+
 				/** Stores tasks to complete. */
 				CompletionService<Integer> runner = new ExecutorCompletionService<Integer>(executorService);
 				
@@ -175,56 +144,6 @@ public class Linear {
 		}
 	}
 
-	/** Updates the cached data with a transition matrix where all transitions point in 
-	 * an opposite direction to the current one. The matrix produced is used to scan 
-	 * the state comparison matrix columnwise.
-	 */
-	public void prepareForLinear()
-	{
-		coregraph.learnerCache.stateToNumber = coregraph.wmethod.buildStateToIntegerMap();
-		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> sortaInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		
-		// First, we fill the map with empty entries.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			sortaInverse.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
-		
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-		{
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-			{
-				Map<String,List<CmpVertex>> row = sortaInverse.get(transition.getValue());
-				List<CmpVertex> sourceStates = row.get(transition.getKey());
-				if (sourceStates == null)
-				{
-					sourceStates=new LinkedList<CmpVertex>();row.put(transition.getKey(), sourceStates);
-				}
-				sourceStates.add(entry.getKey());
-			}
-		}
-		
-		coregraph.learnerCache.sortaInverse = sortaInverse;
-		
-		// Now we need to estimate expectedIncomingPerPairOfStates
-		int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:sortaInverse.entrySet())
-			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
-			{
-				++incomingCnt;
-				int size = transition.getValue().size()*entry.getValue().size();indegreeSum+=size;
-				if (size > maxInDegree) maxInDegree=size;
-			}
-		
-		// The logic is simple: if maxInDegree is much higher than the 
-		// average, double the average indegree, otherwise leave it unchanged.  
-		coregraph.learnerCache.expectedIncomingPerPairOfStates = 2;
-		if (incomingCnt > 0) coregraph.learnerCache.expectedIncomingPerPairOfStates=1+indegreeSum/incomingCnt;// 1 is to account for a diagonal
-/*		if (maxInDegree/4 > coregraph.learnerCache.expectedIncomingPerPairOfStates)
-			coregraph.learnerCache.expectedIncomingPerPairOfStates<<=1;// double it
-	*/	
-		System.out.println("Indegree sum: "+indegreeSum+" state pairs: "+incomingCnt+" average indegree: "+(incomingCnt>0 ?indegreeSum/incomingCnt:0)+" max indegree: "+maxInDegree);
-	}
-	
 	/** Processing of data for a triangular matrix using multiple CPUs has to be done by
 	 * identifying subsets of rows and columns to handle.
 	 * 
@@ -243,12 +162,14 @@ public class Linear {
 		if (ThreadNumber <= 0) throw new IllegalArgumentException("invalid processor number");
 		int result []= new int[ThreadNumber+1];
 		result[0]=0;
+		int acceptStateNumber = coregraph.learnerCache.getAcceptStateNumber();
+		
 		for(int count=1;count < ThreadNumber;++count)
 		{
 			int a= result[count-1];
 			result[count]=a+(int)Math.round(( -2*a-1 + Math.sqrt((double)(2*a+1)*(2*a+1)+
-					4*(double)coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/ThreadNumber) ) /2);
-			assert result[count] >= 0 && result[count] <= coregraph.getStateNumber() : "obtained row "+result[count]+" while the range is 0.."+coregraph.getStateNumber();
+					4*(double)acceptStateNumber*(acceptStateNumber+1)/ThreadNumber) ) /2);
+			assert result[count] >= 0 && result[count] <= acceptStateNumber : "obtained row "+result[count]+" while the range is 0.."+acceptStateNumber;
 		}
 		result[ThreadNumber]=coregraph.getStateNumber();
 		return result;
@@ -262,18 +183,301 @@ public class Linear {
 	{
 		int counter = 0;
 		for(Entry<String,CmpVertex> entry:A.entrySet())
-		if (B.containsKey(entry.getKey())) ++counter;
+		{
+			CmpVertex to=B.get(entry.getKey());
+			if (to != null && entry.getValue().isAccept() && to.isAccept()) ++counter;
+		}
 		return counter;
 	}
 	
-	public ExternalSolver buildMatrix(final int ThreadNumber)
+	/** Used to designate incompatible pairs of states. */
+	public static final int PAIR_INCOMPATIBLE =-1;
+	
+	/** A temporary designation for compatible pairs of states, before they are numbered. */
+	public static final int PAIR_OK=-2;
+
+	/** Used to denote state pairs containing a reject-state. */
+	public static final int PAIR_REJECT =-3;
+	
+	Map<CmpVertex,BitVector> inputsAccepted = null,inputsRejected = null;
+
+	/** A number of pairs of states will not be compatible, hence we do not need to include 
+	 * them in a matrix for computation of compatibility scores. This method updates the set of  
+	 * incompatible pairs of states.
+	 *  
+	 * @param incompatiblePairs pairs currently considered incompatible
+	 * @param ThreadNumber number of CPUs to use.
+	 * @return
+	 */
+	protected void findDirectlyIncompatiblePairs(int ThreadNumber)
 	{
-		if (coregraph.learnerCache.expectedIncomingPerPairOfStates <= 0 || 
-				coregraph.learnerCache.sortaInverse == null || coregraph.learnerCache.stateToNumber == null)
-			prepareForLinear();
+		inputsAccepted = new TreeMap<CmpVertex,BitVector>();inputsRejected = new TreeMap<CmpVertex,BitVector>();
+		int num =0;
+		Map<String,Integer> inputToInt = new TreeMap<String,Integer>();for(String str:coregraph.learnerCache.getAlphabet()) inputToInt.put(str, num++);
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept())
+			{
+				BitVector 
+					acceptVector = new BitVector(coregraph.learnerCache.getAlphabet().size()),
+					rejectVector = new BitVector(coregraph.learnerCache.getAlphabet().size());
+				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+					if (!transition.getValue().isAccept())
+						rejectVector.set(inputToInt.get(transition.getKey()));
+					else
+						acceptVector.set(inputToInt.get(transition.getKey()));
+				
+				inputsAccepted.put(entry.getKey(), acceptVector);
+				inputsRejected.put(entry.getKey(), rejectVector);
+			}
+	}
+	
+	/** Checks the supplied bit-vectors for an intersection.
+	 * 
+	 * @param A
+	 * @param B
+	 * @return true if there is any bit in common between these two bit vectors.
+	 */
+	public static boolean intersects(BitVector A, BitVector B)
+	{
+		long [] bufA=A.elements(),bufB=B.elements();
+		assert bufA.length == bufB.length;
+		for(int i=0;i<bufA.length;++i) 
+			if ( (bufA[i] & bufB[i]) != 0)
+				return true;
 		
+		return false;
+	}
+/*	
+	public void markNonRejectStatePairsAsPotential(final int []incompatiblePairs, int ThreadNumber)
+	{
+		List<HandleRow> handlerList = new LinkedList<HandleRow>();
+		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+			handlerList.add(new HandleRow()
+			{
+				public void init(int threadNo) {}
+				int prevStatePairNumber=-1;
+				
+				public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+				{
+					boolean a_accept = entryA.getKey().isAccept();
+					// Now iterate through states
+					Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = coregraph.learnerCache.getSortaInverse().entrySet().iterator();
+					while(stateB_It.hasNext())
+					{
+						Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
+						int currentStatePair = coregraph.wmethod.vertexToInt(stateB.getKey(),entryA.getKey());
+						assert currentStatePair > prevStatePairNumber : "current state pair: "+currentStatePair+" and previous: "+prevStatePairNumber;
+						prevStatePairNumber = currentStatePair;
+						if (a_accept && stateB.getKey().isAccept())
+						{// reject-states are ignored.
+							if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE)
+								incompatiblePairs[currentStatePair]=PAIR_OK;
+						}// reject-states are ignored.
+						else
+							incompatiblePairs[currentStatePair]=PAIR_REJECT;// reject-states are ignored.
+						
+						if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+					}// iterating through states (stateB)
+				}
+			});
+		performRowTasks(handlerList, ThreadNumber);
+	}
+	*/	
+	/** A number of pairs of states will not be compatible, hence we do not need to include 
+	 * them in a matrix for computation of compatibility scores. This method updates the set of  
+	 * incompatible pairs of states.
+	 *  
+	 * @param incompatiblePairs pairs currently considered incompatible
+	 * @param ThreadNumber number of CPUs to use.
+	 * @return
+	 */
+	int findIncompatiblePairs(final int [] incompatiblePairs, int ThreadNumber)
+	{
 		final int pairsNumber = coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2;
-		final int expectedMatrixSize = coregraph.learnerCache.expectedIncomingPerPairOfStates*pairsNumber;
+
+		if (incompatiblePairs.length != pairsNumber) throw new IllegalArgumentException("invalid array length");
+		findDirectlyIncompatiblePairs(ThreadNumber);
+		//markNonRejectStatePairsAsPotential(incompatiblePairs,ThreadNumber);
+
+		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
+		
+		List<HandleRow> handlerList = new LinkedList<HandleRow>();
+		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+		handlerList.add(new HandleRow()
+		{
+			public void init(int threadNo) {}
+
+			Set<Integer> sourceData = new TreeSet<Integer>();
+
+			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
+			int prevStatePairNumber =-1;
+
+			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+			{
+					Collection<Entry<String,List<CmpVertex>>> rowA_collection = coregraph.learnerCache.getSortaInverse().get(entryA.getKey()).entrySet();
+					BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
+					
+					// Now iterate through states
+					Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = coregraph.learnerCache.getSortaInverse().entrySet().iterator();
+					while(stateB_It.hasNext())
+					{
+						Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
+						boolean a_accept = entryA.getKey().isAccept();
+						int currentStatePair = coregraph.wmethod.vertexToInt(stateB.getKey(),entryA.getKey());
+						assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
+						
+						// Note that we are iterating state pairs consecutively in an increasing order and 
+						// different threads handle non-intersecting ranges of them, hence most of the time,
+						// there should be no "cache thrashing".
+						if (a_accept && stateB.getKey().isAccept())
+						{// reject-states are not considered here and set to PAIR_REJECT below.
+								BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
+								/*
+								if (debugThread == threadNo) buffer.append("("+entryA.getKey()+","+stateB.getKey()+"): ["+inputsAcceptedFromA+","+inputsRejectedFromA+
+										"] v.s. ["+B_accepted+","+B_rejected+"]");
+								*/
+								if (intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
+								{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
+									sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
+									Map<String,List<CmpVertex>> rowB = stateB.getValue();
+									
+									for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
+									{
+										List<CmpVertex> to = rowB.get(outLabel.getKey());
+										if (to != null)
+										{// matched pair of transitions, now we need to build a cross-product 
+										 // of the states leading to the current pair of states, that is,
+										 // to (entryA.getKey(),stateB)
+				
+											for(CmpVertex srcA:outLabel.getValue())
+												for(CmpVertex srcB:to)
+												{
+													// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
+													// in this case, we have to avoid including (B,A) in the list, but 
+													// it is not known in advance if any such case occurs, so we have to store
+													// the pairs we encountered and eliminate them. 
+													int sourcePair = coregraph.wmethod.vertexToInt(srcB,srcA);
+													if (!sourceData.contains(sourcePair))
+													{
+														sourceData.add(sourcePair);
+														synchronized (currentExplorationBoundary) 
+														{
+															currentExplorationBoundary.add(new StatePair(srcB,srcA));
+														}
+													}
+												}
+										}
+									}
+								}// if intersects
+								else 
+									if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE) // it is not possible for this loop to set this -
+										// we are going through the vertices sequentially, but it could have been set by whoever called us.
+									incompatiblePairs[currentStatePair]=PAIR_OK;// potentially compatible pair
+						}// reject-states are ignored.
+						else
+							incompatiblePairs[currentStatePair]=PAIR_REJECT;
+						if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+					}// iterating through states (stateB)
+			}
+		});
+		performRowTasks(handlerList, ThreadNumber);
+		inputsAccepted=null;inputsRejected=null;
+		
+		System.out.println("vertices to do : "+currentExplorationBoundary.size());
+		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
+		// this information further, to states which have transitions leading to the currently considered set of states.
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			StatePair pair = currentExplorationBoundary.remove();
+			
+			int currentStatePair = coregraph.wmethod.vertexToInt(pair.firstElem,pair.secondElem);
+			incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
+
+			Map<String,List<CmpVertex>> rowB = coregraph.learnerCache.getSortaInverse().get(pair.secondElem);
+			
+			for(Entry<String,List<CmpVertex>> outLabel:coregraph.learnerCache.getSortaInverse().get(pair.firstElem).entrySet())
+			{
+				List<CmpVertex> to = rowB.get(outLabel.getKey());
+				if (to != null)
+				{// matched pair of transitions, now we need to build a cross-product 
+				 // of the states leading to the current pair of states, that is,
+				 // to (entryA.getKey(),stateB)
+					for(CmpVertex srcA:outLabel.getValue())
+						for(CmpVertex srcB:to)
+						{
+							// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
+							// in this case, we have to avoid including (B,A) in the list, but 
+							// it is not known in advance if any such case occurs, so we have to store
+							// the pairs we encountered and eliminate them. Happily, this is handled by 
+							// incompatiblePairs[sourcePair]=PAIR_INCOMPATIBLE
+							int sourcePair = coregraph.wmethod.vertexToInt(srcA, srcB);
+							if (incompatiblePairs[sourcePair] == PAIR_OK)
+							{
+								currentExplorationBoundary.offer(new StatePair(srcA,srcB)); // append to the list
+								incompatiblePairs[sourcePair]=PAIR_INCOMPATIBLE;
+							}
+						}
+				}
+			}
+			
+		}
+		
+		return numberNonNegativeElements(incompatiblePairs);
+	}
+
+	protected void printOK(int []data)
+	{
+		int cnt=0;
+		for(int i=0;i<data.length;++i)
+			if (data[i] == PAIR_OK) ++cnt;
+		System.out.println("OK pairs: "+cnt);
+	}
+	
+	/** Sequentially number elements in the array which are not negative. */
+	public static int numberNonNegativeElements(int data[])
+	{
+		int num=0;
+		for(int i=0;i<data.length;++i)
+			if (data[i] == PAIR_OK) data[i]=num++;
+		
+		return num;
+	}
+	
+	/** This routine is used for testing buildMatrix_internal. */
+	public LSolver buildMatrix(final int ThreadNumber)
+	{
+		final int [] incompatiblePairs = new int[coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
+		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+	}
+	
+	/** Computes the compatibility between pairs of states.
+	 * 
+	 * @param ThreadNumber how many CPUs to use
+	 * @return a map from numbers returned by <em>wmethod.vertexToInt(A,B)</em>
+	 * to compatibility score of states <em>A</em> and <em>B</em>.
+	 */ 
+	public double [] computeStateCompatibility(int ThreadNumber)
+	{
+		final int [] incompatiblePairs = new int[coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
+		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+		solver.solve();
+		solver.freeAllButResult();// deallocate memory before creating a large array.
+		double statePairScores[] = new double[incompatiblePairs.length];
+		// now fill in the scores in the array.
+		for(int i=0;i<incompatiblePairs.length;++i)
+			if (incompatiblePairs[i] >=0) statePairScores[i]=solver.j_x[incompatiblePairs[i]];
+			else statePairScores[i]=incompatiblePairs[i];// PAIR_REJECT or PAIR_INCOMPATIBLE
+			
+		return statePairScores;
+	}
+	
+	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber)
+	{
+		System.out.println("Initial number of pairs: "+(coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2)+", after reduction: "+pairsNumber);
+
+		final int expectedMatrixSize = coregraph.learnerCache.getExpectedIncomingPerPairOfStates()*pairsNumber;
 		/** This one is supposed to contain indices into Ai where each column starts. Every thread
 		 * processes a continuous sequence of state pairs (ensured by exploring a triangular subset of 
 		 * all the pairs and matching it to calls to vertexToInt()). For this reason, it is easy to 
@@ -281,7 +485,6 @@ public class Linear {
 		 */ 
 		final int Ap[]=new int[pairsNumber+1];
 		final int Ap_threadStart[]=new int[ThreadNumber+1];for(int i=0;i<Ap_threadStart.length;++i) Ap_threadStart[i]=-1;
-		//final int alphabetSize = coregraph.wmethod.computeAlphabet().size();
 		
 		// one array per thread.
 		final IntArrayList Ai_array[]=new IntArrayList[ThreadNumber];
@@ -304,14 +507,17 @@ public class Linear {
 			 */
 			long uniqueValueForSourcePairEncountered = 0;
 			
+			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
+			int prevStatePairNumber =-1;
+			
 			final int debugThread = -1;
 
 			public void init(int threadNo)
 			{
-				tmpAi = new IntArrayList(coregraph.learnerCache.expectedIncomingPerPairOfStates*pairsNumber);
+				tmpAi = new IntArrayList(coregraph.learnerCache.getExpectedIncomingPerPairOfStates()*pairsNumber);
 				//sourcePairEncountered = new long[pairsNumber];
-				Ai_array[threadNo]=new IntArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.expectedIncomingPerPairOfStates);
-				Ax_array[threadNo]=new DoubleArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.expectedIncomingPerPairOfStates);
+				Ai_array[threadNo]=new IntArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.getExpectedIncomingPerPairOfStates());
+				Ax_array[threadNo]=new DoubleArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.getExpectedIncomingPerPairOfStates());
 				currentPosition[threadNo]=0;
 				
 			}
@@ -322,10 +528,10 @@ public class Linear {
 			{
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];
-				Collection<Entry<String,List<CmpVertex>>> rowA_collection = coregraph.learnerCache.sortaInverse.get(entryA.getKey()).entrySet();
+				Collection<Entry<String,List<CmpVertex>>> rowA_collection = coregraph.learnerCache.getSortaInverse().get(entryA.getKey()).entrySet();
 				
 				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = coregraph.learnerCache.sortaInverse.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = coregraph.learnerCache.getSortaInverse().entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
 					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
@@ -335,113 +541,117 @@ public class Linear {
 					// by iterating through inputs associated with incoming transitions and
 					// attempting to check if there is a match.
 					
-					int currentStatePair = coregraph.wmethod.vertexToInt(stateB.getKey(),entryA.getKey());// the order 
+					int currentStatePair = incompatiblePairs[coregraph.wmethod.vertexToInt(stateB.getKey(),entryA.getKey())];// the order 
 							// of arguments is important:
 							// we have to iterate such that each thread has a continuous sequence of state pair number
 							// (and these numbers are never shared).
-					if (Ap_threadStart[threadNo] < 0) Ap_threadStart[threadNo]=currentStatePair;
-					if (debugThread == threadNo) System.out.println("states: ("+entryA.getKey()+","+stateB+"), id "+currentStatePair);
-					int colEntriesNumber=0;
-					tmpAi.setQuick(colEntriesNumber++, currentStatePair);// we definitely need a diagonal element, hence add it.
 					
-					for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
+					if (currentStatePair >= 0)
 					{
-						List<CmpVertex> to = rowB.get(outLabel.getKey());
-						if (to != null)
-						{// matched pair of transitions, now we need to build a cross-product 
-						 // of the states leading to the current pair of states, that is,
-						 // to (entryA.getKey(),stateB)
-							uniqueValueForSourcePairEncountered++;sourceData.clear();
-							
-							int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
-							if (tmpAi.elements().length < maxSize)
-							{
-								System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread] from "+tmpAi.elements().length+" to "+maxSize);
-								tmpAi.ensureCapacity(maxSize);
-							}
-							if (debugThread == threadNo) System.out.println("matched "+outLabel.getKey());
-							for(CmpVertex srcA:outLabel.getValue())
-								for(CmpVertex srcB:to)
-								{
-									// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
-									// in this case, we have to avoid including (B,A) in the list, but 
-									// it is not known in advance if any such case occurs, so we have to store
-									// the pairs we encountered and eliminate them. This is accomplished using 
-									// the array sourcePairEncountered which maps (srcA,srcB) to the last currentStatePair+1
-									// they have been encountered at. This way, we do not need to reset the array
-									// between computations; not even at the initial stage, thanks to "+1".
-									int sourcePair = coregraph.wmethod.vertexToInt(srcA, srcB);
-									if (!sourceData.contains(sourcePair))
-											//sourcePairEncountered[sourcePair] != uniqueValueForSourcePairEncountered)
-									{
-										//sourcePairEncountered[sourcePair] = uniqueValueForSourcePairEncountered;
-										sourceData.add(sourcePair);
-										if (debugThread == threadNo) System.out.println(outLabel.getKey()+" : "+srcA+","+srcB);
-										tmpAi.setQuick(colEntriesNumber++,sourcePair);
-									}
-								}
-						}
-					}
-					
-					int sharedOutgoing = countMatchingOutgoing(entryA.getValue(),coregraph.transitionMatrix.get(stateB.getKey()));
-					if (debugThread == threadNo) System.out.println("shared outgoing: "+sharedOutgoing);
-					b[currentStatePair]=sharedOutgoing;
-					
-					// At this point, we populated Ai and b with elements for the current row (number currentStatePair),
-					// so it is time to sort these entries. There is no need to populate Ax right now:
-					// all we care about is the state pairs from which there have been transitions leading to the 
-					// current state (and a diagonal element). 
-					cern.colt.Sorting.quickSort(tmpAi.elements(),0, colEntriesNumber,new IntComparator() {
-						public int compare(int o1, int o2) { return o1-o2; }});
-					if (debugThread == threadNo)  { for(int i=0;i< colEntriesNumber;++i) System.out.print(tmpAi.getQuick(i)+" ");System.out.println(); }
-					// Now we have to copy the result to the target array.
-					int pos = currentPosition[threadNo]-1;// the position where to start writing into Ai and Ax, minus 1 since it will be incremented when we find the our new value is above prev (below).
-					Ap[currentStatePair]=pos+1;// Ap maps each state pair to the corresponding position in Ai and Ax. We record here the first index (in Ai) of the current column 
-					
-					int prev = -1;
-					boolean diagonalSet = false;
+						assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
 
-					// Check if we have the capacity in the arrays for this column - in an ugly way,
-					// but resizing for each element as per Ax.add seems ridiculous.
-					int expectedMaxSize = pos+colEntriesNumber+1;
-					if (Ax.elements().length < expectedMaxSize)
-					{
-						System.out.println("buildMatrix: warning - resizing arrays Ax[thread] and Ai[thread] from "+Ax.elements().length+" to "+expectedMaxSize);
-						Ax.ensureCapacity(expectedMaxSize);
-						Ai.ensureCapacity(expectedMaxSize);
-					}
-
-					for(int i=0;i<colEntriesNumber;++i)
-					{
-						int currentValue = tmpAi.getQuick(i);
-						if(currentValue!=prev)
+						if (Ap_threadStart[threadNo] < 0) Ap_threadStart[threadNo]=currentStatePair;
+						if (debugThread == threadNo) System.out.println("states: ("+entryA.getKey()+","+stateB+"), id "+currentStatePair);
+						int colEntriesNumber=0;
+						tmpAi.setQuick(colEntriesNumber++, currentStatePair);// we definitely need a diagonal element, hence add it.
+						
+						for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
 						{
-							prev=currentValue;++pos;
-							
-							if (!diagonalSet && currentValue == currentStatePair)
-							{// this is the time to handle a diagonal. When this condition becomes true,
-							 // currentValue == currentStatePair for the first time.
-								int totalOutgoing = entryA.getValue().size()+coregraph.transitionMatrix.get(stateB.getKey()).size()-sharedOutgoing;
-								if (totalOutgoing == 0) totalOutgoing = 1;// if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero. 
-								if (debugThread == threadNo) System.out.println("setting diagonal to "+totalOutgoing+" (shared outgoing is "+sharedOutgoing+" )");
-								Ax.setQuick(pos,totalOutgoing);
-								Ai.setQuick(pos,prev);
-								diagonalSet = true;
-								// Now that we've added a diagonal, skip to the next element (we always add an entry for a diagonal, hence we have to "eat" it here.
-							}
-							else		
-							{// new value but not a diagonal.							
-								Ax.setQuick(pos,-k);
-								Ai.setQuick(pos,prev);
+							List<CmpVertex> to = rowB.get(outLabel.getKey());
+							if (to != null)
+							{// matched pair of transitions, now we need to build a cross-product 
+							 // of the states leading to the current pair of states, that is,
+							 // to (entryA.getKey(),stateB)
+								uniqueValueForSourcePairEncountered++;sourceData.clear();
+								
+								int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
+								if (tmpAi.elements().length < maxSize)
+								{
+									System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread] from "+tmpAi.elements().length+" to "+maxSize);
+									tmpAi.ensureCapacity(maxSize);
+								}
+								if (debugThread == threadNo) System.out.println("matched "+outLabel.getKey());
+								for(CmpVertex srcA:outLabel.getValue())
+									for(CmpVertex srcB:to)
+									{
+										// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
+										// in this case, we have to avoid including (B,A) in the list, but 
+										// it is not known in advance if any such case occurs, so we have to store
+										// the pairs we encountered and eliminate them.
+										int sourcePair = incompatiblePairs[coregraph.wmethod.vertexToInt(srcB, srcA)];
+										
+										// If sourcePair <0, it means that we are attempting to add an entry for a row we've already discarded, hence ignore this entry
+										if (sourcePair >= 0 && !sourceData.contains(sourcePair))
+												//sourcePairEncountered[sourcePair] != uniqueValueForSourcePairEncountered)
+										{
+											//sourcePairEncountered[sourcePair] = uniqueValueForSourcePairEncountered;
+											sourceData.add(sourcePair);
+											if (debugThread == threadNo) System.out.println(outLabel.getKey()+" : "+srcB+","+srcA);
+											tmpAi.setQuick(colEntriesNumber++,sourcePair);
+										}
+									}
 							}
 						}
-						else Ax.setQuick(pos,Ax.getQuick(pos)-k);
-					}
-					++pos;
-					if (debugThread == threadNo) { for(int i=currentPosition[threadNo];i<pos;++i) System.out.println(i+ ": "+Ai.getQuick(i)+ " , "+Ax.getQuick(i)); }
-					
-					currentPosition[threadNo]=pos;
-					
+						
+						int sharedOutgoing = countMatchingOutgoing(entryA.getValue(),coregraph.transitionMatrix.get(stateB.getKey()));
+						if (debugThread == threadNo) System.out.println("shared outgoing: "+sharedOutgoing);
+						b[currentStatePair]=sharedOutgoing;
+						
+						// At this point, we populated Ai and b with elements for the current row (number currentStatePair),
+						// so it is time to sort these entries. There is no need to populate Ax right now:
+						// all we care about is the state pairs from which there have been transitions leading to the 
+						// current state (and a diagonal element). 
+						cern.colt.Sorting.quickSort(tmpAi.elements(),0, colEntriesNumber,new IntComparator() {
+							public int compare(int o1, int o2) { return o1-o2; }});
+						if (debugThread == threadNo)  { for(int i=0;i< colEntriesNumber;++i) System.out.print(tmpAi.getQuick(i)+" ");System.out.println(); }
+						// Now we have to copy the result to the target array.
+						int pos = currentPosition[threadNo]-1;// the position where to start writing into Ai and Ax, minus 1 since it will be incremented when we find the our new value is above prev (below).
+						Ap[currentStatePair]=pos+1;// Ap maps each state pair to the corresponding position in Ai and Ax. We record here the first index (in Ai) of the current column 
+						
+						int prev = -1;
+						boolean diagonalSet = false;
+	
+						// Check if we have the capacity in the arrays for this column - in an ugly way,
+						// but resizing for each element as per Ax.add seems ridiculous.
+						int expectedMaxSize = pos+colEntriesNumber+1;
+						if (Ax.elements().length < expectedMaxSize)
+						{
+							System.out.println("buildMatrix: warning - resizing arrays Ax[thread] and Ai[thread] from "+Ax.elements().length+" to "+expectedMaxSize);
+							Ax.ensureCapacity(expectedMaxSize);
+							Ai.ensureCapacity(expectedMaxSize);
+						}
+	
+						for(int i=0;i<colEntriesNumber;++i)
+						{
+							int currentValue = tmpAi.getQuick(i);
+							if(currentValue!=prev)
+							{
+								prev=currentValue;++pos;
+								
+								if (!diagonalSet && currentValue == currentStatePair)
+								{// this is the time to handle a diagonal. When this condition becomes true,
+								 // currentValue == currentStatePair for the first time.
+									int totalOutgoing = entryA.getValue().size()+coregraph.transitionMatrix.get(stateB.getKey()).size()-sharedOutgoing;
+									if (totalOutgoing == 0) totalOutgoing = 1;// if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero. 
+									if (debugThread == threadNo) System.out.println("setting diagonal to "+totalOutgoing+" (shared outgoing is "+sharedOutgoing+" )");
+									Ax.setQuick(pos,totalOutgoing);
+									Ai.setQuick(pos,prev);
+									diagonalSet = true;
+									// Now that we've added a diagonal, skip to the next element (we always add an entry for a diagonal, hence we have to "eat" it here.
+								}
+								else		
+								{// new value but not a diagonal.							
+									Ax.setQuick(pos,-k);
+									Ai.setQuick(pos,prev);
+								}
+							}
+							else Ax.setQuick(pos,Ax.getQuick(pos)-k);
+						}
+						++pos;
+						if (debugThread == threadNo) { for(int i=currentPosition[threadNo];i<pos;++i) System.out.println(i+ ": "+Ai.getQuick(i)+ " , "+Ax.getQuick(i)); }
+						
+						currentPosition[threadNo]=pos;
+					}// if (incompatiblePairs[currentStatePair] != PAIR_INCOMPATIBLE)
 					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 				}
 				
@@ -512,6 +722,6 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 			}
 		}
 		Ap[pairsNumber]=prevLastPos;
-		return new ExternalSolver(Ap,Ai,Ax,b,new double[pairsNumber]);
+		return new LSolver(Ap,Ai,Ax,b,new double[pairsNumber]);
 	}
 }

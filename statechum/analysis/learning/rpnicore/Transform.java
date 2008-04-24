@@ -32,16 +32,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import cern.colt.function.IntComparator;
-import cern.colt.list.DoubleArrayList;
-import cern.colt.list.IntArrayList;
 
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -108,7 +99,12 @@ public class Transform {
 		FileWriter writer = new FileWriter(name);writeGraphML(writer);
 	}
 	
-	/** Writes a graph into a graphML file. All vertices are written. */
+	/** Writes a graph into a graphML file. All vertices are written.
+	 * 
+	 * @throws IOException if an I/O error occurs or 
+	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
+	 * an initial state in the graphmp file. Most of the time, "Init" is used instead in the graphs.
+	 */
 	public void writeGraphML(Writer writer) throws IOException
 	{
 		writer.write(graphML_header);
@@ -129,12 +125,28 @@ public class Transform {
 	/** Returns a state, randomly chosen according to the supplied random number generator. */
 	public static CmpVertex pickRandomState(LearnerGraph g, Random rnd)
 	{
-		int nr = rnd.nextInt(g.transitionMatrix.size());System.out.print(" st="+nr+" ");
+		int nr = rnd.nextInt(g.transitionMatrix.size());
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
 			if (nr-- == 0)
 				return entry.getKey();
 		
 		throw new IllegalArgumentException("something wrong with the graph - expected state was not found");
+	}
+
+	/** Adds a reject transition to a randomly-chosen state, if possible (the chosen state has an input not in the current alphabet). */
+	public void addRejectStateRandomly(Random rnd)
+	{
+		CmpVertex v =pickRandomState(coregraph, rnd);
+		HashSet<String> possibilities = new HashSet<String>();possibilities.addAll(coregraph.learnerCache.getAlphabet());
+		possibilities.removeAll(coregraph.transitionMatrix.get(v).keySet());
+		Iterator<String> inputIt = possibilities.iterator();
+		if (inputIt.hasNext())
+		{
+			CmpVertex newVertex = LearnerGraph.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
+			newVertex.setAccept(false);
+			coregraph.transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
+			coregraph.transitionMatrix.get(v).put(inputIt.next(),newVertex);
+		}
 	}
 	
 	/** 
@@ -171,7 +183,7 @@ public class Transform {
 			}
 			newMatrix.put(entry.getKey(), newRow);
 		}
-		g.transitionMatrix = newMatrix;
+		g.transitionMatrix = newMatrix;g.learnerCache.invalidate();
 	}
 	
 	/** Adds all states and transitions from graph <em>what</em> to graph <em>g</em>.
@@ -205,7 +217,8 @@ public class Transform {
 			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
 			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 				row.put(transition.getKey(), whatToG.get(transition.getValue()));
-		}					
+		}
+		g.learnerCache.invalidate();
 		return whatToG.get(what.init);
 	}
 

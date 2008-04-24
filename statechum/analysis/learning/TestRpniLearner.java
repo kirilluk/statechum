@@ -674,7 +674,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("U"), g);
 		OrigStatePair pair = new OrigStatePair(d,s);
 		LearnerGraph 
-			mergeResultA = new LearnerGraph(new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).mergeAndDeterminize(g, pair),testConfig),
+			mergeResultA = new LearnerGraph(RPNIBlueFringeLearnerOrig.mergeAndDeterminize(g, pair),testConfig),
 			expectedResult = new LearnerGraph(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-d->E\nS-n->S", "expected"),testConfig);
 		Assert.assertTrue(expectedResult.equals(mergeResultA));
 	}
@@ -909,7 +909,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail2()
 	{
-		LearnerGraph l=new LearnerGraph(TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail2"),testConfig);
+		LearnerGraph l=new LearnerGraph(TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail1"),testConfig);
 		CmpVertex 
 			a = l.findVertex(new VertexID("A")),
 			b = l.findVertex(new VertexID("B"));
@@ -920,7 +920,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testMerge_fail3()
 	{
-		LearnerGraph l=new LearnerGraph(TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail2"),testConfig);
+		LearnerGraph l=new LearnerGraph(TestFSMAlgo.buildGraph(largeGraph1_invalid5,"testMerge_fail1"),testConfig);
 		CmpVertex 
 			a = l.findVertex(new VertexID("A")),
 			b = l.findVertex(new VertexID("B"));

@@ -209,7 +209,7 @@ public class TestRandomPathGenerator {
 						new Object[]{"b","a","b","b"},
 						new Object[]{"b","b","a",new String[]{"c"}},// "c" can also be "a"
 						new Object[]{"b","b","b","c"},
-						new Object[]{"a","b","c",new String[]{"b"}}// "b" can also be "c"
+						new Object[]{"a","b","c",new String[]{"c"}}// "c" can also be "b"
 				}}));
 	}	
 	

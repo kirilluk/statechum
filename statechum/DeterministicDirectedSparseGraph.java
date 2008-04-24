@@ -199,6 +199,21 @@ public class DeterministicDirectedSparseGraph {
 		/** Sets the colour of this vertex. null removes the colour. */
 		void setColour(JUConstants colour);
 
+		//public static class IllegalBooleanException extends IllegalArgumentException {
+		
+		/** This exception is thrown when vertex user data for a property is out of range. */ 
+		public static class IllegalUserDataException extends IllegalArgumentException {
+			/**
+			 * Serial ID.
+			 */
+			private static final long serialVersionUID = -464955935013454935L;
+
+			public IllegalUserDataException(String name)
+			{ 
+				super("invalid colour "+name);
+			}
+		}
+		
 		/** Determines whether this vertex is to be highlighted. */
 		boolean isHighlight();
 		/** Sets the mark on this vertex. */
@@ -226,38 +241,93 @@ public class DeterministicDirectedSparseGraph {
 					new DeterministicDirectedSparseGraph.VertexID(name), UserData.SHARED);
 		}
 		
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see edu.uci.ics.jung.utils.UserDataDelegate#addUserDatum(java.lang.Object,
-		 *      java.lang.Object,
-		 *      edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
+		/** Used to hold two objects and nothing else. */
+		public static class MiniPair
+		{
+			private Object key,datum;
+			
+			public Object getKey()
+			{ return key; }
+			
+			public Object getValue()
+			{ return datum; }
+
+			public MiniPair(Object k, Object d)
+			{
+				key=k;datum=d;
+				String strKey = key.toString(), strDatum = datum.toString();
+				
+				if (key == JUConstants.LABEL || strKey.equalsIgnoreCase(JUConstants.LABEL.toString())) 
+				{
+					key = JUConstants.LABEL;
+				}
+				else
+				{
+					if (key == JUConstants.COLOUR || strKey.equalsIgnoreCase(JUConstants.COLOUR.toString()))
+					{
+						key = JUConstants.COLOUR;
+						if (datum == JUConstants.RED || strDatum.equalsIgnoreCase(JUConstants.RED.toString()))
+							datum = JUConstants.RED;
+						else
+							if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.toString()))
+								datum = JUConstants.BLUE;
+							else
+								throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
+					}
+					else
+					if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.toString()))
+					{
+						key = JUConstants.ACCEPTED;datum = getBoolean(datum);
+					}
+					else
+						if (key == JUConstants.HIGHLIGHT || strKey.equalsIgnoreCase(JUConstants.HIGHLIGHT.toString()))
+						{
+							key = JUConstants.HIGHLIGHT;datum = getBoolean(datum);
+						}
+						
+				}
+			}
+		}
+		
+		/** An overridden version of Jung's setUserDatum which converts textual attributes
+		 * to JUConstant-drive types.
 		 */
-		@SuppressWarnings("unchecked")
 		@Override
 		public void addUserDatum(Object key, Object datum, CopyAction copyAct) {
-			if (key == JUConstants.LABEL) {
-				vertexID = (VertexID) datum;
-				hashCode = datum.hashCode();
+			MiniPair p=new MiniPair(key,datum);
+			if (p.key == JUConstants.LABEL)
+			{
+				vertexID = (VertexID) p.getValue();
+				hashCode = p.getValue().hashCode();
 			}
-			super.addUserDatum(key, datum, copyAct);
+			super.addUserDatum(p.getKey(), p.getValue(), copyAct);
 		}
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see edu.uci.ics.jung.utils.UserDataDelegate#setUserDatum(java.lang.Object,
-		 *      java.lang.Object,
-		 *      edu.uci.ics.jung.utils.UserDataContainer.CopyAction)
+		public static Boolean getBoolean(Object obj)
+		{
+			if (obj instanceof Boolean)
+				return (Boolean)obj;
+			
+			if (obj.toString().equalsIgnoreCase("true"))
+				return new Boolean(true);
+
+			if (obj.toString().equalsIgnoreCase("false"))
+				return new Boolean(false);
+			
+			throw new IllegalUserDataException(obj.toString());
+		}
+		
+		/** Removes and re-adds the datum, in order to make use of the  
 		 */
-		@SuppressWarnings("unchecked")
 		@Override
 		public void setUserDatum(Object key, Object datum, CopyAction copyAct) {
-			if (key == JUConstants.LABEL) {
-				vertexID = (VertexID) datum;
-				hashCode = datum.hashCode();
+			MiniPair p=new MiniPair(key,datum);
+			if (p.key == JUConstants.LABEL)
+			{
+				vertexID = (VertexID) p.datum;
+				hashCode = p.datum.hashCode();
 			}
-			super.setUserDatum(key, datum, copyAct);
+			super.setUserDatum(p.key, p.datum, copyAct);
 		}
 
 		@Override
@@ -340,23 +410,26 @@ public class DeterministicDirectedSparseGraph {
 		public void setColour(JUConstants colour) 
 		{
 			if (colour != null && colour != JUConstants.RED && colour != JUConstants.BLUE)
-				throw new IllegalArgumentException("colour "+colour+" is not a valid colour (vertex "+vertexID.toString()+")");
+				throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+vertexID.toString()+")");
 
 			removeUserDatum(JUConstants.COLOUR);
 			if (colour != null)
-			{
 				addUserDatum(JUConstants.COLOUR, colour, UserData.SHARED);
-			}
 		}
 
 		public void setHighlight(boolean hightlight) {
 			removeUserDatum(JUConstants.HIGHLIGHT);
 			if (hightlight)
-				addUserDatum(JUConstants.HIGHLIGHT, "whatever", UserData.SHARED);
+				addUserDatum(JUConstants.HIGHLIGHT, true, UserData.SHARED);
 		}
 
 		public boolean isHighlight() {
-			return containsUserDatumKey(JUConstants.HIGHLIGHT);
+			Object highlight = getUserDatum(JUConstants.HIGHLIGHT);
+			if (highlight == null)
+				return false;
+			
+			return (Boolean)highlight;
+				
 		}
 	}
 
@@ -398,9 +471,10 @@ public class DeterministicDirectedSparseGraph {
 	 */
 	public final static boolean isAccept(final Vertex v)
 	{
-		if (!v.containsUserDatumKey(JUConstants.ACCEPTED))
-			return true;
-		return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
+		if (v.containsUserDatumKey(JUConstants.ACCEPTED))
+			return ((Boolean)v.getUserDatum(JUConstants.ACCEPTED)).booleanValue();
+		
+		return true;
 	}
 
 	/** Finds a vertex with a given name.

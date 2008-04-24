@@ -39,7 +39,34 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
 public class TestSolver {
+	public static final double comparisonAccuracy = 1e-10;
+	
 	protected DoubleMatrix2D testMatrix = null;
+	
+	/** Checks that the supplied arguments satisfy the <em>Ax=b</em> equation. 
+	 * 
+	 * @param A
+	 * @param b
+	 * @param x
+	 */
+	public static final void verifyAxb(DoubleMatrix2D A, DoubleMatrix1D b, DoubleMatrix1D x)
+	{
+		DoubleMatrix1D result = A.zMult(x, b);for(int i=0;i<b.size();++i) Assert.assertEquals(b.getQuick(i),result.getQuick(i),comparisonAccuracy);
+	}
+	
+	/** Checks that the supplied arguments satisfy the <em>Ax=b</em> equation. 
+	 */
+	public static final void verifyAxb(DoubleMatrix2D A, DoubleMatrix1D b, double[] x)
+	{
+		verifyAxb(A,b,DoubleFactory1D.dense.make(x));
+	}
+	
+	/** Checks that the supplied arguments satisfy the <em>Ax=b</em> equation. 
+	 */
+	public static final void verifyAxb(LSolver solver)
+	{
+		verifyAxb(solver.toDoubleMatrix2D(),solver.toDoubleMatrix1D(),DoubleFactory1D.dense.make(solver.j_x));
+	}
 	
 	@Before
 	public final void beforeTests()
@@ -59,34 +86,36 @@ public class TestSolver {
 		testMatrix.set(4, 2, 2);
 		testMatrix.set(4, 4, 1);
 
-		ExternalSolver.loadLibrary();
+		LSolver.loadLibrary();
 	}
 	
 	@Test
 	public final void testExternalSolver1()
 	{
-		ExternalSolver s = new ExternalSolver(testMatrix);
+		LSolver s = new LSolver(testMatrix,DoubleFactory1D.dense.make(new double[]{8., 45., -3., 3., 19.}));
 		DoubleMatrix1D x = DoubleFactory1D.dense.make(testMatrix.rows());
-		final double b [ ] = {8., 45., -3., 3., 19.} ;System.arraycopy(b, 0, s.j_b, 0, b.length);
-		for(int i=0;i<b.length;++i) x.setQuick(i, b[i]);
+		for(int i=0;i<s.j_b.length;++i) x.setQuick(i, s.j_b[i]);
 		
 		// Test 1
 		s.solveExternally();
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, s.j_x[i],1e-8);
-
+			Assert.assertEquals(i+1, s.j_x[i],comparisonAccuracy);
+		verifyAxb(s);
+		
 		// Test 2
 		LUDecompositionQuick solver = new LUDecompositionQuick();
 		solver.decompose(testMatrix);solver.setLU(testMatrix);
 		solver.solve(x);
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, x.getQuick(i),1e-8);
+			Assert.assertEquals(i+1, x.getQuick(i),comparisonAccuracy);
+		verifyAxb(s);
 
 		// Test 3
 		for(int i=0;i<testMatrix.rows();++i) s.j_x[i]=0;
 		s.solveUsingColt();
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, s.j_x[i],1e-8);
+			Assert.assertEquals(i+1, s.j_x[i],comparisonAccuracy);
+		verifyAxb(s);
 	}
 	
 	@Test
@@ -100,12 +129,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
 	}
@@ -121,12 +150,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
@@ -143,12 +172,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"too few");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"too few");		
 	}
@@ -164,12 +193,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
 	}
@@ -185,12 +214,12 @@ public class TestSolver {
 
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
@@ -206,12 +235,12 @@ public class TestSolver {
 
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
@@ -227,12 +256,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
@@ -248,12 +277,12 @@ public class TestSolver {
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				ExternalSolver.extsolve(Ap, Ai, Ax, b, x);
+				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
-				new ExternalSolver(Ap, Ai, Ax, b, x);
+				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 	}
@@ -263,11 +292,10 @@ public class TestSolver {
 	{
 		final int size = testMatrix.rows();
 		final DoubleMatrix2D matrix = DoubleFactory2D.sparse.make(size,size);
-		final ExternalSolver solver = new ExternalSolver(matrix);
-		final double b [ ] = {8., 45., -3., 3., 19.} ;System.arraycopy(b, 0, solver.j_b, 0, b.length);
+		final LSolver solver = new LSolver(matrix,DoubleFactory1D.dense.make(new double[]{8., 45., -3., 3., 19.}));
 		final DoubleMatrix1D x = DoubleFactory1D.dense.make(testMatrix.rows());
 		
-		for(int i=0;i<b.length;++i) x.setQuick(i, b[i]);
+		for(int i=0;i<solver.j_b.length;++i) x.setQuick(i, solver.j_b[i]);
 		
 		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
@@ -306,18 +334,18 @@ public class TestSolver {
 0  0  1 0 0
 0  4  2 0 1
 		 */
-		ExternalSolver s = new ExternalSolver(testMatrix);
+		LSolver s = new LSolver(testMatrix,DoubleFactory1D.dense.make(testMatrix.rows(),0));
 		Assert.assertArrayEquals(new int[] {0, 2, 5, 9, 10, 12}, s.j_Ap);
 		Assert.assertArrayEquals(new int[] {0,  1,  0,   2,  4,  1,  2,  3,   4,  2,  1,  4}, s.j_Ai);
 		for(int i=0;i<s.j_Ap.length;++i)
-			Assert.assertEquals(new double[]{2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.}[i], s.j_Ax[i],1e-8);
+			Assert.assertEquals(new double[]{2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.}[i], s.j_Ax[i],comparisonAccuracy);
 		
 		DoubleMatrix2D mat = s.toDoubleMatrix2D();
 		Assert.assertEquals(testMatrix, mat);
 	}
 	
 	@Test
-	public final void testMediumSizeSparseMatrix()
+	public final void testMediumSizeSparseMatrix_takes_35sec()
 	{
 		final int size=1500;//(int)Math.sqrt(Integer.MAX_VALUE)-1;
 		DoubleFunction randomGenerator = new DoubleFunction() {
@@ -336,22 +364,27 @@ public class TestSolver {
 			int x = rnd.nextInt(size), y = rnd.nextInt(size);
 			matrix.setQuick(x, y, 0.5);
 		}
-		final DoubleMatrix1D vector = DoubleFactory1D.dense.make(size);
-		vector.assign(randomGenerator);
-		final ExternalSolver solver = new ExternalSolver(matrix);System.arraycopy(vector.toArray(), 0, solver.j_b, 0, size);
+		final DoubleMatrix1D b = DoubleFactory1D.dense.make(size);
+		b.assign(randomGenerator);
+
+		final LSolver solver = new LSolver(matrix,b);
 		long tmStarted = new Date().getTime();
 		LUDecompositionQuick coltSolver = new LUDecompositionQuick();
 		coltSolver.decompose(matrix);coltSolver.setLU(matrix);
+		
+		DoubleMatrix1D vector = b.copy();
 		coltSolver.solve(vector);
 		long tmFinished = new Date().getTime();
 		System.out.println(" time taken: "+((double)tmFinished-tmStarted)/1000);
+		verifyAxb(matrix, b, vector);
 		
 		tmStarted = new Date().getTime();
 		solver.solveExternally();
 		tmFinished = new Date().getTime();
 		System.out.println(" time taken: "+((double)tmFinished-tmStarted)/1000);		
 		for(int i=0;i<matrix.rows();++i)
-			Assert.assertEquals(solver.j_x[i], vector.getQuick(i),1e-8);
+			Assert.assertEquals(solver.j_x[i], vector.getQuick(i),comparisonAccuracy);
+		verifyAxb(solver);
 	}
 
 	/** Builds a sparse random matrix for the solver. I have to use this for large
@@ -361,7 +394,7 @@ public class TestSolver {
 	 * @param perCol the number of non-zero entries per column (diagonal is always set).
 	 * @return UMFPACK representation of the matrix.
 	 */
-	protected ExternalSolver buildSolver(final int size,int perCol)
+	protected LSolver buildSolver(final int size,int perCol)
 	{
 		int Ap[]=new int[size+1], Ai[]=new int[size*perCol];
 		double Ax[] = new double[size*perCol],b[]=new double[size],x[]=new double[size];
@@ -400,7 +433,7 @@ public class TestSolver {
 		{
 			b[i]=rnd.nextDouble();x[i]=0;
 		}
-		return new ExternalSolver(Ap,Ai,Ax,b,x);
+		return new LSolver(Ap,Ai,Ax,b,x);
 	}
 	
 	/** Tests whether buildSolver works. */
@@ -429,7 +462,7 @@ public class TestSolver {
 				{
 					if (CoordX.getQuick(i) == CoordY.getQuick(i))
 					{
-						Assert.assertEquals(1, values.getQuick(i),1e-8);diagElements++;
+						Assert.assertEquals(1, values.getQuick(i),comparisonAccuracy);diagElements++;
 					}
 					else nondiagElements++;
 				}
@@ -439,18 +472,19 @@ public class TestSolver {
 	}
 
 	@Test
-	public final void testLargeMatrix1_noverify()
+	public final void testLargeMatrix1()
 	{
-		ExternalSolver solver = buildSolver(10000,4);
+		LSolver solver = buildSolver(10000,4);
 		long tmStarted = new Date().getTime();
 		solver.solveExternally();
 		long tmFinished = new Date().getTime();
 		System.out.println("time taken: "+((double)tmFinished-tmStarted)/1000);
+		verifyAxb(solver);
 	}
 
 	@Test
-	public final void testLargeMatrix2_noverify()
+	public final void testLargeMatrix2()
 	{
-		buildSolver(15000,3).solveExternally();
+		LSolver solver = buildSolver(15000,3);solver.solveExternally();verifyAxb(solver);
 	}
 }

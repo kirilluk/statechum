@@ -26,6 +26,11 @@ import edu.uci.ics.jung.io.GraphMLFile;
 
 public class GraphMLVisualiser extends Visualiser {
 	
+	/**
+	 * ID for serialisation
+	 */
+	private static final long serialVersionUID = 1735419773441272849L;
+
 	public static void main(String[] args){
 		File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);

@@ -1068,7 +1068,6 @@ public class TestWMethod {
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
-		textGraph.learnerCache.stateToNumber = textGraph.wmethod.buildStateToIntegerMap();
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
 	}
 	
@@ -1086,8 +1085,6 @@ public class TestWMethod {
 		 *B 124
 		 *C 345
 		*/
-		numericGraph.learnerCache.stateToNumber = numericGraph.wmethod.buildStateToIntegerMap();
-
 		Assert.assertEquals(0,numericGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(A,B));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(B,A));

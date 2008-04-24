@@ -209,8 +209,6 @@ public class ComputeQuestions {
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
-		if (original.learnerCache.flowgraph == null) original.learnerCache.flowgraph = original.paths.getFlowgraph();
-		if (merged.learnerCache.flowgraph == null) merged.learnerCache.flowgraph = merged.paths.getFlowgraph();
 		
 		PTASequenceEngine engine = new PTASequenceEngine();
 		engine.init(original.new NonExistingPaths());

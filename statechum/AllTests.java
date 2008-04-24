@@ -57,7 +57,7 @@ public class AllTests {
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
 		statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
-		statechum.analysis.learning.TestGraphGeneration.class,
+		statechum.analysis.learning.TestEVGraphGeneration.class,
 		statechum.analysis.learning.TestPathTracing.class,
 		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
 		statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,

@@ -44,6 +44,7 @@ import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestRpniLearner;
 import edu.uci.ics.jung.graph.Edge;
@@ -92,6 +93,164 @@ public class TestGraphConstruction
 	
 	/** Used as arguments to equalityTestingHelper. */
 	private LearnerGraph differentA = null, differentB = null;
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_name1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		
+		// here I cannot add, only set since the ID has already been set.
+		vA.setUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getID().toString());
+		vA.setUserDatum(JUConstants.LABEL, new VertexID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getID().toString());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getID().toString());
+	}
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_name2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+
+		// here I cannot add, only set since the ID has already been set.
+		vA.setUserDatum("lAbel", new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vA.getID().toString());
+		vA.setUserDatum("labEl", new VertexID("D"), UserData.SHARED);Assert.assertEquals("D", vA.getID().toString());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum("laBel", new VertexID("name"), UserData.SHARED);Assert.assertEquals("name", vS.getID().toString());
+	}
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_accepted1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);Assert.assertTrue(vA.isAccept());
+		vA.setUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);Assert.assertFalse(vA.isAccept());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);Assert.assertFalse(vS.isAccept());
+	}
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_accepted2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("acCepted", "truE", UserData.SHARED);Assert.assertTrue(vA.isAccept());
+		vA.setUserDatum("accePted", "faLse", UserData.SHARED);Assert.assertFalse(vA.isAccept());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum("acceptEd", "fAlse", UserData.SHARED);Assert.assertFalse(vS.isAccept());
+	}
+	
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_accepted_fail1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("accePted", "junk", UserData.SHARED);
+	}
+
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_accepted_fail2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("accePted", new Object(), UserData.SHARED);
+	}
+
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_highlight1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		Assert.assertFalse(vA.isHighlight());
+		vA.addUserDatum(JUConstants.HIGHLIGHT, "true", UserData.SHARED);Assert.assertTrue(vA.isHighlight());
+		vA.setUserDatum(JUConstants.HIGHLIGHT, "false", UserData.SHARED);
+		Assert.assertFalse(vA.isHighlight());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum(JUConstants.HIGHLIGHT, "false", UserData.SHARED);Assert.assertFalse(vS.isHighlight());
+	}
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_highlight2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		Assert.assertFalse(vA.isHighlight());
+		vA.addUserDatum("highlIght", "tRue", UserData.SHARED);Assert.assertTrue(vA.isHighlight());
+		vA.setUserDatum("hiGhlight", "falsE", UserData.SHARED);Assert.assertFalse(vA.isHighlight());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum("higHlight", "faLse", UserData.SHARED);Assert.assertFalse(vS.isHighlight());
+	}
+	
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_highlight_fail1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("higHlight", "junk", UserData.SHARED);
+	}
+
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_highlight_fail2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("higHlight", new Object(), UserData.SHARED);
+	}
+
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_colour1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum(JUConstants.COLOUR, "rEd", UserData.SHARED);Assert.assertTrue(JUConstants.RED == vA.getColour());
+		vA.setUserDatum(JUConstants.COLOUR, "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum(JUConstants.COLOUR, "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
+	}
+	
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_colour2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("cOlour", "rEd", UserData.SHARED);Assert.assertTrue(JUConstants.RED == vA.getColour());
+		vA.setUserDatum("cOloUr", "bLue", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum("cOlouR", "blUe", UserData.SHARED);Assert.assertTrue(JUConstants.BLUE == vA.getColour());
+	}
+	
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_colour_fail1()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("cOlour", "junk", UserData.SHARED);
+	}
+
+	@Test(expected=IllegalUserDataException.class)
+	public final void testAddUserData_colour_fail2()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		vA.addUserDatum("cOlour", new Object(), UserData.SHARED);
+	}
+
+	/** Tests that types are correctly converted. */
+	@Test
+	public final void testAddUserData_anything()
+	{
+		DeterministicVertex vA=new DeterministicVertex("a");
+		Object obj = new Object();
+		vA.addUserDatum(obj, "aa", UserData.SHARED);Assert.assertEquals("aa",vA.getUserDatum(obj));
+		vA.setUserDatum(obj, false, UserData.SHARED);Assert.assertFalse((Boolean)vA.getUserDatum(obj));
+
+		DeterministicVertex vS=new DeterministicVertex("a");
+		vS.setUserDatum(obj, false, UserData.SHARED);Assert.assertFalse((Boolean)vS.getUserDatum(obj));
+	}
 	
 	@Test
 	public final void testLearnerGraph_toString()
@@ -211,7 +370,7 @@ public class TestGraphConstruction
 			vert.setColour(JUConstants.HIGHLIGHT);
 			Assert.fail("exception expected here");
 		}
-		catch(IllegalArgumentException ex)
+		catch(IllegalUserDataException ex)
 		{// exception is expected here, continue			
 		}
 		Assert.assertNull(vert.getColour());
@@ -223,7 +382,7 @@ public class TestGraphConstruction
 			vert.setColour(JUConstants.ACCEPTED);
 			Assert.fail("exception expected here");
 		}
-		catch(IllegalArgumentException ex)
+		catch(IllegalUserDataException ex)
 		{// exception is expected here, continue			
 		}
 		Assert.assertSame(JUConstants.BLUE, vert.getColour());

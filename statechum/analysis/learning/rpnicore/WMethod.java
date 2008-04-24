@@ -57,7 +57,7 @@ public class WMethod {
 	
 	public Set<String> computeAlphabet()
 	{
-		Set<String> result = new HashSet<String>();
+		Set<String> result = new LinkedHashSet<String>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			result.addAll(entry.getValue().keySet());
 		return result;
@@ -95,7 +95,7 @@ public class WMethod {
 	
 	public Collection<List<String>> computeOldTestSet(int numberOfExtraStates)
 	{
-		Set<String> alphabet =  computeAlphabet();
+		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<String>> partialSet = computeStateCover();
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
@@ -488,7 +488,6 @@ public class WMethod {
 	 */
 	public static Collection<List<String>> computeWSet_reducedmemory(LearnerGraph fsm) throws EquivalentStatesException
 	{
-		fsm.learnerCache.stateToNumber = fsm.wmethod.buildStateToIntegerMap();
 		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
 		int WNext[] = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
@@ -978,7 +977,7 @@ public class WMethod {
 	
 	public int vertexToInt(CmpVertex vertexA, CmpVertex vertexB)
 	{
-		int x=coregraph.learnerCache.stateToNumber.get(vertexA), y = coregraph.learnerCache.stateToNumber.get(vertexB);
+		int x=coregraph.learnerCache.getStateToNumber().get(vertexA), y = coregraph.learnerCache.getStateToNumber().get(vertexB);
 		if (x <= y)
 			return x+y*(y+1)/2;
 		

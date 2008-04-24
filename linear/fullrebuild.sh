@@ -4,8 +4,11 @@
 # Essentially from http://www.kevinsheppard.org/research/matlabatlas/
 
 ATLAS=/usr/local/soft/atlas-3.8.1/lib
-UMFROOT=/usr/local/src/umfpack
-#UMFROOT=/cygdrive/d/experiment/umfpack
+
+# list of preferential locations of umfpack
+
+[ -r /usr/local/src/umfpack ] && UMFROOT=/usr/local/src/umfpack
+[ -r /cygdrive/d/experiment/umfpack ] && UMFROOT=/cygdrive/d/experiment/umfpack
 
 ./bootstrap && ./configure --with-blasdir=${ATLAS} --with-umfpack=${UMFROOT}
 touch umfsolver.c
@@ -32,7 +35,8 @@ echo 'Linking DLL and creating gcc import library...'
 
 cat Makefile|sed -e "s%^libStatechumSolver_la_LDFLAGS.*%libStatechumSolver_la_LDFLAGS = -no-undefined -version-info 1:0:0 -mno-cygwin -L${LIBDIR} -lumfpack_win32%" > Makefile_win32
 make -f Makefile_win32
-
+else
+make
 fi
 
 

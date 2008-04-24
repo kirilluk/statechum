@@ -66,9 +66,10 @@ public class TestSolverRandomly {
 	{
 		final DoubleMatrix2D matrix = DoubleFactory2D.sparse.make(size,size);
 		matrix.assign(randomGenerator);
-		final DoubleMatrix1D vector = DoubleFactory1D.dense.make(size);
-		vector.assign(randomGenerator);
-		final ExternalSolver solver = new ExternalSolver(matrix);System.arraycopy(vector.toArray(), 0, solver.j_b, 0, size);
+		final DoubleMatrix1D b = DoubleFactory1D.dense.make(size);
+		b.assign(randomGenerator);
+		final LSolver solver = new LSolver(matrix,DoubleFactory1D.dense.make(matrix.rows(), 0));
+
 		boolean singular = false;
 		try
 		{
@@ -82,8 +83,13 @@ public class TestSolverRandomly {
 				throw ex;
 		}
 		
+		if (!singular)
+			TestSolver.verifyAxb(solver);
+		
 		LUDecompositionQuick coltSolver = new LUDecompositionQuick();
 		coltSolver.decompose(matrix);coltSolver.setLU(matrix);
+		DoubleMatrix1D vector = DoubleFactory1D.dense.make(matrix.rows(), 0);
+		
 		try
 		{
 			coltSolver.solve(vector);
@@ -97,9 +103,12 @@ public class TestSolverRandomly {
 		}
 
 		if (!singular)
+		{
 			for(int i=0;i<matrix.rows();++i)
-				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),1e-8);
-
+				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),TestSolver.comparisonAccuracy);
+			TestSolver.verifyAxb(matrix,solver.toDoubleMatrix1D(),vector);
+		}
+		
 		try
 		{
 			for(int i=0;i<matrix.rows();++i) solver.j_x[i]=0;
@@ -114,7 +123,10 @@ public class TestSolverRandomly {
 		}
 		
 		if (!singular)
+		{
 			for(int i=0;i<matrix.rows();++i)
-				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),1e-8);
+				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),TestSolver.comparisonAccuracy);
+			TestSolver.verifyAxb(solver);
+		}
 	}
 }

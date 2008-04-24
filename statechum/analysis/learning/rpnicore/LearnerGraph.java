@@ -24,12 +24,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -154,34 +154,58 @@ public class LearnerGraph {
 		/** The flowgraph representing the transition diagram (i.e. parallel 
 		 * edges between every pair of states are collapsed into a single 
 		 * edge associated with a set of labels of those edges).
-		 * To rebuild the cache (if the reference is zero)
-		 * <pre>
-		 * learnerCache.flowgraph = paths.getFlowgraph();
-		 * </pre>
 		 */   
-		protected Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
+		private Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
+		
+		public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
+		{
+			if (flowgraph == null) flowgraph = paths.getFlowgraph();
+			return flowgraph;
+		}
 		
 		/** The map from vertices to the corresponding numbers. Used for space-saving 
 		 * computation of W method and for computing of state-similarity.
 		 * If null, use the following to build:
-		 * <pre>
-		 * learnerCache.stateToNumber = wmethod.buildStateToIntegerMap();
-		 * </pre>
 		 */
-		protected Map<CmpVertex,Integer> stateToNumber = null;
+		private Map<CmpVertex,Integer> stateToNumber = null;
+		
+		public Map<CmpVertex,Integer> getStateToNumber()
+		{
+			if (stateToNumber == null)
+				stateToNumber = wmethod.buildStateToIntegerMap();
+			
+			assert stateToNumber != null;
+			return stateToNumber;
+		}
 		
 		/** This transition matrix is very similar to the main one except
 		 * that all transitions are pointing in the opposite direction. Due to
 		 * nondeterminism this produces, target states are represented using lists.
 		 * This matrix is used to scan the state comparison matrix columnwise.
-		 * <p>
-		 * If null, use the following to build:
-		 * <pre>
-		 * transform.prepareForLinear()
-		 * </pre>
 		 */
-		protected Map<CmpVertex,Map<String,List<CmpVertex>>> sortaInverse = null;
+		private Map<CmpVertex,Map<String,List<CmpVertex>>> sortaInverse = null;
 
+		public Map<CmpVertex,Map<String,List<CmpVertex>>> getSortaInverse()
+		{
+			if (sortaInverse == null) prepareForLinear();
+			
+			assert sortaInverse != null;
+			return sortaInverse;
+		}
+
+		/** Contains the number of accept-state in this graph. */
+		private int acceptStateNumber = -1;
+		
+		public int getAcceptStateNumber()
+		{
+			if (acceptStateNumber < 0)
+			{
+				acceptStateNumber =0;
+				for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++acceptStateNumber;				
+			}
+			return acceptStateNumber;
+		}
+		
 		/** Consider every state and a map from inputs to transitions leading into
 		 * those states with those inputs (<em>sortaInverse</em>).
 		 * For a pair of states (A,B), there may be some inputs for which both states
@@ -197,14 +221,61 @@ public class LearnerGraph {
 		 * in a row submitted to UMFPACK.
 		 * We aim to estimate this number in order not to reallocate a target array
 		 * many times.
-		 * <p>
-		 * If negative, use the following to build:
-		 * <pre>
-		 * transform.prepareForLinear()
-		 * </pre>
 		 */
-		protected int expectedIncomingPerPairOfStates = -1;
+		private int expectedIncomingPerPairOfStates = -1;
+
+		public int getExpectedIncomingPerPairOfStates()
+		{
+			if (expectedIncomingPerPairOfStates < 0) prepareForLinear();
+			return expectedIncomingPerPairOfStates;
+		}
 		
+		/** Updates the cached data with a transition matrix where all transitions point in 
+		 * an opposite direction to the current one. The matrix produced is used to scan 
+		 * the state comparison matrix columnwise.
+		 */
+		public void prepareForLinear()
+		{
+			Map<CmpVertex,Map<String,List<CmpVertex>>> mapSortaInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
+			
+			// First, we fill the map with empty entries - it is crucially important to fill in all the entries, otherwise the order contains holes compared to the transition matrix and my triangular exploration fails .
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
+					mapSortaInverse.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
+			
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
+				if (entry.getKey().isAccept())
+				{
+					for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+						if (transition.getValue().isAccept())
+						{
+							Map<String,List<CmpVertex>> row = mapSortaInverse.get(transition.getValue());
+							List<CmpVertex> sourceStates = row.get(transition.getKey());
+							if (sourceStates == null)
+							{
+								sourceStates=new LinkedList<CmpVertex>();row.put(transition.getKey(), sourceStates);
+							}
+							sourceStates.add(entry.getKey());
+						}
+				}
+			
+			sortaInverse = mapSortaInverse;
+			
+			// Now we need to estimate expectedIncomingPerPairOfStates
+			int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
+			for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:mapSortaInverse.entrySet())
+				for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+				{
+					++incomingCnt;
+					int size = transition.getValue().size()*entry.getValue().size();indegreeSum+=size;
+					if (size > maxInDegree) maxInDegree=size;
+				}
+			
+			// The logic is simple: if maxInDegree is much higher than the 
+			// average, double the average indegree, otherwise leave it unchanged.  
+			expectedIncomingPerPairOfStates = 2;
+			if (incomingCnt > 0) expectedIncomingPerPairOfStates=1+indegreeSum/incomingCnt;// 1 is to account for a diagonal
+		}
+
 		/** The maximal score which can be returned by score computation routines. 
 		 * Not set if negative, to rebuild do the following:
 		 * <pre>
@@ -213,11 +284,23 @@ public class LearnerGraph {
 		 */
 		protected int maxScore = -1;
 
+		/** The alphabet of the graph. 
+		 */
+		private Set<String> alphabet = null;
+		
+		public Set<String> getAlphabet()
+		{
+			if (alphabet == null)
+				alphabet = wmethod.computeAlphabet();
+			
+			assert alphabet != null;
+			return alphabet;
+		}
+		
 		public void invalidate()
 		{
 			flowgraph=null;maxScore=-1;stateToNumber = null;
-			
-			sortaInverse = null;expectedIncomingPerPairOfStates = -1;
+			sortaInverse = null;expectedIncomingPerPairOfStates = -1;alphabet=null;acceptStateNumber=-1;
 		}
 	}
 	
@@ -580,7 +663,9 @@ public class LearnerGraph {
 			else
 			{
 				result = generateNewCmpVertex(vert.getID(),conf);
-				result.setColour(vert.getColour());result.setAccept(vert.isAccept());result.setHighlight(vert.isHighlight());
+				result.setColour(vert.getColour());
+				result.setAccept(vert.isAccept());
+				result.setHighlight(vert.isHighlight());
 			}
 		}
 		else

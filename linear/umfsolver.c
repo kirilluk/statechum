@@ -269,7 +269,7 @@ void freeMemory()
 }
 
 JNIEXPORT jboolean JNICALL
-STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_ExternalSolver_setIRStep)(
+STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_setIRStep)(
    JNIEnv *j_env,        //interface pointer
    jclass j_cls,        // "this" pointer
    jint j_n)
@@ -279,7 +279,7 @@ STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_ExternalSolver_setIRStep)
 }
 
 JNIEXPORT jboolean JNICALL
-STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_ExternalSolver_extmalloc)(
+STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_extmalloc)(
    JNIEnv *j_env,        //interface pointer
    jclass j_cls,        // "this" pointer
    jint j_n,
@@ -308,7 +308,7 @@ STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_ExternalSolver_extmalloc)
 // We need a return value here because we may fail to throw an exception on error. 
 //
 JNIEXPORT jboolean JNICALL
-STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_ExternalSolver_extsolve)(
+STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_extsolve)(
    JNIEnv *j_env,        //interface pointer
    jclass j_cls,        // "this" pointer
      jintArray j_Ap,

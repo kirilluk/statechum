@@ -21,15 +21,13 @@ package statechum.analysis.learning.rpnicore;
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -136,9 +134,9 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow()
 			{
-				public void init(int threadNo) {}
+				public void init(@SuppressWarnings("unused") int threadNo) {}
 	
-				public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
@@ -161,7 +159,7 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-c-#E\nB-b-#F\nB-c-#G","testAddToBuffer7"),Configuration.getDefaultConfiguration());
 		int ThreadNumber=4;
-		System.out.println(gr.transitionMatrix.keySet());
+
 		Assert.assertArrayEquals(new int[]{0,1,1,1,7},gr.linear.partitionWorkLoad(ThreadNumber));
 
 		final Map<Integer,Integer> threadToRowNumber = new TreeMap<Integer,Integer>();  
@@ -170,9 +168,9 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow()
 			{
-				public void init(int threadNo) {}
+				public void init(@SuppressWarnings("unused") int threadNo) {}
 	
-				public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
 					if (newValue == null)
@@ -185,9 +183,9 @@ public class TestLinear {
 			});
 		gr.linear.performRowTasks(handlerList, ThreadNumber);
 		Assert.assertEquals(2, threadToRowNumber.size());
-		int cnt=0;
-		for(Integer numberOfRows:threadToRowNumber.values()) cnt+=numberOfRows;
-		Assert.assertEquals(gr.getStateNumber(), cnt);
+		int counterOfAllUsedRows=0;
+		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
+		Assert.assertEquals(gr.getStateNumber(), counterOfAllUsedRows);
 		
 	}
 	
@@ -196,9 +194,15 @@ public class TestLinear {
 	public final void TestDomainCompatibility()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R\nC-f-#T","TestFindIncompatibleStatesB"),Configuration.getDefaultConfiguration());
-		Collection<CmpVertex> states = gr.transitionMatrix.keySet();
-		Collection<CmpVertex> states_int = gr.learnerCache.getStateToNumber().keySet();Assert.assertEquals(states, states_int);
-		Collection<CmpVertex> states_sorta = gr.learnerCache.getSortaInverse().keySet();Assert.assertEquals(states, states_sorta);
+		//Collection<CmpVertex> states = gr.transitionMatrix.keySet();
+		Collection<CmpVertex> states_int = gr.wmethod.buildStateToIntegerMap(false).keySet();
+		Collection<CmpVertex> states_sorta = new HashSet<CmpVertex>();states_sorta.addAll(gr.learnerCache.getSortaInverse().keySet());
+		states_sorta.removeAll(states_int);Assert.assertTrue(states_sorta.isEmpty());// verify that states_sorta does not contain more source states than we expect
+		states_sorta.clear();
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:gr.learnerCache.getSortaInverse().entrySet())
+			for(List<CmpVertex> list:entry.getValue().values())
+				states_sorta.addAll(list);
+		states_sorta.removeAll(states_int);Assert.assertTrue(states_sorta.isEmpty());// verify that states_sorta does not contain more target states than we expect
 	}
 	
 	public static final int PAIR_INCOMPATIBLE=Linear.PAIR_INCOMPATIBLE, PAIR_OK=Linear.PAIR_OK;

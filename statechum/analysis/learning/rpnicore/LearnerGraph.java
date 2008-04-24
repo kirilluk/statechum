@@ -164,18 +164,31 @@ public class LearnerGraph {
 		}
 		
 		/** The map from vertices to the corresponding numbers. Used for space-saving 
-		 * computation of W method and for computing of state-similarity.
-		 * If null, use the following to build:
+		 * computation of W method.
 		 */
 		private Map<CmpVertex,Integer> stateToNumber = null;
 		
 		public Map<CmpVertex,Integer> getStateToNumber()
 		{
 			if (stateToNumber == null)
-				stateToNumber = wmethod.buildStateToIntegerMap();
+				stateToNumber = wmethod.buildStateToIntegerMap(true);
 			
 			assert stateToNumber != null;
 			return stateToNumber;
+		}
+		
+		/** The map from vertices to the corresponding numbers, excluding reject-vertices. 
+		 * Used for computation of state-similarity.
+		 */
+		private Map<CmpVertex,Integer> stateToNumberNoReject = null;
+		
+		public Map<CmpVertex,Integer> getStateToNumberNoReject()
+		{
+			if (stateToNumberNoReject == null)
+				stateToNumberNoReject = wmethod.buildStateToIntegerMap(false);
+			
+			assert stateToNumberNoReject != null;
+			return stateToNumberNoReject;
 		}
 		
 		/** This transition matrix is very similar to the main one except
@@ -238,8 +251,11 @@ public class LearnerGraph {
 		{
 			Map<CmpVertex,Map<String,List<CmpVertex>>> mapSortaInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
 			
-			// First, we fill the map with empty entries - it is crucially important to fill in all the entries, otherwise the order contains holes compared to the transition matrix and my triangular exploration fails .
+			// First, we fill the map with empty entries - 
+			// it is crucially important to fill in all the entries which can be accessed during the triangular exploration, 
+			// otherwise holes will lead to the sequence of numbers explored to be discontinuous, causing a failure.
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
+				if (entry.getKey().isAccept())
 					mapSortaInverse.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
 			
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
@@ -299,7 +315,7 @@ public class LearnerGraph {
 		
 		public void invalidate()
 		{
-			flowgraph=null;maxScore=-1;stateToNumber = null;
+			flowgraph=null;maxScore=-1;stateToNumber = null;stateToNumberNoReject=null;
 			sortaInverse = null;expectedIncomingPerPairOfStates = -1;alphabet=null;acceptStateNumber=-1;
 		}
 	}

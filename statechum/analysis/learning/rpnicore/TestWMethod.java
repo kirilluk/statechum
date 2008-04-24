@@ -1064,11 +1064,20 @@ public class TestWMethod {
 	}
 	
 	@Test
+	public final void testVertexToInt0()
+	{
+		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c-#C","testVertexToInt0"),config);
+		Assert.assertTrue(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("A")));
+		Assert.assertTrue(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("B")));
+		Assert.assertFalse(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("C")));
+	}
+	@Test
 	public final void testVertexToInt1()
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
+		Assert.assertEquals(0,textGraph.wmethod.vertexToIntNR(A,A));
 	}
 	
 	@Test
@@ -1088,17 +1097,26 @@ public class TestWMethod {
 		Assert.assertEquals(0,numericGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(A,B));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(B,A));
+		Assert.assertEquals(0,numericGraph.wmethod.vertexToIntNR(A,A));
+		Assert.assertEquals(1,numericGraph.wmethod.vertexToIntNR(A,B));
+		Assert.assertEquals(1,numericGraph.wmethod.vertexToIntNR(B,A));
 
 		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(A,C));
 		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(C,A));
+		Assert.assertEquals(3,numericGraph.wmethod.vertexToIntNR(A,C));
+		Assert.assertEquals(3,numericGraph.wmethod.vertexToIntNR(C,A));
 
 		Assert.assertEquals(2,numericGraph.wmethod.vertexToInt(B,B));
+		Assert.assertEquals(2,numericGraph.wmethod.vertexToIntNR(B,B));
 
 		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(B,C));
 		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(C,B));
+		Assert.assertEquals(4,numericGraph.wmethod.vertexToIntNR(B,C));
+		Assert.assertEquals(4,numericGraph.wmethod.vertexToIntNR(C,B));
 
 		Assert.assertEquals(5,numericGraph.wmethod.vertexToInt(C,C));
-}
+		Assert.assertEquals(5,numericGraph.wmethod.vertexToIntNR(C,C));
+	}
 	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class

@@ -966,18 +966,33 @@ public class WMethod {
 		return true;
 	}
 	
-	Map<CmpVertex,Integer> buildStateToIntegerMap()
+	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
+	 * 
+	 * @param includeRejectVertices whether to include reject-vertices in the map.
+	 * @return map from vertices to numbers.
+	 */
+	Map<CmpVertex,Integer> buildStateToIntegerMap(boolean includeRejectVertices)
 	{
 		Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
 		int num=0;
 		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
-			map.put(vert, num++);
+			if (includeRejectVertices || vert.isAccept())
+				map.put(vert, num++);
 		return map;
 	}
 	
 	public int vertexToInt(CmpVertex vertexA, CmpVertex vertexB)
 	{
 		int x=coregraph.learnerCache.getStateToNumber().get(vertexA), y = coregraph.learnerCache.getStateToNumber().get(vertexB);
+		if (x <= y)
+			return x+y*(y+1)/2;
+		
+		return y+x*(x+1)/2;
+	}
+	
+	public int vertexToIntNR(CmpVertex vertexA, CmpVertex vertexB)
+	{
+		int x=coregraph.learnerCache.getStateToNumberNoReject().get(vertexA), y = coregraph.learnerCache.getStateToNumberNoReject().get(vertexB);
 		if (x <= y)
 			return x+y*(y+1)/2;
 		

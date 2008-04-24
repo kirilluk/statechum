@@ -81,7 +81,7 @@ public class TestLinearWithMultipleThreads {
 			{
 				Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
 
-				int currentStatePair = gr.wmethod.vertexToInt(stateB.getKey(),entryA.getKey());
+				int currentStatePair = gr.wmethod.vertexToIntNR(stateB.getKey(),entryA.getKey());
 				result.setQuick(currentStatePair, gr.linear.countMatchingOutgoing(entryA.getValue(),stateB.getValue()));
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 			}
@@ -102,7 +102,7 @@ public class TestLinearWithMultipleThreads {
 			{
 				Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
 
-				int currentStatePair = gr.wmethod.vertexToInt(entryA.getKey(),stateB.getKey());
+				int currentStatePair = gr.wmethod.vertexToIntNR(entryA.getKey(),stateB.getKey());
 				
 				int outgoingMatched = 0;
 				for(Entry<String,CmpVertex> targetsA:entryA.getValue().entrySet())
@@ -364,32 +364,24 @@ public class TestLinearWithMultipleThreads {
 	@Test
 	public final void TestFindIncompatibleStatesA()
 	{
-		int PAIR_INCOMPATIBLE = Linear.PAIR_INCOMPATIBLE;
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c->R-a->F","testEstimation2"),Configuration.getDefaultConfiguration());
-		final int size=gr.getStateNumber()*(gr.getStateNumber()+1)/2;
+		final int size=gr.learnerCache.getAcceptStateNumber()*(gr.learnerCache.getAcceptStateNumber()+1)/2;
 		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=PAIR_INCOMPATIBLE;
-		gr.linear.findIncompatiblePairs(pairs,ThreadNumber);for(int i=0;i<pairs.length;++i) Assert.assertEquals(PAIR_INCOMPATIBLE,pairs[i]);
+		gr.linear.findIncompatiblePairs(pairs,ThreadNumber);
+		for(int i=0;i<pairs.length;++i) Assert.assertEquals(PAIR_INCOMPATIBLE,pairs[i]);
 	}
 
 	/** Tests that if all pairs are not compatible, this is preserved. */
 	@Test
 	public final void TestFindIncompatibleStatesB()
 	{
-		int PAIR_INCOMPATIBLE = Linear.PAIR_INCOMPATIBLE;
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStatesB"),Configuration.getDefaultConfiguration());
-		final int size=gr.getStateNumber()*(gr.getStateNumber()+1)/2;
+		final int size=gr.learnerCache.getAcceptStateNumber()*(gr.learnerCache.getAcceptStateNumber()+1)/2;
 		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=PAIR_INCOMPATIBLE;
 		gr.linear.findIncompatiblePairs(pairs,ThreadNumber);
 		
-		CmpVertex R=gr.findVertex("R");
 		for(int i=0;i<pairs.length;++i)
-		{
-			boolean reject = false;
-			for(CmpVertex v:gr.transitionMatrix.keySet())
-				if (gr.wmethod.vertexToInt(R, v) == i)
-					reject = true;
-			Assert.assertEquals(reject? Linear.PAIR_REJECT:PAIR_INCOMPATIBLE,pairs[i]);
-		}
+			Assert.assertEquals(PAIR_INCOMPATIBLE,pairs[i]);
 	}
 
 	protected Map<Integer,StatePair> reverseMap = null;
@@ -408,11 +400,11 @@ public class TestLinearWithMultipleThreads {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 		handlerList.add(new HandleRow()
 		{
-			public void init(int threadNo)
+			public void init(@SuppressWarnings("unused") int threadNo)
 			{
 			}
 			
-			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+			public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA,@SuppressWarnings("unused")  int threadNo) 
 			{
 				if (entryA.getKey().isAccept())
 				{// reject-states are ignored.
@@ -443,7 +435,6 @@ public class TestLinearWithMultipleThreads {
 
 	protected final void findIncompatibleTestHelper(LearnerGraph gr,List<StringPair> incompatibles_list)
 	{
-		int PAIR_INCOMPATIBLE = Linear.PAIR_INCOMPATIBLE;
 		HashSet<StatePair> incompatibles = new HashSet<StatePair>();
 		for(StringPair p:incompatibles_list)
 		{
@@ -461,15 +452,16 @@ public class TestLinearWithMultipleThreads {
 		// Example: states A3 and A2 in findIncompatibleStates6()
 		HashSet<StatePair> pairs_extra = new HashSet<StatePair>();pairs_extra.addAll(incompatibles);pairs_extra.removeAll(incompatiblePairs);
 		Assert.assertTrue("compatible pairs included :"+pairs_extra,pairs_extra.isEmpty());
-		//System.out.println(incompatiblePairs);
 
-		final int size=gr.getStateNumber()*(gr.getStateNumber()+1)/2;
+		final int size=gr.learnerCache.getAcceptStateNumber()*(gr.learnerCache.getAcceptStateNumber()+1)/2;
 		final int highNumber = 10000;
 		int pairs[]=new int[size];for(int i=0;i<pairs.length;++i) pairs[i]=highNumber;
 		reverseMap = new HashMap<Integer,StatePair>();
 		for(CmpVertex A:gr.transitionMatrix.keySet())
+			if (A.isAccept())
 			for(CmpVertex B:gr.transitionMatrix.keySet())
-				reverseMap.put(gr.wmethod.vertexToInt(A, B), new StatePair(A,B));
+				if (B.isAccept())
+					reverseMap.put(gr.wmethod.vertexToIntNR(A, B), new StatePair(A,B));
 		Assert.assertEquals(size,reverseMap.size());
 		
 		gr.linear.buildMatrix(ThreadNumber);
@@ -479,10 +471,6 @@ public class TestLinearWithMultipleThreads {
 		for(int i=0;i<pairs.length;++i)
 		{
 			StatePair pair = reverseMap.get(i);
-			if (!pair.firstElem.isAccept() || !pair.secondElem.isAccept())
-				Assert.assertEquals("pair ("+pair.firstElem+","+pair.secondElem+") should not have been touched", 
-						Linear.PAIR_REJECT,pairs[i]);// reject-states should be labelled as such.
-			else
 			if (incompatibles.contains(pair))
 				Assert.assertEquals("pair ("+pair.firstElem+","+pair.secondElem+") should be marked as incompatible",PAIR_INCOMPATIBLE,pairs[i]);// this pair is not compatible
 			else
@@ -602,6 +590,17 @@ public class TestLinearWithMultipleThreads {
 				new StringPair("E","B"),new StringPair("E","D"),new StringPair("E","F"),new StringPair("E","G"),new StringPair("E","H")
 		}));
 	}
+	@Test
+	public final void TestFindIncompatibleStates10()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("B-a->C-a-#A\nC-b-#A"
+				,"TestFindIncompatibleStates10"),Configuration.getDefaultConfiguration());
+
+		findIncompatibleTestHelper(gr, Arrays.asList(new StringPair[]{
+				new StringPair("C","B")
+		}));
+	}
+	
 	
 	@Test
 	public final void TestComputeStateCompatibility1()
@@ -615,11 +614,10 @@ public class TestLinearWithMultipleThreads {
 	@Test
 	public final void TestComputeStateCompatibility2()
 	{
-		final int PAIR_REJECT = Linear.PAIR_REJECT, PAIR_INCOMPATIBLE=Linear.PAIR_INCOMPATIBLE; 
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->C-a-#D"
 				,"TestComputeStateCompatibility1"),Configuration.getDefaultConfiguration());
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(gr.linear.computeStateCompatibility(ThreadNumber));
-		DoubleMatrix1D expected=DoubleFactory1D.dense.make(new double[]{1+k,PAIR_INCOMPATIBLE,1,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,0,PAIR_REJECT,PAIR_REJECT,PAIR_REJECT,PAIR_REJECT});
+		DoubleMatrix1D expected=DoubleFactory1D.dense.make(new double[]{1+k,PAIR_INCOMPATIBLE,1,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,0});
 		Assert.assertTrue(expected.equals(result));
 	}	
 	

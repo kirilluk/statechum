@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.Collection;
 import java.util.Iterator;
 
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 public class AMEquivalenceClass
@@ -61,6 +62,36 @@ public class AMEquivalenceClass
 	
 	/** The merged vertex. */
 	CmpVertex mergedVertex;
+	
+	public CmpVertex getMergedVertex()
+	{
+		return mergedVertex;
+	}
+	
+	/** When merging states, it is often necessary to preserve the colour of vertices.
+	 * For instance, PTA states do not have colour assigned while the rest of a graph
+	 * does. When performing QSM merging, we'd like to give a merged vertex 
+	 * the colour of the one from the main graph all the other vertices have been
+	 * merged into. 
+	 */ 
+	public void computeMergedColour()
+	{
+		JUConstants currentColour = mergedVertex.getColour();
+		for(CmpVertex vert:vertices)
+		{
+			JUConstants vertColour = vert.getColour();
+			if (vertColour != null)
+			{
+				if (vertColour == JUConstants.RED)
+					currentColour = JUConstants.RED; // RED is the highest colour
+				else
+					if (vertColour == JUConstants.BLUE && currentColour != JUConstants.RED)
+						currentColour = JUConstants.BLUE;// next is BLUE
+			}
+		}
+		if (currentColour != null)
+			mergedVertex.setColour(currentColour);
+	}
 	
 	/** Vertices in the original graph corresponding to the merged vertex. */
 	Collection<CmpVertex> vertices;

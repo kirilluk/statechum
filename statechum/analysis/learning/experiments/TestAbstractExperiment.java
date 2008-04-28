@@ -49,7 +49,7 @@ import statechum.analysis.learning.rpnicore.WMethod;
 
 public class TestAbstractExperiment {
 	public static final File testDir = new File("resources","__TestAbstractExperiment__"),
-		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,AbstractExperiment.outputDirName+testGraphsDir.getName());
+		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,AbstractExperiment.outputDirNamePrefix+testGraphsDir.getName());
 
 	protected final Configuration config = Configuration.getDefaultConfiguration();
 	

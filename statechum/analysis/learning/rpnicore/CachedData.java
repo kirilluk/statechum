@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -202,10 +203,6 @@ public class CachedData {
 	}
 
 	/** The maximal score which can be returned by score computation routines. 
-	 * Not set if negative, to rebuild do the following:
-	 * <pre>
-	 * if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
-	 * </pre>
 	 */
 	protected int maxScore = -1;
 
@@ -222,9 +219,26 @@ public class CachedData {
 		return alphabet;
 	}
 	
+	/** After merging using mergeAndDeterminize_general,
+	 * this variable stores equivalence classes. Used by the pluggable
+	 * question generator.
+	 */ 
+	protected Collection<AMEquivalenceClass> mergedStates = null;
+	
+	public Collection<AMEquivalenceClass> getMergedStates()
+	{
+		return mergedStates;
+	}
+	
+	public void setMergedStates(Collection<AMEquivalenceClass> eqClasses)
+	{
+		mergedStates = eqClasses;
+	}
+	
 	public void invalidate()
 	{
 		flowgraph=null;maxScore=-1;stateToNumber = null;stateToNumberNoReject=null;numberToStateNoReject=null;
 		sortaInverse = null;expectedIncomingPerPairOfStates = -1;alphabet=null;acceptStateNumber=-1;
+		mergedStates = null;
 	}
 }

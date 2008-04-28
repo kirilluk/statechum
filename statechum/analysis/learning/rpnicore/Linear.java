@@ -61,8 +61,10 @@ public class Linear {
 
 	public interface HandleRow 
 	{
-		/** Initialises this job. */
-		public void init(int threadNo);
+		/** Initialises this job. 
+		 * @throws IllegalAccessException 
+		 * @throws InstantiationException */
+		public void init(int threadNo) throws InstantiationException, IllegalAccessException;
 		
 		/** Called for each row of our transition matrix. */
 		public void handleEntry(Entry<CmpVertex,Map<String,CmpVertex>> entry, int threadNo);
@@ -180,33 +182,120 @@ public class Linear {
 		return result;
 	}
 	
-	/** Counts the number of outgoing transitions from a pair of states with the same label.
-	 * Hence if A has a,b,c outgoing and B has b,c,e,f, the outcome will be 2 because 
-	 * there are two transitions, b,c in common.
+	/** Makes it possible to use pluggable objects to determine default values of a diagonal and
+	 * the right-hand side (aka b in Ax=b).
+	 * 
 	 */
-	int countMatchingOutgoing(Map<String,CmpVertex> A, Map<String,CmpVertex> B)
+	abstract static class DetermineDiagonalAndRightHandSide
 	{
-		int counter = 0;
-		boolean isHighlight = false;
-		for(Entry<String,CmpVertex> entry:A.entrySet())
+		/** The number of shared transitions which lead to states with the same <em>isHightlight()</em> value
+		 * (this can be used to interpret an arbitrary subset of states as pseudo-reject ones; 
+		 * in practice useful when I make <em>isHightlight() = !isAccept()</em>).
+		 */ 
+		int sharedSameHightlight = 0;
+		
+		/** Number of shared transitions which lead to accept states. */
+		int sharedOutgoing = 0;
+		
+		/** The total number of outgoing transitions. */
+		int totalOutgoing = 0;
+		
+		/** Counts the number of outgoing transitions from a pair of states with the same label.
+		 * Hence if A has a,b,c outgoing and B has b,c,e,f, the outcome will be 2 because 
+		 * there are two transitions, b,c in common.
+		 */
+		protected void compute(Map<String,CmpVertex> A, Map<String,CmpVertex> B)
 		{
-			CmpVertex to=B.get(entry.getKey());
-			if (to != null)
+			sharedSameHightlight = 0;sharedOutgoing = 0;
+			int totalShared = 0;
+			
+			for(Entry<String,CmpVertex> entry:A.entrySet())
 			{
-				if (entry.getValue().isAccept() && to.isAccept()) ++counter;
-				if (entry.getValue().isHighlight() || to.isHighlight()) isHighlight=true;
+				CmpVertex to=B.get(entry.getKey());
+				if (to != null)
+				{
+					++totalShared;
+					if (entry.getValue().isAccept() && to.isAccept()) 
+					{
+						++sharedOutgoing;
+						if (entry.getValue().isHighlight() == to.isHighlight()) ++sharedSameHightlight;
+					}
+				}
 			}
+			
+			totalOutgoing = A.size()+B.size()-totalShared;
 		}
 		
-		if (coregraph.config.getLinearPairScoreInterpretHighlightAsNegative() && isHighlight)
-			return -1;
-		return counter;
+		/** Returns the diagonal value (before it is reduced by
+		 *  <em>coregraph.config.getAttenuationK()</em> for every single-transition loop).
+		 *  If value returned is zero, it is assumed to be one. 
+		 */
+		abstract public int getDiagonal();
+		
+		/** Returns a value for the right-hand side. */
+		abstract public int getRightHandSide();
 	}
 	
-	/** Highlights all negative states. */
-	public void highlightNegatives()
+	/** Interprets highlighted states as reject ones in the course of computation of a diagonal;
+	 * where two states are incompatible for a particular matched transition,
+	 * the score they get is zero for it. 
+	 */
+	public static class DDRH_highlight extends DetermineDiagonalAndRightHandSide
 	{
-		for(CmpVertex v:coregraph.transitionMatrix.keySet()) v.setHighlight(!v.isAccept());
+
+		@Override
+		public int getDiagonal() {
+			return sharedSameHightlight;
+		}
+
+		@Override
+		public int getRightHandSide() {
+			return sharedSameHightlight; 
+		}
+		
+	}
+	
+	/** Interprets highlighted states as reject ones in the course of computation of a diagonal.
+	 * where two states are incompatible for a particular matched transition,
+	 * the score they get is -1 for it. 
+	 */
+	public static class DDRH_highlight_Neg extends DetermineDiagonalAndRightHandSide
+	{
+
+		@Override
+		public int getDiagonal() {
+			return sharedOutgoing;
+		}
+
+		@Override
+		public int getRightHandSide() {
+			return sharedSameHightlight-(sharedOutgoing-sharedSameHightlight); 
+		}
+		
+	}
+	
+	public static class DDRH_default extends DetermineDiagonalAndRightHandSide
+	{
+
+		@Override
+		public int getDiagonal() {
+			return totalOutgoing;
+		}
+
+		@Override
+		public int getRightHandSide() {
+			return sharedOutgoing;
+		}
+		
+	}
+	
+	/** Highlights all negative states and make all the normal vertices accept-vertices. */
+	public void moveRejectToHightlight()
+	{
+		for(CmpVertex v:coregraph.transitionMatrix.keySet())
+		{
+			v.setHighlight(!v.isAccept());v.setAccept(true);
+		}
 	}
 	
 	/** Used to designate incompatible pairs of states. */
@@ -422,7 +511,7 @@ public class Linear {
 	{
 		final int [] incompatiblePairs = new int[coregraph.learnerCache.getAcceptStateNumber()*(coregraph.learnerCache.getAcceptStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
-		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,null);
 	}
 	
 	/** Computes the compatibility between pairs of states.
@@ -431,11 +520,11 @@ public class Linear {
 	 * @return a map from numbers returned by <em>wmethod.vertexToIntNR(A,B)</em>
 	 * to compatibility score of states <em>A</em> and <em>B</em>.
 	 */ 
-	public double [] computeStateCompatibility(int ThreadNumber)
+	public double [] computeStateCompatibility(int ThreadNumber,final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{
 		final int [] incompatiblePairs = new int[coregraph.learnerCache.getAcceptStateNumber()*(coregraph.learnerCache.getAcceptStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
-		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve();
 		solver.freeAllButResult();// deallocate memory before creating a large array.
 		double statePairScores[] = new double[incompatiblePairs.length];
@@ -447,7 +536,8 @@ public class Linear {
 		return statePairScores;
 	}
 	
-	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber)
+	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{ 
 		if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
 			System.out.println("Initial number of pairs: "+(coregraph.getStateNumber()*(coregraph.getStateNumber()+1)/2)+", after reduction: "+pairsNumber);
@@ -486,11 +576,12 @@ public class Linear {
 			int prevStatePairNumber =-1;
 			
 			final int debugThread = -1;
-
-			public void init(int threadNo)
+			DetermineDiagonalAndRightHandSide ddrhInstance = null;
+			
+			public void init(int threadNo) throws InstantiationException, IllegalAccessException
 			{
 				tmpAi = new IntArrayList(coregraph.learnerCache.getExpectedIncomingPerPairOfStates()*pairsNumber);
-				//sourcePairEncountered = new long[pairsNumber];
+				if (ddrh == null) ddrhInstance = new DDRH_default();else ddrhInstance = ddrh.newInstance();
 				Ai_array[threadNo]=new IntArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.getExpectedIncomingPerPairOfStates());
 				Ax_array[threadNo]=new DoubleArrayList(expectedMatrixSize/ThreadNumber+coregraph.learnerCache.getExpectedIncomingPerPairOfStates());
 				currentPosition[threadNo]=0;
@@ -570,10 +661,9 @@ public class Linear {
 										}
 								}
 							}
-							
-							int sharedOutgoing = countMatchingOutgoing(entryA.getValue(),coregraph.transitionMatrix.get(stateB.getKey()));
-							if (debugThread == threadNo) System.out.println("shared outgoing: "+sharedOutgoing);
-							b[currentStatePair]=sharedOutgoing;
+							ddrhInstance.compute(entryA.getValue(),coregraph.transitionMatrix.get(stateB.getKey()));
+							b[currentStatePair]=ddrhInstance.getRightHandSide();
+							if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
 							
 							// At this point, we populated Ai and b with elements for the current row (number currentStatePair),
 							// so it is time to sort these entries. There is no need to populate Ax right now:
@@ -610,9 +700,10 @@ public class Linear {
 									if (!diagonalSet && currentValue == currentStatePair)
 									{// this is the time to handle a diagonal. When this condition becomes true,
 									 // currentValue == currentStatePair for the first time.
-										int totalOutgoing = entryA.getValue().size()+coregraph.transitionMatrix.get(stateB.getKey()).size()-sharedOutgoing;
-										if (totalOutgoing == 0) totalOutgoing = 1;// if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero. 
-										if (debugThread == threadNo) System.out.println("setting diagonal to "+totalOutgoing+" (shared outgoing is "+sharedOutgoing+" )");
+										int totalOutgoing = ddrhInstance.getDiagonal();//entryA.getValue().size()+coregraph.transitionMatrix.get(stateB.getKey()).size()-sharedOutgoing;
+										if (totalOutgoing == 0)
+											totalOutgoing = 1; // if neither element of a pair of states has an outgoing transition, force the identity to ensure that the solution will be zero.
+										if (debugThread == threadNo) System.out.println("setting diagonal to "+totalOutgoing);
 										Ax.setQuick(pos,totalOutgoing);
 										Ai.setQuick(pos,prev);
 										diagonalSet = true;
@@ -725,16 +816,14 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 	 * @param ThreadNumber the number of CPUs to use
 	 * @return
 	 */
-	public Stack<PairScore> chooseStatePairs(double threshold, double scale, int ThreadNumber)
+	public Stack<PairScore> chooseStatePairs(double threshold, double scale, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{
 		final int [] incompatiblePairs = new int[coregraph.learnerCache.getAcceptStateNumber()*(coregraph.learnerCache.getAcceptStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
-		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber);
+		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve();
 		solver.freeAllButResult();// deallocate memory before creating a large array.
-/*		int size = 0;
-		for(int i=0;i<solver.j_x.length;++i) if (solver.j_x[i]>threshold) ++size;
-	*/	
 		coregraph.pairsAndScores.clear();
 		// now fill in the scores in the array.
 		for(int i=0;i<incompatiblePairs.length;++i)
@@ -757,27 +846,28 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 	 */
 	public double getSimilarity(LearnerGraph gr, boolean forceAccept, int ThreadNumber)
 	{
-		Configuration copyConfig = (Configuration)coregraph.config;copyConfig.setLearnerCloneGraph(true);
+		Configuration copyConfig = (Configuration)coregraph.config.clone();copyConfig.setLearnerCloneGraph(true);
 		LearnerGraph copy = coregraph.copy(copyConfig);
 		CmpVertex grInit = Transform.addToGraph(copy, gr);
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
-		return copy.linear.computeStateCompatibility(ThreadNumber)[copy.wmethod.vertexToIntNR(copy.init, grInit)]; 
+		return copy.linear.computeStateCompatibility(ThreadNumber,DDRH_default.class)[copy.wmethod.vertexToIntNR(copy.init, grInit)]; 
 	}
 
 	
 	/** Acts as an oracle, comparing two graphs are returning compatibility score, however
-	 * reject states are not ignored but where they are used, the corresponding pairs are assigned negative scores. 
+	 * reject states are not ignored. Accept/reject decisions are copied into highlight
+	 * and then objects of the supplied class are used to compute numbers. 
 	 */
-	public double getSimilarityWithNegatives(LearnerGraph gr, int ThreadNumber)
+	public double getSimilarityWithNegatives(LearnerGraph gr, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{
-		Configuration copyConfig = (Configuration)coregraph.config;copyConfig.setLearnerCloneGraph(true);
+		Configuration copyConfig = (Configuration)coregraph.config.clone();copyConfig.setLearnerCloneGraph(true);
 		LearnerGraph copy = coregraph.copy(copyConfig);
 		CmpVertex grInit = Transform.addToGraph(copy, gr);
-		copy.linear.highlightNegatives();
-		for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);copy.config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		copy.linear.moveRejectToHightlight();
 		copy.learnerCache.invalidate();
-		double result = copy.linear.computeStateCompatibility(ThreadNumber)[copy.wmethod.vertexToIntNR(copy.init, grInit)];
+		double result = copy.linear.computeStateCompatibility(ThreadNumber,ddrh)[copy.wmethod.vertexToIntNR(copy.init, grInit)];
 		
 		return result;
 	}

@@ -205,7 +205,7 @@ public class Transform {
 	{
 		Map<CmpVertex,CmpVertex> whatToG = new HashMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-		{
+		{// the idea is to number the new states rather than to clone vertices.
 			CmpVertex newVert = LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config);
 			newVert.setAccept(entry.getKey().isAccept());
 			newVert.setHighlight(entry.getKey().isHighlight());

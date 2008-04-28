@@ -18,16 +18,44 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
+import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.Random;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
 public class Benchmarklinear {
 	public static void main(String[] args)
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph graph = null;
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	graph = new LearnerGraph(graphmlFile.load(
+	    			"resources/failedmerge_P1153_P1062.xml"
+	    			),config);
+		}
+		LearnerGraph.testMode=true;
+		StatePair p = new StatePair(graph.findVertex("P1062"),graph.findVertex("P1153"));
+		System.out.println("score: "+graph.pairscores.computePairCompatibilityScore(p));
+		graph.merger.mergeAndDeterminize(graph, p);
+		//System.out.println("score: "+graph.pairscores.computePairCompatibilityScore(new StatePair(graph.findVertex("P1153"),graph.findVertex("P1062"))));
+		Collection<Collection<CmpVertex>> mergedVertices = new LinkedList<Collection<CmpVertex>>();
+		System.out.println("scoreG: "+graph.pairscores.computePairCompatibilityScore_general(p, mergedVertices));
+		System.out.println("scoreG: "+graph.pairscores.computePairCompatibilityScore_general(new StatePair(graph.findVertex("P1153"),graph.findVertex("P1062")), mergedVertices));
+		//System.out.println("scoreG: "+graph.pairscores.computePairCompatibilityScore_general(p, mergedVertices));
+		//PairScore pair = new PairScore(graph.findVertex("P1153"),graph.findVertex("P1062"));
+	}
+	
+	public static void mainA(String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph graph = null;

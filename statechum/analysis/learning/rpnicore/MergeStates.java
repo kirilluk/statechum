@@ -18,6 +18,8 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +38,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -56,6 +59,23 @@ public class MergeStates {
 		coregraph = computeStateScores;
 	}
 
+	/** Verifies that vertices with the same name have the same colour in the two graphs,
+	 * in addition to checking for isomorphism of the graphs.
+	 * Used for consistency checking.
+	 */
+	public static void verifySameMergeResults(LearnerGraph A, LearnerGraph B)
+	{
+		WMethod.checkM(A, B);
+		for(Entry<CmpVertex,LinkedList<String>> entry:A.wmethod.computeShortPathsToAllStates().entrySet())
+		{
+			CmpVertex Bstate = B.getVertex(entry.getValue());
+			CmpVertex Astate = entry.getKey();
+			if (Bstate.getColour() != Astate.getColour())
+				throw new DifferentFSMException("states "+ Astate + " (" +
+						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
+						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
+		}	 
+	}
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
@@ -90,14 +110,25 @@ public class MergeStates {
 		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 
 
 		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
-			throw new IllegalArgumentException("elements of the pair are incompatible");
-		result.mergedStates = new LinkedList<AMEquivalenceClass>();
+		{
+			try {
+				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
+				original.transform.writeGraphML(failName);
+			} catch (IOException e) {
+				System.out.println("failed to write error file");
+				e.printStackTrace();
+			}
+			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
+		}
+		Collection<AMEquivalenceClass> mergedStates = new LinkedList<AMEquivalenceClass>();
 		
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,AMEquivalenceClass> origToNew = new HashMap<CmpVertex,AMEquivalenceClass>();
 		for(Collection<CmpVertex> eqClass:mergedVertices)
 		{
-			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);result.mergedStates.add(equivalenceClass);
+			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);equivalenceClass.computeMergedColour();
+			mergedStates.add(equivalenceClass);
+			
 			for(CmpVertex v:eqClass)
 				origToNew.put(v, equivalenceClass);
 		}
@@ -108,7 +139,8 @@ public class MergeStates {
 		currentExplorationBoundary.add(origToNew.get(original.init));
 		Set<AMEquivalenceClass> visitedEqClasses = new HashSet<AMEquivalenceClass>();
 		while(!currentExplorationBoundary.isEmpty())
-		{
+		{// In order to build a new transition diagram consisting of equivalence classes, I need to
+		 // navigate the existing transition diagram, in its entirety.
 			AMEquivalenceClass current = currentExplorationBoundary.remove();
 			Map<String,CmpVertex> row = result.transitionMatrix.get(current.mergedVertex);
 			if (row == null)
@@ -130,7 +162,7 @@ public class MergeStates {
 					row.put(entry.getKey(), nextClass.mergedVertex);
 				}	
 		}
-		result.learnerCache.invalidate();
+		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedStates);
 		return result;
 	}
 	
@@ -212,6 +244,11 @@ public class MergeStates {
 		}
 		
 		if (LearnerGraph.testMode) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
+		
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
+			for(CmpVertex target:entry.getValue().values())
+				if (!result.transitionMatrix.containsKey(target))
+					throw new IllegalArgumentException("vertex "+target+" is not known in a transformed graph");
 		result.learnerCache.invalidate();
 		return result;
 	}

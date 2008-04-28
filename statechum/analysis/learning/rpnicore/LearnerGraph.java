@@ -125,12 +125,6 @@ public class LearnerGraph {
 	 */
 	protected List<PairScore> pairsAndScores;
 
-	/** After merging using mergeAndDeterminize_general,
-	 * this variable stores equivalence classes. Used by the pluggable
-	 * question generator.
-	 */ 
-	protected Collection<AMEquivalenceClass> mergedStates = null;
-
 	protected CmpVertex stateLearnt = null;
 	
 	/** The configuration stores parameters used by a variety methods

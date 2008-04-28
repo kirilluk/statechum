@@ -230,7 +230,7 @@ public class PairScoreComputation {
 			// nodes with identical moves, PTA nodes do not contribute to anything - we only need
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
-			
+			//System.out.println(" "+currentPair);
 			if (currentPair.getQ().isAccept() != currentPair.getR().isAccept())
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
@@ -501,8 +501,6 @@ public class PairScoreComputation {
 				else
 					if (firstClass.ClassNumber != secondClass.ClassNumber)
 					{
-						//if (coregraph.getStateNumber() == 1268) 
-						//	System.out.println("merged "+firstClass.ClassNumber+" and "+secondClass.ClassNumber);
 						// if the two are the same, we've seen this pair before - ignore this case
 						// neither are null, hence it looks like we have to merge the two equivalent classes - doing this via inplace update
 						// Tested by testPairCompatible_general_C()

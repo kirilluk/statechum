@@ -86,7 +86,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * UFconfig/UFconfig.mk
 * </pre>
 * It has to have the following two lines included (which would usually replace
-* the appropriate lines in the file rather than added at the end):
+* the appropriate lines in the file rather than be added at the end):
 * <pre>
 * UMFPACK_CONFIG = -DNO_TIMER -fPIC
 * BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lgfortran
@@ -121,7 +121,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * <p>
 * On Win32 with cygwin's gcc version 3, this will not work because libtool will not link to static libraries
 * (.a import libraries from .dlls are ok). Linking to all the object files from atlas, amd and umfpack will
-* not work either because these .o files have not been built with libtool. The only option is hence to 
+* not work because these .o files have not been built with libtool. The only option is hence to 
 * build a .dll from atlas, amd and umfpack and link to that dll.
 * Multi-threaded support does not work because libptf77blas links to cygwin1.dll which we cannot use - 
 * this dll does not support being dynamically loaded (a well-documented problem) so the library we build 
@@ -196,7 +196,7 @@ public class LSolver
 	static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
 	
 	/** Allocates the memory for use by the solver. */
-	private static native boolean extmalloc(int n,int c);
+	//private static native boolean extmalloc(int n,int c);
 	
 	/** Enables (>1) or disables (=0) iterative refinement. */
 	static native boolean setIRStep(int ir);
@@ -218,7 +218,7 @@ public class LSolver
 		
 		return result;
 	}
-
+/*
 	private void reallocate()
 	{
 		if (j_Ap.length > currentMaxSize)
@@ -226,7 +226,7 @@ public class LSolver
 			currentMaxSize = j_Ap.length;extmalloc(currentMaxSize, current_c);
 		}
 	}
-	
+*/
 	/** Solves the system of equations using the external solver, 
 	 * if it is available, otherwise falls back on Colt.
 	 * 
@@ -265,8 +265,8 @@ public class LSolver
 	
 	/** The following two variables are not currently in use.
 	 * The amount of memory currently allocated on the solver. Negative will force allocation. This is necessary for initialisation. */
-	private static int currentMaxSize = -1;
-	private static int current_c = 1;
+	//private static int currentMaxSize = -1;
+	//private static int current_c = 1;
 	
 	/** Attempts to load the library from the specified path 
 	 * implicitly (considering java.library.path variable)

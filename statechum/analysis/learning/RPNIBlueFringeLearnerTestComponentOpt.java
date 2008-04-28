@@ -21,10 +21,12 @@ package statechum.analysis.learning;
 import java.awt.Frame;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -39,11 +41,14 @@ import java.io.StringWriter;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Pair;
+import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSet;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -159,6 +164,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		origMinusSize = plusSize;origMinusSize = minusSize;
 	}
 
+	public String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
+	{
+		Set<List<String>> newInQS = new HashSet<List<String>>();newInQS.addAll(seqNew);newInQS.removeAll(seqOrig); 
+		Set<List<String>> newInOrig = new HashSet<List<String>>();newInOrig.addAll(seqOrig);newInOrig.removeAll(seqNew);
+		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
+	}
+	
 	@Override
 	public DirectedSparseGraph learnMachine() {
 		setAutoOracle();
@@ -176,11 +188,23 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
-		while(!possibleMerges.isEmpty()){
+		while(!possibleMerges.isEmpty())
+		{
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			LearnerGraph tempOrig= null;
+			LearnerGraph tempNew = null;
+			
+			tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
+			LearnerGraph temp=tempNew;
+			if (scoreComputer.config.isConsistencyCheckMode())
+			{
+				tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+				WMethod.checkM(tempNew, tempOrig);
+				MergeStates.verifySameMergeResults(tempOrig, tempNew);
+			}
+			
 			setChanged();
 			if(config.getDebugMode())
 				updateGraph(temp.paths.getGraph("merge_debug"+iterations));
@@ -189,11 +213,24 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 
 			if(shouldAskQuestions(score))
 			{
-				questions = ComputeQuestions.computeQS(pair, scoreComputer,temp);
+				questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
+				if (scoreComputer.config.isConsistencyCheckMode()) 
+				{// checking that all the old questions are included in the new ones
+					assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;
+					assert scoreComputer.config.getQuestionPathUnionLimit() < 0;
+					
+					Collection<List<String>> questionsOrigA = ComputeQuestions.computeQS_orig(pair, scoreComputer,tempOrig);
+					CmpVertex Rnew = tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+					Collection<List<String>> questionsOrigB = ComputeQuestions.computeQS_orig(new StatePair(Rnew,Rnew), scoreComputer,tempNew);
+					PTASequenceSet newQuestions =new PTASequenceSet();newQuestions.addAll(questions);
+					assert newQuestions.containsAll(questionsOrigA);
+					assert newQuestions.containsAll(questionsOrigB);
+				}
+				
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
-			} 
 
+			} 
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
 			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);

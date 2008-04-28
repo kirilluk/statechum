@@ -40,6 +40,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.Linear.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.rpnicore.Linear.HandleRow;
 
 public class TestLinear {
@@ -264,74 +265,106 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing1()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(2,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q")));
+		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing2()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(3,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("A"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("A")));
+		Assert.assertEquals(3,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing3a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q")));
+		Assert.assertEquals(1,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing3b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
-		gr.linear.highlightNegatives();
-		Assert.assertEquals(-1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+		gr.linear.moveRejectToHightlight();
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_highlight();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q")));
+		Assert.assertEquals(1,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing4a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing4b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
-		gr.linear.highlightNegatives();
-		Assert.assertEquals(-1,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q"))));
+		gr.linear.moveRejectToHightlight();
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_highlight();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("Q")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing5a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C"))));
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
 	@Test
 	public final void testCountMatchingOutgoing5b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLinearPairScoreInterpretHighlightAsNegative(true);
+		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
-		gr.linear.highlightNegatives();
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C"))));
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C"))));
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("A"))));
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("S"))));
+		gr.linear.moveRejectToHightlight();
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_highlight();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("C")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("S")),gr.transitionMatrix.get(gr.findVertex("C")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("A")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("C")),gr.transitionMatrix.get(gr.findVertex("S")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
 
 	@Test
-	public final void testCountMatchingOutgoing6()
+	public final void testCountMatchingOutgoing6a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		Assert.assertEquals(0,gr.linear.countMatchingOutgoing(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("R"))));
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_default();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("R")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
+	}
+	
+	@Test
+	public final void testCountMatchingOutgoing6b()
+	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		gr.linear.moveRejectToHightlight();
+		DetermineDiagonalAndRightHandSide matcher = new Linear.DDRH_highlight();
+		matcher.compute(gr.transitionMatrix.get(gr.findVertex("A")),gr.transitionMatrix.get(gr.findVertex("R")));
+		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 	
 	

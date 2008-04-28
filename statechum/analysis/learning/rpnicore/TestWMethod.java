@@ -54,6 +54,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 import statechum.model.testset.PrefixFreeCollection;
@@ -1116,6 +1117,49 @@ public class TestWMethod {
 
 		Assert.assertEquals(5,numericGraph.wmethod.vertexToInt(C,C));
 		Assert.assertEquals(5,numericGraph.wmethod.vertexToIntNR(C,C));
+	}
+	
+	@Test
+	public final void testVerifySameMergeResults1()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
+		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		LearnerGraph g=graph.copy(cloneConfig);
+		MergeStates.verifySameMergeResults(graph,g);
+		MergeStates.verifySameMergeResults(g,graph);
+	}
+	
+	@Test
+	public final void testVerifySameMergeResults2()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
+		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
+		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);
+		MergeStates.verifySameMergeResults(graph,g);
+		MergeStates.verifySameMergeResults(g,graph);
+	}
+	
+	@Test(expected=DifferentFSMException.class)
+	public final void testVerifySameMergeResults3()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
+		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
+		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("B").setColour(JUConstants.RED);
+		MergeStates.verifySameMergeResults(graph,g);
+		MergeStates.verifySameMergeResults(g,graph);
+	}
+	
+	@Test(expected=DifferentFSMException.class)
+	public final void testVerifySameMergeResults4()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
+		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
+		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("D").setColour(JUConstants.RED);
+		MergeStates.verifySameMergeResults(graph,g);
+		MergeStates.verifySameMergeResults(g,graph);
 	}
 	
 	@BeforeClass

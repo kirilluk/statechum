@@ -215,8 +215,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).paths.getGraph(learnerName));Visualiser.waitForKey();
 		Collection<List<String>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
-			questionsB = ComputeQuestions.computeQS(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
-			questionsC = ComputeQuestions.computeQS(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
+			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
+			questionsC = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
 			questionsD = ComputeQuestions.computeQS_general(pairNew2, learner2, MergeStates.mergeAndDeterminize_general(learner2, pairNew2), 
 					new ComputeQuestions.QSMQuestionGenerator());
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
@@ -242,7 +242,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
 	{
-		ComputeQuestions.computeQS(new StatePair(null,new DeterministicVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
+		ComputeQuestions.computeQS_orig(new StatePair(null,new DeterministicVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
 	}
 	
 	@Test

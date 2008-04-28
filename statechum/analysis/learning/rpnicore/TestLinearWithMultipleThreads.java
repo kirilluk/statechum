@@ -45,6 +45,7 @@ import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.Linear.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.rpnicore.Linear.HandleRow;
 import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
@@ -83,7 +84,7 @@ public class TestLinearWithMultipleThreads {
 	{
 		int size=gr.getStateNumber()*(gr.getStateNumber()+1)/2;
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(size);
-		
+		DetermineDiagonalAndRightHandSide ddrhInstance = new Linear.DDRH_default();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entryA:gr.transitionMatrix.entrySet())
 		{
 			// Now iterate through states
@@ -93,7 +94,8 @@ public class TestLinearWithMultipleThreads {
 				Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();
 
 				int currentStatePair = gr.wmethod.vertexToIntNR(stateB.getKey(),entryA.getKey());
-				result.setQuick(currentStatePair, gr.linear.countMatchingOutgoing(entryA.getValue(),stateB.getValue()));
+				ddrhInstance.compute(entryA.getValue(),stateB.getValue());
+				result.setQuick(currentStatePair, ddrhInstance.getRightHandSide());
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 			}
 		}
@@ -326,11 +328,11 @@ public class TestLinearWithMultipleThreads {
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a->B-b->A","testAddToBuffer9"),config);
 		gr.linear.buildMatrix(ThreadNumber);
-		final double k = gr.config.getAttenuationK(); 
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
+/*		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {
 			"mat(1,1)=1.0;","mat(1,3)=-"+k+";",// AA
 			"mat(3,3)="+(2.0-k)+";","mat(3,1)=-"+k+";", // BB
 			"mat(2,2)="+2.0+";","mat(2,3)=-"+k+";"}));// AB
+*/
 		checkBuildMatrix(gr,null,null);
 	}
 
@@ -657,7 +659,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility1a()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph(machineCompatibility1,"TestComputeStateCompatibility1"),config);
-		DoubleMatrix1D result = DoubleFactory1D.dense.make(gr.linear.computeStateCompatibility(ThreadNumber));
+		DoubleMatrix1D result = DoubleFactory1D.dense.make(gr.linear.computeStateCompatibility(ThreadNumber,null));
 		Assert.assertTrue(DoubleFactory1D.dense.make(new double[]{1+k,1,1,0,0,0}).equals(result));
 	}	
 	
@@ -666,7 +668,7 @@ public class TestLinearWithMultipleThreads {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph(machineCompatibility1,"TestComputeStateCompatibility1"),config);
 		
-		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE,10,ThreadNumber));
+		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE,10,ThreadNumber,null));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
 				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k)),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10,1),
@@ -684,7 +686,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2a()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		DoubleMatrix1D result = DoubleFactory1D.dense.make(gr.linear.computeStateCompatibility(ThreadNumber));
+		DoubleMatrix1D result = DoubleFactory1D.dense.make(gr.linear.computeStateCompatibility(ThreadNumber,null));
 		DoubleMatrix1D expected=DoubleFactory1D.dense.make(new double[]{1+k,PAIR_INCOMPATIBLE,1,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,0});
 		Assert.assertTrue(expected.equals(result));
 	}
@@ -693,7 +695,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2b()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,ThreadNumber));
+		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,ThreadNumber,null));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
 				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k)),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
@@ -710,7 +712,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2c()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE,10,ThreadNumber));
+		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(PAIR_INCOMPATIBLE,10,ThreadNumber,null));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
 				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k)),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),10,1),
@@ -723,7 +725,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2d()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(1,10,ThreadNumber));
+		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(1,10,ThreadNumber,null));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
 				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k)),1)
 		}));
@@ -734,7 +736,7 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2e()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(5,10,ThreadNumber));
+		Set<PairScore> pairsSet = addAllPermutations(gr.linear.chooseStatePairs(5,10,ThreadNumber,null));
 		Assert.assertTrue(pairsSet.isEmpty());
 	}
 	

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine;
@@ -57,7 +58,8 @@ public class ComputeQuestions {
 		 * @param original the original graph
 		 * @param learnt the result of merging
 		 * @param pairOrig the pair of states which was merged in the original graph
-		 * @param stateLearnt the state in the merged graph corresponding to those two states. 
+		 * @param stateLearnt the state in the merged graph corresponding to the red 
+		 * and blue states of the original graph.
 		 */
 		public void addQuestionsForState(AMEquivalenceClass state, LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig,CmpVertex stateLearnt,MergeData data);
@@ -82,8 +84,9 @@ public class ComputeQuestions {
 		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
 		
 		final SequenceSet identity = engine.new SequenceSet();identity.setIdentity();
-		for(AMEquivalenceClass eq:learnt.mergedStates)
-			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, learnt.stateLearnt,new MergeData(){
+		for(AMEquivalenceClass eq:learnt.learnerCache.getMergedStates())
+			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, 
+					learnt.stateLearnt,new MergeData(){
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
@@ -130,7 +133,7 @@ public class ComputeQuestions {
 				MergeData data) 
 		{
 			if (pathsToMergedRed == null)
-			{
+			{// Initialisation
 				Collection<String> inputsToMultWith = new LinkedList<String>();
 				for(Entry<String,CmpVertex> loopEntry:learnt.transitionMatrix.get(stateLearnt).entrySet())
 					if (loopEntry.getValue() == stateLearnt)
@@ -140,12 +143,98 @@ public class ComputeQuestions {
 					}
 				pathsToMergedRed = data.getPathsToLearnt();
 				pathsToMergedRed.unite(pathsToMergedRed.crossWithSet(inputsToMultWith));// the resulting path does a "transition cover" on all transitions leaving the red state.
+				
+				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
+				// This will not affect the underlying graph, but it does not really matter since all
+				// elements in that graph are accept-states by construction of pathsToMergedRed and hence
+				// not be returned.
+				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
 			}
 						
 			SequenceSet pathsToCurrentState = engine.new SequenceSet();
 			if (learnt.paths.computePathsSBetweenBoolean(stateLearnt, state.mergedVertex, pathsToMergedRed, pathsToCurrentState))
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
 				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
+				// Note that we do not care what the result of crossWithSet is - for those states which 
+				// do not exist in the underlying graph, reject vertices will be added by the engine and
+				// hence will be returned when we do a .getData() on the engine.
+		}
+		
+	}
+	/** Improves on the QSM question generator by using a real loop rather than a single-transition loop. */
+	static public class QSMQuestionGeneratorImproved implements QuestionConstructor
+	{
+		private PTASequenceEngine engine = null;
+		
+		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
+		{
+			engine = new PTASequenceEngine();
+			engine.init(original.new NonExistingPaths());
+			return engine;
+		}
+
+		private SequenceSet pathsToMergedRed = null;
+		
+		public void addQuestionsForState(AMEquivalenceClass state, 
+				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
+				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
+				MergeData data) 
+		{
+			if (pathsToMergedRed == null)
+			{// Initialisation
+				SequenceSet pathsToRed = data.getPathsToLearnt();
+				original.paths.computePathsSBetween(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
+				
+				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
+				// This will not affect the underlying graph, but it does not really matter since all
+				// elements in that graph are accept-states by construction of pathsToMergedRed and hence
+				// not be returned.
+				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
+			}
+						
+			SequenceSet pathsToCurrentState = engine.new SequenceSet();
+			if (learnt.paths.computePathsSBetweenBoolean(stateLearnt, state.mergedVertex, pathsToMergedRed, pathsToCurrentState))
+				// if a path from the merged red state to the current one can be found, update the set of questions. 
+				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
+				// Note that we do not care what the result of crossWithSet is - for those states which 
+				// do not exist in the underlying graph, reject vertices will be added by the engine and
+				// hence will be returned when we do a .getData() on the engine.
+		}
+		
+	}
+
+	/** The question generator which should work for all possible kinds of mergers. */
+	static public class SymmetricQuestionGenerator implements QuestionConstructor
+	{
+		private PTASequenceEngine engine = null;
+		
+		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
+		{
+			engine = new PTASequenceEngine();
+			engine.init(original.new NonExistingPaths());
+			return engine;
+		}
+
+		SequenceSet pathsToInitState = null;
+		
+		public void addQuestionsForState(AMEquivalenceClass state, 
+				LearnerGraph original, LearnerGraph learnt, 
+				@SuppressWarnings("unused") StatePair pairOrig, @SuppressWarnings("unused") CmpVertex stateLearnt,
+				@SuppressWarnings("unused") MergeData data) 
+		{
+			if (pathsToInitState == null)
+			{
+				pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
+			}
+			
+			for(CmpVertex vert:state.vertices)
+			{
+				SequenceSet pathsToCurrentState = engine.new SequenceSet();
+
+				original.paths.computePathsSBetween(original.init, vert, pathsToInitState, pathsToCurrentState);
+				pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
+				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());// attempt all possible continuation vertices
+			}
 		}
 		
 	}
@@ -204,7 +293,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static Collection<List<String>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
@@ -228,5 +317,32 @@ public class ComputeQuestions {
 		merged.questions.buildQuestionsFromPair_Compatible(mergedRed, paths);
 		return engine.getData();
 	}
-
+	
+	public static Collection<List<String>> computeQS_getpartA(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	{
+		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
+		if (mergedRed == null)
+			throw new IllegalArgumentException("failed to find the red state in the merge result");
+		
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.init(original.new NonExistingPaths());
+		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
+		merged.questions.buildQuestionsFromPair_Compatible(mergedRed, initp);
+		return engine.getData(PTASequenceEngine.truePred);
+	}
+	
+	/** Given a pair of states merged in a graph and the result of merging, 
+	 * this method determines questions to ask.
+	 */
+	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	{
+		QuestionConstructor qConstructor=null;
+		switch(original.config.getQuestionGenerator())
+		{
+			case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
+			case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
+			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
+		}
+		return computeQS_general(pair, original, merged, qConstructor);
+	}
 }

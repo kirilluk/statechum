@@ -54,7 +54,7 @@ abstract public class AbstractExperiment
 	protected static final String FS = ",";
 	
 	public enum FileType { 
-		CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
+		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
 		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
 
 		abstract String getFileName(String prefix, String suffix);
@@ -187,10 +187,10 @@ abstract public class AbstractExperiment
 		
 		/** Write the provided string into the result file. 
 		 * 
-		 * @param result what to write
+		 * @param resultString what to write
 		 * @return null on success and an error message on failure
 		 */
-		protected String writeResult(OUTCOME outcome, String result)
+		protected String writeResult(OUTCOME outcome, String resultString)
 		{
 			Writer outputWriter = null;
 			String stdOutput = null;
@@ -202,7 +202,7 @@ abstract public class AbstractExperiment
 				if (experiment.getStageNumber() > 1)
 					percentValue = FS+percent;
 
-				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(result == null? "":result)+"\n");
+				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(resultString == null? "":resultString)+"\n");
 			}
 			catch(IOException e)
 			{
@@ -212,7 +212,10 @@ abstract public class AbstractExperiment
 			}
 			finally
 			{
-				try { if (outputWriter != null) outputWriter.close(); } catch (IOException e) { e.printStackTrace(); }
+				try { if (outputWriter != null) outputWriter.close(); } 
+				catch (IOException e) {
+					// ignore this
+				}
 			}
 			return stdOutput;
 		}
@@ -292,7 +295,9 @@ abstract public class AbstractExperiment
 	
 	public int getStageNumber()
 	{
-		if (getStages() != null && getStages().length > 0) return getStages().length;else return 1;
+		if (getStages() != null && getStages().length > 0) 
+			return getStages().length;
+		return 1;
 	}
 	
 	public static final String resultName = "result.csv";
@@ -309,7 +314,7 @@ abstract public class AbstractExperiment
 		final int NumberMax = fileName.size()*getStageNumber()*LearnerNumber;
 		int failures = 0;
 		File resultFile = new File(getOutputDir(),resultName);resultFile.delete();
-		Map<String,List<String>> results = new TreeMap<String,List<String>>();
+		Map<String,List<String>> resultMap = new TreeMap<String,List<String>>();
 		
 		for(int Number=0;Number < NumberMax;++Number)
 		{
@@ -332,8 +337,8 @@ abstract public class AbstractExperiment
 			}
 			if (line != null)
 			{
-				List<String> data = results.get(evaluator.getLearnerName());
-				if (data == null) { data = new LinkedList<String>();results.put(evaluator.getLearnerName(),data); }
+				List<String> data = resultMap.get(evaluator.getLearnerName());
+				if (data == null) { data = new LinkedList<String>();resultMap.put(evaluator.getLearnerName(),data); }
 				data.add(line);
 			}
 			else
@@ -344,7 +349,7 @@ abstract public class AbstractExperiment
 			throw new IOException(failures+" files could not be processed");
 
 		Writer csvWriter=new FileWriter(resultFile);
-		for(Entry<String,List<String>> entry:results.entrySet())
+		for(Entry<String,List<String>> entry:resultMap.entrySet())
 			for(String str:entry.getValue())
 			csvWriter.write(str+"\n");
 		csvWriter.close();
@@ -376,7 +381,16 @@ abstract public class AbstractExperiment
 	
 	public final int argCMD_COUNT = -1, argCMD_POSTPROCESS = -2;
 	
-	public static final String outputDirName = "output_";
+	/** All output directories start with this string. */
+	public static final String outputDirNamePrefix = "output_";
+
+	/** Depending on the experiment, we might wish to customise an output directory name. */
+	private String outputDirName="";
+
+	public void setOutputDir(String partOfName)
+	{
+		outputDirName=partOfName;
+	}
 	
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
@@ -411,7 +425,7 @@ abstract public class AbstractExperiment
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}
 	        fileNameListReader = new StringReader(listOfFileNames);
-	        File outputDirAsFile = new File(graphDir.getParent(),outputDirName+graphDir.getName());
+	        File outputDirAsFile = new File(graphDir.getParent(),outputDirNamePrefix+outputDirName+graphDir.getName());
 	        if (outputDirAsFile.canRead() || outputDirAsFile.mkdirs())
 	        {
 	        	outputDir = outputDirAsFile.getAbsolutePath();
@@ -468,7 +482,7 @@ abstract public class AbstractExperiment
 					System.out.println("RESULT: "+computationOutcome.get());
 				} catch (Exception e) {// here we ignore the exceptions, since a failure in a learner will manifest itself as a failure recorded in a file. In a grid environment, this (reading a file) is the only way we can learn about a failure, hence let post-processor handle this case. 
 					System.out.println("FAILED");
-					e.printStackTrace();
+					//e.printStackTrace();
 				}
 				finally
 				{

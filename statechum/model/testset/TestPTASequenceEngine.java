@@ -47,7 +47,7 @@ import static statechum.analysis.learning.TestFSMAlgo.equalityTestingHelper;
 
 public class TestPTASequenceEngine 
 {
-	private PTASequenceEngine en = null; 
+	private PTASequenceEngine en = null, engine_testLimitToGraph= null; 
 	LearnerGraph fsm = null;
 	
 	/** Set up the graphs to use. Additionally,  
@@ -61,6 +61,8 @@ public class TestPTASequenceEngine
 		config = (Configuration)mainConfiguration.clone();config.setAllowedToCloneNonCmpVertex(true);
 		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
 		en = new PTA_FSMStructure(fsm);		
+		engine_testLimitToGraph = new PTA_FSMStructure(new LearnerGraph(TestFSMAlgo.buildGraph(
+				"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine"),config));
 	}
 	
 
@@ -1280,6 +1282,115 @@ public class TestPTASequenceEngine
 				new String[] {"a","b","c"},
 		}));
 	
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+	}
+	
+	@Test
+	public final void test_sequenceSet_limitTo0()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c"},
+				new String[] {"a","a"},
+				new String[] {"c"}
+		}));seqOne.limitTo(0);
+		Assert.assertTrue(seqOne.isEmpty());
+	}
+	
+	@Test
+	public final void test_sequenceSet_limitTo1()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c"},
+				new String[] {"a","a"},
+				new String[] {"c"}
+		}));seqOne.limitTo(1);
+		Assert.assertFalse(seqOne.isEmpty());
+		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","a"}}));
+		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+	}
+
+	@Test
+	public final void test_sequenceSet_limitTo2()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c"},
+				new String[] {"a","a"},
+				new String[] {"c"}
+		}));
+		seqOne.limitTo(2);
+		Assert.assertFalse(seqOne.isEmpty());
+		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","a"},
+				new String[] {"c" }
+				}));
+		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+	}
+
+	@Test
+	public final void test_sequenceSet_limitTo3()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c"},
+				new String[] {"a","a"},
+				new String[] {"c"}
+		}));seqOne.limitTo(2000);
+		Assert.assertFalse(seqOne.isEmpty());
+		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","a"},
+				new String[] {"a","c"},
+				new String[] {"c"}
+				}));
+		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+
+		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
+	}
+
+	@Test
+	public final void test_sequenceSet_limitTo4()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c"},
+				new String[] {"a","a"},
+				new String[] {"c"}
+		}));seqOne.limitTo(-1);
+		Assert.assertFalse(seqOne.isEmpty());
+		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","a"},
+				new String[] {"a","c"},
+				new String[] {"c"}
+				}));
+		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","b"}}
+		));
+
 		equalityTestingHelper(seqOne,seqTwo,seqDifferent1,seqDifferent2);
 	}
 

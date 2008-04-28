@@ -547,13 +547,13 @@ public class TestFSMAlgo {
 	@Test(expected=IllegalArgumentException.class)
 	public void testEqClassEquality_fail1()
 	{
-				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{}));
+		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{}));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testEqClassEquality_fail2()
 	{
-				new AMEquivalenceClass(null);
+		new AMEquivalenceClass(null);
 	}
 	
 	@Test
@@ -624,6 +624,48 @@ public class TestFSMAlgo {
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
 						new StringVertex("B"),new StringVertex("A"),new StringVertex("C")}))
 		);
+	}
+
+	@Test
+	public final void testAM_colour1()
+	{
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("A"),new StringVertex("B"),new StringVertex("C")}));
+		eq.computeMergedColour();
+		Assert.assertNull(eq.getMergedVertex().getColour());
+	}
+	
+	@Test
+	public final void testAM_colour2a()
+	{
+		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.RED);
+		CmpVertex vertC = new StringVertex("C");
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("A"),vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.RED);
+	}
+
+	@Test
+	public final void testAM_colour2b()
+	{
+		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.BLUE);
+		CmpVertex vertC = new StringVertex("C");
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("A"),vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
+	}
+
+	@Test
+	public final void testAM_colour3()
+	{
+		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.RED);
+		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("A"),vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.RED);
 	}
 
 	/** Tests of comparison/equality of string/deterministic pairs of vertices

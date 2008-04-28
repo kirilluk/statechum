@@ -197,6 +197,17 @@ public class PTASequenceEngine
 			return ptaNodes.isEmpty();
 		}
 		
+		/** Limits the number of nodes in the set to the specified number, 
+		 * by throwing away the rest of the elements.  
+		 *
+		 * @param number the number of nodes to limit this set to. -1 means include all elements.
+		 */
+		public void limitTo(int number)
+		{
+			if (number >= 0 && number<ptaNodes.size())
+				ptaNodes = ptaNodes.subList(0, number);
+		}
+		
 		/** Unites the given set of sequence with the supplied one.
 		 * Important: cannot cope well with duplicate nodes, they will be preserved.
 		 * 
@@ -209,17 +220,23 @@ public class PTASequenceEngine
 			ptaNodes.addAll(with.ptaNodes);
 		}
 		
+		/** Appends elements from the supplied set to those stored in this sequenceSet.
+		 * 
+		 * @param inputs set with elements to append
+		 * @return
+		 */
 		public SequenceSet crossWithSet(Collection<String> inputs)
 		{
 			SequenceSet result = new SequenceSet();
 			for(PTASequenceEngine.Node node:ptaNodes)
+			{
 				for(String input:inputs)
 				{
 					Node newNode = followToNextNode(node, input);
 					if (newNode.isAccept())
 						result.ptaNodes.add(newNode);
 				}
-			
+			}
 			return result;
 		}
 		

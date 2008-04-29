@@ -104,8 +104,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		// Visualiser.getVisualiser()
 		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 		{
+			@Override
 			protected Pair<Integer,String> checkWithEndUser(
-					@SuppressWarnings("unused")	DirectedSparseGraph model,
+					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{

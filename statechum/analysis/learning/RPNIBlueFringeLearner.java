@@ -34,6 +34,7 @@ import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 import edu.uci.ics.jung.graph.impl.*;
 
@@ -89,7 +90,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	 * </pre>
 	 * @param g the graph to display in the associated view
 	 */
-	public void updateGraph(DirectedSparseGraph g)
+	public void updateGraph(LearnerGraph g)
 	{
 		setChanged();
 		if (config.getDebugMode())
@@ -197,7 +198,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 		}
 	}
 	
-	protected Pair<Integer,String> checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions){
+	protected Pair<Integer,String> checkWithEndUser(LearnerGraph model,List<String> question, final Object [] moreOptions){
 		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
 
 		final List<String> questionList = beautifyQuestionList(question);

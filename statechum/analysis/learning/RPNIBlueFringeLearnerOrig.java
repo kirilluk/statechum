@@ -21,6 +21,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
 import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
@@ -232,7 +233,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
-					Pair<Integer,String> response = checkWithEndUser(model,question,new Object[0]);// zero means "yes", everything else is "no"
+					Pair<Integer,String> response = checkWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,new Object[0]);// zero means "yes", everything else is "no"
 					questionCounter++;
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);

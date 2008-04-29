@@ -81,8 +81,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		counterRestarted = 0;
 		counterEmptyQuestions = 0;
 		report.write("\n[ PTA: " + scoreComputer.paths.getStatistics(false) + " ] ");
-		setChanged();
-		updateGraph(scoreComputer.paths.getGraph(learntGraphName+"_init"));
+		setChanged();scoreComputer.setName(learntGraphName+"_init");
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while (!possibleMerges.isEmpty()) {
@@ -107,8 +106,10 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				++minusSize;
 				restartLearning = RestartLearningEnum.restartSOFT;
 			}
-			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) {
-				updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
+			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) 
+			{
+				temp.setName(learntGraphName+"_"+counterRestarted+"_"+iterations);
+				updateGraph(temp);
 				questions = ComputeQuestions.computeQS(pair, ptaHardFacts, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
@@ -265,7 +266,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		DirectedSparseGraph result = scoreComputer.paths.getGraph(learntGraphName+"_result");
 		result.addUserDatum(JUConstants.STATS, report.toString(),
 				UserData.SHARED);
-		updateGraph(result);
+		updateGraph(scoreComputer);
 		return result;
 	}
 

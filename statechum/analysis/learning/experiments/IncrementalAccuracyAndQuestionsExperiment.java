@@ -62,8 +62,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
+				@Override
 				protected Pair<Integer,String> checkWithEndUser(
-						@SuppressWarnings("unused")	DirectedSparseGraph model,
+						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
@@ -159,8 +160,8 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 							protected void changeParameters(Configuration c) 
 							{
 								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-								c.setCertaintyThreshold(3);
-								c.setMinCertaintyThreshold(0); //question threshold
+								//c.setCertaintyThreshold(3);
+								//c.setMinCertaintyThreshold(0); //question threshold
 								
 								c.setQuestionGenerator(conf.getQuestionGenerator());
 								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
@@ -181,14 +182,15 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	{
 		try {
 			LearnerGraph.testMode=true;
-			Experiment consistencyExperiment = new Experiment();
-			consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
+			Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
+			LearnerGraph.testMode=false;
 			
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
-					//Configuration.QuestionGeneratorKind.CONVENTIONAL, 
+					Configuration.QuestionGeneratorKind.CONVENTIONAL,
+					Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
 					Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
-				for(int limit:new int[]{-1})
+				for(int limit:new int[]{-1,4,2,1})
 				{
 					String experimentDescription = "_"+qk+"_"+(limit<0?"all":limit);
 					AbstractExperiment experiment = new Experiment(qk,limit);experiment.setOutputDir(experimentDescription+"_");

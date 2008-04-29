@@ -46,7 +46,6 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
-import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
@@ -164,26 +163,74 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		else // initSeq == null
 			expected.putAll(TestFSMAlgo.buildStringMap(expectedResult));
 		
+		IllegalArgumentException exORIG = null;
+		
 		{// testing the orig part
 			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), testConfig);
 			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
 			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
-			s.paths.ORIGcomputePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
-			Map<String,String> actual = engine.getDebugDataMapDepth(paths);
-			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+			try
+			{ 
+				s.paths.ORIGcomputePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
+				Map<String,String> actual = engine.getDebugDataMapDepth(paths);
+				Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+			}
+			catch(IllegalArgumentException ex)
+			{ exORIG = ex; }
+			
 		}
 
+		IllegalArgumentException exNew = null;
+		
 		{// testing the new part
 			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), testConfig);
 			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
 			PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
-			s.paths.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths);
-			Map<String,String> actual = engine.getDebugDataMapDepth(paths);
-			Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+			try
+			{ 
+				s.paths.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths); 
+				Map<String,String> actual = engine.getDebugDataMapDepth(paths);
+				Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+			}
+			catch(IllegalArgumentException ex)
+			{ exNew = ex; }
+		}
+
+		IllegalArgumentException exCaching = null;
+		
+		{// testing the latest part with caching.
+			LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(machine, testName), testConfig);
+			PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
+			PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
+			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
+			try
+			{
+				Map<CmpVertex,PTASequenceEngine.SequenceSet> map = s.paths.computePathsSBetween_All(s.findVertex(FirstState), engine,initSet);
+				PTASequenceEngine.SequenceSet pathsToSecondState = map.get(s.findVertex(SecondState));
+				if (pathsToSecondState == null)
+					throw new IllegalArgumentException("path from state "+FirstState+" to state "+SecondState+" was not found");
+
+				Map<String,String> actual = engine.getDebugDataMapDepth(pathsToSecondState);
+				
+				// The one below only compares keysets because computePathsSBetween_All builds an entire tree and
+				// consequently most vertices will not be leaf ones.
+				Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.keySet().equals(actual.keySet()));
+			}
+			catch(IllegalArgumentException ex)
+			{ exCaching = ex; }
+		}
+		
+		if (exORIG != null)
+		{
+			Assert.assertNotNull(exNew);Assert.assertNotNull(exCaching);throw exCaching;
+		}
+		else
+		{
+			Assert.assertNull(exNew);Assert.assertNull(exCaching);
 		}
 	}
 	
@@ -478,69 +525,39 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0a()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
-		s.paths.computePathsToRed(new StringVertex("non-existing-vertex"));
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\n", "testComputePathsToRed1",
+				"non-existing-vertex","non-existing-vertexB",
+				null,
+				new Object[][] {});
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0b()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
-		s.paths.computePathsToRed(null);
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\n", "testComputePathsToRed1",
+				null,null,
+				null,
+				new Object[][] {});
 	}
 	
 	/** Unreachable vertex. */
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0c()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"), testConfig);
-		s.paths.computePathsToRed(s.findVertex("Q"));
+		TestComputePathsBetweenHelper("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed0c",
+				"A","Q",
+				null,
+				new Object[][] {});
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testComputePathsToRed0d()
 	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), testConfig);
-		s.paths.computePathsToRed(new StringVertex("F"));
+		TestComputePathsBetweenHelper(complexGraphA, "ComputePathsSBetween_complexGraphA",
+				"A","F",
+				null,
+				new Object[][] {});
 	}
-
-	private final void checkOrigException(LearnerGraph s, CmpVertex vert)
-	{
-		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
-		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();paths.setIdentity(); 
-		s.paths.computePathsSBetween(s.init, vert,initSet,paths);
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public final void testComputePathsToRed0a_ORIG()
-	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
-		checkOrigException(s,new StringVertex("non-existing-vertex"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public final void testComputePathsToRed0b_ORIG()
-	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\n", "testComputePathsToRed1"), testConfig);
-		checkOrigException(s,null);
-	}
-	
-	/** Unreachable vertex. */
-	@Test(expected = IllegalArgumentException.class)
-	public final void testComputePathsToRed0c_ORIG()
-	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-a->A\nQ-a->Q", "testComputePathsToRed1"), testConfig);
-		checkOrigException(s,s.findVertex("Q"));
-	}
-	
-	@Test(expected = IllegalArgumentException.class)
-	public final void testComputePathsToRed0d_ORIG()
-	{
-		LearnerGraph s = new LearnerGraph(TestFSMAlgo.buildGraph(complexGraphA, "ComputePathsSBetween_complexGraphA"), testConfig);
-		checkOrigException(s,new StringVertex("F"));
-	}
-	
 
 	/** State to look for is the initial one. */
 	@Test

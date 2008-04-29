@@ -25,6 +25,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
@@ -69,7 +70,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
-				Pair<Integer,String> answer = checkWithEndUser(model,question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer.firstElem == USER_CANCELLED)
 				{
@@ -123,7 +124,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
-		updateGraph(model);
+		updateGraph(new LearnerGraph(model,Configuration.getDefaultConfiguration()));
 		return model;
 	}
 	

@@ -28,6 +28,7 @@ import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -66,8 +67,9 @@ public class AccuracyAndQuestionsExperiment extends AbstractExperiment {
 			
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
+				@Override
 				protected Pair<Integer,String> checkWithEndUser(
-						@SuppressWarnings("unused")	DirectedSparseGraph model,
+						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{

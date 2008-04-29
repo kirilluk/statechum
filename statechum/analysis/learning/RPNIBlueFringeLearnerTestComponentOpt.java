@@ -183,9 +183,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
-		if(config.getDebugMode())
-			updateGraph(newPTA.paths.getGraph("merge_debug"+0));
-
+		newPTA.setName("merge_debug"+0);
+		updateGraph(newPTA);
+		
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while(!possibleMerges.isEmpty())
@@ -205,9 +205,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				MergeStates.verifySameMergeResults(tempOrig, tempNew);
 			}
 			
-			setChanged();
-			if(config.getDebugMode())
-				updateGraph(temp.paths.getGraph("merge_debug"+iterations));
+			setChanged();temp.setName("merge_debug"+iterations);
+			updateGraph(temp);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 
@@ -220,7 +219,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 					assert scoreComputer.config.getQuestionPathUnionLimit() < 0;
 					
 					Collection<List<String>> questionsOrigA = ComputeQuestions.computeQS_orig(pair, scoreComputer,tempOrig);
-					CmpVertex Rnew = tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+					//CmpVertex Rnew = tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+					CmpVertex Rnew = tempNew.getStateLearnt();
+					assert Rnew == tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
 					Collection<List<String>> questionsOrigB = ComputeQuestions.computeQS_orig(new StatePair(Rnew,Rnew), scoreComputer,tempNew);
 					PTASequenceSet newQuestions =new PTASequenceSet();newQuestions.addAll(questions);
 					assert newQuestions.containsAll(questionsOrigA);
@@ -238,7 +239,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
-				Pair<Integer,String> answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer.firstElem == USER_CANCELLED)
 				{
@@ -332,7 +333,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		if(config.getDebugMode())
-			updateGraph(result);
+			updateGraph(scoreComputer);
 		return result;
 	}
 	

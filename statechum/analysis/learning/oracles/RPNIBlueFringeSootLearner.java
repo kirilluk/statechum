@@ -75,7 +75,7 @@ public class RPNIBlueFringeSootLearner extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
-				Pair<Integer,String> answer = checkWithEndUser(scoreComputer.paths.getGraph(),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
@@ -143,7 +143,7 @@ public class RPNIBlueFringeSootLearner extends
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(result);
+		updateGraph(scoreComputer);
 		return result;
 	}
 }

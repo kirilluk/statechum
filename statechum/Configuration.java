@@ -385,7 +385,7 @@ public class Configuration implements Cloneable
 	}
 
 	/** Used to pop up auxiliary information when under test. */
-	protected boolean debugMode;
+	protected boolean debugMode = false;
 	
 	public void setDebugMode(boolean debug) {
 		this.debugMode = debug;

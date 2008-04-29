@@ -188,6 +188,87 @@ public class PathRoutines {
 	}
 	
 	/** Computes all possible shortest paths from the supplied source state to the 
+	 * all states in the graph returns a map from a state to the corresponding PTA. The easiest 
+	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
+	 * this also permits one to trace them in some automaton and junk irrelevant ones.
+	 * 
+	 * @param vertSource the source state
+	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
+	 * or obtained using PTATestSequenceEngine-related operations.
+	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
+	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
+	 * @return the map from states to PTAs of shortest paths to them. States which cannot be reached are not included in the map.
+	 */	
+	public Map<CmpVertex,PTASequenceEngine.SequenceSet> computePathsSBetween_All(CmpVertex vertSource, PTASequenceEngine engine,
+			PTASequenceEngine.SequenceSet pathsToVertSource)
+	{
+		if (vertSource == null || pathsToVertSource == null)
+			throw new IllegalArgumentException("null arguments to computePathsSBetween");
+		if (LearnerGraph.testMode)
+			if (!coregraph.learnerCache.getFlowgraph().containsKey(vertSource))
+				throw new IllegalArgumentException("either source or target vertex is not in the graph");
+		
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
+		
+		// FIFO queue containing sequences of states labelling paths to states to be explored.
+		// Important, after processing of each wave, we add a null, in order to know when
+		// to stop when scanning to the end of the current wave when a path to the target state
+		// has been found.
+		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
+		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
+		
+		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = new HashMap<CmpVertex,PTASequenceEngine.SequenceSet>();
+		Map<CmpVertex,Integer> stateToDepthMap = new HashMap<CmpVertex,Integer>();
+		
+		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
+		stateToPathMap.put(vertSource,pathsToVertSource);stateToDepthMap.put(vertSource,0);
+		
+		CmpVertex currentVert = null;List<CmpVertex> currentPath = null;
+		while(!currentExplorationPath.isEmpty())
+		{
+			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
+			visitedStates.add(currentVert);
+			//System.out.println(currentVert);
+			for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
+			{
+				CmpVertex nextState = entry.getKey();
+				Integer existingDepth = stateToDepthMap.get(nextState);
+				int currentdepth = currentPath.size()+1;
+				int existingdepth = existingDepth == null? currentdepth:existingDepth.intValue();
+				assert existingdepth <= currentPath.size()+1;
+				if (existingdepth == currentdepth)
+				{// the path was found in the course of the current wave
+						
+					PTASequenceEngine.SequenceSet sequenceset = stateToPathMap.get(nextState);
+					if (sequenceset == null)
+					{
+						sequenceset = engine.new SequenceSet();stateToPathMap.put(nextState,sequenceset);stateToDepthMap.put(nextState,currentdepth);
+					}
+					// now we need to go through all our states in a path and update pathsToVertSource
+					PTASequenceEngine.SequenceSet paths = pathsToVertSource;CmpVertex curr = vertSource;
+					// process vertices
+					for(CmpVertex tgt:currentPath)
+					{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
+						paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
+						curr = tgt;
+					}
+					paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(nextState));
+					sequenceset.unite( paths );// update the result.
+				}
+				
+				
+				if (!visitedStates.contains(nextState))
+				{
+					List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(nextState);
+					currentExplorationPath.offer(newPath);currentExplorationState.offer(nextState);
+				}
+			}
+		}
+
+		return stateToPathMap;
+	}
+
+	/** Computes all possible shortest paths from the supplied source state to the 
 	 * supplied target state and returns a PTA corresponding to them. The easiest 
 	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
 	 * this also permits one to trace them in some automaton and junk irrelevant ones.
@@ -426,7 +507,7 @@ public class PathRoutines {
 	 */
 	public DirectedSparseGraph getGraph()
 	{
-		return getGraph(null);
+		return getGraph(coregraph.getName());
 	}
 	
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.

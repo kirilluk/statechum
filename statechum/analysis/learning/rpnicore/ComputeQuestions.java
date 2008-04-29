@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
-import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine;
@@ -117,6 +116,7 @@ public class ComputeQuestions {
 	static public class QSMQuestionGenerator implements QuestionConstructor
 	{
 		private PTASequenceEngine engine = null;
+		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
 		
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
@@ -125,14 +125,12 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		private SequenceSet pathsToMergedRed = null;
-		
 		public void addQuestionsForState(AMEquivalenceClass state, 
 				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
 		{
-			if (pathsToMergedRed == null)
+			if (fanout == null)
 			{// Initialisation
 				Collection<String> inputsToMultWith = new LinkedList<String>();
 				for(Entry<String,CmpVertex> loopEntry:learnt.transitionMatrix.get(stateLearnt).entrySet())
@@ -141,7 +139,7 @@ public class ComputeQuestions {
 					 // a loop in temp is either due to the merge or because it was there in the first place.
 						inputsToMultWith.add(loopEntry.getKey());
 					}
-				pathsToMergedRed = data.getPathsToLearnt();
+				SequenceSet pathsToMergedRed = data.getPathsToLearnt();
 				pathsToMergedRed.unite(pathsToMergedRed.crossWithSet(inputsToMultWith));// the resulting path does a "transition cover" on all transitions leaving the red state.
 				
 				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
@@ -149,10 +147,12 @@ public class ComputeQuestions {
 				// elements in that graph are accept-states by construction of pathsToMergedRed and hence
 				// not be returned.
 				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
+				
+				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
 			}
 						
-			SequenceSet pathsToCurrentState = engine.new SequenceSet();
-			if (learnt.paths.computePathsSBetweenBoolean(stateLearnt, state.mergedVertex, pathsToMergedRed, pathsToCurrentState))
+			SequenceSet pathsToCurrentState = fanout.get(state.mergedVertex);
+			if (pathsToCurrentState != null)
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
 				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
 				// Note that we do not care what the result of crossWithSet is - for those states which 
@@ -165,7 +165,8 @@ public class ComputeQuestions {
 	static public class QSMQuestionGeneratorImproved implements QuestionConstructor
 	{
 		private PTASequenceEngine engine = null;
-		
+		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
+
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
 			engine = new PTASequenceEngine();
@@ -173,16 +174,14 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		private SequenceSet pathsToMergedRed = null;
-		
 		public void addQuestionsForState(AMEquivalenceClass state, 
 				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
 		{
-			if (pathsToMergedRed == null)
+			if (fanout == null)
 			{// Initialisation
-				SequenceSet pathsToRed = data.getPathsToLearnt();
+				SequenceSet pathsToRed = data.getPathsToLearnt();SequenceSet pathsToMergedRed=engine.new SequenceSet();
 				original.paths.computePathsSBetween(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
 				
 				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
@@ -190,10 +189,12 @@ public class ComputeQuestions {
 				// elements in that graph are accept-states by construction of pathsToMergedRed and hence
 				// not be returned.
 				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
+				
+				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
 			}
 						
-			SequenceSet pathsToCurrentState = engine.new SequenceSet();
-			if (learnt.paths.computePathsSBetweenBoolean(stateLearnt, state.mergedVertex, pathsToMergedRed, pathsToCurrentState))
+			SequenceSet pathsToCurrentState = fanout.get(state.mergedVertex);
+			if (pathsToCurrentState != null)
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
 				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
 				// Note that we do not care what the result of crossWithSet is - for those states which 
@@ -207,7 +208,8 @@ public class ComputeQuestions {
 	static public class SymmetricQuestionGenerator implements QuestionConstructor
 	{
 		private PTASequenceEngine engine = null;
-		
+		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
+
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
 			engine = new PTASequenceEngine();
@@ -215,23 +217,20 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		SequenceSet pathsToInitState = null;
-		
 		public void addQuestionsForState(AMEquivalenceClass state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, @SuppressWarnings("unused") CmpVertex stateLearnt,
 				@SuppressWarnings("unused") MergeData data) 
 		{
-			if (pathsToInitState == null)
+			if (fanout == null)
 			{
-				pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
+				SequenceSet pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
+				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToInitState);
 			}
 			
 			for(CmpVertex vert:state.vertices)
 			{
-				SequenceSet pathsToCurrentState = engine.new SequenceSet();
-
-				original.paths.computePathsSBetween(original.init, vert, pathsToInitState, pathsToCurrentState);
+				SequenceSet pathsToCurrentState = fanout.get(vert);
 				pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
 				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());// attempt all possible continuation vertices
 			}

@@ -54,6 +54,19 @@ public class LearnerGraph {
 	/** The initial vertex. */
 	CmpVertex init;
 
+	/** The name of this graph to be displayed by visualiser. */
+	protected String graphName = null;
+	
+	public void setName(String newGraphName)
+	{
+		graphName = newGraphName;
+	}
+	
+	public String getName()
+	{
+		return graphName;
+	}
+	
 	/** Transition matrix. */
 	Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 			
@@ -125,7 +138,13 @@ public class LearnerGraph {
 	 */
 	protected List<PairScore> pairsAndScores;
 
+	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
 	protected CmpVertex stateLearnt = null;
+	
+	public CmpVertex getStateLearnt()
+	{
+		return stateLearnt;
+	}
 	
 	/** The configuration stores parameters used by a variety methods
 	 * involved in learning;

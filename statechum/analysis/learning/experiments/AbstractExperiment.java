@@ -179,7 +179,8 @@ abstract public class AbstractExperiment
 			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 		    	GraphMLFile graphmlFile = new GraphMLFile();
 		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-		    	graph = new LearnerGraph(graphmlFile.load(inputFileName),config);
+		    	Configuration cnf = (Configuration)config.clone();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
+		    	graph = new LearnerGraph(graphmlFile.load(inputFileName),cnf);
 			}
 		}
 

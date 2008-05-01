@@ -102,7 +102,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
 				System.out.println("<temp> "+counterexample.subList(0, counterexample.size()-1));
-				ptaSoftFacts.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false);
+				ptaSoftFacts.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false,null);
 				++minusSize;
 				restartLearning = RestartLearningEnum.restartSOFT;
 			}
@@ -139,8 +139,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				if (answer.firstElem == USER_ACCEPTED) {
 					++counterAccepted;
 					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
-						ptaHardFacts.paths.augmentPTA(question, true);
-					ptaSoftFacts.paths.augmentPTA(question, true);
+						ptaHardFacts.paths.augmentPTA(question, true,null);
+					ptaSoftFacts.paths.augmentPTA(question, true,null);
 					++plusSize;
 					if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
 					questionAnswered = true;
@@ -161,8 +161,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 					LinkedList<String> subAnswer = new LinkedList<String>();
 					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
 					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
-						ptaHardFacts.paths.augmentPTA(subAnswer, false);
-					ptaSoftFacts.paths.augmentPTA(subAnswer, false);
+						ptaHardFacts.paths.augmentPTA(subAnswer, false,null);
+					ptaSoftFacts.paths.augmentPTA(subAnswer, false,null);
 					++minusSize;// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// one instance should ever receive calls to augmentPTA

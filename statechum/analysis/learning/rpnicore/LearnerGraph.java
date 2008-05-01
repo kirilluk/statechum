@@ -166,10 +166,26 @@ public class LearnerGraph {
 		init.setColour(JUConstants.RED);
 	}
 	
+	/** Resets all the colour labelling to the initial value, keeping the Amber. */
+	public void clearColoursButAmber()
+	{
+		for(CmpVertex v:transitionMatrix.keySet())
+			if (v.getColour() != JUConstants.AMBER) v.setColour(null);
+		init.setColour(JUConstants.RED);
+	}
+	
 	/** Returns the number of states in the state machine. */
 	public int getStateNumber()
 	{
 		return transitionMatrix.size();
+	}
+	
+	/** Returns the number of amber states in the state machine. */
+	public int getAmberStateNumber()
+	{
+		int count = 0;
+		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.getColour() == JUConstants.AMBER) ++count;
+		return count;
 	}
 	
 	final public ComputeQuestions questions = new ComputeQuestions(this);

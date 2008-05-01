@@ -27,7 +27,7 @@ import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.RPNIBlueAmberFringeLearner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -60,7 +60,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);extraPart=extraPart+"size:"+size+FS+"chunks: "+(100/percentPerChunk)+FS+"per chunk:"+nrPerChunk;
 			
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+			RPNIBlueAmberFringeLearner l = new RPNIBlueAmberFringeLearner(null,config)
 			{
 				@Override
 				protected Pair<Integer,String> checkWithEndUser(
@@ -74,22 +74,11 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			};
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
 			extraPart =extraPart+FS+percent+"%"+FS+"+:"+sPlus.getData().size()+FS+"-:"+sMinus.getData(PTASequenceEngine.truePred).size();
-			computePR(l, sMinus);
-		}
 
-//		private void posNegExperiment(LearnerGraph fsm, RPNIBlueFringeLearnerTestComponentOpt l){
-//			PosNegPrecisionRecall prNeg = computePR(fsm, l, sMinus);
-//			PosNegPrecisionRecall pr= computePR(fsm, l, sPlus);
-//			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
-//		}
-		
-		private void computePR(RPNIBlueFringeLearnerTestComponentOpt l, 
-				PTASequenceEngine ptaMinus)
-		{
-			LearnerGraph learned = learn(l,ptaMinus);
+			LearnerGraph learned = learn(l,sMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 			PTASequenceEngine engine = new PTA_FSMStructure(graph);
-			PosNegPrecisionRecall ptaPR = precRec.crossWith(ptaMinus);
+			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
 			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
 			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
@@ -104,7 +93,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight_Neg.class);
 		}
 
-		private LearnerGraph learn(RPNIBlueFringeLearnerTestComponentOpt l, PTASequenceEngine pta)
+		private LearnerGraph learn(RPNIBlueAmberFringeLearner l, PTASequenceEngine pta)
 		{
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
@@ -118,7 +107,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	
 	public int [] getStages()
 	{
-		return new int[]{10,25,50,75,100};
+		return new int[]{30,100};
 	}
 		
 	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
@@ -160,9 +149,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 							protected void changeParameters(Configuration c) 
 							{
 								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-								//c.setCertaintyThreshold(3);
+								//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
 								//c.setMinCertaintyThreshold(0); //question threshold
-								
+								//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 								c.setQuestionGenerator(conf.getQuestionGenerator());
 								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
 							}
@@ -187,10 +176,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
 					Configuration.QuestionGeneratorKind.CONVENTIONAL,
-					Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
-					Configuration.QuestionGeneratorKind.SYMMETRIC
+					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
+					//Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
-				for(int limit:new int[]{-1,4,2,1})
+				for(int limit:new int[]{-1}) // ,4,2,1
 				{
 					String experimentDescription = "_"+qk+"_"+(limit<0?"all":limit);
 					AbstractExperiment experiment = new Experiment(qk,limit);experiment.setOutputDir(experimentDescription+"_");

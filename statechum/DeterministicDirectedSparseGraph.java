@@ -272,7 +272,10 @@ public class DeterministicDirectedSparseGraph {
 							if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.toString()))
 								datum = JUConstants.BLUE;
 							else
-								throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
+								if (datum == JUConstants.AMBER || strDatum.equalsIgnoreCase(JUConstants.AMBER.toString()))
+									datum = JUConstants.AMBER;
+								else
+									throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
 					}
 					else
 					if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.toString()))
@@ -409,7 +412,7 @@ public class DeterministicDirectedSparseGraph {
 
 		public void setColour(JUConstants colour) 
 		{
-			if (colour != null && colour != JUConstants.RED && colour != JUConstants.BLUE)
+			if (colour != null && colour != JUConstants.RED && colour != JUConstants.BLUE && colour != JUConstants.AMBER)
 				throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+vertexID.toString()+")");
 
 			removeUserDatum(JUConstants.COLOUR);

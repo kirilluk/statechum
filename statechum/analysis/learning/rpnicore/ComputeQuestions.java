@@ -175,7 +175,7 @@ public class ComputeQuestions {
 		}
 
 		public void addQuestionsForState(AMEquivalenceClass state, 
-				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
+				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
 		{
@@ -225,7 +225,7 @@ public class ComputeQuestions {
 			if (fanout == null)
 			{
 				SequenceSet pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
-				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToInitState);
+				fanout = original.paths.computePathsSBetween_All(original.init, engine, pathsToInitState);
 			}
 			
 			for(CmpVertex vert:state.vertices)

@@ -121,12 +121,13 @@ public class MergeStates {
 			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
 		}
 		Collection<AMEquivalenceClass> mergedStates = new LinkedList<AMEquivalenceClass>();
-		
+		Configuration cloneConfig = (Configuration)result.config.clone();cloneConfig.setLearnerCloneGraph(true);
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,AMEquivalenceClass> origToNew = new HashMap<CmpVertex,AMEquivalenceClass>();
 		for(Collection<CmpVertex> eqClass:mergedVertices)
 		{
-			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);equivalenceClass.computeMergedColour();
+			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);
+			equivalenceClass.computeMergedColour();equivalenceClass.mergedVertex=LearnerGraph.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);
 			mergedStates.add(equivalenceClass);
 			
 			for(CmpVertex v:eqClass)

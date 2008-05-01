@@ -371,7 +371,7 @@ public class PathRoutines {
 	public LearnerGraph augmentPTA(Collection<List<String>> strings, boolean accepted)
 	{
 		for(List<String> sequence:strings)
-			augmentPTA(sequence, accepted);
+			augmentPTA(sequence, accepted,null);
 		return coregraph;
 	}
 	
@@ -380,9 +380,10 @@ public class PathRoutines {
 	 * 
 	 * @param sequence the path to add
 	 * @param accepted whether the last element is accept or reject.
+	 * @param newColour the colour to assign to all new vertices, usually this should be left at null.
 	 * @return the current (updated) graph. 
 	 */
-	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted)
+	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted, JUConstants newColour)
 	{
 		CmpVertex currentState = coregraph.init, prevState = null;
 		Iterator<String> inputIt = sequence.iterator();
@@ -407,11 +408,11 @@ public class PathRoutines {
 			{
 				while(inputIt.hasNext())
 				{
-					prevState = coregraph.addVertex(prevState, true, lastInput);
+					prevState = coregraph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
 					lastInput = inputIt.next();
 				}
 				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				coregraph.addVertex(prevState, accepted, lastInput);
+				coregraph.addVertex(prevState, accepted, lastInput).setColour(newColour);
 			}
 			
 		}

@@ -658,6 +658,75 @@ public class TestFSMAlgo {
 	}
 
 	@Test
+	public final void testAM_colour2c()
+	{
+		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.AMBER);
+		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				new StringVertex("A"),vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
+	}
+
+	@Test
+	public final void testAM_colour2d()
+	{
+		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
+		CmpVertex vertB = new StringVertex("B");
+		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.BLUE);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				vertA,vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.BLUE);
+	}
+
+	@Test
+	public final void testAM_colour2e()
+	{
+		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
+		CmpVertex vertB = new StringVertex("B");
+		CmpVertex vertC = new StringVertex("C");
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				vertA,vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertNull(eq.getMergedVertex().getColour());
+	}
+
+	@Test
+	public final void testAM_colour2f()
+	{
+		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
+		CmpVertex vertB = new StringVertex("B");
+		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.AMBER);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				vertA,vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertNull(eq.getMergedVertex().getColour());
+	}
+
+	@Test
+	public final void testAM_colour2g()
+	{
+		CmpVertex vertA = new StringVertex("A");
+		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.AMBER);
+		CmpVertex vertC = new StringVertex("C");vertC.setColour(JUConstants.AMBER);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				vertA,vertB,vertC}));
+		eq.computeMergedColour();
+		Assert.assertNull(eq.getMergedVertex().getColour());
+	}
+
+	@Test
+	public final void testAM_colour2h()
+	{
+		CmpVertex vertA = new StringVertex("A");vertA.setColour(JUConstants.AMBER);
+		AMEquivalenceClass eq =new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
+				vertA}));
+		eq.computeMergedColour();
+		Assert.assertTrue(eq.getMergedVertex().getColour() == JUConstants.AMBER);
+	}
+
+	@Test
 	public final void testAM_colour3()
 	{
 		CmpVertex vertB = new StringVertex("B");vertB.setColour(JUConstants.RED);

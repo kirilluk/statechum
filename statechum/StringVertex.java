@@ -57,7 +57,7 @@ public class StringVertex implements CmpVertex {
 	}
 
 	public void setColour(JUConstants c) {
-		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE)
+		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE && c != JUConstants.AMBER)
 			throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+getID().toString()+")");
 		colour = c;
 	}

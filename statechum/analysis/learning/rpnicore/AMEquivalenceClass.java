@@ -77,9 +77,12 @@ public class AMEquivalenceClass
 	public void computeMergedColour()
 	{
 		JUConstants currentColour = mergedVertex.getColour();
+		boolean allAmber = true;
 		for(CmpVertex vert:vertices)
 		{
 			JUConstants vertColour = vert.getColour();
+			if (vertColour != JUConstants.AMBER) allAmber = false;
+			
 			if (vertColour != null)
 			{
 				if (vertColour == JUConstants.RED)
@@ -89,8 +92,12 @@ public class AMEquivalenceClass
 						currentColour = JUConstants.BLUE;// next is BLUE
 			}
 		}
-		if (currentColour != null)
-			mergedVertex.setColour(currentColour);
+		if (currentColour == JUConstants.AMBER && !allAmber)
+		{
+			currentColour = null;
+			System.out.print("amber lost due to merge of ");for(CmpVertex v:vertices) System.out.print(v+" ("+v.getColour()+") ");System.out.println();
+		}
+		mergedVertex.setColour(currentColour);
 	}
 	
 	/** Vertices in the original graph corresponding to the merged vertex. */

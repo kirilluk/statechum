@@ -24,6 +24,7 @@ import java.util.Random;
 
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.Configuration.QuestionGeneratorKind;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -41,6 +42,8 @@ public class Benchmarklinear {
 	public static void main(String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
+		//config.setConsistencyCheckMode(true);
+		//config.setQuestionGenerator(QuestionGeneratorKind.SYMMETRIC);
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();

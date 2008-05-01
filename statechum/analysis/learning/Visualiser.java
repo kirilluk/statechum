@@ -578,6 +578,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 					else
 						if (c == JUConstants.BLUE)
 							col = Color.BLUE;
+						else
+							if (c == JUConstants.AMBER)
+								col = Color.YELLOW;
 				}
 			}
 			return col;

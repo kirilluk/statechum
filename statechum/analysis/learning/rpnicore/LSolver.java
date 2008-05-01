@@ -102,11 +102,9 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * </li>
 * 
 * <li>
-* If file 
-* <pre>
-* linear/configure
-* </pre>
-* is not present, you need to build it as follows:
+* If files 
+* <em>linear/configure</em> or <em>linear/Makefile.in</em>
+* are not present, you need to build it as follows:
 * <pre>
 * cd linear
 * ./bootstrap

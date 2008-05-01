@@ -90,7 +90,7 @@ public class RPNIBlueFringeSootLearner extends
 				else if(answer.firstElem == USER_ACCEPTED)
 				{
 					++counterAccepted;
-					newPTA.paths.augmentPTA(question, true);++plusSize;
+					newPTA.paths.augmentPTA(question, true,null);++plusSize;
 				}
 				else 
 						throw new IllegalArgumentException("unexpected user choice");

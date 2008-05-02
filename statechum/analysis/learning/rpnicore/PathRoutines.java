@@ -64,6 +64,17 @@ public class PathRoutines {
 		return computePathsBetween(coregraph.init, red);
 	}
 	
+	/** Computes the ratio of edges in the graph from non-amber states 
+	 * to the total number of possible edges from non-amber states. 
+	 */
+	public double getExtentOfCompleteness()
+	{
+		int normalEdgeCount = 0;
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+			if (entry.getKey().getColour() != JUConstants.AMBER) normalEdgeCount+=entry.getValue().size();
+		return (double)normalEdgeCount/( (coregraph.getStateNumber()-coregraph.getAmberStateNumber()) * coregraph.learnerCache.getAlphabet().size());
+	}
+	
 	/** Computes all possible shortest paths from the supplied source state to the supplied target state.
 	 * If there are many paths of the same length, all of those paths are returned.
 	 * 
@@ -232,36 +243,39 @@ public class PathRoutines {
 			for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
 			{
 				CmpVertex nextState = entry.getKey();
-				Integer existingDepth = stateToDepthMap.get(nextState);
-				int currentdepth = currentPath.size()+1;
-				int existingdepth = existingDepth == null? currentdepth:existingDepth.intValue();
-				assert existingdepth <= currentPath.size()+1;
-				if (existingdepth == currentdepth)
-				{// the path was found in the course of the current wave
-						
-					PTASequenceEngine.SequenceSet sequenceset = stateToPathMap.get(nextState);
-					if (sequenceset == null)
+				if (nextState.getColour() != JUConstants.AMBER)
+				{// Amber states are there only for state separation, not to be explored in question asking.
+
+					Integer existingDepth = stateToDepthMap.get(nextState);
+					int currentdepth = currentPath.size()+1;
+					int existingdepth = existingDepth == null? currentdepth:existingDepth.intValue();
+					assert existingdepth <= currentPath.size()+1;
+					if (existingdepth == currentdepth)
+					{// the path was found in the course of the current wave
+							
+						PTASequenceEngine.SequenceSet sequenceset = stateToPathMap.get(nextState);
+						if (sequenceset == null)
+						{
+							sequenceset = engine.new SequenceSet();stateToPathMap.put(nextState,sequenceset);stateToDepthMap.put(nextState,currentdepth);
+						}
+						// now we need to go through all our states in a path and update pathsToVertSource
+						PTASequenceEngine.SequenceSet paths = pathsToVertSource;CmpVertex curr = vertSource;
+						// process vertices
+						for(CmpVertex tgt:currentPath)
+						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
+							paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
+							curr = tgt;
+						}
+						paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(nextState));
+						sequenceset.unite( paths );// update the result.
+					}
+				
+					if (!visitedStates.contains(nextState))
 					{
-						sequenceset = engine.new SequenceSet();stateToPathMap.put(nextState,sequenceset);stateToDepthMap.put(nextState,currentdepth);
+						List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(nextState);
+						currentExplorationPath.offer(newPath);currentExplorationState.offer(nextState);
 					}
-					// now we need to go through all our states in a path and update pathsToVertSource
-					PTASequenceEngine.SequenceSet paths = pathsToVertSource;CmpVertex curr = vertSource;
-					// process vertices
-					for(CmpVertex tgt:currentPath)
-					{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
-						paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
-						curr = tgt;
-					}
-					paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(nextState));
-					sequenceset.unite( paths );// update the result.
-				}
-				
-				
-				if (!visitedStates.contains(nextState))
-				{
-					List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(nextState);
-					currentExplorationPath.offer(newPath);currentExplorationState.offer(nextState);
-				}
+				}		
 			}
 		}
 

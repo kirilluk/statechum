@@ -20,6 +20,8 @@ package statechum.analysis.learning.experiments;
 
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,7 +50,6 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParameters(Configuration c);
 
-		protected String extraPart = "";
 		protected AtomicInteger questionNumber = new AtomicInteger(0);
 		
 		/** This method is executed on an executor thread. */
@@ -58,7 +59,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
-			rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);extraPart=extraPart+"size:"+size+FS+"chunks: "+(100/percentPerChunk)+FS+"per chunk:"+nrPerChunk;
+			rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);
 			
 			RPNIBlueAmberFringeLearner l = new RPNIBlueAmberFringeLearner(null,config)
 			{
@@ -73,7 +74,6 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				}
 			};
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
-			extraPart =extraPart+FS+percent+"%"+FS+"+:"+sPlus.getData().size()+FS+"-:"+sMinus.getData(PTASequenceEngine.truePred).size();
 
 			LearnerGraph learned = learn(l,sMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
@@ -88,9 +88,24 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			result = result + FS + questionNumber+ FS + 
 				// Columns 5 and 6
-				ptaPR.precision  + FS + ptaPR.recall + FS +extraPart + FS+"L"+FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
-			result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight.class);
-			result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight_Neg.class);
+				ptaPR.precision  + FS + ptaPR.recall + FS +
+				"size:"+size+FS+"chunks: "+(100/percentPerChunk)+FS+"per chunk:"+nrPerChunk +
+				FS+percent+"%"+FS+"+:"+sPlus.getData().size()+FS+"-:"+sMinus.getData(PTASequenceEngine.truePred).size();
+			try
+			{
+				result = result + FS+"L"+FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
+				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight.class);
+				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight_Neg.class);
+			}
+			catch(IllegalArgumentException ex)
+			{
+				StringWriter wr = new StringWriter();ex.printStackTrace(new PrintWriter(wr));
+				result = result+"\n"+"exception from linear: "+ex+
+					" on graph with "+learned.getStateNumber()+" and "+learned.getStateNumber()+" transitions" +
+					"\n"+wr.getBuffer().toString();
+			}
+			
+			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness();
 		}
 
 		private LearnerGraph learn(RPNIBlueAmberFringeLearner l, PTASequenceEngine pta)
@@ -107,7 +122,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	
 	public int [] getStages()
 	{
-		return new int[]{30,100};
+		return new int[]{10,30,60,100};
 	}
 		
 	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
@@ -176,10 +191,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
 					Configuration.QuestionGeneratorKind.CONVENTIONAL,
-					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
-					//Configuration.QuestionGeneratorKind.SYMMETRIC
+					Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
+					Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
-				for(int limit:new int[]{-1}) // ,4,2,1
+				for(int limit:new int[]{-1,4,2,1})
 				{
 					String experimentDescription = "_"+qk+"_"+(limit<0?"all":limit);
 					AbstractExperiment experiment = new Experiment(qk,limit);experiment.setOutputDir(experimentDescription+"_");
@@ -192,6 +207,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					experiment.postProcessIntoR(2,true, 17, new File(experiment.getOutputDir(),"linearN"+ending));
 					experiment.postProcessIntoR(2,true, 18, new File(experiment.getOutputDir(),"linearB"+ending));
 				}			
+			
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return;

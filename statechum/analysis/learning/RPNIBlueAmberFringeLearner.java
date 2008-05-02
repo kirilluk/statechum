@@ -2,15 +2,12 @@ package statechum.analysis.learning;
 
 import java.awt.Frame;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
 import statechum.JUConstants;
@@ -61,38 +58,73 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
 	}
 	
+	int plusSize = 0, minusSize = 0;
+	
+	/** Does 
+	 * <pre>
+	 * MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
+	 * </pre>
+	 * but additionally checks for consistency.
+	 */
+	protected LearnerGraph getMergedGraph(PairScore pair, LearnerGraph newPTA)
+	{
+		int nonAmberA = 0;
+		if (scoreComputer.config.isConsistencyCheckMode()) nonAmberA = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
+		LearnerGraph tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
+		if (scoreComputer.config.isConsistencyCheckMode()) assert (newPTA.getStateNumber()-newPTA.getAmberStateNumber()) == nonAmberA;
+
+		if (scoreComputer.config.isConsistencyCheckMode())
+		{
+			LearnerGraph tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			MergeStates.verifySameMergeResults(tempOrig, tempNew);
+		}
+		return tempNew;
+	}
+	
+	/** Returns a collection of questions, but also checks them for consistency.
+	 * 
+	 * @param tempNew the graph after merge.
+	 * @param pair pair of states to consider.
+	 * @return questions to ask.
+	 */
+	protected Collection<List<String>> getQuestions(LearnerGraph tempNew, PairScore pair)
+	{
+		Collection<List<String>> questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
+		if (scoreComputer.config.isConsistencyCheckMode()) 
+		{// checking that all the old questions are included in the new ones
+			assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;
+			assert scoreComputer.config.getQuestionPathUnionLimit() < 0;
+			
+			Collection<List<String>> questionsOrigA = ComputeQuestions.computeQS_orig(pair, scoreComputer,MergeStates.mergeAndDeterminize(scoreComputer, pair));
+			CmpVertex Rnew = tempNew.getStateLearnt();
+			assert Rnew == tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+			Collection<List<String>> questionsOrigB = ComputeQuestions.computeQS_orig(new StatePair(Rnew,Rnew), scoreComputer,tempNew);
+			PTASequenceSet newQuestions =new PTASequenceSet();newQuestions.addAll(questions);
+			assert newQuestions.containsAll(questionsOrigA);
+			assert newQuestions.containsAll(questionsOrigB);
+		}
+		
+		return questions;
+	}
+	
 	@Override
 	public DirectedSparseGraph learnMachine() {
 		setAutoOracle();
-		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
-			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
-		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
-		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
-		String pairsMerged = "";
 		setChanged();
 		newPTA.setName("merge_debug"+0);
 		updateGraph(newPTA);
 		
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
-		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0, currentNonAmber = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
+		plusSize = origPlusSize;minusSize = origMinusSize;
+		int iterations = 0, currentNonAmber = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
 		while(!possibleMerges.isEmpty())
 		{
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph tempOrig= null;
-			LearnerGraph tempNew = null;
+			LearnerGraph temp = getMergedGraph(pair,newPTA);
 			//System.out.println("considering "+pair+" non-amber: "+(newPTA.getStateNumber()-newPTA.getAmberStateNumber()));
-			int nonAmberA = (newPTA.getStateNumber()-newPTA.getAmberStateNumber());
-			tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
-			LearnerGraph temp=tempNew;
-			assert (newPTA.getStateNumber()-newPTA.getAmberStateNumber()) == nonAmberA;
-			if (scoreComputer.config.isConsistencyCheckMode())
-			{
-				tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-				MergeStates.verifySameMergeResults(tempOrig, tempNew);
-			}
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(), temp.paths.getGraph());Visualiser.waitForKey();
 			setChanged();temp.setName("merge_debug"+iterations);
 			updateGraph(temp);
@@ -100,24 +132,8 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			int score = pair.getScore();
 
 			if(shouldAskQuestions(score))
-			{
-				questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
-				if (scoreComputer.config.isConsistencyCheckMode()) 
-				{// checking that all the old questions are included in the new ones
-					assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;
-					assert scoreComputer.config.getQuestionPathUnionLimit() < 0;
-					
-					Collection<List<String>> questionsOrigA = ComputeQuestions.computeQS_orig(pair, scoreComputer,tempOrig);
-					//CmpVertex Rnew = tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
-					CmpVertex Rnew = tempNew.getStateLearnt();
-					assert Rnew == tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
-					Collection<List<String>> questionsOrigB = ComputeQuestions.computeQS_orig(new StatePair(Rnew,Rnew), scoreComputer,tempNew);
-					PTASequenceSet newQuestions =new PTASequenceSet();newQuestions.addAll(questions);
-					assert newQuestions.containsAll(questionsOrigA);
-					assert newQuestions.containsAll(questionsOrigB);
-				}
-				
-			} 
+				questions = getQuestions(temp, pair);
+
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
 			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
@@ -142,7 +158,6 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					if(!tempVertex.isAccept())
 					{
-						pairsMerged=pairsMerged+"ABOUT TO RESTART due to acceptance of a reject vertex for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
 				}
@@ -160,7 +175,6 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 						if( (answer.firstElem < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
-							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 							restartLearning = true;break;
 						}
 					}
@@ -172,16 +186,12 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			if (restartLearning)
 			{// restart learning
 				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
+				//System.out.println("restart at pair "+pair+", currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
+				if (speculativeGraphUpdate(possibleMerges, newPTA))
+					return null;
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColoursButAmber();
-				//System.out.println("restart, currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
-				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
-				if (count == null)
-				{
-					count = new AtomicInteger();restartScoreDistribution.put(pair.getScore(),count);
-				}
-				count.incrementAndGet();
-				restartsToIterations.put(pair, iterations);
+				//System.out.println("finished with speculative update, currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
 				iterations = 0;
 			}
 			else
@@ -190,18 +200,9 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				// the original PTA which will be modified as a result of new sequences being added to it.
 				// temp is different too, hence there is no way for me to compute compatibility score here.
 				// This is hence computed inside the obtainPair method.
-				pairsMerged=pairsMerged+pair+" questions: "+questions.size()+"\n";
 				
 				// keep going with the existing model
 				scoreComputer = temp;
-				// now update the statistics
-				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
-				if (count == null)
-				{
-					count = new AtomicInteger();whichScoresWereUsedForMerging.put(pair.getScore(),count);
-				}
-				count.incrementAndGet();
-				scoresToIterations.put(pair, iterations);
 			}
 			
 			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
@@ -211,5 +212,59 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		if(config.getDebugMode())
 			updateGraph(scoreComputer);
 		return result;
+	}
+	
+	/** We might be doing a restart, but it never hurts to go through the existing 
+	 * collection of vertices to merge and see if we can update the graph.
+	 *  
+	 * @return true if question answering has been cancelled by a user.
+	 */
+	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph newPTA)
+	{
+		while(!possibleMerges.isEmpty())
+		{
+			PairScore pair = possibleMerges.pop();
+			int score = pair.getScore();
+
+			if(shouldAskQuestions(score))
+			{
+				LearnerGraph tempNew = null;
+				try
+				{
+					tempNew = getMergedGraph(pair, newPTA);
+				}
+				catch(IllegalArgumentException ex)
+				{// ignore - tempNew is null anyway					
+				}
+				
+				if (tempNew != null) // merge successful - it would fail if our updates to newPTA have modified scoreComputer (the two are often the same graph)
+				{					
+					for(List<String> question:getQuestions(tempNew, pair))
+					{
+						Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
+						this.questionCounter++;
+						if (answer.firstElem == USER_CANCELLED)
+						{
+							System.out.println("CANCELLED");
+							return true;
+						}
+						
+						if(answer.firstElem == USER_ACCEPTED)
+						{
+							newPTA.paths.augmentPTA(question, true,JUConstants.AMBER);++plusSize;
+						}
+						else 
+							if(answer.firstElem >= 0)
+							{// The sequence has been rejected by a user
+								assert answer.firstElem < question.size();
+								LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
+								newPTA.paths.augmentPTA(subAnswer, false,JUConstants.AMBER);++minusSize;
+							}
+					}
+				}
+			}
+		}
+		
+		return false;
 	}
 }

@@ -127,7 +127,7 @@ public class MergeStates {
 		for(Collection<CmpVertex> eqClass:mergedVertices)
 		{
 			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);
-			equivalenceClass.computeMergedColour();equivalenceClass.mergedVertex=LearnerGraph.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);
+			equivalenceClass.mergedVertex=LearnerGraph.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);equivalenceClass.computeMergedColour();
 			mergedStates.add(equivalenceClass);
 			
 			for(CmpVertex v:eqClass)

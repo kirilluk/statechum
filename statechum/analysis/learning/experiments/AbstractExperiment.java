@@ -45,6 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import statechum.Configuration;
+import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
@@ -325,8 +326,8 @@ abstract public class AbstractExperiment
 			{
 				BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(FileType.RESULT)));
 				line = reader.readLine();
-				if (line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
-				{
+				if (line != null && line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
+				{// get the next line
 					line = reader.readLine();if (line != null && line.length() == 0) line = null;
 				}
 				else line = null;
@@ -336,6 +337,7 @@ abstract public class AbstractExperiment
 			{
 				line = null;
 			}
+			
 			if (line != null)
 			{
 				List<String> data = resultMap.get(evaluator.getLearnerName());
@@ -393,6 +395,22 @@ abstract public class AbstractExperiment
 		outputDirName=partOfName;
 	}
 	
+	/** Goes through all files in a specified directory and builds a list of them. */
+	Pair<String,Integer> getFileListFromDirName(String dirName)
+	{
+		File graphDir = new File(dirName);
+		if (!graphDir.isDirectory()) throw new IllegalArgumentException("invalid directory");
+        String[] graphFileList = graphDir.list();StringBuffer listOfFileNames = new StringBuffer();int fileNumber = 0;
+        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
+        for(int i=0;i<graphFileList.length;i++)
+        	if(graphFileList[i].endsWith("xml"))
+        	{
+        		listOfFileNames.append(wholePath);listOfFileNames.append(graphFileList[i]);listOfFileNames.append('\n');fileNumber++;
+        	}
+        
+        return new Pair<String,Integer>(listOfFileNames.toString(),fileNumber);
+	}
+	
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
 	 * Quad-core would use -Dthreadnum=4 instead.
@@ -413,19 +431,13 @@ abstract public class AbstractExperiment
 		int result = 0;
         StringReader fileNameListReader = null;
         initExecutors();
+        File graphDir = new File(args[0]);
         
 		if (args.length < 2)
 		{
-			File graphDir = new File(args[0]);
 			if (!graphDir.isDirectory()) throw new IllegalArgumentException("invalid directory");
-	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
-	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
-	        for(int i=0;i<graphFileList.length;i++)
-	        	if(graphFileList[i].endsWith("xml"))
-	        	{
-	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
-	        	}
-	        fileNameListReader = new StringReader(listOfFileNames);
+			Pair<String,Integer> stringInt = getFileListFromDirName(graphDir.getAbsolutePath());
+	        fileNameListReader = new StringReader(stringInt.firstElem);int fileNumber = stringInt.secondElem;
 	        File outputDirAsFile = new File(graphDir.getParent(),outputDirNamePrefix+outputDirName+graphDir.getName());
 	        if (outputDirAsFile.canRead() || outputDirAsFile.mkdirs())
 	        {
@@ -443,7 +455,11 @@ abstract public class AbstractExperiment
        		Reader reader = null;
 			try
     		{
-    			reader = new FileReader(args[0]);
+				if (!graphDir.isDirectory()) 
+					reader = new FileReader(graphDir.getAbsolutePath());
+				else
+					reader = new StringReader(getFileListFromDirName(graphDir.getAbsolutePath()).firstElem);
+				
             	if (num >= 0)
             	{
             		for(int i=2;i< args.length;++i)

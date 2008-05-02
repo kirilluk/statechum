@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine;
@@ -153,11 +154,15 @@ public class ComputeQuestions {
 						
 			SequenceSet pathsToCurrentState = fanout.get(state.mergedVertex);
 			if (pathsToCurrentState != null)
+			{
+				assert state.mergedVertex.getColour() != JUConstants.AMBER;
+				
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
 				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
 				// Note that we do not care what the result of crossWithSet is - for those states which 
 				// do not exist in the underlying graph, reject vertices will be added by the engine and
 				// hence will be returned when we do a .getData() on the engine.
+			}
 		}
 		
 	}
@@ -232,8 +237,11 @@ public class ComputeQuestions {
 			for(CmpVertex vert:state.vertices)
 			{
 				SequenceSet pathsToCurrentState = fanout.get(vert);
-				pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
-				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());// attempt all possible continuation vertices
+				if (pathsToCurrentState != null)
+				{
+					pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
+					pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());// attempt all possible continuation vertices
+				}
 			}
 		}
 		

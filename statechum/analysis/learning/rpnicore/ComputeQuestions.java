@@ -181,8 +181,9 @@ public class ComputeQuestions {
 		{
 			if (fanout == null)
 			{// Initialisation
-				SequenceSet pathsToRed = data.getPathsToLearnt();SequenceSet pathsToMergedRed=engine.new SequenceSet();
-				original.paths.computePathsSBetween(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
+				SequenceSet pathsToRed = data.getPathsToLearnt();
+				SequenceSet pathsToMergedRed=engine.new SequenceSet();pathsToMergedRed.unite(pathsToRed);
+				original.paths.computePathsSBetweenBoolean(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
 				
 				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
 				// This will not affect the underlying graph, but it does not really matter since all

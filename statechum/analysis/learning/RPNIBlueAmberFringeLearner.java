@@ -20,7 +20,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -88,7 +87,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			int nonAmberA = (newPTA.getStateNumber()-newPTA.getAmberStateNumber());
 			tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
 			LearnerGraph temp=tempNew;
-			if ((newPTA.getStateNumber()-newPTA.getAmberStateNumber()) > nonAmberA) System.out.println("added nonamber");
+			assert (newPTA.getStateNumber()-newPTA.getAmberStateNumber()) == nonAmberA;
 			if (scoreComputer.config.isConsistencyCheckMode())
 			{
 				tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
@@ -101,10 +100,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			int score = pair.getScore();
 
 			if(shouldAskQuestions(score))
-			{/*
-				PTASequenceEngine engine = new PTASequenceEngine();
-				SequenceSet paths=engine.new SequenceSet();paths.setIdentity();
-				scoreComputer.paths.computePathsSBetween(pair.getR(), pair.getQ(), paths, engine.new SequenceSet());*/
+			{
 				questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 				if (scoreComputer.config.isConsistencyCheckMode()) 
 				{// checking that all the old questions are included in the new ones

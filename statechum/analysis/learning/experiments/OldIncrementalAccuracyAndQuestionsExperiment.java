@@ -19,13 +19,18 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
+import java.beans.XMLDecoder;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.uci.ics.jung.graph.impl.*;
+import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
@@ -33,11 +38,11 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
+import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public abstract class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
+public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
 {	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
@@ -57,6 +62,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		public void runTheExperiment()
 		{
 			int size = 4*graph.getStateNumber();
+			/*
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
@@ -75,15 +81,88 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				}
 			};
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
-
 			LearnerGraph learned = learn(l,sMinus);
-			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
-			PTASequenceEngine engine = new PTA_FSMStructure(graph);
-			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
-			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
-			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
-			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
+			 */
+			LearnerGraph learned = null;
+			Collection<List<String>> minusTrainingSet = null, testSet = null;
+			final String dataDir = "/home/kirill/Dec_XMachineTool/statechum/XMachineTool/trunk/output_25StatesCrowded";
+			int number =-1;
+			try {
+				synchronized (LearnerGraph.syncObj) 
+				{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+			    	GraphMLFile graphmlFile = new GraphMLFile();
+			    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+			    	final String mostOfFileName = "_"+(new File(inputFileName).getName());
+			    	assert new File(dataDir).isDirectory();
+			    	for(String name:new File(dataDir).list(new FilenameFilter(){
+						public boolean accept(@SuppressWarnings("unused") File dir, String fileName) {
+							return fileName.contains(mostOfFileName);
+						}}))
+			    	{
+			    		int firstUnderscore = name.indexOf('_');assert firstUnderscore > 0;
+			    		int currentNumber = Integer.parseInt(name.substring(0, firstUnderscore));
+			    		if (number < 0) number = currentNumber;else assert number == currentNumber;
+			    	}
+			    	assert number >=0;
+			    	/*
+			    	learned = new LearnerGraph(graphmlFile.load(
+			    			FileType.LEARNT.getFileName(dataDir+File.separator+number+"_"+(new File(inputFileName).getName()),"")
+			    			),config);
+			    	learned.transform.invertStates();
+			    	learned.transform.writeGraphML(getFileName(FileType.LEARNT));
+			    	*/
+				}
+				//computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
+				XMLDecoder inData = new XMLDecoder(new FileInputStream(FileType.MINUS_AND_TEST.getFileName(dataDir+File.separator+number+"_"+(new File(inputFileName).getName()),"")));
+				minusTrainingSet = (Collection<List<String>>)inData.readObject();
+				testSet = (Collection<List<String>>)inData.readObject();
+				inData.close();
+			} catch (IOException e) {
+				StringWriter wr = new StringWriter();e.printStackTrace(new PrintWriter(wr));
+				IllegalArgumentException ex = new IllegalArgumentException(e.getMessage());ex.initCause(e);
+				throw ex;
+			}
 			
+			sMinus = new PTA_FSMStructure(graph);
+			SequenceSet minusInit = sMinus.new SequenceSet();minusInit.setIdentity();minusInit.cross(minusTrainingSet);
+			//int numberOfMinusSequences = minusTrainingSet.size();
+			for(List<String> seq:minusTrainingSet)
+			{
+				assert seq.size() > 1;
+				assert graph.getVertex(seq) == null;
+				assert graph.getVertex(seq.subList(0, seq.size()-1)) != null;
+				assert sMinus.containsSequence(seq);
+				assert graph.paths.tracePath(seq) == seq.size()-1;
+			}
+			assert sMinus.getData(new FilterPredicate() {
+				public boolean shouldBeReturned(Object name) {
+					return name != null;// reject the reject-node
+				}}).size() == 0;
+
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+			{
+				@Override
+				protected Pair<Integer,String> checkWithEndUser(
+						@SuppressWarnings("unused")	LearnerGraph model,
+						List<String> question, 
+						@SuppressWarnings("unused") final Object [] moreOptions)
+				{
+					questionNumber.addAndGet(1);
+					System.out.println("processing "+question);
+					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+				}
+			};
+			learned = learn(l,sMinus);
+			
+			PTASequenceEngine testSetEngine = new PTA_FSMStructure(graph);
+			SequenceSet ptaTestSet = testSetEngine.new SequenceSet();ptaTestSet.setIdentity();
+
+			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
+			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
+			ptaTestSet = ptaTestSet.cross(testSet);
+
+			PosNegPrecisionRecall prNeg = precRec.crossWith(testSetEngine);
+			final String NA="N/A";
 			// Columns 3 and 4
 			result = result+prNeg.precision+FS+prNeg.recall;
 			
@@ -91,10 +170,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				// Columns 6 and 7
 				ptaPR.precision  + FS + ptaPR.recall + FS +
 				"size:"+size+FS+ // 8
-				"chunks: "+(100/percentPerChunk)+FS+ // 9
-				"per chunk:"+nrPerChunk + // 10
+				"chunks: "+NA +FS+ // 9
+				"per chunk:"+NA + // 10
 				FS+percent+"%"+FS+ // 11
-				"+:"+sPlus.getData().size()+FS+// 12
+				"+:"+NA+FS+// 12
 				"-:"+sMinus.getData(PTASequenceEngine.truePred).size(); // 13
 			try
 			{
@@ -133,10 +212,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	
 	public int [] getStages()
 	{
-		return new int[]{10,30,60,100};
+		return new int[]{100};
 	}
 		
-	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
+	static class Experiment extends OldIncrementalAccuracyAndQuestionsExperiment
 	{
 		protected final Configuration conf;
 		
@@ -209,9 +288,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					//Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
 				for(boolean speculative:new boolean[]{false})
-					for(int limit:new int[]{-1,3,1})
+					for(int limit:new int[]{-1})
 					{
-						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
+						String experimentDescription = "ODATA_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
 						AbstractExperiment experiment = new Experiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
 						experiment.runExperiment(args);
 						String ending = experimentDescription+".csv";

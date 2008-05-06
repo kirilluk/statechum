@@ -43,12 +43,12 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		origMinusSize = plus.size();origMinusSize = minus.size();
 	}
 	
-	public void init(PTASequenceEngine en, int plusSize, int minusSize)
+	public void init(PTASequenceEngine en, int plus, int minus)
 	{
 		scoreComputer.initPTA();
 		scoreComputer.paths.augmentPTA(en);
 
-		origMinusSize = plusSize;origMinusSize = minusSize;
+		origMinusSize = plus;origMinusSize = minus;
 	}
 
 	public String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
@@ -118,6 +118,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		plusSize = origPlusSize;minusSize = origMinusSize;
 		int iterations = 0, currentNonAmber = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
+		counterRestarted = 0;
 		while(!possibleMerges.isEmpty())
 		{
 			iterations++;
@@ -187,12 +188,13 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			{// restart learning
 				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				//System.out.println("restart at pair "+pair+", currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
-				if (speculativeGraphUpdate(possibleMerges, newPTA))
-					return null;
+				if (config.isSpeculativeQuestionAsking())
+					if (speculativeGraphUpdate(possibleMerges, newPTA))
+						return null;
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColoursButAmber();
 				//System.out.println("finished with speculative update, currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
-				iterations = 0;
+				iterations = 0;counterRestarted++;
 			}
 			else
 			{

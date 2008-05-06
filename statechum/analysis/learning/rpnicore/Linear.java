@@ -851,6 +851,8 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 		CmpVertex grInit = Transform.addToGraph(copy, gr);
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
+		assert copy.learnerCache.getStateToNumberNoReject().containsKey(copy.init);
+		assert copy.learnerCache.getStateToNumberNoReject().containsKey(grInit);
 		return copy.linear.computeStateCompatibility(ThreadNumber,DDRH_default.class)[copy.wmethod.vertexToIntNR(copy.init, grInit)]; 
 	}
 

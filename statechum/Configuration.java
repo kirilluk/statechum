@@ -116,6 +116,22 @@ public class Configuration implements Cloneable
 		consistencyCheckMode = cons;
 	}
 	
+	/** Whether to use speculative question asking - this is useful to avoid numerous restarts
+	 * by recording the fact that we need to restart but subsequently continuing to ask
+	 * questions about the remaining states in a list of states, and restarting when finished.
+	 */
+	protected boolean speculativeQuestionAsking = false;
+	
+	public boolean isSpeculativeQuestionAsking()
+	{
+		return speculativeQuestionAsking;
+	}
+	
+	public void setSpeculativeQuestionAsking(boolean newValue)
+	{
+		speculativeQuestionAsking = newValue;
+	}
+	
 	/** There could be different ways to query the current strategy for asking questions.
 	 * The enumeration below includes those implemented:
 	 * <ul>
@@ -291,6 +307,7 @@ public class Configuration implements Cloneable
 		result = prime * result + questionPathUnionLimit;
 		result = prime * result + (int)(attenuationK*100);
 		result = prime * result + (consistencyCheckMode? 1231 : 1237);
+		result = prime * result + (speculativeQuestionAsking? 1231:1237);
 		return result;
 	}
 
@@ -360,6 +377,8 @@ public class Configuration implements Cloneable
 		if (attenuationK != other.attenuationK)
 			return false;
 		if (consistencyCheckMode != other.consistencyCheckMode)
+			return false;
+		if (speculativeQuestionAsking != other.speculativeQuestionAsking)
 			return false;
 		return true;
 	}

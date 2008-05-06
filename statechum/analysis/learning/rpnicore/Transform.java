@@ -241,6 +241,13 @@ public class Transform {
 		g.paths.augmentPTA(engine);
 	}
 	
+	/** Inverts states' acceptance conditions. */
+	public void invertStates()
+	{
+		for(CmpVertex vertex:coregraph.transitionMatrix.keySet())
+			vertex.setAccept(!vertex.isAccept());
+	}
+	
 	/** Given a state and a W set, computes a map from those sequences to booleans representing
 	 * whether those sequences to true/false depending whether a specific can be followed from
 	 * the given state. 

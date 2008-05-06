@@ -35,6 +35,7 @@ import javax.swing.event.ListSelectionListener;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.model.testset.PTASequenceEngine;
 
 import edu.uci.ics.jung.graph.impl.*;
 
@@ -60,9 +61,18 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	
 	/** Initialises this learner. */
 	abstract public void init(Collection<List<String>> plus, Collection<List<String>> minus);
-	
+	abstract public void init(PTASequenceEngine en, int plus, int minus);
+
 	/** Does the learning, returning the result. */
-	abstract DirectedSparseGraph learnMachine();
+	public abstract DirectedSparseGraph learnMachine();
+
+	protected int counterRestarted = 0;
+	
+	/** Returns the number of times learner had to restart. */
+	public int getRestarts()
+	{
+		return counterRestarted;
+	}
 	
 	/** Given a score, we need to determine whether to ask questions. This depends on a number
 	 * of configuration parameters.

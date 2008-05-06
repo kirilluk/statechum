@@ -22,6 +22,8 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.model.testset.PTASequenceEngine;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
 import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
@@ -52,7 +54,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		Iterator<Edge> edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			Edge e = (edgeIt.next());
-			alphabet.addAll((Collection)e.getUserDatum(JUConstants.LABEL));
+			alphabet.addAll((Collection<String>)e.getUserDatum(JUConstants.LABEL));
 		}
 		return alphabet;
 	}
@@ -203,7 +205,16 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		sMinus = minus;		
 	}
 
-	@Override DirectedSparseGraph learnMachine()
+	@Override
+	public void init(@SuppressWarnings("unused") PTASequenceEngine en, 
+			@SuppressWarnings("unused") int plus, 
+			@SuppressWarnings("unused") int minus) 
+	{
+		throw new NotImplementedException();
+	}
+
+	@Override 
+	public DirectedSparseGraph learnMachine()
 	{
 		return learnMachine(DeterministicDirectedSparseGraph.initialise());
 	}
@@ -783,5 +794,6 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	
 		return qAcceptedO != rAcceptedO;
 	}
+
 
 }

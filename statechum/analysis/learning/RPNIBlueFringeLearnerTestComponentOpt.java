@@ -68,7 +68,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 	
 	protected LearnerGraph scoreComputer = null;
 
-	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
+	protected int counterAccepted =0, counterRejected =0, counterEmptyQuestions = 0;
 
 	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
 	public static void populateScores(Collection<PairScore> data, Map<Integer,AtomicInteger> histogram)
@@ -179,7 +179,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
-		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
@@ -258,7 +257,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 					
 					if(!tempVertex.isAccept())
 					{
-						pairsMerged=pairsMerged+"ABOUT TO RESTART due to acceptance of a reject vertex for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
 				}
@@ -277,7 +275,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						if( (answer.firstElem < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
-							pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 							restartLearning = true;break;
 						}
 					}
@@ -292,7 +289,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				++counterRestarted;
-				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
 				{
@@ -308,7 +304,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				// the original PTA which will be modified as a result of new sequences being added to it.
 				// temp is different too, hence there is no way for me to compute compatibility score here.
 				// This is hence computed inside the obtainPair method.
-				pairsMerged=pairsMerged+pair+" questions: "+questions.size()+"\n";
 				
 				// keep going with the existing model
 				scoreComputer = temp;
@@ -324,13 +319,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			
 			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		}
-		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.paths.getStatistics(true)+" ] ");
-		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
-		report.write("\n[ Pair scores to iteration numbers:"+pairScoresAndIterations(scoresToIterations,"MERGED-ITERATIONS"));
-		report.write("\n[ Restart scores to iteration numbers:"+pairScoresAndIterations(restartsToIterations,"RESTART-ITERATIONS"));
-		report.write("\n[ Pairs merged (score-number of times):"+HistogramToSeries(whichScoresWereUsedForMerging,"MERGED"));
-		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
-		report.write("\n Pair merge details: \n"+pairsMerged);
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		if(config.getDebugMode())
 			updateGraph(scoreComputer);

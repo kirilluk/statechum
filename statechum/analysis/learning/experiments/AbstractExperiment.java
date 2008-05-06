@@ -55,6 +55,8 @@ abstract public class AbstractExperiment
 	protected static final String FS = ",";
 	
 	public enum FileType { 
+		LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
+		MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
 		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
 		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
 
@@ -166,7 +168,7 @@ abstract public class AbstractExperiment
 			
 			// now record the result
 			String percentValue = "";
-			if (experiment.getStageNumber() > 1)
+			if (experiment.useStages())
 				percentValue = percent+FS;
 			String fileName = new File(inputFileName).getName();
 			stdOutput = writeResult(currentOutcome, fileName + FS + getLearnerName() + FS + percentValue + result + "\n"+ stats);
@@ -201,7 +203,7 @@ abstract public class AbstractExperiment
 				assert !getFileName(FileType.RESULT).contains(FS);
 				outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
 				String percentValue = "";
-				if (experiment.getStageNumber() > 1)
+				if (experiment.useStages())
 					percentValue = FS+percent;
 
 				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(resultString == null? "":resultString)+"\n");
@@ -227,7 +229,7 @@ abstract public class AbstractExperiment
 		protected String getFileName(FileType fileNameType)
 		{
 			String percentValue = "";
-			if (experiment.getStageNumber() > 1)
+			if (experiment.useStages())
 				percentValue = "-"+percent;
 			return fileNameType.getFileName(experiment.getOutputDir()+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),percentValue); 
 		}
@@ -290,9 +292,14 @@ abstract public class AbstractExperiment
 		int learnerType = Number / learnerStep;
 		int fileNumber = (Number % learnerStep) / getStageNumber();
 		int percentStage = (Number % learnerStep) % getStageNumber();
-		int actualPercent = getStageNumber() > 1? getStages()[percentStage]:100;
+		int actualPercent = useStages()? getStages()[percentStage]:100;
 		return 
 			evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), actualPercent,Number, this);
+	}
+	
+	public boolean useStages()
+	{
+		return getStages() != null;
 	}
 	
 	public int getStageNumber()

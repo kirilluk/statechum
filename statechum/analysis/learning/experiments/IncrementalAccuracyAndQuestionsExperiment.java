@@ -6,10 +6,11 @@ package statechum.analysis.learning.experiments;
 
 
 import java.awt.Point;
+import java.beans.XMLEncoder;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,15 +23,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.SwingUtilities;
-
-import org.junit.runner.JUnitCore;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -38,15 +37,12 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.IDMode;
 import statechum.xmachine.model.testset.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
-import sun.dc.pr.PRError;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
 import static statechum.xmachine.model.testset.WMethod.tracePath;
 
@@ -87,10 +83,12 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		protected Collection<List<String>> tests = null;
 		protected final int instanceID;
 		protected int percent;
+		protected String inputFileShortName = null;
 		
 		public LearnerEvaluator(String inputFile, String outputD, int inID) 
 		{
-			inputFileName = inputFile;outputDir = outputD;instanceID = inID;			
+			inputFileName = inputFile;outputDir = outputD;instanceID = inID;
+			inputFileShortName = new File(inputFileName).getName();
 		}
 
 		protected void loadGraph()
@@ -155,7 +153,9 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 		public enum FileType { 
 			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
-			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
+			LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+".xml"; } }, 
+			MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+".xml"; } }, 
+			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+".txt"; } };
 			
 			abstract String getFileName(String prefix, String suffix);
 		};
@@ -194,48 +194,64 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			Collection<List<String>> allPositive = rpg.getAllPaths();
 			final FSMStructure fsm = WMethod.getGraphData(graph);
 			WMethod wm = new WMethod(fsm,1);
+			final AtomicInteger atomicInt = new AtomicInteger(0);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 				{
+					atomicInt.addAndGet(1);
 					return tracePath(fsm, question);
 				}
 			};
-			l.setCertaintyThreshold(3);
+			//l.setCertaintyThreshold(3);
 			l.setMinCertaintyThreshold(-1); //question threshold
 			int number = size/10;
-			for(int percent=10;percent<101;percent=percent+10){
-				this.percent = percent;
+			for(int per=10;per<101;per=per+10){
+				this.percent = per;atomicInt.set(0);
 				sPlus = addNumberFromSamples(sPlus, allPositive, number);
-				if(/*percent!=30/*&*/percent!=100)
+				if(per!=30 && per!=100)
 					continue;
 				sMinus = rpg.makeCollectionNegative(sPlus, 1);
 				//posNegExperiment(fsm, l, wm);
-				questionsExperiment(fsm, l, wm);
+				questionsExperiment(fsm, l, wm,atomicInt);
 			}
 			
 			return inputFileName+"success";
 		}
 		
-		private void questionsExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
+		private void questionsExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm,AtomicInteger questionNumber){
 			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
-			System.out.println(prNeg.precision+", "+prNeg.recall);
+			System.out.println(inputFileName+", "+percent+", "+prNeg.precision+", "+prNeg.recall+", "+l.getStats()+", "+questionNumber);
 		}
 		
-		private void posNegExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm){
-			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
-			PosNegPrecisionRecall pr= computePR(fsm, l, wm, sPlus, new HashSet<List<String>>());
-			System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()/*+", "+pr.getNegprecision()+", "+pr.getNegrecall()+", "+prNeg.getPosprecision()+", "+prNeg.getPosrecall()+", "+prNeg.getNegprecision()+", "+prNeg.getNegrecall()*/);
-		}
-		
-		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm, Collection<List<String>> splus, Collection<List<String>> sminus){
+		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
+				WMethod wm, Collection<List<String>> splus, Collection<List<String>> sminus){
 			
 			FSMStructure learned = learn(l,splus, sminus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
-			PTATestSequenceEngine engine = new PTA_FSMStructure(fsm);
-			sequenceSet partialPTA = engine.new sequenceSet();partialPTA.setIdentity();
-			partialPTA = partialPTA.cross(wm.getFullTestSet());
-			return precRec.crossWith(engine);
+			Collection<List<String>> testSet = wm.getFullTestSet();
+
+			PTATestSequenceEngine engineTestSet = new PTA_FSMStructure(fsm);
+			sequenceSet partialPTA = engineTestSet.new sequenceSet();partialPTA.setIdentity();
+			partialPTA = partialPTA.cross(testSet);
+
+			PTATestSequenceEngine engineSetMinus = new PTA_FSMStructure(fsm);
+			sequenceSet origMinus = engineSetMinus.new sequenceSet();origMinus.setIdentity();
+			origMinus.cross(sminus);
+			
+			try {
+				computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
+				XMLEncoder outData = new XMLEncoder(new FileOutputStream(getFileName(FileType.MINUS_AND_TEST)));
+				outData.writeObject(sminus);
+				outData.writeObject(testSet);
+				outData.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			precRec.crossWith(engineSetMinus);
+			return precRec.crossWith(engineTestSet);
 		}
 		
 		private FSMStructure learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
@@ -256,24 +272,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 	
 	}
-		
-	private static void printPR(Vector<PosNegPrecisionRecall> results){
-		/*PosNegPrecisionRecall thirty = results.get(0);
-		PosNegPrecisionRecall hundred = results.get(1);
-		System.out.println(thirty.getRecall()+","+thirty.getPrecision()+","+hundred.getRecall()+","+hundred.getPrecision());
-		//System.out.println(hundred.getPosprecision()+","+hundred.getPosrecall()+","+hundred.getNegprecision()+","+hundred.getNegrecall());
-		*/System.out.print("p:"+",");
-		for (PrecisionRecall recall : results) {
-			System.out.print(recall.getPrecision()+",");
-		}
-		System.out.println();
-		System.out.print("r:"+",");
-		for (PrecisionRecall recall : results) {
-			System.out.print(recall.getRecall()+",");
-		}
-		System.out.println();
-	}
-	
+
 	/** Stores results of execution of evaluators. */
 	final List<Future<String>> results;
 	

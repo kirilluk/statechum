@@ -19,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.StringWriter;
 
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -137,6 +138,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
 		init(sPlus, sMinus);
 		return learnMachine();
+	}
+
+	public String getStats()
+	{
+		return counterRestarted+ ", "+ scoreComputer.getExtentOfCompleteness();
 	}
 
 	public DirectedSparseGraph learnMachine() {

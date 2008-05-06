@@ -3,6 +3,9 @@
  */
 package statechum.analysis.learning;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -21,8 +24,6 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.text.Position;
-
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -38,7 +39,6 @@ import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 public class computeStateScores implements Cloneable {
@@ -60,7 +60,18 @@ public class computeStateScores implements Cloneable {
 	protected static boolean testMode = false;
 
 	public static final int pairArraySize = 2000;
-	
+
+	/** Computes the ratio of edges in the graph from non-amber states 
+	 * to the total number of possible edges from non-amber states. 
+	 */
+	public double getExtentOfCompleteness()
+	{
+		int normalEdgeCount = 0, stateNumber = transitionMatrix.size();
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
+			normalEdgeCount+=entry.getValue().size();
+		return (double)normalEdgeCount/( stateNumber * WMethod.computeAlphabet(getGraph()).size());
+	}
+
 	public List<String> extractReds()
 	{
 		List<String> result = new LinkedList<String>();
@@ -125,7 +136,64 @@ public class computeStateScores implements Cloneable {
 		graph = null;
 		initPTA();
 	}
+
+	/** The standard beginning of our graphML files. */
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";
+	/** The standard ending of our graphML files. */
+	public static final String graphML_end = "</graph></graphml>\n"; 
+	/** a marker for an initial state in a graphML file. */
+	public static final String Initial = "Initial";
 	
+	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
+	static protected String transformNodeName(FSMStructure fsm,String node)
+	{
+		
+		return (node.equals(fsm.init)? Initial+" ":"")+node; 
+	}
+	
+	static protected void writeNode(FSMStructure fsm,Writer writer, String node) throws IOException
+	{
+		if ( node.contains(Initial))
+			throw new IllegalArgumentException("Invalid node name "+node);
+		writer.write("<node id=\""+transformNodeName(fsm,node)+
+				"\" VERTEX=\""+transformNodeName(fsm,node)+"\"");
+		if (fsm.accept.containsKey(node) && !fsm.accept.get(node)) writer.write(" "+JUConstants.ACCEPTED+"=\"false\"");
+		//if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=\"false\"");
+		//if (node.containsUserDatumKey("colour")) writer.write(" colour=\""+node.getUserDatum("colour")+"\"");
+		writer.write("/>\n");
+	}
+	
+	
+	
+	/** Writes a graph into a graphML file. All vertices are written. */
+	static public void writeGraphML(FSMStructure fsm,String name) throws IOException
+	{
+		FileWriter writer = new FileWriter(name);writeGraphML(fsm,writer);
+	}
+	
+	/** Writes a graph into a graphML file. All vertices are written.
+	 * 
+	 * @throws IOException if an I/O error occurs or 
+	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
+	 * an initial state in the graphmp file. Most of the time, "Init" is used instead in the graphs.
+	 */
+	static public void writeGraphML(FSMStructure fsm,Writer writer) throws IOException
+	{
+		writer.write(graphML_header);
+		
+		for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
+				writeNode(fsm,writer, vert.getKey());
+		// Sample initial state entry: <node id="1" VERTEX="Initial State 0" />
+		// For non-initial states, there should be no vertex called "Initial".
+		// Sample edge entry: <edge source="21" target="19" directed="true" EDGE="a1" />
+		for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
+			for(Entry<String,String> transition:vert.getValue().entrySet())
+				writer.write("<edge source=\""+transformNodeName(fsm,vert.getKey())+
+						"\" target=\""+transformNodeName(fsm,transition.getValue())+
+						"\" directed=\"true\" EDGE=\""+transition.getKey()+"\"/>\n");
+		writer.write(graphML_end);writer.close();
+	}
+
 	public static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(TestRpniLearner.findVertex(JUConstants.PROPERTY, JUConstants.INIT,model), r);

@@ -38,8 +38,8 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
@@ -58,16 +58,18 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 
 		protected AtomicInteger questionNumber = new AtomicInteger(0);
 		
+		/** Whether to run the original experiment. */
+		public boolean useOrig = false;
+		
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
 		{
 			int size = 4*graph.getStateNumber();
-			/*
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
-			rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);
-			
+			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.
+			/*
 			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
 				@Override
@@ -85,7 +87,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			 */
 			LearnerGraph learned = null;
 			Collection<List<String>> minusTrainingSet = null, testSet = null;
-			final String dataDir = "/home/kirill/Dec_XMachineTool/statechum/XMachineTool/trunk/output_25StatesCrowded";
+			final String dataDir = "/home/kirill/W_experiment/current/output_25StatesCrowded";
 			int number =-1;
 			try {
 				synchronized (LearnerGraph.syncObj) 
@@ -123,22 +125,59 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 				throw ex;
 			}
 			
-			sMinus = new PTA_FSMStructure(graph);
-			SequenceSet minusInit = sMinus.new SequenceSet();minusInit.setIdentity();minusInit.cross(minusTrainingSet);
-			//int numberOfMinusSequences = minusTrainingSet.size();
+			/* Loads the original set. */
+			PTASequenceEngine sOrigMinus = new PTASequenceEngine() 
+			{
+				{
+					init(graph.new FSMImplementation() {
+						@Override
+						public boolean shouldBeReturned(@SuppressWarnings("unused")	Object elem) 
+						{
+							return elem != null;
+						}
+						
+					});
+				}
+			};
+			SequenceSet minusInit = sOrigMinus.new SequenceSet();minusInit.setIdentity();minusInit.cross(minusTrainingSet);
+			int totalLenOrig = 0, origNumber=0;
 			for(List<String> seq:minusTrainingSet)
 			{
 				assert seq.size() > 1;
 				assert graph.getVertex(seq) == null;
 				assert graph.getVertex(seq.subList(0, seq.size()-1)) != null;
-				assert sMinus.containsSequence(seq);
+				assert sOrigMinus.containsSequence(seq);
 				assert graph.paths.tracePath(seq) == seq.size()-1;
+				totalLenOrig+=seq.size();origNumber++;
 			}
-			assert sMinus.getData(new FilterPredicate() {
-				public boolean shouldBeReturned(Object name) {
-					return name != null;// reject the reject-node
-				}}).size() == 0;
+			assert sOrigMinus.getData().size() == 0;// all negatives
 
+			/* Builds the new set. */
+			PTASequenceEngine sNewMinus = rpg.getAllSequences(percent/10-1);
+			int totalLenNew = 0, newNumber = 0;
+			for(List<String> seq:sNewMinus.getData(PTASequenceEngine.truePred))
+			{
+				assert seq.size() > 1;
+				assert graph.getVertex(seq) == null;
+				assert graph.getVertex(seq.subList(0, seq.size()-1)) != null;
+				assert graph.paths.tracePath(seq) == seq.size()-1;
+				totalLenNew+=seq.size();newNumber++;
+			}
+			// 22,23
+			String comparison = "Orig ave len: "+FS+((double)totalLenOrig)/origNumber+FS+
+			// 24,25
+					" new ave len: "+FS+((double)totalLenNew)/newNumber+FS+
+			// 26,27
+					" fudge status: "+FS+rpg.getFudgeDetails();
+			
+			//int numberOfMinusSequences = minusTrainingSet.size();
+			assert sNewMinus.getData().size() == 0;// all negatives
+			
+			if (useOrig)
+				sMinus = sOrigMinus;
+			else
+				sMinus = sNewMinus;
+			
 			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
 			{
 				@Override
@@ -148,20 +187,22 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);
-					System.out.println("processing "+question);
+					//System.out.println("processing "+question);
 					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			};
 			learned = learn(l,sMinus);
+			//learned = new LearnerGraph(config);
 			
 			PTASequenceEngine testSetEngine = new PTA_FSMStructure(graph);
 			SequenceSet ptaTestSet = testSetEngine.new SequenceSet();ptaTestSet.setIdentity();
+			ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
 
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
+			
 			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
-			ptaTestSet = ptaTestSet.cross(testSet);
-
 			PosNegPrecisionRecall prNeg = precRec.crossWith(testSetEngine);
+			
 			final String NA="N/A";
 			// Columns 3 and 4
 			result = result+prNeg.precision+FS+prNeg.recall;
@@ -196,6 +237,8 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			// 19 and 20
 			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness() + FS +
 				l.getRestarts(); // 21
+			
+			result = result + FS+comparison;
 		}
 
 		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
@@ -218,6 +261,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 	static class Experiment extends OldIncrementalAccuracyAndQuestionsExperiment
 	{
 		protected final Configuration conf;
+		protected boolean useOrigTrainingSet = false;
 		
 		/** Constructs an experiment class
 		 * 
@@ -225,10 +269,11 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
 		 * @param useSpeculative whether to use speculative question asking.
 		 */
-		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
+		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative, boolean useOrigArg)
 		{
 			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
+			useOrigTrainingSet = useOrigArg;
 		}
 
 		/** Constructs an experiment class for checking whether the improved merger and
@@ -262,11 +307,12 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 								c.setQuestionGenerator(conf.getQuestionGenerator());
 								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
 								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
+								useOrig = useOrigTrainingSet;
 							}
 
 							@Override
 							protected String getLearnerName() {
-								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; speculative : "+conf.isSpeculativeQuestionAsking();
+								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; using orig : "+useOrig;
 							}
 						};
 					}
@@ -287,11 +333,11 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
 					//Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
-				for(boolean speculative:new boolean[]{false})
+				for(boolean useOrig:new boolean[]{false,true})
 					for(int limit:new int[]{-1})
 					{
-						String experimentDescription = "ODATA_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
-						AbstractExperiment experiment = new Experiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
+						String experimentDescription = "ODATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useOrig?"ORIG":"NEW");
+						AbstractExperiment experiment = new Experiment(qk,limit,false,useOrig);experiment.setOutputDir(experimentDescription+"_");
 						experiment.runExperiment(args);
 						String ending = experimentDescription+".csv";
 						experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));
@@ -302,6 +348,10 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 						experiment.postProcessIntoR(2,true, 18, new File(experiment.getOutputDir(),"linearB"+ending));
 						experiment.postProcessIntoR(2,true, 20, new File(experiment.getOutputDir(),"completeness"+ending));
 						experiment.postProcessIntoR(2,true, 21, new File(experiment.getOutputDir(),"restarts"+ending));
+
+						experiment.postProcessIntoR(2,true, 23, new File(experiment.getOutputDir(),"origLen"+ending));
+						experiment.postProcessIntoR(2,true, 25, new File(experiment.getOutputDir(),"newLen"+ending));
+						experiment.postProcessIntoR(2,true, 27, new File(experiment.getOutputDir(),"fudgeStats"+ending));
 					}			
 			
 		} catch (Exception e1) {

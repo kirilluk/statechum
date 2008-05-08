@@ -37,6 +37,7 @@ import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.analysis.learning.rpnicore.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -502,7 +503,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 	public void update(final Observable s, Object arg){
-		graphs.add( (DirectedSparseGraph)((DirectedSparseGraph)arg).copy() );
+		graphs.add( (DirectedSparseGraph)((LearnerGraph)arg).paths.getGraph().copy() );
 		currentGraph = graphs.size()-1;
 		SwingUtilities.invokeLater(this);
 	}

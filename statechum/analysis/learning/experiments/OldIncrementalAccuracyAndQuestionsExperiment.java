@@ -34,6 +34,7 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.RPNIBlueAmberFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -60,6 +61,9 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		
 		/** Whether to run the original experiment. */
 		public boolean useOrig = false;
+		
+		/** Whether to use the blue fringe or the blue-amber amber fringe. */
+		public boolean useAmber = false;
 		
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
@@ -178,19 +182,39 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			else
 				sMinus = sNewMinus;
 			
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+			
+			RPNIBlueFringeLearner l = null;
+			
+			if (useAmber)
 			{
-				@Override
-				protected Pair<Integer,String> checkWithEndUser(
-						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
-						@SuppressWarnings("unused") final Object [] moreOptions)
+				l = new RPNIBlueAmberFringeLearner(null,config)
 				{
-					questionNumber.addAndGet(1);
-					//System.out.println("processing "+question);
-					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
-				}
-			};
+					@Override
+					protected Pair<Integer,String> checkWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused") final Object [] moreOptions)
+					{
+						questionNumber.addAndGet(1);
+						return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+					}
+				};
+			}
+			else
+			{
+				l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+				{
+					@Override
+					protected Pair<Integer,String> checkWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused") final Object [] moreOptions)
+					{
+						questionNumber.addAndGet(1);
+						return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+					}
+				};
+			}
 			learned = learn(l,sMinus);
 			//learned = new LearnerGraph(config);
 			
@@ -261,7 +285,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 	static class Experiment extends OldIncrementalAccuracyAndQuestionsExperiment
 	{
 		protected final Configuration conf;
-		protected boolean useOrigTrainingSet = false;
+		protected boolean useOrigTrainingSet = false, useAmberLearner = false;
 		
 		/** Constructs an experiment class
 		 * 
@@ -269,11 +293,12 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
 		 * @param useSpeculative whether to use speculative question asking.
 		 */
-		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative, boolean useOrigArg)
+		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative, 
+				boolean useOrigArg, boolean useAmberArg)
 		{
 			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
-			useOrigTrainingSet = useOrigArg;
+			useOrigTrainingSet = useOrigArg;useAmberLearner = useAmberArg;
 		}
 
 		/** Constructs an experiment class for checking whether the improved merger and
@@ -307,12 +332,14 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 								c.setQuestionGenerator(conf.getQuestionGenerator());
 								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
 								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
-								useOrig = useOrigTrainingSet;
+								useOrig = useOrigTrainingSet;useAmber = useAmberLearner;
 							}
 
 							@Override
 							protected String getLearnerName() {
-								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; using orig : "+useOrig;
+								return "Questions: "+conf.getQuestionGenerator()+
+								"; union limited to "+conf.getQuestionPathUnionLimit()+"; using orig: "+useOrig+
+								"; using Amber: "+useAmber;
 							}
 						};
 					}
@@ -327,18 +354,34 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			LearnerGraph.testMode=true;
 			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
 			LearnerGraph.testMode=false;
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
 			
-			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
-					Configuration.QuestionGeneratorKind.CONVENTIONAL,
-					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
-					//Configuration.QuestionGeneratorKind.SYMMETRIC
-					})
-				for(boolean useOrig:new boolean[]{false,true})
-					for(int limit:new int[]{-1})
+		for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
+				Configuration.QuestionGeneratorKind.ORIGINAL,
+				Configuration.QuestionGeneratorKind.CONVENTIONAL,
+				//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
+				Configuration.QuestionGeneratorKind.SYMMETRIC
+				})
+			for(boolean useAmber:new boolean[]{true,false})
+			for(boolean useOrig:new boolean[]{true,false})
+				for(int limit:((qk == Configuration.QuestionGeneratorKind.ORIGINAL?new int[]{-1}:new int[]{-1,1,3})))
+				{
+					String experimentDescription = "DATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(useOrig?"ORIG":"NEW");
+					AbstractExperiment experiment = new Experiment(qk,limit,false,useOrig,useAmber);experiment.setOutputDir(experimentDescription+"_");
+
+					try
 					{
-						String experimentDescription = "ODATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useOrig?"ORIG":"NEW");
-						AbstractExperiment experiment = new Experiment(qk,limit,false,useOrig);experiment.setOutputDir(experimentDescription+"_");
 						experiment.runExperiment(args);
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+					}
+
+					try
+					{// the above might've failed, but we still try to build csv files from result.csv
 						String ending = experimentDescription+".csv";
 						experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));
 						experiment.postProcessIntoR(2,true, 4, new File(experiment.getOutputDir(),"recall"+ending));
@@ -352,11 +395,12 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 						experiment.postProcessIntoR(2,true, 23, new File(experiment.getOutputDir(),"origLen"+ending));
 						experiment.postProcessIntoR(2,true, 25, new File(experiment.getOutputDir(),"newLen"+ending));
 						experiment.postProcessIntoR(2,true, 27, new File(experiment.getOutputDir(),"fudgeStats"+ending));
-					}			
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+					}
+				}
 			
-		} catch (Exception e1) {
-			e1.printStackTrace();
-			return;
-		}
 	}
 }

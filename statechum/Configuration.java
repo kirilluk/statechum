@@ -146,9 +146,13 @@ public class Configuration implements Cloneable
 	 * both the two original states A and B merged, considering a path between the two states
 	 * (A and B are not necessarily adjacent, even in QSM where they are a red/blue pair).
 	 * </li>
+	 * <li>
+	 * ORIGINAL - uses the original question generator (does not attempt to find all possible
+	 * paths from red state to each state in the graph instead using the first one it finds).
+	 * </li>
 	 * </ul>
 	 */
-	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC };
+	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL };
 	
 	protected QuestionGeneratorKind questionGenerator = QuestionGeneratorKind.CONVENTIONAL;
 	

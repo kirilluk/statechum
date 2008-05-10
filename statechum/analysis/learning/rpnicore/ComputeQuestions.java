@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
@@ -273,7 +274,7 @@ public class ComputeQuestions {
 			
 			currentPaths.crossWithSet(coregraph.transitionMatrix.get(currentVert).keySet());
 			for(Entry<String,CmpVertex> entry:coregraph.transitionMatrix.get(currentVert).entrySet())
-				if (!visitedStates.contains(entry.getValue()))
+				if (!visitedStates.contains(entry.getValue()) && entry.getValue().getColour() != JUConstants.AMBER)
 				{
 					List<String> inputs = targetToInputSet.get(entry.getValue());
 					if (inputs == null)
@@ -344,12 +345,16 @@ public class ComputeQuestions {
 	 */
 	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
+		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
+			return computeQS_orig(new StatePair(merged.getStateLearnt(),merged.getStateLearnt()), original, merged);
+		
 		QuestionConstructor qConstructor=null;
 		switch(original.config.getQuestionGenerator())
 		{
 			case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
 			case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
 			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
+			case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
 		}
 		return computeQS_general(pair, original, merged, qConstructor);
 	}

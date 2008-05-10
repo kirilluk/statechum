@@ -95,7 +95,7 @@ public class AMEquivalenceClass
 		if (currentColour == JUConstants.AMBER && !allAmber)
 		{
 			currentColour = null;
-			System.out.print("amber lost due to merge of ");for(CmpVertex v:vertices) System.out.print(v+" ("+v.getColour()+") ");System.out.println();
+			//System.out.print("amber lost due to merge of ");for(CmpVertex v:vertices) System.out.print(v+" ("+v.getColour()+") ");System.out.println();
 		}
 		mergedVertex.setColour(currentColour);
 	}

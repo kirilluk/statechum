@@ -312,7 +312,9 @@ abstract public class AbstractExperiment
 	public static final String resultName = "result.csv";
 	
 	/** Performs post-processing of results, by loading all files with results, picking the second line from those 
-	 * start with a line ending on SUCCESS and appends it to a spreadsheet. 
+	 * start with a line ending on SUCCESS and appends it to a spreadsheet.
+	 * <p/>
+	 * Throws an exception if any files could not be processed, but nevertheless builds csv files.
 	 * @throws IOException 
 	 */
 	public void postProcess(Reader fileNameListReader) throws IOException
@@ -355,14 +357,14 @@ abstract public class AbstractExperiment
 				failures++;
 		}
 
-		if (failures > 0)
-			throw new IOException(failures+" files could not be processed");
-
 		Writer csvWriter=new FileWriter(resultFile);
 		for(Entry<String,List<String>> entry:resultMap.entrySet())
 			for(String str:entry.getValue())
 			csvWriter.write(str+"\n");
 		csvWriter.close();
+
+		if (failures > 0)
+			throw new IOException(failures+" files could not be processed");
 	}
 	
 	/** Many experiments involve supplying the learner with a specific %% of 

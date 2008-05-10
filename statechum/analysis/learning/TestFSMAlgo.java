@@ -1688,6 +1688,33 @@ public class TestFSMAlgo {
 	}
 
 	@Test
+	public final void testGetNonRepeatingNumbers0()
+	{
+		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(0, 0); 
+		Assert.assertEquals(0,data.length);
+	}
+	
+	@Test
+	public final void testGetNonRepeatingNumbers1()
+	{
+		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(1, 0); 
+		Assert.assertEquals(1,data.length);Assert.assertEquals(0, data[0]);
+	}
+	
+	@Test
+	public final void testGetNonRepeatingNumbers2()
+	{
+		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(2, 0); 
+		Assert.assertEquals(2,data.length);
+		if (data[0] == 0)
+			Assert.assertEquals(1, data[1]);
+		else
+		{
+			Assert.assertEquals(1, data[0]);Assert.assertEquals(0, data[1]);
+		}
+	}
+	
+	@Test
 	public final void assertsEnabled()
 	{
 		boolean assertsOn = false;

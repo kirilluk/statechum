@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -719,5 +720,24 @@ public class DeterministicDirectedSparseGraph {
 		}
 		return result;
 	}
-	
+
+	/** Returns an array of sequential numbers 0..howMany, randomly permuted. 
+	 * 
+	 * @param howMany how many numbers to return (and hence the length of the array.
+	 * @param seed the seed for the random generator
+	 * @return the array of numbers.
+	 */ 
+	public static int [] getNonRepeatingNumbers(int howMany, int seed)
+	{
+    	int newNumbers[] = new int[howMany];
+    	for(int i=0;i < howMany;++i) newNumbers[i]=i;
+    	Random rnd = new Random(seed);
+    	for(int i=0;i < howMany;++i) 
+    	{ 
+    		int a = rnd.nextInt(howMany),b=rnd.nextInt(howMany);
+    		int value = newNumbers[a];newNumbers[a]=newNumbers[b];newNumbers[b]=value;
+    	}
+    	
+    	return newNumbers;
+	}
 }

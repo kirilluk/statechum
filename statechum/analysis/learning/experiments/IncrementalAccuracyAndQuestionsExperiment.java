@@ -34,6 +34,9 @@ import javax.swing.SwingUtilities;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import edu.uci.ics.jung.utils.UserData;
+import soot.jimple.NewExpr;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
@@ -84,6 +87,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		protected final int instanceID;
 		protected int percent;
 		protected String inputFileShortName = null;
+		protected int renumberSeed = 0;
 		
 		public LearnerEvaluator(String inputFile, String outputD, int inID) 
 		{
@@ -100,6 +104,12 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		    	graph = new DirectedSparseGraph();
 		    	graph.getEdgeConstraints().clear();
 		    	graph = (DirectedSparseGraph)graphmlFile.load(inputFileName);
+		    	
+		    	int []data=DeterministicDirectedSparseGraph.getNonRepeatingNumbers(graph.getVertices().size(),
+		    			renumberSeed);
+		    	int cnt=0;
+		    	for(Object vert:graph.getVertices())
+		    		((Vertex)vert).setUserDatum(JUConstants.LABEL, "RS"+data[cnt++], UserData.SHARED);
 			}
 		}
 
@@ -162,7 +172,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 		protected String getFileName(FileType fileNameType)
 		{
-			return fileNameType.getFileName(outputDir+System.getProperty("file.separator")+instanceID+"_"+(new File(inputFileName).getName()),"-"); 
+			File dir = new File(outputDir+"_"+renumberSeed);if (!dir.isDirectory()) dir.mkdir();
+			return fileNameType.getFileName(outputDir+"_"+renumberSeed+File.separatorChar+instanceID+"_"+(new File(inputFileName).getName()),"-"); 
 		}
 	}
 	
@@ -209,7 +220,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			for(int per=10;per<101;per=per+10){
 				this.percent = per;atomicInt.set(0);
 				sPlus = addNumberFromSamples(sPlus, allPositive, number);
-				if(per!=30 && per!=100)
+				if(per!=100) // per!=30 && 
 					continue;
 				sMinus = rpg.makeCollectionNegative(sPlus, 1);
 				//posNegExperiment(fsm, l, wm);
@@ -221,7 +232,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 		private void questionsExperiment(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, WMethod wm,AtomicInteger questionNumber){
 			PosNegPrecisionRecall prNeg = computePR(fsm, l, wm, new HashSet<List<String>>(), sMinus);
-			System.out.println(inputFileName+", "+percent+", "+prNeg.precision+", "+prNeg.recall+", "+l.getStats()+", "+questionNumber);
+			System.out.println(inputFileName+", "+renumberSeed+", "+percent+", "+prNeg.precision+", "+prNeg.recall+", "+l.getStats()+", "+questionNumber);
 		}
 		
 		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
@@ -238,7 +249,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			PTATestSequenceEngine engineSetMinus = new PTA_FSMStructure(fsm);
 			sequenceSet origMinus = engineSetMinus.new sequenceSet();origMinus.setIdentity();
 			origMinus.cross(sminus);
-			
+		/*	
 			try {
 				computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
 				XMLEncoder outData = new XMLEncoder(new FileOutputStream(getFileName(FileType.MINUS_AND_TEST)));
@@ -249,7 +260,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
+			*/
 			precRec.crossWith(engineSetMinus);
 			return precRec.crossWith(engineTestSet);
 		}
@@ -401,29 +412,61 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		return newList;
 	}
 	
+	
+	static class EvaluatorWithSeed extends RPNIEvaluator
+	{
+		public EvaluatorWithSeed(String inputFile, String outputDir, int instanceID,int arg)
+		{
+			super(inputFile,outputDir, instanceID);
+			renumberSeed = arg;
+		}
+		@Override
+		protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+		{
+		}
+		
+		@Override
+		protected void changeParametersOnComputeStateScores(computeStateScores c) 
+		{
+			c.setMode(IDMode.POSITIVE_NEGATIVE);						
+		}
+
+		@Override
+		public String toString()
+		{
+			return "RPNI, POSITIVE_NEGATIVE";
+		}
+		
+	}
 	public static final LearnerEvaluatorGenerator [] learnerGenerators = {
 		new LearnerEvaluatorGenerator() {
 			@Override
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
-				return new RPNIEvaluator(inputFile,outputDir, instanceID)
-				{
-					@Override
-					protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
-					{
-					}
-					
-					@Override
-					protected void changeParametersOnComputeStateScores(computeStateScores c) 
-					{
-						c.setMode(IDMode.POSITIVE_NEGATIVE);						
-					}
-
-					@Override
-					public String toString()
-					{
-						return "RPNI, POSITIVE_NEGATIVE";
-					}
-				};
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,0);
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,1);
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,2);
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,3);
+			}
+		},
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,4);
 			}
 		}
 	};

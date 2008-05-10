@@ -1,5 +1,7 @@
 package statechum;
 
+import java.util.Random;
+
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
@@ -101,5 +103,25 @@ public class DeterministicDirectedSparseGraph {
 			return getDest().hashCode()*PRIME1+getSource().hashCode();
 		}
 		
+	}
+	
+	/** Returns an array of sequential numbers 0..howMany, randomly permuted. 
+	 * 
+	 * @param howMany how many numbers to return (and hence the length of the array.
+	 * @param seed the seed for the random generator
+	 * @return the array of numbers.
+	 */ 
+	public static int [] getNonRepeatingNumbers(int howMany, int seed)
+	{
+    	int newNumbers[] = new int[howMany];
+    	for(int i=0;i < howMany;++i) newNumbers[i]=i;
+    	Random rnd = new Random(seed);
+    	for(int i=0;i < howMany;++i) 
+    	{ 
+    		int a = rnd.nextInt(howMany),b=rnd.nextInt(howMany);
+    		int value = newNumbers[a];newNumbers[a]=newNumbers[b];newNumbers[b]=value;
+    	}
+    	
+    	return newNumbers;
 	}
 }

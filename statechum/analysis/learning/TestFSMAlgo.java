@@ -1715,6 +1715,17 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
+	public final void testGetNonRepeatingNumbers3()
+	{
+		final int size = 200;
+		int data[] = DeterministicDirectedSparseGraph.getNonRepeatingNumbers(size, 1); 
+		Assert.assertEquals(size,data.length);
+		boolean values[] = new boolean[size];
+		for(int i=0;i<size;++i) { Assert.assertFalse(values[data[i]]);values[data[i]]=true; }
+		//System.out.println(Arrays.toString(data));
+	}
+	
+	@Test
 	public final void assertsEnabled()
 	{
 		boolean assertsOn = false;

@@ -1,0 +1,187 @@
+package statechum.analysis.learning.experiments;
+
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.HashSet;
+import java.util.Vector;
+import java.util.Collection;
+
+import statechum.Configuration;
+import statechum.Pair;
+import statechum.Configuration.IDMode;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluator;
+import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluatorGenerator;
+import statechum.analysis.learning.experiments.IncrementalAccuracyAndQuestionsExperiment.Experiment;
+import statechum.analysis.learning.experiments.IncrementalAccuracyAndQuestionsExperiment.RPNIEvaluator;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Linear;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.model.testset.PTASequenceSet;
+import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTA_FSMStructure;
+import statechum.model.testset.PTA_computePrecisionRecall;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
+public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
+	
+	private PTASequenceEngine training, test;
+	
+	
+	
+	public static abstract class IterativeEvaluator extends LearnerEvaluator
+	{
+		PTASequenceEngine sPlus = null, sMinus = null;
+		public IterativeEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
+		{
+			super(inputFile, per, instance, exp);			
+		}
+
+		/** This one may be overridden by subclass to customise the learner. */
+		protected abstract void changeParameters(Configuration c);
+
+		protected AtomicInteger questionNumber = new AtomicInteger(0);
+		
+		/** This method is executed on an executor thread. */
+		public void runTheExperiment()
+		{
+			int sampleSize = (graph.getStateNumber()*2);
+			//sampleSize+=sampleSize%2;
+			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
+			rpg.generatePosNeg(sampleSize, 2);  
+			Collection<List<String>> tests = rpg.getAllSequencesPercentageInterval(0).getData();
+			tests.addAll(rpg.getExtraSequencesPercentageInterval(0).getData());
+			LearnerAccuracyTracker l = new LearnerAccuracyTracker(null,config, graph, tests)
+			{
+				@Override
+				protected Pair<Integer,String> checkWithEndUser(
+						@SuppressWarnings("unused")	LearnerGraph model,
+						List<String> question, 
+						@SuppressWarnings("unused") final Object [] moreOptions)
+				{
+					questionNumber.addAndGet(1);
+					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+				}
+			};
+			
+			
+			
+			sPlus = rpg.getExtraSequencesPercentageInterval(1);sMinus = rpg.getAllSequencesPercentageInterval(1);
+			LearnerGraph learned = learn(l,sMinus);
+
+			result = result + l.resultsToString();
+		}
+		
+		
+		
+
+		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
+		{
+			DirectedSparseGraph learningOutcome = null;
+			changeParameters(config);
+			int ptaSize = pta.numberOfLeafNodes();
+			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			learningOutcome = l.learnMachine();
+			l.setQuestionCounter(0);
+			return new LearnerGraph(learningOutcome,config);
+		}
+	}
+	
+
+	static class IterativeExperiment extends IterativeEvaluatorExperiment
+	{
+		protected final Configuration conf;
+		
+		/** Constructs an experiment class
+		 * 
+		 * @param qg the questioning strategy to use.
+		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
+		 * @param useSpeculative whether to use speculative question asking.
+		 */
+		public IterativeExperiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
+		{
+			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
+		}
+
+		/** Constructs an experiment class for checking whether the improved merger and
+		 * question generator does the same thing as the old one.
+		 * 
+		 * @param qg the questioning strategy to use.
+		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
+		 */
+		public IterativeExperiment()
+		{
+			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
+			conf.setSpeculativeQuestionAsking(true);
+			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);
+		}
+
+		public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
+			return Arrays.asList(new LearnerEvaluatorGenerator[] {
+				new LearnerEvaluatorGenerator() {
+					@Override
+					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
+						return new IterativeEvaluator(inputFile, percent, instanceID, exp)
+						{
+							@Override
+							protected void changeParameters(Configuration c) 
+							{
+								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
+								//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
+								//c.setMinCertaintyThreshold(0); //question threshold
+								//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
+								c.setQuestionGenerator(conf.getQuestionGenerator());
+								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
+								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
+							}
+
+							@Override
+							protected String getLearnerName() {
+								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; speculative : "+conf.isSpeculativeQuestionAsking();
+							}
+						};
+					}
+				}
+			});
+		}
+	}
+
+	@Override
+	public int[] getStages() {return new int[]{100};}
+	
+	public static void main(String []args)
+	{
+		try {
+			LearnerGraph.testMode=true;
+			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
+			LearnerGraph.testMode=false;
+			
+			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
+					Configuration.QuestionGeneratorKind.CONVENTIONAL,
+					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
+					//Configuration.QuestionGeneratorKind.SYMMETRIC
+					})
+				for(boolean speculative:new boolean[]{false})
+					for(int limit:new int[]{-1,3,1})
+					{
+						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
+						AbstractExperiment experiment = new IterativeExperiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
+						experiment.runExperiment(args);
+					}			
+			
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			return;
+		}
+	}
+
+}

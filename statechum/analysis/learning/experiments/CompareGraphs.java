@@ -24,6 +24,7 @@ import java.util.List;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
@@ -61,12 +62,16 @@ public class CompareGraphs {
 		Visualiser v = new Visualiser(Visualiser.VIZ_PROPERTIES.UPPER);
 		v.construct(specfsm.paths.getGraph());
 		LearnerGraph wm = new LearnerGraph(imp,Configuration.getDefaultConfiguration());
-		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(wm);
+		PosNegPrecisionRecall pr = compare(specfsm, wm);
+		System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall());
+	}
+	
+	public static PosNegPrecisionRecall compare(LearnerGraph specfsm, LearnerGraph imp){
+		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(imp);
 		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(specfsm.wmethod.getFullTestSet(1));
-		PosNegPrecisionRecall pr =  precRec.crossWith(engine);
-		System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall());
+		return precRec.crossWith(engine);
 	}
 	
 	private static void printTests(Collection<List<String>> tests){
@@ -74,61 +79,14 @@ public class CompareGraphs {
 			System.out.println(list);
 		}
 	}
-/*  //I believe this can be removed
-	public static PosNegPrecisionRecall computePrecisionRecall(DirectedSparseGraph learned, 
-			DirectedSparseGraph correct, Collection<List<String>> tests){
-		Collection<List<String>> retneg = new HashSet<List<String>>();
-		Collection<List<String>> relneg = new HashSet<List<String>>();
-		Collection<List<String>> retpos = new HashSet<List<String>>();
-		Collection<List<String>> relpos = new HashSet<List<String>>();
+	
+	public static double computeAccuracy(LearnerGraph learned, LearnerGraph correct, Collection<List<String>> tests){
+		int failed = 0;
 		for (List<String> list : tests) {
-			Vertex hypVertex = RPNIBlueFringeLearnerOrig.getVertex(learned, list);
-			Vertex correctVertex = RPNIBlueFringeLearnerOrig.getVertex(correct, list);
-			if((hypVertex == null)&(correctVertex == null)){
-				relneg.add(list);
-				retneg.add(list);
-			}
-			else if((hypVertex == null)&(correctVertex != null)){
-				if(DeterministicDirectedSparseGraph.isAccept(correctVertex)){
-					relpos.add(list);
-					retneg.add(list);
-				}
-				else if(!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
-					relneg.add(list);
-					retneg.add(list);
-				}
-			}
-			else if(hypVertex !=null & correctVertex!=null){
-				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)&&!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
-					retpos.add(list);
-					relneg.add(list);
-				}
-				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)&&DeterministicDirectedSparseGraph.isAccept(correctVertex)){
-					retneg.add(list);
-					relpos.add(list);
-				}
-				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)&&!DeterministicDirectedSparseGraph.isAccept(correctVertex)){
-					retneg.add(list);
-					relneg.add(list);
-				}
-				else if(DeterministicDirectedSparseGraph.isAccept(hypVertex)&&DeterministicDirectedSparseGraph.isAccept(correctVertex)){ 
-					retpos.add(list);
-					relpos.add(list);
-				}
-			}
-			else if(hypVertex!=null & correctVertex == null){
-				if(DeterministicDirectedSparseGraph.isAccept(hypVertex)){
-					retpos.add(list);
-					relneg.add(list);
-				}
-				else if(!DeterministicDirectedSparseGraph.isAccept(hypVertex)){
-					retneg.add(list);
-					relneg.add(list);
-				}
-			}
-				
+			if(learned.paths.tracePath(list)!=correct.paths.tracePath(list))
+				failed++;
 		}
-		return new PosNegPrecisionRecall(retpos,relpos, retneg, relneg);
+		double accuracy = 1-((double)failed/(double)tests.size());
+		return accuracy;
 	}
-*/
 }

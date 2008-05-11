@@ -195,6 +195,46 @@ public class RandomPathGenerator {
 		
 	};
 	
+	class PercentIntervalFilter implements FilterPredicate
+	{
+		private final int filter; 
+		public PercentIntervalFilter(int percent)
+		{
+			filter=percent;
+		}
+		
+		public boolean shouldBeReturned(Object name) {
+			return ((StateName)name).percent == filter;
+		}
+		
+	};
+	
+	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
+	 * 
+	 * @param upToChunk how many chunks to combine before returning the result.
+	 * @return the result. 
+	 */
+	public PTASequenceEngine getAllSequencesPercentageInterval(int chunk)
+	{
+		if (chunk < 0 || chunk >= getChunkNumber())
+			throw new IllegalArgumentException("chunk number "+chunk+" is out of range 0.."+getChunkNumber());
+		
+		return allSequences.filter(new PercentIntervalFilter(chunk));
+	}
+	
+	/** Returns a PTA consisting of chunk.
+	 * 
+	 * @param chunk which chunk to return.
+	 * @return the result. 
+	 */
+	public PTASequenceEngine getExtraSequencesPercentageInterval(int chunk)
+	{
+		if (chunk < 0 || chunk >= getChunkNumber())
+			throw new IllegalArgumentException("chunk number "+chunk+" is out of range 0.."+getChunkNumber());
+		
+		return extraSequences.filter(new PercentIntervalFilter(chunk));
+	}
+	
 	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
 	 * 
 	 * @param upToChunk how many chunks to combine before returning the result.
@@ -220,6 +260,8 @@ public class RandomPathGenerator {
 		
 		return extraSequences.filter(new PercentFilter(upToChunk));
 	}
+	
+	
 	
 	/** Generates positive and negative paths where negatives are just 
 	 * positives with an extra element added at the end. 

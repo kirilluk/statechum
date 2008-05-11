@@ -171,6 +171,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
 	}
 	
+	protected void debugAction(LearnerGraph lg, int iterations){
+		if(!config.getDebugMode())
+			return;
+		else
+			updateGraph(lg);
+	}
+	
 	@Override
 	public DirectedSparseGraph learnMachine() {
 		setAutoOracle();
@@ -205,7 +212,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			}
 			
 			setChanged();temp.setName("merge_debug"+iterations);
-			updateGraph(temp);
+			debugAction(temp, iterations);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 

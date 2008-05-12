@@ -1,0 +1,9 @@
+finalize_textbox
+ENTER 
+CH.ifa.draw.figures.TextTool.deactivate
+EXIT99
+ENTER
+CH.ifa.draw.figures.TextFigure.setText
+EXIT255
+false
+2

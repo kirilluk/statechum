@@ -40,13 +40,14 @@ public class LearnerAccuracyTracker extends
 
 	protected Collection<List<String>> tests;
 	protected LearnerGraph specfsm;
-	protected Set<List<ResultsContainer>> results;
+	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults;
 	
 	public LearnerAccuracyTracker(Frame parent, Configuration c, LearnerGraph target, Collection<List<String>> tests){
 		super(parent,c);
-		results = new HashSet<List<ResultsContainer>>();
+		results = new ArrayList<List<ResultsContainer>>();
 		config.setDebugMode(true);
+		
 		this.tests = tests;
 		
 		this.specfsm = target;
@@ -70,15 +71,18 @@ public class LearnerAccuracyTracker extends
 	
 	public String resultsToString(){
 		String returnString = new String();
+		
 		for (List<ResultsContainer> trajectory : results) {
+			String trajectoryString = new String();
 			for (ResultsContainer container : trajectory) {
 				String resultString = container.getAccuracy()+","+
 					container.getPr().getPosprecision()+","+
 					container.getPr().getPosrecall()+","+
 					container.getPr().getNegprecision()+","+
 					container.getPr().getNegrecall()+"\n";
-				returnString = returnString.concat(resultString);
+				trajectoryString = trajectoryString+resultString;
 			}
+			returnString = returnString + "\n"+trajectoryString;
 		}
 		return returnString;
 	}

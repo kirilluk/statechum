@@ -1,3 +1,21 @@
+/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ 
+This file is part of StateChum
+
+StateChum is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+StateChum is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+*/ 
+
 package statechum.analysis.learning.experiments;
 
 import java.io.File;
@@ -30,10 +48,7 @@ import statechum.model.testset.PTA_computePrecisionRecall;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
-	
-	private PTASequenceEngine training, test;
-	
+public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {	
 	
 	
 	public static abstract class IterativeEvaluator extends LearnerEvaluator
@@ -52,8 +67,7 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
 		{
-			int sampleSize = (graph.getStateNumber()*2);
-			//sampleSize+=sampleSize%2;
+			int sampleSize = (graph.getStateNumber()*4);
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			rpg.generatePosNeg(sampleSize, 2);  
 			Collection<List<String>> tests = rpg.getAllSequencesPercentageInterval(0).getData();
@@ -77,6 +91,7 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			LearnerGraph learned = learn(l,sMinus);
 
 			result = result + l.resultsToString();
+
 		}
 		
 		

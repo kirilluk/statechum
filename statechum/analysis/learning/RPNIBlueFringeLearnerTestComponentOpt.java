@@ -1,7 +1,10 @@
 package statechum.analysis.learning;
 
 import java.awt.Frame;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -16,10 +19,11 @@ import java.beans.XMLEncoder;
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
 
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -154,26 +158,49 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		String pairsMerged = "";
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.getStatistics(false)+" ] ");
-		setChanged();
 
+		setChanged();
+		/*dumpPTA(scoreComputer, "/tmp/initial_pta.xml");
+		 */
 		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
+		final int restartOfInterest = -21;
+		
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			computeStateScores.PairScore pair = possibleMerges.pop();
+			if (counterRestarted == restartOfInterest) System.out.println("merging "+pair);
 			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
 			{
-				questions = scoreComputer.computeQS(pair, temp);
+				questions = sort(scoreComputer.computeQS(pair, temp));
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
+/*
+			if (counterRestarted == 21 && pair.getQ().getUserDatum(JUConstants.LABEL).equals("P232") &&
+					pair.getR().getUserDatum(JUConstants.LABEL).equals("P23"))
+			{
+				//System.out.println(sort(scoreComputer.computeQS(pair, temp)));
+				dumpPTA(scoreComputer,"/tmp/orig_trouble");
+				dumpPTA(temp,"/tmp/orig_trouble_temp");
+				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a23","a8"})).getUserDatum(JUConstants.LABEL));
+				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a18","a18"})).getUserDatum(JUConstants.LABEL));
+				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a21","a18"})).getUserDatum(JUConstants.LABEL));
+
+				//System.out.println(newPTA.getVertex(Arrays.asList(new String[]{"a8","a18","a18","a6"})).getUserDatum(JUConstants.LABEL));
+				//System.out.println(newPTA.getVertex(Arrays.asList(new String[]{"a8","a18","a18","a6","a18"})).getUserDatum(JUConstants.LABEL));
+				scoreComputer.computeQS(pair, temp);
+				
+				System.out.println("reached the strange case");
+			}
+*/
 			
 			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
 			Iterator<List<String>> questionIt = questions.iterator();
@@ -198,6 +225,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 					//sPlus.add(question);
 					newPTA.augmentPTA(question, true);++plusSize;
 					//System.out.println(setByAuto+question.toString()+ " <yes>");
+					if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <yes>");
 					
 					if(!TestRpniLearner.isAccept(tempVertex))
 					{
@@ -215,7 +243,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						newPTA.augmentPTA(subAnswer, false);++minusSize ;// important: since vertex IDs is 
 						// only unique for each instance of computeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
-						
+						if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						//System.out.println(setByAuto+question.toString()+ " <no> at position "+answer+", element "+question.get(answer));
 						if( (answer < question.size()-1) || isAccept(tempVertex))
 						{
@@ -228,13 +256,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 						throw new IllegalArgumentException("unexpected user choice");
 				
 			}
-			
+
 			if (restartLearning)
 			{// restart learning
 				//computeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				setChanged();++counterRestarted;
+				//System.out.println("restarts - "+counterRestarted+" questions: "+(counterAccepted+counterRejected)+" states in PTA: "+newPTA.getStateNumber());
+				//dumpPTA(scoreComputer,"/tmp/orig_restart"+counterRestarted);
 				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
@@ -266,6 +296,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			}
 			
 			possibleMerges = scoreComputer.chooseStatePairs();
+			//System.out.println(possibleMerges);
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
@@ -330,5 +361,35 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	protected DirectedSparseGraph mergeAndDeterminize(Graph model,
 			StatePair pair) {
 		throw new UnsupportedOperationException();
-	}	
+	}
+	
+    public static Collection<List<String>> sort(Collection<List<String>> data)
+    {
+    	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
+    	Collections.sort(result, new Comparator<List<String>>() {
+
+			public int compare(List<String> o1, List<String> o2) {
+				int len1 = o1.size(),len2 = o2.size();
+				if (len1 < len2) return -1;else if (len1 > len2) return 1;
+				Iterator<String> it1 = o1.iterator(),it2 = o2.iterator();
+				while(it1.hasNext())
+				{
+					int cmpResult = it1.next().compareTo(it2.next());
+					if (cmpResult != 0) return cmpResult;
+				}
+				return 0;
+			}});
+    	return result;
+    }
+    
+    protected void dumpPTA(computeStateScores what,String name)
+    {
+		try 
+		{
+			computeStateScores.writeGraphML(WMethod.getGraphData(what.getGraph()), name+".xml");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+   }
 }

@@ -6,11 +6,9 @@ package statechum.analysis.learning.experiments;
 
 
 import java.awt.Point;
-import java.beans.XMLEncoder;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,11 +33,11 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import edu.uci.ics.jung.utils.UserData;
-import soot.jimple.NewExpr;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
@@ -104,12 +102,14 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		    	graph = new DirectedSparseGraph();
 		    	graph.getEdgeConstraints().clear();
 		    	graph = (DirectedSparseGraph)graphmlFile.load(inputFileName);
-		    	
-		    	int []data=DeterministicDirectedSparseGraph.getNonRepeatingNumbers(graph.getVertices().size(),
-		    			renumberSeed);
-		    	int cnt=0;
-		    	for(Object vert:graph.getVertices())
-		    		((Vertex)vert).setUserDatum(JUConstants.LABEL, "RS"+data[cnt++], UserData.SHARED);
+		    	if (renumberSeed>=0)
+		    	{
+			    	int []data=DeterministicDirectedSparseGraph.getNonRepeatingNumbers(graph.getVertices().size(),
+			    			renumberSeed);
+			    	int cnt=0;
+			    	for(Object vert:graph.getVertices())
+			    		((Vertex)vert).setUserDatum(JUConstants.LABEL, "RS"+data[cnt++], UserData.SHARED);
+		    	}
 			}
 		}
 
@@ -163,9 +163,9 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 		public enum FileType { 
 			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
-			LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+".xml"; } }, 
-			MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+".xml"; } }, 
-			RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+".txt"; } };
+			LEARNT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_learnt"+".xml"; } }, 
+			MINUS_AND_TEST {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_mt"+".xml"; } }, 
+			RESULT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_result"+".txt"; } };
 			
 			abstract String getFileName(String prefix, String suffix);
 		};
@@ -173,16 +173,16 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		protected String getFileName(FileType fileNameType)
 		{
 			File dir = new File(outputDir+"_"+renumberSeed);if (!dir.isDirectory()) dir.mkdir();
-			return fileNameType.getFileName(outputDir+"_"+renumberSeed+File.separatorChar+instanceID+"_"+(new File(inputFileName).getName()),"-"); 
+			return fileNameType.getFileName(outputDir+"_"+renumberSeed+File.separatorChar+instanceID+"_"+(new File(inputFileName).getName()),""); 
 		}
 	}
 	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
-		public RPNIEvaluator(String inputFile, String outputDir, int instanceID)
+		public RPNIEvaluator(String inputFile, String outDir, int instID)
 		{
-			super(inputFile, outputDir, instanceID);			
+			super(inputFile, outDir, instID);			
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
@@ -249,18 +249,18 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			PTATestSequenceEngine engineSetMinus = new PTA_FSMStructure(fsm);
 			sequenceSet origMinus = engineSetMinus.new sequenceSet();origMinus.setIdentity();
 			origMinus.cross(sminus);
-		/*	
+		
 			try {
 				computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
-				XMLEncoder outData = new XMLEncoder(new FileOutputStream(getFileName(FileType.MINUS_AND_TEST)));
-				outData.writeObject(sminus);
-				outData.writeObject(testSet);
-				outData.close();
+				//XMLEncoder outData = new XMLEncoder(new FileOutputStream(getFileName(FileType.MINUS_AND_TEST)));
+				//outData.writeObject(sminus);
+				//outData.writeObject(testSet);
+				//outData.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			*/
+		
 			precRec.crossWith(engineSetMinus);
 			return precRec.crossWith(engineTestSet);
 		}
@@ -269,9 +269,17 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			DirectedSparseGraph learningOutcome = null;
 			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
 			changeParametersOnComputeStateScores(l.getScoreComputer());
-			l.init(plusPTA, minusPTA);
+			l.init(plusPTA, minusPTA.getData());
+			
+			try {
+				computeStateScores.writeGraphML(WMethod.getGraphData(l.getScoreComputer().getGraph()), getFileName(FileType.DATA));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 			changeParametersOnLearner(l);
-			learningOutcome = l.learnMachine();
+			//learningOutcome = l.learnMachine();
 			/*if(percent == 30)
 				System.out.print(l.getQuestionCounter()+",");
 			else
@@ -320,7 +328,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			}
 		}
 	}
-	
+	/*
 	private static double computeAccuracy(DirectedSparseGraph learned, DirectedSparseGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
@@ -349,7 +357,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		double accuracy = 1-((double)failed/(double)tests.size());
 		return accuracy;
 	}
-	
+	*/
 	public static Set<List<String>> addPercentageFromSamples(Set<List<String>> current, Collection<List<String>> samples, double percent){
 		double size = samples.size();
 		double number = size*percent/100;
@@ -403,7 +411,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		}
 		return negativeStrings;
 	}
-	
+	/*
 	private static Collection half(Collection original){
 		Object[] array = original.toArray();
 		Collection newList = new HashSet();
@@ -411,7 +419,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			newList.add(array[i]);
 		return newList;
 	}
-	
+	*/
 	
 	static class EvaluatorWithSeed extends RPNIEvaluator
 	{
@@ -442,6 +450,13 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		new LearnerEvaluatorGenerator() {
 			@Override
 			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
+				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,-1);
+			}
+		}
+/*		,
+		new LearnerEvaluatorGenerator() {
+			@Override
+			LearnerEvaluator getLearnerEvaluator(String inputFile, String outputDir, int instanceID) {
 				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,0);
 			}
 		},
@@ -469,6 +484,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 				return new EvaluatorWithSeed(inputFile,outputDir,instanceID,4);
 			}
 		}
+		*/
 	};
 	
 	protected ArrayList<String> fileName = new ArrayList<String>(100);
@@ -566,7 +582,8 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	        String[] graphFileList = graphDir.list();String listOfFileNames = "";int fileNumber = 0;
 	        String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
 	        for(int i=0;i<graphFileList.length;i++)
-	        	if(graphFileList[i].endsWith("xml"))
+	        	if(graphFileList[i].endsWith("xml")
+	        			)//&& graphFileList[i].contains("_100"))
 	        	{
 	        		listOfFileNames+=wholePath+graphFileList[i]+"\n";fileNumber++;
 	        	}

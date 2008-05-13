@@ -66,9 +66,12 @@ public class computeStateScores implements Cloneable {
 	 */
 	public double getExtentOfCompleteness()
 	{
-		int normalEdgeCount = 0, stateNumber = transitionMatrix.size();
+		int normalEdgeCount = 0, stateNumber = 0;
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
-			normalEdgeCount+=entry.getValue().size();
+			if (TestRpniLearner.isAccept(entry.getKey()))
+		{
+			normalEdgeCount+=entry.getValue().size();++stateNumber;
+		}
 		return (double)normalEdgeCount/( stateNumber * WMethod.computeAlphabet(getGraph()).size());
 	}
 
@@ -135,6 +138,12 @@ public class computeStateScores implements Cloneable {
 		pairsMergedPerHypothesis = newPairsMergedPerHypothesis;
 		graph = null;
 		initPTA();
+	}
+	
+	/** Returns the number of states in the state machine. */
+	public int getStateNumber()
+	{
+		return transitionMatrix.size();
 	}
 
 	/** The standard beginning of our graphML files. */
@@ -404,7 +413,7 @@ public class computeStateScores implements Cloneable {
 		return sequenceOfSets;
 	}
 
-	private static void buildQuestionsFromPair(computeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates)
+	private static void buildQuestionsFromPair(computeStateScores temp, Vertex initialRed, PTATestSequenceEngine.sequenceSet initialBlueStates,PTATestSequenceEngine engine)
 	{
 		// now we build a sort of a "transition cover" from the tempRed state, in other words, take every vertex and 
 		// build a path from tempRed to it, at the same time tracing it through the current machine.
@@ -422,7 +431,16 @@ public class computeStateScores implements Cloneable {
 			PTATestSequenceEngine.sequenceSet currentPaths = currentExplorationTargetStates.remove();
 			targetToInputSet.clear();
 			
+			//Collection<List<String>> prevPaths = engine.getData();
 			currentPaths.crossWithSet(temp.transitionMatrix.get(currentVert).keySet());
+			//if (initialRed.getUserDatum(JUConstants.LABEL).equals("P138"))
+			//{
+			//	Collection<List<String>> currPaths = engine.getData();currPaths.removeAll(prevPaths);
+			//	if (!currPaths.isEmpty()) 
+			//	{
+			//		System.out.println("state: "+currentVert.getUserDatum(JUConstants.LABEL)+" added "+currPaths);
+			//	}
+			//}
 			for(Entry<String,CmpVertex> entry:temp.transitionMatrix.get(currentVert).entrySet())
 				if (!visitedStates.contains(entry.getValue()))
 				{
@@ -495,13 +513,13 @@ public class computeStateScores implements Cloneable {
 		for(Collection<String> inputsToMultWith:sequenceOfSets)
 			paths = paths.crossWithSet(inputsToMultWith);
 
-		buildQuestionsFromPair(temp, tempRed, paths);
+		buildQuestionsFromPair(temp, tempRed, paths,engine);
 		for(Entry<String,CmpVertex> loopEntry:temp.transitionMatrix.get(tempRed).entrySet())
 			if (loopEntry.getValue() == tempRed)
 			{// Note an input corresponding to any loop in temp can be followed in the original machine, since
 				// a loop in temp is either due to the merge or because it was there in the first place.
 				List<String> initialSeq = new LinkedList<String>();initialSeq.add(loopEntry.getKey());
-				buildQuestionsFromPair(temp, loopEntry.getValue(),paths.crossWithSet(initialSeq));
+				buildQuestionsFromPair(temp, loopEntry.getValue(),paths.crossWithSet(initialSeq),engine);
 			}
 		return engine.getData();
 	}

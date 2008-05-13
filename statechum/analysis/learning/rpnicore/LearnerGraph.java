@@ -18,7 +18,9 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,11 +43,13 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.analysis.learning.oracles.*;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
+import edu.uci.ics.jung.io.GraphMLFile;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -187,6 +191,14 @@ public class LearnerGraph {
 		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.getColour() == JUConstants.AMBER) ++count;
 		return count;
 	}
+
+	/** Returns the number of accept states. */
+	public int getAcceptStateNumber()
+	{
+		int count = 0;
+		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++count;
+		return count;
+	}
 	
 	final public ComputeQuestions questions = new ComputeQuestions(this);
 	final public PathRoutines paths = new PathRoutines(this);
@@ -284,6 +296,36 @@ public class LearnerGraph {
 		initPTA();
 	}
 
+	/** Loads a graph from a supplied file. 
+	* FIXME: make very specific assumptions about the numbering of states in the loaded graphs when setting vertPositiveID and vertNegativeID
+	*/
+	public static LearnerGraph loadGraph(String fileName,Configuration config)
+	{
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileName+".xml"),config);
+	    	int acceptNumber = graph.getAcceptStateNumber();
+	    	int rejectNumber = graph.getStateNumber()-acceptNumber;
+	    	graph.vertPositiveID=acceptNumber;
+	    	graph.vertNegativeID=1+rejectNumber;
+	    	return graph;
+		}
+	}
+	
+	/** Saves the supplied graph into the file, ignoring possible errors. */
+	public static void dumpGraph(LearnerGraph what, String name)
+	{
+		try {
+			LearnerGraph tmpGraph = what.copy(what.config);tmpGraph.clearColours();
+			tmpGraph.getVertex(Arrays.asList(new String[]{})).setColour(null);
+			tmpGraph.transform.writeGraphML(name+".xml");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Augment every occurrence of the first label in the pair in the PTA
 	 * with an edge to the second label in the pair, that is either accepted or not

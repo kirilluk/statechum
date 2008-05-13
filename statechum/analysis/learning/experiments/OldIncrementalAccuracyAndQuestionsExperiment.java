@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueAmberFringeLearner;
@@ -40,11 +41,14 @@ import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
 {	
+	public static final String origDir = "/home/kirill/W_experiment/matched/output_25StatesCrowded_-1";
+	
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
@@ -64,6 +68,9 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		
 		/** Whether to use the blue fringe or the blue-amber amber fringe. */
 		public boolean useAmber = false;
+		
+		/** The number this file went under when run through Dec 2007 version of the tool. */
+		int number =-1;
 		
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
@@ -91,16 +98,14 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			 */
 			LearnerGraph learned = null;
 			Collection<List<String>> minusTrainingSet = null, testSet = null;
-			final String dataDir = "/home/kirill/W_experiment/current/output_25StatesCrowded";
-			int number =-1;
 			try {
 				synchronized (LearnerGraph.syncObj) 
 				{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 			    	GraphMLFile graphmlFile = new GraphMLFile();
 			    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 			    	final String mostOfFileName = "_"+(new File(inputFileName).getName());
-			    	assert new File(dataDir).isDirectory();
-			    	for(String name:new File(dataDir).list(new FilenameFilter(){
+			    	assert new File(origDir).isDirectory();
+			    	for(String name:new File(origDir).list(new FilenameFilter(){
 						public boolean accept(@SuppressWarnings("unused") File dir, String fileName) {
 							return fileName.contains(mostOfFileName);
 						}}))
@@ -119,7 +124,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			    	*/
 				}
 				//computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
-				XMLDecoder inData = new XMLDecoder(new FileInputStream(FileType.MINUS_AND_TEST.getFileName(dataDir+File.separator+number+"_"+(new File(inputFileName).getName()),"")));
+				XMLDecoder inData = new XMLDecoder(new FileInputStream(FileType.MINUS_AND_TEST.getFileName(origDir+File.separator+number+"_"+(new File(inputFileName).getName()),"")));
 				minusTrainingSet = (Collection<List<String>>)inData.readObject();
 				testSet = (Collection<List<String>>)inData.readObject();
 				inData.close();
@@ -270,8 +275,19 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
-			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			//l.init(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
+			//l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			l.loadPTA(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_data");
 			learningOutcome = l.learnMachine();
+			
+			WMethod.checkM(LearnerGraph.loadGraph(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_learnt", config),
+					new LearnerGraph(learningOutcome,config));
+			try {
+				new LearnerGraph(learningOutcome,graph.config).transform.writeGraphML(getFileName(FileType.LEARNT));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
 			l.setQuestionCounter(0);
 			return new LearnerGraph(learningOutcome,config);
 		}
@@ -350,6 +366,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 	
 	public static void main(String []args)
 	{
+		DeterministicDirectedSparseGraph.VertexID.comparisonKind = DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
 		try {
 			LearnerGraph.testMode=true;
 			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
@@ -360,15 +377,15 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			
 		for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
 				Configuration.QuestionGeneratorKind.ORIGINAL,
-				Configuration.QuestionGeneratorKind.CONVENTIONAL,
+				//Configuration.QuestionGeneratorKind.CONVENTIONAL,
 				//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
-				Configuration.QuestionGeneratorKind.SYMMETRIC
+				//Configuration.QuestionGeneratorKind.SYMMETRIC
 				})
-			for(boolean useAmber:new boolean[]{true,false})
-			for(boolean useOrig:new boolean[]{true,false})
+			for(boolean useAmber:new boolean[]{false})//{false,true})
+			for(boolean useOrig:new boolean[]{true})//{true,false})
 				for(int limit:((qk == Configuration.QuestionGeneratorKind.ORIGINAL?new int[]{-1}:new int[]{-1,1,3})))
 				{
-					String experimentDescription = "DATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(useOrig?"ORIG":"NEW");
+					String experimentDescription = "MDATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(useOrig?"ORIG":"NEW");
 					AbstractExperiment experiment = new Experiment(qk,limit,false,useOrig,useAmber);experiment.setOutputDir(experimentDescription+"_");
 
 					try

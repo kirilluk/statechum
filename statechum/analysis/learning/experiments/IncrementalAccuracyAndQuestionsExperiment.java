@@ -133,7 +133,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	
 	public int [] getStages()
 	{
-		return new int[]{10,30,60,100};
+		return new int[]{100};//10,30,60,100};
 	}
 		
 	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment

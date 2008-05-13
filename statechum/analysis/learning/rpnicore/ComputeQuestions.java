@@ -327,6 +327,42 @@ public class ComputeQuestions {
 		return engine.getData();
 	}
 	
+	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
+	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
+	/** Given a pair of states merged in a graph and the result of merging, 
+	 * this method determines questions to ask.
+	 */
+	public static Collection<List<String>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	{
+		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
+		if (mergedRed == null)
+			throw new IllegalArgumentException("failed to find the red state in the merge result");
+		
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.init(original.new NonExistingPaths());
+		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
+		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
+
+		List<Collection<String>> sequenceOfSets = merged.paths.computePathsSBetween(merged.init,mergedRed);
+		if (sequenceOfSets == null)
+			throw new IllegalArgumentException("failed to find the red state in the merge result");
+		for(Collection<String> inputsToMultWith:sequenceOfSets)
+			initp = initp.crossWithSet(inputsToMultWith);
+		paths.unite(initp);
+		//merged.paths.computePathsSBetweenBooleanReduced(merged.init,mergedRed, initp, paths);
+		
+		Collection<String> inputsToMultWith = new LinkedList<String>();
+		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
+			if (loopEntry.getValue() == mergedRed)
+			{// Note an input corresponding to any loop in temp can be followed in the original machine, since
+				// a loop in temp is either due to the merge or because it was there in the first place.
+				inputsToMultWith.add(loopEntry.getKey());
+			}
+		paths.unite(paths.crossWithSet(inputsToMultWith));// the resulting path does a "transition cover" on all transitions leaving the red state.
+		merged.questions.buildQuestionsFromPair_Compatible(mergedRed, paths);
+		return engine.getData();
+	}
+	
 	public static Collection<List<String>> computeQS_getpartA(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());

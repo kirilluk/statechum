@@ -19,7 +19,10 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.TreeSet;
 
 import org.junit.Assert;
@@ -728,4 +731,71 @@ public class TestArrayOperations {
         ArrayOperations.flatten(new Object[] { "a",new Object[] {new Object [] { "bA", ArrayOperations.EndOfSequence.End() }, "bB"} ,"c" }));
   }
 	
+  /** Tests sorting of a collection of sequences strings. */
+  @Test
+  public final void testSort0()
+  {
+	  Collection<List<String>> data=new LinkedList<List<String>>(), expected=new LinkedList<List<String>>();
+	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
+  }
+  /** Tests sorting of a collection of sequences strings. */
+  @Test
+  public final void testSort1()
+  {
+	  Collection<List<String>> data=new LinkedList<List<String>>(), expected=new LinkedList<List<String>>();
+	  data.add(Arrays.asList(new String[]{"A","A"}));
+	  data.add(Arrays.asList(new String[]{"B","C","A"}));
+	  data.add(Arrays.asList(new String[]{"Z"}));
+	  
+	  expected.add(Arrays.asList(new String[]{"Z"}));
+	  expected.add(Arrays.asList(new String[]{"A","A"}));
+	  expected.add(Arrays.asList(new String[]{"B","C","A"}));
+	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
+  }
+  /** Tests sorting of a collection of sequences strings. */
+  @Test
+  public final void testSort2()
+  {
+	  Collection<List<String>> data=new LinkedList<List<String>>(), expected=new LinkedList<List<String>>();
+	  data.add(Arrays.asList(new String[]{"A","A"}));
+	  data.add(Arrays.asList(new String[]{"B","C","A"}));
+	  data.add(Arrays.asList(new String[]{"Z"}));
+	  data.add(Arrays.asList(new String[]{"Z"}));
+	  
+	  expected.add(Arrays.asList(new String[]{"Z"}));
+	  expected.add(Arrays.asList(new String[]{"Z"}));
+	  expected.add(Arrays.asList(new String[]{"A","A"}));
+	  expected.add(Arrays.asList(new String[]{"B","C","A"}));
+	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
+  }
+
+  /** Tests sorting of a collection of sequences strings. */
+  @Test
+  public final void testSort3()
+  {
+	  Collection<List<String>> data=new LinkedList<List<String>>(), expected=new LinkedList<List<String>>();
+	  data.add(Arrays.asList(new String[]{"B","C","A"}));
+	  data.add(Arrays.asList(new String[]{"B","C","A"}));
+	  data.add(Arrays.asList(new String[]{"Z"}));
+	  
+	  expected.add(Arrays.asList(new String[]{"Z"}));
+	  expected.add(Arrays.asList(new String[]{"B","C","A"}));
+	  expected.add(Arrays.asList(new String[]{"B","C","A"}));
+	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
+  }
+
+  /** Tests sorting of a collection of sequences strings. */
+  @Test
+  public final void testSort4()
+  {
+	  Collection<List<String>> data=new LinkedList<List<String>>(), expected=new LinkedList<List<String>>();
+	  data.add(Arrays.asList(new String[]{"B","V","A"}));
+	  data.add(Arrays.asList(new String[]{"B","C","A"}));
+	  data.add(Arrays.asList(new String[]{"Z"}));
+	  
+	  expected.add(Arrays.asList(new String[]{"Z"}));
+	  expected.add(Arrays.asList(new String[]{"B","C","A"}));
+	  expected.add(Arrays.asList(new String[]{"B","V","A"}));
+	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
+  }
 }

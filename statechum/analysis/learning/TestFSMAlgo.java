@@ -373,6 +373,24 @@ public class TestFSMAlgo {
 		checkLessHelper(pA,qA);
 	}
 	
+	@Test
+	public void testVertexIDLess3()
+	{
+		VertexID pA=new VertexID(VertKind.POSITIVE,5), pB=new VertexID(VertKind.POSITIVE,10),
+			qA = new VertexID(VertKind.POSITIVE,6);
+		checkLessHelper(pA,qA);
+		checkLessHelper(pA,pB);
+		checkLessHelper(qA,pB);
+		
+		Assert.assertTrue("P10".compareTo("P5") < 0);
+		
+		Assert.assertTrue(pB.compareTo(new VertexID(idP5)) > 0);
+		
+		checkLessHelper(pA,qA);
+		checkLessHelper(pA,pB);
+		checkLessHelper(qA,pB);
+	}
+	
 	private final DeterministicVertex DvertA = new DeterministicVertex("a"),DvertB = new DeterministicVertex("a");
 	private final DeterministicVertex DdifferentA = new DeterministicVertex("b");
 

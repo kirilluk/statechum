@@ -115,6 +115,7 @@ public class DeterministicDirectedSparseGraph {
 			if (k == VertKind.NONE) throw new IllegalArgumentException("invalid id kind");
 			idString = null;kind = k;idInteger=i;
 			cachedHash = getStringId().hashCode();
+			assignStringID_ifNeeded();
 		}
 
 		public String toString()
@@ -129,8 +130,22 @@ public class DeterministicDirectedSparseGraph {
 				idString = getStringId();
 		}
 		
+		/** The following two kinds of comparisons are supported (this determines 
+		 * the order of exploration of vertices, which influences the results.
+		 * <p>
+		 * The COMPARISON_LEXICOGRAPHIC_ORIG is used for checking the compatibility to 
+		 * the Dec 2007 version.
+		 */
+		public enum ComparisonKind { COMPARISON_NORM, COMPARISON_LEXICOGRAPHIC_ORIG };
+		
+		/** Determines the behaviour of <em>compareTo</em>. This has to be static and sadly public.
+		 * I could've passed an extra member from LearnerGraph or such which would determine this,
+		 * but this way seems more appropriate for occasional experiments.
+		 */
+		public static ComparisonKind comparisonKind = ComparisonKind.COMPARISON_NORM;
+		
 		public int compareTo(VertexID o) {
-			if (kind != VertKind.NONE && o.kind != VertKind.NONE)
+			if (comparisonKind == ComparisonKind.COMPARISON_NORM && kind != VertKind.NONE && o.kind != VertKind.NONE)
 			{// if both this one and the other ID are numeric, use a numeric comparison.
 				int kindDifference = kind.compareTo(o.kind);
 				if (kindDifference != 0)
@@ -140,11 +155,14 @@ public class DeterministicDirectedSparseGraph {
 			}
 			
 			// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
-			assignStringID_ifNeeded();
+			//assignStringID_ifNeeded();
 			
 			// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
-			o.assignStringID_ifNeeded();
+			//o.assignStringID_ifNeeded();
 
+			int lenDifference = idString.length() - o.idString.length();
+			if (comparisonKind == ComparisonKind.COMPARISON_NORM && lenDifference !=0)
+				return lenDifference;
 			return idString.compareTo(o.idString);
 		}
 

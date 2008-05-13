@@ -19,6 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning;
 
 import java.awt.Frame;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,13 +33,9 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import java.beans.XMLEncoder;
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.StringWriter;
-
+import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.Configuration.QuestionGeneratorKind;
@@ -49,7 +46,6 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
-
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -156,6 +152,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		origMinusSize = plus.size();origMinusSize = minus.size();
 	}
 	
+	@Override
 	public void init(PTASequenceEngine en, int plusSize, int minusSize)
 	{
 		scoreComputer.initPTA();
@@ -163,7 +160,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 
 		origMinusSize = plusSize;origMinusSize = minusSize;
 	}
-
+	
+	@Override
+	public void loadPTA(String name)
+	{
+		scoreComputer = LearnerGraph.loadGraph(name, Configuration.getDefaultConfiguration());
+	}
+	
 	public String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
 	{
 		Set<List<String>> newInQS = new HashSet<List<String>>();newInQS.addAll(seqNew);newInQS.removeAll(seqOrig); 
@@ -171,12 +174,20 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
 	}
 	
-	protected void debugAction(LearnerGraph lg, int iterations){
+	protected void debugAction(LearnerGraph lg, @SuppressWarnings("unused") int iterations){
 		if(!config.getDebugMode())
 			return;
-		else
-			updateGraph(lg);
+		
+		updateGraph(lg);
 	}
+	
+	/* Note: in order to get the same results from learning as in modified Dec 2007 version 
+	 * on the appropriate branch, the following has to be done:
+	 * 1. DeterministicDirectedSparseGraph.VertexID.comparisonKind = DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
+	 * 2. load the initial PTA from _mt files (dumped by Dec 2007 version).
+	 * 3. merge using tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+	 * 4. generate questions using questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
+	 */
 	
 	@Override
 	public DirectedSparseGraph learnMachine() {
@@ -194,14 +205,17 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
+		final int restartOfInterest = -21;
 		while(!possibleMerges.isEmpty())
 		{
 			iterations++;
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
+			if (counterRestarted == restartOfInterest) System.out.println("merging "+pair);
 			LearnerGraph tempOrig= null;
 			LearnerGraph tempNew = null;
 			
+			//tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
 			tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
 			LearnerGraph temp=tempNew;
 			if (scoreComputer.config.isConsistencyCheckMode())
@@ -218,6 +232,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 
 			if(shouldAskQuestions(score))
 			{
+				//questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
 				questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 				if (scoreComputer.config.isConsistencyCheckMode()) 
 				{// checking that all the old questions are included in the new ones
@@ -261,7 +276,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 					//sPlus.add(question);
 					newPTA.paths.augmentPTA(question, true, null);++plusSize;
 					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
-					
+					if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <yes>");
 					if(!tempVertex.isAccept())
 					{
 						restartLearning = true;break;
@@ -278,7 +293,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
 						if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
-						
+						if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));						
 						if( (answer.firstElem < question.size()-1) || tempVertex.isAccept())
 						{
 							assert accepted == true;
@@ -289,13 +304,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						throw new IllegalArgumentException("unexpected user choice");
 				
 			}
-			
+
 			if (restartLearning)
 			{// restart learning
 				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColours();
 				++counterRestarted;
+				//System.out.println("restarts - "+counterRestarted+" questions: "+(counterAccepted+counterRejected)+" states in PTA: "+newPTA.getStateNumber());
+				//dumpPTA(scoreComputer,"/tmp/new_restart"+counterRestarted);
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
 				{
@@ -325,28 +342,11 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			}
 			
 			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+			//System.out.println(possibleMerges);
 		}
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		if(config.getDebugMode())
 			updateGraph(scoreComputer);
 		return result;
-	}
-	
-	protected static void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)
-	{	
-		try
-		{
-			System.out.println("dumping sets");
-			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(output)));
-			encoder.writeObject(sPlus);
-			encoder.writeObject(sMinus);
-			encoder.close();
-			throw new IllegalArgumentException("finished");
-		}
-		catch(FileNotFoundException e)
-		{
-			IllegalArgumentException ex = new IllegalArgumentException("failed to write output file");
-			ex.initCause(e);throw ex;
-		}		
 	}
 }

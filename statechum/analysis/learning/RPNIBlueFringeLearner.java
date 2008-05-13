@@ -23,6 +23,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.beans.XMLEncoder;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -62,6 +66,13 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	/** Initialises this learner. */
 	abstract public void init(Collection<List<String>> plus, Collection<List<String>> minus);
 	abstract public void init(PTASequenceEngine en, int plus, int minus);
+
+	/** Loads PTA from a supplied file. */
+	public void loadPTA(@SuppressWarnings("unused")	String name)
+	{
+		throw new UnsupportedOperationException();
+	}
+	
 
 	/** Does the learning, returning the result. */
 	public abstract DirectedSparseGraph learnMachine();
@@ -307,5 +318,23 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 
 	public void setQuestionCounter(int questionCnt) {
 		this.questionCounter = questionCnt;
+	}
+
+	protected static void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)
+	{	
+		try
+		{
+			System.out.println("dumping sets");
+			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(output)));
+			encoder.writeObject(sPlus);
+			encoder.writeObject(sMinus);
+			encoder.close();
+			throw new IllegalArgumentException("finished");
+		}
+		catch(FileNotFoundException e)
+		{
+			IllegalArgumentException ex = new IllegalArgumentException("failed to write output file");
+			ex.initCause(e);throw ex;
+		}		
 	}
 }

@@ -66,13 +66,17 @@ public class PathRoutines {
 	
 	/** Computes the ratio of edges in the graph from non-amber states 
 	 * to the total number of possible edges from non-amber states. 
+	 * TODO: to test this.
 	 */
 	public double getExtentOfCompleteness()
 	{
-		int normalEdgeCount = 0;
+		int normalEdgeCount = 0, stateNumber=0;
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			if (entry.getKey().getColour() != JUConstants.AMBER) normalEdgeCount+=entry.getValue().size();
-		return (double)normalEdgeCount/( (coregraph.getStateNumber()-coregraph.getAmberStateNumber()) * coregraph.learnerCache.getAlphabet().size());
+			if (entry.getKey().isAccept() && entry.getKey().getColour() != JUConstants.AMBER) 
+			{
+				normalEdgeCount+=entry.getValue().size();++stateNumber;
+			}
+		return (double)normalEdgeCount/( stateNumber * coregraph.learnerCache.getAlphabet().size());
 	}
 	
 	/** Computes all possible shortest paths from the supplied source state to the supplied target state.
@@ -198,6 +202,60 @@ public class PathRoutines {
 		return pathFound;
 	}
 	
+	/** Computes some of the possible shortest paths from the supplied source state to the supplied target state 
+	 * and returns a sequence of possible sets inputs which can be followed. In other words, 
+	 * a choice of any input from each of the returned sets gives a possible path between
+	 * the requested vertices.
+	 * 
+	 * @param vertSource the source state
+	 * @param vertTarget the target state
+	 * @return sequences of inputs to follow all paths found. Null if a path is not found and an empty list if the target vertex is the same as the source one
+	 */	
+	List<Collection<String>> computePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget)
+	{
+		List<Collection<String>> sequenceOfSets = null;
+
+		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
+		LinkedList<CmpVertex> initPath = new LinkedList<CmpVertex>();initPath.add( vertSource );
+		Queue<LinkedList<CmpVertex>> currentExplorationPath = new LinkedList<LinkedList<CmpVertex>>();// FIFO queue containing paths to states to be explored
+		currentExplorationPath.add(initPath);
+		LinkedList<CmpVertex> currentPath = null;CmpVertex currentVert = null;
+		while(currentVert != vertTarget && !currentExplorationPath.isEmpty())
+		{
+			currentPath = currentExplorationPath.remove();
+			currentVert = currentPath.getLast();
+			if (currentVert != vertTarget)
+				// we have not reached the red state, yet
+				for(CmpVertex targetVertex:coregraph.transitionMatrix.get(currentVert).values())
+					if (!visitedStates.contains(targetVertex))
+					{
+						LinkedList<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(targetVertex);
+						currentExplorationPath.offer(newPath);
+						visitedStates.add(currentVert);
+					}
+		}
+
+		if (currentVert == vertTarget && vertTarget != null)
+		{// the path to the red state has been found.
+			sequenceOfSets = new LinkedList<Collection<String>>();
+			Iterator<CmpVertex> vertIt = currentPath.iterator();
+			CmpVertex prevVert = vertIt.next();
+			while(vertIt.hasNext())
+			{
+				currentVert = vertIt.next();
+				List<String> inputsToMultWith = new LinkedList<String>();
+				for(Entry<String,CmpVertex> entry:coregraph.transitionMatrix.get(prevVert).entrySet())
+					if (entry.getValue() == currentVert)
+						inputsToMultWith.add(entry.getKey());
+				sequenceOfSets.add(inputsToMultWith);
+				prevVert = currentVert;
+			}
+		}
+		
+		return sequenceOfSets;
+	}
+
+
 	/** Computes all possible shortest paths from the supplied source state to the 
 	 * all states in the graph returns a map from a state to the corresponding PTA. The easiest 
 	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;

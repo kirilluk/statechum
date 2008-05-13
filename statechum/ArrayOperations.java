@@ -19,6 +19,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -354,4 +356,23 @@ public class ArrayOperations {
       return true;
     }
 
+    public static Collection<List<String>> sort(Collection<List<String>> data)
+    {
+    	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
+    	Collections.sort(result, new Comparator<List<String>>() {
+
+			public int compare(List<String> o1, List<String> o2) {
+				int len1 = o1.size(),len2 = o2.size();
+				if (len1 < len2) return -1;else if (len1 > len2) return 1;
+				Iterator<String> it1 = o1.iterator(),it2 = o2.iterator();
+				while(it1.hasNext())
+				{
+					int cmpResult = it1.next().compareTo(it2.next());
+					if (cmpResult != 0) return cmpResult;
+				}
+				return 0;
+			}});
+    	return result;
+    }
+    
 }

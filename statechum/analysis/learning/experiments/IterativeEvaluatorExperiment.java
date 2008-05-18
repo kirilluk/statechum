@@ -71,7 +71,6 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			rpg.generatePosNeg(sampleSize, 2);  
 			Collection<List<String>> tests = rpg.getAllSequencesPercentageInterval(0).getData();
-			tests.addAll(rpg.getExtraSequencesPercentageInterval(0).getData());
 			LearnerAccuracyTracker l = new LearnerAccuracyTracker(null,config, graph, tests)
 			{
 				@Override

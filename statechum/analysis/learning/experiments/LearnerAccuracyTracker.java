@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
 import statechum.Configuration;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.StatePair;
@@ -47,7 +49,9 @@ public class LearnerAccuracyTracker extends
 		super(parent,c);
 		results = new ArrayList<List<ResultsContainer>>();
 		config.setDebugMode(true);
-		
+		config.setAskQuestions(false);
+		config.setKlimit(2);
+		config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 		this.tests = tests;
 		
 		this.specfsm = target;
@@ -57,8 +61,10 @@ public class LearnerAccuracyTracker extends
 	@Override
 	protected void debugAction(LearnerGraph lg, int iterations) {
 		super.debugAction(lg, iterations);
-		PosNegPrecisionRecall pr = CompareGraphs.compare(specfsm, lg);
+		//PosNegPrecisionRecall pr = CompareGraphs.compare(specfsm, lg);
+		PosNegPrecisionRecall pr = CompareGraphs.compare(tests, specfsm, lg);
 		double accuracy = CompareGraphs.computeAccuracy(lg, specfsm, tests);
+		//double accuracy = CompareGraphs.computeAccuracy(lg, specfsm, specfsm.wmethod.getFullTestSet(1));
 		ResultsContainer result = new ResultsContainer(accuracy, pr);
 		if(iterations == 1){
 			if(currentResults!=null){
@@ -88,6 +94,18 @@ public class LearnerAccuracyTracker extends
 	}
 	
 	
+	
+	
+	@Override
+	public DirectedSparseGraph learnMachine() {
+		DirectedSparseGraph learnt = super.learnMachine();
+		results.add(currentResults);
+		return learnt; 
+	}
+
+
+
+
 	public class ResultsContainer {
 		private double accuracy;
 		private PosNegPrecisionRecall pr;

@@ -74,6 +74,14 @@ public class CompareGraphs {
 		return precRec.crossWith(engine);
 	}
 	
+	public static PosNegPrecisionRecall compare(Collection<List<String>> tests, LearnerGraph specfsm, LearnerGraph imp){
+		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(imp);
+		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);
+		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
+		partialPTA = partialPTA.cross(tests);
+		return precRec.crossWith(engine);
+	}
+	
 	private static void printTests(Collection<List<String>> tests){
 		for (List<String> list : tests) {
 			System.out.println(list);

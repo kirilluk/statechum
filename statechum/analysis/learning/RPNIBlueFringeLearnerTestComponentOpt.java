@@ -174,12 +174,6 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
 	}
 	
-	protected void debugAction(LearnerGraph lg, @SuppressWarnings("unused") int iterations){
-		if(!config.getDebugMode())
-			return;
-		
-		updateGraph(lg);
-	}
 	
 	/* Note: in order to get the same results from learning as in modified Dec 2007 version 
 	 * on the appropriate branch, the following has to be done:
@@ -348,5 +342,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		if(config.getDebugMode())
 			updateGraph(scoreComputer);
 		return result;
+	}
+
+	public String getResult() {
+		return null;
 	}
 }

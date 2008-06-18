@@ -43,7 +43,7 @@ import statechum.model.testset.PTASequenceEngine;
 
 import edu.uci.ics.jung.graph.impl.*;
 
-public abstract class RPNIBlueFringeLearner  extends Observable {
+public abstract class RPNIBlueFringeLearner  extends Observable implements Learner {
 	protected int questionCounter = 0;
 	
 	protected final Configuration config;
@@ -61,6 +61,13 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 	public Configuration getConfig()
 	{
 		return config;
+	}
+	
+	public void debugAction(LearnerGraph lg, @SuppressWarnings("unused") int iterations){
+		if(!config.getDebugMode())
+			return;
+		notifyObservers(new LearnerState(iterations,lg));
+		updateGraph(lg);
 	}
 	
 	/** Initialises this learner. */

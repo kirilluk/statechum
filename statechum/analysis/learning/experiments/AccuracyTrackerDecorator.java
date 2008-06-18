@@ -19,52 +19,46 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 import java.awt.Frame;
-import java.util.Random;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.analysis.learning.*;
 
-import statechum.Configuration;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.model.testset.*;
 
-public class LearnerAccuracyTracker extends
-		RPNIBlueFringeLearnerTestComponentOpt {
-	
-	
+import statechum.analysis.learning.rpnicore.*;
+import statechum.model.testset.PTASequenceEngine;
+
+public class AccuracyTrackerDecorator extends LearnerDecorator implements Observer{
 
 	protected Collection<List<String>> tests;
 	protected LearnerGraph specfsm;
 	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults;
 	
-	public LearnerAccuracyTracker(Frame parent, Configuration c, LearnerGraph target, Collection<List<String>> tests){
-		super(parent,c);
+	public AccuracyTrackerDecorator(Observable decoratedLearner, LearnerGraph target, Collection<List<String>> tests){
+		super((Learner)decoratedLearner);
+		decoratedLearner.addObserver(AccuracyTrackerDecorator.this);
 		results = new ArrayList<List<ResultsContainer>>();
-		config.setDebugMode(true);
-		config.setAskQuestions(false);
-		config.setKlimit(2);
-		config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
+		/*decoratedLearner.getConfig().setDebugMode(true);
+		decoratedLearner.getConfig().setAskQuestions(false);
+		decoratedLearner.getConfig().setKlimit(2);
+		decoratedLearner.getConfig().setLearnerScoreMode(Configuration.ScoreMode.KTAILS);*/
 		this.tests = tests;
 		
 		this.specfsm = target;
 		this.currentResults = new ArrayList<ResultsContainer>();
 	}
 
-	@Override
-	protected void debugAction(LearnerGraph lg, int iterations) {
-		super.debugAction(lg, iterations);
-		//PosNegPrecisionRecall pr = CompareGraphs.compare(specfsm, lg);
+	
+	public void trackResults(LearnerState ls) {
+		int iterations = ls.getIterations();
+		LearnerGraph lg = ls.getResult();
 		PosNegPrecisionRecall pr = CompareGraphs.compare(tests, specfsm, lg);
 		double accuracy = CompareGraphs.computeAccuracy(lg, specfsm, tests);
-		//double accuracy = CompareGraphs.computeAccuracy(lg, specfsm, specfsm.wmethod.getFullTestSet(1));
 		ResultsContainer result = new ResultsContainer(accuracy, pr);
 		if(iterations == 1){
 			if(currentResults!=null){
@@ -93,16 +87,16 @@ public class LearnerAccuracyTracker extends
 		return returnString;
 	}
 	
-	
-	
-	
-	@Override
+
 	public DirectedSparseGraph learnMachine() {
-		DirectedSparseGraph learnt = super.learnMachine();
+		DirectedSparseGraph learnt = decoratedLearner.learnMachine();
 		results.add(currentResults);
 		return learnt; 
 	}
 
+	public String getResult(){
+		return decoratedLearner.getResult() + resultsToString();
+	}
 
 
 
@@ -125,10 +119,19 @@ public class LearnerAccuracyTracker extends
 		
 
 	}
-	
-	
-	
-	
-	
 
+
+
+	public void init(PTASequenceEngine en, int plus, int minus) {
+		this.decoratedLearner.init(en, plus, minus);
+		
+	}
+
+
+
+	public void update(Observable o, Object arg) {
+		if(arg instanceof LearnerState)
+			trackResults((LearnerState) arg);
+		
+	}
 }

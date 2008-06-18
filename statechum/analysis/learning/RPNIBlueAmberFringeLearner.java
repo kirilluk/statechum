@@ -287,4 +287,8 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		
 		return false;
 	}
+
+	public String getResult() {
+		return null;
+	}
 }

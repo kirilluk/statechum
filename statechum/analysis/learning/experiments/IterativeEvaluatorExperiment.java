@@ -32,15 +32,12 @@ import java.util.Collection;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluator;
-import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluatorGenerator;
-import statechum.analysis.learning.experiments.IncrementalAccuracyAndQuestionsExperiment.Experiment;
-import statechum.analysis.learning.experiments.IncrementalAccuracyAndQuestionsExperiment.RPNIEvaluator;
+import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceSet;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
@@ -70,9 +67,13 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			int sampleSize = (graph.getStateNumber()*4);
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			rpg.generatePosNeg(sampleSize, 2);  
-			Collection<List<String>> tests = rpg.getAllSequencesPercentageInterval(0).getData();
-			LearnerAccuracyTracker l = new LearnerAccuracyTracker(null,config, graph, tests)
-			{
+			//Collection<List<String>> tests = rpg.getExtraSequencesPercentageInterval(0).getData();
+			Collection<List<String>> tests = graph.wmethod.getFullTestSet(1);
+			config.setDebugMode(true);
+			config.setAskQuestions(false);
+			config.setKlimit(2);
+			config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
+			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearnerTestComponentOpt(null,config){
 				@Override
 				protected Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
@@ -82,28 +83,29 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 					questionNumber.addAndGet(1);
 					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
-			};
+			}
+			, graph, tests);
 			
 			
 			
 			sPlus = rpg.getExtraSequencesPercentageInterval(1);sMinus = rpg.getAllSequencesPercentageInterval(1);
 			LearnerGraph learned = learn(l,sMinus);
-
-			result = result + l.resultsToString();
+			
+			result = result + l.getResult();
 
 		}
 		
 		
 		
 
-		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
+		private LearnerGraph learn(Learner l, PTASequenceEngine pta)
 		{
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
 			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 			learningOutcome = l.learnMachine();
-			l.setQuestionCounter(0);
+			//l.setQuestionCounter(0);
 			return new LearnerGraph(learningOutcome,config);
 		}
 	}

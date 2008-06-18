@@ -796,4 +796,10 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	}
 
 
+
+	public String getResult() {
+		return null;
+	}
+
+
 }

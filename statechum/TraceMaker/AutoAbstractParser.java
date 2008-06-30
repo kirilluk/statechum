@@ -44,8 +44,8 @@ public class AutoAbstractParser {
     private String currentLine = "";
     private char NEWLINE = '\n';
     private ArrayList<String> blocks;
-    private int arrayIndex=0;
-    private String arrayString="";
+    
+    
     private String dtracefile_output;
     private ArrayList searchResult = new ArrayList();
    
@@ -83,6 +83,30 @@ public class AutoAbstractParser {
    
 //------------------------------------------------------------------------------------------
 	private void inputTrace(){
+	 
+	 int arrayIndex=0;/*
+	 StringBuffer buffer= new StringBuffer(5*1024);
+	 
+	 try {
+		   BufferedReader in = new BufferedReader(new FileReader(dtracefile_input));
+	        while ((currentLine = in.readLine()) != null) {
+	        //	System.out.println(currentLine);
+	        	if (currentLine.length()==0){
+	        		blocks.add(arrayIndex,buffer.toString()+NEWLINE);
+	        		arrayIndex++;
+	        		buffer= new StringBuffer(5*1024);
+
+	        	} else 
+	        		if (buffer.length() == 0)//don't put a newline on an empty line.
+	        			buffer.append(currentLine); else
+				        buffer.append(NEWLINE+currentLine);
+	        }	        
+	       in.close();
+	       } catch (IOException e) {e.printStackTrace();}
+	   
+	 */
+	 
+	   String arrayString="";	 
 	   try {
 		   BufferedReader in = new BufferedReader(new FileReader(dtracefile_input));
 	        while ((currentLine = in.readLine()) != null) {
@@ -97,6 +121,7 @@ public class AutoAbstractParser {
 	        }	        
 	       in.close();
 	       } catch (IOException e) {e.printStackTrace();}
+	       System.out.println("Trace file: "+dtracefile_input+" read, with "+String.valueOf(blocks.size())+" blocks."); 
 	}
 //------------------------------------------------------------------------------------------	
 private ArrayList findAllIndiciesContaining(String aString)
@@ -402,6 +427,37 @@ private void syncMethods(){
 	}
 
 //------------------------------------------------------------------------------------------;
+	public void parse(){
+		 if(merge_methods)
+			 modifyBlocks(); else
+				 deleteBlocks();
+			 process();
+			 outputTrace();
+	}
+//------------------------------------------------------------------------------------------;
+	public void headers(String _headerOutput){
+	PrintWriter out;
+	try {
+		out = new PrintWriter(_headerOutput);		
+	    for(java.util.Iterator<String> it = blocks.iterator();it.hasNext();){
+		String aBlock = it.next();
+	    out.println(extractDeclare(aBlock));
+	  }
+	} catch (FileNotFoundException e) {		
+		e.printStackTrace();
+	}
+
+	}
+//------------------------------------------------------------------------------------------;	
+	AutoAbstractParser(String _dtrace){
+		 blocks = new ArrayList<String>();	    	    
+		 dtracefile_input=_dtrace;	
+		 //dtracefile_output=_headerOutput;		
+		 
+		 blocks = new ArrayList<String>(60*1024);
+		 inputTrace();
+	}
+//------------------------------------------------------------------------------------------;
 	AutoAbstractParser(String _dtrace,String _outText,
 			           String _absfunction,String _sENTER, 
 			           String _start_method,String _sEXIT, 
@@ -422,7 +478,7 @@ private void syncMethods(){
 	     
 	     merge_methods =  (_merge_methods.toLowerCase().contains("true"));
 	
-		 blocks = new ArrayList<String>();	    	    
+		 blocks = new ArrayList<String>(1024);	    	    
 		 dtracefile_input=_dtrace;	
 		 dtracefile_output=_outText;
 		 
@@ -430,11 +486,7 @@ private void syncMethods(){
 		 
 		 //when we merge methods, we do not want to delete blocks. we may need them later.
 		 //otherwise, delete all unnecessary blocks.
-		 if(merge_methods)
-		 modifyBlocks(); else
-			 deleteBlocks();
-		 process();
-		 outputTrace();
+		
 		 		 
 }
 	

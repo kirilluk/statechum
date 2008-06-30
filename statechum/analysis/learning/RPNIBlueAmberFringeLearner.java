@@ -146,10 +146,10 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			//System.out.println("considering "+pair+" non-amber: "+(newPTA.getStateNumber()-newPTA.getAmberStateNumber()));
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(), temp.paths.getGraph());Visualiser.waitForKey();
 			setChanged();temp.setName("merge_debug"+iterations);
-			updateGraph(temp);
+			//updateGraph(temp);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-
+			debugAction(temp, iterations);
 			if(shouldAskQuestions(score))
 				questions = getQuestions(temp, pair);
 

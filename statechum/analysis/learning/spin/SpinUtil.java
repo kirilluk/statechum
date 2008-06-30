@@ -173,15 +173,18 @@ public class SpinUtil {
 		
 		while (stateIt.hasNext()) {
 			DirectedSparseVertex v = stateIt.next();
-			if (!DeterministicDirectedSparseGraph.isAccept(v))
-				continue;
+			
 			String currentState = v.getUserDatum(JUConstants.LABEL).toString();
 			if (!stateMap.keySet().contains(currentState)) {
 				stateMap.put(currentState, new Integer(stateCounter));
 				stateCounter++;
 			}
-			if(numAcceptingSuccessors(v)==0){
+			if (!DeterministicDirectedSparseGraph.isAccept(v)){
 				sw.write(v + ": false;\n");
+				continue;
+			}
+			if(numAcceptingSuccessors(v)==0){
+				sw.write(v + ": goto end;\n");
 				continue;
 			}
 			else{
@@ -213,9 +216,9 @@ public class SpinUtil {
 			}
 		}
 		
-		sw.write("}\n\ninit {\nrun machine();\n}");
+		sw.write("end: \n\tskip;\n}\n\ninit {\nrun machine();\n}");
 		printLegend(sw, functionMap);
-		generateDefines(functionMap);
+		//generateDefines(functionMap);
 	}
 	
 	private static void generatePromela(List<String> question) {

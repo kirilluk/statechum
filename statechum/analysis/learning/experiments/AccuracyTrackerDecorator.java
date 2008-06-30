@@ -43,12 +43,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator implements Observ
 		super((Learner)decoratedLearner);
 		decoratedLearner.addObserver(AccuracyTrackerDecorator.this);
 		results = new ArrayList<List<ResultsContainer>>();
-		/*decoratedLearner.getConfig().setDebugMode(true);
-		decoratedLearner.getConfig().setAskQuestions(false);
-		decoratedLearner.getConfig().setKlimit(2);
-		decoratedLearner.getConfig().setLearnerScoreMode(Configuration.ScoreMode.KTAILS);*/
 		this.tests = tests;
-		
 		this.specfsm = target;
 		this.currentResults = new ArrayList<ResultsContainer>();
 	}

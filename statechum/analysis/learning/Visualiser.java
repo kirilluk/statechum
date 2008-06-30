@@ -503,7 +503,14 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 	public void update(final Observable s, Object arg){
-		graphs.add( (DirectedSparseGraph)((LearnerGraph)arg).paths.getGraph().copy() );
+		if(arg instanceof LearnerState){
+			LearnerState lg = (LearnerState)arg;
+			graphs.add( (DirectedSparseGraph)lg.getResult().paths.getGraph().copy() );
+		}
+		else{
+			LearnerGraph lg = (LearnerGraph)arg;
+			graphs.add( (DirectedSparseGraph)lg.paths.getGraph().copy() );
+		}
 		currentGraph = graphs.size()-1;
 		SwingUtilities.invokeLater(this);
 	}

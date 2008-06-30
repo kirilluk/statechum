@@ -66,14 +66,16 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 		{
 			int sampleSize = (graph.getStateNumber()*4);
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
-			rpg.generatePosNeg(sampleSize, 2);  
-			//Collection<List<String>> tests = rpg.getExtraSequencesPercentageInterval(0).getData();
+			rpg.generateRandomPosNeg(sampleSize, 2);  
 			Collection<List<String>> tests = graph.wmethod.getFullTestSet(1);
 			config.setDebugMode(true);
+			//config.setAskQuestions(true);
+			//config.setSpeculativeQuestionAsking(true);
 			config.setAskQuestions(false);
-			config.setKlimit(2);
-			config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
-			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearnerTestComponentOpt(null,config){
+			//config.setKlimit(2);
+			//config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
+			config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
+			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLinearLearner(null,config){
 				@Override
 				protected Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
@@ -85,10 +87,8 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 				}
 			}
 			, graph, tests);
-			
-			
-			
-			sPlus = rpg.getExtraSequencesPercentageInterval(1);sMinus = rpg.getAllSequencesPercentageInterval(1);
+			sMinus = rpg.getAllSequencesPercentageInterval(1);
+
 			LearnerGraph learned = learn(l,sMinus);
 			
 			result = result + l.getResult();

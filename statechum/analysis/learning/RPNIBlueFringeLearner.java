@@ -63,7 +63,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 		return config;
 	}
 	
-	public void debugAction(LearnerGraph lg, @SuppressWarnings("unused") int iterations){
+	public void debugAction(LearnerGraph lg, int iterations){
 		if(!config.getDebugMode())
 			return;
 		notifyObservers(new LearnerState(iterations,lg));

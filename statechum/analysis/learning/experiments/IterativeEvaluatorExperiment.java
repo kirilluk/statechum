@@ -69,13 +69,14 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			rpg.generateRandomPosNeg(sampleSize, 2);  
 			Collection<List<String>> tests = graph.wmethod.getFullTestSet(1);
 			config.setDebugMode(true);
-			//config.setAskQuestions(true);
-			//config.setSpeculativeQuestionAsking(true);
-			config.setAskQuestions(false);
+			config.setAskQuestions(true);
+			config.setSpeculativeQuestionAsking(true);
+			config.setMinCertaintyThreshold(2);
+			//config.setAskQuestions(false);
 			//config.setKlimit(2);
 			//config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 			config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
-			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLinearLearner(null,config){
+			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearnerTestComponentOpt(null,config){
 				@Override
 				protected Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,

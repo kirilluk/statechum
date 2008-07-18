@@ -194,10 +194,16 @@ public class Linear {
 		 */ 
 		int sharedSameHightlight = 0;
 		
-		/** Number of shared transitions which lead to accept states. */
+		/** For a specific pair of states, this one contains the number of 
+		 * transitions shared between these two states which also lead to 
+		 * accept states. 
+		 */
 		int sharedOutgoing = 0;
 		
-		/** The total number of outgoing transitions. */
+		/** For a specific pair of states, this one contains the 
+		 *  number of elements of an alphabet used on outgoing transitions 
+		 *  from these two states. 
+		 */
 		int totalOutgoing = 0;
 		
 		/** Counts the number of outgoing transitions from a pair of states with the same label.
@@ -237,8 +243,8 @@ public class Linear {
 	}
 	
 	/** Interprets highlighted states as reject ones in the course of computation of a diagonal;
-	 * where two states are incompatible for a particular matched transition,
-	 * the score they get is zero for it. 
+	 * if a pair of states is incompatible for a particular matched transition,
+	 * such a matched transition is ignored. 
 	 */
 	public static class DDRH_highlight extends DetermineDiagonalAndRightHandSide
 	{
@@ -256,8 +262,8 @@ public class Linear {
 	}
 	
 	/** Interprets highlighted states as reject ones in the course of computation of a diagonal.
-	 * where two states are incompatible for a particular matched transition,
-	 * the score they get is -1 for it. 
+	 * if a pair of states is incompatible for a particular matched transition,
+	 * the score for that pair is set to -1. 
 	 */
 	public static class DDRH_highlight_Neg extends DetermineDiagonalAndRightHandSide
 	{
@@ -422,11 +428,11 @@ public class Linear {
 											// it is not known in advance if any such case occurs, so we have to store
 											// the pairs we encountered and eliminate them. 
 											int sourcePair = coregraph.wmethod.vertexToIntNR(srcB,srcA);// Note that it does not matter if we use the correct one or the wrong one (vertexToInt) call here because all it is used for is to identify pairs, both do this uniquely. The queue of pairs to process gets actual state pairs because it need to map from them to the source states. For this reasaon, we are immune from the wrong call at this point. 
-											if (!sourceData.contains(sourcePair))
+											synchronized (currentExplorationBoundary) 
 											{
-												sourceData.add(sourcePair);
-												synchronized (currentExplorationBoundary) 
+												if (!sourceData.contains(sourcePair))
 												{
+													sourceData.add(sourcePair);
 													currentExplorationBoundary.add(new StatePair(srcB,srcA));
 												}
 											}
@@ -449,6 +455,7 @@ public class Linear {
 		
 		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
 		// this information further, to states which have transitions leading to the currently considered set of states.
+		// This part is not run in parallel on multiple CPUs, hence no need to split the processing and/or lock currentExplorationBoundary
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair pair = currentExplorationBoundary.remove();
@@ -775,21 +782,17 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
   With the above illustration in mind, the code below updates Ap and fills in Ax and Ai.
 */
 
-			if (Ap_threadStart[thread] >=0)
-			{// this thread has actually done some work, hence merge its results into our arrays.
-				
-				int lastPair = Ap_threadStart[thread+1];// the position where the next thread has started (or would've started if it was not the last thread).
-				for(int i=Ap_threadStart[thread];i<lastPair;++i)
-					Ap[i]+=prevLastPos;
-				
-				// If a thread had no work to do, currentPosition[thread] would stay at zero so we shall not corrupt anything,
-				// but Ai_array[thread] may be null, so we'd best check for "no work".
-				if (currentPosition[thread]>0)
-				{
-					System.arraycopy(Ai_array[thread].elements(), 0, Ai, prevLastPos, currentPosition[thread]);
-					System.arraycopy(Ax_array[thread].elements(), 0, Ax, prevLastPos, currentPosition[thread]);
-					prevLastPos+=currentPosition[thread];
-				}
+			int lastPair = Ap_threadStart[thread+1];// the position where the next thread has started (or would've started if it was not the last thread).
+			for(int i=Ap_threadStart[thread];i<lastPair;++i)
+				Ap[i]+=prevLastPos;
+			
+			// If a thread had no work to do, currentPosition[thread] would stay at zero so we shall not corrupt anything,
+			// but Ai_array[thread] may be null, so we'd best check for "no work".
+			if (currentPosition[thread]>0)
+			{
+				System.arraycopy(Ai_array[thread].elements(), 0, Ai, prevLastPos, currentPosition[thread]);
+				System.arraycopy(Ax_array[thread].elements(), 0, Ax, prevLastPos, currentPosition[thread]);
+				prevLastPos+=currentPosition[thread];
 			}
 		}
 		Ap[pairsNumber]=prevLastPos;

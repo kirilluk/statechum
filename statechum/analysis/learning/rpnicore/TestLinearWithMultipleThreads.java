@@ -124,7 +124,7 @@ public class TestLinearWithMultipleThreads {
 					if (toB != null)
 					{
 						++outgoingMatched;
-						int targetStatePair = gr.wmethod.vertexToInt(targetsA.getValue(), toB);
+						int targetStatePair = gr.wmethod.vertexToIntNR(targetsA.getValue(), toB);
 						result.setQuick(currentStatePair,targetStatePair,result.getQuick(currentStatePair, targetStatePair)-gr.config.getAttenuationK());
 					}
 				}

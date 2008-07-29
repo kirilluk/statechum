@@ -18,7 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
-import java.awt.Frame;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

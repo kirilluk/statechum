@@ -162,7 +162,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer.firstElem == USER_CANCELLED)
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
@@ -170,7 +170,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				
 				CmpVertex tempVertex = temp.getVertex(question);
 				
-				if(answer.firstElem == USER_ACCEPTED)
+				if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					//sPlus.add(question);
 					newPTA.paths.augmentPTA(question, true,JUConstants.AMBER);++plusSize;
@@ -208,7 +208,8 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				//System.out.println("restart at pair "+pair+", currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
 				if (config.isSpeculativeQuestionAsking())
 					if (speculativeGraphUpdate(possibleMerges, newPTA))
-						return null;
+						return null;// this is the case when a user cancels the learning process when presented by "speculative" questions.
+				
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				scoreComputer.clearColoursButAmber();
 				//System.out.println("finished with speculative update, currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
@@ -263,13 +264,13 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 					{
 						Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 						this.questionCounter++;
-						if (answer.firstElem == USER_CANCELLED)
+						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");
 							return true;
 						}
 						
-						if(answer.firstElem == USER_ACCEPTED)
+						if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 						{
 							newPTA.paths.augmentPTA(question, true,JUConstants.AMBER);++plusSize;
 						}

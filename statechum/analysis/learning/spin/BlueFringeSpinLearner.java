@@ -129,14 +129,14 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 					answer = checkWithEndUser(scoreComputer.paths.getGraph(), question, new Object[] { "LTL"});
 				
 				this.questionCounter++;
-				if (answer.firstElem == USER_CANCELLED) {
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
 					System.out.println("CANCELLED");
 					return null;
 				}
 
 				CmpVertex tempVertex = temp.getVertex(question);
 
-				if (answer.firstElem == USER_ACCEPTED) {
+				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) {
 					++counterAccepted;
 					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
 						ptaHardFacts.paths.augmentPTA(question, true,null);
@@ -179,7 +179,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 							restartLearning = RestartLearningEnum.restartSOFT;
 						break;
 					}
-				} else if(answer.firstElem == USER_LTL){
+				} else if(answer.firstElem == AbstractOracle.USER_LTL){
 					String newLtl = answer.secondElem;
 					if (newLtl == null) newLtl = JOptionPane.showInputDialog("New LTL formula:");
 					if(newLtl != null && newLtl.length() != 0){
@@ -294,7 +294,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
 
 		final List<String> questionList = beautifyQuestionList(question);
-		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
+		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
 
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
@@ -340,9 +340,9 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 										&& options[i] != value; ++i)
 									;
 								if (i == options.length)
-									i = USER_CANCELLED;// nothing was chosen
+									i = AbstractOracle.USER_CANCELLED;// nothing was chosen
 								else
-									i = USER_ACCEPTED - i;// to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers
+									i = AbstractOracle.USER_ACCEPTED - i;// to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers
 
 								// one of the choices was made, determine which
 								// one and close the window
@@ -383,7 +383,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				}
 			});
 			synchronized (answer) {
-				while (answer.get() == USER_WAITINGFORSELECTION)
+				while (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION)
 					answer.wait();// wait for a user to make a response
 			}
 		} catch (InvocationTargetException e) {
@@ -395,9 +395,9 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 			// if we are interrupted, return a negative number - nothing do not
 			// know what else to do about it.
 		}
-		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an
+		if (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) // this one if an
 														// exception was thrown
-			answer.getAndSet(USER_CANCELLED);
+			answer.getAndSet(AbstractOracle.USER_CANCELLED);
 		return new Pair<Integer,String>(answer.get(),null);
 	}
 

@@ -18,13 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Observer;
-
-import statechum.Configuration;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 import edu.uci.ics.jung.graph.impl.*;
 

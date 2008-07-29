@@ -81,7 +81,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 			}
 			methodStack.push(toMethod);
 		}
-		return new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null);
+		return new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null);
 	}
 	
 	private List<Type> getTypes(String params){

@@ -38,7 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
@@ -968,7 +968,7 @@ public class PathRoutines {
 			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
 				return pos;
 		}
-		return current.isAccept()? RPNIBlueFringeLearner.USER_ACCEPTED:pos;
+		return current.isAccept()? AbstractOracle.USER_ACCEPTED:pos;
 	}
 	
 	/** Traces a path in a graph and returns the entered state; null if a path does not exist.
@@ -998,7 +998,7 @@ public class PathRoutines {
 	{// TODO: I think this should only be used for testing of PTATestSequenceEngine and the like.
 		int pos = tracePath(path);
 		List<String> seq = path;
-		assert(pos == RPNIBlueFringeLearner.USER_ACCEPTED || pos < path.size());
+		assert(pos == AbstractOracle.USER_ACCEPTED || pos < path.size());
 		if (pos >= 0)
 				seq = path.subList(0, pos+1);// up to a rejected position plus one
 		return seq;

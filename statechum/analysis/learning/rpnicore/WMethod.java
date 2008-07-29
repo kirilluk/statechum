@@ -30,7 +30,7 @@ import junit.framework.Assert;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
@@ -915,8 +915,8 @@ public class WMethod {
 						int aResult = coregraph.paths.tracePath(path, stateA),
 							bResult = coregraph.paths.tracePath(path, stateB);
 						
-						if ( (aResult == RPNIBlueFringeLearner.USER_ACCEPTED && bResult >= 0) ||
-								(bResult == RPNIBlueFringeLearner.USER_ACCEPTED && aResult >= 0))
+						if ( (aResult == AbstractOracle.USER_ACCEPTED && bResult >= 0) ||
+								(bResult == AbstractOracle.USER_ACCEPTED && aResult >= 0))
 							foundString = true;
 					}
 					

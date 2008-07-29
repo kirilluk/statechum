@@ -33,9 +33,7 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.Configuration.QuestionGeneratorKind;
@@ -167,7 +165,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		scoreComputer = LearnerGraph.loadGraph(name, Configuration.getDefaultConfiguration());
 	}
 	
-	public String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
+	public static String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
 	{
 		Set<List<String>> newInQS = new HashSet<List<String>>();newInQS.addAll(seqNew);newInQS.removeAll(seqOrig); 
 		Set<List<String>> newInOrig = new HashSet<List<String>>();newInOrig.addAll(seqOrig);newInOrig.removeAll(seqNew);
@@ -256,7 +254,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer.firstElem == USER_CANCELLED)
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
@@ -264,7 +262,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				
 				CmpVertex tempVertex = temp.getVertex(question);
 				
-				if(answer.firstElem == USER_ACCEPTED)
+				if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					++counterAccepted;
 					//sPlus.add(question);

@@ -423,7 +423,7 @@ abstract public class AbstractExperiment
 	/**
 	 * For dual-core operation, VM args should be -ea -Xmx1600m -Xms300m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2
 	 * Quad-core would use -Dthreadnum=4 instead.
-	 * 
+	 * <p/>
 	 * There are multiple modes of operation, process graphs, generate data for processing 
 	 * and dump sets to files, load data from files and process them, using a user-chosen learner. 
 	 * 

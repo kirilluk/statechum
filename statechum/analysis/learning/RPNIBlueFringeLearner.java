@@ -176,6 +176,10 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 		if (dialog != null && jop != null && dialog.isVisible())
 			jop.setValue(new Integer(
                     JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
+		// The setting of the option above corresponds to hitting "close" or "ESC" on the dialogue, 
+		// which is interpreted by the learner as a request to terminate learning, hence
+		// the learner stops and the corresponding thread terminates. For this reason, 
+		// it is appropriate to issue a .join() on the learner thread. 
 	}
 	
 	/** Stores recorded answers. */
@@ -189,12 +193,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 	{
 		ans = a;
 	}
-	
-	public static final int USER_CANCELLED = -2;
-	public static final int USER_ACCEPTED = -3;
-	public static final int USER_LTL = -4;
-	public static final int USER_WAITINGFORSELECTION = -1;
-	
+		
 	public final static String QUESTION_AUTO = "<auto>"; 
 	public final static String QUESTION_SPIN = "<spin>"; 
 	public final static String QUESTION_USER = "<USER>"; 
@@ -230,7 +229,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
 
 		final List<String> questionList = beautifyQuestionList(question);
-		final AtomicInteger answer = new AtomicInteger(USER_WAITINGFORSELECTION);
+		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
 		updateGraph(model);
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
@@ -265,9 +264,9 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 							{
 								int i = 0;for(;i < options.length && options[i] != value;++i);
 									if (i == options.length)
-										i = USER_CANCELLED;// nothing was chosen
+										i = AbstractOracle.USER_CANCELLED;// nothing was chosen
 									else
-										i = USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
+										i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
 									
 								// one of the choices was made, determine which one and close the window
 								answer.getAndSet( i );
@@ -303,7 +302,7 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 				}
 			});
 			synchronized (answer) {
-				while(answer.get() == USER_WAITINGFORSELECTION)
+				while(answer.get() == AbstractOracle.USER_WAITINGFORSELECTION)
 						answer.wait();// wait for a user to make a response
 			}
 		} catch (InvocationTargetException e) {
@@ -314,8 +313,8 @@ public abstract class RPNIBlueFringeLearner  extends Observable implements Learn
 			
 			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
 		}
-		if (answer.get() == USER_WAITINGFORSELECTION) // this one if an exception was thrown
-			answer.getAndSet(USER_CANCELLED);
+		if (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) // this one if an exception was thrown
+			answer.getAndSet(AbstractOracle.USER_CANCELLED);
 		return new Pair<Integer,String>(answer.get(),null);
 	}
 	

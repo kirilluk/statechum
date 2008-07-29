@@ -698,11 +698,15 @@ public class LearnerGraph {
 
 	/** This one does not compare configuration or IDs - only states/transitions 
 	 * are compared. I think this is best, however note that it is not a 
-	 * congruence: doing an "augment pta" may hence add vertices with different
+	 * congruence: <ul>
+	 * <li>doing an "augment pta" may hence add vertices with different
 	 * numbers and hence previously identical graphs will become different.
 	 * I think that despite this problem, it is important to be able to consider
-	 * graphs with isomorphic transition diagrams to be the same.
-	 *    
+	 * graphs with isomorphic transition diagrams to be the same.</li>
+	 * <li>configurations are not compared, hence two graphs may behave differently 
+	 * when I try to learn using them.</li>
+	 * </ul>
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override

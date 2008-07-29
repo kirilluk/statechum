@@ -87,7 +87,7 @@ public class RPNIBlueFringeSootLearner extends
 						restartLearning = true;break;
 					}
 				}
-				else if(answer.firstElem == USER_ACCEPTED)
+				else if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					++counterAccepted;
 					newPTA.paths.augmentPTA(question, true,null);++plusSize;

@@ -72,13 +72,13 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
 				Pair<Integer,String> answer = checkWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer.firstElem == USER_CANCELLED)
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
 				}
 				Vertex tempVertex = getVertex(temp, question);
-				if(answer.firstElem == USER_ACCEPTED){
+				if(answer.firstElem == AbstractOracle.USER_ACCEPTED){
 					sPlus.add(question);
 					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					
@@ -101,7 +101,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 						restartLearning = true;break;
 					}
 				}
-				else if (answer.firstElem == USER_ACCEPTED-1){
+				else if (answer.firstElem == AbstractOracle.USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);
 					if(sPlus == null)
 						return model;

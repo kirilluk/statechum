@@ -98,9 +98,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
 		for(String [] path:minus)
-			assert RPNIBlueFringeLearner.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
 		// Visualiser.getVisualiser()
 		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 		{

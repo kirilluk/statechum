@@ -62,7 +62,7 @@ public class StoredAnswers implements AbstractOracle
 							lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null)
 						throwEx(line);
 					
-					answers.put(text, new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null));
+					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
 				}
 				else
 					if (lexer.group(GROUP_NO) != null)
@@ -76,7 +76,7 @@ public class StoredAnswers implements AbstractOracle
 					{
 						if (lexer.group(GROUP_LTL) == null || lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0)
 							throwEx(line);
-						answers.put(text, new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
+						answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
 					}
 			}			
 			line = reader.readLine();

@@ -57,7 +57,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("[test] <yes>"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 	
 	@Test
@@ -92,7 +92,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("  [test] <ltl> some ltl formula"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 
 	@Test
@@ -101,7 +101,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl, formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl, formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
 
 
@@ -174,12 +174,12 @@ public class TestLoadAnswers {
 		));
 		Assert.assertEquals(7,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
 		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
 		Assert.assertEquals(new Pair<Integer,String>(2,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","a", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
 		Assert.assertEquals(null, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl 1"), sa.getAnswer(Arrays.asList(new String[]{" difficult one"})));
-		Assert.assertEquals(new Pair<Integer,String>(RPNIBlueFringeLearner.USER_LTL,"some ltl 2"), sa.getAnswer(Arrays.asList(new String[]{" difficult second one"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(Arrays.asList(new String[]{" difficult one"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(Arrays.asList(new String[]{" difficult second one"})));
 	}
 }

@@ -23,10 +23,24 @@ import java.util.List;
 import statechum.Pair;
 
 public interface AbstractOracle {
-	
+	/** Used in an interface to indicate that a user wishes to abort the leaning process. */
+	public static final int USER_CANCELLED = -2;
+	/** Means that the path is a possible one - invalid paths are indicated with
+	 *  non-negative integers reflecting the position in the question of the first 
+	 *  input which is not possible. This way, a response of zero means that the 
+	 *  first input is not possible from the initial state of the model being learnt. 
+	 */   
+	public static final int USER_ACCEPTED = -3;
+	/** Means that a user wishes to provide an LTL expression to answer this and more questions. 
+	 *TODO: change the type to an Object so that one could offer LearnerGraphs to be merged into the model being learnt (reflecting the paper on a "more expressive teacher in L*")
+	 */
+	public static final int USER_LTL = -4;
+	/** Default value for a dialog box. */
+	public static final int USER_WAITINGFORSELECTION = -1;
+
 	/** Retrieves a stored answer. 
-	 * This can either be a number corresponding to accept/reject or a 
-	 * string representation of an LTL formula or something else. 
+	 * This can either be a number corresponding to accept/reject (in which case the string part should be null) or 
+	 * USER_LTL in the integer part and a string representation of an LTL formula. 
 	 */
 	public Pair<Integer,String> getAnswer(List<String> question);
 }

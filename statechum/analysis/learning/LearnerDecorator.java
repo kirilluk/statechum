@@ -17,7 +17,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
 package statechum.analysis.learning;
-import statechum.analysis.learning.*;
 
 public abstract class LearnerDecorator implements Learner {
 	

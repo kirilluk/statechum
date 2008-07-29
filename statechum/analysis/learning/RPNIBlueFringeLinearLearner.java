@@ -21,7 +21,6 @@ import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceSet;
@@ -107,7 +106,7 @@ public class RPNIBlueFringeLinearLearner extends
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
-				if (answer.firstElem == USER_CANCELLED)
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
 					return null;
@@ -115,7 +114,7 @@ public class RPNIBlueFringeLinearLearner extends
 				
 				CmpVertex tempVertex = temp.getVertex(question);
 				
-				if(answer.firstElem == USER_ACCEPTED)
+				if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					++counterAccepted;
 					//sPlus.add(question);

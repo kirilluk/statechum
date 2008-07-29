@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -304,7 +304,7 @@ public class TestRandomPathGenerator {
 				Assert.assertEquals("chunk "+i+" (pos) should be of length "+(posOrNegPerChunk*(i+1))+" but it was "+currentPos.size(),(posOrNegPerChunk*(i+1)), currentPos.size());
 				Assert.assertEquals((posOrNegPerChunk*(i+1)), generator.getExtraSequences(i).getData().size());// all seq accept ones
 				for(List<String> s:currentPos)
-					Assert.assertTrue("path "+s+" should exist",graph.paths.tracePath(s) == RPNIBlueFringeLearner.USER_ACCEPTED);
+					Assert.assertTrue("path "+s+" should exist",graph.paths.tracePath(s) == AbstractOracle.USER_ACCEPTED);
 				if (previousChunkPos != null) currentPos.containsAll(previousChunkPos);
 				previousChunkPos = currentPos;
 			}

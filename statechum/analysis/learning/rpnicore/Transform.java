@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -259,7 +259,7 @@ public class Transform {
 	{
 		List<Boolean> result = new LinkedList<Boolean>();
 		for(List<String> seq:wSet)
-			result.add(g.paths.tracePath(seq,state) == RPNIBlueFringeLearner.USER_ACCEPTED);
+			result.add(g.paths.tracePath(seq,state) == AbstractOracle.USER_ACCEPTED);
 		return result;
 	}
 	

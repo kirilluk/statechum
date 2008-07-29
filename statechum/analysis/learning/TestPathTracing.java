@@ -127,25 +127,25 @@ public class TestPathTracing {
 	@Test
 	public void testTracePath()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{}, RPNIBlueFringeLearner.USER_ACCEPTED,"A",config);
+		checkPath("A-a->B-b->C-c->D", new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config);
 	}
 	
 	@Test
 	public void testTracePath1a()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, RPNIBlueFringeLearner.USER_ACCEPTED,"B",config);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, AbstractOracle.USER_ACCEPTED,"B",config);
 	}
 	
 	@Test
 	public void testTracePath1b()
 	{
-		checkPathFrom("A-a->B-b->C-c->D","B",new String[]{"b"},RPNIBlueFringeLearner.USER_ACCEPTED,"C",config);
+		checkPathFrom("A-a->B-b->C-c->D","B",new String[]{"b"},AbstractOracle.USER_ACCEPTED,"C",config);
 	}
 	
 	@Test
 	public void testTracePath2a()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, RPNIBlueFringeLearner.USER_ACCEPTED,"D",config);
+		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, AbstractOracle.USER_ACCEPTED,"D",config);
 	}
 	
 	@Test

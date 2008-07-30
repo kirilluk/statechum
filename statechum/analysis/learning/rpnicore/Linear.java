@@ -571,13 +571,6 @@ public class Linear {
 		handlerList.add(new HandleRow()
 		{
 			IntArrayList tmpAi = null;
-			//long sourcePairEncountered[] = null;
-			/** sourcePairEncountered is a set of state pairs which has to be frequently reset. For this reason,
-			 * we assign uniqueValueForsourcePairEncountered values to elements of the state pairs.
-			 *  uniqueValueForsourcePairEncountered gets incremented whenever we need to reset the set. 
-			 *  The maximal number is number of state pairs x number of inputs.
-			 */
-			long uniqueValueForSourcePairEncountered = 0;
 			
 			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
 			int prevStatePairNumber =-1;
@@ -637,7 +630,7 @@ public class Linear {
 								{// matched pair of transitions, now we need to build a cross-product 
 								 // of the states leading to the current pair of states, that is,
 								 // to (entryA.getKey(),stateB)
-									uniqueValueForSourcePairEncountered++;sourceData.clear();
+									sourceData.clear();
 									
 									int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
 									if (tmpAi.elements().length < maxSize)

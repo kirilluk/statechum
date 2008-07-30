@@ -10,13 +10,13 @@
    <string>true</string> 
   </void> 
   <void method="put"> 
-   <string>EXTERNALSOLVER</string> 
-   <string>true</string> 
-  </void> 
-  <void method="put"> 
    <string>STOP</string> 
    <string>testNewLearner_2_1aa</string> 
-  </void> 
+  </void>
+  <void method="put"> 
+   <string>LINEARWARNINGS</string> 
+   <string>true</string> 
+  </void>
  </object> 
  <object class="java.util.HashMap"> 
   <void method="put"> 

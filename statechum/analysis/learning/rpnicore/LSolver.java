@@ -181,7 +181,7 @@ public class LSolver
 		
 	}
 	
-	/** Deallocates tll arrays except the result. */
+	/** Sets all working arrays to null; the result is unchanged. */
 	public void freeAllButResult()
 	{
 		j_Ap=null;j_Ai=null;j_Ax=null;j_b=null;
@@ -193,13 +193,17 @@ public class LSolver
 	/** Solves the system of equations, placing the solution in the x array. For details, refer to UMFPACK manual. */
 	static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
 	
-	/** Allocates the memory for use by the solver. */
+	/** Allocates the memory for use by the solver. This was introduced to 
+	 * combat "out-of-memory" errors on 32-bit WinXP but was not useful for this purpose. 
+	 */
 	//private static native boolean extmalloc(int n,int c);
 	
 	/** Enables (>1) or disables (=0) iterative refinement. */
 	static native boolean setIRStep(int ir);
 	
-	/** Solves the system of equations using the external solver. */
+	/** Solves the system of equations using the external solver throws if 
+	 * external library cannot be found. Use <em>solve()</em> if you want
+	 * a fallback on Colt when external library is not available. */
 	public boolean solveExternally()
 	{
 		boolean result = false;
@@ -225,7 +229,7 @@ public class LSolver
 		}
 	}
 */
-	/** Solves the system of equations using the external solver, 
+	/** Solves the system of equations using the external solver 
 	 * if it is available, otherwise falls back on Colt.
 	 * 
 	 * Throws IllegalArgumentException of the matrix is singular.
@@ -252,6 +256,13 @@ public class LSolver
 			solveUsingColt();
 	}
 
+	/** Solves the system using Colt, to be used only as a fallback when external solver is
+	 * not available. Justification: construction of matrices is optimized for the 
+	 * external solver, hence we spend time building them in conformance to the specific
+	 * format expected by the external solver and then we have to convert them 
+	 * to Colt format, followed by running Colt itself. Hence all this is
+	 * extremely slow.
+	 */  
 	public void solveUsingColt()
 	{
 		LUDecompositionQuick solver = new LUDecompositionQuick();
@@ -339,19 +350,23 @@ public class LSolver
 			j_Ai[idx]=CoordY.getQuick(i);j_Ax[idx]=values.getQuick(i);
 		}
 	}
-	
-	/** Converts this matrix to Colt format, for a fall back on Colt when external solver is not found. */
+
+	/** Converts this matrix to Colt format, for a fall back on Colt when 
+	 * external solver is not found as well as for testing. 
+	 */
 	public DoubleMatrix2D toDoubleMatrix2D()
 	{
 		DoubleMatrix2D result = DoubleFactory2D.sparse.make(j_Ap.length-1, j_Ap.length-1);
 		for(int y=0;y<j_Ap.length-1;++y)
 			for(int i=j_Ap[y];i<j_Ap[y+1];++i)
 				result.setQuick(j_Ai[i],y, j_Ax[i]);
-		
+
 		return result;
 	}
 
-	/** Converts the "b" vector to Colt format, for a fall back on Colt when external solver is not found. */
+	/** Converts the "b" vector to Colt format, for a fall back on Colt when 
+	 * external solver is not found as well as for testing. 
+	 */
 	public DoubleMatrix1D toDoubleMatrix1D()
 	{
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(j_b);

@@ -297,7 +297,6 @@ public class PathRoutines {
 		{
 			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
 			visitedStates.add(currentVert);
-			//System.out.println(currentVert);
 			for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
 			{
 				CmpVertex nextState = entry.getKey();
@@ -309,11 +308,11 @@ public class PathRoutines {
 					int existingdepth = existingDepth == null? currentdepth:existingDepth.intValue();
 					assert existingdepth <= currentPath.size()+1;
 					if (existingdepth == currentdepth)
-					{// the path was found in the course of the current wave
+					{// the path was found in the course of the current wave rather than earlier
 							
 						PTASequenceEngine.SequenceSet sequenceset = stateToPathMap.get(nextState);
 						if (sequenceset == null)
-						{
+						{// no path to the next state has yet been recorded hence create an empty collection
 							sequenceset = engine.new SequenceSet();stateToPathMap.put(nextState,sequenceset);stateToDepthMap.put(nextState,currentdepth);
 						}
 						// now we need to go through all our states in a path and update pathsToVertSource
@@ -325,7 +324,7 @@ public class PathRoutines {
 							curr = tgt;
 						}
 						paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(nextState));
-						sequenceset.unite( paths );// update the result.
+						sequenceset.unite( paths );// update the collection of paths leading to the next state.
 					}
 				
 					if (!visitedStates.contains(nextState))
@@ -770,7 +769,8 @@ public class PathRoutines {
 			}									
 	}
 	
-	/** Checks that non-red states form a tree, i.e. they have exactly one incoming edge and there are no
+	/** Checks that non-red states form a tree, i.e. they have exactly one 
+	 * incoming edge and there are no
 	 * disconnected states. Arguments after mergeResult are used to check 
 	 * what happened when the mergeResult fails to be a tree.
 	 * 
@@ -950,11 +950,29 @@ public class PathRoutines {
 		return rejectVertex != null;
 	}
 
+	/** Navigates a path from the initial state and either returns 
+	 * RPNIBlueFringeLearner.USER_ACCEPTED if it is a valid path or the
+	 * position of the first element on the path which does not 
+	 * exist.
+	 * @param path path to traverse
+	 * @param startState the state to start from
+	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
+	 * of the first non-existing element.
+	 */
 	public int tracePath(List<String> path)
 	{
 		return tracePath(path,coregraph.init);
 	}
 	
+	/** Navigates a path from the supplied state and either returns 
+	 * RPNIBlueFringeLearner.USER_ACCEPTED if it is a valid path or the
+	 * position of the first element on the path which does not 
+	 * exist.
+	 * @param path path to traverse
+	 * @param startState the state to start from
+	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
+	 * of the first non-existing element.
+	 */
 	public int tracePath(List<String> path, CmpVertex startState)
 	{
 		CmpVertex current = startState;

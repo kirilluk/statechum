@@ -89,7 +89,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 			iterations++;
 			// populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			
+			LearnerGraph temp = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();

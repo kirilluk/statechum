@@ -1,0 +1,66 @@
+active  
+
+# traces from process 1       
++ c h w h w w w         
++ c h w w w           
++ c h w w w           
++ c h w h w w w w        
++ c h w ra h w w w c h w h w w w 
++ c h w h w w w w w       
++ c h w w w c h w h w ra l    
++ c h w h w w w w w w      
++ c h w h w w w w w       
++ c h w h w w w         
++ c h h             
++ c h              
++ c h h             
++ c h c h h ra l         
++ c h              
++ c h c h h ra l         
+     
+ltl !([]((c)->X(!c)))
+          
+#+ c w w w c w h w ra l rh w w rh w w
+#+ c w w w c w h w ra l      
+#+ c w w w c w h w ra l      
+#+ c w w w c w h w ra l      
+#+ c w w w            
+#+ c w w w            
+#+ c w h w ra l rh w        
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w h w w w rh rh        
+#+ c w h w w w          
+#+ c w w w            
+#+ c w w w c w h w        
+#+ c w              
+#+ c w              
+#+ c w d c w h ra l rh       
+#+ c w d c w h ra l rh       
+#+ c w d c w h ra l rh rh      
+#+ c w              
+#               
+#+ c w w w c w rh w w       
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w rh w w c w rh rh w w w    
+#+ c w w w c w rh w w       
+#+ c w w w            
+#+ c w w w c w rh w w c w rh w w  
+#+ c w w w            
+#+ c w w w            
+#+ c w w w            
+#+ c w w w c w rh w w w rh w    
+#+ c w w w            
+#+ c w w w            
+#+ c w w w c w rh w w       
+#+ c w              
+#+ c w d c w rh          
+#+ c w d c w rh          
+#+ c w d c w rh d c w rh d c w rh  

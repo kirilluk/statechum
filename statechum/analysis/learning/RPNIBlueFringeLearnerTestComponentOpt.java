@@ -181,6 +181,15 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 	 * 4. generate questions using questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
 	 */
 	
+	private String getName(){
+		String name = "machine";
+		if(this.origMinusSize>0)
+			name = name.concat("neg");
+		if(this.config.getAskQuestions())
+			name = name.concat("active");
+		return name;
+	}
+	
 	@Override
 	public DirectedSparseGraph learnMachine() {
 		setAutoOracle();
@@ -192,7 +201,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
-		newPTA.setName("merge_debug"+0);
+		newPTA.setName(getName()+0);
 		updateGraph(newPTA);
 		
 		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
@@ -217,7 +226,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				MergeStates.verifySameMergeResults(tempOrig, tempNew);
 			}
 			
-			setChanged();temp.setName("merge_debug"+iterations);
+			setChanged();temp.setName(getName()+iterations);
 			debugAction(temp, iterations);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
@@ -337,8 +346,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			//System.out.println(possibleMerges);
 		}
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		if(config.getDebugMode())
-			updateGraph(scoreComputer);
+		debugAction(scoreComputer, iterations);
 		return result;
 	}
 

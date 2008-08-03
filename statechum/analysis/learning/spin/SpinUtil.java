@@ -119,7 +119,7 @@ public class SpinUtil {
 				//"-DNOREDUCE", 
 				"-DNOFAIR", "pan.c").toArray());
 			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
-				"-m10000", "-w19", "-A", "-i", "-c1").toArray());
+				"-m10000", "-w19", "-A", "-i").toArray());
 		}
 		else{ //compile pan for checking liveness properties
 			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
@@ -296,13 +296,20 @@ public class SpinUtil {
 					proc.getInputStream()));
 			while ((line = input.readLine()) != null) {
 				SpinData.add(line);
-				if (line.contains("[input")) {
+				if(line.contains("trail ends after"))
+					break;
+				if (line.contains("<valid end state>")&&line.contains("proc  1")){
+					counterExample.add("Dummy");
+					break;
+				}
+				else if (line.contains("[input")) {
 					int inputIndex = line.indexOf("[input =") + 8;
 					int closingBracket = line.indexOf("]", inputIndex);
 					counterExample.add(inverseFunctionMap.get(Integer
 							.valueOf(line.substring(inputIndex,
 									closingBracket).trim())));
-				} else if (line.contains("<<<<<"))
+				} 
+				else if (line.contains("<<<<<"))
 					break;
 
 			}

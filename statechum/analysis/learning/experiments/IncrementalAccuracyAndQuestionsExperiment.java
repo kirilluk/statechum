@@ -6,9 +6,13 @@ package statechum.analysis.learning.experiments;
 
 
 import java.awt.Point;
+import java.beans.XMLEncoder;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -35,9 +39,10 @@ import edu.uci.ics.jung.io.GraphMLFile;
 import edu.uci.ics.jung.utils.UserData;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.analysis.learning.DumpProgressDecorator;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
@@ -163,6 +168,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		
 		public enum FileType { 
 			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
+			TESTDATA {String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
 			LEARNT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_learnt"+".xml"; } }, 
 			MINUS_AND_TEST {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_mt"+".xml"; } }, 
 			RESULT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_result"+".txt"; } };
@@ -208,7 +214,10 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			final AtomicInteger atomicInt = new AtomicInteger(0);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
-				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+				protected int checkWithEndUser(
+						@SuppressWarnings("unused")	DirectedSparseGraph model,
+						List<String> question, 
+						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
 					atomicInt.addAndGet(1);
 					return tracePath(fsm, question);
@@ -235,13 +244,69 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			System.out.println(inputFileName+", "+renumberSeed+", "+percent+", "+prNeg.precision+", "+prNeg.recall+", "+l.getStats()+", "+questionNumber);
 		}
 		
+		public static class PrecRecEvaluation
+		{
+			public PrecRecEvaluation() {}
+			public PrecRecEvaluation(Collection<List<String>> tset, PosNegPrecisionRecall pr)
+			{
+				testSet = tset;pnPrecisionRecall=pr;
+			}
+			
+			Collection<List<String>> testSet = null;
+			PosNegPrecisionRecall pnPrecisionRecall = null;
+			
+			/**
+			 * @return the testSet
+			 */
+			public Collection<List<String>> getTestSet() {
+				return testSet;
+			}
+			
+			/**
+			 * @param testSet the testSet to set
+			 */
+			public void setTestSet(Collection<List<String>> tset) {
+				this.testSet = tset;
+			}
+			
+			/**
+			 * @return the pnPrecisionRecall
+			 */
+			public PosNegPrecisionRecall getPnPrecisionRecall() {
+				return pnPrecisionRecall;
+			}
+			
+			/**
+			 * @param pnPrecisionRecall the pnPrecisionRecall to set
+			 */
+			public void setPnPrecisionRecall(PosNegPrecisionRecall pn) {
+				this.pnPrecisionRecall = pn;
+			}
+		}
+		
 		private PosNegPrecisionRecall computePR(FSMStructure fsm, RPNIBlueFringeLearnerTestComponentOpt l, 
 				WMethod wm, Collection<List<String>> splus, Collection<List<String>> sminus){
 			
-			FSMStructure learned = learn(l,splus, sminus);
+			//FSMStructure learned = learn(l,splus, sminus);
+
+			DirectedSparseGraph learningOutcome = null;
+			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
+			changeParametersOnComputeStateScores(l.getScoreComputer());
+			DumpProgressDecorator testRecorder = null;
+			try {
+				testRecorder = new DumpProgressDecorator(l,new FileWriter(getFileName(FileType.DATA)));
+			} catch (IOException e) {
+				IllegalArgumentException ex = new IllegalArgumentException("failed to construct recording decorator: "+e.getMessage());ex.initCause(e);
+				throw ex;
+			}
+			testRecorder.init(plusPTA, minusPTA.getData());
+			changeParametersOnLearner(l);
+			learningOutcome = testRecorder.learnMachine();
+			l.setQuestionCounter(0);
+			FSMStructure learned = WMethod.getGraphData(learningOutcome);
+
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 			Collection<List<String>> testSet = wm.getFullTestSet();
-
 			PTATestSequenceEngine engineTestSet = new PTA_FSMStructure(fsm);
 			sequenceSet partialPTA = engineTestSet.new sequenceSet();partialPTA.setIdentity();
 			partialPTA = partialPTA.cross(testSet);
@@ -249,47 +314,14 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			PTATestSequenceEngine engineSetMinus = new PTA_FSMStructure(fsm);
 			sequenceSet origMinus = engineSetMinus.new sequenceSet();origMinus.setIdentity();
 			origMinus.cross(sminus);
-		
-			try {
-				computeStateScores.writeGraphML(learned, getFileName(FileType.LEARNT));
-				//XMLEncoder outData = new XMLEncoder(new FileOutputStream(getFileName(FileType.MINUS_AND_TEST)));
-				//outData.writeObject(sminus);
-				//outData.writeObject(testSet);
-				//outData.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		
+
 			precRec.crossWith(engineSetMinus);
-			return precRec.crossWith(engineTestSet);
-		}
-		
-		private FSMStructure learn(RPNIBlueFringeLearnerTestComponentOpt l, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
-			DirectedSparseGraph learningOutcome = null;
-			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
-			changeParametersOnComputeStateScores(l.getScoreComputer());
-			l.init(plusPTA, minusPTA.getData());
+			PosNegPrecisionRecall precisionRecall = precRec.crossWith(engineTestSet);
 			
-			try {
-				computeStateScores.writeGraphML(WMethod.getGraphData(l.getScoreComputer().getGraph()), getFileName(FileType.DATA));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			changeParametersOnLearner(l);
-			//learningOutcome = l.learnMachine();
-			/*if(percent == 30)
-				System.out.print(l.getQuestionCounter()+",");
-			else
-				System.out.println(l.getQuestionCounter());
-			*/
-			l.setQuestionCounter(0);
-			return WMethod.getGraphData(learningOutcome);
+			testRecorder.addSequenceList(DumpProgressDecorator.ELEM_KINDS.ELEM_TESTSET.toString(), testSet);//new PrecRecEvaluation(testSet,precisionRecall));
+			testRecorder.close();
+			return precisionRecall;
 		}
-		
-	
 	}
 
 	/** Stores results of execution of evaluators. */
@@ -423,11 +455,14 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 	
 	static class EvaluatorWithSeed extends RPNIEvaluator
 	{
-		public EvaluatorWithSeed(String inputFile, String outputDir, int instanceID,int arg)
+		public EvaluatorWithSeed(String inputFile, 
+				@SuppressWarnings("hiding")	String outputDir, 
+				@SuppressWarnings("hiding")	int instanceID,int arg)
 		{
 			super(inputFile,outputDir, instanceID);
 			renumberSeed = arg;
 		}
+		
 		@Override
 		protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
 		{
@@ -529,15 +564,13 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		final int NumberMax = fileName.size()*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
-		else
-		{// the number is valid.
-			int learnerStep = fileName.size();
-			int learnerType = Number / learnerStep;
-			int fileNumber = (Number % learnerStep);
-			int percentStage = (Number % learnerStep);
-			results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, Number)));
-			return 0;
-		}
+		// the number is valid.
+		int learnerStep = fileName.size();
+		int learnerType = Number / learnerStep;
+		int fileNumber = (Number % learnerStep);
+		//int percentStage = (Number % learnerStep);
+		results.add(runner.submit(learnerGenerators[learnerType].getLearnerEvaluator(fileName.get(fileNumber), outputDir, Number)));
+		return 0;
 	}
 
 	public int computeMaxNumber(Reader fileNameListReader)

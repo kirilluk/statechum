@@ -1,7 +1,6 @@
 package statechum.analysis.learning;
 
 import java.awt.Frame;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -15,15 +14,9 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import java.beans.XMLEncoder;
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.StringWriter;
 
 import statechum.JUConstants;
-import statechum.xmachine.model.testset.WMethod;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -33,10 +26,11 @@ import edu.uci.ics.jung.utils.UserData;
 import static statechum.analysis.learning.TestRpniLearner.isAccept;
 
 public class RPNIBlueFringeLearnerTestComponentOpt extends
-		RPNIBlueFringeLearnerTestComponent {
+		RPNIBlueFringeLearnerTestComponent implements Learner
+{
 
-	public RPNIBlueFringeLearnerTestComponentOpt(Frame parentFrame) {
-		super(parentFrame);
+	public RPNIBlueFringeLearnerTestComponentOpt(Frame parent) {
+		super(parent);
 	}
 	
 	protected void update(StatePair pair)
@@ -46,7 +40,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(scoreComputer.getGraph());
 	}
 	
-	protected computeStateScores scoreComputer = new computeStateScores(0);
+	//protected computeStateScores scoreComputer = new computeStateScores(0);
 
 	protected int counterAccepted =0, counterRejected =0, counterRestarted = 0, counterEmptyQuestions = 0;
 
@@ -123,12 +117,13 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return result;
 	}
 
-	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
+	public DirectedSparseGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		sPlus = plus;sMinus = minus;
 		scoreComputer.initPTA();
 		scoreComputer.augmentPTA(sMinus, false);
 		scoreComputer.augmentPTA(sPlus, true);
+		return scoreComputer.getGraph();
 	}
 	
 	public computeStateScores getScoreComputer()
@@ -136,12 +131,14 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return scoreComputer;
 	}
 	
-	
-	
 	@Override
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) {
-		init(sPlus, sMinus);
-		return learnMachine();
+	public DirectedSparseGraph learnMachine(
+			@SuppressWarnings("unused")	DirectedSparseGraph model, 
+			@SuppressWarnings("unused") Collection<List<String>> sP, 
+			@SuppressWarnings("unused")	Collection<List<String>> sM) {
+		//init(sPlus, sMinus);
+		//return learnMachine();
+		throw new UnsupportedOperationException();
 	}
 
 	public String getStats()
@@ -149,7 +146,66 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		return counterRestarted+ ", "+ scoreComputer.getExtentOfCompleteness();
 	}
 
-	public DirectedSparseGraph learnMachine() {
+	/** Returns statistics reflecting the learning. 
+	 */
+	public String getResult()
+	{
+		return null;
+	}
+
+	/** Identifies a collection of states to merge, sorted in the order of scores. */
+	public Stack<computeStateScores.PairScore> ChooseStatePairs(computeStateScores graph)
+	{
+		return graph.chooseStatePairs();
+	}
+	
+	/** Given a graph, merges a pair of states from it and returns the result. */
+	public computeStateScores MergeAndDeterminize(computeStateScores original, StatePair pair)
+	{
+		return computeStateScores.mergeAndDeterminize(original, pair);		
+	}
+
+	/** Given a pair of graphs, computes the set of questions to validate the merge which 
+	 * resulted in the second graph
+	 * 
+	 * @param original the original graph
+	 * @param temp the merged graph
+	 * @param pair the pair of states merged in the original graph
+	 */
+	public Collection<List<String>> ComputeQuestions(computeStateScores original, computeStateScores temp, computeStateScores.PairScore pair)
+	{
+		Collection<List<String>> questions = new LinkedList<List<String>>();
+		int score = pair.getScore();
+		if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
+		{
+			questions = sort(original.computeQS(pair, temp));
+			if (questions.isEmpty())
+				++counterEmptyQuestions;
+		} 
+		return questions;
+	}
+
+	/** Displays a tentative graph and asks user a supplied question. 
+	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
+	 */
+	public int CheckWithEndUser(computeStateScores graph, List<String> question, Object [] options)
+	{
+		return checkWithEndUser(graph.getGraph(),question, options);
+	}
+
+	public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) 
+	{
+	}
+	
+	protected computeStateScores scoreComputer = new computeStateScores(0);
+	
+	public DirectedSparseGraph learnMachine() 
+	{
+		return learnMachine(this);
+	}
+	
+	public DirectedSparseGraph learnMachine(Learner topLevelListener) 
+	{
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
 		Map<computeStateScores.PairScore, Integer> scoresToIterations = new HashMap<computeStateScores.PairScore, Integer>();
@@ -162,7 +218,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		setChanged();
 		/*dumpPTA(scoreComputer, "/tmp/initial_pta.xml");
 		 */
-		Stack<computeStateScores.PairScore> possibleMerges = scoreComputer.chooseStatePairs();
+		Stack<computeStateScores.PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		int plusSize = sPlus.size(), minusSize = sMinus.size(), iterations = 0;
 		final int restartOfInterest = -21;
 		
@@ -171,43 +227,18 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			computeStateScores.PairScore pair = possibleMerges.pop();
 			if (counterRestarted == restartOfInterest) System.out.println("merging "+pair);
-			computeStateScores temp = computeStateScores.mergeAndDeterminize(scoreComputer, pair);
+			computeStateScores temp = topLevelListener.MergeAndDeterminize(scoreComputer,pair);
 			setChanged();
-			Collection<List<String>> questions = new LinkedList<List<String>>();
-			int score = pair.getScore();
-			if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
-			{
-				questions = sort(scoreComputer.computeQS(pair, temp));
-				if (questions.isEmpty())
-					++counterEmptyQuestions;
-			} 
+			Collection<List<String>> questions = topLevelListener.ComputeQuestions(scoreComputer,temp,pair);
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
-/*
-			if (counterRestarted == 21 && pair.getQ().getUserDatum(JUConstants.LABEL).equals("P232") &&
-					pair.getR().getUserDatum(JUConstants.LABEL).equals("P23"))
-			{
-				//System.out.println(sort(scoreComputer.computeQS(pair, temp)));
-				dumpPTA(scoreComputer,"/tmp/orig_trouble");
-				dumpPTA(temp,"/tmp/orig_trouble_temp");
-				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a23","a8"})).getUserDatum(JUConstants.LABEL));
-				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a18","a18"})).getUserDatum(JUConstants.LABEL));
-				//System.out.println(scoreComputer.getVertex(Arrays.asList(new String[]{"a8","a21","a18"})).getUserDatum(JUConstants.LABEL));
 
-				//System.out.println(newPTA.getVertex(Arrays.asList(new String[]{"a8","a18","a18","a6"})).getUserDatum(JUConstants.LABEL));
-				//System.out.println(newPTA.getVertex(Arrays.asList(new String[]{"a8","a18","a18","a6","a18"})).getUserDatum(JUConstants.LABEL));
-				scoreComputer.computeQS(pair, temp);
-				
-				System.out.println("reached the strange case");
-			}
-*/
-			
-			//System.out.println(Thread.currentThread()+ " "+pair + " "+questions);
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				String accepted = pair.getQ().getUserDatum(JUConstants.ACCEPTED).toString();
-				int answer = checkWithEndUser(scoreComputer.getGraph(),question, new Object [] {"Test"});
+				int answer = topLevelListener.CheckWithEndUser(scoreComputer,question,new Object[] {"Test"});
+				
 				this.questionCounter++;
 				if (answer == USER_CANCELLED)
 				{
@@ -274,6 +305,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				count.incrementAndGet();
 				restartsToIterations.put(pair, iterations);
 				iterations = 0;
+				topLevelListener.Restart(RestartLearningEnum.restartHARD);
 			}
 			else
 			{
@@ -293,9 +325,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 				}
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);
+				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = scoreComputer.chooseStatePairs();
+			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 			//System.out.println(possibleMerges);
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.getStatistics(true)+" ] ");
@@ -309,7 +342,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		updateGraph(result);
 		return result;
 	}
-	
+/*	
 	protected static void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)
 	{	
 		try
@@ -327,39 +360,49 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			ex.initCause(e);throw ex;
 		}		
 	}
-
+*/
 	@Override
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model,
-			DirectedSparseGraph temp, StatePair pair) {
+	protected List<List<String>> generateQuestions(
+			@SuppressWarnings("unused") DirectedSparseGraph model,
+			@SuppressWarnings("unused") DirectedSparseGraph temp, 
+			@SuppressWarnings("unused")	StatePair pair) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected Stack chooseStatePairs(DirectedSparseGraph g,
-			Collection<List<String>> plus, Collection<List<String>> minus) {
+	protected Stack chooseStatePairs(
+			@SuppressWarnings("unused")	DirectedSparseGraph g,
+			@SuppressWarnings("unused")	Collection<List<String>> plus, 
+			@SuppressWarnings("unused")	Collection<List<String>> minus) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected int computeScore(DirectedSparseGraph original, StatePair blueRed) {
+	protected int computeScore(
+			@SuppressWarnings("unused")	DirectedSparseGraph original, 
+			@SuppressWarnings("unused")	StatePair blueRed) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model,
-			Collection<List<String>> plus, Collection<List<String>> minus) {
+	protected DirectedSparseGraph createAugmentedPTA(
+			@SuppressWarnings("unused")	DirectedSparseGraph model,
+			@SuppressWarnings("unused")	Collection<List<String>> plus, 
+			@SuppressWarnings("unused")	Collection<List<String>> minus) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model,
-			StatePair pair) {
+	protected List<List<String>> generateQuestions(
+			@SuppressWarnings("unused")	DirectedSparseGraph model,
+			@SuppressWarnings("unused")	StatePair pair) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected DirectedSparseGraph mergeAndDeterminize(Graph model,
-			StatePair pair) {
+	protected DirectedSparseGraph mergeAndDeterminize(
+			@SuppressWarnings("unused")	Graph model,
+			@SuppressWarnings("unused")	StatePair pair) {
 		throw new UnsupportedOperationException();
 	}
 	
@@ -381,15 +424,4 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 			}});
     	return result;
     }
-    
-    protected void dumpPTA(computeStateScores what,String name)
-    {
-		try 
-		{
-			computeStateScores.writeGraphML(WMethod.getGraphData(what.getGraph()), name+".xml");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-   }
 }

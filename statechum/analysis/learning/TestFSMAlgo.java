@@ -14,18 +14,33 @@ import junit.framework.JUnit4TestAdapter;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.BeforeClass;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.xmachine.model.testset.WMethod;
+import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
+import edu.uci.ics.jung.io.GraphMLFile;
 import edu.uci.ics.jung.utils.UserData;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +58,9 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import javax.swing.SwingUtilities;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 public class TestFSMAlgo {
 
@@ -200,6 +218,180 @@ public class TestFSMAlgo {
 				init.equals(otherStruct.init);		
 		}
 		
+		/** A loader for the graph - needed to ensure XMLEncoder does not complain. */
+		public static FSMStructure loadGraph_FSMStructure(
+				@SuppressWarnings("unused")	String text)
+		{
+	    	return WMethod.getGraphData(loadGraph_DirectedSparseGraph(text));
+		}
+		
+		/** A loader for the graph - needed to ensure XMLEncoder does not complain. */
+		public static DirectedSparseGraph loadGraph_DirectedSparseGraph(
+				@SuppressWarnings("unused")	String text)
+		{
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	DirectedSparseGraph graph = new DirectedSparseGraph();
+	    	graph.getEdgeConstraints().clear();
+	    	return (DirectedSparseGraph)graphmlFile.load(new StringReader(text));
+		}
+		
+	    protected void save(String name)
+	    {
+			try 
+			{
+				writeGraphML(this, name+".xml");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	    }
+	    
+		/** The standard beginning of our graphML files. */
+		public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";
+		/** The standard ending of our graphML files. */
+		public static final String graphML_end = "</graph></graphml>\n"; 
+		/** a marker for an initial state in a graphML file. */
+		public static final String Initial = "Initial";
+		
+		/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
+		static protected String transformNodeName(FSMStructure fsm,String node)
+		{
+			
+			return (node.equals(fsm.init)? Initial+" ":"")+node; 
+		}
+
+		/** Writes a graph into a graphML file. All vertices are written. */
+		static public void writeGraphML(FSMStructure fsm,String name) throws IOException
+		{
+			FileWriter writer = new FileWriter(name);writeGraphML(fsm,writer);
+		}
+		
+		/** Graphml namespace */
+		protected static final String graphmlNS="gml";
+
+		static protected Element createStateNode(FSMStructure fsm,Document doc, String node)
+		{
+			if ( node.contains(Initial))
+				throw new IllegalArgumentException("Invalid node name "+node);
+			Element nodeElement = doc.createElementNS(graphmlNS,"node");
+			nodeElement.setAttribute("id",transformNodeName(fsm,node));
+			nodeElement.setIdAttribute("id", true);
+			nodeElement.setAttribute("VERTEX", transformNodeName(fsm,node));
+			if (fsm.accept.containsKey(node) && !fsm.accept.get(node)) nodeElement.setAttribute(JUConstants.ACCEPTED.toString(),"false");
+			return nodeElement;
+		}
+		
+		protected static Text endl(Document doc)
+		{
+			return doc.createTextNode("\n");		
+		}
+
+		static public Element createGraphMLNode(FSMStructure fsm,Document doc)
+		{
+			Element graphElement = doc.createElementNS("http://graphml.graphdrawing.org/xmlns/graphml",graphmlNS+":graphml");
+			Element graphTop = doc.createElementNS(graphmlNS,"graph");
+			//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
+			graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
+			graphTop.appendChild(endl(doc));
+			
+			for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
+			{
+				graphTop.appendChild(createStateNode(fsm,doc,vert.getKey()));
+				graphTop.appendChild(endl(doc));
+			}
+			
+			for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
+				for(Entry<String,String> transition:vert.getValue().entrySet())
+				{
+					Element edge = doc.createElement("edge");edge.setAttribute("source", transformNodeName(fsm,vert.getKey()));
+					edge.setAttribute("target", transformNodeName(fsm,transition.getValue()));edge.setAttribute("directed", "true");
+					edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
+					graphTop.appendChild(endl(doc));
+				}
+			return graphElement;
+		}
+		
+		/** Writes a graph into a graphML file. All vertices are written.
+		 * 
+		 * @throws IOException if an I/O error occurs or 
+		 * any vertex has a substring "Initial" in it, because this substring is used to designate 
+		 * an initial state in the graphml file. Most of the time, "Init" is used instead in the graphs.
+		 * @throws ParserConfigurationException 
+		 */
+		static public void writeGraphML(FSMStructure fsm,Writer writer) throws IOException
+		{
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			Document doc = null;
+			try
+			{
+				factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+				factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+				doc = factory.newDocumentBuilder().newDocument();
+			}
+			catch(ParserConfigurationException ex)
+			{
+				IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			}
+			doc.appendChild(createGraphMLNode(fsm, doc));
+			writer.append(doc.toString());
+		}
+
+		static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
+		{
+		    public Graph getGraph() {
+		        return super.getGraph();
+		    }
+			
+		}
+
+		/** Converts DOM collection of attributes to the SAX one.
+		 * @param namedMap what to convert
+		 * @return the SAX collection, ready to be passed to a SAX listener. 
+		 */
+		static protected Attributes Attributes_DOM_to_SAX(NamedNodeMap namedMap)
+		{
+			AttributesImpl collection = new AttributesImpl();
+			if (namedMap != null)
+				for(int i=0;i<namedMap.getLength();++i) 
+				{
+					org.w3c.dom.Node node = namedMap.item(i);
+					collection.addAttribute(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), "attribute", node.getNodeValue());
+				}
+			return collection;
+		}
+		
+		/** Given a node in a document, loads a graph from this node. 
+		 * @param elem the graphml element to load 
+		 */
+		public static Graph loadGraph(Element elem)
+		{
+			if (!elem.getNodeName().equals(graphmlNS+":graphml"))
+				throw new IllegalArgumentException("element does not start with graphml");
+			Element graphElement = (Element)elem.getFirstChild();
+			//System.out.println(graphElement.getLocalName()+ " "+graphElement.getNodeName());
+			if (graphElement == null || !graphElement.getNodeName().equals("graph"))
+				throw new IllegalArgumentException("absent graph element");
+			DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(graphHandler);
+	    	try
+	    	{
+		    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
+		    	NodeList nodes = graphElement.getChildNodes(); 
+		    	for(int i=0;i<nodes.getLength();++i)
+		    	{
+					org.w3c.dom.Node node = nodes.item(i);
+					graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+		    	}
+	    	}
+	    	catch(SAXException e)
+	    	{
+	    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
+	    		throw ex;
+	    	}
+	    	return graphHandler.getGraph();
+		}
 	}
 	
 	@Test

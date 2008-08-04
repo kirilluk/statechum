@@ -22,6 +22,10 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	
 	protected static class PosNegPrecisionRecallNum extends PosNegPrecisionRecall
 	{
+		public PosNegPrecisionRecallNum() {
+			super(new HashSet(),new HashSet(), new HashSet(), new HashSet());
+		}
+		
 // Very strange: if we do not expect any negative (or any positive) sequences, the final precision is always zero.
 		public PosNegPrecisionRecallNum(int pos_Ret, int pos_Rel, int pos_relret, int neg_Ret, int neg_Rel, int neg_relret) {
 			super(new HashSet(),new HashSet(), new HashSet(), new HashSet());

@@ -3,9 +3,6 @@
  */
 package statechum.analysis.learning;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -144,63 +141,6 @@ public class computeStateScores implements Cloneable {
 	public int getStateNumber()
 	{
 		return transitionMatrix.size();
-	}
-
-	/** The standard beginning of our graphML files. */
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";
-	/** The standard ending of our graphML files. */
-	public static final String graphML_end = "</graph></graphml>\n"; 
-	/** a marker for an initial state in a graphML file. */
-	public static final String Initial = "Initial";
-	
-	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
-	static protected String transformNodeName(FSMStructure fsm,String node)
-	{
-		
-		return (node.equals(fsm.init)? Initial+" ":"")+node; 
-	}
-	
-	static protected void writeNode(FSMStructure fsm,Writer writer, String node) throws IOException
-	{
-		if ( node.contains(Initial))
-			throw new IllegalArgumentException("Invalid node name "+node);
-		writer.write("<node id=\""+transformNodeName(fsm,node)+
-				"\" VERTEX=\""+transformNodeName(fsm,node)+"\"");
-		if (fsm.accept.containsKey(node) && !fsm.accept.get(node)) writer.write(" "+JUConstants.ACCEPTED+"=\"false\"");
-		//if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=\"false\"");
-		//if (node.containsUserDatumKey("colour")) writer.write(" colour=\""+node.getUserDatum("colour")+"\"");
-		writer.write("/>\n");
-	}
-	
-	
-	
-	/** Writes a graph into a graphML file. All vertices are written. */
-	static public void writeGraphML(FSMStructure fsm,String name) throws IOException
-	{
-		FileWriter writer = new FileWriter(name);writeGraphML(fsm,writer);
-	}
-	
-	/** Writes a graph into a graphML file. All vertices are written.
-	 * 
-	 * @throws IOException if an I/O error occurs or 
-	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
-	 * an initial state in the graphmp file. Most of the time, "Init" is used instead in the graphs.
-	 */
-	static public void writeGraphML(FSMStructure fsm,Writer writer) throws IOException
-	{
-		writer.write(graphML_header);
-		
-		for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
-				writeNode(fsm,writer, vert.getKey());
-		// Sample initial state entry: <node id="1" VERTEX="Initial State 0" />
-		// For non-initial states, there should be no vertex called "Initial".
-		// Sample edge entry: <edge source="21" target="19" directed="true" EDGE="a1" />
-		for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
-			for(Entry<String,String> transition:vert.getValue().entrySet())
-				writer.write("<edge source=\""+transformNodeName(fsm,vert.getKey())+
-						"\" target=\""+transformNodeName(fsm,transition.getValue())+
-						"\" directed=\"true\" EDGE=\""+transition.getKey()+"\"/>\n");
-		writer.write(graphML_end);writer.close();
 	}
 
 	public static Vertex getTempRed_DijkstraShortestPath(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
@@ -574,8 +514,7 @@ public class computeStateScores implements Cloneable {
 	}
 	
 	/** Important: although compatibility score is recorded and reported, it is ignored in 
-	 * all computations since it is considered for information only. Hence there is no
-	 * getter method for it either.
+	 * all computations since it is considered for information only.
 	 */
 	public static class PairScore extends StatePair implements Comparable
 	{
@@ -586,8 +525,14 @@ public class computeStateScores implements Cloneable {
 			score = sc;compatibilityScore = compat;
 		}
 		
-		public int getScore() {
+		public int getScore() 
+		{
 			return score;
+		}
+		
+		public int getCompatibilityScore()
+		{
+			return compatibilityScore;
 		}
 
 		/* (non-Javadoc)

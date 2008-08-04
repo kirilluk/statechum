@@ -18,15 +18,10 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.HashSet;
-import java.util.Vector;
 import java.util.Collection;
 
 import statechum.Configuration;
@@ -34,15 +29,8 @@ import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.model.testset.PTAExploration;
-import statechum.model.testset.PTASequenceSet;
 import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTA_FSMStructure;
-import statechum.model.testset.PTA_computePrecisionRecall;
-import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {	

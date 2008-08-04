@@ -100,7 +100,7 @@ public class Benchmarklinear {
 		 */
 	}
 	
-	public static void mainA(String[] args)
+	public static void mainA(@SuppressWarnings("unused") String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph graph = null;

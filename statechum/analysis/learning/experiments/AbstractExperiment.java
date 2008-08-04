@@ -21,6 +21,7 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,7 +48,6 @@ import java.util.concurrent.Future;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import edu.uci.ics.jung.io.GraphMLFile;
 
 abstract public class AbstractExperiment 
 {
@@ -178,12 +178,15 @@ abstract public class AbstractExperiment
 		
 		protected void loadGraph()
 		{
-			synchronized (LearnerGraph.syncObj) 
-			{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-		    	GraphMLFile graphmlFile = new GraphMLFile();
-		    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-		    	Configuration cnf = (Configuration)config.clone();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
-		    	graph = new LearnerGraph(graphmlFile.load(inputFileName),cnf);
+			Configuration cnf = (Configuration)config.clone();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
+			try
+			{
+				graph = LearnerGraph.loadGraph(new FileReader(inputFileName),cnf);
+			}
+			catch(FileNotFoundException ex)
+			{
+				IllegalArgumentException e = new IllegalArgumentException("could not load "+inputFileName);
+				e.initCause(ex);throw e;
 			}
 		}
 

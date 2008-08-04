@@ -34,9 +34,31 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Text;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.io.GraphMLFile;
+
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -67,59 +89,153 @@ public class Transform {
 		return distance;
 	}
 	
-	/** The standard beginning of our graphML files. */
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns/graphml\"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\nxsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns/graphml\">\n<graph edgedefault=\"directed\">\n";
-	/** The standard ending of our graphML files. */
-	public static final String graphML_end = "</graph></graphml>\n"; 
 	/** a marker for an initial state in a graphML file. */
 	public static final String Initial = "Initial";
 	
 	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
 	protected String transformNodeName(CmpVertex node)
 	{
-		
 		return (node == coregraph.init? Initial+" ":"")+node.getID().toString(); 
 	}
-	
-	protected void writeNode(Writer writer, CmpVertex node) throws IOException
-	{
-		if (node.getID().toString().contains(Initial))
-			throw new IllegalArgumentException("Invalid node name "+node.getID().toString());
-		writer.write("<node id=\""+transformNodeName(node)+
-				"\" VERTEX=\""+transformNodeName(node)+"\"");
-		if (!node.isAccept()) writer.write(" "+JUConstants.ACCEPTED+"=\""+node.isAccept()+"\"");
-		if (node.isHighlight()) writer.write(" "+JUConstants.HIGHLIGHT+"=\""+node.isHighlight()+"\"");
-		if (node.getColour() != null) writer.write(" "+JUConstants.COLOUR+"=\""+node.getColour()+"\"");
-		writer.write("/>\n");
-	}
-	
+
 	/** Writes a graph into a graphML file. All vertices are written. */
 	public void writeGraphML(String name) throws IOException
 	{
 		FileWriter writer = new FileWriter(name);writeGraphML(writer);
 	}
 	
+	/** Graphml namespace */
+	protected static final String graphmlNS="gml";
+	/** Graphml uri */
+	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";
+	
+	protected Element createStateNode(Document doc, CmpVertex node)
+	{
+		if (node.getID().toString().contains(Initial))
+			throw new IllegalArgumentException("Invalid node name "+node);
+		Element nodeElement = doc.createElementNS(graphmlNS,"node");
+		nodeElement.setAttribute("id",transformNodeName(node));
+		nodeElement.setIdAttribute("id", true);
+		nodeElement.setAttribute("VERTEX", transformNodeName(node));
+		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.toString(),Boolean.toString(node.isAccept()));
+		if (node.isHighlight()) nodeElement.setAttribute(JUConstants.HIGHLIGHT.toString(),Boolean.toString(node.isHighlight()));
+		if (node.getColour() != null) nodeElement.setAttribute(JUConstants.COLOUR.toString(),node.getColour().toString());
+		return nodeElement;
+	}
+	
+	protected static Text endl(Document doc)
+	{
+		return doc.createTextNode("\n");		
+	}
+	
+	public Element createGraphMLNode(Document doc)
+	{
+		Element graphElement = doc.createElementNS(graphlmURI,graphmlNS+":graphml");
+		Element graphTop = doc.createElementNS(graphmlNS,"graph");
+		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
+		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
+		graphTop.appendChild(endl(doc));
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
+		{
+			graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
+		}
+		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
+			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
+			{
+				Element edge = doc.createElementNS(graphmlNS,"edge");edge.setAttribute("source", transformNodeName(vert.getKey()));
+				edge.setAttribute("target", transformNodeName(transition.getValue()));edge.setAttribute("directed", "true");
+				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
+				graphTop.appendChild(endl(doc));
+			}
+		return graphElement;
+	}
+	
 	/** Writes a graph into a graphML file. All vertices are written.
 	 * 
 	 * @throws IOException if an I/O error occurs or 
 	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
-	 * an initial state in the graphmp file. Most of the time, "Init" is used instead in the graphs.
+	 * an initial state in the graphml file. Most of the time, "Init" is used instead in the graphs.
+	 * @throws ParserConfigurationException 
 	 */
 	public void writeGraphML(Writer writer) throws IOException
 	{
-		writer.write(graphML_header);
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		doc.appendChild(createGraphMLNode(doc));
+		// based on http://www.exampledepot.com/egs/javax.xml.transform/WriteDom.html
+		try {
+			Transformer trans = TransformerFactory.newInstance().newTransformer();
+			trans.transform(new DOMSource(doc),new StreamResult(writer));
+		} catch (Exception e) {
+			IOException ex = new IOException("failed to write out XML "+e);ex.initCause(e);
+			throw ex;
+		}
+	}
+	
+	static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
+	{
+	    public Graph getGraph() {
+	        return super.getGraph();
+	    }
 		
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
-				writeNode(writer, vert.getKey());
-		// Sample initial state entry: <node id="1" VERTEX="Initial State 0" />
-		// For non-initial states, there should be no vertex called "Initial".
-		// Sample edge entry: <edge source="21" target="19" directed="true" EDGE="a1" />
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
-			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
-				writer.write("<edge source=\""+transformNodeName(vert.getKey())+
-						"\" target=\""+transformNodeName(transition.getValue())+
-						"\" directed=\"true\" EDGE=\""+transition.getKey()+"\"/>\n");
-		writer.write(graphML_end);writer.close();
+	}
+
+	/** Converts DOM collection of attributes to the SAX one.
+	 * @param namedMap what to convert
+	 * @return the SAX collection, ready to be passed to a SAX listener. 
+	 */
+	static protected Attributes Attributes_DOM_to_SAX(NamedNodeMap namedMap)
+	{
+		AttributesImpl collection = new AttributesImpl();
+		if (namedMap != null)
+			for(int i=0;i<namedMap.getLength();++i) 
+			{
+				org.w3c.dom.Node node = namedMap.item(i);
+				collection.addAttribute(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), "attribute", node.getNodeValue());
+			}
+		return collection;
+	}
+	
+	/** Given a node in a document, loads a graph from this node. 
+	 * @param elem the graphml element to load 
+	 */
+	public static Graph loadGraph(Element elem)
+	{
+		if (!elem.getNodeName().equals(graphmlNS+":graphml"))
+			throw new IllegalArgumentException("element does not start with graphml");
+		Element graphElement = (Element)elem.getFirstChild();
+		//System.out.println(graphElement.getLocalName()+ " "+graphElement.getNodeName());
+		if (graphElement == null || !graphElement.getNodeName().equals("graph"))
+			throw new IllegalArgumentException("absent graph element");
+		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
+    	GraphMLFile graphmlFile = new GraphMLFile();
+    	graphmlFile.setGraphMLFileHandler(graphHandler);
+    	try
+    	{
+	    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
+	    	NodeList nodes = graphElement.getChildNodes(); 
+	    	for(int i=0;i<nodes.getLength();++i)
+	    	{
+				org.w3c.dom.Node node = nodes.item(i);
+				graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+	    	}
+    	}
+    	catch(SAXException e)
+    	{
+    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
+    		throw ex;
+    	}
+    	return graphHandler.getGraph();
 	}
 	
 	/** Returns a state, randomly chosen according to the supplied random number generator. */

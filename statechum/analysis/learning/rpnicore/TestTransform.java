@@ -29,8 +29,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.junit.Assert;
 import org.junit.Test;
+import org.w3c.dom.Document;
 
 import edu.uci.ics.jung.exceptions.FatalException;
 import edu.uci.ics.jung.graph.Graph;
@@ -347,17 +352,22 @@ public class TestTransform {
 		WMethod.checkM(result,fsmSrc,result.init,fsmSrc.init);
 	}
 
-	protected static final String graphml_beginning = Transform.graphML_header+
-		"<node id=\"Initial A\" VERTEX=\"Initial A\" "+JUConstants.COLOUR+"=\""+JUConstants.RED+"\"/>\n"+
-		"<node id=\"B\" VERTEX=\"B\"";
+	/** The standard beginning of our graphML files. */
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><gml:graphml xmlns:gml=\"http://graphml.graphdrawing.org/xmlns/graphml\"><graph edgedefault=\"directed\" xmlns=\"gml\">\n";
+	/** The standard ending of our graphML files. */
+	public static final String graphML_end = "</graph></gml:graphml>"; 
+
+	protected static final String graphml_beginning = graphML_header+
+		"<node VERTEX=\"Initial A\" "+JUConstants.COLOUR+"=\""+JUConstants.RED+"\" id=\"Initial A\"/>\n"+
+		"<node VERTEX=\"B\"";
 	
-	protected static final String graphml_ending = "/>\n"+ 
-		"<node id=\"C\" VERTEX=\"C\"/>\n"+
-		"<edge source=\"Initial A\" target=\"B\" directed=\"true\" EDGE=\"a\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
-		"<edge source=\"B\" target=\"C\" directed=\"true\" EDGE=\"a\"/>\n"+
-		"<edge source=\"B\" target=\"B\" directed=\"true\" EDGE=\"c\"/>\n"+
-		"<edge source=\"C\" target=\"B\" directed=\"true\" EDGE=\"b\"/>\n"+
-		Transform.graphML_end;
+	protected static final String graphml_ending = " id=\"B\"/>\n"+ 
+		"<node VERTEX=\"C\" id=\"C\"/>\n"+
+		"<edge EDGE=\"a\" directed=\"true\" source=\"Initial A\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
+		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
+		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
+		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
+		graphML_end;
 	
 	@Test(expected=IllegalArgumentException.class)
 	public final void testGraphMLwriter_fail() throws IOException
@@ -385,11 +395,139 @@ public class TestTransform {
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.transform.writeGraphML(writer);
 		Assert.assertEquals(graphml_beginning+
-				" "+JUConstants.ACCEPTED+"=\"false\""+
-				" "+JUConstants.HIGHLIGHT+"=\"true\""+
-				" "+JUConstants.COLOUR+"=\""+JUConstants.BLUE+"\""+
+				" "+JUConstants.ACCEPTED.toString()+"=\"false\""+
+				" "+JUConstants.COLOUR.toString()+"=\""+JUConstants.BLUE.toString().toLowerCase()+"\""+
+				" "+JUConstants.HIGHLIGHT.toString()+"=\"true\""+
 				graphml_ending,
 				writer.toString());
+	}
+	
+	@Test
+	public final void testGraphMLwriter_loadnode1() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
+		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+	}
+	
+	@Test
+	public final void testGraphMLwriter_loadnode2() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
+		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+	}
+	
+	/** No graph element. */
+	@Test
+	public final void testGraphMLwriter_loadnode_fail1a() throws IOException
+	{
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		
+		try
+		{
+			Transform.loadGraph(doc.createElement("junk"));
+			org.junit.Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			Assert.assertTrue(ex.getMessage().contains("element does not start with graphml"));
+		}
+	}
+
+	/** No graph element. */
+	@Test
+	public final void testGraphMLwriter_loadnode_fail2a() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
+		try
+		{
+			Transform.loadGraph(elem);
+			org.junit.Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			Assert.assertTrue(ex.getMessage().contains("absent graph element"));
+		}
+	}
+	
+	/** No graph element. */
+	@Test
+	public final void testGraphMLwriter_loadnode_fail2b() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException ex)
+		{
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+		}
+		org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
+		
+		try
+		{
+			Transform.loadGraph(elem);
+			org.junit.Assert.fail("exception not thrown");
+		}
+		catch(IllegalArgumentException ex)
+		{
+			Assert.assertTrue(ex.getMessage().contains("absent graph element"));
+		}
 	}
 	
 	/** A helper method which saves a given graph and subsequently verifies that the graph loads back.
@@ -499,10 +637,10 @@ public class TestTransform {
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	Graph g=graphmlFile.load(new StringReader(writer.toString().replace("BB1", Transform.Initial+"_BB1")));
+	    	Graph brokenGraph=graphmlFile.load(new StringReader(writer.toString().replace("BB1", Transform.Initial+"_BB1")));
 	    	try
 	    	{
-	    		new LearnerGraph(g,Configuration.getDefaultConfiguration());
+	    		new LearnerGraph(brokenGraph,Configuration.getDefaultConfiguration());
 	    	}
 	    	catch(IllegalArgumentException ex)
 	    	{

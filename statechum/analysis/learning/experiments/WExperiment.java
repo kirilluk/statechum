@@ -21,8 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -136,7 +134,7 @@ public class WExperiment extends AbstractExperiment {
 		System.out.println(result.toString());
 		
 		
-		long tmStarted = new Date().getTime();HashSet<List<String>> outcome = new HashSet<List<String>>();
+		//long tmStarted = new Date().getTime();HashSet<List<String>> outcome = new HashSet<List<String>>();
 		//result.linear.buildMatrix(AbstractExperiment.getCpuNumber());
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);

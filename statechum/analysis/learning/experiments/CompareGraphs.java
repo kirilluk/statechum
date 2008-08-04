@@ -77,13 +77,13 @@ public class CompareGraphs {
 		partialPTA = partialPTA.cross(tests);
 		return precRec.crossWith(engine);
 	}
-	
+/*
 	private static void printTests(Collection<List<String>> tests){
 		for (List<String> list : tests) {
 			System.out.println(list);
 		}
 	}
-	
+*/
 	public static double computeAccuracy(LearnerGraph learned, LearnerGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {

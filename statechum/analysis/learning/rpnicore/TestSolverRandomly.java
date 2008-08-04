@@ -44,7 +44,8 @@ public class TestSolverRandomly {
 		randomGenerator = new DoubleFunction() {
 			private final Random rnd = conf;
 			
-			public double apply(double argument) {
+			public double apply(
+					@SuppressWarnings("unused")	double argument) {
 				return rnd.nextDouble()*10;
 			}
 			

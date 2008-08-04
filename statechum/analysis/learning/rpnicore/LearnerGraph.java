@@ -19,6 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -257,6 +258,24 @@ public class LearnerGraph {
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
 		}
+	}
+
+	/** Loads a graph from the data in a supplied reader.
+	 * 
+	 * @param from where to load from
+	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
+	 * @return created graph.
+	 */
+	public static LearnerGraph loadGraph(Reader from, Configuration cnf)
+	{
+		LearnerGraph graph = null;
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
+		}
+		return graph;
 	}
 	
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 

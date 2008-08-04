@@ -527,7 +527,9 @@ public class PathRoutines {
 					PTAExplorationNode prevNode = pathToInit.getFirst();
 					ourVertex = coregraph.transitionMatrix.get(prevNode.userObject).get(prevNode.getInput());
 					if (ourVertex == null)
-					{
+					{// this one will happily add lots of reject nodes along the same path, however this cannot
+					 // happen because due to the way addVertex is used by nodeEntered and leafEntered
+					 // accept == true everyone other than the last node in a path.
 						synchronized (LearnerGraph.syncObj) 
 						{
 							ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());

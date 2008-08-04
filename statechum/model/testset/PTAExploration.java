@@ -31,7 +31,7 @@ public abstract class PTAExploration<USEROBJECT>
 	
 	/** In order to implement a recursive routing without using recursion
 	 * (Java is not a functional programming language, hence I do not feel
-	 * like relying on a fat stack to cope with functional style.
+	 * like relying on a fat stack to cope with functional style).
 	 */
 	public class PTAExplorationNode
 	{

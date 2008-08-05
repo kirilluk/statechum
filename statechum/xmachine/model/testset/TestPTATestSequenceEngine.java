@@ -44,8 +44,8 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, "false", UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
-		vertifyPTA(en, new String[][] { 
+		PTATestSequenceEngine enVerySmall = new PTA_FSMStructure(WMethod.getGraphData(g));
+		vertifyPTA(enVerySmall, new String[][] { 
 				new String[] {}
 			});
 	}
@@ -59,8 +59,8 @@ public class TestPTATestSequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTATestSequenceEngine en = new PTA_FSMStructure(WMethod.getGraphData(g));
-		vertifyPTA(en, new String[][] {
+		PTATestSequenceEngine enVerySmall = new PTA_FSMStructure(WMethod.getGraphData(g));
+		vertifyPTA(enVerySmall, new String[][] {
 				new String[] {}
 		});
 	}

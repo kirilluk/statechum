@@ -10,6 +10,7 @@ import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 
 import edu.uci.ics.jung.graph.Edge;
+import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -56,7 +57,7 @@ public class WMethod {
 	 * @param g graph from which to extract data
 	 * @return the class storing transition information.
 	 */
-	public static FSMStructure getGraphData(DirectedSparseGraph g)
+	public static FSMStructure getGraphData(Graph g)
 	{
 		Iterator<DirectedSparseEdge> edgeIt = (Iterator<DirectedSparseEdge>)g.getEdges().iterator();
 		FSMStructure extractedFSM = new FSMStructure();

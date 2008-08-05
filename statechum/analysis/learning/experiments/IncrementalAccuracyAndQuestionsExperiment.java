@@ -6,13 +6,9 @@ package statechum.analysis.learning.experiments;
 
 
 import java.awt.Point;
-import java.beans.XMLEncoder;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -40,7 +36,8 @@ import edu.uci.ics.jung.utils.UserData;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.DumpProgressDecorator;
-import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.MatchProgressDecorator;
+import statechum.analysis.learning.ProgressDecorator;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.Visualiser;
@@ -291,22 +288,29 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 
 			DirectedSparseGraph learningOutcome = null;
 			PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(sPlus);PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(sMinus);
+
+
 			changeParametersOnComputeStateScores(l.getScoreComputer());
-			DumpProgressDecorator testRecorder = null;
+			ProgressDecorator testDecorator = null;
 			try {
-				testRecorder = new DumpProgressDecorator(l,new FileWriter(getFileName(FileType.DATA)));
+				//testDecorator = new DumpProgressDecorator(l,new FileWriter(getFileName(FileType.DATA)));
+				testDecorator = new MatchProgressDecorator(l,new FileReader(getFileName(FileType.DATA)));
 			} catch (IOException e) {
 				IllegalArgumentException ex = new IllegalArgumentException("failed to construct recording decorator: "+e.getMessage());ex.initCause(e);
 				throw ex;
 			}
-			testRecorder.init(plusPTA, minusPTA.getData());
+			
+			Collection<List<String>> testSet = wm.getFullTestSet();
+			testDecorator.handleLearnerEvaluationData(fsm, testSet);
+			testDecorator.init(plusPTA, minusPTA.getData());
 			changeParametersOnLearner(l);
-			learningOutcome = testRecorder.learnMachine();
+			learningOutcome = testDecorator.learnMachine();
+			testDecorator.close();
+
 			l.setQuestionCounter(0);
 			FSMStructure learned = WMethod.getGraphData(learningOutcome);
 
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
-			Collection<List<String>> testSet = wm.getFullTestSet();
 			PTATestSequenceEngine engineTestSet = new PTA_FSMStructure(fsm);
 			sequenceSet partialPTA = engineTestSet.new sequenceSet();partialPTA.setIdentity();
 			partialPTA = partialPTA.cross(testSet);
@@ -318,8 +322,6 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			precRec.crossWith(engineSetMinus);
 			PosNegPrecisionRecall precisionRecall = precRec.crossWith(engineTestSet);
 			
-			testRecorder.addSequenceList(DumpProgressDecorator.ELEM_KINDS.ELEM_TESTSET.toString(), testSet);//new PrecRecEvaluation(testSet,precisionRecall));
-			testRecorder.close();
 			return precisionRecall;
 		}
 	}
@@ -663,7 +665,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		if (experiment != null && experiment.results != null)
 	        for(Future<String> computationOutcome:experiment.results)
 				try {
-						//        System.out.println("RESULT: "+computationOutcome.get()+"\n");
+						System.out.println("RESULT: "+computationOutcome.get()+"\n");
 				} catch (Exception e) {
 					System.out.println("FAILED");
 					e.printStackTrace();

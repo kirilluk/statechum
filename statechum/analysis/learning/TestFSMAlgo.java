@@ -252,13 +252,13 @@ public class TestFSMAlgo {
 		/** The standard ending of our graphML files. */
 		public static final String graphML_end = "</graph></graphml>\n"; 
 		/** a marker for an initial state in a graphML file. */
-		public static final String Initial = "Initial";
+		public static final String Initial = "Initial ";
 		
 		/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
 		static protected String transformNodeName(FSMStructure fsm,String node)
 		{
 			
-			return (node.equals(fsm.init)? Initial+" ":"")+node; 
+			return (node.equals(fsm.init)? Initial:"")+node; 
 		}
 
 		/** Writes a graph into a graphML file. All vertices are written. */
@@ -275,7 +275,7 @@ public class TestFSMAlgo {
 			if ( node.contains(Initial))
 				throw new IllegalArgumentException("Invalid node name "+node);
 			Element nodeElement = doc.createElementNS(graphmlNS,"node");
-			nodeElement.setAttribute("id",transformNodeName(fsm,node));
+			nodeElement.setAttribute("id",node);
 			nodeElement.setIdAttribute("id", true);
 			nodeElement.setAttribute("VERTEX", transformNodeName(fsm,node));
 			if (fsm.accept.containsKey(node) && !fsm.accept.get(node)) nodeElement.setAttribute(JUConstants.ACCEPTED.toString(),"false");
@@ -304,8 +304,8 @@ public class TestFSMAlgo {
 			for(Entry<String,Map<String,String>> vert:fsm.trans.entrySet())
 				for(Entry<String,String> transition:vert.getValue().entrySet())
 				{
-					Element edge = doc.createElement("edge");edge.setAttribute("source", transformNodeName(fsm,vert.getKey()));
-					edge.setAttribute("target", transformNodeName(fsm,transition.getValue()));edge.setAttribute("directed", "true");
+					Element edge = doc.createElement("edge");edge.setAttribute("source", vert.getKey());
+					edge.setAttribute("target", transition.getValue());edge.setAttribute("directed", "true");
 					edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
 					graphTop.appendChild(endl(doc));
 				}
@@ -382,7 +382,8 @@ public class TestFSMAlgo {
 		    	for(int i=0;i<nodes.getLength();++i)
 		    	{
 					org.w3c.dom.Node node = nodes.item(i);
-					graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+					if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
+						graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
 		    	}
 	    	}
 	    	catch(SAXException e)

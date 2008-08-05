@@ -12,6 +12,7 @@ import java.util.*;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
@@ -66,8 +67,8 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         }
 
         ArchetypeVertex vertex = mGraph.addVertex(new DeterministicDirectedSparseGraph.DeterministicVertex());
-        String idString = (String) attributeMap.remove("id");
-
+        String idString = ((String) attributeMap.remove("id")).replace(FSMStructure.Initial, "");
+        
         try {
             mLabeller.setLabel((Vertex) vertex,idString);
         } catch (StringLabeller.UniqueLabelException ule) {
@@ -82,13 +83,19 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             Object value = attributeMap.get(key);
             vertex.setUserDatum(key, value, UserData.SHARED);
         }
+        Object acceptCondition = attributeMap.get(JUConstants.ACCEPTED.toString());
+        if (acceptCondition != null) 
+        	vertex.setUserDatum(JUConstants.ACCEPTED, Boolean.valueOf((String)acceptCondition).toString(), UserData.SHARED);
+        else
+        	vertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+        
         String label = attributeMap.get("VERTEX").toString();
-        vertex.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
-        if(label.startsWith("Initial")){
+        vertex.setUserDatum(JUConstants.LABEL, label.replace(FSMStructure.Initial, ""), UserData.SHARED);
+        if(label.startsWith(FSMStructure.Initial)){
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.PROPERTY, JUConstants.INIT, UserData.SHARED);
         }
-        vertex.setUserDatum(JUConstants.ACCEPTED, "true", UserData.SHARED);
+        
         return vertex;
     }
 

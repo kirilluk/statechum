@@ -52,7 +52,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
 import statechum.JUConstants;
@@ -114,7 +113,7 @@ public class Transform {
 		if (node.getID().toString().contains(Initial))
 			throw new IllegalArgumentException("Invalid node name "+node);
 		Element nodeElement = doc.createElementNS(graphmlNS,"node");
-		nodeElement.setAttribute("id",transformNodeName(node));
+		nodeElement.setAttribute("id",node.getID().toString());
 		nodeElement.setIdAttribute("id", true);
 		nodeElement.setAttribute("VERTEX", transformNodeName(node));
 		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.toString(),Boolean.toString(node.isAccept()));
@@ -142,8 +141,8 @@ public class Transform {
 		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
 			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
 			{
-				Element edge = doc.createElementNS(graphmlNS,"edge");edge.setAttribute("source", transformNodeName(vert.getKey()));
-				edge.setAttribute("target", transformNodeName(transition.getValue()));edge.setAttribute("directed", "true");
+				Element edge = doc.createElementNS(graphmlNS,"edge");edge.setAttribute("source", vert.getKey().getID().toString());
+				edge.setAttribute("target", transition.getValue().getID().toString());edge.setAttribute("directed", "true");
 				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
 				graphTop.appendChild(endl(doc));
 			}

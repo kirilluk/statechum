@@ -515,7 +515,7 @@ public class LearnerGraph {
 	public synchronized VertexID nextID(boolean accepted)
 	{
 		VertexID result = null;
-		if (config.getMode() == IDMode.POSITIVE_ONLY)
+		if (config.getLearnerIdMode() == IDMode.POSITIVE_ONLY)
 			result = new VertexID(VertKind.NEUTRAL,vertPositiveID++);
 		else
 			result = (accepted?new VertexID(VertKind.POSITIVE,vertPositiveID++):

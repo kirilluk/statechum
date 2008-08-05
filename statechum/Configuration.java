@@ -18,8 +18,14 @@
 
 package statechum;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /** Represents a configuration for a learner. The purpose is a possibility of a 
  * global customisation of all objects used by a learner in the course of 
@@ -95,7 +101,7 @@ public class Configuration implements Cloneable
 		learnerIdMode = m;
 	}
 	
-	public IDMode getMode()
+	public IDMode getLearnerIdMode()
 	{
 		return learnerIdMode;
 	}
@@ -553,10 +559,153 @@ public class Configuration implements Cloneable
 		attenuationK = k;
 	}
 	
-	/** A test-only version of the above, permitting a valuve of 1. */
+	/** A test-only version of the above, permitting a value of 1. */
 	public void setAttenuationK_testOnly(double k)
 	{
 		if (k<0 || k>1) throw new IllegalArgumentException("attenuation should be within [0,1[");
 		attenuationK = k;
+	}
+	
+	/** Used extensively to convert checked exceptions to IllegalArgumentException
+	 * (obviously in places where no exceptions should occur hence no need to use
+	 * checked exceptions).
+	 * 
+	 * @param description description of why the exception is to be thrown
+	 * @param e exception to convert
+	 */
+	public static void throwUnchecked(String description, Exception e)
+	{
+		IllegalArgumentException ex = new IllegalArgumentException(description+": "+e.getMessage());ex.initCause(e);
+		throw ex;
+	}
+
+	/** Whether a method is get.../is ..., or set...  */
+	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
+	
+	/** In order to serialise/deserialise data, we need access to fields and getter/setter methods.
+	 * This method takes a field and returns the corresponding method. Although supposedly
+	 * universal, this does not take bean properties into account, such as introspector,
+	 * transient designation and others. 
+	 * 
+	 * @param prefix
+	 * @param var
+	 * @return
+	 */
+	public static Method getMethod(GETMETHOD_KIND kind,java.lang.reflect.Field var)
+	{
+		String varName = var.getName();
+		 
+		String methodNameSuffix = (Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
+		String methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"get":"set")+methodNameSuffix;
+		Method method = null;
+		try {
+			method = Configuration.class.getMethod(methodName, 
+					(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
+		} catch (SecurityException e) {
+			throwUnchecked("security exception on method "+kind+" for variable "+var.getName(), e);
+		} catch (NoSuchMethodException e) {
+			if (kind == GETMETHOD_KIND.FIELD_SET) throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
+
+			// ignore if looking for a getter - method is null indicates we'll try again.
+		}
+		
+		if (method == null) // not found, try another one.
+			try {
+				methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"is":"set")+methodNameSuffix;
+				method = Configuration.class.getMethod(methodName, 
+						(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
+			} catch (Exception e) {
+				throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
+			}		return method;
+	}
+	
+	public static final String configXMLTag = "configuration", configVarTag="var", configVarAttrName="name",configVarAttrValue="value";
+	
+	/** Serialises configuration into XML
+	 * Only primitive strings, enums and primitive data types 
+	 * are taken care of. For this reason, this should only be used on classes such 
+	 * as Configuration where I'd like to serialise them into a DOM stream rather than
+	 * use XMLEncoder (see top of DumpProgressDecorator for an explantion why not XMLEncoder).  
+
+	 * @param doc used to create new nodes
+	 * @return an element containing the serialised representation of this configuration
+	 */
+	public Element writeXML(Document doc)
+	{
+		Element config = doc.createElement(configXMLTag); 
+		for(Field var:getClass().getDeclaredFields())
+		{
+			if (var.getType() != Configuration.class && 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis) 
+				&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
+			{
+				Method getter = Configuration.getMethod(GETMETHOD_KIND.FIELD_GET, var);
+				Element varData = doc.createElement(configVarTag);
+				varData.setAttribute(configVarAttrName, var.getName());
+				try {
+					varData.setAttribute(configVarAttrValue, getter.invoke(this, new Object[]{}).toString());
+				} catch (Exception e) {
+					throwUnchecked("cannot extract a value of "+var.getName(), e);
+				}
+				config.appendChild(varData);
+			}
+		}
+		return config;
+	}
+
+	public void readXML(Element config)
+	{
+		if (!config.getNodeName().equals(configXMLTag))
+			throw new IllegalArgumentException("configuration cannot be loaded from element "+config.getNodeName());
+		NodeList nodes = config.getChildNodes();
+		for(int i=0;i<nodes.getLength();++i)
+		{
+			org.w3c.dom.Element node = (Element)nodes.item(i);// we may write text elements, but they would only contain whitespace and will be dropped when we write out a file. Hence no need to do any filtering.
+			if (!node.getNodeName().equals(configVarTag))
+				throw new IllegalArgumentException("unexpected elment "+node.getNodeName()+" in configuration XML");
+			Field var = null;
+			try
+			{
+				var = getClass().getDeclaredField(node.getAttribute(configVarAttrName));
+				Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
+				Object value = null;String valueAsText = node.getAttribute(configVarAttrValue);
+				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+				{
+					value = Boolean.valueOf(valueAsText); 
+				}
+				else
+					if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+					{
+						value = Double.valueOf(valueAsText); 
+					}
+					else
+					if (var.getType().equals(String.class))
+					{
+						value = valueAsText;
+					}
+					else
+						if (var.getType().isEnum())
+						{
+							value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
+						}
+						else
+						if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+						{
+							value = Integer.valueOf(valueAsText); 
+						}
+						else
+							throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+
+				setter.invoke(this, new Object[]{value});
+			}
+			catch(NoSuchFieldException e)
+			{
+				System.err.println("warning: cannot deserialise obsolete field "+node.getAttribute(configVarAttrName));
+			}
+			catch(Exception e)
+			{
+				throwUnchecked("failed to load value of "+var.getName(),e);
+			}
+		}
 	}
 }

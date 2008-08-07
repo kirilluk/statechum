@@ -47,7 +47,7 @@ public class RPNIBlueFringeLinearLearner extends
 		newPTA.setName("merge_debug"+0);
 		updateGraph(newPTA);
 		
-		Stack<PairScore> possibleMerges = scoreComputer.linear.chooseStatePairs(0, 10, 1, null);
+		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs(0, 10, 1, null);
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		final int restartOfInterest = -21;
 		while(!possibleMerges.isEmpty()&&iterations<20)
@@ -185,7 +185,7 @@ public class RPNIBlueFringeLinearLearner extends
 				scoresToIterations.put(pair, iterations);
 			}
 			
-			possibleMerges = scoreComputer.linear.chooseStatePairs(0, 10, 1, null);
+			possibleMerges = scoreComputer.pairscores.chooseStatePairs(0, 10, 1, null);
 			//System.out.println(possibleMerges);
 		}
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);

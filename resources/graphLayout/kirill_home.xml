@@ -2,6 +2,14 @@
 <java version="1.5.0_14" class="java.beans.XMLDecoder"> 
  <object class="java.util.Properties"> 
   <void method="put"> 
+   <string>GRAPHICS_MONITOR</string> 
+   <string>1</string> 
+  </void> 
+  <void method="put"> 
+   <string>LINEARWARNINGS</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
    <string>BUILDGRAPH</string> 
    <string>testNewLearner1b</string> 
   </void> 
@@ -12,29 +20,23 @@
   <void method="put"> 
    <string>STOP</string> 
    <string>testNewLearner_2_1aa</string> 
-  </void>
-  <void method="put"> 
-   <string>LINEARWARNINGS</string> 
-   <string>true</string> 
-  </void>
+  </void> 
  </object> 
  <object class="java.util.HashMap"> 
   <void method="put"> 
-   <string>LOWER</string> 
-   <object class="java.awt.Rectangle"> 
-    <int>2351</int> 
-    <int>0</int> 
-    <int>733</int> 
-    <int>724</int> 
-   </object> 
-  </void> 
-  <void method="put"> 
    <string>UPPER</string> 
-   <object class="java.awt.Rectangle"> 
-    <int>11</int> 
-    <int>5</int> 
-    <int>833</int> 
-    <int>862</int> 
+   <object class="statechum.analysis.learning.Visualiser$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>644</int> 
+      <int>374</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
    </object> 
   </void> 
  </object> 

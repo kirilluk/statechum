@@ -358,12 +358,12 @@ public class TestTransform {
 	public static final String graphML_end = "</graph></gml:graphml>"; 
 
 	protected static final String graphml_beginning = graphML_header+
-		"<node VERTEX=\"Initial A\" "+JUConstants.COLOUR+"=\""+JUConstants.RED+"\" id=\"Initial A\"/>\n"+
+		"<node VERTEX=\"Initial A\" "+JUConstants.COLOUR+"=\""+JUConstants.RED+"\" id=\"A\"/>\n"+
 		"<node VERTEX=\"B\"";
 	
 	protected static final String graphml_ending = " id=\"B\"/>\n"+ 
 		"<node VERTEX=\"C\" id=\"C\"/>\n"+
-		"<edge EDGE=\"a\" directed=\"true\" source=\"Initial A\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
+		"<edge EDGE=\"a\" directed=\"true\" source=\"A\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
 		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
 		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
 		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
@@ -637,7 +637,7 @@ public class TestTransform {
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	Graph brokenGraph=graphmlFile.load(new StringReader(writer.toString().replace("BB1", Transform.Initial+"_BB1")));
+	    	Graph brokenGraph=graphmlFile.load(new StringReader(writer.toString().replace("VERTEX=\"BB1\"", "VERTEX=\""+Transform.Initial+" BB1\"")));
 	    	try
 	    	{
 	    		new LearnerGraph(brokenGraph,Configuration.getDefaultConfiguration());

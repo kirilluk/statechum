@@ -26,7 +26,7 @@ public enum JUConstants {
 	HIGHLIGHT("highlight"),
 	STATS("STATS"),
 	COLOUR("colour"),
-	RED("red"),BLUE("blue"),AMBER("amber"),
+	RED("red"),BLUE("blue"),AMBER("amber"),GRAY("gray"),
 	JUNKVERTEX("junk");// used for testing that searching for a property that does not exist returns a null vertex.
 	
 	private String stringRepresentation;

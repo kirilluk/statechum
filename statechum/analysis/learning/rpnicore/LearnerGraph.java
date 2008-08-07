@@ -208,6 +208,7 @@ public class LearnerGraph {
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
+	final public GD diff = new GD(this);
 	final CachedData learnerCache = new CachedData(this);
 	
 	/** Initialises the class used to compute scores between states.
@@ -219,7 +220,8 @@ public class LearnerGraph {
 		config = conf;initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
-		
+		if (g.containsUserDatumKey(JUConstants.TITLE))
+			setName((String)g.getUserDatum(JUConstants.TITLE));
 		
 		synchronized (LearnerGraph.syncObj) 
 		{
@@ -360,7 +362,7 @@ public class LearnerGraph {
 	}
 	
 	private void addNegativeEdges(CmpVertex fromVertex,List<String> tail, StringPair pair, boolean accepted){
-		Stack callStack = new Stack();
+		Stack<String> callStack = new Stack<String>();
 		addVertex(fromVertex, accepted, pair.getTo());
 		CmpVertex currentVertex = fromVertex;
 		for(int i=0;i<tail.size();i++){
@@ -428,11 +430,12 @@ public class LearnerGraph {
 		return result;
 	}
 	
-	public int countEdges(){
+	public int countEdges()
+	{
 		Iterator<Map<String,CmpVertex>> outIt = transitionMatrix.values().iterator();
 		int counter = 0;
 		while(outIt.hasNext()){
-			Map current = outIt.next();
+			Map<String,CmpVertex> current = outIt.next();
 			counter = counter + current.keySet().size();
 		}
 		return counter;
@@ -497,6 +500,46 @@ public class LearnerGraph {
 				result = currentVert;
 		}
 		return result;
+	}
+
+	/** Used in order to determine which states to consider during linear or
+	 * to ignore.
+	 * Conceptually similar to <em>FilterPredicate</em> but for a different
+	 * purpose and an argument of a different type.
+	  */ 
+	public interface StatesToConsider
+	{
+		/** Returns true if the state is to be considered
+		 * 
+		 * @param vert state
+		 * @param graph the graph in which this state is contained.
+		 * @return whether state is to be considered
+		 */
+		public boolean stateToConsider(CmpVertex vert, LearnerGraph graph);
+	}
+	
+	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
+	 * 
+	 * @param whatToConsider to reject interface determining vertices to reject.
+	 * null means all states are to be considered.
+	 * @param vertToIntMap from vertices to numbers (an inverse of the map returned).
+	 * @return map from vertex number to vertices 
+	 */
+	CmpVertex[] buildStateToIntegerMap(StatesToConsider whatToConsider, Map<CmpVertex,Integer> vertToIntMap)
+	{
+		//Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
+		int size=0;for(CmpVertex vert:transitionMatrix.keySet()) 
+			if (whatToConsider == null || whatToConsider.stateToConsider(vert,this)) size++;
+		CmpVertex [] intToVertexMap = new CmpVertex[size];
+		int num=0;
+		for(CmpVertex vert:transitionMatrix.keySet())
+			if (whatToConsider == null || whatToConsider.stateToConsider(vert,this))
+			{
+				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
+				vertToIntMap.put(vert, num++);// populate the forward map
+			}
+		assert num == size;
+		return intToVertexMap;
 	}
 
 	/** A very important object - this one is used when I wish to create new vertices or edges in a Jung graph.

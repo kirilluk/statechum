@@ -108,7 +108,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 *            the name under which to store configuration information.
 	 */
 	public Visualiser(VIZ_PROPERTIES windowPropName) {
+		super(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()
+				[loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
 		propName = windowPropName;
+		
 	}
 
 	/**
@@ -324,7 +327,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		setKeyBindings();
 		//getContentPane().removeAll();
 		getContentPane().add(panel);pack();
-		restoreLayout(true,currentGraph);loadFrame(this, propName);
+		restoreLayout(true,currentGraph);setBounds(loadFrame(propName).getRect());
         setVisible(true);
 	}
 
@@ -455,7 +458,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	/** A serialised form of XMLAffineTransform
 	 * 
-	 * @author kirr
+	 * @author Kirill
 	 *
 	 */
 	public static class XMLAffineTransformSerialised
@@ -589,6 +592,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 						else
 							if (c == JUConstants.AMBER)
 								col = Color.YELLOW;
+							else
+								if (c == JUConstants.GRAY)
+									col = Color.GRAY;
 				}
 			}
 			return col;
@@ -674,7 +680,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 * @param upperGraph the graph to display 
 	 * @param lowerGraph the graph to display below it
 	 */
-	public static void updateFrame(final DirectedSparseGraph upperGraph,final DirectedSparseGraph lowerGraph)
+	public static void updateFrame(final Object upperGraph,final Object lowerGraph)
 	{
 		if (upperGraph == null && lowerGraph == null)
 		{// destruction of windows
@@ -734,41 +740,48 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
 		LOWER, UPPER // window positions, not real properties to be stored in a file.
 		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
+		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
 		;
 	}
 
 	protected static Properties properties = null;
-	protected static Map<String,Rectangle> windowCoords = null;// if I index by VIZ_PROPERTIES, I cannot serialise into XML
+	
+	protected static Map<String,WindowPosition> windowCoords = null;// if I index by VIZ_PROPERTIES, I cannot serialise into XML
+	
+	/** Default screen to use for any frames created. */
+	public static final int DEFAULT_SCREEN = 0;
 	
 	/** Loads the location/size of a frame from the properties file and positions the frame as appropriate.
 	 * 
 	 * @param frame the frame to position.
 	 * @param name the name of the property to load from
 	 */   
-	protected static void loadFrame(Frame frame,VIZ_PROPERTIES name)
+	protected static WindowPosition loadFrame(VIZ_PROPERTIES name)
 	{
 		if (windowCoords == null)
 			loadConfiguration();
 		
-		Rectangle result = windowCoords.get(name.toString());
+		WindowPosition result = windowCoords.get(name.toString());
 		
 		if (result == null)
 		{// invent default coordinates, using http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
 
 			GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 			GraphicsDevice[] gs = ge.getScreenDevices();
-			GraphicsConfiguration gc = gs[0].getDefaultConfiguration();
+			int deviceToUse = Integer.valueOf(getProperty(VIZ_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN));
+			if (deviceToUse >= gs.length) deviceToUse =DEFAULT_SCREEN;// use the first one if cannot use the requested one.
+			GraphicsConfiguration gc = gs[deviceToUse].getDefaultConfiguration();
 			
 			// from http://java.sun.com/j2se/1.4.2/docs/api/index.html
 			Rectangle shape = gc.getBounds();
-			result = new Rectangle(shape.x, shape.y,400,300);
+			Rectangle rect = new Rectangle(new Rectangle(shape.x, shape.y,400,300));
 			if (name == VIZ_PROPERTIES.LOWER)
-				result.y+=result.getHeight()+30;
-			
-			// no need to store these values, if a user hits the "save" button, current ones will be saved.
+				rect.y+=rect.getHeight()+30;
+			result = new WindowPosition(rect,deviceToUse);
+			windowCoords.put(name.toString(),result);
 		}
 		
-		frame.setBounds(result);
+		return result;
 	}
 	
 	/** Stores the current location/size of a frame to the properties file.
@@ -778,7 +791,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */   
 	protected static void saveFrame(Frame frame,VIZ_PROPERTIES name)
 	{
-		Rectangle windowPos = new Rectangle(frame.getSize());windowPos.setLocation(frame.getX(), frame.getY());
+		WindowPosition windowPos = windowCoords.get(name.toString());if (windowPos == null) windowPos = new WindowPosition();
+		Rectangle newRect = new Rectangle(frame.getSize());newRect.setLocation(frame.getX(), frame.getY());
+		windowPos.setRect(newRect);
 		windowCoords.put(name.toString(), windowPos);
 	}
 
@@ -828,6 +843,38 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		return result;
 	}
 
+	/** Stores the details of the frame position. 
+	 */
+	public static class WindowPosition
+	{
+		private Rectangle rect = null;
+		private int screenDevice;
+		
+		public WindowPosition() {}
+
+		public WindowPosition(Rectangle r, int s)
+		{
+			rect = r;screenDevice = s;
+		}
+		
+		public Rectangle getRect() {
+			return rect;
+		}
+
+		public void setRect(Rectangle r) {
+			this.rect = r;
+		}
+
+		public int getScreenDevice() {
+			return screenDevice;
+		}
+
+		public void setScreenDevice(int screen) {
+			this.screenDevice = screen;
+		}
+
+		
+	}
 	protected static void loadConfiguration()
 	{
 		String configFileName = getConfigurationFileName();
@@ -840,7 +887,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		{
 			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
 			properties = (Properties) decoder.readObject();
-			windowCoords = (HashMap<String, Rectangle>) decoder.readObject();
+			windowCoords = (HashMap<String, WindowPosition>) decoder.readObject();
 			decoder.close();
 		} catch (Exception e) 
 		{// failed loading, (almost) ignore this.
@@ -849,7 +896,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		}
 		
 		if (windowCoords == null)
-			windowCoords = new HashMap<String, Rectangle>();
+			windowCoords = new HashMap<String, WindowPosition>();
 		if (properties == null)
 			properties = new Properties();
 	}
@@ -859,7 +906,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	{
 		String configFileName = getConfigurationFileName();
 		if (windowCoords == null)
-			windowCoords = new HashMap<String, Rectangle>();
+			windowCoords = new HashMap<String, WindowPosition>();
 		if (properties == null)
 			properties = new Properties();
 

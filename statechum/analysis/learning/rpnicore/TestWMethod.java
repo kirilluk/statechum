@@ -1068,17 +1068,19 @@ public class TestWMethod {
 	public final void testVertexToInt0()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c-#C","testVertexToInt0"),config);
-		Assert.assertTrue(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("A")));
-		Assert.assertTrue(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("B")));
-		Assert.assertFalse(textGraph.learnerCache.getStateToNumberNoReject().containsKey(textGraph.findVertex("C")));
+		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,LearnerGraphND.ignoreRejectStates,false);
+		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("A")));
+		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("B")));
+		Assert.assertFalse(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("C")));
 	}
 	@Test
 	public final void testVertexToInt1()
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
+		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
-		Assert.assertEquals(0,textGraph.wmethod.vertexToIntNR(A,A));
+		Assert.assertEquals(0,ndGraph.vertexToIntNR(A,A));
 	}
 	
 	@Test
@@ -1087,6 +1089,7 @@ public class TestWMethod {
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<String>())));
+		LearnerGraphND numericNDGraph = new LearnerGraphND(numericGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = numericGraph.paths.getVertex(Arrays.asList(new String[]{})),
 			B = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b"})),
 			C = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b","c"}));
@@ -1098,25 +1101,25 @@ public class TestWMethod {
 		Assert.assertEquals(0,numericGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(A,B));
 		Assert.assertEquals(1,numericGraph.wmethod.vertexToInt(B,A));
-		Assert.assertEquals(0,numericGraph.wmethod.vertexToIntNR(A,A));
-		Assert.assertEquals(1,numericGraph.wmethod.vertexToIntNR(A,B));
-		Assert.assertEquals(1,numericGraph.wmethod.vertexToIntNR(B,A));
+		Assert.assertEquals(0,numericNDGraph.vertexToIntNR(A,A));
+		Assert.assertEquals(1,numericNDGraph.vertexToIntNR(A,B));
+		Assert.assertEquals(1,numericNDGraph.vertexToIntNR(B,A));
 
 		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(A,C));
 		Assert.assertEquals(3,numericGraph.wmethod.vertexToInt(C,A));
-		Assert.assertEquals(3,numericGraph.wmethod.vertexToIntNR(A,C));
-		Assert.assertEquals(3,numericGraph.wmethod.vertexToIntNR(C,A));
+		Assert.assertEquals(3,numericNDGraph.vertexToIntNR(A,C));
+		Assert.assertEquals(3,numericNDGraph.vertexToIntNR(C,A));
 
 		Assert.assertEquals(2,numericGraph.wmethod.vertexToInt(B,B));
-		Assert.assertEquals(2,numericGraph.wmethod.vertexToIntNR(B,B));
+		Assert.assertEquals(2,numericNDGraph.vertexToIntNR(B,B));
 
 		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(B,C));
 		Assert.assertEquals(4,numericGraph.wmethod.vertexToInt(C,B));
-		Assert.assertEquals(4,numericGraph.wmethod.vertexToIntNR(B,C));
-		Assert.assertEquals(4,numericGraph.wmethod.vertexToIntNR(C,B));
+		Assert.assertEquals(4,numericNDGraph.vertexToIntNR(B,C));
+		Assert.assertEquals(4,numericNDGraph.vertexToIntNR(C,B));
 
 		Assert.assertEquals(5,numericGraph.wmethod.vertexToInt(C,C));
-		Assert.assertEquals(5,numericGraph.wmethod.vertexToIntNR(C,C));
+		Assert.assertEquals(5,numericNDGraph.vertexToIntNR(C,C));
 	}
 	
 	@Test

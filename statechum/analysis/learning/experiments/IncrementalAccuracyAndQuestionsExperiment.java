@@ -32,6 +32,7 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
@@ -102,9 +103,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				// 15 and 16
 					FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
 				// 17
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight.class);
+				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_highlight.class);
 				// 18
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight_Neg.class);
+				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_highlight_Neg.class);
 			}
 			catch(IllegalArgumentException ex)
 			{

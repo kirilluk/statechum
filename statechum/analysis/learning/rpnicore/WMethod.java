@@ -957,7 +957,8 @@ public class WMethod {
 		permFsm.init = permFsm.findVertex(coregraph.init.getID());
 		return permFsm;
 	}
-	
+
+	/** Returns true if IDs of all states in a graph are numeric rather than text. */
 	public boolean checkGraphNumeric()
 	{
 		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
@@ -966,36 +967,9 @@ public class WMethod {
 		return true;
 	}
 	
-	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
-	 * 
-	 * @param includeRejectVertices whether to include reject-vertices in the map.
-	 * @return map from vertices to numbers.
-	 */
-	Map<CmpVertex,Integer> buildStateToIntegerMap(boolean includeRejectVertices, CmpVertex[] intToVertexMap)
-	{
-		Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
-		int num=0;
-		for(CmpVertex vert:coregraph.transitionMatrix.keySet())
-			if (includeRejectVertices || vert.isAccept())
-			{
-				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
-				map.put(vert, num++);// populate the forward map
-			}
-		return map;
-	}
-	
 	public int vertexToInt(CmpVertex vertexA, CmpVertex vertexB)
 	{
 		int x=coregraph.learnerCache.getStateToNumber().get(vertexA), y = coregraph.learnerCache.getStateToNumber().get(vertexB);
-		if (x <= y)
-			return x+y*(y+1)/2;
-		
-		return y+x*(x+1)/2;
-	}
-	
-	public int vertexToIntNR(CmpVertex vertexA, CmpVertex vertexB)
-	{
-		int x=coregraph.learnerCache.getStateToNumberNoReject().get(vertexA), y = coregraph.learnerCache.getStateToNumberNoReject().get(vertexB);
 		if (x <= y)
 			return x+y*(y+1)/2;
 		

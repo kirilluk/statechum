@@ -41,6 +41,7 @@ import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -651,5 +652,38 @@ public class PairScoreComputation {
 			score = coregraph.learnerCache.maxScore+1;
 		}
 		return score;
+	}
+
+	/** Returns a stack of states with scores over a given threshold, using Linear. 
+	 * 
+	 * @param threshold the threshold to use, prior to scaling.
+	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+	 * @param ThreadNumber the number of CPUs to use
+	 * @param coregraph the graph to update scores of
+	 * @return
+	 */
+	public Stack<PairScore> chooseStatePairs(double threshold, double scale, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
+	{
+		LearnerGraphND ndGraph = new LearnerGraphND(coregraph, LearnerGraphND.ignoreRejectStates, false);
+		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=LearnerGraphND.PAIR_OK;
+		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
+		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
+		solver.solve();
+		solver.freeAllButResult();// deallocate memory before creating a large array.
+		coregraph.pairsAndScores.clear();
+		// now fill in the scores in the array.
+		for(int i=0;i<incompatiblePairs.length;++i)
+		{
+			int index = incompatiblePairs[i];
+			if (index >= 0) 
+			{
+				double value = solver.j_x[incompatiblePairs[i]];
+				if (value > threshold) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*value), 0));
+			}
+			else // PAIR_INCOMPATIBLE
+				if (threshold < LearnerGraphND.PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*LearnerGraphND.PAIR_INCOMPATIBLE), 0));
+		}
+		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
 	}
 }

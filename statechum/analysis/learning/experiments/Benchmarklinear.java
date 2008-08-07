@@ -24,10 +24,10 @@ import java.util.Random;
 
 import statechum.Configuration;
 import statechum.Pair;
-import statechum.Configuration.QuestionGeneratorKind;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
@@ -123,7 +123,8 @@ public class Benchmarklinear {
 		//for(int i=0;i<5000;++i) graph.transform.addRejectStateRandomly(rnd);
 		tmFinished = new Date().getTime();
 		System.out.println("random reject vertices added: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
-		LSolver sl  = graph.linear.buildMatrix(ThreadNumber);
+		LearnerGraphND ndGraph = new LearnerGraphND(graph,LearnerGraphND.ignoreRejectStates,false);
+		LSolver sl  = ndGraph.buildMatrix(ThreadNumber);
 		//Collection<List<String>> wset = WMethod.computeWSetOrig(result);outcome.clear();outcome.addAll(wset);
 		//WMethod.computeWSet_reducedmemory(result);
 		tmFinished = new Date().getTime();

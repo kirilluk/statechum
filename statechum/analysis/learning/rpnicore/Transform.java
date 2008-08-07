@@ -303,10 +303,15 @@ public class Transform {
 	
 	/** Adds all states and transitions from graph <em>what</em> to graph <em>g</em>.
 	 * Very useful for renumbering nodes on graphs loaded from GraphML and such, because
-	 * numerical node IDs are needed for both matrix and W set generation,
+	 * numerical node IDs can be useful. The current implementation does not require this
+	 * because it is easy to build a map from existing identifiers to numbers.
+	 * <em>WMethod.buildStateToIntegerMap()</em> does exactly this and the outcome is cached
+	 * and used by <em>vertexToInt</em> and <em>vertexToIntNR</em>.
+	 * <p>
+	 * An example of using this method to renumber vertices is shown below:
 	 * <pre>
 	 * LearnerGraph grTmp = new LearnerGraph(g.config);
-	 * CmpVertex newInit = addToGraph(gr,g);StatePair whatToMerge = new StatePair(g.init,newInit);
+	 * CmpVertex newInit = addToGraph(grTmp,g);StatePair whatToMerge = new StatePair(grTmp.init,newInit);
 	 * LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
 	 * grTmp.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge);
 	 * LearnerGraph result = MergeStates.mergeAndDeterminize_general(grTmp, whatToMerge,collectionOfVerticesToMerge);
@@ -320,7 +325,8 @@ public class Transform {
 	{
 		Map<CmpVertex,CmpVertex> whatToG = new HashMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-		{// the idea is to number the new states rather than to clone vertices.
+		{// The idea is to number the new states rather than to clone vertices.
+		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.
 			CmpVertex newVert = LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config);
 			newVert.setAccept(entry.getKey().isAccept());
 			newVert.setHighlight(entry.getKey().isHighlight());

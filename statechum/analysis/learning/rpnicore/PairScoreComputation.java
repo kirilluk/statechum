@@ -41,7 +41,9 @@ import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -654,18 +656,21 @@ public class PairScoreComputation {
 		return score;
 	}
 
-	/** Returns a stack of states with scores over a given threshold, using Linear. 
+	/** Computes a stack of states with scores over a given threshold, using Linear. 
+	 * States which are filtered out by LearnerGraphND's filter are ignored.
+	 * The outcome is not sorted - this internal routine is used by 
+	 * chooseStatePairs_filtered and chooseStatePairs.
 	 * 
 	 * @param threshold the threshold to use, prior to scaling.
 	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
 	 * @param ThreadNumber the number of CPUs to use
-	 * @param coregraph the graph to update scores of
-	 * @return
+	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
+	 * @param filter determines the states to filter out.
 	 */
-	public Stack<PairScore> chooseStatePairs(double threshold, double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
+	public void chooseStatePairs_internal(double threshold, double scale, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, StatesToConsider filter)
 	{
-		LearnerGraphND ndGraph = new LearnerGraphND(coregraph, LearnerGraphND.ignoreRejectStates, false);
+		LearnerGraphND ndGraph = new LearnerGraphND(coregraph, filter, false);
 		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=LearnerGraphND.PAIR_OK;
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
@@ -684,6 +689,77 @@ public class PairScoreComputation {
 			else // PAIR_INCOMPATIBLE
 				if (threshold < LearnerGraphND.PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*LearnerGraphND.PAIR_INCOMPATIBLE), 0));
 		}
+	}
+	/** Returns a stack of states with scores over a given threshold, using Linear. 
+	 * States which are filtered out by LearnerGraphND's filter are ignored.
+	 * 
+	 * @param threshold the threshold to use, prior to scaling.
+	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+	 * @param ThreadNumber the number of CPUs to use
+	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
+	 * @param filter determines the states to filter out.
+	 * @return
+	 */
+	public Stack<PairScore> chooseStatePairs_filtered(double threshold, double scale, int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, StatesToConsider filter)
+	{
+		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter);
+		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
+	}
+
+	/** Returns a stack of states with scores over a given threshold, using Linear. 
+	 * States which are filtered out by LearnerGraphND's filter are initially ignored and subsequently 
+	 * added. 
+	 * 
+	 * @param threshold the threshold to use, prior to scaling.
+	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
+	 * @param ThreadNumber the number of CPUs to use
+	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
+	 * @param filter determines the states to filter out at the initial stage; all state pairs which 
+	 * were filtered out are subsequently appended to the end of the stack returned.
+	 * @return
+	 */
+	public Stack<PairScore> chooseStatePairs(final double threshold, final double scale, final int ThreadNumber, 
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter)
+	{
+		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter);
+		if (threshold <= 0)
+		{
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			final List<PairScore> resultsPerThread [] = new List[ThreadNumber];
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+			{
+				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
+				handlerList.add(new HandleRow<CmpVertex>()
+				{
+					public void init(@SuppressWarnings("unused") int threadNo) {}
+	
+					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					{
+						// Now iterate through states
+						Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+						while(stateB_It.hasNext())
+						{
+							Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+							if (!filter.stateToConsider(entryA.getKey()) ||
+									!filter.stateToConsider(stateB.getKey()))
+							{
+								int score = 0;
+								if (stateB.getKey().isAccept() != entryA.getKey().isAccept()) score=LearnerGraphND.PAIR_INCOMPATIBLE;
+								if (score>threshold)
+									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
+
+								if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+							}
+						}// B-loop
+					}
+				});
+			}
+			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone);
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
+				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
+		}
+				
 		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
 	}
 }

@@ -32,15 +32,17 @@ import cern.colt.list.IntArrayList;
  */
 public class LearnerGraphND
 {
+	
 	/** Ignores all reject-states. */
-	public final static StatesToConsider ignoreRejectStates =new StatesToConsider()
+	public static class ignoreRejectStatesClass implements StatesToConsider
 	{
-		public boolean stateToConsider(CmpVertex vert,
-				@SuppressWarnings("unused") LearnerGraph graph) {
+		public boolean stateToConsider(CmpVertex vert) {
 			return vert.isAccept();
 		}
-	};
+	}
 	
+	public final static StatesToConsider ignoreRejectStates =new ignoreRejectStatesClass();
+
 	/** Ignores all states with no outgoing transitions to accept-states.
 	 * The main idea is to eliminate as many states as possible for the construction
 	 * of a matrix. A pair consisting of an arbitrary state and a reject state 
@@ -54,25 +56,34 @@ public class LearnerGraphND
 	 * with the pair may be needed for computation of a score of a pair with matched transitions
 	 * leading to this state.
 	 */
-	public final static StatesToConsider ignoreZero = new StatesToConsider()
+	public static class ignoreZeroClass implements StatesToConsider
 	{
-		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert, 
-				LearnerGraph graph) {
+		private final LearnerGraph graph;
+		
+		public ignoreZeroClass(LearnerGraph g)
+		{
+			graph=g;
+		}
+		
+		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
 			return graph.transitionMatrix.get(vert).size() > 0;
 		}
-	};
+	}
 	
 	/** Does not ignore any states. */
-	public final static StatesToConsider ignoreNone = new StatesToConsider()
+	public static class ignoreNoneClass implements StatesToConsider
 	{
-		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert,
-				@SuppressWarnings("unused") LearnerGraph graph) {
+		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
 			return true;
 		}
 	};
 	
+	public final static StatesToConsider ignoreNone = new ignoreNoneClass();
+	
 	final Set<String> alphabet;
 	final Configuration config;
+
+	final StatesToConsider filter;
 	
 	/** Associates this object to LinearGraph it is using for data to operate on. 
 	 * Important: the constructor should not access any data in computeStateScores 
@@ -80,29 +91,34 @@ public class LearnerGraphND
 	 * when no data is yet available.
 	 * 
 	 * @param coregraph the graph from which to build this graph
-	 * @param filter the filter to use when deciding which states to consider and which to throw away.
+	 * @param stateFilter the filter to use when deciding which states to consider and which to throw away.
 	 * @param buildForward true to build a forward graph, false for reverse. This is supposed
 	 * to be an opposite of the direction in which linear should work, so in order to compute
 	 * linear forward, you need to pass false here.
 	 */
-	public LearnerGraphND(LearnerGraph coregraph,StatesToConsider filter, boolean direction)
+	public LearnerGraphND(LearnerGraph coregraph,StatesToConsider stateFilter, boolean direction)
 	{
-		alphabet = coregraph.learnerCache.getAlphabet();config=coregraph.config;
+		alphabet = coregraph.learnerCache.getAlphabet();config=coregraph.config;filter=stateFilter;
 		matrixInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
 		matrixForward = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
 
 		stateToNumberMap = new TreeMap<CmpVertex,Integer>();
 		numberToStateArray = coregraph.buildStateToIntegerMap(filter,stateToNumberMap);
 		assert numberToStateArray.length == stateToNumberMap.size();
+		
+		// Forward matrix cannot be filtered because DDRH has to compute scores
+		// using the actual transitions including those to reject states.
+		// For instance, for two states A-a-#C and B-a-#D the right-hand side
+		// should be 1, however it will be zero if #C and #D are ignored.
 		if (direction)
 		{
 			buildForward(coregraph,filter,matrixInverse);
-			buildInverse(coregraph,filter,matrixForward);
+			buildInverse(coregraph,ignoreNone,matrixForward);
 		}
 		else
 		{
 			buildInverse(coregraph,filter,matrixInverse);
-			buildForward(coregraph,filter,matrixForward);
+			buildForward(coregraph,ignoreNone,matrixForward);
 			
 		}
 
@@ -116,13 +132,29 @@ public class LearnerGraphND
 		return alphabet;
 	}
 
-	public Map<CmpVertex,Map<String,List<CmpVertex>>> matrixInverse, matrixForward;
+	/** Transition matrices, has to be TreeMap to ensure traversal through entry sets 
+	 * in the order of CmpVertex's IDs.
+	 */ 
+	public TreeMap<CmpVertex,Map<String,List<CmpVertex>>> matrixInverse, matrixForward;
 	
+	/** Returns the number of states to be considered. 
+	 * All others are filtered out by the filter.
+	 * 
+	 * @return number of states to compute compatibility of.
+	 */
 	public int getStateNumber()
 	{
 		return getStatesToNumber().size();
 	}
 
+	/** Returns the number of pairs of states to be considered.
+	 * All others contain states filtered out.
+	 */
+	public int getPairNumber()
+	{
+		return getStateNumber()*(getStateNumber()+1)/2;
+	}
+	
 	/** Consider every state and a map from inputs to transitions leading into
 	 * those states with those inputs (<em>sortaInverse</em>).
 	 * For a pair of states (A,B), there may be some inputs for which both states
@@ -160,20 +192,22 @@ public class LearnerGraphND
 			Map<CmpVertex,Map<String,List<CmpVertex>>> transitionMatrixND)
 	{
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			if (filter.stateToConsider(entry.getKey(),coregraph))
+			if (filter.stateToConsider(entry.getKey()))
 			{
 				Map<String,List<CmpVertex>> entryForState = new TreeMap<String,List<CmpVertex>>();
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-					if (filter.stateToConsider(transition.getValue(),coregraph))
+					if (filter.stateToConsider(transition.getValue()))
 					{
 						List<CmpVertex> targetList = new LinkedList<CmpVertex>();targetList.add(transition.getValue());
 						entryForState.put(transition.getKey(), targetList);
 					}
 				transitionMatrixND.put(entry.getKey(), entryForState);
 			}
+		
 		// It cannot happen that some target states will not be included in the set
-		// of source states because the routines building LearnerGraph ensure
-		// that all states are mentioned in LearnerGraph's transition matrix.
+		// of source states because routines building LearnerGraph ensure
+		// that all states are mentioned on the left-hand side
+		// LearnerGraph's transition matrix.
 	}
 	
 	/** Builds a (non-deterministic in general) transition matrix where all 
@@ -192,14 +226,14 @@ public class LearnerGraphND
 		// it is crucially important to fill in all the entries which can be accessed during the triangular exploration, 
 		// otherwise holes will lead to the sequence of numbers explored to be discontinuous, causing a failure.
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			if (filter.stateToConsider(entry.getKey(),coregraph))
+			if (filter.stateToConsider(entry.getKey()))
 				transitionMatrixND.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
 		
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			if (filter.stateToConsider(entry.getKey(),coregraph))
+			if (filter.stateToConsider(entry.getKey()))
 			{
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-					if (filter.stateToConsider(transition.getValue(),coregraph))
+					if (filter.stateToConsider(transition.getValue()))
 					{
 						Map<String,List<CmpVertex>> row = transitionMatrixND.get(transition.getValue());
 						List<CmpVertex> sourceStates = row.get(transition.getKey());
@@ -267,7 +301,7 @@ public class LearnerGraphND
 	/** A temporary designation for compatible pairs of states, before they are numbered. */
 	public static final int PAIR_OK=-2;
 
-	public interface HandleRow 
+	public interface HandleRow<TARGET_TYPE>
 	{
 		/** Initialises this job. 
 		 * @throws IllegalAccessException 
@@ -280,18 +314,21 @@ public class LearnerGraphND
 		 * @param threadNo the number of this thread- used when threads need to store 
 		 * results somewhere, so I create an array indexed by threadNo.
 		 */
-		public void handleEntry(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry, int threadNo);
+		public void handleEntry(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry, int threadNo);
 	}
 	
-	protected class Job implements Callable<Integer>
+	public static class Job<TARGET_TYPE> implements Callable<Integer>
 	{
 		private final int[]workLoad;
 		private final int threadNo;
-		private final HandleRow handler;
+		private final HandleRow<TARGET_TYPE> handler;
+		private final Map<CmpVertex,Map<String,TARGET_TYPE>> matrix;
+		private final StatesToConsider filter;
 		
-		public Job(final int[]wLoad,int thNo,final HandleRow h)
+		public Job(final int[]wLoad,int thNo,final HandleRow<TARGET_TYPE> h, 
+				Map<CmpVertex,Map<String,TARGET_TYPE>> m, StatesToConsider f)
 		{
-			workLoad = wLoad;threadNo = thNo;handler=h;
+			workLoad = wLoad;threadNo = thNo;handler=h;matrix=m;filter=f;
 		}
 		
 		public Integer call() throws Exception 
@@ -300,21 +337,22 @@ public class LearnerGraphND
 			{
 				handler.init(threadNo);
 				int currentRow = 0;
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixForward.entrySet().iterator();
+				//Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixForward.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<String,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo])
 				{
-					//Entry<CmpVertex,Map<String,List<CmpVertex>>> entry = stateB_It.next();
-					//if (filter.stateToConsider(entry.getKey()))
-					stateB_It.next();
-					++currentRow;// only increment the row number if we are at the state we should consider
+					Entry<CmpVertex,Map<String,TARGET_TYPE>> entry = stateB_It.next();
+					if (filter.stateToConsider(entry.getKey()))
+						++currentRow;// only increment the row number if we are at the state we should consider
 				}
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo+1])
 				{
-					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
-					//if (filter.stateToConsider(stateB.getKey())) 
-					++currentRow;// only increment the row number if we are at the state we should consider. We still run our worker on all the junk-rows, 
-						// but we expect it to be fast on those rows, so no problems.
-					handler.handleEntry(stateB, threadNo);
+					Entry<CmpVertex,Map<String,TARGET_TYPE>> stateB = stateB_It.next();
+					if (filter.stateToConsider(stateB.getKey()))
+					{
+						handler.handleEntry(stateB, threadNo);
+						++currentRow;// only increment the row number if we are at the state we should consider.
+					}
 				}
 			}
 			return 0;
@@ -362,10 +400,13 @@ public class LearnerGraphND
 	 * 
 	 * @param ThreadNumber the number of threads to create. If this is one, no 
 	 * <em>ExecutorService</em> is created and the handler is called directly.
+	 * 
+	 * @param matrix transition matrix to run tasks on
 	  */
-	protected void performRowTasks(List<? extends HandleRow> handlerList,int ThreadNumber)
+	protected static <TARGET_TYPE> void performRowTasks(List<? extends HandleRow<TARGET_TYPE>> handlerList,int ThreadNumber, 
+			final Map<CmpVertex,Map<String, TARGET_TYPE>> matrix, final StatesToConsider filter)
 	{
-		final int[]workLoad = partitionWorkLoad(ThreadNumber,getStateNumber());
+		final int[]workLoad = partitionWorkLoad(ThreadNumber,matrix.size());
 		/** The runner of computational threads. */
 		ExecutorService executorService = null;
 		try
@@ -378,14 +419,14 @@ public class LearnerGraphND
 				CompletionService<Integer> runner = new ExecutorCompletionService<Integer>(executorService);
 				
 				for(int count=0;count < ThreadNumber;++count) 
-					runner.submit(new Job(workLoad,count,handlerList.get(count)));
+					runner.submit(new Job<TARGET_TYPE>(workLoad,count,handlerList.get(count),matrix, filter));
 			
 				for(int count=0;count < ThreadNumber;++count)
 					runner.take().get();// this will throw an exception if any of the tasks failed.
 			}
 			else
 				// Run single-threaded.
-				new Job(workLoad,0,handlerList.get(0)).call();
+				new Job<TARGET_TYPE>(workLoad,0,handlerList.get(0),matrix, filter).call();
 		}
 		catch(Exception ex)
 		{
@@ -438,7 +479,10 @@ public class LearnerGraphND
 	 * we give them a negative score - this is all that is needed because pairs of even very
 	 * similar states may have paths which are not compatible - it does not matter because
 	 * we are not doing merging of such states when working backwards.</li>
-	 * </ul> 
+	 * </ul>
+	 * 
+	 * @param graph the graph to process
+	 * @param filter which states to consider
 	 */
 	protected void findDirectlyIncompatiblePairs(LearnerGraph graph)
 	{
@@ -446,8 +490,8 @@ public class LearnerGraphND
 		int num =0;
 		Map<String,Integer> inputToInt = new TreeMap<String,Integer>();for(String str:getAlphabet()) inputToInt.put(str, num++);
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-			//if (filter.stateToConsider(entry.getKey()))
-			{// ignoring irrelevant-states
+			if (filter.stateToConsider(entry.getKey()))
+			{// ignoring irrelevant-states, for efficiency
 				BitVector 
 					acceptVector = new BitVector(getAlphabet().size()),
 					rejectVector = new BitVector(getAlphabet().size());
@@ -475,15 +519,15 @@ public class LearnerGraphND
 	 */
 	int findIncompatiblePairs(final int [] incompatiblePairs, int ThreadNumber)
 	{
-		final int pairsNumber = getStateNumber()*(getStateNumber()+1)/2;
+		final int pairsNumber = getPairNumber();
 
 		if (incompatiblePairs.length != pairsNumber) throw new IllegalArgumentException("invalid array length");
 
 		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
 		
-		List<HandleRow> handlerList = new LinkedList<HandleRow>();
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new HandleRow()
+		handlerList.add(new HandleRow<List<CmpVertex>>()
 		{
 			public void init(@SuppressWarnings("unused") int threadNo) {}
 
@@ -493,11 +537,12 @@ public class LearnerGraphND
 			int prevStatePairNumber =-1;
 
 			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
-			{
+			{// we are never called with entryA which has been filtered out.
 				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.get(entryA.getKey()).entrySet();// the "inverse" row
 				BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
 				
-				// Now iterate through states
+				// Now iterate through states, pre-filtered during construction of matrixInverse but in the same order 
+				// because they are ordered by their IDs and we are using a TreeMap to store 'em.
 				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
@@ -509,7 +554,8 @@ public class LearnerGraphND
 					// different threads handle non-intersecting ranges of them, hence most of the time,
 					// there should be no "cache thrashing".
 					BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
-					if (intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
+					if (stateB.getKey().isAccept() != entryA.getKey().isAccept() ||// relevant if we do not filter any states initially
+							intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
 					{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
 						sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
 						Map<String,List<CmpVertex>> rowB = stateB.getValue();
@@ -551,7 +597,7 @@ public class LearnerGraphND
 				}// B-loop
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber);
+		performRowTasks(handlerList, ThreadNumber, matrixForward, filter);
 		//inputsAccepted=null;inputsRejected=null;
 		
 		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
@@ -642,31 +688,40 @@ public class LearnerGraphND
 		/** Counts the number of outgoing transitions from a pair of states with the same label.
 		 * Hence if A has a,b,c outgoing and B has b,c,e,f, the outcome will be 2 because 
 		 * there are two transitions, b,c in common.
+		 * Important: this does not ignore states to be ignored in the process of computation
+		 * because we actually have to consider them at this point - otherwise 
+		 * different filters will affect scores obtained; filter should only impact efficiency
+		 * with Zero filter best performing. 
 		 */
 		protected void compute(Map<String,List<CmpVertex>> A, Map<String,List<CmpVertex>> B)
 		{
 			sharedSameHighlight = 0;sharedOutgoing = 0;totalOutgoing = 0;
+			boolean incompatible = false;
 			
 			for(Entry<String,List<CmpVertex>> entry:A.entrySet())
 			{
 				List<CmpVertex> to_list=B.get(entry.getKey());
 				if (to_list != null)
-					for(CmpVertex from:entry.getValue())
-						for(CmpVertex to:to_list)
+					for(CmpVertex targetA:entry.getValue())
+						for(CmpVertex targetB:to_list)
 						{// we do a cross-product of all states which can be reached.
 							
-							++sharedOutgoing;++totalOutgoing;
-							
+							++totalOutgoing;
+							++sharedOutgoing;
+							if (targetA.isAccept() != targetB.isAccept())
+								incompatible=true;
 							//if (filter.stateToConsider(from) && filter.stateToConsider(to)) 
 							{// if this pair of states is to be considered. For instance, we may ignore 
 							 // all reject states because they are only used to compare accept states' compatibility
 								
-								if (from.isHighlight() == to.isHighlight()) ++sharedSameHighlight;
+								if (targetA.isHighlight() == targetB.isHighlight()) ++sharedSameHighlight;
 							}
 						}
 				else
 					totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 			}
+			
+			if (incompatible) sharedOutgoing = PAIR_INCOMPATIBLE;
 			for(Entry<String,List<CmpVertex>> entry:B.entrySet())
 				if (!A.containsKey(entry.getKey())) totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 		}
@@ -737,7 +792,7 @@ public class LearnerGraphND
 	/** This routine is used for testing of buildMatrix_internal. */
 	public LSolver buildMatrix(final int ThreadNumber)
 	{
-		final int [] incompatiblePairs = new int[getStateNumber()*(getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,null);
 	}
@@ -745,8 +800,8 @@ public class LearnerGraphND
 	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{ 
-		if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
-			System.out.println("Initial number of pairs: "+(getStateNumber()*(getStateNumber()+1)/2)+", after reduction: "+pairsNumber);
+		//if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+		//	System.out.println("Initial number of pairs: "+getPairNumber()+", after reduction: "+pairsNumber);
 
 		final int expectedMatrixSize = getExpectedIncomingPerPairOfStates()*pairsNumber;
 		/** This one is supposed to contain indices into Ai where each column starts. Every thread
@@ -765,9 +820,9 @@ public class LearnerGraphND
 		final double k = config.getAttenuationK();
 
 		// We need next to no locking since state pairs considered are disjoint and work arrays are split between threads.
-		List<HandleRow> handlerList = new LinkedList<HandleRow>();
+		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new HandleRow()
+		handlerList.add(new HandleRow<List<CmpVertex>>()
 		{
 			IntArrayList tmpAi = null;
 			
@@ -841,7 +896,7 @@ public class LearnerGraphND
 								if (tmpAi.elements().length < maxSize)
 								{
 									if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
-										System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread] from "+tmpAi.elements().length+" to "+maxSize);
+										System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread "+threadNo+"] from "+tmpAi.elements().length+" to "+maxSize);
 									tmpAi.ensureCapacity(maxSize);
 								}
 								if (debugThread == threadNo) System.out.println("matched "+outLabel.getKey());
@@ -889,7 +944,7 @@ public class LearnerGraphND
 						if (Ax.elements().length < expectedMaxSize)
 						{
 							if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
-								System.out.println("buildMatrix: warning - resizing arrays Ax[thread] and Ai[thread] from "+Ax.elements().length+" to "+expectedMaxSize);
+								System.out.println("buildMatrix: warning - resizing arrays Ax[thread "+threadNo+"] and Ai[thread "+threadNo+"] from "+Ax.elements().length+" to "+expectedMaxSize);
 							Ax.ensureCapacity(expectedMaxSize);
 							Ai.ensureCapacity(expectedMaxSize);
 						}
@@ -930,7 +985,7 @@ public class LearnerGraphND
 				}// stateB_It.hasNext()
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber);
+		performRowTasks(handlerList, ThreadNumber, matrixForward,filter);
 		// At this point, we are finished building the matrices, it's time to populate the main arrays.
 		
 		// First, we compute the number of non-zero elements.
@@ -1002,7 +1057,7 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 	 */ 
 	public double [] computeStateCompatibility(int ThreadNumber,final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{
-		final int [] incompatiblePairs = new int[getStateNumber()*(getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
+		final int [] incompatiblePairs = new int[getPairNumber()];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		final int pairsNumber = findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve();
@@ -1018,7 +1073,6 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 	
 
 	/** This is a kind of an inverse of vertexToIntNR, takes a number and a score returns a corresponding <em>PairScore</em>.
-	 * FIXME: It is important to note that reject-nodes are ignored, perhaps they should not be.  
 	 */ 
 	public PairScore getPairScore(int pair, int score, int compat)
 	{

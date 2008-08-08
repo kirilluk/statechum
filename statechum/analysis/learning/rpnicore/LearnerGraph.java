@@ -515,7 +515,7 @@ public class LearnerGraph {
 		 * @param graph the graph in which this state is contained.
 		 * @return whether state is to be considered
 		 */
-		public boolean stateToConsider(CmpVertex vert, LearnerGraph graph);
+		public boolean stateToConsider(CmpVertex vert);
 	}
 	
 	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
@@ -529,11 +529,11 @@ public class LearnerGraph {
 	{
 		//Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
 		int size=0;for(CmpVertex vert:transitionMatrix.keySet()) 
-			if (whatToConsider == null || whatToConsider.stateToConsider(vert,this)) size++;
+			if (whatToConsider == null || whatToConsider.stateToConsider(vert)) size++;
 		CmpVertex [] intToVertexMap = new CmpVertex[size];
 		int num=0;
 		for(CmpVertex vert:transitionMatrix.keySet())
-			if (whatToConsider == null || whatToConsider.stateToConsider(vert,this))
+			if (whatToConsider == null || whatToConsider.stateToConsider(vert))
 			{
 				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
 				vertToIntMap.put(vert, num++);// populate the forward map

@@ -21,6 +21,7 @@ import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceSet;
@@ -47,7 +48,8 @@ public class RPNIBlueFringeLinearLearner extends
 		newPTA.setName("merge_debug"+0);
 		updateGraph(newPTA);
 		
-		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs(0, 10, 1, null);
+		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs
+			(0., 10., 1, null, new LearnerGraphND.ignoreZeroClass(scoreComputer));
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		final int restartOfInterest = -21;
 		while(!possibleMerges.isEmpty()&&iterations<20)
@@ -185,7 +187,7 @@ public class RPNIBlueFringeLinearLearner extends
 				scoresToIterations.put(pair, iterations);
 			}
 			
-			possibleMerges = scoreComputer.pairscores.chooseStatePairs(0, 10, 1, null);
+			possibleMerges = scoreComputer.pairscores.chooseStatePairs_filtered(0, 10, 1, null,new LearnerGraphND.ignoreZeroClass(scoreComputer));
 			//System.out.println(possibleMerges);
 		}
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);

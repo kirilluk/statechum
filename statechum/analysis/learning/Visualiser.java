@@ -48,6 +48,10 @@ import java.beans.XMLEncoder;
 import javax.swing.*;
 
 /* Graph layout loading/saving including most of XMLPersistingLayout is from Jung source code. 
+ * 
+ * Sample JVM arguments:
+ * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs -Xmx3500m
+ * 
  Jung license included below,
 
  The license below is the BSD open-source license. See 

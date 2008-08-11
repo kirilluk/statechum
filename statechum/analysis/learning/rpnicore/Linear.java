@@ -51,9 +51,9 @@ public class Linear {
 	 */
 	public double getSimilarity(LearnerGraph gr, boolean forceAccept, int ThreadNumber)
 	{
-		Configuration copyConfig = (Configuration)coregraph.config.clone();copyConfig.setLearnerCloneGraph(true);
+		Configuration copyConfig = coregraph.config.copy();copyConfig.setLearnerCloneGraph(true);
 		LearnerGraph copy = coregraph.copy(copyConfig);
-		CmpVertex grInit = Transform.addToGraph(copy, gr);
+		CmpVertex grInit = Transform.addToGraph(copy, gr, null);
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
 		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreRejectStates,false);
@@ -70,9 +70,9 @@ public class Linear {
 	public double getSimilarityWithNegatives(LearnerGraph gr, int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{
-		Configuration copyConfig = (Configuration)coregraph.config.clone();copyConfig.setLearnerCloneGraph(true);
+		Configuration copyConfig = coregraph.config.copy();copyConfig.setLearnerCloneGraph(true);
 		LearnerGraph copy = coregraph.copy(copyConfig);
-		CmpVertex grInit = Transform.addToGraph(copy, gr);
+		CmpVertex grInit = Transform.addToGraph(copy, gr,null);
 		copy.linear.moveRejectToHighlight();
 		copy.learnerCache.invalidate();
 		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreRejectStates,false);

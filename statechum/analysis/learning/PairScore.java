@@ -21,8 +21,9 @@ package statechum.analysis.learning;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 /** Important: although compatibility score is recorded and reported, it is ignored in 
- * all computations since it is considered for information only. Hence there is no
- * getter method for it either.
+ * all computations since it is considered for information only. The getter for it
+ * is provided because this class is not exclusively used for learning, but in other
+ * cases when I need to associate two scores to states, such as in GD. 
  */
 public class PairScore extends StatePair implements Comparable<StatePair>
 {
@@ -37,6 +38,10 @@ public class PairScore extends StatePair implements Comparable<StatePair>
 		return score;
 	}
 
+	public int getAnotherScore() {
+		return compatibilityScore;
+	}
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

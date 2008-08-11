@@ -58,7 +58,7 @@ public class TestPTASequenceEngine
 	public final void setUp()
 	{
 		LearnerGraph.testMode=true;
-		config = (Configuration)mainConfiguration.clone();config.setAllowedToCloneNonCmpVertex(true);
+		config = mainConfiguration.copy();config.setAllowedToCloneNonCmpVertex(true);
 		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
 		en = new PTA_FSMStructure(fsm);		
 		engine_testLimitToGraph = new PTA_FSMStructure(new LearnerGraph(TestFSMAlgo.buildGraph(

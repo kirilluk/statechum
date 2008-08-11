@@ -59,7 +59,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		
 		LearnerGraph.testMode = true;		
-		config = (Configuration)mainConfiguration.clone();
+		config = mainConfiguration.copy();
 		config.setAllowedToCloneNonCmpVertex(true);
 		differentA = new LearnerGraph(buildGraph("Q-a->A-b->B", "testFSMStructureEquals2"),config);
 		differentB = new LearnerGraph(buildGraph("A-b->A-a->B", "testFSMStructureEquals2"),config);

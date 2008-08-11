@@ -114,7 +114,7 @@ public class WExperiment extends AbstractExperiment {
 			if (gr != result)
 			{
 				Transform.relabel(gr, 1, "gr_"+graphNumber++);
-				CmpVertex newInit = Transform.addToGraph(result, gr);
+				CmpVertex newInit = Transform.addToGraph(result, gr,null);
 				int score = -1;
 				do
 				{

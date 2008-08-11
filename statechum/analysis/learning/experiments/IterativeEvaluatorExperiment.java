@@ -112,7 +112,7 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 		 */
 		public IterativeExperiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
 		}
 
@@ -124,7 +124,7 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 		 */
 		public IterativeExperiment()
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
 			conf.setSpeculativeQuestionAsking(true);
 			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);

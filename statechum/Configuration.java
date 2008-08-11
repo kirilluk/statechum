@@ -227,6 +227,12 @@ public class Configuration implements Cloneable
 		}
 	}
 	
+	/** Makes a copy of this configuration. Same as clone() but without a need to cast the result. */
+	public Configuration copy()
+	{
+		return (Configuration)clone();
+	}
+	
 	/** Whether construction of LearnerGraph from a Jung graph should clone vertices of that graph. */
 	protected boolean LearnerCloneGraph = true;
 	
@@ -318,6 +324,8 @@ public class Configuration implements Cloneable
 		result = prime * result + (int)(attenuationK*100);
 		result = prime * result + (consistencyCheckMode? 1231 : 1237);
 		result = prime * result + (speculativeQuestionAsking? 1231:1237);
+		result = prime * result + (int)(gdKeyPairThreshold*100);
+		result = prime * result + (int)(gdLowToHighRatio*100);
 		return result;
 	}
 
@@ -389,6 +397,10 @@ public class Configuration implements Cloneable
 		if (consistencyCheckMode != other.consistencyCheckMode)
 			return false;
 		if (speculativeQuestionAsking != other.speculativeQuestionAsking)
+			return false;
+		if (gdKeyPairThreshold != other.gdKeyPairThreshold)
+			return false;
+		if (gdLowToHighRatio != other.gdLowToHighRatio)
 			return false;
 		return true;
 	}
@@ -534,6 +546,47 @@ public class Configuration implements Cloneable
 
 	public void setGenerateDotOutput(boolean generateDot) {
 		generateDotOutput = generateDot;
+	}
+	
+	/** Considering all pairs of states, we need to determine those of 
+	 * them which are over a specific threshold,
+	 * defined as top so many percent (expressed as a fraction, so top 5% is 0.05).
+	 */
+	protected double gdKeyPairThreshold = 0.25;
+	
+	public double getGdKeyPairThreshold()
+	{
+		return gdKeyPairThreshold;
+	}
+	
+	public void setGdKeyPairThreshold(double value)
+	{
+		if (value < 0 || value > 1)
+			throw new IllegalArgumentException("threshold "+value+" is invalid, 0..1 is expected (both inclusive)");
+		gdKeyPairThreshold = value;
+	}
+	
+	/** The highest low-high score ratio for a pair to be considered a key pair.
+	 * If some pairs have high absolute scores, they make kill all other
+	 * candidates for key pairs. For this reason, we'd like to set
+	 * <em>gdKeyPairThreshold</em> not too low and choose
+	 * a state of B which should be paired to a state in A where the 
+	 * corresponding pairs's low score is at most <em>gdLowToHighRatio</em>
+	 * that of its highest score (). Refer to <em>handleRow</em> part of 
+	 * <em>identifyKeyPairs()</em> for details.
+	 */ 
+	protected double gdLowToHighRatio = 0.5;
+	
+	public double getGdLowToHighRatio()
+	{
+		return gdLowToHighRatio;
+	}
+	
+	public void setGdLowToHighRatio(double value)
+	{
+		if (value < 0 || value > 1)
+			throw new IllegalArgumentException("HighLowRatio "+value+" is invalid, expected 0..1");
+		gdLowToHighRatio = value;
 	}
 	
 	/** When doing linear, we need a way to attenuate the compatibility score associated

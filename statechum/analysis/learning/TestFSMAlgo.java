@@ -85,7 +85,7 @@ public class TestFSMAlgo {
 	@Before
 	public void beforeTest()
 	{
-		config = (Configuration)mainConfiguration.clone();
+		config = mainConfiguration.copy();
 		LearnerGraph.testMode=true;
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -182,12 +182,12 @@ public class TestFSMAlgo {
 		confC = new Configuration(), confD = new Configuration();
 		confA.setBumpPositives(true);confA.setLearnerIdMode(Configuration.IDMode.NONE);confA.setDefaultInitialPTAName("test");
 		confC.setBumpPositives(true);confC.setLearnerIdMode(Configuration.IDMode.NONE);confC.setDefaultInitialPTAName("a");
-		Configuration confClone = (Configuration)confA.clone();
+		Configuration confClone = confA.copy();
 		equalityTestingHelper(confA, confClone, confC, confD);
 		
 		confClone.setDefaultInitialPTAName("avalue");// mess up the clone
 		equalityTestingHelper(confA, confA, confClone, confD);
-		equalityTestingHelper(confA.clone(), confA, confClone, confD);
+		equalityTestingHelper(confA.copy(), confA, confClone, confD);
 		
 		confA.setDefaultInitialPTAName("avalue");// mess up the original the same way as the clone was messed up
 		equalityTestingHelper(confA, confClone, confC, confD);
@@ -271,8 +271,8 @@ public class TestFSMAlgo {
 			for(MethodAndArgs currentMethod:MethodsArgs)
 			{
 				Configuration 
-					configA = (Configuration)Configuration.getDefaultConfiguration().clone(),
-					configB = (Configuration)Configuration.getDefaultConfiguration().clone();
+					configA = Configuration.getDefaultConfiguration().copy(),
+					configB = Configuration.getDefaultConfiguration().copy();
 				for(MethodAndArgs orig:MethodsArgs)
 				{
 					orig.method.invoke(configA, new Object[]{orig.Arg});
@@ -305,6 +305,7 @@ public class TestFSMAlgo {
 				Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
 	}

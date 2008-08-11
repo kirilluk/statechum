@@ -121,7 +121,7 @@ public class MergeStates {
 			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
 		}
 		Collection<AMEquivalenceClass> mergedStates = new LinkedList<AMEquivalenceClass>();
-		Configuration cloneConfig = (Configuration)result.config.clone();cloneConfig.setLearnerCloneGraph(true);
+		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,AMEquivalenceClass> origToNew = new HashMap<CmpVertex,AMEquivalenceClass>();
 		for(Collection<CmpVertex> eqClass:mergedVertices)
@@ -174,7 +174,7 @@ public class MergeStates {
 		assert original.transitionMatrix.containsKey(pair.secondElem);
 		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 		LearnerGraph result;
-		Configuration shallowCopy = (Configuration)original.config.clone();shallowCopy.setLearnerCloneGraph(false);
+		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		result = original.copy(shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
@@ -263,7 +263,7 @@ public class MergeStates {
 			
 			// Special configuration is necessary to ensure that computePairCompatibilityScore_internal
 			// builds mergedVertices using g's vertices rather than StringVertices or clones of g's vertices.
-			Configuration VertexCloneConf = (Configuration)conf.clone();VertexCloneConf.setLearnerUseStrings(false);VertexCloneConf.setLearnerCloneGraph(false);
+			Configuration VertexCloneConf = conf.copy();VertexCloneConf.setLearnerUseStrings(false);VertexCloneConf.setLearnerCloneGraph(false);
 			LearnerGraph s=new LearnerGraph(g,VertexCloneConf);
 			if (s.pairscores.computePairCompatibilityScore_internal(new StatePair(s.findVertex(pair.getQ().getID()),s.findVertex(pair.getR().getID())),mergedVertices) < 0)
 				throw new IllegalArgumentException("elements of the pair are incompatible");

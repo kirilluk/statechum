@@ -40,7 +40,6 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.*;
@@ -275,7 +274,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		{
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
-			int ptaSize = pta.numberOfLeafNodes();
+			//int ptaSize = pta.numberOfLeafNodes();
 			//l.init(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
 			//l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 			l.loadPTA(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_data");
@@ -313,7 +312,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative, 
 				boolean useOrigArg, boolean useAmberArg)
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
 			useOrigTrainingSet = useOrigArg;useAmberLearner = useAmberArg;
 		}
@@ -326,7 +325,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 		 */
 		public Experiment()
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
 			conf.setSpeculativeQuestionAsking(true);
 			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);

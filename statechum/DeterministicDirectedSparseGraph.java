@@ -204,6 +204,9 @@ public class DeterministicDirectedSparseGraph {
 		
 	}
 	
+	/** These are expected to be compared for equality using acceptance and IDs only,
+	 * not highlight or colour.
+	 */
 	public interface CmpVertex extends Comparable<CmpVertex> {
 		/** Returns an ID of this vertex. */
 		VertexID getID();

@@ -859,7 +859,7 @@ public class WMethod {
 						
 			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem), expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
 			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
-				throw new DifferentFSMException("different number of transitions from state "+statePair);
+				throw new DifferentFSMException("different number of transitions from states "+statePair);
 				
 			for(Entry<String,CmpVertex> labelstate:targets.entrySet())
 			{

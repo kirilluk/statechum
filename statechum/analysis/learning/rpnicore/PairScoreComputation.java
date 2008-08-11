@@ -755,7 +755,8 @@ public class PairScoreComputation {
 					}
 				});
 			}
-			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone);
+			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
+					LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
 		}

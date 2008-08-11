@@ -95,49 +95,77 @@ public class TestLinear {
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_1()
 	{
-		LearnerGraphND.partitionWorkLoad(0,grLoadDistributionND.getStateNumber());
+		LearnerGraphND.partitionWorkLoadTriangular(0,grLoadDistributionND.getStateNumber());
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
-	public final void testWorkLoadDistribution0_2()
+	public final void testWorkLoadDistribution0_2a()
 	{
-		LearnerGraphND.partitionWorkLoad(-1,grLoadDistributionND.getStateNumber());
+		LearnerGraphND.partitionWorkLoadTriangular(-1,grLoadDistributionND.getStateNumber());
+	}
+
+	/** Tests how well the workload is distributed. */
+	@Test(expected=IllegalArgumentException.class)
+	public final void testWorkLoadDistribution0_2b()
+	{
+		LearnerGraphND.partitionWorkLoadLinear(-1,grLoadDistributionND.getStateNumber());
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution1()
 	{
-		Assert.assertArrayEquals(new int[]{0,4},LearnerGraphND.partitionWorkLoad(1,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,4},LearnerGraphND.partitionWorkLoadTriangular(1,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,4},LearnerGraphND.partitionWorkLoadLinear(1,grLoadDistributionND.getStateNumber()));
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution2()
 	{
-		Assert.assertArrayEquals(new int[]{0,2,3,4,4},LearnerGraphND.partitionWorkLoad(4,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,3,4},LearnerGraphND.partitionWorkLoadTriangular(4,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,3,4},LearnerGraphND.partitionWorkLoadLinear(4,grLoadDistributionND.getStateNumber()));
 	}
 	
-	/** Tests the workload distribution. */
+	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution3()
 	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
-		for(int i=0;i< 4;++i) Transform.addToGraph(gr, grLoadDistribution);
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
-		Assert.assertArrayEquals(new int[]{0,10,14,17,20},LearnerGraphND.partitionWorkLoad(4,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,2,4},LearnerGraphND.partitionWorkLoadTriangular(2,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,2,4},LearnerGraphND.partitionWorkLoadLinear(2,grLoadDistributionND.getStateNumber()));
+	}
+	
+	/** Tests how well the workload is distributed. */
+	@Test
+	public final void testWorkLoadDistribution4()
+	{
+		Assert.assertArrayEquals(new int[]{0,2,3,4},LearnerGraphND.partitionWorkLoadTriangular(3,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,4},LearnerGraphND.partitionWorkLoadLinear(3,grLoadDistributionND.getStateNumber()));
 	}
 	
 	/** Tests the workload distribution. */
 	@Test
-	public final void testWorkLoadDistribution_A_1()
+	public final void testWorkLoadDistribution5()
+	{
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
+		final int ThreadNumber=4;
+		for(int i=0;i< ThreadNumber;++i) Transform.addToGraph(gr, grLoadDistribution,null);
+		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
+		Assert.assertArrayEquals(new int[]{0,9,14,17,20},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,5,10,15,20},LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
+	}
+	
+	/** Tests the workload distribution. */
+	@Test
+	public final void testPerformRowTasks_A_1()
 	{
 		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());gr.init.setAccept(false);
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
 		int ThreadNumber=4;
-		Assert.assertArrayEquals(new int[]{0,0,0,0,0},LearnerGraphND.partitionWorkLoad(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,0},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,0},LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
 
 		final Map<Integer,Integer> threadToRowNumber = new TreeMap<Integer,Integer>();  
 		
@@ -158,20 +186,21 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward, filter);
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward, filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
 		Assert.assertEquals(0, threadToRowNumber.size());
 		//Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 	}
 	
 	/** Tests the workload distribution. */
 	@Test
-	public final void testWorkLoadDistribution_A_2()
+	public final void testPerformRowTasks_A_2()
 	{
 		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
 		int ThreadNumber=4;
-		Assert.assertArrayEquals(new int[]{0,0,0,0,1},LearnerGraphND.partitionWorkLoad(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,1},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
 
 		final Map<Integer,Integer> threadToRowNumber = new TreeMap<Integer,Integer>();  
 		
@@ -192,7 +221,8 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter);
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());
 		Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 		
@@ -200,9 +230,9 @@ public class TestLinear {
 	
 	/** Tests the workload distribution. */
 	@Test
-	public final void testWorkLoadDistribution_A_3()
+	public final void testPerformRowTasks_A_3()
 	{
-		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-c-#E\nB-b-#F\nB-c-#G","testAddToBuffer7"),Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-c-#E\nB-b-#F\nB-c-#G","testPerformRowTasks_A_3"),Configuration.getDefaultConfiguration());
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
 		int ThreadNumber=4;
@@ -227,16 +257,18 @@ public class TestLinear {
 				}
 				
 			});
-		Assert.assertArrayEquals(new int[]{0,1,1,1,2},LearnerGraphND.partitionWorkLoad(ThreadNumber,ndGraph.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse,filter);
+		Assert.assertArrayEquals(new int[]{0,0,1,1,2},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixInverse.size()));
 		Assert.assertEquals(2, threadToRowNumber.size());
 		int counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
 		Assert.assertEquals(2, counterOfAllUsedRows);// 2 is the number of states which were not ignored
 		
 		threadToRowNumber.clear();
-		Assert.assertArrayEquals(new int[]{0,3,5,6,7},LearnerGraphND.partitionWorkLoad(ThreadNumber,gr.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward,filter);
+		Assert.assertArrayEquals(new int[]{0,3,4,6,7},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,gr.getStateNumber()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());// only one thread gets to do anything because A and B are within its scope.
 		counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
@@ -447,7 +479,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing3b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), config);
 		gr.linear.moveRejectToHighlight();
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
@@ -469,7 +501,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing4b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
@@ -493,7 +525,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing5b()
 	{
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);

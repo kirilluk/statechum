@@ -118,7 +118,7 @@ abstract public class AbstractExperiment
 		 * configuration for a given evaluator from changing the 
 		 * global (default) configuration. 
 		 */
-		protected Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		protected Configuration config = Configuration.getDefaultConfiguration().copy();
 
 		protected LearnerGraph graph=null;
 		protected final String inputFileName;
@@ -178,7 +178,7 @@ abstract public class AbstractExperiment
 		
 		protected void loadGraph()
 		{
-			Configuration cnf = (Configuration)config.clone();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
+			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
 			try
 			{
 				graph = LearnerGraph.loadGraph(new FileReader(inputFileName),cnf);

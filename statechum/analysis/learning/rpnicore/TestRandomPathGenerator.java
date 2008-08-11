@@ -44,7 +44,7 @@ public class TestRandomPathGenerator {
 	@Before
 	public void InitConfig()
 	{
-		config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		config = Configuration.getDefaultConfiguration().copy();
 		simpleGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
 	}
 	

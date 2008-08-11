@@ -59,7 +59,7 @@ public class TestPathTracing {
 	@Before
 	public void beforeTest()
 	{
-		config = (Configuration)mainConfiguration.clone();
+		config = mainConfiguration.copy();
 		LearnerGraph.testMode=true;
 	}
 

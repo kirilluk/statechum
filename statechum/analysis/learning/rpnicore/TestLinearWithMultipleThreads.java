@@ -77,7 +77,7 @@ public class TestLinearWithMultipleThreads {
 	@Before
 	public void reassignConfiguration()
 	{
-		config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		config = Configuration.getDefaultConfiguration().copy();
 	}
 	
 	protected DoubleMatrix1D getExpectedMatrix1DSlowly(LearnerGraph gr)
@@ -459,7 +459,8 @@ public class TestLinearWithMultipleThreads {
 				}// iterating through states (stateB)
 			}
 		});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter);
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
 		return result;
 	}
 

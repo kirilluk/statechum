@@ -18,6 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -40,6 +41,15 @@ public class Benchmarklinear {
 	static LearnerGraph graph = null;
 
 	public static void main(String[] args)
+	{
+		long tmStarted = new Date().getTime(),tmFinished = 0;;
+		int buffer[] = new int[10000000];
+		Arrays.fill(buffer,1);
+		tmFinished = new Date().getTime();
+		System.out.println("filled: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
+	}
+	
+	public static void maina(String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		//config.setConsistencyCheckMode(true);

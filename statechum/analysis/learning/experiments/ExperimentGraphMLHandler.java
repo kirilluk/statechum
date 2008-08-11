@@ -86,7 +86,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             throw new FatalException("Error parsing graph. Graph element must be specified before node element.");
         }
 
-        String idString = ((String) attributeMap.remove("id")).replaceAll(Transform.Initial+"*", "");
+        String idString = ((String) attributeMap.remove("id")).replaceAll(Transform.Initial+" *", "");
         DeterministicDirectedSparseGraph.DeterministicVertex vertex = 
         	new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString));// this ID will be subsequently modified when we look at the "VERTEX" tag.
         mGraph.addVertex(vertex);
@@ -112,7 +112,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         {
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-        	label = label.replaceAll(Transform.Initial+"*", "");
+        	label = label.replaceAll(Transform.Initial+" *", "");
         }
         
        	vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);

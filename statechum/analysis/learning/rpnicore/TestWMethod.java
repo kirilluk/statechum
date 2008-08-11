@@ -82,7 +82,7 @@ public class TestWMethod {
 	public void beforeTest()
 	{
 		
-		config = (Configuration)mainConfiguration.clone();
+		config = mainConfiguration.copy();
 	}
 
 	/** The configuration to use when running tests. */
@@ -1059,7 +1059,7 @@ public class TestWMethod {
 	public final void testCheckGraphNumeric3()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-c->C","testCheckGraphNumeric"),config);
-		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(numericGraph.paths.getVertex(new LinkedList<String>()),newInit));
 		Assert.assertTrue(numericGraph.wmethod.checkGraphNumeric());
 	}
@@ -1087,7 +1087,7 @@ public class TestWMethod {
 	public final void testVertexToInt2()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
-		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<String>())));
 		LearnerGraphND numericNDGraph = new LearnerGraphND(numericGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = numericGraph.paths.getVertex(Arrays.asList(new String[]{})),
@@ -1126,7 +1126,7 @@ public class TestWMethod {
 	public final void testVerifySameMergeResults1()
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
-		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);
 		MergeStates.verifySameMergeResults(graph,g);
 		MergeStates.verifySameMergeResults(g,graph);
@@ -1137,7 +1137,7 @@ public class TestWMethod {
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
-		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);
 		MergeStates.verifySameMergeResults(graph,g);
 		MergeStates.verifySameMergeResults(g,graph);
@@ -1148,7 +1148,7 @@ public class TestWMethod {
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
-		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("B").setColour(JUConstants.RED);
 		MergeStates.verifySameMergeResults(graph,g);
 		MergeStates.verifySameMergeResults(g,graph);
@@ -1159,7 +1159,7 @@ public class TestWMethod {
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
-		Configuration cloneConfig = (Configuration)graph.config.clone();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("D").setColour(JUConstants.RED);
 		MergeStates.verifySameMergeResults(graph,g);
 		MergeStates.verifySameMergeResults(g,graph);

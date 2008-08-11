@@ -52,6 +52,10 @@ import javax.swing.*;
  * Sample JVM arguments:
  * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs -Xmx3500m
  * 
+ * Updating Statechum web page:
+ * 
+ (cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )
+ * 
  Jung license included below,
 
  The license below is the BSD open-source license. See 

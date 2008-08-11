@@ -48,7 +48,7 @@ public class TestPTAConstruction
 		DirectedSparseGraph actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
 		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		config.setAllowedToCloneNonCmpVertex(true);
 		LearnerGraph l = new LearnerGraph(config);
 		actualC = l.paths.augmentPTA(plusStrings, true).paths.getGraph();
@@ -133,7 +133,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
@@ -147,7 +147,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
@@ -163,7 +163,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
@@ -256,7 +256,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
@@ -270,7 +270,7 @@ public class TestPTAConstruction
 		
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
@@ -286,7 +286,7 @@ public class TestPTAConstruction
 
 		try
 		{
-			Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
@@ -313,7 +313,7 @@ public class TestPTAConstruction
 		Assert.assertNull(eD);
 		Assert.assertNull(eE);
 
-		Configuration config = (Configuration)Configuration.getDefaultConfiguration().clone();
+		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setAllowedToCloneNonCmpVertex(true);
 		TestFSMAlgo.checkM(actualA, expectedPTA,config);
 		TestFSMAlgo.checkM(actualC, expectedPTA,config);

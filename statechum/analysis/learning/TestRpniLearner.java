@@ -82,7 +82,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	@Before
 	public void beforeTest()
 	{
-		testConfig = (Configuration)mainConfiguration.clone();
+		testConfig = mainConfiguration.copy();
 	}
 
 	/** The working configuration to use when running tests. */
@@ -950,7 +950,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		final DirectedSparseGraph gB = TestFSMAlgo.buildGraph(fsm, graphName);
 		// check how the reference pair selection function performs
-		Configuration conf = (Configuration)testConfig.clone();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
+		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
 		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
 			public Stack<StatePair> choosePairs() {// Here I need to convert the old type of pairs to the new one.
 				Stack<OrigStatePair> pairs = chooseStatePairs(gB, new HashSet<List<String>>(), new HashSet<List<String>>());

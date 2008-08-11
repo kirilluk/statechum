@@ -67,7 +67,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
-		final Configuration shallowCopy = (Configuration)scoreComputer.config.clone();shallowCopy.setLearnerCloneGraph(false);
+		final Configuration shallowCopy = scoreComputer.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 

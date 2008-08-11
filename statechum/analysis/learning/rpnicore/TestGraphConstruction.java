@@ -66,17 +66,17 @@ public class TestGraphConstruction
 	public void beforeTest()
 	{
 		
-		config = (Configuration)mainConfiguration.clone();
+		config = mainConfiguration.copy();
 		differentA = new LearnerGraph(buildGraph("Q-a->A-b->B", "testFSMStructureEquals2"),config);
 		differentB = new LearnerGraph(buildGraph("A-b->A\nB-b->B", "testFSMStructureEquals2"),config);
 
-		confJung = (Configuration)config.clone();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);
-		confString = (Configuration)config.clone();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);
-		confSame = (Configuration)config.clone();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);
+		confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);
+		confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);
+		confSame = config.copy();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);
 		testGraph = buildGraph("A-a->A-b->B-c->B\nA-c-#C\nB-b->B", "testFSMStructureClone");
-		testGraphJung=new LearnerGraph(testGraph,(Configuration)confJung.clone());// clone here makes it possible to change the configuration later without affecting objects in this object
-		testGraphString=new LearnerGraph(testGraph,(Configuration)confString.clone());
-		testGraphSame=new LearnerGraph(testGraph,(Configuration)confSame.clone());
+		testGraphJung=new LearnerGraph(testGraph,confJung.copy());// clone here makes it possible to change the configuration later without affecting objects in this object
+		testGraphString=new LearnerGraph(testGraph,confString.copy());
+		testGraphSame=new LearnerGraph(testGraph,confSame.copy());
 		LearnerGraph.testMode = true;		
 	}
 
@@ -255,9 +255,9 @@ public class TestGraphConstruction
 	@Test
 	public final void testLearnerGraph_toString()
 	{
-		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confJung).toString());
-		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confString).toString());
-		Assert.assertEquals("states: 3", new LearnerGraph(testGraph,confSame).toString());
+		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confJung).toString());
+		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confString).toString());
+		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confSame).toString());
 	}
 	
 	/** Non graph vertex to copy. */
@@ -539,7 +539,7 @@ public class TestGraphConstruction
 		for(LearnerGraph g:origGraphs)
 		{
 			same.add(g);
-			Configuration copyConfig = (Configuration)g.config.clone();
+			Configuration copyConfig = g.config.copy();
 			copyConfig.setLearnerUseStrings(false);copyConfig.setLearnerCloneGraph(true);
 			LearnerGraph cloneJung = g.copy(copyConfig);
 			Assert.assertTrue(cloneJung.init instanceof DeterministicVertex);

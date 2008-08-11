@@ -106,7 +106,7 @@ public class Transform {
 	/** Graphml namespace */
 	protected static final String graphmlNS="gml";
 	/** Graphml uri */
-	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";
+	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";	
 	
 	protected Element createStateNode(Document doc, CmpVertex node)
 	{
@@ -319,11 +319,12 @@ public class Transform {
 	 * </pre>
 	 * @param g target into which to merge what
 	 * @param what graph to merge into g.
+	 * @param whatToG maps original vertices to those included in the graph <em>g</em>.
 	 * @return vertex in g corresponding to the initial vertex in what 
 	 */ 
-	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what)
+	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what,Map<CmpVertex,CmpVertex> whatToG)
 	{
-		Map<CmpVertex,CmpVertex> whatToG = new HashMap<CmpVertex,CmpVertex>();
+		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{// The idea is to number the new states rather than to clone vertices.
 		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.

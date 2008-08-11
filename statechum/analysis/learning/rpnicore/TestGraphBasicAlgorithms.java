@@ -75,7 +75,7 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 	 */
 	public void beforeTest()
 	{
-		testConfig = (Configuration)mainConfiguration.clone();testConfig.setDefaultInitialPTAName("Init");
+		testConfig = mainConfiguration.copy();testConfig.setDefaultInitialPTAName("Init");
 	}
 
 	/** The configuration to use when running tests. */

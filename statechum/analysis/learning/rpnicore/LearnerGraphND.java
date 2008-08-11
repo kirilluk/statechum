@@ -359,7 +359,7 @@ public class LearnerGraphND
 		}
 	}
 
-	/** Processing of data for a triangular matrix using multiple CPUs has to be done by
+	/** Processing of data in a triangular matrix using multiple CPUs has to be done by
 	 * identifying subsets of rows and columns to handle. Note that the 
 	 * number of states to be used does not have to be related to the current graph - 
 	 * if I only process a subset of states (such as only accept states), that's good enough.
@@ -368,7 +368,7 @@ public class LearnerGraphND
 	 * @param ThreadNumber number of threads to parallelise for.
 	 * @return the row to start from for each thread
 	 */
-	public static int [] partitionWorkLoad(int ThreadNumber, int totalStateNumber)
+	public static int [] partitionWorkLoadTriangular(int ThreadNumber, int totalStateNumber)
 	{
 		// The idea is that if a set of rows for some processor contains d rows
 		// and starts at row a, then the job has the time complexity
@@ -380,13 +380,38 @@ public class LearnerGraphND
 		if (ThreadNumber <= 0) throw new IllegalArgumentException("invalid processor number");
 		int result []= new int[ThreadNumber+1];
 		result[0]=0;
+		double a = 0; // previous row
 		
 		for(int count=1;count < ThreadNumber;++count)
 		{
-			int a= result[count-1];
-			result[count]=a+(int)Math.round(( -2*a-1 + Math.sqrt((double)(2*a+1)*(2*a+1)+
-					4*(double)totalStateNumber*(totalStateNumber+1)/ThreadNumber) ) /2);
-			assert result[count] >= 0 && result[count] <= totalStateNumber : "obtained row "+result[count]+" while the range is 0.."+totalStateNumber;
+			double valueOfNewRow = a+( -2*a-1 + Math.sqrt((2*a+1)*(2*a+1)+
+					4*(double)totalStateNumber*(totalStateNumber+1)/ThreadNumber) ) /2;// I truncate rather than round up in order to avoid the sum from going over the total number of rows.
+			result[count]=(int)valueOfNewRow;a=valueOfNewRow;
+			assert result[count] >= 0 && result[count] <= totalStateNumber && result[count]>=result[count-1] : "obtained row "+result[count]+" while the range is 0.."+totalStateNumber;
+
+		}
+		result[ThreadNumber]=totalStateNumber;
+		return result;
+	}
+	
+	/** Processing of data in a square matrix by a number of processors is done
+	 * by chopping the work into a number of rows, so that each thread is given 
+	 * the same number of rows to process.
+	 * 
+	 * @param totalStateNumber the number of states to partition for
+	 * @param ThreadNumber number of threads to parallelise for.
+	 * @return the row to start from for each thread
+	 */
+	public static int [] partitionWorkLoadLinear(int ThreadNumber, int totalStateNumber)
+	{
+		if (ThreadNumber <= 0) throw new IllegalArgumentException("invalid processor number");
+		int result []= new int[ThreadNumber+1];
+		result[0]=0;
+
+		for(int count=1;count < ThreadNumber;++count)
+		{
+			result[count]=(int)((double)count*totalStateNumber/ThreadNumber);
+			assert result[count] >= 0 && result[count] <= totalStateNumber && result[count]>=result[count-1]: "obtained row "+result[count]+" while the range is 0.."+totalStateNumber;
 		}
 		result[ThreadNumber]=totalStateNumber;
 		return result;
@@ -402,11 +427,12 @@ public class LearnerGraphND
 	 * <em>ExecutorService</em> is created and the handler is called directly.
 	 * 
 	 * @param matrix transition matrix to run tasks on
+	 * @param workLoad the which rows to be processed by which threads.
 	  */
 	protected static <TARGET_TYPE> void performRowTasks(List<? extends HandleRow<TARGET_TYPE>> handlerList,int ThreadNumber, 
-			final Map<CmpVertex,Map<String, TARGET_TYPE>> matrix, final StatesToConsider filter)
+			final Map<CmpVertex,Map<String, TARGET_TYPE>> matrix, final StatesToConsider filter,final int[]workLoad)
 	{
-		final int[]workLoad = partitionWorkLoad(ThreadNumber,matrix.size());
+		//final int[]workLoad = partitionWorkLoad(ThreadNumber,matrix.size());
 		/** The runner of computational threads. */
 		ExecutorService executorService = null;
 		try
@@ -471,10 +497,11 @@ public class LearnerGraphND
 	 * This one only works forward on a deterministic graph - this does not appear to be
 	 * a limitation because 
 	 * <ul>
-	 * <li>the only case where we work backwards is for computation
-	 * of similarity between states where 
+	 * <li>the only case where we hit nondeterminism involves working backwards 
+	 * for computation of similarity between states where 
      * reject states are not accessible because
-	 * they have no outgoing transitions and </li>
+	 * they have no outgoing transitions (and hence no incoming transitions 
+	 * in the backwards case) and </li>
 	 * <li>if a pair of states are not compatible,
 	 * we give them a negative score - this is all that is needed because pairs of even very
 	 * similar states may have paths which are not compatible - it does not matter because
@@ -554,7 +581,9 @@ public class LearnerGraphND
 					// different threads handle non-intersecting ranges of them, hence most of the time,
 					// there should be no "cache thrashing".
 					BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
-					if (stateB.getKey().isAccept() != entryA.getKey().isAccept() ||// relevant if we do not filter any states initially
+					if (stateB.getKey().isAccept() != entryA.getKey().isAccept() ||// relevant if we do not filter 
+							// any states initially; this is the case where there are states 
+							// without outgoing transitions which may be incompatible due to different labelling.
 							intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
 					{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
 						sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
@@ -597,7 +626,8 @@ public class LearnerGraphND
 				}// B-loop
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber, matrixForward, filter);
+		performRowTasks(handlerList, ThreadNumber, matrixForward, filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.size()));
 		//inputsAccepted=null;inputsRejected=null;
 		
 		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
@@ -985,7 +1015,8 @@ public class LearnerGraphND
 				}// stateB_It.hasNext()
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber, matrixForward,filter);
+		performRowTasks(handlerList, ThreadNumber, matrixForward,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.size()));
 		// At this point, we are finished building the matrices, it's time to populate the main arrays.
 		
 		// First, we compute the number of non-zero elements.
@@ -1071,7 +1102,6 @@ StatePair values  : 0  1  2 | 3  4  5 | 6  7  8
 		return statePairScores;
 	}
 	
-
 	/** This is a kind of an inverse of vertexToIntNR, takes a number and a score returns a corresponding <em>PairScore</em>.
 	 */ 
 	public PairScore getPairScore(int pair, int score, int compat)

@@ -208,7 +208,6 @@ public class LearnerGraph {
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
-	final public GD diff = new GD(this);
 	final CachedData learnerCache = new CachedData(this);
 	
 	/** Initialises the class used to compute scores between states.
@@ -278,6 +277,17 @@ public class LearnerGraph {
 	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
 		}
 		return graph;
+	}
+
+	/** Loads a graph from the supplied XML node.
+	 * 
+	 * @param elem XML element to load from
+	 * @param config configuration to use
+	 * @return loaded graph
+	 */
+	public static LearnerGraph loadGraph(org.w3c.dom.Element elem, Configuration config)
+	{
+		return new LearnerGraph(Transform.loadGraph(elem),config);
 	}
 	
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
@@ -476,8 +486,9 @@ public class LearnerGraph {
 	}
 
 	/** Finds a vertex with a supplied identifier in a transition matrix.
-	 * Important: do not change the acceptance condition on the returned vertex: it will mess up the
-	 * transition matrix since hash code is dependent on acceptance.
+	 * <p>
+	 * <b>Important</b>: do not change the acceptance condition on the returned vertex: 
+	 * it will mess up the transition matrix since hash code is dependent on acceptance.
 	 */
 	public CmpVertex findVertex(String name)
 	{
@@ -485,8 +496,9 @@ public class LearnerGraph {
 	}
 	
 	/** Finds a vertex with a supplied identifier in a transition matrix.
-	 * Important: do not change the acceptance condition on the returned vertex: it will mess up the
-	 * transition matrix since hash code is dependent on acceptance.
+	 * <p>
+	 * <b>Important</b>: do not change the acceptance condition on the returned vertex: 
+	 * it will mess up the transition matrix since hash code is dependent on acceptance.
 	 */
 	public CmpVertex findVertex(VertexID name)
 	{
@@ -502,8 +514,7 @@ public class LearnerGraph {
 		return result;
 	}
 
-	/** Used in order to determine which states to consider during linear or
-	 * to ignore.
+	/** Used to determine which states to consider/ignore during linear.
 	 * Conceptually similar to <em>FilterPredicate</em> but for a different
 	 * purpose and an argument of a different type.
 	  */ 
@@ -734,7 +745,7 @@ public class LearnerGraph {
 	@Override
 	public String toString()
 	{
-		return "states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
+		return "Graph "+(getName() == null?"":getName()+" ")+"states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
 	}
 
 	/** This one does not consider configuration or IDs - only states/transitions 

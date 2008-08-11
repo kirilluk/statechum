@@ -596,7 +596,7 @@ public class PathRoutines {
 	public DirectedSparseGraph getGraph(String name)
 	{
 		DirectedSparseGraph result = null;
-		Configuration cloneConfig = (Configuration)coregraph.config.clone();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
+		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
 		synchronized (LearnerGraph.syncObj) 
 		{
 			result = new DirectedSparseGraph();

@@ -33,7 +33,6 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -149,7 +148,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		 */
 		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
 		}
 
@@ -161,7 +160,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		 */
 		public Experiment()
 		{
-			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
+			super();conf=Configuration.getDefaultConfiguration().copy();
 			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
 			conf.setSpeculativeQuestionAsking(true);
 			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);

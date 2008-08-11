@@ -25,7 +25,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
@@ -282,11 +284,14 @@ public class TestTransform {
 		LearnerGraph fsmSrc = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		LearnerGraph fsmToAdd = new LearnerGraph(Configuration.getDefaultConfiguration());
 		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
-		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd);
+		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
+		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
+		
 		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
 		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
 		Assert.assertTrue(newA.isHighlight());
+		Assert.assertEquals(1, oldToNew.size());Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
 		
 		Assert.assertFalse(fsm.transitionMatrix.get(fsm.init).isEmpty());
 		Assert.assertTrue(fsm.transitionMatrix.get(newA).isEmpty());
@@ -299,12 +304,18 @@ public class TestTransform {
 		LearnerGraph fsmSrc = new LearnerGraph(Configuration.getDefaultConfiguration());
 		LearnerGraph fsmToAdd = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
-		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd);
+		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
+		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
+		
 		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
 		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
-		
 		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
 		Assert.assertFalse(fsm.transitionMatrix.get(newA).isEmpty());
+
+		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
+			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
 	}
 
 	@Test
@@ -313,12 +324,19 @@ public class TestTransform {
 		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
 		LearnerGraph fsmSrc = new LearnerGraph(Configuration.getDefaultConfiguration());
 		LearnerGraph fsmToAdd = new LearnerGraph(Configuration.getDefaultConfiguration());
-		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd);
+		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
+		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
+
 		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
 		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
 		
 		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
 		Assert.assertTrue(fsm.transitionMatrix.get(newA).isEmpty());
+
+		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
+			WMethod.checkM(fsm,fsmSrc,oldToNew.get(oldVert),oldVert);
 	}
 
 	@Test
@@ -328,11 +346,18 @@ public class TestTransform {
 		LearnerGraph fsmSrc = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		LearnerGraph fsmToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a-#Q", "testAddToGraph1"),Configuration.getDefaultConfiguration());
 		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
-		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd);
+		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
+		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
+
 		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
 		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
 		Assert.assertTrue(newA.isHighlight());
+
+		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
+			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
 	}
 	
 	@Test
@@ -341,7 +366,9 @@ public class TestTransform {
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		LearnerGraph fsmSrc = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		LearnerGraph fsmToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->Q", "testAddToGraph1"),Configuration.getDefaultConfiguration());
-		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd);
+		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
+		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
+
 		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
 		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
 		
@@ -350,6 +377,11 @@ public class TestTransform {
 		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge));
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(fsm, whatToMerge,collectionOfVerticesToMerge);
 		WMethod.checkM(result,fsmSrc,result.init,fsmSrc.init);
+
+		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
+			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
 	}
 
 	/** The standard beginning of our graphML files. */
@@ -420,6 +452,7 @@ public class TestTransform {
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
 		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
 	@Test
@@ -441,6 +474,7 @@ public class TestTransform {
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
 		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
 	/** No graph element. */

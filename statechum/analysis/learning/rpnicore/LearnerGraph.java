@@ -72,6 +72,17 @@ public class LearnerGraph {
 		return graphName;
 	}
 	
+	public static final String unknownName = "<UNKNOWN>";
+	
+	/** Returns a name if assigned and "Unknown" otherwise. 
+	 * 
+	 * @return name of this graph, never null.
+	 */
+	public String getNameNotNull()
+	{
+		String name = getName();return name == null?unknownName:name;
+	}
+	
 	/** Transition matrix. */
 	Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 			

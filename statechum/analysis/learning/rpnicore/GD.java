@@ -80,9 +80,6 @@ public class GD {
 	 */
 	LearnerGraph grCombined = null;
 	
-	/** Collection of states of the first graph in the combined graph and associated serial numbers. */
-	//Map<CmpVertex,Integer> stateToNumber = null;
-	
 	/** Collection of states in the combined graph which belong to the first graph. */
 	Set<CmpVertex> statesOfA = null;
 
@@ -109,22 +106,57 @@ public class GD {
 	 * @param doc XML document used to create nodes
 	 * @return XML node with GD.
 	 */
-	public Element computeGD(LearnerGraph a,LearnerGraph b, int threads, Document doc)
+	public Element computeGDToXML(LearnerGraph a,LearnerGraph b, int threads, Document doc)
+	{
+		ChangesRecorder patcher = new ChangesRecorder();
+		computeGD(a, b, threads, patcher);
+		return patcher.writeGD(doc);
+	}
+	
+	/** Compares the supplied two graphs.
+	 * 
+	 * @param a first graph
+	 * @param b second graph
+	 * @param threads the number of threads to use
+	 * @param patcher where to store changes.
+	 */
+	public void computeGD(LearnerGraph a,LearnerGraph b, int threads, PatchGraph patcher)
 	{
 		init(a, b, threads);
 		identifyKeyPairs();
-		makeSteps(null);
-		return writeGD(doc);
+		makeSteps(patcher,null);
 	}
 	
+	/** Describes primitive mutations which can be carried out on a graph. */
+	public interface PatchGraph
+	{
+		/** Adds a transition between the specified states.
+		 * Throws if transition already exists.
+		 * 
+		 * @param from source state
+		 * @param label label of a transition
+		 * @param to target state
+		 */
+		public void addTransition(CmpVertex from,String label, CmpVertex to);
 
+		/** Removes a transition between the specified states. Throws
+		 * if a transition does not exist.
+		 * 
+		 * @param from source state
+		 * @param label label of a transition
+		 * @param to target state
+		 */
+		public void removeTransition(CmpVertex from,String label, CmpVertex to);
+	}
 	
 	/** Expands the set of key pairs and computes the outcome. 
-	 *  
+	 * 
+	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
+	 * to the second one. It can then be stored in XML if necessary.
 	 * @param allKeyPairs if not null, this collection will be filled 
 	 * with all of the key pairs for the graphs. Used for testing.
 	 */
-	protected void makeSteps(List<PairScore> allKeyPairs)
+	protected void makeSteps(PatchGraph graphToPatch, List<PairScore> allKeyPairs)
 	{
 		// Now we make steps. Data used:
 		//
@@ -154,9 +186,7 @@ public class GD {
 		}
 		while(!frontWave.isEmpty());
 
-		Configuration cloneConfig = grCombined.config.copy();cloneConfig.setLearnerCloneGraph(false);
 		// Explored everything, now pick all transitions which have been added/removed.
-		removed = new LearnerGraph(cloneConfig);added = new LearnerGraph(cloneConfig);
 		for(PairScore pair:allKeyPairs)
 		{
 			for(Entry<String,CmpVertex> transitionA:grCombined.transitionMatrix.get(pair.getQ()).entrySet())
@@ -164,14 +194,13 @@ public class GD {
 				CmpVertex targetA = transitionA.getValue();
 				CmpVertex targetB = grCombined.transitionMatrix.get(pair.getR()).get(transitionA.getKey());
 
-				if (targetB == null) // either this transition does not exist in B
-					addTransitionToGraph(removed, newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()), cloneConfig);
+				if (targetB == null) // this transition does not exist in B
+					graphToPatch.removeTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
 				else
 					if (!statesInKeyPairs.contains(targetB) || !statesInKeyPairs.contains(targetA))
 					{// transition leads to a state which is not key in either of the two machines
-						addTransitionToGraph(removed, newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()), cloneConfig);
-						addTransitionToGraph(added, newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(targetB), cloneConfig);
-						//System.out.println("added: "+newToOrig.get(pair.getQ())+" - "+ transitionA.getKey()+" to "+newToOrig.get(targetB));
+						graphToPatch.removeTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
+						graphToPatch.addTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(targetB));
 					}
 			}
 			
@@ -179,123 +208,316 @@ public class GD {
 			{
 				CmpVertex targetA = grCombined.transitionMatrix.get(pair.getQ()).get(transitionB.getKey());
 				if (targetA == null) // a transition unique to B
-				{
-					addTransitionToGraph(added, newToOrig.get(pair.getR()), transitionB.getKey(),newToOrig.get(transitionB.getValue()), cloneConfig);
-					//System.out.println("added: "+newToOrig.get(pair.getR())+" - "+ transitionB.getKey()+" to "+newToOrig.get(transitionB.getValue()));
-				}
+					graphToPatch.addTransition(newToOrig.get(pair.getR()), transitionB.getKey(),newToOrig.get(transitionB.getValue()));
 			}			
 		}
 
 		// now we just need to go through states which are not key states
-		addTransitions(grCombined,statesOfA,removed,cloneConfig);
-		addTransitions(grCombined,statesOfB,added,cloneConfig);
+		addTransitions(grCombined,statesOfA,graphToPatch,false);
+		addTransitions(grCombined,statesOfB,graphToPatch,true);
 	}
 	
-	/** Adds transition to a graph. For each of the source and target states,
-	 * if states with the same IDs already present, existing states are used.
-	 * If those states do not exist, the respective states are cloned using
-	 * the supplied configuration.
-	 * 
-	 * @param graph graph to update
-	 * @param from source state
-	 * @param input input
-	 * @param to target state
-	 * @param cloneConfig configuration to use for cloning if necessary.
-	 */
-	protected static void addTransitionToGraph(LearnerGraph graph, CmpVertex from, String input,CmpVertex to, Configuration cloneConfig)
+	/** Makes it possible to modify graphs by adding/removing transitions. */
+	public static class LearnerGraphMutator implements PatchGraph
 	{
-		CmpVertex fromVert = graph.findVertex(from.getID());
-		Map<String,CmpVertex> entry = null;
-		if (fromVert == null)
-		{
-			fromVert = LearnerGraph.cloneCmpVertex(from, cloneConfig);
-			entry = new TreeMap<String,CmpVertex>();graph.transitionMatrix.put(fromVert,entry);
-		}
-		else
-			if (fromVert.isAccept() != from.isAccept())
-				throw new IllegalArgumentException("vertex "+from+" has a different accept condition to the one in graph "+graph);
-			else
-				entry = graph.transitionMatrix.get(fromVert);
+		/** Graph to manipulate. */
+		private final LearnerGraph graph;
+		/** Configuration to use for cloning if necessary. */
+		private Configuration cloneConfig;
 		
-		if (entry.containsKey(input))
-			throw new IllegalArgumentException("duplicate transition from state "+from+" with input "+input+"in graph "+graph);
-
-		CmpVertex toVert = graph.findVertex(to.getID());
-		if (toVert == null)
-			toVert = LearnerGraph.cloneCmpVertex(to,cloneConfig);
-		else
-			if (toVert.isAccept() != to.isAccept())
-				throw new IllegalArgumentException("vertex "+to+" has a different accept condition to the one in graph "+graph);
+		/** Constructs an instance of the mutator
+		 * 
+		 * @param gr graph to modify
+		 * @param cloneConfig config to use
+		 */
+		public LearnerGraphMutator(LearnerGraph gr, Configuration config)
+		{
+			graph = gr;cloneConfig = config;
+		}
+		
+		/** Adds transition to a graph. For each of the source and target states,
+		 * if states with the same IDs already present, existing states are used.
+		 * If those states do not exist, the respective states are cloned using
+		 * the supplied configuration.
+		 * 
+		 * @param from source state
+		 * @param input input
+		 * @param to target state
+		 */
+		public void addTransition(CmpVertex from, String input,CmpVertex to)
+		{
+			CmpVertex fromVert = graph.findVertex(from.getID());
+			Map<String,CmpVertex> entry = null;
+			if (fromVert == null)
+			{
+				fromVert = LearnerGraph.cloneCmpVertex(from, cloneConfig);
+				entry = new TreeMap<String,CmpVertex>();graph.transitionMatrix.put(fromVert,entry);
+			}
+			else
+				if (fromVert.isAccept() != from.isAccept())
+					throw new IllegalArgumentException("vertex "+from+" has a different accept condition to the one in graph "+graph);
+				else
+					entry = graph.transitionMatrix.get(fromVert);
 			
-		entry.put(input, toVert);
-		if (!graph.transitionMatrix.containsKey(toVert))
-			graph.transitionMatrix.put(toVert, new TreeMap<String,CmpVertex>());
+			if (entry.containsKey(input))
+				throw new IllegalArgumentException("duplicate transition from state "+from+" with input "+input+"in graph "+graph);
+	
+			CmpVertex toVert = graph.findVertex(to.getID());
+			if (toVert == null)
+				toVert = LearnerGraph.cloneCmpVertex(to,cloneConfig);
+			else
+				if (toVert.isAccept() != to.isAccept())
+					throw new IllegalArgumentException("vertex "+to+" has a different accept condition to the one in graph "+graph);
+				
+			entry.put(input, toVert);
+			if (!graph.transitionMatrix.containsKey(toVert))
+				graph.transitionMatrix.put(toVert, new TreeMap<String,CmpVertex>());
+		}
+	
+		/** Removes a transition from a graph. It does not matter which graph owns the vertices
+		 * supplied - these vertices are not touched while a corresponding transition
+		 * in the supplied graph is removed.
+		 * 
+		 * @param from source state
+		 * @param input input
+		 * @param to expected target state. This is not really necessary but useful to ensure that whoever removes transitions knows what he/she is doing. 
+		 */
+		public void removeTransition(CmpVertex from, String input,CmpVertex to)
+		{
+			Map<String,CmpVertex> entry = graph.transitionMatrix.get(from);
+			if (entry == null) throw new IllegalArgumentException("state "+from+" was not found in graph "+graph);
+			if (!entry.containsKey(input))
+				throw new IllegalArgumentException("there is no transition from state "+from+" with input "+input+" in graph "+graph);
+			if (!entry.get(input).equals(to))
+				throw new IllegalArgumentException("there is no transition to state "+to+" from state "+from+" with input "+input+"in graph "+graph);
+			entry.remove(input);
+		}
+	
+		/** Removes all states which have no outgoing transitions and no incoming transitions,
+		 * making sure that the initial state is not removed.
+		 */
+		public void removeDanglingStates()
+		{
+			Set<CmpVertex> statesInGraph = new TreeSet<CmpVertex>();
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+				if (entry.getValue().isEmpty()) statesInGraph.add(entry.getKey()); // add those with no outgoing
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+				statesInGraph.removeAll(entry.getValue().values());// and remove those used as targets
+			statesInGraph.remove(graph.init);// initial state should stay
+			graph.transitionMatrix.keySet().removeAll(statesInGraph);
+		}
+	}
+
+	/** This class displays the requested changes.
+	 */
+	public static class ChangesDisplay implements PatchGraph
+	{
+		private final StringBuffer result = new StringBuffer();
+		
+		protected void appendTransition(CmpVertex from, String label, CmpVertex to)
+		{
+			result.append(from);result.append(" - ");result.append(label);result.append(" -> ");result.append(to);result.append("\n");
+		}
+		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+			result.append("added  : ");appendTransition(from, label, to);
+		}
+
+		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+			result.append("removed: ");appendTransition(from, label, to);
+		}
+		
+		@Override
+		public String toString()
+		{
+			return result.toString();
+		}
 	}
 	
-	/** Removes a transition from a graph. It does not matter which graph owns the vertices
-	 * supplied - these vertices are not touched while a corresponding transition
-	 * in the supplied graph is removed.
-	 * 
-	 * @param graph graph to update
-	 * @param from source state
-	 * @param input input
-	 * @param to expected target state. This is not really necessary but useful to ensure that whoever removes transitions knows what he/she is doing. 
+	/** This class counts requested changes.
 	 */
-	protected static void removeTransitionFromGraph(LearnerGraph graph, CmpVertex from, String input,CmpVertex to)
+	public static class ChangesCounter implements PatchGraph
 	{
-		Map<String,CmpVertex> entry = graph.transitionMatrix.get(from);
-		if (entry == null) throw new IllegalArgumentException("state "+from+" was not found in graph "+graph);
-		if (!entry.containsKey(input))
-			throw new IllegalArgumentException("there is no transition from state "+from+" with input "+input+" in graph "+graph);
-		if (!entry.get(input).equals(to))
-			throw new IllegalArgumentException("there is no transition to state "+to+" from state "+from+" with input "+input+"in graph "+graph);
-		entry.remove(input);
-	}
+		private int added = 0, removed = 0;
+		private final int transitionsInB;
+		private final String nameA, nameB;
 
-	/** Removes all states which have no outgoing transitions and no incoming transitions,
-	 * making sure that the initial state is not removed.
-	 * 
-	 * @param graph graph to modify.
+		public ChangesCounter(LearnerGraph a,LearnerGraph b)
+		{
+			transitionsInB=b.countEdges();nameA = a.getNameNotNull();nameB=b.getNameNotNull();
+		}
+		
+		public void addTransition(
+				@SuppressWarnings("unused") CmpVertex from, 
+				@SuppressWarnings("unused")	String label, 
+				@SuppressWarnings("unused")	CmpVertex to) 
+		{
+			++added;
+		}
+
+		public void removeTransition(
+				@SuppressWarnings("unused")	CmpVertex from, 
+				@SuppressWarnings("unused")	String label, 
+				@SuppressWarnings("unused")	CmpVertex to) 
+		{
+			++removed;
+		}
+		
+		public int getAdded()
+		{
+			return added;
+		}
+		
+		public int getRemoved()
+		{
+			return removed;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return "diff of "+nameB+" to "+nameA+" : "+(transitionsInB == 0?"NONE":(int)(100.*((double)added+removed)/transitionsInB)+"%");
+		}
+	}
+	
+	/** This class records requested changes and is capable of returning a 
+	 * collection of them in a form of XML which can then be applied to a graph.
 	 */
-	protected static void removeDanglingStates(LearnerGraph graph)
+	public static class ChangesRecorder implements PatchGraph
 	{
-		Set<CmpVertex> statesInGraph = new TreeSet<CmpVertex>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-			if (entry.getValue().isEmpty()) statesInGraph.add(entry.getKey()); // add those with no outgoing
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-			statesInGraph.removeAll(entry.getValue().values());// and remove those used as targets
-		statesInGraph.remove(graph.init);// initial state should stay
-		graph.transitionMatrix.keySet().removeAll(statesInGraph);
+		/** Vertices removed from A. */
+		private final LearnerGraph removed;
+
+		/** Vertices added by B. */
+		private final LearnerGraph added;
+		
+		private final PatchGraph addedPatcher, removedPatcher;
+		
+		public ChangesRecorder()
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+			added = new LearnerGraph(config);removed = new LearnerGraph(config);
+			addedPatcher = new LearnerGraphMutator(added, config);removedPatcher = new LearnerGraphMutator(removed,config);
+		}
+		
+		/** Used for testing. */
+		protected ChangesRecorder(LearnerGraph r,LearnerGraph a)
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+			removed = r;added = a;
+			addedPatcher = new LearnerGraphMutator(added, config);removedPatcher = new LearnerGraphMutator(removed,config);
+		}
+		
+		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+			addedPatcher.addTransition(from, label, to);
+		}
+
+		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+			removedPatcher.addTransition(from, label, to);
+		}
+		
+		/** GD tags. */
+		protected static final String gdGD = "GD", gdAdded="gdAdded", gdRemoved = "gdRemoved";
+		
+		/** Writes the recorded changes in a form of an XML tag. */
+		protected Element writeGD(Document doc)
+		{
+			Element gd = doc.createElement(gdGD), addedNode = doc.createElement(gdAdded), removedNode = doc.createElement(gdRemoved);
+			addedNode.appendChild(added.transform.createGraphMLNode(doc));removedNode.appendChild(removed.transform.createGraphMLNode(doc));
+			gd.appendChild(removedNode);gd.appendChild(addedNode);
+			return gd;
+		}
+
+		/** Given an element containing a number of elements, this one picks the one
+		 * with the right tag and returns its first element-child.
+		 * 
+		 * @param elem
+		 * @param name the tag to look for.
+		 * @return
+		 */
+		static public Element getGraphElement(Element elem, String name)
+		{
+			if (!elem.getNodeName().equals(gdGD))
+				throw new IllegalArgumentException("unexpected element, expected "+gdGD+", got "+elem.getNodeName());
+			
+			NodeList graphlist_List = elem.getElementsByTagName(name);
+			int i=0;
+			for(;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
+			if (i == graphlist_List.getLength()) throw new IllegalArgumentException("no element "+name);
+			
+			NodeList graphs = graphlist_List.item(i).getChildNodes();
+			int gr=0;
+			for(;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
+			if (gr == graphs.getLength()) throw new IllegalArgumentException("no graph in the "+name+" entry");
+			
+			Element result = (Element)graphs.item(gr);
+			
+			for(++gr;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
+			if (gr != graphs.getLength()) throw new IllegalArgumentException("more than one graph in the "+name+" entry");
+			for(++i;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
+			if (i != graphlist_List.getLength()) throw new IllegalArgumentException("duplicate holder "+name);
+			
+			return result;
+		}
+
+		/** Applies GD to the supplied graph. This is a part of GD because it only
+		 * handles GD and not general-purpose stuff which would be included in 
+		 * <em>Transform</em>. 
+		 * 
+		 * @param graph graph to transform
+		 * @param elem element containing the difference.
+		 */
+		static public void applyGD(LearnerGraph graph, Element elem)
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+			LearnerGraphMutator graphPatcher = new LearnerGraphMutator(graph,config);
+			loadDiff(graphPatcher, elem);
+			graphPatcher.removeDanglingStates();			
+		}
+		
+		/** Loads diff from XML. This is a part of GD because it only
+		 * handles GD and not general-purpose stuff which would be included in 
+		 * <em>Transform</em>. 
+		 * 
+		 * @param patcher graph to transform
+		 * @param elem element containing the difference.
+		 */
+		static public void loadDiff(PatchGraph graphPatcher, Element elem)
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+			LearnerGraph gr = LearnerGraph.loadGraph(getGraphElement(elem, gdRemoved),config);
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
+				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+					graphPatcher.removeTransition(entry.getKey(), transition.getKey(), transition.getValue());
+
+			gr = LearnerGraph.loadGraph(getGraphElement(elem, gdAdded),config);
+			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
+				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+					graphPatcher.addTransition(entry.getKey(), transition.getKey(), transition.getValue());
+		}
 	}
 	
 	/** Iterates through states and adds transitions leading from states which 
 	 * were not matched to the supplied collection.
 	 * @param graph graph to process
-	 * @param keyVertices source vertex to consider
 	 * @param verticesForGraph vertices to iterate through. 
+	 * @param toAdd if true will add, otherwise remove
 	 * @param whereToAdd where to add the result
-	 * @param cloneConfig configuration to use when adding new transitions. 
 	 */
-	protected void addTransitions(LearnerGraph graph, Set<CmpVertex> verticesForGraph, LearnerGraph whereToAdd, Configuration cloneConfig)
+	protected void addTransitions(LearnerGraph graph, Set<CmpVertex> verticesForGraph, PatchGraph patcher, boolean toAdd)
 	{
 		for(CmpVertex vertex:verticesForGraph)
 			if (!statesInKeyPairs.contains(vertex))
 			{
 				CmpVertex origSource = newToOrig.get(vertex);
 				for(Entry<String,CmpVertex> target:graph.transitionMatrix.get(vertex).entrySet())
-				{
 					// transition not matched because some states are not known hence append it.
-					addTransitionToGraph(whereToAdd, origSource, target.getKey(),newToOrig.get(target.getValue()), cloneConfig);
-				}
+				if (toAdd)
+					patcher.addTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
+				else
+					patcher.removeTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
 			}
 	}
 
-	/** Vertices removed from A. */
-	LearnerGraph removed;
-	
-	/** Vertices added by B. */
-	LearnerGraph added;
-	
 	/** Builds the data structures subsequently used in traversal. */
 	protected void init(LearnerGraph a,LearnerGraph b,int threads)
 	{
@@ -460,72 +682,6 @@ public class GD {
 				}
 			}
 		}
-	}
-	
-	/** GD tags. */
-	protected static final String gdGD = "GD", gdAdded="gdAdded", gdRemoved = "gdRemoved";
-	
-	/** Writes GD result into an XML tag. */
-	protected Element writeGD(Document doc)
-	{
-		Element gd = doc.createElement(gdGD), addedNode = doc.createElement(gdAdded), removedNode = doc.createElement(gdRemoved);
-		addedNode.appendChild(added.transform.createGraphMLNode(doc));removedNode.appendChild(removed.transform.createGraphMLNode(doc));
-		gd.appendChild(removedNode);gd.appendChild(addedNode);
-		return gd;
-	}
-
-	/** Given an element containing a number of elements, this one picks the one
-	 * with the right tag and returns its first element-child.
-	 * 
-	 * @param elem
-	 * @param name the tag to look for.
-	 * @return
-	 */
-	static public Element getGraphElement(Element elem, String name)
-	{
-		if (!elem.getNodeName().equals(gdGD))
-			throw new IllegalArgumentException("unexpected element, expected "+gdGD+", got "+elem.getNodeName());
-		
-		NodeList graphlist_List = elem.getElementsByTagName(name);
-		int i=0;
-		for(;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
-		if (i == graphlist_List.getLength()) throw new IllegalArgumentException("no element "+name);
-		
-		NodeList graphs = graphlist_List.item(i).getChildNodes();
-		int gr=0;
-		for(;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
-		if (gr == graphs.getLength()) throw new IllegalArgumentException("no graph in the "+name+" entry");
-		
-		Element result = (Element)graphs.item(gr);
-		
-		for(++gr;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
-		if (gr != graphs.getLength()) throw new IllegalArgumentException("more than one graph in the "+name+" entry");
-		for(++i;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
-		if (i != graphlist_List.getLength()) throw new IllegalArgumentException("duplicate holder "+name);
-		
-		return result;
-	}
-	
-	/** Applies GD to the supplied graph. This is a part of GD because it only
-	 * handles GD and not general-purpose stuff which would be included in 
-	 * <em>Transform</em>. 
-	 * 
-	 * @param graph graph to transform
-	 * @param elem element containing the difference.
-	 */
-	static public void applyGD(LearnerGraph graph, Element elem)
-	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-		LearnerGraph gr = LearnerGraph.loadGraph(getGraphElement(elem, gdRemoved),config);
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-				removeTransitionFromGraph(graph, entry.getKey(), transition.getKey(), transition.getValue());
-
-		gr = LearnerGraph.loadGraph(getGraphElement(elem, gdAdded),config);
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-				addTransitionToGraph(graph, entry.getKey(), transition.getKey(), transition.getValue(),config);
-		removeDanglingStates(graph);
 	}
 }	
 	

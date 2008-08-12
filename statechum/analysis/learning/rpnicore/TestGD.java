@@ -184,6 +184,46 @@ public class TestGD {
 	}
 	
 	@Test
+	public final void testAddInit1()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraph grB = new LearnerGraph(buildGraph("C-b->T","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig);
+		gr.init = null;
+		patcher.setInitial(grB.findVertex("T"));Assert.assertSame(gr.findVertex("T"),gr.init);
+	}
+	
+	@Test
+	public final void testAddInit2()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraph grB = new LearnerGraph(buildGraph("T-u-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig);
+		gr.init = null;
+		patcher.setInitial(grB.findVertex("C"));Assert.assertSame(gr.findVertex("C"),gr.init);
+	}
+	
+	@Test
+	public final void testAddInit3()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig);
+		gr.init = null;
+		patcher.setInitial(grB.findVertex("Q"));Assert.assertSame(gr.findVertex("Q"),gr.init);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public final void testAddInit4()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig);
+		gr.init = null;
+		patcher.setInitial(grB.findVertex("T"));
+	}
+	
+	@Test
 	public final void testRemoveTransitions1()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
@@ -312,7 +352,7 @@ public class TestGD {
 		WMethod.checkM(gr, expected);
 	}
 	
-	private final Document createDoc()
+	protected static final Document createDoc()
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
@@ -474,19 +514,37 @@ public class TestGD {
 	}
 	
 	@Test
-	public final void testInit()
+	public final void testWriteAndLoad3()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
-
-		GD gd = new GD();
-		int threads = 1;
-		gd.init(graphA, graphB, threads);
-		Assert.assertEquals(graphA.transitionMatrix.size(),gd.statesOfA.size());
-		Assert.assertEquals(graphB.transitionMatrix.size(),gd.statesOfB.size());
-		Assert.assertEquals(graphA.transitionMatrix.size()+graphB.transitionMatrix.size(),gd.newToOrig.size());
-		for(CmpVertex v:gd.statesOfB) Assert.assertTrue(graphB.transitionMatrix.containsKey(gd.newToOrig.get(v)));
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		ChangesRecorder patcher = new ChangesRecorder();
+		patcher.addTransition(graph.findVertex("B"), "c", graph.findVertex("B"));
+		patcher.removeTransition(graph.findVertex("A"), "a", graph.findVertex("B"));
+		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
+		patcher.setInitial(graph.findVertex("A"));
+		ChangesRecorder.applyGD(graph, patcher.writeGD(createDoc()));
+		LearnerGraph expected = new LearnerGraph(buildGraph("A-q->B-a-#C\nA-d-#E\nA-c->A\nB-c->B","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
+		WMethod.checkM(graph, expected);
 	}
+	
+	/** Tests that initial state has to be assigned. */
+	@Test
+	public final void testWriteAndLoad4()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		ChangesRecorder patcher = new ChangesRecorder();
+		patcher.addTransition(graph.findVertex("B"), "c", graph.findVertex("B"));
+		patcher.removeTransition(graph.findVertex("A"), "a", graph.findVertex("B"));
+		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
+		try { patcher.writeGD(createDoc());Assert.fail("exception not thrown"); }
+		catch(IllegalArgumentException ex)
+		{
+			Assert.assertTrue(ex.getMessage().contains("init state is was not defined"));
+		}
+	}
+	
+	
+	protected final java.util.Map<CmpVertex,CmpVertex> newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();
 	
 	/** Displays the supplied list of pairs, converting names of states
 	 * from the notation of the combined graph to their original names. 
@@ -494,174 +552,11 @@ public class TestGD {
 	 * @param gd
 	 * @param listOfPairs
 	 */
-	protected static void printListOfPairs(GD gd,List<PairScore> listOfPairs)
+	protected void printListOfPairs(GD gd,List<PairScore> listOfPairs)
 	{
 		System.out.print("[ ");
 		for(PairScore pair:listOfPairs) System.out.print(
-				new PairScore(gd.newToOrig.get(pair.getQ()),gd.newToOrig.get(pair.getR()),pair.getScore(),pair.getAnotherScore())+" ");
+				new PairScore(newToOrig.get(pair.getQ()),newToOrig.get(pair.getR()),pair.getScore(),pair.getAnotherScore())+" ");
 		System.out.println("]");
-	}
-	
-	@Test
-	public final void testFindKeyPairs1()
-	{// TODO: why does linear generate very high scores backwards?
-
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
-
-		GD gd = new GD();
-		int threads = 1;
-		gd.init(graphA, graphB, threads);
-		Assert.assertTrue(gd.identifyKeyPairs());
-		for(PairScore pair:gd.frontWave)
-		{
-			CmpVertex A=gd.newToOrig.get(pair.getQ()), B=gd.newToOrig.get(pair.getR());
-			Assert.assertTrue(B.getID().toString().startsWith("@"));
-			Assert.assertEquals(B.getID().toString(),"@"+A.getID().toString());
-		}
-		//printListOfPairs(gd,gd.currentWave);
-		//printListOfPairs(gd,gd.frontWave);
-	}
-	
-	@Test
-	public final void testFindKeyPairs2()
-	{// TODO: why does A get paired with @B?
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a->C-a->D-a->A","testFindKeyPairs2A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B-a->@C-a->@A","testFindKeyPairs2B"),Configuration.getDefaultConfiguration());
-
-		GD gd = new GD();
-		int threads = 1;
-		gd.init(graphA, graphB, threads);
-		Assert.assertFalse(gd.identifyKeyPairs());
-	}
-
-	@Test
-	public final void testMakeSteps1()
-	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
-
-		GD gd = new GD();
-		int threads = 1;
-		gd.init(graphA, graphB, threads);
-		Assert.assertTrue(gd.identifyKeyPairs());
-		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
-		ChangesRecorder recorder = new ChangesRecorder();
-		gd.makeSteps(recorder,allKeyPairs);
-		//printListOfPairs(gd,allKeyPairs);
-		for(PairScore pair:allKeyPairs)
-		{
-			CmpVertex A=gd.newToOrig.get(pair.getQ()), B=gd.newToOrig.get(pair.getR());
-			Assert.assertEquals(B.getID().toString(),A.getID().toString());
-		}
-	}
-
-	/** Tests GD on the supplied two graphs
-	 * 
-	 * @param graphA first graph
-	 * @param graphB second graph
-	 * @param name prefix of the names to give to graphs. 
-	 * @param expectedMatchedPairs the number of pairs of states which are expected to be matched
-	 */
-	private final void testComputeGD(String graphA,String graphB,String name,int expectedMatchedPairs)
-	{
-		testComputeGD_oneway(graphA, graphB, name, expectedMatchedPairs);
-		testComputeGD_oneway(graphB, graphA, name, expectedMatchedPairs);
-	}
-	
-	/** Tests GD on the supplied two graphs
-	 * 
-	 * @param graphA first graph
-	 * @param graphB second graph
-	 * @param name prefix of the names to give to graphs. 
-	 * @param expectedMatchedPairs the number of pairs of states which are expected to be matched
-	 */
-	private final void testComputeGD_oneway(String graphA,String graphB,String name, int expectedMatchedPairs)
-	{
-		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
-
-		GD gd = new GD();
-		int threads = 1;
-		gd.init(grA, grB, threads);
-		gd.identifyKeyPairs();
-		ChangesRecorder recorder = new ChangesRecorder();
-		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
-		gd.makeSteps(recorder,allKeyPairs);
-		//printListOfPairs(gd, allKeyPairs);
-		Assert.assertEquals(expectedMatchedPairs,allKeyPairs.size());
-		LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
-		ChangesRecorder.applyGD(graph, recorder.writeGD(createDoc()));
-		WMethod.checkM(graph, grB);
-	}
-	
-	@Test
-	public final void testComputeGD0()
-	{
-		testComputeGD(
-				"A-a->B",
-				"@A-a->@B","testMakeSteps0",2);
-	}
-
-	@Test
-	public final void testComputeGD1()
-	{
-		testComputeGD(
-				"A-a->B\nA-b->B",
-				"@A-a->@B\n@A-c->@B","testMakeSteps1",2);
-	}
-
-	@Test
-	public final void testComputeGD2()
-	{
-		testComputeGD(
-				"A-a->B-a->C-a->D-a->A",
-				"@A-a->@B-a->@C-a->@A","testComputeGD2",3);
-	}
-	
-	@Test
-	public final void testComputeGD3()
-	{
-		testComputeGD(
-				"A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B",
-				"@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1",5);
-	}
-
-	@Test
-	public final void testComputeGD4()
-	{
-		testComputeGD(
-				"A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\nT-c-#C",
-				"A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->F-b->G-c-#C","testComputeGD4",6);
-	}
-
-	@Test
-	public final void testCounter()
-	{
-		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesCounter counter = new ChangesCounter(grA,grB);
-		GD gd = new GD();gd.computeGD(grA, grB, 1, counter);
-		Assert.assertEquals(1,counter.getRemoved());
-		Assert.assertEquals(1,counter.getAdded());
-		Assert.assertEquals("diff of testCounterB to testCounterA : 100%",counter.toString());
-	}
-
-	@Test
-	public final void testDisplay()
-	{
-		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesDisplay recorder = new ChangesDisplay();
-		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
-		Assert.assertEquals("removed: A - b -> B\n"+
-				"added  : A - c -> B\n",recorder.toString());
 	}
 }

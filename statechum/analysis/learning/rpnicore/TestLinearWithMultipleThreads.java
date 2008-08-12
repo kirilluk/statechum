@@ -763,9 +763,10 @@ public class TestLinearWithMultipleThreads {
 	public final void TestComputeStateCompatibility2d()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph(machineCompatibility2,"TestComputeStateCompatibility1"),config);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(2,10,ThreadNumber,null,LearnerGraphND.ignoreRejectStates));
+		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(1,10,ThreadNumber,null,LearnerGraphND.ignoreRejectStates));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k*(1+k))),1)
+				new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k*(1+k))),1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k)),1)
 		}));
 		Assert.assertEquals(exp, pairsSet);
 	}

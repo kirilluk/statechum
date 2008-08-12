@@ -75,7 +75,8 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestSolverRandomly.class,
 		statechum.analysis.learning.rpnicore.TestSolver.class,
 		statechum.analysis.learning.rpnicore.TestLinearWithMultipleThreads.class,
-		statechum.analysis.learning.rpnicore.TestGD.class})
+		statechum.analysis.learning.rpnicore.TestGD.class,
+		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class})
 	public static class LinearTests {
 	}
 }

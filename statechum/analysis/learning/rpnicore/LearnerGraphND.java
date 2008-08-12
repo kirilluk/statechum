@@ -26,6 +26,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import cern.colt.bitvector.BitVector;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
+import cern.colt.matrix.DoubleMatrix1D;
+import cern.colt.matrix.DoubleMatrix2D;
 
 /** Many routines in Linear and GD operate on potentially non-deterministic 
  * state machines, represented with the class below.
@@ -751,9 +753,14 @@ public class LearnerGraphND
 					totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 			}
 			
-			if (incompatible) sharedOutgoing = PAIR_INCOMPATIBLE;
 			for(Entry<String,List<CmpVertex>> entry:B.entrySet())
 				if (!A.containsKey(entry.getKey())) totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
+
+			if (incompatible) 
+			{// force a relatively high incompatibility score
+				sharedOutgoing = PAIR_INCOMPATIBLE*totalOutgoing;
+			}
+			//sharedOutgoing*=2;
 		}
 		
 		/** Returns the diagonal value (before it is reduced by
@@ -827,6 +834,63 @@ public class LearnerGraphND
 		return buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,null);
 	}
 
+	public static void appendPair(StringBuffer buffer, PairScore pair,Map<CmpVertex,CmpVertex> newToOrig)
+	{
+		buffer.append("[");buffer.append(newToOrig.get(pair.getQ()));buffer.append(",");
+		buffer.append(newToOrig.get(pair.getR()));buffer.append("]");
+	}
+	
+	public static int findIndexOf(final int [] incompatiblePairs,int key)
+	{// This should be a binary search ignoring PAIR_INCOMPATIBLE, however
+	// linear search is good enough for small number of elements and for a large
+	// number of them, I'll have no chance of making sense of the outcome of dumpEquations()
+	// anyway.
+		int i=0;for(;i<incompatiblePairs.length && incompatiblePairs[i]!=key;++i);
+		if (i < incompatiblePairs.length) 
+			return i;
+		return -1;
+	}
+	
+	/** Returns a human-readable form of a transition matrix, where state names have been converted
+	 * using the supplied map.
+	 * 
+	 * @param solver what to dump
+	 * @param incompatiblePairs map from vertex pairs to their IDs in the matrices of the solver.
+	 * @param newToOrig translation of state names.
+	 * @return textual representation of the system of equations stored in <em>solver</em>.
+	 */ 
+	public String dumpEquations(LSolver solver,final int [] incompatiblePairs, Map<CmpVertex,CmpVertex> newToOrig)
+	{
+		DoubleMatrix2D matrix = solver.toDoubleMatrix2D();
+		DoubleMatrix1D b = solver.toDoubleMatrix1D();
+		StringBuffer result = new StringBuffer();
+		
+		for(int row=0;row<matrix.rows();++row)
+		{
+			int indexRow = findIndexOf(incompatiblePairs, row);
+			assert indexRow >= 0;
+			PairScore pairRow = getPairScore(indexRow, 0,0);
+			
+			boolean firstValue = true;
+			for(int column = 0;column < matrix.columns();++column)
+			{
+				double value = matrix.getQuick(row, column);
+				if (value != 0) // this is not a computed value, hence it is reasonable to compare this double to zero in this way.
+				{
+					int indexColumn = findIndexOf(incompatiblePairs, column);
+					assert indexColumn >= 0;
+					PairScore pairColumn = getPairScore(indexColumn, 0,0);
+					if (!firstValue) result.append(" + ");else firstValue = false;
+					result.append(value);result.append("(");appendPair(result,pairRow, newToOrig);result.append(":");appendPair(result,pairColumn, newToOrig);result.append(")");
+
+				}
+			}
+			result.append(" = ");result.append(b.getQuick(row));result.append("\n");
+		}
+		
+		return result.toString();
+	}
+	
 	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{ 

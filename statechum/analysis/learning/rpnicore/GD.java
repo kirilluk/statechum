@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +123,7 @@ public class GD {
 	 */
 	public void computeGD(LearnerGraph a,LearnerGraph b, int threads, PatchGraph patcher)
 	{
-		init(a, b, threads);
+		init(a, b, threads,null);
 		identifyKeyPairs();
 		makeSteps(patcher,null);
 	}
@@ -147,6 +148,11 @@ public class GD {
 		 * @param to target state
 		 */
 		public void removeTransition(CmpVertex from,String label, CmpVertex to);
+		
+		/** Sets the initial state to the requested state.
+		 * @param vertex the state to become the initial state. 
+		 */
+		public void setInitial(CmpVertex vertex);
 	}
 	
 	/** Expands the set of key pairs and computes the outcome. 
@@ -166,17 +172,21 @@ public class GD {
 		//
 		// frontWave is the wavefront from which we are exploring grCombined in
 		// search of these candidates for key pairs.
-		if (allKeyPairs == null) allKeyPairs = new LinkedList<PairScore>();
+		Map<CmpVertex,CmpVertex> aTOb = new TreeMap<CmpVertex,CmpVertex>();
 		do
 		{
 			currentWave.clear();
 			populateCurrentWave(forward.matrixForward);
 			populateCurrentWave(inverse.matrixForward);
 			Collections.sort(currentWave);
-			allKeyPairs.addAll(frontWave);
-			for(PairScore pair:frontWave) newToOrig.put(pair.getR(),newToOrig.get(pair.getQ()));// since we now know 
+			if (allKeyPairs != null) allKeyPairs.addAll(frontWave);
+			for(PairScore pair:frontWave) 
+			{
+				newToOrig.put(pair.getR(),newToOrig.get(pair.getQ()));// since we now know 
 				// which state of A pair.getQ() of combined corresponds to, change the mapping.
 				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
+				aTOb.put(pair.getQ(),pair.getR());
+			}
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()))
@@ -187,34 +197,50 @@ public class GD {
 		while(!frontWave.isEmpty());
 
 		// Explored everything, now pick all transitions which have been added/removed.
-		for(PairScore pair:allKeyPairs)
+		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
 		{
-			for(Entry<String,CmpVertex> transitionA:grCombined.transitionMatrix.get(pair.getQ()).entrySet())
+			for(Entry<String,CmpVertex> transitionA:grCombined.transitionMatrix.get(entry.getKey()).entrySet())
 			{
 				CmpVertex targetA = transitionA.getValue();
-				CmpVertex targetB = grCombined.transitionMatrix.get(pair.getR()).get(transitionA.getKey());
+				CmpVertex targetB = grCombined.transitionMatrix.get(entry.getValue()).get(transitionA.getKey());
 
 				if (targetB == null) // this transition does not exist in B
-					graphToPatch.removeTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
+					graphToPatch.removeTransition(newToOrig.get(entry.getKey()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
 				else
-					if (!statesInKeyPairs.contains(targetB) || !statesInKeyPairs.contains(targetA))
-					{// transition leads to a state which is not key in either of the two machines
-						graphToPatch.removeTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
-						graphToPatch.addTransition(newToOrig.get(pair.getQ()), transitionA.getKey(),newToOrig.get(targetB));
+					if (aTOb.get(targetA) != targetB) // it is not enough to check if both targetA and targetB are 
+						// key states, but the two have to be part of the same key state. 
+						// Otherwise, we risk making mistakes (see <em>testComputeGD6()</em> for an illustration).
+					{// In other words, transition leads to a state which is not key in either of the two machines or both are parts of different key states.
+						graphToPatch.removeTransition(newToOrig.get(entry.getKey()), transitionA.getKey(),newToOrig.get(transitionA.getValue()));
+						graphToPatch.addTransition(newToOrig.get(entry.getKey()), transitionA.getKey(),newToOrig.get(targetB));
 					}
 			}
 			
-			for(Entry<String,CmpVertex> transitionB:grCombined.transitionMatrix.get(pair.getR()).entrySet())
+			for(Entry<String,CmpVertex> transitionB:grCombined.transitionMatrix.get(entry.getValue()).entrySet())
 			{
-				CmpVertex targetA = grCombined.transitionMatrix.get(pair.getQ()).get(transitionB.getKey());
+				CmpVertex targetA = grCombined.transitionMatrix.get(entry.getKey()).get(transitionB.getKey());
 				if (targetA == null) // a transition unique to B
-					graphToPatch.addTransition(newToOrig.get(pair.getR()), transitionB.getKey(),newToOrig.get(transitionB.getValue()));
+					graphToPatch.addTransition(newToOrig.get(entry.getValue()), transitionB.getKey(),newToOrig.get(transitionB.getValue()));
 			}			
 		}
 
 		// now we just need to go through states which are not key states
 		addTransitions(grCombined,statesOfA,graphToPatch,false);
 		addTransitions(grCombined,statesOfB,graphToPatch,true);
+		
+		// The initial state should be either grCombined.init (which is the initial state of graph B)
+		// or a key state of graph A which corresponds to this state.
+		CmpVertex initialState = grCombined.init;
+		Iterator<Entry<CmpVertex,CmpVertex>> entryIter = aTOb.entrySet().iterator();
+		while(entryIter.hasNext())
+		{// a linear search through not very many states
+			Entry<CmpVertex,CmpVertex> pair = entryIter.next();
+			if (pair.getValue() == initialState)
+			{
+				initialState = pair.getKey();break;// found a match
+			}
+		}
+		graphToPatch.setInitial(newToOrig.get(initialState));
 	}
 	
 	/** Makes it possible to modify graphs by adding/removing transitions. */
@@ -235,6 +261,27 @@ public class GD {
 			graph = gr;cloneConfig = config;
 		}
 		
+		/** Adds the vertex to the graph, cloning this vertex if 
+		 * (a) it is not already in the graph,
+		 * (b) user requested it to be cloned in the configuration.
+		 *  
+		 * @param vert vertex to add
+		 * @return added vertex
+		 */
+		protected CmpVertex addNewVertex(CmpVertex vert)
+		{
+			CmpVertex fromVert = graph.findVertex(vert.getID());
+			if (fromVert == null)
+			{// vertex with this ID is not already known
+				fromVert = LearnerGraph.cloneCmpVertex(vert, cloneConfig);
+				graph.transitionMatrix.put(fromVert,new TreeMap<String,CmpVertex>());
+			}
+			else
+				if (fromVert.isAccept() != vert.isAccept()) // it is known but with a different accept condition
+					throw new IllegalArgumentException("vertex "+vert+" has a different accept condition to the one in graph "+graph);
+			return fromVert;
+		}
+		
 		/** Adds transition to a graph. For each of the source and target states,
 		 * if states with the same IDs already present, existing states are used.
 		 * If those states do not exist, the respective states are cloned using
@@ -246,32 +293,13 @@ public class GD {
 		 */
 		public void addTransition(CmpVertex from, String input,CmpVertex to)
 		{
-			CmpVertex fromVert = graph.findVertex(from.getID());
-			Map<String,CmpVertex> entry = null;
-			if (fromVert == null)
-			{
-				fromVert = LearnerGraph.cloneCmpVertex(from, cloneConfig);
-				entry = new TreeMap<String,CmpVertex>();graph.transitionMatrix.put(fromVert,entry);
-			}
-			else
-				if (fromVert.isAccept() != from.isAccept())
-					throw new IllegalArgumentException("vertex "+from+" has a different accept condition to the one in graph "+graph);
-				else
-					entry = graph.transitionMatrix.get(fromVert);
+			Map<String,CmpVertex> entry = graph.transitionMatrix.get(addNewVertex(from));
 			
 			if (entry.containsKey(input))
-				throw new IllegalArgumentException("duplicate transition from state "+from+" with input "+input+"in graph "+graph);
+				throw new IllegalArgumentException("duplicate transition from state "+from+" with input \""+input+"\" in graph "+graph);
 	
-			CmpVertex toVert = graph.findVertex(to.getID());
-			if (toVert == null)
-				toVert = LearnerGraph.cloneCmpVertex(to,cloneConfig);
-			else
-				if (toVert.isAccept() != to.isAccept())
-					throw new IllegalArgumentException("vertex "+to+" has a different accept condition to the one in graph "+graph);
-				
+			CmpVertex toVert = addNewVertex(to);
 			entry.put(input, toVert);
-			if (!graph.transitionMatrix.containsKey(toVert))
-				graph.transitionMatrix.put(toVert, new TreeMap<String,CmpVertex>());
 		}
 	
 		/** Removes a transition from a graph. It does not matter which graph owns the vertices
@@ -306,6 +334,11 @@ public class GD {
 			statesInGraph.remove(graph.init);// initial state should stay
 			graph.transitionMatrix.keySet().removeAll(statesInGraph);
 		}
+
+		/** Sets the initial state to an existing state. Throws if state is not known. */
+		public void setInitial(CmpVertex vertex) {
+			graph.init = addNewVertex(vertex); // assuming that addNewVertex has been tested as a part of integration testing of addTransition :)
+		}
 	}
 
 	/** This class displays the requested changes.
@@ -330,6 +363,10 @@ public class GD {
 		public String toString()
 		{
 			return result.toString();
+		}
+		
+		public void setInitial(CmpVertex vertex) {
+			result.append("initial : ");result.append(vertex);result.append("\n");
 		}
 	}
 	
@@ -377,6 +414,10 @@ public class GD {
 		{
 			return "diff of "+nameB+" to "+nameA+" : "+(transitionsInB == 0?"NONE":(int)(100.*((double)added+removed)/transitionsInB)+"%");
 		}
+
+		public void setInitial(@SuppressWarnings("unused") CmpVertex vertex) {
+			// does nothing
+		}
 	}
 	
 	/** This class records requested changes and is capable of returning a 
@@ -396,6 +437,7 @@ public class GD {
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			added = new LearnerGraph(config);removed = new LearnerGraph(config);
+			added.init = null;added.transitionMatrix.clear();// to make sure we can handle an assignment of a reject-state to an initial state
 			addedPatcher = new LearnerGraphMutator(added, config);removedPatcher = new LearnerGraphMutator(removed,config);
 		}
 		
@@ -421,6 +463,7 @@ public class GD {
 		/** Writes the recorded changes in a form of an XML tag. */
 		protected Element writeGD(Document doc)
 		{
+			if (added.init == null) throw new IllegalArgumentException("init state is was not defined");// TODO: to test this
 			Element gd = doc.createElement(gdGD), addedNode = doc.createElement(gdAdded), removedNode = doc.createElement(gdRemoved);
 			addedNode.appendChild(added.transform.createGraphMLNode(doc));removedNode.appendChild(removed.transform.createGraphMLNode(doc));
 			gd.appendChild(removedNode);gd.appendChild(addedNode);
@@ -493,6 +536,12 @@ public class GD {
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 					graphPatcher.addTransition(entry.getKey(), transition.getKey(), transition.getValue());
+			graphPatcher.setInitial(gr.init);
+		}
+
+		public void setInitial(CmpVertex vertex) 
+		{
+			addedPatcher.setInitial(vertex);			
 		}
 	}
 	
@@ -518,15 +567,21 @@ public class GD {
 			}
 	}
 
-	/** Builds the data structures subsequently used in traversal. */
-	protected void init(LearnerGraph a,LearnerGraph b,int threads)
+	/** Builds the data structures subsequently used in traversal.
+	 * 
+	 * @param a the first graph
+	 * @param b the second graph
+	 * @param threads how many threads to use
+	 * @param testValueOfNewToOrig if not null, this one receives a value of newToOrig. Used for testing.
+	 */ 
+	protected void init(LearnerGraph a,LearnerGraph b,int threads, Map<CmpVertex,CmpVertex> testValueOfNewToOrig)
 	{
 		ThreadNumber = threads;
 		grCombined = a.copy(a.config.copy());
 		//stateToNumber = grCombined.learnerCache.getStateToNumber();
 		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
 		Map<CmpVertex,CmpVertex> origToNew = new TreeMap<CmpVertex,CmpVertex>();
-		Transform.addToGraph(grCombined, b,origToNew);
+		grCombined.init = Transform.addToGraph(grCombined, b,origToNew);
 		grCombined.learnerCache.invalidate();// even though we've reset the cache, our 
 		// stateToNumber map above is still useful since it provides both (1) a way to find
 		// out whether a state is a part of the first graph (we call it A) and 
@@ -535,8 +590,17 @@ public class GD {
 		statesOfB = new TreeSet<CmpVertex>();statesOfB.addAll(origToNew.values());
 
 		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
-		for(Entry<CmpVertex,CmpVertex> entry:origToNew.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+		Set<CmpVertex> origB = new TreeSet<CmpVertex>();origB.addAll(origToNew.keySet());origB.retainAll(statesOfA);
+		if (origB.isEmpty())
+			for(Entry<CmpVertex,CmpVertex> entry:origToNew.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+		else// duplicates hence use the unique names they were given in grCombined
+		{
+			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+origB+" are shared between A and B");
+			for(Entry<CmpVertex,CmpVertex> entry:origToNew.entrySet()) newToOrig.put(entry.getValue(),entry.getValue());
+		}
+		
 		for(CmpVertex vert:a.transitionMatrix.keySet()) newToOrig.put(vert, vert);// mapping for vertices of A is a tautology due to cloning.
+		if (testValueOfNewToOrig != null) { testValueOfNewToOrig.clear();testValueOfNewToOrig.putAll(newToOrig); }
 		
 		forward = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,false);
 		inverse = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,true);
@@ -557,7 +621,8 @@ public class GD {
 						pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
 							LearnerGraphND.PAIR_OK;// caching is likely to lower down my performance a lot here
 					
-					// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards.
+					// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
+					// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
 				}
 			});
 		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
@@ -569,6 +634,7 @@ public class GD {
 		assert numberOfPairs == statesOfA.size()*statesOfB.size();
 		{
 			LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
+			//System.out.println(inverse.dumpEquations(solverForward, pairScores, newToOrig));
 			solverForward.solve();
 			solverForward.freeAllButResult();// deallocate memory before creating a large array.
 			scoresForward = solverForward.j_x;
@@ -622,7 +688,7 @@ public class GD {
 		}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 //TestGD.printListOfPairs(this, currentWave);
 		// now we find so many percent of top values.
-		int topScore = -1;
+		int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
 		PairScore topPair = null;
 		for(PairScore pair:currentWave)
 			if (pair.getScore() > topScore)
@@ -630,7 +696,6 @@ public class GD {
 				topScore = pair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
 				topPair = pair;
 			}
-		assert topPair != null;
 		
 		statesInKeyPairs = new HashSet<CmpVertex>();frontWave = new LinkedList<PairScore>();
 		final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
@@ -645,10 +710,18 @@ public class GD {
 		// We have to be careful if none is found this way.
 		if (frontWave.isEmpty())
 		{
-			if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
-				System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs");
+			if (topPair != null)
+			{// at least we've got a pair with a score over zero.
+				if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs");
+				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
+			}
+			else
+			{// nothing of use detected, the difference will contain a union of all transitions in graphs A and B.
+				if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+					System.out.println("Linear failed to find any pairs with positive scores, the diff is the union of A and B");
+			}
 			result = false;
-			frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 		}
 		
 		return result;

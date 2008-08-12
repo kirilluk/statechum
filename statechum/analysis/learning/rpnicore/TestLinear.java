@@ -473,7 +473,7 @@ public class TestLinear {
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","Q");
-		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
 	}
 
 	@Test
@@ -495,7 +495,7 @@ public class TestLinear {
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
-		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
 	}
 
 	@Test

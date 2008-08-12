@@ -581,7 +581,7 @@ public class PathRoutines {
 	 */
 	public DirectedSparseGraph getGraph()
 	{
-		return getGraph(coregraph.getName());
+		return getGraph(coregraph.getNameNotNull());
 	}
 	
 	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.

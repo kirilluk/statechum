@@ -756,7 +756,7 @@ public class LearnerGraph {
 	@Override
 	public String toString()
 	{
-		return "Graph "+(getName() == null?"":getName()+" ")+"states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
+		return "Graph "+getNameNotNull()+" states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
 	}
 
 	/** This one does not consider configuration or IDs - only states/transitions 

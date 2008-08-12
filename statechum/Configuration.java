@@ -326,6 +326,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (speculativeQuestionAsking? 1231:1237);
 		result = prime * result + (int)(gdKeyPairThreshold*100);
 		result = prime * result + (int)(gdLowToHighRatio*100);
+		result = prime * result + (gdFailOnDuplicateNames?1231 : 1237);
 		return result;
 	}
 
@@ -401,6 +402,8 @@ public class Configuration implements Cloneable
 		if (gdKeyPairThreshold != other.gdKeyPairThreshold)
 			return false;
 		if (gdLowToHighRatio != other.gdLowToHighRatio)
+			return false;
+		if (gdFailOnDuplicateNames != other.gdFailOnDuplicateNames)
 			return false;
 		return true;
 	}
@@ -593,8 +596,26 @@ public class Configuration implements Cloneable
 	 * to states into which we have transitions. This values provides the appropriate 
 	 * attenuation, which has to be under 1, since otherwise the matrix is likely to be
 	 * singular. Using a value of 0 would imply we ignore all outgoing transitions.
+	 * <p>
+	 * In practice, this value should be rather lower than 1, because otherwise
+	 * it'll lead to very high scores being generated. Consider 
+	 * <tt>A-a->A</tt>. In this case, the equation is <tt>AA=k*AA+1</tt>, so for
+	 * k=0.9, we get AA=10. It is not feasible to fudge the case of loops because
+	 * we can have <tt>A-a->B-a->C-a->A</tt> where the same problem will occur. 
+	 * For this reason, it seems reasonable to keep k to around 0.7 or less.
+	 * In this case, <tt>testFindKeyPairs2()</tt> obtains scores of 6.6 (66 after
+	 * multiplication by 10 and truncation to int).
+	 * <p>
+	 * <b>It is important not to force <em>totalOutgoing</em> to 1</b> for the following
+	 * reason: 
+	 * Consider the case of multiple looping transitions in A, such as 
+	 * <tt>A-a->A-b->A</tt>. In this case, we get an equation 
+	 * AA=k*count(outgoing)*AA+const. For values of k of 0.5 or under, there will
+	 * be a specific number of outgoing transitions such that the matrix will be
+	 * singular. For this reason, the value of constant has to be somewhere around
+	 * 0.6..0.8 
 	 */
-	protected double attenuationK=0.9;
+	protected double attenuationK=0.6;
 	
 	public double getAttenuationK()
 	{
@@ -617,6 +638,25 @@ public class Configuration implements Cloneable
 	{
 		if (k<0 || k>1) throw new IllegalArgumentException("attenuation should be within [0,1[");
 		attenuationK = k;
+	}
+
+	/** When there are states in B with the same names as states of A, it is easy
+	 * to confuse between them when we generate a patch for A in <em>computeGD</em>. 
+	 * For this reason, when this situation occurs
+	 * we no longer use original names for vertices of B but instead use the unique IDs generated when
+	 * A and B were combined. When this variable is true, this fallback is not performed and
+	 * an {@link IllegalArgumentException} is thrown.
+	*/
+	boolean gdFailOnDuplicateNames = true;
+	
+	public boolean getGdFailOnDuplicateNames()
+	{
+		return gdFailOnDuplicateNames;
+	}
+	
+	public void setGdFailOnDuplicateNames(boolean value)
+	{
+		gdFailOnDuplicateNames = value;
 	}
 	
 	/** Used extensively to convert checked exceptions to IllegalArgumentException

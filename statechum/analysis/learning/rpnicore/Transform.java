@@ -324,16 +324,19 @@ public class Transform {
 	 */ 
 	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what,Map<CmpVertex,CmpVertex> whatToG)
 	{
-		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();
+		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();else whatToG.clear();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{// The idea is to number the new states rather than to clone vertices.
 		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.
 			CmpVertex newVert = LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config);
+			assert g.findVertex(newVert.getID()) == null : "duplicate vertex with ID "+newVert.getID();
+			assert !g.transitionMatrix.containsKey(newVert) : "duplicate vertex "+newVert;
 			newVert.setAccept(entry.getKey().isAccept());
 			newVert.setHighlight(entry.getKey().isHighlight());
 			newVert.setColour(entry.getKey().getColour());
 			whatToG.put(entry.getKey(),newVert);
 		}
+
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{
 			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
@@ -342,6 +345,17 @@ public class Transform {
 		}
 		g.learnerCache.invalidate();
 		return whatToG.get(what.init);
+	}
+	
+	/** Changes states labels on a graph to their numerical equivalents.
+	 * 
+	 * @param what graph to convert
+	 * @return result of conversion.
+	 */
+	public static LearnerGraph convertToNumerical(LearnerGraph what)
+	{
+		LearnerGraph result = new LearnerGraph(what.config);result.init = null;result.transitionMatrix.clear();
+		result.init = addToGraph(result, what, null);return result;
 	}
 
 	public static void addToGraph_tmp(LearnerGraph g, List<String> initPath, LearnerGraph what)

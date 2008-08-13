@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -559,4 +560,24 @@ public class TestGD {
 				new PairScore(newToOrig.get(pair.getQ()),newToOrig.get(pair.getR()),pair.getScore(),pair.getAnotherScore())+" ");
 		System.out.println("]");
 	}
+/*
+	@Test
+	public final void testComputeGD_big5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		final String path = "resources/LargeGraphs/";
+		LearnerGraph grA = Transform.convertToNumerical(LearnerGraph.loadGraph(path+"experiment_500", config));
+		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(path+"experiment_501", config));
+		GD gd = new GD();
+		LearnerGraph graph = Transform.convertToNumerical(LearnerGraph.loadGraph(path+"experiment_500", config));
+		long tmStarted = new Date().getTime();
+		System.out.println("loaded ");
+		Element xml = gd.computeGDToXML(grA, grB, 2, createDoc());
+		System.out.println("patch created "+ (new Date().getTime()-tmStarted)/1000);
+		tmStarted = new Date().getTime();
+		ChangesRecorder.applyGD(graph, xml);
+		System.out.println("patch applied "+ (new Date().getTime()-tmStarted)/1000);
+		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+	}
+*/
 }

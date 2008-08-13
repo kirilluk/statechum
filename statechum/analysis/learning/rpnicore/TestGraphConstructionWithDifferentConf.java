@@ -232,7 +232,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
 		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("B"), UserData.SHARED);
-		checkWithVertex(v, "multiple", "testGraphConstructionFail2");
+		checkWithVertex(v, "multiple states with the same name", "testGraphConstructionFail2");
 	}
 	
 	@Test
@@ -240,7 +240,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
 		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("CONFL"), UserData.SHARED);
-		checkWithVertex(v, "multiple", "testGraphConstructionFail3");
+		checkWithVertex(v, "multiple states with the same name", "testGraphConstructionFail3");
 	}
 	
 	@Test
@@ -248,7 +248,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		DirectedSparseVertex v = new DirectedSparseVertex();
 		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);v.addUserDatum(JUConstants.LABEL, new VertexID("Q"), UserData.SHARED);v.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		checkWithVertex(v, "labelled as initial states", "testGraphConstructionFail4a");
+		checkWithVertex(v, "both labelled as initial states", "testGraphConstructionFail4a");
 	}
 	
 	@Test
@@ -298,22 +298,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testGraphConstructionFail7() 
 	{
-		DirectedSparseGraph g = new DirectedSparseGraph();
-		DirectedSparseVertex init = new DirectedSparseVertex();
-		init.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);g.addVertex(init);
-		boolean exceptionThrown = false;
-		try
-		{
-			new LearnerGraph(new DirectedSparseGraph(),config);// now getGraphData should choke.			
-		}
-		catch(IllegalArgumentException e)
-		{
-			final String expectedString = "missing initial";
-			assertTrue("correct exception not thrown expected "+expectedString+" got "+e.getMessage(),e.getMessage().contains(expectedString) );
-			exceptionThrown = true;
-		}
-		
-		assertTrue("exception not thrown",exceptionThrown);
+		DirectedSparseVertex v = new DirectedSparseVertex();
+		//v.addUserDatum(JUConstants.INITIAL, false, UserData.SHARED);
+		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+		checkWithVertex(v, "is not labelled", "testGraphConstructionFail7");	
 	}
 }

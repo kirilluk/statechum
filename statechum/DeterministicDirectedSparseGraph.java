@@ -87,6 +87,12 @@ public class DeterministicDirectedSparseGraph {
 			idString = id;kind=VertKind.NONE;idInteger=0;cachedHash = idString.hashCode();
 		}
 		
+		public int getIngegerID()
+		{
+			assert kind != VertKind.NONE;
+			return idInteger;
+		}
+		
 		/** In order to enable comparison between vertex ID which are 
 		 * represented by Strings and/or integer, 
 		 * the two need need to be converted to a common form.

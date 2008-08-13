@@ -178,7 +178,7 @@ public class ArrayOperations {
 	 * @return conversion outcome.
 	 */
 	public static String seqToString(Collection<String> seq)
-	{//TODO: to test seqToString
+	{
 		boolean first = true;
 		StringBuffer result = new StringBuffer();for(String str:seq) { if (first) first=false;else result.append(separator);result.append(str); }
 		return result.toString();

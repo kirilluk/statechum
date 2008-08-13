@@ -798,4 +798,28 @@ public class TestArrayOperations {
 	  expected.add(Arrays.asList(new String[]{"B","V","A"}));
 	  Assert.assertArrayEquals(expected.toArray(), ArrayOperations.sort(data).toArray());
   }
+  
+  @Test
+  public final void testSeqToString0()
+  {
+	  Assert.assertEquals(0,ArrayOperations.seqToString(new LinkedList<String>()).length());
+  }
+
+  @Test
+  public final void testSeqToString1()
+  {
+	  Assert.assertEquals("abc",ArrayOperations.seqToString(Arrays.asList(new String[]{"abc"})));
+  }
+
+  @Test
+  public final void testSeqToString2()
+  {
+	  Assert.assertEquals("abc"+ArrayOperations.separator+"def",ArrayOperations.seqToString(Arrays.asList(new String[]{"abc","def"})));
+  }
+
+  @Test
+  public final void testSeqToString3()
+  {
+	  Assert.assertEquals(""+ArrayOperations.separator,ArrayOperations.seqToString(Arrays.asList(new String[]{"",""})));
+  }
 }

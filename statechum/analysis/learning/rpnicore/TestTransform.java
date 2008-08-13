@@ -47,7 +47,9 @@ import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestRpniLearner;
@@ -571,14 +573,9 @@ public class TestTransform {
 	 */
 	public void checkLoading(LearnerGraph gr) throws IOException
 	{
+		final Configuration config = Configuration.getDefaultConfiguration();
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
-		LearnerGraph loaded = null;
-		synchronized (LearnerGraph.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	loaded = new LearnerGraph(graphmlFile.load(new StringReader(writer.toString())),Configuration.getDefaultConfiguration());
-		}		
+		LearnerGraph loaded = LearnerGraph.loadGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.wmethod.checkUnreachableStates());Assert.assertTrue(!loaded.wmethod.checkUnreachableStates());
 		WMethod.checkM(loaded, gr);
@@ -592,8 +589,106 @@ public class TestTransform {
 			else
 				Assert.assertEquals(v.getColour(), other.getColour());
 		}
+
+		Assert.assertTrue(ids_are_valid(loaded));
+	}
+
+	/** Checks if simply creating vertices we may get an ID with existing number. */
+	protected static final boolean ids_are_valid(LearnerGraph gr)
+	{
+		final Configuration config = gr.config.copy();config.setLearnerCloneGraph(false);
+		LearnerGraph graph = gr.copy(config);
+		
+		// Now we check that we can create lots of vertices and none of their numbers 
+		// will be included 
+		{
+			LearnerGraph Plus = graph.copy(config);
+			for(int i=0;i<1000;++i)
+			{
+				VertexID id = Plus.nextID(true);
+				if (graph.findVertex(id) != null) return false;
+			}
+		}
+
+		{
+			LearnerGraph Minus = graph.copy(config);
+			for(int i=0;i<1000;++i)
+			{
+				VertexID id = Minus.nextID(false);
+				if (graph.findVertex(id) != null) return false;
+			}
+		}
+
+		return true;
 	}
 	
+	@Test
+	public final void testVertIDSetter()
+	{
+		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		Assert.assertTrue(ids_are_valid(graph));
+		graph.setIDNumbers();
+		Assert.assertTrue(ids_are_valid(graph));
+		final int currentPlus = graph.vertPositiveID, currentMinus = graph.vertNegativeID; 
+		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentMinus+10),graph.config),
+				new TreeMap<String,CmpVertex>());
+		Assert.assertFalse(ids_are_valid(graph));
+		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
+		graph.setIDNumbers();
+		Assert.assertTrue(ids_are_valid(graph));
+
+		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+10),graph.config),
+				new TreeMap<String,CmpVertex>());
+		Assert.assertFalse(ids_are_valid(graph));
+		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
+		graph.setIDNumbers();
+		Assert.assertTrue(ids_are_valid(graph));
+		
+		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEUTRAL,currentPlus+4),graph.config),
+				new TreeMap<String,CmpVertex>());
+		Assert.assertTrue(ids_are_valid(graph));
+		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentPlus+4),graph.config),
+				new TreeMap<String,CmpVertex>());
+		Assert.assertTrue(ids_are_valid(graph));
+		
+	}
+	
+	@Test
+	public final void testConvertToNumeric1()
+	{
+		LearnerGraph graph = Transform.convertToNumerical(new LearnerGraph(Configuration.getDefaultConfiguration()));
+		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
+		Assert.assertTrue(ids_are_valid(graph));
+	}
+	
+	@Test
+	public final void testConvertToNumeric2()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B", "testConvertToNumeric2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = Transform.convertToNumerical(gr);
+		Assert.assertFalse(gr.wmethod.checkGraphNumeric());
+		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
+		Assert.assertTrue(ids_are_valid(gr));
+		Assert.assertTrue(ids_are_valid(graph));
+		LearnerGraph graph2 = Transform.convertToNumerical(graph);
+		Assert.assertTrue(graph2.wmethod.checkGraphNumeric());
+		Assert.assertTrue(ids_are_valid(graph2));
+	}
+	
+	@Test
+	public final void testConvertToNumeric3()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-a-#B\nA-b->C-a->D-a-#E\nD-b->A\nC-c->C", "testConvertToNumeric2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = Transform.convertToNumerical(gr);
+		Assert.assertFalse(gr.wmethod.checkGraphNumeric());
+		Assert.assertTrue(graph.wmethod.checkGraphNumeric());
+		Assert.assertTrue(ids_are_valid(gr));
+		Assert.assertTrue(ids_are_valid(graph));
+		LearnerGraph graph2 = Transform.convertToNumerical(graph);
+		Assert.assertTrue(graph2.wmethod.checkGraphNumeric());
+		Assert.assertTrue(ids_are_valid(graph2));
+	}
+		
 	@Test
 	public final void testGraphMLWriter3() throws IOException
 	{

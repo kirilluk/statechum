@@ -258,6 +258,7 @@ public class TestGraphConstruction
 		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confJung).toString());
 		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confString).toString());
 		Assert.assertEquals("Graph testFSMStructureClone states: 3", new LearnerGraph(testGraph,confSame).toString());
+		Assert.assertEquals("Graph <UNKNOWN> states: 1", new LearnerGraph(confSame).toString());
 	}
 	
 	/** Non graph vertex to copy. */

@@ -463,7 +463,7 @@ public class GD {
 		/** Writes the recorded changes in a form of an XML tag. */
 		protected Element writeGD(Document doc)
 		{
-			if (added.init == null) throw new IllegalArgumentException("init state is was not defined");// TODO: to test this
+			if (added.init == null) throw new IllegalArgumentException("init state is was not defined");
 			Element gd = doc.createElement(gdGD), addedNode = doc.createElement(gdAdded), removedNode = doc.createElement(gdRemoved);
 			addedNode.appendChild(added.transform.createGraphMLNode(doc));removedNode.appendChild(removed.transform.createGraphMLNode(doc));
 			gd.appendChild(removedNode);gd.appendChild(addedNode);
@@ -577,36 +577,39 @@ public class GD {
 	protected void init(LearnerGraph a,LearnerGraph b,int threads, Map<CmpVertex,CmpVertex> testValueOfNewToOrig)
 	{
 		ThreadNumber = threads;
-		grCombined = a.copy(a.config.copy());
-		//stateToNumber = grCombined.learnerCache.getStateToNumber();
-		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
-		Map<CmpVertex,CmpVertex> origToNew = new TreeMap<CmpVertex,CmpVertex>();
-		grCombined.init = Transform.addToGraph(grCombined, b,origToNew);
-		grCombined.learnerCache.invalidate();// even though we've reset the cache, our 
-		// stateToNumber map above is still useful since it provides both (1) a way to find
-		// out whether a state is a part of the first graph (we call it A) and 
-		// (2) a numbering of those states so when I traverse a subset of a 
-		// transition matrix with rows from A I know which state-pair numbers to assign.
-		statesOfB = new TreeSet<CmpVertex>();statesOfB.addAll(origToNew.values());
-
+		grCombined = new LearnerGraph(a.config);grCombined.transitionMatrix.clear();
+		Map<CmpVertex,CmpVertex> origToNewA = new TreeMap<CmpVertex,CmpVertex>(),origToNewB = new TreeMap<CmpVertex,CmpVertex>();
+		Transform.addToGraph(grCombined, a, origToNewA);// I have to renumber vertices because the original graph may have had textual vertices so when our new numerical IDs are converted to Strings for comparisons, IDs may overlap.
+		grCombined.init = Transform.addToGraph(grCombined, b,origToNewB);
+		grCombined.learnerCache.invalidate();
+		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(origToNewA.values());
+		statesOfB = new TreeSet<CmpVertex>();statesOfB.addAll(origToNewB.values());
+		assert statesOfA.size() == origToNewA.size();assert statesOfA.size() == a.getStateNumber();
+		assert statesOfB.size() == origToNewB.size();assert statesOfB.size() == b.getStateNumber();
+		assert statesOfA.size() + statesOfB.size() == grCombined.getStateNumber(): " added "+statesOfB.size()+" states but the outcome is only "+(grCombined.getStateNumber()-statesOfA.size())+" states larger";
 		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
-		Set<CmpVertex> origB = new TreeSet<CmpVertex>();origB.addAll(origToNew.keySet());origB.retainAll(statesOfA);
-		if (origB.isEmpty())
-			for(Entry<CmpVertex,CmpVertex> entry:origToNew.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
-		else// duplicates hence use the unique names they were given in grCombined
-		{
+		Set<CmpVertex> origB = new TreeSet<CmpVertex>();origB.addAll(origToNewA.keySet());origB.retainAll(origToNewB.keySet());
+		for(Entry<CmpVertex,CmpVertex> entry:origToNewA.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+		for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+		assert newToOrig.size() == grCombined.transitionMatrix.size();
+		if (!origB.isEmpty())
+		{// duplicates hence use the unique names they were given in grCombined
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+origB+" are shared between A and B");
-			for(Entry<CmpVertex,CmpVertex> entry:origToNew.entrySet()) newToOrig.put(entry.getValue(),entry.getValue());
+
+			// set newToOrig to a tautology
+			for(Entry<CmpVertex,CmpVertex> entry:origToNewA.entrySet()) newToOrig.put(entry.getValue(),entry.getValue());
+			for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newToOrig.put(entry.getValue(),entry.getValue());
 		}
-		
-		for(CmpVertex vert:a.transitionMatrix.keySet()) newToOrig.put(vert, vert);// mapping for vertices of A is a tautology due to cloning.
+		else
+		{
+			for(Entry<CmpVertex,CmpVertex> entry:origToNewA.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+			for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newToOrig.put(entry.getValue(),entry.getKey());
+		}
 		if (testValueOfNewToOrig != null) { testValueOfNewToOrig.clear();testValueOfNewToOrig.putAll(newToOrig); }
 		
 		forward = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,false);
 		inverse = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,true);
-		
 		pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, LearnerGraphND.PAIR_INCOMPATIBLE);
-		
 		// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
 		List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
@@ -618,8 +621,13 @@ public class GD {
 				{
 					// Now iterate through states
 					for(CmpVertex stateB:statesOfB)
+					{
+						assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==LearnerGraphND.PAIR_INCOMPATIBLE:
+							"duplicate number "+forward.vertexToIntNR(stateB,entryA.getKey())+" for states "+
+							forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
 						pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
 							LearnerGraphND.PAIR_OK;// caching is likely to lower down my performance a lot here
+					}
 					
 					// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
 					// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
@@ -632,6 +640,7 @@ public class GD {
 		}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 		final int numberOfPairs = LearnerGraphND.numberNonNegativeElements(pairScores);
 		assert numberOfPairs == statesOfA.size()*statesOfB.size();
+		
 		{
 			LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
 			//System.out.println(inverse.dumpEquations(solverForward, pairScores, newToOrig));
@@ -686,7 +695,7 @@ public class GD {
 				return statesOfA.contains(vert);
 			}
 		}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
-//TestGD.printListOfPairs(this, currentWave);
+
 		// now we find so many percent of top values.
 		int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
 		PairScore topPair = null;
@@ -713,7 +722,7 @@ public class GD {
 			if (topPair != null)
 			{// at least we've got a pair with a score over zero.
 				if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
-					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs");
+					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, using "+topPair);
 				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 			}
 			else

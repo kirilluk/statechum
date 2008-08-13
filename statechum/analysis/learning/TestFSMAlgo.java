@@ -1423,7 +1423,7 @@ public class TestFSMAlgo {
 			if (str.length != 2)
 				throw new IllegalArgumentException("more than two elements in sequence "+str);
 			if (str[0] == null || str[1] == null || !(str[0] instanceof String[]) || !(str[1] instanceof String))
-				throw new IllegalArgumentException("invalid data in array");// TODO: to test that this exception is thrown.
+				throw new IllegalArgumentException("invalid data in array");
 			result.put(ArrayOperations.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
 		}
 		return result;
@@ -1603,7 +1603,7 @@ public class TestFSMAlgo {
 		
 		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
 				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{new String[]{"a"},new Object()},// an invalid sequence - null in the first element
+				new Object[]{null,"value"},// an invalid sequence - null in the first element
 				new Object[]{new String[]{"b"},"value3"}
 		})));
 	}
@@ -1616,7 +1616,7 @@ public class TestFSMAlgo {
 		
 		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
 				new Object[]{new String[]{"strC"},"value1"},
-				new Object[]{null, "a"},// an invalid sequence - null in the second element
+				new Object[]{new String[]{"a"}, null},// an invalid sequence - null in the second element
 				new Object[]{new String[]{"b"},null}
 		})));
 	}

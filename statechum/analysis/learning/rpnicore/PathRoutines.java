@@ -1010,12 +1010,13 @@ public class PathRoutines {
 		return current;
 	}
 	
-	/** converts a given sequence into a fundamental test sequence.
+	/** Converts a given sequence into a fundamental test sequence.
+	 * Only used by the old implementation of the W method, <em>computeOldTestSet</em>.
 	 * 
 	 * @return truncated sequence
 	 */
 	public List<String> truncateSequence(List<String> path)
-	{// TODO: I think this should only be used for testing of PTATestSequenceEngine and the like.
+	{
 		int pos = tracePath(path);
 		List<String> seq = path;
 		assert(pos == AbstractOracle.USER_ACCEPTED || pos < path.size());

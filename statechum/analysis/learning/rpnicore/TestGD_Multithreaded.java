@@ -46,6 +46,7 @@ import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 public class TestGD_Multithreaded {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
+	/** Number of threads to use. */
 	protected final int threadNumber;
 
 	@Parameters
@@ -81,6 +82,7 @@ public class TestGD_Multithreaded {
 		Assert.assertEquals(graphA.transitionMatrix.size(),gd.statesOfA.size());
 		Assert.assertEquals(graphB.transitionMatrix.size(),gd.statesOfB.size());
 		Assert.assertEquals(graphA.transitionMatrix.size()+graphB.transitionMatrix.size(),gd.newToOrig.size());
+		for(CmpVertex v:gd.statesOfA) Assert.assertTrue(graphA.transitionMatrix.containsKey(gd.newToOrig.get(v)));
 		for(CmpVertex v:gd.statesOfB) Assert.assertTrue(graphB.transitionMatrix.containsKey(gd.newToOrig.get(v)));
 	}
 

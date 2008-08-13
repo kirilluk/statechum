@@ -21,6 +21,8 @@ package statechum;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
+import statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs;
+
 /**
  * @author Kirill
  *
@@ -76,7 +78,9 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestSolver.class,
 		statechum.analysis.learning.rpnicore.TestLinearWithMultipleThreads.class,
 		statechum.analysis.learning.rpnicore.TestGD.class,
-		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class})
+		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
+		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class
+		})
 	public static class LinearTests {
 	}
 }

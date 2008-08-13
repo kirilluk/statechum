@@ -212,6 +212,24 @@ public class LearnerGraph {
 		return count;
 	}
 	
+	/** Identifies maximal values of currently used IDs and makes sure 
+	 * that generation of IDs will not return any of the existing ones.
+	 */
+	protected void setIDNumbers()
+	{
+		for(CmpVertex vert:transitionMatrix.keySet())
+		{
+			VertexID id = vert.getID();
+			if ((id.getKind() == VertKind.NEUTRAL || id.getKind() == VertKind.POSITIVE)
+				&& id.getIngegerID() > vertPositiveID)
+				vertPositiveID = id.getIngegerID()+1;
+			if ((id.getKind() == VertKind.NEGATIVE)
+					&& id.getIngegerID() > vertNegativeID)
+				vertNegativeID = id.getIngegerID()+1;
+			
+		}
+	}
+	
 	final public ComputeQuestions questions = new ComputeQuestions(this);
 	final public PathRoutines paths = new PathRoutines(this);
 	final public MergeStates merger = new MergeStates(this);
@@ -226,7 +244,7 @@ public class LearnerGraph {
 	 * @param g the graph it will be used on 
 	 */
 	public LearnerGraph(Graph g,Configuration conf)
-	{//TODO: to check that all exceptions are thrown for appropriate graphs.
+	{
 		config = conf;initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
@@ -270,6 +288,8 @@ public class LearnerGraph {
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
 		}
+		
+		setIDNumbers();
 	}
 
 	/** Loads a graph from the data in a supplied reader.
@@ -301,6 +321,22 @@ public class LearnerGraph {
 		return new LearnerGraph(Transform.loadGraph(elem),config);
 	}
 	
+	/** Loads a graph from a supplied file. 
+	*/
+	public static LearnerGraph loadGraph(String fileName,Configuration config)
+	{
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	String fileToLoad = fileName;
+	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
+	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileToLoad),config);
+	    	graph.setIDNumbers();
+	    	return graph;
+		}
+	}
+
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
 	 * This is particularly useful for testing.
 	 */ 
@@ -338,24 +374,6 @@ public class LearnerGraph {
 		initPTA();
 	}
 
-	/** Loads a graph from a supplied file. 
-	* FIXME: make very specific assumptions about the numbering of states in the loaded graphs when setting vertPositiveID and vertNegativeID
-	*/
-	public static LearnerGraph loadGraph(String fileName,Configuration config)
-	{
-		synchronized (LearnerGraph.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileName+".xml"),config);
-	    	int acceptNumber = graph.getAcceptStateNumber();
-	    	int rejectNumber = graph.getStateNumber()-acceptNumber;
-	    	graph.vertPositiveID=acceptNumber;
-	    	graph.vertNegativeID=1+rejectNumber;
-	    	return graph;
-		}
-	}
-	
 	/** Saves the supplied graph into the file, ignoring possible errors. */
 	public static void dumpGraph(LearnerGraph what, String name)
 	{
@@ -682,7 +700,7 @@ public class LearnerGraph {
 				if (label instanceof String)
 					result = generateNewCmpVertex(new VertexID((String)label), conf);
 				else
-					throw new IllegalArgumentException("vertex with label "+label+" has an unsupported type");// TODO: to test that this exception is thrown
+					throw new IllegalArgumentException("vertex with label "+label+" has an unsupported type");
 			result.setAccept(DeterministicDirectedSparseGraph.isAccept(srcVert));
 			if (srcVert.containsUserDatumKey(JUConstants.COLOUR))
 				result.setColour((JUConstants)srcVert.getUserDatum(JUConstants.COLOUR));

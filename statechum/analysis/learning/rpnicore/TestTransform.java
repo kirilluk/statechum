@@ -411,14 +411,43 @@ public class TestTransform {
 		fsm.transform.writeGraphML(writer);
 	}
 
+	/** Removes all whitespace characters from the string, by iterating through it. 
+	 * 
+	 * @param str string to transform
+	 * @return result of transformation
+	 */
+	public String removeWhiteSpace(String str)
+	{
+		StringBuffer result = new StringBuffer();for(int i=0;i<str.length();++i) if (!Character.isWhitespace(str.charAt(i))) result.append(str.charAt(i));
+		return result.toString();
+	}
+	
+	@Test
+	public final void testRemoveWhiteSpace1()
+	{
+		Assert.assertEquals("",removeWhiteSpace(""));
+	}
+	
+	@Test
+	public final void testRemoveWhiteSpace2()
+	{
+		Assert.assertEquals("test",removeWhiteSpace("test"));
+	}
+	
+	@Test
+	public final void testRemoveWhiteSpace3()
+	{
+		Assert.assertEquals("thisisatest343*()",removeWhiteSpace("this is\r a\n\t test 343 *()\n\n\t"));
+	}
+	
 	@Test
 	public final void testGraphMLwriter1() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		StringWriter writer = new StringWriter();
 		fsm.transform.writeGraphML(writer);
-		Assert.assertEquals(graphml_beginning+graphml_ending,
-				writer.toString());
+		Assert.assertEquals(removeWhiteSpace(graphml_beginning+graphml_ending),
+				removeWhiteSpace(writer.toString()));
 	}
 	
 	@Test
@@ -428,12 +457,12 @@ public class TestTransform {
 		StringWriter writer = new StringWriter();
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.transform.writeGraphML(writer);
-		Assert.assertEquals(graphml_beginning+
+		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
 				" "+JUConstants.ACCEPTED.toString()+"=\"false\""+
 				" "+JUConstants.COLOUR.toString()+"=\""+JUConstants.BLUE.toString().toLowerCase()+"\""+
 				" "+JUConstants.HIGHLIGHT.toString()+"=\"true\""+
-				graphml_ending,
-				writer.toString());
+				graphml_ending),
+				removeWhiteSpace(writer.toString()));
 	}
 	
 	@Test

@@ -262,7 +262,8 @@ public class LearnerGraphND
 		// The logic is simple: if maxInDegree is much higher than the 
 		// average, double the average indegree, otherwise leave it unchanged.  
 		int expectedIncomingPerPair = 2;
-		if (incomingCnt > 0) expectedIncomingPerPair=1+indegreeSum/incomingCnt;// 1 is to account for a diagonal
+
+		if (incomingCnt > 0) expectedIncomingPerPair=2+indegreeSum/incomingCnt;// 1 is to account for a diagonal and another 1 for the rounding error.
 		return expectedIncomingPerPair;
 	}
 	

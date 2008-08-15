@@ -886,13 +886,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static void loadConfiguration()
 	{
 		String configFileName = getConfigurationFileName();
-		if (configFileName == null || ! new File(configFileName).canRead())
-		{
-			System.err.println("Configuration file "+configFileName+" does not exist.");
-		}
-		else
+		if (configFileName != null && new File(configFileName).canRead())
 		try 
 		{
+			System.out.println("Loaded configuration file "+configFileName);
 			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
 			properties = (Properties) decoder.readObject();
 			windowCoords = (HashMap<String, WindowPosition>) decoder.readObject();

@@ -183,7 +183,7 @@ abstract public class AbstractExperiment
 			{
 				graph = LearnerGraph.loadGraph(new FileReader(inputFileName),cnf);
 			}
-			catch(FileNotFoundException ex)
+			catch(Exception ex)
 			{
 				IllegalArgumentException e = new IllegalArgumentException("could not load "+inputFileName);
 				e.initCause(ex);throw e;

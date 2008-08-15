@@ -19,7 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 
-import java.util.Date;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -35,8 +35,6 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
-import statechum.analysis.learning.rpnicore.GD.ChangesDisplay;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.GD.LearnerGraphMutator;
 
@@ -559,6 +557,32 @@ public class TestGD {
 		for(PairScore pair:listOfPairs) System.out.print(
 				new PairScore(newToOrig.get(pair.getQ()),newToOrig.get(pair.getR()),pair.getScore(),pair.getAnotherScore())+" ");
 		System.out.println("]");
+	}
+	
+	@Test
+	public final void testSortingOfWaves0()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		List<PairScore> wave = java.util.Arrays.asList(new PairScore[]{}),
+		expected= java.util.Arrays.asList(new PairScore[]{});
+		GD.sortWave(wave);
+		Assert.assertEquals(expected,wave);
+	}
+	
+	@Test
+	public final void testSortingOfWaves1()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		PairScore A=new PairScore(graph.findVertex("A"),graph.findVertex("B"),10,0),
+			B=new PairScore(graph.findVertex("B"),graph.findVertex("A"),100,0),
+			C=new PairScore(graph.findVertex("A"),graph.findVertex("B"),12,0),
+			D=new PairScore(graph.findVertex("B"),graph.findVertex("A"),90,0),
+			E=new PairScore(graph.findVertex("A"),graph.findVertex("B"),10,0);
+
+		List<PairScore> wave = java.util.Arrays.asList(new PairScore[]{A,B,C,D,E}),
+		expected= java.util.Arrays.asList(new PairScore[]{B,D,C,A,E});
+		GD.sortWave(wave);
+		Assert.assertEquals(expected,wave);
 	}
 /*
 	@Test

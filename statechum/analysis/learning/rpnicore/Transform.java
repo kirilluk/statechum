@@ -100,7 +100,7 @@ public class Transform {
 	/** Writes a graph into a graphML file. All vertices are written. */
 	public void writeGraphML(String name) throws IOException
 	{
-		FileWriter writer = new FileWriter(name);writeGraphML(writer);
+		FileWriter writer = new FileWriter(name);writeGraphML(writer);writer.close();
 	}
 	
 	/** Graphml namespace */

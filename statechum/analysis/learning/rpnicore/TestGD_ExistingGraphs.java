@@ -21,6 +21,9 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
 /**
@@ -43,6 +47,8 @@ public class TestGD_ExistingGraphs {
 
 	/** Number of threads to use. */
 	protected final int threadNumber;
+
+	Configuration config = null;
 
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -58,35 +64,54 @@ public class TestGD_ExistingGraphs {
 			}});
 		
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
-		for(int threadNo=1;threadNo<8;++threadNo)
-			result.add(new Object[]{new Integer(threadNo), files[fileNum].getAbsolutePath(), files[(fileNum+1)%files.length].getAbsolutePath()});
+			for(int threadNo=1;threadNo<8;++threadNo)
+				for(double ratio:new double[]{0.5,0.68,0.9})
+					result.add(new Object[]{new Integer(threadNo), ratio,
+							files[fileNum].getAbsolutePath(), files[(fileNum+1)%files.length].getAbsolutePath()});
 		
 		return result;
 	}
 
 	final String fileNameA,fileNameB;
 	
+	double low_to_high_ratio = -1;
+	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphs(int th, String fileA, String fileB)
+	public TestGD_ExistingGraphs(int th, double ratio, String fileA, String fileB)
 	{
-		threadNumber = th;fileNameA=fileA;fileNameB=fileB;
+		threadNumber = th;fileNameA=fileA;fileNameB=fileB;low_to_high_ratio=ratio;
 	}
 	
 	@Before
 	public final void beforeTest()
 	{
 		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();
+		config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
+		config.setGdKeyPairThreshold(.75);config.setGdLowToHighRatio(low_to_high_ratio);config.setAttenuationK(0.95);
+	}
+	
+	protected String testDetails()
+	{
+		return fileNameA+"-"+fileNameB+" ["+threadNumber+" threads] ";
 	}
 	
 	public final void runPatch(String fileA, String fileB)
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		LearnerGraph grA = Transform.convertToNumerical(LearnerGraph.loadGraph(fileA, config));
-		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(fileB, config));
+		LearnerGraph loadedA = LearnerGraph.loadGraph(fileA, config), loadedB = LearnerGraph.loadGraph(fileB, config); 
+		LearnerGraph grA = Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
+		LearnerGraph grB = Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
 		GD gd = new GD();
-		LearnerGraph graph = Transform.convertToNumerical(LearnerGraph.loadGraph(fileA, config));
-		ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		LearnerGraph loadedExpected = LearnerGraph.loadGraph(fileA, config);
+		LearnerGraph graph = Transform.convertToNumerical(loadedExpected);Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
+		ChangesRecorder patcher = new ChangesRecorder();
+		Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		gd.init(grA, grB, threadNumber,testValueOfNewToOrig);
+		gd.identifyKeyPairs();
+		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
+		gd.makeSteps(patcher,allKeyPairs);
+		ChangesRecorder.applyGD(graph, patcher.writeGD(TestGD.createDoc()));//gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
+		WMethod.checkM(graph, grB);
+		Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	@Test
@@ -104,7 +129,6 @@ public class TestGD_ExistingGraphs {
 	@Test
 	public final void testGD_AA()
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
 		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
 		LearnerGraph graph = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));

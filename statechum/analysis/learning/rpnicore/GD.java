@@ -20,6 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -155,6 +156,12 @@ public class GD {
 		public void setInitial(CmpVertex vertex);
 	}
 	
+	protected void printIncoming(String name)
+	{
+		CmpVertex vert = grCombined.findVertex(name);
+		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.get(vert));
+	}
+	
 	/** Expands the set of key pairs and computes the outcome. 
 	 * 
 	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
@@ -178,18 +185,21 @@ public class GD {
 			currentWave.clear();
 			populateCurrentWave(forward.matrixForward);
 			populateCurrentWave(inverse.matrixForward);
-			Collections.sort(currentWave);
+			sortWave(currentWave);
 			if (allKeyPairs != null) allKeyPairs.addAll(frontWave);
 			for(PairScore pair:frontWave) 
 			{
 				newToOrig.put(pair.getR(),newToOrig.get(pair.getQ()));// since we now know 
 				// which state of A pair.getQ() of combined corresponds to, change the mapping.
 				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
+				assert pair.getQ().isAccept() == pair.getR().isAccept();
 				aTOb.put(pair.getQ(),pair.getR());
 			}
+			assert aTOb.size() == aTOb.values().size() : " duplicate right-hand side in key pairs";
 			frontWave.clear();
 			for(PairScore pair:currentWave)
-				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()))
+				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
+						pair.getQ().isAccept() == pair.getR().isAccept()) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 				}
@@ -241,6 +251,21 @@ public class GD {
 			}
 		}
 		graphToPatch.setInitial(newToOrig.get(initialState));
+	}
+	
+	/** Sorts waves in place, in the order of descending scores.
+	 * 
+	 * @param wave wave to sort
+	 */
+	public static void sortWave(List<PairScore> wave)
+	{
+		Collections.sort(wave, new Comparator<PairScore>() {
+
+			public int compare(PairScore o1, PairScore o2) {
+				return o2.compareTo(o1);// in reverse order
+			}
+			
+		});
 	}
 	
 	/** Makes it possible to modify graphs by adding/removing transitions. */
@@ -559,11 +584,13 @@ public class GD {
 			{
 				CmpVertex origSource = newToOrig.get(vertex);
 				for(Entry<String,CmpVertex> target:graph.transitionMatrix.get(vertex).entrySet())
+				{
 					// transition not matched because some states are not known hence append it.
-				if (toAdd)
-					patcher.addTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
-				else
-					patcher.removeTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
+					if (toAdd)
+						patcher.addTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
+					else
+						patcher.removeTransition(origSource, target.getKey(),newToOrig.get(target.getValue()));
+				}
 			}
 	}
 
@@ -698,20 +725,22 @@ public class GD {
 
 		// now we find so many percent of top values.
 		int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
+		sortWave(currentWave);
 		PairScore topPair = null;
-		for(PairScore pair:currentWave)
-			if (pair.getScore() > topScore)
-			{
-				topScore = pair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
-				topPair = pair;
-			}
-		
+		if (!currentWave.isEmpty() && currentWave.iterator().next().getScore() > topScore)
+		{
+			topPair = currentWave.iterator().next();
+			topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
+		}
 		statesInKeyPairs = new HashSet<CmpVertex>();frontWave = new LinkedList<PairScore>();
 		final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
 		// Key pairs added to the collection.
 		for(PairScore pair:currentWave)
-			if (pair.getScore() > 0 && pair.getScore() >= threshold &&
-					(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()))
+			if (pair.getScore() > 0 && pair.getScore() >= threshold && // top score good enough
+					(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
+					!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
+					pair.getQ().isAccept() == pair.getR().isAccept() // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+					)
 			{
 				frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 			}

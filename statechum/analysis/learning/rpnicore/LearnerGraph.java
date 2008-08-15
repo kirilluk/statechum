@@ -47,6 +47,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.analysis.learning.oracles.*;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
+import edu.uci.ics.jung.exceptions.FatalException;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -298,7 +299,7 @@ public class LearnerGraph {
 	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
 	 * @return created graph.
 	 */
-	public static LearnerGraph loadGraph(Reader from, Configuration cnf)
+	public static LearnerGraph loadGraph(Reader from, Configuration cnf) throws IOException
 	{
 		LearnerGraph graph = null;
 		synchronized (LearnerGraph.syncObj) 
@@ -306,6 +307,7 @@ public class LearnerGraph {
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
+			from.close();
 		}
 		return graph;
 	}

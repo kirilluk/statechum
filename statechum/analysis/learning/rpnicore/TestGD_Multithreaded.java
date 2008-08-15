@@ -516,7 +516,7 @@ public class TestGD_Multithreaded {
 	{
 		String fromMainToExtraA = generateLine("G", "T", "c",10)+generateLine("S","I","b",10)+additionA,
 			fromMainToExtraB = generateLine("G@", "T@", "c",10)+generateLine("S@","I@","b",10)+additionB;
-		testComputeGD(A6+fromMainToExtraA, B6+fromMainToExtraB, "testComputeGD9", 11,null);
+		testComputeGD(A6+fromMainToExtraA, B6+fromMainToExtraB, "testComputeGD9", 13,null);
 	}
 
 	@Test

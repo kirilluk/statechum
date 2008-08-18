@@ -37,6 +37,7 @@ import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.analysis.learning.rpnicore.*;
 
 import java.awt.*;
@@ -514,14 +515,14 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 	public void update(final Observable s, Object arg){
-		if(arg instanceof LearnerState){
-			LearnerState lg = (LearnerState)arg;
-			graphs.add( (DirectedSparseGraph)lg.getResult().paths.getGraph().copy() );
-		}
-		else{
+		if (arg instanceof LearnerGraph)
+		{
 			LearnerGraph lg = (LearnerGraph)arg;
 			graphs.add( (DirectedSparseGraph)lg.paths.getGraph().copy() );
 		}
+		else
+			graphs.add( (DirectedSparseGraph) arg);
+		
 		currentGraph = graphs.size()-1;
 		SwingUtilities.invokeLater(this);
 	}
@@ -529,14 +530,22 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	private static PluggableRenderer labelEdges(PluggableRenderer render){
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
+            	DeterministicEdge edge = (DeterministicEdge)e;
+            	String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString();
             	String result = "";
-            	
+            	Map<String,Set<String>> transitionsUsedInC = (Map<String,Set<String>>)e.getGraph().getUserDatum("EDGE");
+
             	if(e.containsUserDatumKey(JUConstants.LABEL)){
             		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
             		Iterator<String> labelIt = labels.iterator();
             		String label = "[ ";
             		while(labelIt.hasNext()){
-            			label = label.concat(labelIt.next()+" ");
+            			String currentLabel = labelIt.next();
+            			label = label.concat(currentLabel);
+            			if (transitionsUsedInC != null && transitionsUsedInC.containsKey(source))
+            				if (transitionsUsedInC.get(source).contains(currentLabel))
+            					label=label.concat(" @");
+            			label=label.concat(" ");
             		}
             		result = label+" ]";
             	}
@@ -612,14 +621,20 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
 		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
+		Map<String,String> extraLabels = (Map<String,String>)graph.getUserDatum("VERTEX");
 		labeller.clear();
 		Iterator labelIt = graph.getVertices().iterator();
 		while(labelIt.hasNext()){
 			Vertex v = (Vertex)labelIt.next();
 			try{
-				Object label = v.getUserDatum(JUConstants.LABEL);
+				Object label = v.getUserDatum(JUConstants.LABEL).toString();
 				if (label != null)
-					labeller.setLabel(v,label.toString());
+				{
+					String extraLabel = "";
+					if (extraLabels != null && extraLabels.containsKey(label)) extraLabel=" "+extraLabels.get(label);
+					String newLabel = label.toString() + extraLabel;
+					labeller.setLabel(v,newLabel);
+				}
 			}
 			catch(Exception e){
 				System.out.println(e);

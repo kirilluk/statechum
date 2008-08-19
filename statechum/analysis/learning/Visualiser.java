@@ -50,7 +50,7 @@ import javax.swing.*;
 
 /* Graph layout loading/saving including most of XMLPersistingLayout is from Jung source code. 
  * 
- * Sample JVM arguments:
+ * Sample JVM arguments (if configuration file does not exist it will be created when configuration is saved):
  * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs -Xmx3500m
  * 
  * Updating Statechum web page:
@@ -499,7 +499,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static PluggableRenderer constructRenderer(Graph g)
 	{
 		PluggableRenderer r = new PluggableRenderer();
-		r = labelEdges(r);
+		r = labelEdges(g,r);
 		r = labelVertices(r,g);
 		return r;
 	}
@@ -514,26 +514,93 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		reloadLayout(true);
 	}
 
-	public void update(final Observable s, Object arg){
+	public void update(@SuppressWarnings("unused") final Observable s, Object arg){
 		if (arg instanceof LearnerGraph)
 		{
 			LearnerGraph lg = (LearnerGraph)arg;
-			graphs.add( (DirectedSparseGraph)lg.paths.getGraph().copy() );
+			graphs.add( lg.paths.getGraph() );
 		}
-		else
+		else if (arg instanceof DirectedSparseGraph)
 			graphs.add( (DirectedSparseGraph) arg);
+		else
+			System.err.println("Visualiser notified with unknown object "+arg);
 		
 		currentGraph = graphs.size()-1;
 		SwingUtilities.invokeLater(this);
 	}
 
-	private static PluggableRenderer labelEdges(PluggableRenderer render){
+	public static class Picked implements PickedInfo
+	{
+		final Map<String,Set<String>> transitionsUsedInC;
+		final Map<String,String> extraLabels;
+		
+		public Picked(Graph graph)
+		{
+			transitionsUsedInC = (Map<String,Set<String>>)graph.getUserDatum(JUConstants.EDGE);
+			extraLabels = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
+		}
+		/** Given an edge and a label, determines if there is an annotation associated with that label.
+		 * 
+		 * @param e edge to consider
+		 * @param currentLabel label (an edge may have multiple labels if it represents multiple parallel edges)
+		 * @return true if annotation is present.
+		 */
+		public boolean isPickedLabel(ArchetypeEdge e, String currentLabel) 
+		{
+			boolean result = false;
+			
+			if (e instanceof DeterministicEdge)
+			{
+				DeterministicEdge edge = (DeterministicEdge)e;
+				String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString();
+	   			if (transitionsUsedInC != null && transitionsUsedInC.containsKey(source))
+					if (transitionsUsedInC.get(source).contains(currentLabel))
+						result = true;
+			}
+			return result;
+		}
+		
+		/** Given a vertex, extracts an annotation associated with that label.
+		 * 
+		 * @param e edge to consider
+		 * @return annotation if present and null otherwise.
+		 */
+		public String getPickedLabel(ArchetypeVertex v) 
+		{
+			String result = null;
+			Object lbl = v.getUserDatum(JUConstants.LABEL);
+			if (lbl != null && extraLabels != null)
+			{
+				String label = lbl.toString();
+				if (extraLabels.containsKey(label))
+					result = extraLabels.get(label);
+			}
+
+			return result;
+		}
+		
+		public boolean isPicked(ArchetypeVertex v) {
+			return getPickedLabel(v) != null;
+		}
+
+		public boolean isPicked(ArchetypeEdge e) {
+      		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+    		Iterator<String> labelIt = labels.iterator();
+    		while(labelIt.hasNext()){
+    			String currentLabel = labelIt.next();
+    			if (isPickedLabel(e, currentLabel))
+    					return true;
+    		}
+    		return false;
+		}
+		
+	}
+	
+	private static PluggableRenderer labelEdges(Graph graph,PluggableRenderer render){
+		final Picked paintChooser = new Picked(graph);
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
-            	DeterministicEdge edge = (DeterministicEdge)e;
-            	String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString();
             	String result = "";
-            	Map<String,Set<String>> transitionsUsedInC = (Map<String,Set<String>>)e.getGraph().getUserDatum("EDGE");
 
             	if(e.containsUserDatumKey(JUConstants.LABEL)){
             		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
@@ -542,8 +609,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             		while(labelIt.hasNext()){
             			String currentLabel = labelIt.next();
             			label = label.concat(currentLabel);
-            			if (transitionsUsedInC != null && transitionsUsedInC.containsKey(source))
-            				if (transitionsUsedInC.get(source).contains(currentLabel))
+            			if (paintChooser.isPickedLabel(e, currentLabel))
             					label=label.concat(" @");
             			label=label.concat(" ");
             		}
@@ -554,6 +620,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             }
         };
         render.setEdgeStringer(stringer);
+        render.setEdgePaintFunction(new PickableEdgePaintFunction(paintChooser, Color.BLACK, 
+        		Color.BLUE));
         return render;
 	}
 	
@@ -621,7 +689,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
 		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
-		Map<String,String> extraLabels = (Map<String,String>)graph.getUserDatum("VERTEX");
+		final Picked paintChooser = new Picked(graph);
 		labeller.clear();
 		Iterator labelIt = graph.getVertices().iterator();
 		while(labelIt.hasNext()){
@@ -630,9 +698,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 				Object label = v.getUserDatum(JUConstants.LABEL).toString();
 				if (label != null)
 				{
-					String extraLabel = "";
-					if (extraLabels != null && extraLabels.containsKey(label)) extraLabel=" "+extraLabels.get(label);
-					String newLabel = label.toString() + extraLabel;
+					String extraLabel = paintChooser.getPickedLabel(v);
+					String newLabel = label.toString() + (extraLabel != null?" "+extraLabel:"");
 					labeller.setLabel(v,newLabel);
 				}
 			}
@@ -784,7 +851,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		if (windowCoords == null)
 			loadConfiguration();
 		
-		WindowPosition result = windowCoords.get(name.toString());
+		WindowPosition result = windowCoords.get(name.name());
 		
 		if (result == null)
 		{// invent default coordinates, using http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
@@ -801,7 +868,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			if (name == VIZ_PROPERTIES.LOWER)
 				rect.y+=rect.getHeight()+30;
 			result = new WindowPosition(rect,deviceToUse);
-			windowCoords.put(name.toString(),result);
+			windowCoords.put(name.name(),result);
 		}
 		
 		return result;
@@ -814,10 +881,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */   
 	protected static void saveFrame(Frame frame,VIZ_PROPERTIES name)
 	{
-		WindowPosition windowPos = windowCoords.get(name.toString());if (windowPos == null) windowPos = new WindowPosition();
+		WindowPosition windowPos = windowCoords.get(name.name());if (windowPos == null) windowPos = new WindowPosition();
 		Rectangle newRect = new Rectangle(frame.getSize());newRect.setLocation(frame.getX(), frame.getY());
 		windowPos.setRect(newRect);
-		windowCoords.put(name.toString(), windowPos);
+		windowCoords.put(name.name(), windowPos);
 	}
 
 	/** Retrieves the name of the file to load a graph layout from/store layout to.
@@ -828,9 +895,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static String getLayoutFileName(Graph g)
 	{
 		String file = (String)g.getUserDatum(JUConstants.TITLE);
-		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
+		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
 		if (file == null)
-			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.toString()+" property has not been set on the graph");
+			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.name()+" property has not been set on the graph");
 		
 		return path+System.getProperty("file.separator")+file.replace(' ', '_')+".xml";
 	}
@@ -841,8 +908,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */
 	protected static String getConfigurationFileName()
 	{
-		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.toString());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
-		String file = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_CONFIG.toString());
+		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
+		String file = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_CONFIG.name());
 		String result = null;
 		if (file != null)
 			result = path+System.getProperty("file.separator")+file+".xml";
@@ -862,7 +929,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		String result = defaultValue;
 		if (properties == null)
 			loadConfiguration();
-		result = properties.getProperty(name.toString(), defaultValue);
+		result = properties.getProperty(name.name(), defaultValue);
 		return result;
 	}
 
@@ -997,7 +1064,6 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	    {
 	    	if (sourceMap == null)
 	    		sourceMap = new TreeMap<Integer,DoublePair>();
-	    	//Map<Integer,DoublePair> loadedMap = (Map<Integer,DoublePair>) decoder.readObject();
 	    	sourceMap.putAll(loadedMap);
 	        for(Iterator<Map.Entry<Integer,DoublePair> > mi=sourceMap.entrySet().iterator();mi.hasNext();)
 	        {

@@ -18,7 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import java.util.Collection;
 
@@ -33,11 +33,12 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.StringVertex;
-import statechum.analysis.learning.TestFSMAlgo;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
+import static statechum.Helper.checkForCorrectException;
+import static statechum.Helper.whatToRun;
 
 @RunWith(Parameterized.class)
 public class TestGraphConstructionWithDifferentConf {
@@ -66,7 +67,7 @@ public class TestGraphConstructionWithDifferentConf {
 	}
 
 	/** The configuration to use when running tests. */
-	private Configuration config = null, mainConfiguration = null;
+	Configuration config = null, mainConfiguration = null;
 
 	/** Used as arguments to equalityTestingHelper. */
 	private LearnerGraph differentA = null, differentB = null;
@@ -214,17 +215,10 @@ public class TestGraphConstructionWithDifferentConf {
 		final DirectedSparseGraph g = buildGraph("A--a-->B<-b-CONFL\nA-b->A-c->A\nB-d->B-p->CONFL",testName);
 		new LearnerGraph(g,config);// without the vertex being added, everything should be fine.
 		g.addVertex(v);// add the vertex
-		
-		try
-		{
+
+		checkForCorrectException(new whatToRun() { public void run() {
 			new LearnerGraph(g,config);// now getGraphData should choke.
-			Assert.fail("exception not thrown");
-		}
-		catch(IllegalArgumentException e)
-		{
-			assertTrue("correct exception not thrown: expected "+expectedExceptionString+" got "+e.getMessage(),e.getMessage().contains(expectedExceptionString) );
-		}
-		
+		}},IllegalArgumentException.class,expectedExceptionString);
 	}
 	
 	@Test
@@ -279,19 +273,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public void testGraphConstructionFail6() 
 	{
-		boolean exceptionThrown = false;
-		try
-		{
+		checkForCorrectException(new whatToRun() { public void run() {
 			new LearnerGraph(new DirectedSparseGraph(),config);// now getGraphData should choke.			
-		}
-		catch(IllegalArgumentException e)
-		{
-			final String expectedString = "missing initial";
-			assertTrue("correct exception not thrown expected "+expectedString+" got "+e.getMessage(),e.getMessage().contains(expectedString) );
-			exceptionThrown = true;
-		}
-		
-		assertTrue("exception not thrown",exceptionThrown);
+		}},IllegalArgumentException.class,"missing initial");
 	}
 
 	/** Unlabelled states. */

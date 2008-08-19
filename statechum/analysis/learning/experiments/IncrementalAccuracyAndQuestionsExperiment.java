@@ -25,12 +25,12 @@ import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -62,10 +62,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  
 			
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+			RPNILearner l = new RPNIBlueFringeLearner(null,config)
 			{
 				@Override
-				protected Pair<Integer,String> checkWithEndUser(
+				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused") final Object [] moreOptions)
@@ -85,11 +85,11 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
 			
 			// Columns 3 and 4
-			result = result+prNeg.precision+FS+prNeg.recall;
+			result = result+prNeg.getPrecision()+FS+prNeg.getRecall();
 			
 			result = result + FS + questionNumber+ FS + // 5
 				// Columns 6 and 7
-				ptaPR.precision  + FS + ptaPR.recall + FS +
+				ptaPR.getPrecision()  + FS + ptaPR.getRecall() + FS +
 				"size:"+size+FS+ // 8
 				"chunks: "+(100/percentPerChunk)+FS+ // 9
 				"per chunk:"+nrPerChunk + // 10
@@ -102,9 +102,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				// 15 and 16
 					FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
 				// 17
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_highlight.class);
+				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
 				// 18
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_highlight_Neg.class);
+				result = result + FS;// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
 			}
 			catch(IllegalArgumentException ex)
 			{
@@ -119,15 +119,13 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				l.getRestarts(); // 21
 		}
 
-		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
+		private LearnerGraph learn(RPNILearner l, PTASequenceEngine pta)
 		{
-			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
-			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
-			learningOutcome = l.learnMachine();
+			LearnerGraph learningOutcome  = l.learnMachine(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 			l.setQuestionCounter(0);
-			return new LearnerGraph(learningOutcome,config);
+			return learningOutcome;
 		}
 	}
 	

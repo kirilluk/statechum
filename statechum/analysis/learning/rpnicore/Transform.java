@@ -54,10 +54,11 @@ import org.xml.sax.helpers.AttributesImpl;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
-import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -105,6 +106,10 @@ public class Transform {
 	
 	/** Graphml namespace */
 	protected static final String graphmlNS="gml";
+	
+	/** Graphml top-level node tag. */
+	public static final String graphmlNodeName = graphmlNS+":graphml";
+	
 	/** Graphml uri */
 	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";	
 	
@@ -116,20 +121,20 @@ public class Transform {
 		nodeElement.setAttribute("id",node.getID().toString());
 		nodeElement.setIdAttribute("id", true);
 		nodeElement.setAttribute("VERTEX", transformNodeName(node));
-		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.toString(),Boolean.toString(node.isAccept()));
-		if (node.isHighlight()) nodeElement.setAttribute(JUConstants.HIGHLIGHT.toString(),Boolean.toString(node.isHighlight()));
-		if (node.getColour() != null) nodeElement.setAttribute(JUConstants.COLOUR.toString(),node.getColour().toString());
+		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.name(),Boolean.toString(node.isAccept()));
+		if (node.isHighlight()) nodeElement.setAttribute(JUConstants.HIGHLIGHT.name(),Boolean.toString(node.isHighlight()));
+		if (node.getColour() != null) nodeElement.setAttribute(JUConstants.COLOUR.name(),node.getColour().name());
 		return nodeElement;
 	}
 	
-	protected static Text endl(Document doc)
+	public static Text endl(Document doc)
 	{
 		return doc.createTextNode("\n");		
 	}
 	
 	public Element createGraphMLNode(Document doc)
 	{
-		Element graphElement = doc.createElementNS(graphlmURI,graphmlNS+":graphml");
+		Element graphElement = doc.createElementNS(graphlmURI,graphmlNodeName);
 		Element graphTop = doc.createElementNS(graphmlNS,"graph");
 		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
@@ -210,12 +215,15 @@ public class Transform {
 	 */
 	public static Graph loadGraph(Element elem)
 	{
-		if (!elem.getNodeName().equals(graphmlNS+":graphml"))
+		if (!elem.getNodeName().equals(Transform.graphmlNodeName))
 			throw new IllegalArgumentException("element does not start with graphml");
-		Element graphElement = (Element)elem.getFirstChild();
-		//System.out.println(graphElement.getLocalName()+ " "+graphElement.getNodeName());
-		if (graphElement == null || !graphElement.getNodeName().equals("graph"))
+		NodeList graphs = elem.getElementsByTagName("graph");
+		if (graphs.getLength() < 1)
 			throw new IllegalArgumentException("absent graph element");
+		if (graphs.getLength() > 1)
+			throw new IllegalArgumentException("duplicate graph element");
+		Element graphElement = (Element)graphs.item(0);
+
 		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
     	GraphMLFile graphmlFile = new GraphMLFile();
     	graphmlFile.setGraphMLFileHandler(graphHandler);
@@ -226,7 +234,8 @@ public class Transform {
 	    	for(int i=0;i<nodes.getLength();++i)
 	    	{
 				org.w3c.dom.Node node = nodes.item(i);
-				graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+				if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
+					graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
 	    	}
     	}
     	catch(SAXException e)
@@ -355,7 +364,8 @@ public class Transform {
 	public static LearnerGraph convertToNumerical(LearnerGraph what)
 	{
 		LearnerGraph result = new LearnerGraph(what.config);result.init = null;result.transitionMatrix.clear();
-		result.init = addToGraph(result, what, null);return result;
+		result.init = addToGraph(result, what, null);if (what.getName() != null) result.setName(what.getName());
+		return result;
 	}
 
 	public static void addToGraph_tmp(LearnerGraph g, List<String> initPath, LearnerGraph what)
@@ -384,6 +394,83 @@ public class Transform {
 			vertex.setAccept(!vertex.isAccept());
 	}
 	
+	/** Useful where we aim to check that the learnt machine is the same as 
+	 * original. To prevent erroneous mergers, negative information is supplied,
+	 * which is incorporated into the final machine. This way, even if the
+	 * original machine does not have reject-states, the outcome of merging
+	 * will have them. Transitions to those negative states are obviously only
+	 * added where there are no transitions in the original one, so if we take 
+	 * the original machine and add transitions from all states to reject states 
+	 * for undefined inputs (called <em>completeGraph()</em>), the outcome 
+	 * of learning will have a subset of transitions to reject-states.
+	 *<p>
+	 * Throws {@link IllegalArgumentException} if the initial state points to a reject-state. 
+	 * This makes sure that the outcome is never an empty graph.
+	 * 
+	 * @param what an automaton which states are to be removed.
+	 * @param config this method makes a copy of an automaton first, hence a configuration is needed.
+	 * @return an automaton reduced in the described way.
+	 */
+	public static LearnerGraph removeRejectStates(LearnerGraph what,Configuration config)
+	{
+		if (!what.init.isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
+		LearnerGraph result = what.copy(config);
+		
+		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
+			if (!entry.getKey().isAccept()) result.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
+			else
+			{
+				Map<String,CmpVertex> row = result.transitionMatrix.get(entry.getKey());
+				for(Entry<String,CmpVertex> target:entry.getValue().entrySet())
+					if (!target.getValue().isAccept()) row.remove(target.getKey());
+			}
+		
+		return result;
+	}
+	
+	/** Computes an alphabet of a given graph and adds transitions to a 
+	 * reject state from all states A and inputs a from which there is no B such that A-a->B
+	 * (A-a-#REJECT) gets added. Note: (1) such transitions are even added to reject vertices.
+	 * (2) if such a vertex already exists, an IllegalArgumentException is thown.
+	 * 
+	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
+	 * @return true if any transitions have been added
+	 */   
+	public boolean completeGraph(VertexID reject)
+	{
+		if (coregraph.findVertex(reject) != null)
+			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");
+		
+		CmpVertex rejectVertex = null;
+		
+		// first pass - computing an alphabet
+		Set<String> alphabet = coregraph.wmethod.computeAlphabet();
+		
+		// second pass - checking if any transitions need to be added and adding them.
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			Set<String> labelsToRejectState = new HashSet<String>();
+			labelsToRejectState.addAll(alphabet);labelsToRejectState.removeAll(entry.getValue().keySet());
+			if (!labelsToRejectState.isEmpty())
+			{
+				if (rejectVertex == null)
+				{
+					rejectVertex = LearnerGraph.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
+				}
+				Map<String,CmpVertex> row = entry.getValue();
+				for(String rejLabel:labelsToRejectState)
+					row.put(rejLabel, rejectVertex);
+			}
+		}
+
+		if (rejectVertex != null)
+			coregraph.transitionMatrix.put(rejectVertex,new TreeMap<String,CmpVertex>());
+		
+		coregraph.learnerCache.invalidate();
+		return rejectVertex != null;
+	}
+
 	/** Given a state and a W set, computes a map from those sequences to booleans representing
 	 * whether those sequences to true/false depending whether a specific can be followed from
 	 * the given state. 

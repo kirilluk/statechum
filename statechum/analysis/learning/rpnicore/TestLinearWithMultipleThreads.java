@@ -18,7 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -96,7 +96,7 @@ public class TestLinearWithMultipleThreads {
 				Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
 
 				int currentStatePair = ndGraph.vertexToIntNR(stateB.getKey(),entryA.getKey());
-				ddrhInstance.compute(entryA.getValue(),stateB.getValue());
+				ddrhInstance.compute(entryA.getKey(),stateB.getKey(),entryA.getValue(),stateB.getValue());
 				result.setQuick(currentStatePair, ddrhInstance.getRightHandSide());
 				
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.

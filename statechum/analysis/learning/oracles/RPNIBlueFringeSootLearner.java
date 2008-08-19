@@ -23,20 +23,14 @@ import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
-import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
-import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.MergeStates;
 
-public class RPNIBlueFringeSootLearner extends
-		RPNIBlueFringeLearnerTestComponentOpt {
+public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 	
 
 	
@@ -44,7 +38,9 @@ public class RPNIBlueFringeSootLearner extends
 		super(parent,Configuration.getDefaultConfiguration());
 	}
 	
-	public DirectedSparseGraph learnMachine() {
+	@Override
+	public LearnerGraph learnMachine()
+	{
 		SootCallGraphOracle oracle = (SootCallGraphOracle)ans;
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
@@ -55,18 +51,18 @@ public class RPNIBlueFringeSootLearner extends
 		StringWriter report = new StringWriter();
 		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
-		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			LearnerGraph temp = topLevelListener.MergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 			if(shouldAskQuestions(score))
 			{
-				questions = ComputeQuestions.computeQS(pair, scoreComputer, temp);
+				questions = topLevelListener.ComputeQuestions(pair, scoreComputer, temp);
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			} 
@@ -75,7 +71,7 @@ public class RPNIBlueFringeSootLearner extends
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
-				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
+				Pair<Integer,String> answer = CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
@@ -90,7 +86,7 @@ public class RPNIBlueFringeSootLearner extends
 				else if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					++counterAccepted;
-					newPTA.paths.augmentPTA(question, true,null);++plusSize;
+					topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,question, true,null);++plusSize;
 				}
 				else 
 						throw new IllegalArgumentException("unexpected user choice");
@@ -112,6 +108,7 @@ public class RPNIBlueFringeSootLearner extends
 				count.incrementAndGet();
 				restartsToIterations.put(pair, iterations);
 				iterations = 0;
+				topLevelListener.Restart(RestartLearningEnum.restartHARD);
 			}
 			else
 			{
@@ -131,9 +128,10 @@ public class RPNIBlueFringeSootLearner extends
 				}
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);
+				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
 		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.paths.getStatistics(true)+" ] ");
 		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
@@ -142,8 +140,8 @@ public class RPNIBlueFringeSootLearner extends
 		report.write("\n[ Pairs merged (score-number of times):"+HistogramToSeries(whichScoresWereUsedForMerging,"MERGED"));
 		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
 		report.write("\n Pair merge details: \n"+pairsMerged);
-		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
+		//DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		updateGraph(scoreComputer);
-		return result;
+		return scoreComputer;
 	}
 }

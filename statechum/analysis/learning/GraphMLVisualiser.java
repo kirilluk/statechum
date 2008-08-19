@@ -20,7 +20,7 @@ package statechum.analysis.learning;
 
 import java.io.File;
 
-import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
+import statechum.analysis.learning.rpnicore.ExperimentGraphMLHandler;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 

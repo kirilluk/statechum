@@ -19,328 +19,365 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning;
 
 import java.awt.Frame;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.beans.XMLEncoder;
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-
 import statechum.Configuration;
+import statechum.JUConstants;
 import statechum.Pair;
+import statechum.Configuration.QuestionGeneratorKind;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSet;
 
-import edu.uci.ics.jung.graph.impl.*;
-
-public abstract class RPNIBlueFringeLearner  extends Observable implements Learner {
-	protected int questionCounter = 0;
+public class RPNIBlueFringeLearner extends RPNILearner {
 	
-	protected final Configuration config;
+	public RPNIBlueFringeLearner(Frame parent, Configuration c) {
+		super(parent,c);
+		scoreComputer = new LearnerGraph(c);
+	}
 	
-	/** The frame in relation to which to pop dialog boxes. */
-	protected Frame parentFrame;
-
-	public RPNIBlueFringeLearner(Frame parent, Configuration c) 
+	protected void update(StatePair pair)
 	{
-		config = c;
-		parentFrame = parent;
+		pair.getQ().setHighlight(true);
+		pair.getR().setHighlight(true);// since this copy of the graph will really not be used, changes to it are immaterial at this stage
 	}
 	
-	/** Retrieves the configuration used by this learner. */
-	public Configuration getConfig()
-	{
-		return config;
-	}
-	
-	public void debugAction(LearnerGraph lg, int iterations){
-		if(!config.getDebugMode())
-			return;
-		notifyObservers(new LearnerState(iterations,lg));
-		updateGraph(lg);
-	}
-	
-	/** Initialises this learner. */
-	abstract public void init(Collection<List<String>> plus, Collection<List<String>> minus);
-	abstract public void init(PTASequenceEngine en, int plus, int minus);
+	protected LearnerGraph scoreComputer = null;
 
-	/** Loads PTA from a supplied file. */
-	public void loadPTA(@SuppressWarnings("unused")	String name)
-	{
-		throw new UnsupportedOperationException();
-	}
-	
+	protected int counterAccepted =0, counterRejected =0, counterEmptyQuestions = 0;
 
-	/** Does the learning, returning the result. */
-	public abstract DirectedSparseGraph learnMachine();
-
-	protected int counterRestarted = 0;
-	
-	/** Returns the number of times learner had to restart. */
-	public int getRestarts()
+	/** Takes the candidates for merging and computes the number of times different scores are encountered. */
+	public static void populateScores(Collection<PairScore> data, Map<Integer,AtomicInteger> histogram)
 	{
-		return counterRestarted;
-	}
-	
-	/** Given a score, we need to determine whether to ask questions. This depends on a number
-	 * of configuration parameters.
-	 * 
-	 * @param score score we are looking at
-	 * @return whether any questions should be asked or we could just proceed with merging.
-	 */ 
-	protected boolean shouldAskQuestions(int score)
-	{
-		if (!config.getAskQuestions())
-			return false;
-		
-		if (config.getCertaintyThreshold() >= 0 && score > config.getCertaintyThreshold())
-			return false;
-		
-		if (score < config.getMinCertaintyThreshold())
-			return false;
-		
-		return true;
-	}
-	
-	/** Updates listeners only if this object has been modified and debug mode is on, by calling
-	 * <pre>
-	 * setChanged()
-	 * </pre>
-	 * @param g the graph to display in the associated view
-	 */
-	public void updateGraph(LearnerGraph g)
-	{
-		setChanged();
-		if (config.getDebugMode())
-			notifyObservers(g);
-	}
-	
-
-	final String questionPrefix="<html><font color=green>";
-	
-	protected List<String> getShortenedQuestion(List<String> question){
-		List<String> questionList = new LinkedList<String>();
-		assert(question.size()>=1);
-		int counter=1;
-		Iterator<String> questionIter = question.iterator();
-		String lastQuestion = questionIter.next();
-		
-		while(questionIter.hasNext())
+		for(PairScore pair:data)
 		{
-				String current = questionIter.next();
-				if(current.equals(lastQuestion))
-					counter++;
-				else{
-					questionList.add(lastQuestion.concat( (counter>1)? "(*"+counter+")":""));// in the string case, I could add "\n" at the end
-					counter = 1;lastQuestion = current;					
-				}
+		int pairScore = pair.getScore();
+			AtomicInteger count = histogram.get(pairScore);
+			if (count == null)
+			{
+				count = new AtomicInteger();histogram.put(pairScore,count);
+			}
+			count.incrementAndGet();
 		}
-		questionList.add(lastQuestion.concat( (counter>1)? "(*"+counter+")":""));
-		return questionList;
+	}
+	
+	/** Takes the candidates for merging and computes the number of times different scores (increments of 10) are encountered. */
+	public static void populateHistogram(Collection<PairScore> data, Map<Integer,AtomicInteger> histogram)
+	{
+		for(PairScore pair:data)
+		{
+		int pairScore = pair.getScore()>= 200? pair.getScore()-pair.getScore() % 100: pair.getScore()>=10? pair.getScore()-pair.getScore()%10: pair.getScore()>0?1:0;
+			AtomicInteger count = histogram.get(pairScore);
+			if (count == null)
+			{
+				count = new AtomicInteger();histogram.put(pairScore,count);
+			}
+			count.incrementAndGet();
+		}
+	}
+	
+	public static String HistogramToString(Map<Integer,AtomicInteger> histogram, String Name)
+	{
+		final String FS=",";
+		String result="\n"+Name;
+		Map<Integer, AtomicInteger> tmp = new TreeMap<Integer,AtomicInteger>();
+		tmp.putAll(histogram);
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet())
+			result = result+FS+sc.getValue();
+		result=result+"\n"+Name;
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet())
+			result = result+FS+sc.getKey();
+
+		return result+"\n";
+	}
+	
+	public static String HistogramToSeries(Map<Integer,AtomicInteger> histogram, String Name)
+	{
+		final String FS=",";
+		String result="\n"+Name;
+		Map<Integer, AtomicInteger> tmp = new TreeMap<Integer,AtomicInteger>();
+		tmp.putAll(histogram);
+		int limit = 0;
+		for(Entry<Integer,AtomicInteger> sc:tmp.entrySet()){
+			limit = sc.getValue().get();
+			for(int i = 0;i<limit;i++){
+				result = result+FS+sc.getKey();
+			}
+		}
+
+		return result+"\n";
+	}
+	
+	public static String pairScoresAndIterations(Map<PairScore,Integer> map, String name){
+		final String FS=",";
+		String result="\n"+name+"-score"+FS;
+		for(PairScore score:map.keySet())
+			result=result+score.getScore()+FS;
+		result = result+"\n"+name+"-iteration"+FS;
+		for(Integer i:map.values())
+			result = result+i+FS;
+		return result;
 	}
 
-	protected List<String> beautifyQuestionList(List<String> question)
+	
+	/** The size of the initial plus/minus sets. */
+	protected int origPlusSize, origMinusSize;
+
+	@Override
+	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
-		List<String> questionList = new LinkedList<String>();
-		int i=0;
-		for(String q:question)
-				questionList.add(questionPrefix+"("+i++ +") "+q);
-		
-		return questionList;
+		scoreComputer.initPTA();
+		scoreComputer.paths.augmentPTA(minus, false);
+		scoreComputer.paths.augmentPTA(plus, true);
+		origMinusSize = plus.size();origMinusSize = minus.size();
+		return scoreComputer;
+	}
+
+	@Override
+	public LearnerGraph init(PTASequenceEngine en, int plusSize, int minusSize)
+	{
+		scoreComputer.initPTA();
+		scoreComputer.paths.augmentPTA(en);
+
+		origMinusSize = plusSize;origMinusSize = minusSize;
+		return scoreComputer;
 	}
 	
-	/** The dialog to be displayed to a user with questions to select. 
-	 * This field should not really be public, but since different packages refer to it, 
-	 * I chose to make it public for the time being. 
-	 */
-	public JDialog dialog = null;
-	
-	/** the option pane. */
-	protected JOptionPane jop = null;	
-	
-	/** Cancels a dialog, if present. With no dialog, learner thread will terminate within a reasonable amount of time.
-	 */
-	public void terminateLearner()
+	public static String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
 	{
-		assert(SwingUtilities.isEventDispatchThread());
-		if (dialog != null && jop != null && dialog.isVisible())
-			jop.setValue(new Integer(
-                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java		}
-		// The setting of the option above corresponds to hitting "close" or "ESC" on the dialogue, 
-		// which is interpreted by the learner as a request to terminate learning, hence
-		// the learner stops and the corresponding thread terminates. For this reason, 
-		// it is appropriate to issue a .join() on the learner thread. 
+		Set<List<String>> newInQS = new HashSet<List<String>>();newInQS.addAll(seqNew);newInQS.removeAll(seqOrig); 
+		Set<List<String>> newInOrig = new HashSet<List<String>>();newInOrig.addAll(seqOrig);newInOrig.removeAll(seqNew);
+		return prefix+": new in QS:\n"+newInQS+"\n"+prefix+": new In Orig:\n"+newInOrig;
 	}
 	
-	/** Stores recorded answers. */
-	protected AbstractOracle ans = null;
 	
-	/** Makes it possible to answer questions automatically.
-	 *  
-	 * @param a the class holding stored answers.
+	/* Note: in order to get the same results from learning as in modified Dec 2007 version 
+	 * on the appropriate branch, the following has to be done:
+	 * 1. DeterministicDirectedSparseGraph.VertexID.comparisonKind = DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
+	 * 2. load the initial PTA from _mt files (dumped by Dec 2007 version).
+	 * 3. merge using tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+	 * 4. generate questions using questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
 	 */
-	public void setAnswers(AbstractOracle a)
-	{
-		ans = a;
-	}
-		
-	public final static String QUESTION_AUTO = "<auto>"; 
-	public final static String QUESTION_SPIN = "<spin>"; 
-	public final static String QUESTION_USER = "<USER>"; 
-	protected String howAnswerWasObtained = "";
 	
-	protected Pair<Integer,String> handleAutoAnswer(List<String> question)
+	private String getName(){
+		String name = "machine";
+		if(this.origMinusSize>0)
+			name = name.concat("neg");
+		if(this.config.getAskQuestions())
+			name = name.concat("active");
+		return name;
+	}
+	
+	/** Returns statistics reflecting the learning. 
+	 */
+	public String getResult()
 	{
-		howAnswerWasObtained = QUESTION_USER;
-		Pair<Integer,String> AutoAnswer = ans == null? null:ans.getAnswer(question);
-		if (AutoAnswer != null)
-		{
-			howAnswerWasObtained = QUESTION_AUTO;
-			return AutoAnswer;
-		}
-		
 		return null;
 	}
-	
-	protected void setAutoOracle()
+
+	/** Identifies a collection of states to merge, sorted in the order of scores. */
+	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 	{
-		if (config.getAutoAnswerFileName().length() > 0)
-		{
-			ans = new StoredAnswers();
-			try {
-				((StoredAnswers)ans).setAnswers(new FileReader(config.getAutoAnswerFileName()));
-			} catch (Exception e) {
-				ans = null;
-			}
-		}
+		return graph.pairscores.chooseStatePairs();
 	}
 	
-	protected Pair<Integer,String> checkWithEndUser(LearnerGraph model,List<String> question, final Object [] moreOptions){
-		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
+	/** Given a graph, merges a pair of states from it and returns the result. */
+	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+	{
+		return MergeStates.mergeAndDeterminize_general(original, pair);		
+	}
 
-		final List<String> questionList = beautifyQuestionList(question);
-		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
-		updateGraph(model);
-		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				public void run() {
-					final Object[] options = new Object[1+moreOptions.length];
-					//final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
-					final JList rejectElements = new JList(questionList.toArray());
-					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
-					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
-					jop = new JOptionPane(new Object[] {label,rejectElements},
-			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
-					dialog = new JDialog(parentFrame,"Valid input string?",false);
-					dialog.setContentPane(jop);
-					
-					// the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
-					dialog.setDefaultCloseOperation(
-						    WindowConstants.DO_NOTHING_ON_CLOSE);
-					dialog.addWindowListener(new WindowAdapter() {
-					    public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
-					    	jop.setValue(new Integer(
-                                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
-					    }
-					});
-					jop.addPropertyChangeListener(new PropertyChangeListener() {
-				        public void propertyChange(PropertyChangeEvent e) {
-				            String prop = e.getPropertyName();
-				            
-							Object value = e.getNewValue();
+	/** Given a pair of graphs, computes the set of questions to validate the merge which 
+	 * resulted in the second graph
+	 * 
+	 * @param original the original graph
+	 * @param tempNew the merged graph
+	 * @param pair the pair of states merged in the original graph
+	 */
+	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	{
+		return ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
+	}
 
-							if (dialog.isVisible() && e.getSource() == jop
-					            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
-							{
-								int i = 0;for(;i < options.length && options[i] != value;++i);
-									if (i == options.length)
-										i = AbstractOracle.USER_CANCELLED;// nothing was chosen
-									else
-										i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
-									
-								// one of the choices was made, determine which one and close the window
-								answer.getAndSet( i );
-								synchronized(answer)
-								{
-									answer.notifyAll();
-								}
-
-								dialog.setVisible(false);dialog.dispose();
-				            }
-				        }
-				    });
-					rejectElements.addListSelectionListener(new ListSelectionListener() {
-
-						public void valueChanged(ListSelectionEvent e) {
-							if (dialog.isVisible() && e.getSource() == rejectElements &&
-									!e.getValueIsAdjusting() && !rejectElements.isSelectionEmpty())
-							{
-								answer.getAndSet( rejectElements.getLeadSelectionIndex() );
-								synchronized(answer)
-								{
-									answer.notifyAll();
-								}
-								
-								dialog.setVisible(false);dialog.dispose();
-							}
-						}
-						
-					});				
-					dialog.pack();
-					//rejectElements.setListData(questionList.toArray());
-					dialog.setVisible(true);
-				}
-			});
-			synchronized (answer) {
-				while(answer.get() == AbstractOracle.USER_WAITINGFORSELECTION)
-						answer.wait();// wait for a user to make a response
-			}
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-			// if we cannot make a call, return a negative number - nothing do not know what else to do about it.
-		}
-		catch (InterruptedException e) {
+	public LearnerGraph learnMachine() 
+	{
+		setAutoOracle();
+		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
+			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
+		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
+		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
+		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
+		//StringWriter report = new StringWriter();
+		//counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
+		setChanged();
+		newPTA.setName(getName()+0);
+		updateGraph(newPTA);
+		
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
+		int plusSize = origPlusSize, minusSize = origMinusSize,iterations=0;
+		final int restartOfInterest = -21;
+		while(!possibleMerges.isEmpty())
+		{
+			iterations++;scoreComputer.setName("current "+iterations);updateGraph(scoreComputer);
+			//populateScores(possibleMerges,possibleMergeScoreDistribution);
+			PairScore pair = possibleMerges.pop();
+			if (counterRestarted == restartOfInterest) System.out.println("merging "+pair);
+			LearnerGraph tempOrig= null;
+			LearnerGraph tempNew = null;
 			
-			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
+			//tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+			tempNew = topLevelListener.MergeAndDeterminize(scoreComputer, pair);
+			LearnerGraph temp=tempNew;
+			if (scoreComputer.config.isConsistencyCheckMode())
+			{// TODO: to do this via decorators
+				tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
+				WMethod.checkM(tempNew, tempOrig);
+				MergeStates.verifySameMergeResults(tempOrig, tempNew);
+			}
+			
+			setChanged();temp.setName(getName()+iterations);
+			Collection<List<String>> questions = new LinkedList<List<String>>();
+			int score = pair.getScore();
+
+			if(shouldAskQuestions(score))
+			{
+				//questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
+				questions = topLevelListener.ComputeQuestions(pair, scoreComputer,tempNew);
+				if (scoreComputer.config.isConsistencyCheckMode()) 
+				{// checking that all the old questions are included in the new ones
+					// TODO: to do this via decorators
+					assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;
+					assert scoreComputer.config.getQuestionPathUnionLimit() < 0;
+					
+					Collection<List<String>> questionsOrigA = ComputeQuestions.computeQS_orig(pair, scoreComputer,tempOrig);
+					//CmpVertex Rnew = tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+					CmpVertex Rnew = tempNew.getStateLearnt();
+					assert Rnew == tempNew.getVertex(scoreComputer.wmethod.computeShortPathsToAllStates().get(pair.getR()));
+					Collection<List<String>> questionsOrigB = ComputeQuestions.computeQS_orig(new StatePair(Rnew,Rnew), scoreComputer,tempNew);
+					PTASequenceSet newQuestions =new PTASequenceSet();newQuestions.addAll(questions);
+					assert newQuestions.containsAll(questionsOrigA);
+					assert newQuestions.containsAll(questionsOrigB);
+				}
+				
+				if (questions.isEmpty())
+					++counterEmptyQuestions;
+
+			} 
+			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
+			
+			Iterator<List<String>> questionIt = questions.iterator();
+			while(questionIt.hasNext())
+			{
+				List<String> question = questionIt.next();
+				boolean accepted = pair.getQ().isAccept();
+				Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
+				this.questionCounter++;
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
+				{
+					System.out.println("CANCELLED");
+					return null;
+				}
+				
+				CmpVertex tempVertex = temp.getVertex(question);
+				
+				if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
+				{
+					++counterAccepted;
+					//sPlus.add(question);
+					topLevelListener.AugmentPTA(newPTA, RestartLearningEnum.restartHARD, question, true, null);
+					++plusSize;
+					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
+					if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <yes>");
+					if(!tempVertex.isAccept())
+					{
+						restartLearning = true;break;
+					}
+				}
+				else 
+					if(answer.firstElem >= 0)
+					{// The sequence has been rejected by a user
+						assert answer.firstElem < question.size();
+						++counterRejected;
+						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
+						//sMinus.add(subAnswer);
+						topLevelListener.AugmentPTA(newPTA, RestartLearningEnum.restartHARD, subAnswer, false, null);
+						++minusSize ;// important: since vertex IDs are 
+						// only unique for each instance of ComputeStateScores, only once 
+						// instance should ever receive calls to augmentPTA
+						if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
+						if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));						
+						if( (answer.firstElem < question.size()-1) || tempVertex.isAccept())
+						{
+							assert accepted == true;
+							restartLearning = true;break;
+						}
+					}
+					else 
+						throw new IllegalArgumentException("unexpected user choice");
+				
+			}
+
+			if (restartLearning)
+			{// restart learning
+				//ComputeStateScores expected = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA
+				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
+				scoreComputer.clearColours();
+				++counterRestarted;
+				//System.out.println("restarts - "+counterRestarted+" questions: "+(counterAccepted+counterRejected)+" states in PTA: "+newPTA.getStateNumber());
+				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
+				if (count == null)
+				{
+					count = new AtomicInteger();restartScoreDistribution.put(pair.getScore(),count);
+				}
+				count.incrementAndGet();
+				restartsToIterations.put(pair, iterations);
+				iterations = 0;
+				topLevelListener.Restart(RestartLearningEnum.restartHARD);
+			}
+			else
+			{
+				// At this point, scoreComputer may have been modified because it may point to 
+				// the original PTA which will be modified as a result of new sequences being added to it.
+				// temp is different too, hence there is no way for me to compute compatibility score here.
+				// This is hence computed inside the obtainPair method.
+				
+				// keep going with the existing model
+				scoreComputer = temp;
+				// now update the statistics
+				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
+				if (count == null)
+				{
+					count = new AtomicInteger();whichScoresWereUsedForMerging.put(pair.getScore(),count);
+				}
+				count.incrementAndGet();
+				scoresToIterations.put(pair, iterations);
+				topLevelListener.Restart(RestartLearningEnum.restartNONE);
+			}
+			
+			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
-		if (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) // this one if an exception was thrown
-			answer.getAndSet(AbstractOracle.USER_CANCELLED);
-		return new Pair<Integer,String>(answer.get(),null);
-	}
-	
-	public int getQuestionCounter() {
-		return questionCounter;
+		updateGraph(scoreComputer);
+		return scoreComputer;
 	}
 
-	public void setQuestionCounter(int questionCnt) {
-		this.questionCounter = questionCnt;
+	public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
+			List<String> sequence, boolean accepted, JUConstants newColour) {
+		pta.paths.augmentPTA(sequence, accepted, newColour);
 	}
 
-	protected static void dumpSets(String output, Collection<List<String>> sPlus, Collection<List<String>> sMinus)
-	{	
-		try
-		{
-			System.out.println("dumping sets");
-			XMLEncoder encoder = new XMLEncoder(new BufferedOutputStream(new FileOutputStream(output)));
-			encoder.writeObject(sPlus);
-			encoder.writeObject(sMinus);
-			encoder.close();
-			throw new IllegalArgumentException("finished");
-		}
-		catch(FileNotFoundException e)
-		{
-			IllegalArgumentException ex = new IllegalArgumentException("failed to write output file");
-			ex.initCause(e);throw ex;
-		}		
-	}
 }

@@ -25,7 +25,9 @@ import java.util.Random;
 
 import statechum.Configuration;
 import statechum.Pair;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
+import statechum.analysis.learning.rpnicore.ExperimentGraphMLHandler;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -34,7 +36,6 @@ import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
 import statechum.model.testset.PTA_computePrecisionRecall;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
 
 public class Benchmarklinear {
@@ -49,7 +50,7 @@ public class Benchmarklinear {
 		System.out.println("filled: "+((double)tmFinished-tmStarted)/1000+" sec");tmStarted=tmFinished;
 	}
 	
-	public static void maina(String[] args)
+	public static void maina(@SuppressWarnings("unused") String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		//config.setConsistencyCheckMode(true);
@@ -70,10 +71,10 @@ public class Benchmarklinear {
 		int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 		rpg.generatePosNeg(nrPerChunk , 100/percentPerChunk);
 		
-		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+		RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config)
 		{
 			@Override
-			protected Pair<Integer,String> checkWithEndUser(
+			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused") final Object [] moreOptions)
@@ -81,14 +82,13 @@ public class Benchmarklinear {
 				return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 			}
 		};
-		PTASequenceEngine sPlus = null, sMinus = null;int percent = 10;
-		sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
+		PTASequenceEngine sMinus = null;int percent = 10;
+		//sPlus = rpg.getExtraSequences(percent/10-1);
+		sMinus = rpg.getAllSequences(percent/10-1);
 
 		int ptaSize = sMinus.numberOfLeafNodes();
-		l.init(sMinus, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
-		DirectedSparseGraph learningOutcome = l.learnMachine();
 		l.setQuestionCounter(0);
-		LearnerGraph learned = new LearnerGraph(learningOutcome,config);
+		LearnerGraph learned = l.learnMachine(sMinus, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 		PTASequenceEngine engine = new PTA_FSMStructure(graph);
 		precRec.crossWith(sMinus);
@@ -113,7 +113,6 @@ public class Benchmarklinear {
 	public static void mainA(@SuppressWarnings("unused") String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph graph = null;
 		int ThreadNumber=AbstractExperiment.getCpuNumber();
 		long tmStarted = new Date().getTime(),tmFinished = 0;;
 		synchronized (LearnerGraph.syncObj) 

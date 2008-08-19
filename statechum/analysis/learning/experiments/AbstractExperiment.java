@@ -21,7 +21,6 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -56,6 +55,7 @@ abstract public class AbstractExperiment
 	
 	public enum FileType { 
 		LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
+		TESTDATA {String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
 		MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
 		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
 		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
@@ -338,7 +338,7 @@ abstract public class AbstractExperiment
 			{
 				BufferedReader reader = new BufferedReader(new FileReader(evaluator.getFileName(FileType.RESULT)));
 				line = reader.readLine();
-				if (line != null && line.contains(LearnerEvaluator.OUTCOME.SUCCESS.toString()))
+				if (line != null && line.contains(LearnerEvaluator.OUTCOME.SUCCESS.name()))
 				{// get the next line
 					line = reader.readLine();if (line != null && line.length() == 0) line = null;
 				}

@@ -82,7 +82,7 @@ public class TestLoadAnswers {
 	public void testLoadAnswers5C() throws IOException
 	{
 		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
+		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
@@ -99,7 +99,7 @@ public class TestLoadAnswers {
 	public void testLoadAnswers5E() throws IOException
 	{
 		StoredAnswers sa = new StoredAnswers();
-		sa.setAnswers(new StringReader("  "+RPNIBlueFringeLearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
+		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
 		Assert.assertEquals(1,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl, formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 	}
@@ -165,10 +165,10 @@ public class TestLoadAnswers {
 	{
 		StoredAnswers sa = new StoredAnswers();
 		sa.setAnswers(new StringReader("[test] <no> at position 5, junk\n "
-				+RPNIBlueFringeLearner.QUESTION_AUTO+" [some text, more of it] <yes> whatever\n\n\n"
+				+RPNILearner.QUESTION_AUTO+" [some text, more of it] <yes> whatever\n\n\n"
 				+"[teststr, another, more] <no> at position 0, junk\n"				
 				+" [ difficult one] <ltl> some ltl 1\n"
-				+RPNIBlueFringeLearner.QUESTION_AUTO+"[teststr, a, more] <no> at position 2, junk\n"				
+				+RPNILearner.QUESTION_AUTO+"[teststr, a, more] <no> at position 2, junk\n"				
 				+"[teststr, p, more] <yes> junk\n"
 				+" [ difficult second one] <ltl> some ltl 2\n"
 		));

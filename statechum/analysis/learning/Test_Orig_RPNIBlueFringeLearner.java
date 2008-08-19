@@ -52,13 +52,13 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-/**
- * @author kirr
- *
+/** An old implementation of the learner, kept only for regression testing at a
+ * unit level, hence methods supporting logging for integration testing purpose
+ * are not implemented. 
  */
-public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
+public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	
-	public RPNIBlueFringeLearnerOrig(Frame parent, Configuration c) {
+	public Test_Orig_RPNIBlueFringeLearner(Frame parent, Configuration c) {
 		super(parent, c);
 	}
 
@@ -75,15 +75,6 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		}
 		return alphabet;
 	}
-	
-	public Collection<List<String>> getSMinus() {
-		return sMinus;
-	}
-
-	public Collection<List<String>> getSPlus() {
-		return sPlus;
-	}
-	
 
 	protected Graph removeNegatives(Graph g){
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
@@ -207,37 +198,44 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		return temp;
 	}
 	
-	protected DirectedSparseGraph createAugmentedPTA(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus){
-		init(plus,minus);
-		model = augmentPTA(model, sMinus, false);
-		model = augmentPTA(model, sPlus, true);
+	protected static DirectedSparseGraph createAugmentedPTA(Collection<List<String>> plus, Collection<List<String>> minus){
+		DirectedSparseGraph model = DeterministicDirectedSparseGraph.initialise();
+		model = augmentPTA(model, minus, false);
+		model = augmentPTA(model, plus, true);
 		DeterministicDirectedSparseGraph.numberVertices(model);
 		return model;
 	}
 	
 	@Override
-	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
+	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		sPlus = plus;
 		sMinus = minus;		
+		return new LearnerGraph(createAugmentedPTA(sPlus, sMinus),Configuration.getDefaultConfiguration());
 	}
 
 	@Override
-	public void init(@SuppressWarnings("unused") PTASequenceEngine en, 
+	public LearnerGraph init(@SuppressWarnings("unused") PTASequenceEngine en, 
 			@SuppressWarnings("unused") int plus, 
 			@SuppressWarnings("unused") int minus) 
 	{
 		throw new NotImplementedException();
 	}
 
-	@Override 
-	public DirectedSparseGraph learnMachine()
+	@Override
+	public LearnerGraph learnMachine(@SuppressWarnings("unused") PTASequenceEngine en, 
+			@SuppressWarnings("unused") int plus, 
+			@SuppressWarnings("unused") int minus) 
 	{
-		return learnMachine(DeterministicDirectedSparseGraph.initialise());
+		throw new NotImplementedException();
 	}
-	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model) {
-		model = createAugmentedPTA(model, sPlus, sMinus);
+
+	/** This one is the very old implementation of the learner, kept for some regression testing 
+	 * but not participating in the logging-and-comparing type of testing.
+	 */ 
+	@Override 
+	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus) {
+		DirectedSparseGraph model = init(sPlus, sMinus).paths.getGraph();
 		
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
 		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
@@ -247,7 +245,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			OrigStatePair pair = possibleMerges.pop();
 
 			DirectedSparseGraph temp = mergeAndDeterminize((Graph)model.copy(), pair);
-			if(compatible(temp, sPlus, sMinus)){// KIRR: the should always return true
+			if(compatible(temp, sPlus, sMinus)){// KIRR: this should always return true
 				pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				setChanged();
@@ -261,7 +259,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
-					Pair<Integer,String> response = checkWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,new Object[0]);// zero means "yes", everything else is "no"
+					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,new Object[0]);// zero means "yes", everything else is "no"
 					questionCounter++;
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
@@ -269,13 +267,13 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 						sPlus.add(question);
 						System.out.println(howAnswerWasObtained+question+ " <yes>");
 						if(accepted == false)// KIRR: how can this be true? If it were so, there would be no questions to ask
-							return learnMachine(DeterministicDirectedSparseGraph.initialise());
+							return learnMachine(sPlus,sMinus);
 					}
 					else{
 						sMinus.add(question.subList(0, response.firstElem));
 						System.out.println(howAnswerWasObtained+question+ " <no>");
 						if(accepted == true){// KIRR: this cannot be false either
-							return learnMachine(DeterministicDirectedSparseGraph.initialise());
+							return learnMachine(sPlus,sMinus);
 						}
 					}
 				}
@@ -284,7 +282,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
 		System.out.println("finished");
-		return model;
+		return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 	}
 	
 	protected boolean compatible(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
@@ -718,7 +716,7 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted){
+	static DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted){
 		Iterator<List<String>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
 			List<String> string = stringsIt.next();
@@ -816,6 +814,38 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 
 	public String getResult() {
 		return null;
+	}
+
+	public Stack<PairScore> ChooseStatePairs(@SuppressWarnings("unused") LearnerGraph graph) 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
+	}
+
+	public Collection<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair,
+			@SuppressWarnings("unused")	LearnerGraph original, 
+			@SuppressWarnings("unused")	LearnerGraph temp) 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
+	}
+
+	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused")	LearnerGraph original,
+			@SuppressWarnings("unused")	StatePair pair) 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
+	}
+
+	public LearnerGraph learnMachine() 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
+	}
+
+	public void AugmentPTA(@SuppressWarnings("unused") LearnerGraph pta, 
+			@SuppressWarnings("unused")	RestartLearningEnum ptaKind,
+			@SuppressWarnings("unused")	List<String> sequence, 
+			@SuppressWarnings("unused")	boolean accepted, 
+			@SuppressWarnings("unused")	JUConstants newColour) 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
 	}
 
 

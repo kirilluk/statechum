@@ -36,14 +36,14 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine.Node;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.TestFSMAlgo.equalityTestingHelper;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.equalityTestingHelper;
 
 public class TestPTASequenceEngine 
 {
@@ -102,8 +102,8 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, false, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config));
-		vertifyPTA(engine, 1, new String[][] { 
+		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,config));
+		vertifyPTA(enVerySmall, 1, new String[][] { 
 				new String[] {}
 			});
 	}
@@ -117,8 +117,8 @@ public class TestPTASequenceEngine
 		init.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
-		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,config));
-		vertifyPTA(engine, 1, new String[][] {
+		PTASequenceEngine enVerySmall = new PTA_FSMStructure(new LearnerGraph(g,config));
+		vertifyPTA(enVerySmall, 1, new String[][] {
 				new String[] {}
 		});
 	}

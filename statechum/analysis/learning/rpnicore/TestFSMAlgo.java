@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -42,10 +42,10 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
-import statechum.analysis.learning.RPNIBlueFringeLearnerOrig.OrigStatePair;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.Helper.whatToRun;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -68,6 +68,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
+import static statechum.Helper.whatToRun;
 
 public class TestFSMAlgo {
 
@@ -97,12 +98,12 @@ public class TestFSMAlgo {
 		}
 		catch(ParserConfigurationException e)
 		{
-			Configuration.throwUnchecked("failed to construct DOM document",e);
+			statechum.Helper.throwUnchecked("failed to construct DOM document",e);
 		}
 	}
 
 	/** The configuration to use when running tests. */
-	private Configuration config = null, mainConfiguration = null;
+	Configuration config = null, mainConfiguration = null;
 
 	static protected OrigStatePair constructOrigPair(String a,String b)
 	{
@@ -340,14 +341,116 @@ public class TestFSMAlgo {
 	
 
 	/** Unexpected tag. */
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testSerialisationFailure2()
 	{
-		org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createElement("junk"));
-		new Configuration().readXML(cnf);
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(cnf);
+		}},IllegalArgumentException.class,"unexpected element");
 	}
 		
+	/** Text elements are ignored. */
+	@Test
+	public void testSerialisationFailure3a()
+	{
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		cnf.appendChild(doc.createTextNode(Configuration.configVarTag));
+		Configuration c = new Configuration();c.readXML(cnf);
+		Assert.assertEquals(new Configuration(),c);
+	}
+	
+	/** Unexpected type of an element. */
+	@Test
+	public void testSerialisationFailure3b()
+	{
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		cnf.appendChild(doc.createComment(Configuration.configVarTag));
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(cnf);
+		}},IllegalArgumentException.class,"unexpected element");
+	}
+	
+	/** Unexpected element. */
+	@Test
+	public void testSerialisationFailure4()
+	{
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(doc.createTextNode(Configuration.configXMLTag));
+		}},IllegalArgumentException.class,"invalid node type passed to readXML");
+	}
+		
+	/** Unexpected type of an element. */
+	@Test
+	public void testSerialisationFailure5()
+	{
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(doc.createElement("junk"));
+		}},IllegalArgumentException.class,"configuration cannot be loaded from element");
+	}
+	
+	/** Tests that text IDs can be automatically converted into numeric ones. */
+	@Test
+	public void testParseID1()
+	{
+		VertexID id = VertexID.parseID("this is a test");
+		Assert.assertEquals(VertKind.NONE,id.getKind());
+		Assert.assertEquals("this is a test",id.toString());
+	}
+	
+	@Test
+	public void testParseID2()
+	{
+		VertexID id = VertexID.parseID("Pthis is a test");
+		Assert.assertEquals(VertKind.NONE,id.getKind());
+		Assert.assertEquals("Pthis is a test",id.toString());
+	}
+	
+	@Test
+	public void testParseID3()
+	{
+		VertexID id = VertexID.parseID("P2this is a test");
+		Assert.assertEquals(VertKind.NONE,id.getKind());
+		Assert.assertEquals("P2this is a test",id.toString());
+	}
+	
+	@Test
+	public void testParseID4()
+	{
+		VertexID id = VertexID.parseID("");
+		Assert.assertEquals(VertKind.NONE,id.getKind());
+		Assert.assertEquals("",id.toString());
+	}
+	
+	@Test
+	public void testParseID5()
+	{
+		VertexID id = VertexID.parseID("P00");
+		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
+		Assert.assertEquals("P0",id.toString());
+		Assert.assertEquals(0, id.getIngegerID());
+	}
+	
+	@Test
+	public void testParseID6()
+	{
+		VertexID id = VertexID.parseID("P100789");
+		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
+		Assert.assertEquals("P100789",id.toString());
+		Assert.assertEquals(100789, id.getIngegerID());
+	}
+	
+	@Test
+	public void testParseID7()
+	{
+		VertexID id = VertexID.parseID("N100789");
+		Assert.assertEquals(VertKind.NEGATIVE,id.getKind());
+		Assert.assertEquals("N100789",id.toString());
+		Assert.assertEquals(100789, id.getIngegerID());
+	}
+	
+	
 	/** Tests that it is not possible to create an invalid vertexid. */
 	@Test(expected=IllegalArgumentException.class)
 	public void testCannotCreateNoneVertexID1()
@@ -1215,7 +1318,7 @@ public class TestFSMAlgo {
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 
 		LearnerGraph clone = new LearnerGraph(g,config).copy(config);
-		Assert.assertFalse( clone.paths.completeGraph(
+		Assert.assertFalse( clone.transform.completeGraph(
 				new VertexID("REJECT")));
 		Assert.assertFalse(DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));
 	}
@@ -1234,7 +1337,7 @@ public class TestFSMAlgo {
 		DirectedSparseGraph g = buildGraph(originalGraph, testName);
 		Assert.assertEquals(whetherToBeCompleted,DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));checkM(g, expectedOutcome,config);		
 		LearnerGraph fsm = new LearnerGraph(buildGraph(originalGraph, testName),config);
-		Assert.assertEquals(whetherToBeCompleted,fsm.paths.completeGraph(
+		Assert.assertEquals(whetherToBeCompleted,fsm.transform.completeGraph(
 				new VertexID("REJECT")));
 		WMethod.checkM(fsm, new LearnerGraph(buildGraph(expectedOutcome,testName),config));				
 	}
@@ -1243,7 +1346,7 @@ public class TestFSMAlgo {
 	@Test(expected=IllegalArgumentException.class)
 	public void complete_fail()
 	{
-		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).paths.completeGraph(
+		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).transform.completeGraph(
 				new VertexID("B"));
 	}
 	
@@ -1299,7 +1402,7 @@ public class TestFSMAlgo {
 		// Additional checking.
 		DirectedSparseGraph g = buildGraph(fsmOrig, "completeGraphTest7");
 		final LearnerGraph graph = new LearnerGraph(g,config);
-		Assert.assertTrue(graph.paths.completeGraph(
+		Assert.assertTrue(graph.transform.completeGraph(
 				new DeterministicDirectedSparseGraph.VertexID("REJECT")));
 		final LearnerGraph expected = new LearnerGraph(buildGraph(fsmExpected,"completeGraphTest7"),config);
 		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));
@@ -1307,7 +1410,63 @@ public class TestFSMAlgo {
 		Assert.assertTrue(checkMBoolean(graph,expected,"Q","Q"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"S","S"));
 		Assert.assertTrue(checkMBoolean(graph,expected,"REJECT","REJECT"));
-	}	
+	}
+	
+	@Test
+	public final void testRemoveRejects1()
+	{
+		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D", fsmExpected = "A-a->A-b->B";
+		LearnerGraph actual = Transform.removeRejectStates(new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects1A"), config),config);
+		WMethod.checkM(actual, new LearnerGraph(buildGraph(fsmExpected, "testRemoveRejects1B"), config));
+	}
+
+	@Test
+	public final void testRemoveRejects2()
+	{
+		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D\nA-d-#T", fsmExpected = "A-a->A-b->B";
+		LearnerGraph actual = Transform.removeRejectStates(new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects2A"), config),config);
+		WMethod.checkM(actual, new LearnerGraph(buildGraph(fsmExpected, "testRemoveRejects2B"), config));
+	}
+
+	@Test
+	public final void testRemoveRejects3()
+	{
+		String fsm = "A-a->A-b->B";
+		LearnerGraph actual = Transform.removeRejectStates(new LearnerGraph(buildGraph(fsm, "testRemoveRejects3"), config),config);
+		WMethod.checkM(actual, new LearnerGraph(buildGraph(fsm, "testRemoveRejects3"), config));
+	}
+
+	@Test
+	public final void testRemoveRejects4()
+	{
+		LearnerGraph actual = Transform.removeRejectStates(new LearnerGraph(config),config);
+		WMethod.checkM(actual, new LearnerGraph(config));
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public final void testRemoveRejects_fail1()
+	{
+		LearnerGraph graph = new LearnerGraph(config);graph.init.setAccept(false);
+		Transform.removeRejectStates(graph,config);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public final void testRemoveRejects_fail2()
+	{
+		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D";
+		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects1A"), config);
+		graph.init.setAccept(false);
+		Transform.removeRejectStates(graph,config);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public final void testRemoveRejects_fail3()
+	{
+		String fsmOrig = "A-a-#D";
+		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects_fail3"), config);
+		graph.init.setAccept(false);
+		Transform.removeRejectStates(graph,config);
+	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testFindVertex0()
@@ -1623,15 +1782,9 @@ public class TestFSMAlgo {
 	
 	public final void checkForCorrectException(final int [][]tTable, final int []vFrom, String exceptionString)
 	{
-		try
-		{
+		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
 			LearnerGraph.convertTableToFSMStructure(tTable, vFrom, -1	,config);
-			Assert.fail("Exception not thrown");
-		}
-		catch(IllegalArgumentException ex)
-		{
-			Assert.assertTrue(ex.getMessage().contains(exceptionString));
-		}
+		}}, IllegalArgumentException.class,exceptionString);
 	}
 	
 	/** Zero-sized array. */

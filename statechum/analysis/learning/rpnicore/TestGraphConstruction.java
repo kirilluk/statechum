@@ -20,8 +20,8 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.LearnerGraph.createLabelToStateMap;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,12 +45,13 @@ import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestRpniLearner;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
+import static statechum.Helper.checkForCorrectException;
+import static statechum.Helper.whatToRun;
 
 public class TestGraphConstruction 
 {
@@ -650,36 +651,18 @@ public class TestGraphConstruction
 	@Test 
 	public void testCreateLabelToStateMap8() // test for correct detection of nondeterminism
 	{
-		Map<String,CmpVertex> trans = new HashMap<String,CmpVertex>();trans.put("a", new StringVertex("A"));trans.put("b", new StringVertex("A"));trans.put("c", new StringVertex("B"));
-		boolean exceptionThrown = false;
-		try
-		{
+		final Map<String,CmpVertex> trans = new HashMap<String,CmpVertex>();trans.put("a", new StringVertex("A"));trans.put("b", new StringVertex("A"));trans.put("c", new StringVertex("B"));
+		checkForCorrectException(new whatToRun() { public void run() {
 			createLabelToStateMap(Arrays.asList(new String[] {"b","e"}), new StringVertex("A"),trans);
-		}
-		catch(IllegalArgumentException e)
-		{
-			assertTrue("incorrect exception thrown",e.getMessage().contains("nondeterminism"));
-			exceptionThrown = true;
-		}
-		
-		assertTrue("exception not thrown",exceptionThrown);
+		}},IllegalArgumentException.class,"nondeterminism");
 	}
 
 	@Test 
 	public void testCreateLabelToStateMap9() // test for correct detection of nondeterminism
 	{
-		boolean exceptionThrown = false;
-		try
-		{
+		checkForCorrectException(new whatToRun() { public void run() {
 			createLabelToStateMap(Arrays.asList(new String[] {"b","b"}), new StringVertex("A"),null);
-		}
-		catch(IllegalArgumentException e)
-		{
-			assertTrue("incorrect exception thrown",e.getMessage().contains("nondeterminism"));
-			exceptionThrown = true;
-		}
-		
-		assertTrue("exception not thrown",exceptionThrown);
+		}},IllegalArgumentException.class,"nondeterminism");
 	}
 
 	@Test

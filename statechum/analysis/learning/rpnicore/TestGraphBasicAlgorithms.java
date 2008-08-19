@@ -21,7 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,15 +49,14 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponent;
+import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 
 @RunWith(Parameterized.class)
-public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
+public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTestComponent
 {
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -654,6 +653,55 @@ public class TestGraphBasicAlgorithms extends RPNIBlueFringeLearnerTestComponent
 		Assert.assertNull(score.getVertex(Arrays.asList(new String[]{"a","d"})));
 	}
 
+	@Test
+	public final void testGetExtentOfCompleteness0()
+	{
+		LearnerGraph graph = new LearnerGraph(testConfig);
+		Assert.assertEquals(0,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness1()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A\n","testGetExtentOfCompleteness1"), testConfig);
+		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness2()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->A\n","testGetExtentOfCompleteness2"), testConfig);
+		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness3()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\n","testGetExtentOfCompleteness1"), testConfig);
+		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness4()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\n","testGetExtentOfCompleteness1"), testConfig);
+		Assert.assertEquals(0.5,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness5()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->A\n","testGetExtentOfCompleteness1"), testConfig);
+		Assert.assertEquals(0.5,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
+	@Test
+	public final void testGetExtentOfCompleteness6()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->A-b->A\n","testGetExtentOfCompleteness1"), testConfig);
+		Assert.assertEquals((1.+0.5)/2,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
+	}
+	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{

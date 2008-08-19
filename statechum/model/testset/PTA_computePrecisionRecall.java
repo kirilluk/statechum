@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
 
-import statechum.analysis.learning.experiments.PosNegPrecisionRecall;
+import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /** Computes precision and recall by tracing a given pta structure through this machine. 

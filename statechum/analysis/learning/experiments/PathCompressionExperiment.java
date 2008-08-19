@@ -27,7 +27,7 @@ import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
+import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import static statechum.model.testset.PTASequenceEngine.stringCollectionSize;
@@ -75,7 +75,7 @@ public class PathCompressionExperiment extends AbstractExperiment {
 		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
 		while(sampleIt.hasNext()){
 			List<String> v = sampleIt.next();
-			if(RPNIBlueFringeLearnerOrig.getVertex(graph, v) != null)
+			if(Test_Orig_RPNIBlueFringeLearner.getVertex(graph, v) != null)
 				positiveStrings.add(v);
 		}
 		return positiveStrings;

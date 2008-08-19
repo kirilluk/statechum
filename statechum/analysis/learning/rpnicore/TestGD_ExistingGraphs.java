@@ -103,7 +103,7 @@ public class TestGD_ExistingGraphs {
 		GD gd = new GD();
 		LearnerGraph loadedExpected = LearnerGraph.loadGraph(fileA, config);
 		LearnerGraph graph = Transform.convertToNumerical(loadedExpected);Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
-		ChangesRecorder patcher = new ChangesRecorder();
+		ChangesRecorder patcher = new ChangesRecorder(null);
 		Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		gd.init(grA, grB, threadNumber,testValueOfNewToOrig);
 		gd.identifyKeyPairs();
@@ -133,7 +133,7 @@ public class TestGD_ExistingGraphs {
 		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
 		LearnerGraph graph = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
 		GD gd = new GD();
-		ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
+		ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null));
 		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	

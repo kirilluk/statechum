@@ -70,7 +70,7 @@ public class DeterministicDirectedSparseGraph {
 		/** Cached hash code. */
 		private int cachedHash;
 		
-		public VertexID()
+		protected VertexID()
 		{// default values to ensure failure of operations
 			idString = null;kind = VertKind.NONE;idInteger=-1;cachedHash=0;
 		}
@@ -85,6 +85,39 @@ public class DeterministicDirectedSparseGraph {
 		{
 			if (id == null) throw new IllegalArgumentException("invalid id");
 			idString = id;kind=VertKind.NONE;idInteger=0;cachedHash = idString.hashCode();
+		}
+		
+		/** When XML files are loaded, IDs are always textual, however we'd like
+		/* to convert them to numbers in order to prevent nextID from returning
+		/* identifies which when converted to strings are the same as existing 
+		/* identifiers.
+		 */
+		public static VertexID parseID(String text)
+		{
+			VertKind tentativeKind = VertKind.NONE;
+			int id = -1;
+			if (text.length() > 1)
+			{
+				if (text.charAt(0) == 'P')
+					tentativeKind = VertKind.POSITIVE;
+				else if (text.charAt(0) == 'N')
+					tentativeKind = VertKind.NEGATIVE;
+				
+				if (tentativeKind != VertKind.NONE)
+					try
+				{
+						id = Integer.parseInt(text.substring(1));
+				}
+				catch(NumberFormatException ex)
+				{// cannot parse, revert to text.
+					tentativeKind = VertKind.NONE;
+				}
+			}
+			
+			if (tentativeKind == VertKind.NONE)
+				return new VertexID(text);
+			
+			return new VertexID(tentativeKind,id);
 		}
 		
 		public int getIngegerID()
@@ -285,33 +318,33 @@ public class DeterministicDirectedSparseGraph {
 				key=k;datum=d;
 				String strKey = key.toString(), strDatum = datum.toString();
 				
-				if (key == JUConstants.LABEL || strKey.equalsIgnoreCase(JUConstants.LABEL.toString())) 
+				if (key == JUConstants.LABEL || strKey.equalsIgnoreCase(JUConstants.LABEL.name())) 
 				{
 					key = JUConstants.LABEL;
 				}
 				else
 				{
-					if (key == JUConstants.COLOUR || strKey.equalsIgnoreCase(JUConstants.COLOUR.toString()))
+					if (key == JUConstants.COLOUR || strKey.equalsIgnoreCase(JUConstants.COLOUR.name()))
 					{
 						key = JUConstants.COLOUR;
-						if (datum == JUConstants.RED || strDatum.equalsIgnoreCase(JUConstants.RED.toString()))
+						if (datum == JUConstants.RED || strDatum.equalsIgnoreCase(JUConstants.RED.name()))
 							datum = JUConstants.RED;
 						else
-							if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.toString()))
+							if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.name()))
 								datum = JUConstants.BLUE;
 							else
-								if (datum == JUConstants.AMBER || strDatum.equalsIgnoreCase(JUConstants.AMBER.toString()))
+								if (datum == JUConstants.AMBER || strDatum.equalsIgnoreCase(JUConstants.AMBER.name()))
 									datum = JUConstants.AMBER;
 								else
 									throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
 					}
 					else
-					if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.toString()))
+					if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.name()))
 					{
 						key = JUConstants.ACCEPTED;datum = getBoolean(datum);
 					}
 					else
-						if (key == JUConstants.HIGHLIGHT || strKey.equalsIgnoreCase(JUConstants.HIGHLIGHT.toString()))
+						if (key == JUConstants.HIGHLIGHT || strKey.equalsIgnoreCase(JUConstants.HIGHLIGHT.name()))
 						{
 							key = JUConstants.HIGHLIGHT;datum = getBoolean(datum);
 						}

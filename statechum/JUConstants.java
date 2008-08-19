@@ -27,8 +27,9 @@ public enum JUConstants {
 	STATS("STATS"),
 	COLOUR("colour"),
 	RED("red"),BLUE("blue"),AMBER("amber"),GRAY("gray"),
-	JUNKVERTEX("junk");// used for testing that searching for a property that does not exist returns a null vertex.
-	
+	JUNKVERTEX("junk"),// used for testing that searching for a property that does not exist returns a null vertex.
+	EDGE("edge"),VERTEX("vertex") // used for labelling vertices
+	;
 	private String stringRepresentation;
 	
 	JUConstants(String textualName)

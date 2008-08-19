@@ -19,7 +19,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,6 +50,8 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceSet;
 
@@ -61,10 +62,11 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
 
 @RunWith(Parameterized.class)
-public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
+public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponent
 {
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -91,9 +93,9 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	/** Each test starts with this configuration. */
 	private Configuration mainConfiguration = null;
 	
-	protected void checkLearner(String fsmString, String [][] plus, String [][] minus)
+	protected void checkLearner(String fsmString, String name,String [][] plus, String [][] minus)
 	{
-		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
+		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, name);
 		final LearnerGraph expected = new LearnerGraph(g,testConfig);
 		
 		// now sanity checking on the plus and minus sets
@@ -102,10 +104,10 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		for(String [] path:minus)
 			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
 		// Visualiser.getVisualiser()
-		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
+		RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,testConfig)
 		{
 			@Override
-			protected Pair<Integer,String> checkWithEndUser(
+			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -118,44 +120,58 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
-		l.init(buildSet(plus), buildSet(minus));
-		DirectedSparseGraph learningOutcomeA = l.learnMachine();
-		LearnerGraph learntStructureA = new LearnerGraph(learningOutcomeA,testConfig);
+		LearnerGraph learntStructureA = l.learnMachine(buildSet(plus), buildSet(minus)).copy(expected.config);
 
 		// Now do the same with ptasets instead of real sets
 		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus));
-		l.init(plusPTA, minusPTA);
-		DirectedSparseGraph learningOutcomeB = l.learnMachine();
-		LearnerGraph learntStructureB = new LearnerGraph(learningOutcomeB,testConfig);
+		LearnerGraph learntStructureB = l.learnMachine(plusPTA, minusPTA).copy(expected.config);
+		//Visualiser.updateFrame(learntStructureA, expected);
 		WMethod.checkM(learntStructureA, learntStructureB);
-		//TestFSMAlgo.checkM(learntStructure,completedGraph,learntStructure.init,expected.init);
+		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,expected.config);
+		WMethod.checkM(learntMachineNoRejects, expected);
 	}
 	
+	/**Machines learnt are not identical to reference machines because reference
+	 * machines are incomplete and learnt machines contain transitions
+	 * to reject-states. 
+	 */
 	@Test
 	public void testLearner1()
 	{
-		checkLearner("A-a->B<-a-A\nA-b->A",
+		checkLearner("A-a->B<-a-A\nA-b->A","testLearner1",
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
 				new String[][]{new String[]{"a","b"},new String[]{"a","a"}});
 	}
 	
 	@Test
-	public void testLearner2()
+	public void testLearner2a()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"}});
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n","testLearner2a",
+				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}, new String[]{"b","c","c"}  }, 
+				new String[][]{new String[]{"c"}});
 	}
 
 	@Test
 	public void testLearner2b()
 	{
-		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"}}, new String[][]{new String[]{"c"},new String[]{"b","b","c"}	});
+		checkLearner("A-a->B<-a-C-b->A\nA-b->C\nC-c->C\n","testLearner2b",new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b","c"},new String[]{"b","c","c"}}, new String[][]{new String[]{"c"},new String[]{"b","b","c"}	});
 	}
 
 	@Test
 	public void testLearner3()
 	{
 		checkLearner("A-text->B-text->B\nA-figure->C-figure->C\nB-figure->C\nC-text->B\nB-set_position->F\nF-edit->G\nG-finalize->A\nC-set_position->D\nD-set_dimensions->E-set_dimensions->E-figure->C\nE-text->B",
-				new String[][]{new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","set_dimensions", "figure", "set_position", "set_dimensions"}, new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","text", "set_position", "edit"}, new String[]{"text","text","set_position","edit","finalize","text"}, new String[]{"text","text","set_position","edit","finalize","figure"}}, new String[][]{});
+				"testLearner3",
+				new String[][]{new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","set_dimensions", "figure", "set_position", "set_dimensions"}, 
+				new String[]{"figure", "figure","set_position","set_dimensions","set_dimensions","set_dimensions","text", "set_position", "edit"}, 
+				new String[]{"text","text","set_position","edit","finalize","text"}, 
+				new String[]{"text","figure","figure"}, 
+				new String[]{"text","text","set_position","edit","finalize","figure"}}, 
+				
+				new String[][]{
+				new String[]{"text","text","set_position","edit","finalize","set_dimensions"},
+				new String[]{"text","text","set_position","edit","finalize","set_position"}
+		});
 		
 	}
 			
@@ -527,7 +543,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			List<String> pathToRedString = new LinkedList<String>();
 			for(Edge e:pathToRed)
 				pathToRedString.add( ((Collection<String>)e.getUserDatum(JUConstants.LABEL)).iterator().next() );
-			tempRed = RPNIBlueFringeLearnerOrig.getVertex(temp, pathToRedString);
+			tempRed = Test_Orig_RPNIBlueFringeLearner.getVertex(temp, pathToRedString);
 		}
 		else
 			tempRed = DeterministicDirectedSparseGraph.findInitial(temp);
@@ -540,7 +556,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseGraph a=TestFSMAlgo.buildGraph("A-a->B", "testGetTempRed1 model"),
 			temp=TestFSMAlgo.buildGraph("C-d->Q", "testGetTempRed1 temp");
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
-		Vertex foundB =RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
+		Vertex foundB =Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundA));
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundB));
 	}
@@ -551,7 +567,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		DirectedSparseGraph a=TestFSMAlgo.buildGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model"),
 			temp=TestFSMAlgo.buildGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp");
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), a), temp);
-		Vertex foundB = RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), a), temp);
+		Vertex foundB = Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), a), temp);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), temp).equals(foundA));
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), temp).equals(foundB));
 	}
@@ -560,7 +576,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void findMergablePair1()
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergablePair1");
-		Assert.assertNull(RPNIBlueFringeLearnerOrig.findMergablePair(g));
+		Assert.assertNull(Test_Orig_RPNIBlueFringeLearner.findMergablePair(g));
 	}
 	
 	@Test
@@ -572,7 +588,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
 		Set<Vertex> expected = new HashSet<Vertex>();expected.add(d);expected.add(b);
 		Set<Vertex> actualA = new HashSet<Vertex>();
-		OrigStatePair value = RPNIBlueFringeLearnerOrig.findMergablePair(g);actualA.add(value.getQ());actualA.add(value.getR());
+		OrigStatePair value = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);actualA.add(value.getQ());actualA.add(value.getR());
 		Assert.assertTrue("expected: B, D in either order got: "+actualA,expected.equals(actualA));
 	}
 	
@@ -584,7 +600,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
 		OrigStatePair expected = new OrigStatePair(d,s),
-		actualA = RPNIBlueFringeLearnerOrig.findMergablePair(g);
+		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
 	}
 
@@ -596,7 +612,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g);
 		OrigStatePair expected = new OrigStatePair(b,s),
-		actualA = RPNIBlueFringeLearnerOrig.findMergablePair(g);
+		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
 	}
 
@@ -604,7 +620,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	public final void findMergablePair4()
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergablePair4");
-		OrigStatePair actualA = RPNIBlueFringeLearnerOrig.findMergablePair(g);
+		OrigStatePair actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertNull(actualA);
 	}
 
@@ -637,7 +653,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		LearnerGraph l = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(l.findVertex(new VertexID(stateBlue)),l.findVertex(new VertexID(stateRed)));
 		LearnerGraph 
-			mergeResultA = new LearnerGraph(RPNIBlueFringeLearnerOrig.mergeAndDeterminize(g, pairOrig),testConfig), 
+			mergeResultA = new LearnerGraph(Test_Orig_RPNIBlueFringeLearner.mergeAndDeterminize(g, pairOrig),testConfig), 
 			mergeResultB = new LearnerGraph(MergeStates.mergeAndDeterminize(g2, pairNew1,testConfig),testConfig),
 			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).paths.getGraph(),testConfig),
 			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).paths.getGraph(),testConfig),
@@ -675,7 +691,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("U"), g);
 		OrigStatePair pair = new OrigStatePair(d,s);
 		LearnerGraph 
-			mergeResultA = new LearnerGraph(RPNIBlueFringeLearnerOrig.mergeAndDeterminize(g, pair),testConfig),
+			mergeResultA = new LearnerGraph(Test_Orig_RPNIBlueFringeLearner.mergeAndDeterminize(g, pair),testConfig),
 			expectedResult = new LearnerGraph(TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->S\nA-d->E\nS-n->S", "expected"),testConfig);
 		Assert.assertTrue(expectedResult.equals(mergeResultA));
 	}

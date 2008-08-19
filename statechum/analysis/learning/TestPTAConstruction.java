@@ -18,7 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +31,7 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.DebugDataValues;
@@ -45,7 +46,7 @@ public class TestPTAConstruction
 	public void testAugmentPTA() // only two traces, both accept
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
-		DirectedSparseGraph actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
+		DirectedSparseGraph actualA = new Test_Orig_RPNIBlueFringeLearner(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
 		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
@@ -123,7 +124,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearnerOrig(null,Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
+			actualA = Test_Orig_RPNIBlueFringeLearner.createAugmentedPTA(plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -134,7 +135,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.scoreComputer.paths.getGraph();
@@ -148,7 +149,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
@@ -164,7 +165,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)
@@ -246,7 +247,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
 		try
 		{
-			actualA = new RPNIBlueFringeLearnerOrig(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, minusStrings);
+			actualA = new Test_Orig_RPNIBlueFringeLearner(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -257,7 +258,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.scoreComputer.paths.getGraph();
@@ -271,7 +272,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
@@ -287,7 +288,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null,config);
+			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)

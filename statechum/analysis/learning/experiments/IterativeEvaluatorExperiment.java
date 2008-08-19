@@ -28,10 +28,11 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.observers.AccuracyTrackerDecorator;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.PTASequenceEngine;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {	
 	
@@ -64,9 +65,9 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			//config.setKlimit(2);
 			//config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 			config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
-			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearnerTestComponentOpt(null,config){
+			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearner(null,config){
 				@Override
-				protected Pair<Integer,String> checkWithEndUser(
+				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused") final Object [] moreOptions)
@@ -78,10 +79,8 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			, graph, tests);
 			sMinus = rpg.getAllSequencesPercentageInterval(1);
 
-			LearnerGraph learned = learn(l,sMinus);
-			
+			learn(l,sMinus);
 			result = result + l.getResult();
-
 		}
 		
 		
@@ -89,13 +88,12 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 
 		private LearnerGraph learn(Learner l, PTASequenceEngine pta)
 		{
-			DirectedSparseGraph learningOutcome = null;
+			LearnerGraph learningOutcome = null;
 			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
-			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
-			learningOutcome = l.learnMachine();
+			learningOutcome = l.learnMachine(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 			//l.setQuestionCounter(0);
-			return new LearnerGraph(learningOutcome,config);
+			return learningOutcome;
 		}
 	}
 	

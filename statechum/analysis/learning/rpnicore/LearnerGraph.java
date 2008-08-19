@@ -44,10 +44,8 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 import statechum.analysis.learning.oracles.*;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
-import edu.uci.ics.jung.exceptions.FatalException;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
@@ -215,20 +213,32 @@ public class LearnerGraph {
 	
 	/** Identifies maximal values of currently used IDs and makes sure 
 	 * that generation of IDs will not return any of the existing ones.
+	 * <p>
+	 * It is important to note that use of this method does not always 
+	 * ensure that IDs are not duplicates because graphs can be loaded 
+	 * with textual IDs which were originally numeric but were
+	 * converted into text before graphs were written out. Since we do 
+	 * not know this but both newly-generated numerical IDs and original
+	 * text IDs share a namespace, it is possible that an existing ID
+	 * the two will have the same string as the previously-loaded text.
+	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and anohter way via ant
+	 * TODO: add textual IDs to tests which are being run under parameterised JUnit framework.  
 	 */
 	protected void setIDNumbers()
 	{
 		for(CmpVertex vert:transitionMatrix.keySet())
-		{
-			VertexID id = vert.getID();
-			if ((id.getKind() == VertKind.NEUTRAL || id.getKind() == VertKind.POSITIVE)
-				&& id.getIngegerID() > vertPositiveID)
-				vertPositiveID = id.getIngegerID()+1;
-			if ((id.getKind() == VertKind.NEGATIVE)
-					&& id.getIngegerID() > vertNegativeID)
-				vertNegativeID = id.getIngegerID()+1;
-			
-		}
+			updateIDWith(vert);
+	}
+	
+	public void updateIDWith(CmpVertex vert)
+	{
+		VertexID id = vert.getID();
+		if ((id.getKind() == VertKind.NEUTRAL || id.getKind() == VertKind.POSITIVE)
+			&& id.getIngegerID() >= vertPositiveID)
+			vertPositiveID = id.getIngegerID()+1;
+		if ((id.getKind() == VertKind.NEGATIVE)
+				&& id.getIngegerID() >= vertNegativeID)
+			vertNegativeID = id.getIngegerID()+1;
 	}
 	
 	final public ComputeQuestions questions = new ComputeQuestions(this);
@@ -256,15 +266,10 @@ public class LearnerGraph {
 		{
 			for(Vertex srcVert:(Set<Vertex>)g.getVertices())
 			{
-				CmpVertex vert = cloneCmpVertex(srcVert,config);
-				origToCmp.put(srcVert, vert);
-
-				if (findVertex(vert.getID()) != null)
-					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
-				
-				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
+				CmpVertex vert = null;
 				if (DeterministicDirectedSparseGraph.isInitial(srcVert))// special case for the initial vertex.
 				{
+					vert = cloneCmpVertex(srcVert,config);//generateNewCmpVertex(getDefaultInitialPTAName(),config);
 					Object property = srcVert.getUserDatum(JUConstants.INITIAL);
 					if (!(property instanceof Boolean) || !((Boolean)property).booleanValue())
 						throw new IllegalArgumentException("invalid init property");
@@ -273,6 +278,13 @@ public class LearnerGraph {
 						throw new IllegalArgumentException("vertices "+srcVert+" and "+init+" are both labelled as initial states");
 					init = vert;
 				}
+				else vert = cloneCmpVertex(srcVert,config);
+				origToCmp.put(srcVert, vert);
+
+				if (findVertex(vert.getID()) != null)
+					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
+				
+				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
 			}
 		} // synchronized (LearnerGraph.syncObj)
 
@@ -523,7 +535,9 @@ public class LearnerGraph {
 	 */
 	public CmpVertex findVertex(String name)
 	{
-		return findVertex(new VertexID(name));
+		if (name == null)
+			return null;
+		return findVertex(VertexID.parseID(name));
 	}
 	
 	/** Finds a vertex with a supplied identifier in a transition matrix.
@@ -700,7 +714,7 @@ public class LearnerGraph {
 				result = generateNewCmpVertex((VertexID)label, conf);
 			else
 				if (label instanceof String)
-					result = generateNewCmpVertex(new VertexID((String)label), conf);
+					result = generateNewCmpVertex(VertexID.parseID((String)label), conf);
 				else
 					throw new IllegalArgumentException("vertex with label "+label+" has an unsupported type");
 			result.setAccept(DeterministicDirectedSparseGraph.isAccept(srcVert));

@@ -19,6 +19,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.*;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.WMethod.cross;
 import static statechum.analysis.learning.rpnicore.WMethod.crossWithSet;
 import static statechum.analysis.learning.rpnicore.WMethod.crossWithSet_One;
@@ -52,16 +55,12 @@ import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 import statechum.model.testset.PrefixFreeCollection;
 import statechum.model.testset.SlowPrefixFreeCollection;
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
-import static statechum.analysis.learning.TestFSMAlgo.buildSet;
-import static statechum.analysis.learning.TestFSMAlgo.buildList;
 import static statechum.model.testset.PrefixFreeCollection.isPrefix;
 
 /**

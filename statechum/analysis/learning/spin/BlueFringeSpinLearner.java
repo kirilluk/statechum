@@ -19,13 +19,10 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.spin;
 
 import statechum.Configuration;
-import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
-import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.MergeStates;
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -46,10 +43,7 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
-
-public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt {
+public class BlueFringeSpinLearner extends RPNIBlueFringeLearner {
 
 	private Set<String> ltl;
 
@@ -58,10 +52,11 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		ltl = ltlFormulae;
 	}
 
-	enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT };
 	public static final String learntGraphName="tmp/GRAPH_BEING_LEARNT";
 	
-	public DirectedSparseGraph learnMachine() {
+	@Override
+	public LearnerGraph learnMachine()
+	{
 		LearnerGraph.testMode = true;
 		setAutoOracle();
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer, AtomicInteger>(), restartScoreDistribution = new HashMap<Integer, AtomicInteger>();
@@ -82,7 +77,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		counterEmptyQuestions = 0;
 		report.write("\n[ PTA: " + scoreComputer.paths.getStatistics(false) + " ] ");
 		setChanged();scoreComputer.setName(learntGraphName+"_init");
-		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		while (!possibleMerges.isEmpty()) {
 
@@ -90,7 +85,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 			// populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
 			
-			LearnerGraph temp = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
+			LearnerGraph temp = topLevelListener.MergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
@@ -103,18 +98,20 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());
 				System.out.println("<temp> "+counterexample.subList(0, counterexample.size()-1));
-				ptaSoftFacts.paths.augmentPTA(counterexample.subList(0, counterexample.size()-1), false,null);
+				topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterexample.subList(0, counterexample.size()-1), false,null);
 				++minusSize;
 				restartLearning = RestartLearningEnum.restartSOFT;
 			}
+			
 			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) 
 			{
 				temp.setName(learntGraphName+"_"+counterRestarted+"_"+iterations);
 				updateGraph(temp);
-				questions = ComputeQuestions.computeQS(pair, ptaHardFacts, temp);
+				questions = topLevelListener.ComputeQuestions(pair, ptaHardFacts, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 				if (questions.isEmpty())
 					++counterEmptyQuestions;
 			}
+			
 			Iterator<List<String>> questionIt = questions.iterator();
 			boolean questionAnswered = true;
 			List<String> question = null;
@@ -127,7 +124,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				if(answer.firstElem >= 0) 
 					howAnswerWasObtained=QUESTION_SPIN;// label reject with <spin>
 				else
-					answer = checkWithEndUser(scoreComputer.paths.getGraph(), question, new Object[] { "LTL"});
+					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, new Object[] { "LTL"});
 				
 				this.questionCounter++;
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
@@ -140,8 +137,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) {
 					++counterAccepted;
 					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
-						ptaHardFacts.paths.augmentPTA(question, true,null);
-					ptaSoftFacts.paths.augmentPTA(question, true,null);
+						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,null);
+					topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,null);
 					++plusSize;
 					if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
 					questionAnswered = true;
@@ -162,8 +159,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 					LinkedList<String> subAnswer = new LinkedList<String>();
 					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
 					if(howAnswerWasObtained == QUESTION_USER || howAnswerWasObtained == QUESTION_AUTO) // only add to hard facts when obtained directly from a user or from autofile
-						ptaHardFacts.paths.augmentPTA(subAnswer, false,null);
-					ptaSoftFacts.paths.augmentPTA(subAnswer, false,null);
+						topLevelListener.AugmentPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,null);
+					topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,null);
 					++minusSize;// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// one instance should ever receive calls to augmentPTA
@@ -223,6 +220,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				count.incrementAndGet();
 				restartsToIterations.put(pair, iterations);
 				iterations = 0;
+				topLevelListener.Restart(restartLearning);
 			} else {
 				// At this point, scoreComputer may have been modified because
 				// it may point to
@@ -243,6 +241,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 				}
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);
+				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
 		}
@@ -264,11 +263,10 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		report.write("\n[ Pairs restarted (score-number of times):"
 				+ HistogramToSeries(restartScoreDistribution, "RESTARTED"));
 		report.write("\n Pair merge details: \n" + pairsMerged);
-		DirectedSparseGraph result = scoreComputer.paths.getGraph(learntGraphName+"_result");
-		result.addUserDatum(JUConstants.STATS, report.toString(),
-				UserData.SHARED);
+		//DirectedSparseGraph result = scoreComputer.paths.getGraph(learntGraphName+"_result");
+		//result.addUserDatum(JUConstants.STATS, report.toString(),	UserData.SHARED);
 		updateGraph(scoreComputer);
-		return result;
+		return scoreComputer;
 	}
 
 	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl)
@@ -289,7 +287,8 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearnerTestComponentOpt
 		return ret;
 	}
 	
-	protected Pair<Integer,String> checkWithEndUser(@SuppressWarnings("unused") DirectedSparseGraph model,
+	@Override
+	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,
 			List<String> question, final Object[] moreOptions) 
 	{
 		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;

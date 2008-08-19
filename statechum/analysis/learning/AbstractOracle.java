@@ -40,7 +40,9 @@ public interface AbstractOracle {
 
 	/** Retrieves a stored answer. 
 	 * This can either be a number corresponding to accept/reject (in which case the string part should be null) or 
-	 * USER_LTL in the integer part and a string representation of an LTL formula. 
+	 * USER_LTL in the integer part and a string representation of an LTL formula.
+	 * <p>
+	 * Returns null if an oracle does not know an answer - useful for nesting multiple oracles.
 	 */
 	public Pair<Integer,String> getAnswer(List<String> question);
 }

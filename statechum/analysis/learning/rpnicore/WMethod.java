@@ -19,7 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.fail;
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.*;
 import java.util.Map.Entry;

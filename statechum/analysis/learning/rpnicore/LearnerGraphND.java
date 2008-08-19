@@ -725,15 +725,20 @@ public class LearnerGraphND
 		 * because we actually have to consider them at this point - otherwise 
 		 * different filters will affect scores obtained; filter should only impact efficiency
 		 * with Zero filter best performing. 
+		 * <p>
+		 * The reason we need both state and rows here is because we usually have rows handy
+		 * when using this method and hence would not wish to do a .get again to retrieve them
+		 * based on state values. States are needed to ensure that incompatible vertices get
+		 * appropriate scores.
 		 */
-		protected void compute(Map<String,List<CmpVertex>> A, Map<String,List<CmpVertex>> B)
+		protected void compute(CmpVertex stateA, CmpVertex stateB,Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
 		{
 			sharedSameHighlight = 0;sharedOutgoing = 0;totalOutgoing = 0;
-			boolean incompatible = false;
+			boolean incompatible = stateA.isAccept() != stateB.isAccept();
 			
-			for(Entry<String,List<CmpVertex>> entry:A.entrySet())
+			for(Entry<String,List<CmpVertex>> entry:rowA.entrySet())
 			{
-				List<CmpVertex> to_list=B.get(entry.getKey());
+				List<CmpVertex> to_list=rowB.get(entry.getKey());
 				if (to_list != null)
 					for(CmpVertex targetA:entry.getValue())
 						for(CmpVertex targetB:to_list)
@@ -741,25 +746,23 @@ public class LearnerGraphND
 							
 							++totalOutgoing;
 							++sharedOutgoing;
-							if (targetA.isAccept() != targetB.isAccept())
-								incompatible=true;
-							//if (filter.stateToConsider(from) && filter.stateToConsider(to)) 
-							{// if this pair of states is to be considered. For instance, we may ignore 
-							 // all reject states because they are only used to compare accept states' compatibility
-								
-								if (targetA.isHighlight() == targetB.isHighlight()) ++sharedSameHighlight;
-							}
+							if (targetA.isHighlight() == targetB.isHighlight()) ++sharedSameHighlight;
 						}
 				else
 					totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 			}
 			
-			for(Entry<String,List<CmpVertex>> entry:B.entrySet())
-				if (!A.containsKey(entry.getKey())) totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
+			for(Entry<String,List<CmpVertex>> entry:rowB.entrySet())
+				if (!rowA.containsKey(entry.getKey())) totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 
 			if (incompatible) 
 			{// force a relatively high incompatibility score
-				sharedOutgoing = PAIR_INCOMPATIBLE*totalOutgoing;
+				sharedOutgoing = PAIR_INCOMPATIBLE*(totalOutgoing >0?totalOutgoing:1);
+				// When linear is used to choose states to be merged, incompatible states are filtered out
+				// before this method is even called. In addition states with totalOutgoing == 0 are 
+				// filtered out too. The only case when totalOutgoing is zero is the case of GD when
+				// no states are filtered out.
+				// TODO: to eliminate empty rows with the only diagonal non-zero from the set of rows considered by linear
 			}
 			//sharedOutgoing*=2;
 		}
@@ -789,25 +792,6 @@ public class LearnerGraphND
 		@Override
 		public int getRightHandSide() {
 			return sharedSameHighlight; 
-		}
-		
-	};
-	
-	/** Interprets highlighted states as reject ones in the course of computation of a diagonal.
-	 * if a pair of states is incompatible for a particular matched transition,
-	 * the score for that pair is set to -1. 
-	 */
-	public static class DDRH_highlight_Neg extends DetermineDiagonalAndRightHandSide
-	{
-
-		@Override
-		public int getDiagonal() {
-			return sharedOutgoing;
-		}
-
-		@Override
-		public int getRightHandSide() {
-			return sharedSameHighlight-(sharedOutgoing-sharedSameHighlight); 
 		}
 		
 	};
@@ -1015,7 +999,7 @@ public class LearnerGraphND
 									}
 							}
 						}
-						ddrhInstance.compute(entryA.getValue(),matrixForward.get(stateB.getKey()));
+						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.get(stateB.getKey()));
 						b[currentStatePair]=ddrhInstance.getRightHandSide();
 						if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
 						

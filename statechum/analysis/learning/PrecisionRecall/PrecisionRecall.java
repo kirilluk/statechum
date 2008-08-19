@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.PrecisionRecall;
 
 import java.util.*;
 

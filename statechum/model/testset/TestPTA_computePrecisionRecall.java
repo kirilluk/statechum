@@ -24,8 +24,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import static org.junit.Assert.assertEquals;

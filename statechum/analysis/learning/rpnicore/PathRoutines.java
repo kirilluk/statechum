@@ -37,7 +37,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTAExploration;
@@ -66,7 +65,6 @@ public class PathRoutines {
 	
 	/** Computes the ratio of edges in the graph from non-amber states 
 	 * to the total number of possible edges from non-amber states. 
-	 * TODO: to test this.
 	 */
 	public double getExtentOfCompleteness()
 	{
@@ -76,6 +74,9 @@ public class PathRoutines {
 			{
 				normalEdgeCount+=entry.getValue().size();++stateNumber;
 			}
+		
+		if (stateNumber == 0 || coregraph.learnerCache.getAlphabet().size() == 0)
+			return 0;
 		return (double)normalEdgeCount/( stateNumber * coregraph.learnerCache.getAlphabet().size());
 	}
 	
@@ -908,48 +909,6 @@ public class PathRoutines {
 			throw new IllegalArgumentException("vertices "+unreachables.toString()+" are unreachable and "+remaining+" are non-PTA vertices");
 				
 		}
-	}
-
-	/** Computes an alphabet of a given graph and adds transitions to a 
-	 * reject state from all states A and inputs a from which there is no B such that A-a->B
-	 * (A-a-#REJECT) gets added. Note: (1) such transitions are even added to reject vertices.
-	 * (2) if such a vertex already exists, an IllegalArgumentException is thown.
-	 * 
-	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
-	 * @return true if any transitions have been added
-	 */   
-	public boolean completeGraph(VertexID reject)
-	{
-		if (coregraph.findVertex(reject) != null)
-			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");
-		
-		CmpVertex rejectVertex = null;
-		
-		// first pass - computing an alphabet
-		Set<String> alphabet = coregraph.wmethod.computeAlphabet();
-		
-		// second pass - checking if any transitions need to be added and adding them.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-		{
-			Set<String> labelsToRejectState = new HashSet<String>();
-			labelsToRejectState.addAll(alphabet);labelsToRejectState.removeAll(entry.getValue().keySet());
-			if (!labelsToRejectState.isEmpty())
-			{
-				if (rejectVertex == null)
-				{
-					rejectVertex = LearnerGraph.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
-				}
-				Map<String,CmpVertex> row = entry.getValue();
-				for(String rejLabel:labelsToRejectState)
-					row.put(rejLabel, rejectVertex);
-			}
-		}
-
-		if (rejectVertex != null)
-			coregraph.transitionMatrix.put(rejectVertex,new TreeMap<String,CmpVertex>());
-		
-		coregraph.learnerCache.invalidate();
-		return rejectVertex != null;
 	}
 
 	/** Navigates a path from the initial state and either returns 

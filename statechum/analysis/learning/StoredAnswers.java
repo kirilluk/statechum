@@ -43,7 +43,7 @@ public class StoredAnswers implements AbstractOracle
 	{
 		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8;
 
-		final Pattern pat = Pattern.compile("[ \\t]*("+RPNIBlueFringeLearner.QUESTION_AUTO+")* *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
+		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_AUTO+")* *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
 		BufferedReader reader = new BufferedReader(src);//new FileReader(src));
 		String line = reader.readLine();
 		while( line != null )

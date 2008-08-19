@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -42,10 +41,12 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
+import static statechum.Helper.whatToRun;
+import static statechum.Helper.checkForCorrectException;;
 
 public class TestAbstractExperiment {
 	public static final File testDir = new File("resources","__TestAbstractExperiment__"),
@@ -232,26 +233,6 @@ public class TestAbstractExperiment {
 				} catch (IOException e) {
 					// ignore
 				}
-		}
-	}
-
-	public interface whatToRun
-	{
-		public void run() throws NumberFormatException, IOException;
-	}
-	
-	public static final void checkForCorrectException(whatToRun what, Class exceptionClass, String exceptionString)
-	{
-		try
-		{
-			what.run();
-			Assert.fail("Exception not thrown");
-		}
-		catch(Exception ex)
-		{
-			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
-			Assert.assertEquals("wrong exception received "+str.toString(),exceptionClass,ex.getClass());
-			Assert.assertTrue(ex.getMessage().contains(exceptionString));
 		}
 	}
 
@@ -665,18 +646,12 @@ public class TestAbstractExperiment {
 
 	/** Empty buffer. */
 	@Test
-	public final void testResultToR_fail_empty() throws IOException
+	public final void testResultToR_fail_empty()
 	{
-		StringWriter wr = new StringWriter();
-		try
-		{
+		checkForCorrectException(new whatToRun() { public void run() throws IOException {
+			StringWriter wr = new StringWriter();
 			AbstractExperiment.postProcessIntoR(0, true,0, new BufferedReader(new StringReader("")), wr);
-			Assert.fail("exception not thrown");
-		}
-		catch(IllegalArgumentException e)
-		{
-			Assert.assertEquals("no data to dump", e.getMessage());
-		}
+		}},IllegalArgumentException.class,"no data to dump");
 	}
 
 	/** Tests the conversion of a result table into R-friendly format. 

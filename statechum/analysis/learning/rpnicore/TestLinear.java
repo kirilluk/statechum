@@ -18,7 +18,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,7 +41,6 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
@@ -426,10 +425,10 @@ public class TestLinear {
 	 */
 	private final void getMatcherValue(LearnerGraph gr,Map<CmpVertex,Map<String,List<CmpVertex>>> matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(matrixND.get(gr.findVertex(A)),matrixND.get(gr.findVertex(B)));
+		matcher.compute(gr.findVertex(A),gr.findVertex(B),matrixND.get(gr.findVertex(A)),matrixND.get(gr.findVertex(B)));
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
+		matcher.compute(gr.findVertex(B),gr.findVertex(A),matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag);
 		
@@ -441,7 +440,7 @@ public class TestLinear {
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
+		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag);
 	}
@@ -466,26 +465,89 @@ public class TestLinear {
 		Assert.assertEquals(3,matcher.getRightHandSide());
 	}
 
+	/** States with incompatible children will get a reduced score. */
 	@Test
 	public final void testCountMatchingOutgoing3a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","Q");
-		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		// A and Q have 3 outgoing transitions, 2 are matched.
+		// target pair B1-S has a score of 0, B-R has a score of -1.
+		Assert.assertEquals(2,matcher.getRightHandSide());
+		Assert.assertEquals(3,matcher.getDiagonal());
+		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"B","R");
+		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		Assert.assertEquals(1,matcher.getDiagonal());
 	}
 
+	/** Directly incompatible states. */
 	@Test
 	public final void testCountMatchingOutgoing3b()
 	{
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), Configuration.getDefaultConfiguration());
+		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreNone, false);
+		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
+		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","B");
+		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		Assert.assertEquals(3,matcher.getDiagonal());
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing3c()
+	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), config);
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
+		gr.linear.moveRejectToHighlight();
+		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		// A and Q have 3 outgoing and 2 matched.
+		// the score for the first pair is -1, for another one it is 1, hence the outcome is zero
+		Assert.assertEquals(2,matcher.getRightHandSide());
+		Assert.assertEquals(3,matcher.getDiagonal());
+	}
+	
+	@Test
+	public final void testCountMatchingOutgoing3d()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->Q-c->S", "testCountMatchingOutgoing3d"), config);
+		gr.linear.moveRejectToHighlight();
+		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		// A and Q have 3 outgoing and 3 matched.
+		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
+		Assert.assertEquals(3,matcher.getRightHandSide());
+		Assert.assertEquals(3,matcher.getDiagonal());
+	}
+	@Test
+	public final void testCountMatchingOutgoing3e()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		// A and Q have 3 outgoing and 2 matched.
 		Assert.assertEquals(1,matcher.getRightHandSide());
+	}
+
+	@Test
+	public final void testCountMatchingOutgoing3f()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3d"), config);
+		gr.linear.moveRejectToHighlight();
+		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		// A and Q have 3 outgoing and 3 matched.
+		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
+		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
 
 	@Test
@@ -494,8 +556,9 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		// 3 outgoing and 2 matching reject, but we count them as positives
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
-		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
+		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
 
 	@Test

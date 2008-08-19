@@ -16,10 +16,9 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,8 +26,6 @@ import java.util.regex.Pattern;
 import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
-
-import statechum.JUConstants;
 
 public class TestFSMParser {
 	/** Used to receive state transitions extracted from textual FSM representation. */
@@ -310,30 +307,25 @@ public class TestFSMParser {
 			}).match();
 	}
 		
-	protected static void checkEx(String whatToParse, String exceptionSubString)
+	protected static void checkEx(final String whatToParse, String exceptionSubString)
 	{
-		boolean exceptionThrown = false;
-		try
-		{
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
 			new fsmParser(whatToParse).parse(new TransitionReceiver()
 			{
-				public void accept(String from, String to, String label) {
+				public void accept(@SuppressWarnings("unused") String from, 
+						@SuppressWarnings("unused")	String to, 
+						@SuppressWarnings("unused")	String label) 
+				{
 					// do nothing at all
 				}
-				public void reject(String from, String to, String label) {
+				public void reject(@SuppressWarnings("unused") String from, 
+						@SuppressWarnings("unused")	String to, 
+						@SuppressWarnings("unused")	String label) 
+				{
 					// do nothing at all
 				}
 			});
-		}
-		catch(IllegalArgumentException e)
-		{
-			assertTrue("wrong exception thrown: "+e.getMessage()+
-					" instead of "+exceptionSubString+" - related exception",
-					e.getMessage().contains(exceptionSubString));
-			exceptionThrown = true;
-		}
-		
-		assertTrue("exception related to "+exceptionSubString+" was not thrown",exceptionThrown);
+		}},IllegalArgumentException.class,exceptionSubString);
 	}
 	
 	@Test 

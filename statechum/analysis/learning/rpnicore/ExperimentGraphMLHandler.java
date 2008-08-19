@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.io.GraphMLFileHandler;
 import edu.uci.ics.jung.graph.*;
@@ -31,8 +31,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex.MiniPair;
-import statechum.analysis.learning.RPNIBlueFringeLearnerOrig;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
@@ -71,7 +70,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 	        e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
         }
         else{
-        	e = RPNIBlueFringeLearnerOrig.findEdge(sourceVertex, targetVertex);
+        	e = Test_Orig_RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
         	HashSet labels = (HashSet)e.getUserDatum(JUConstants.LABEL);
         	labels.add(attributeMap.get("EDGE"));
         }
@@ -88,7 +87,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
         String idString = ((String) attributeMap.remove("id")).replaceAll(Transform.Initial+" *", "");
         DeterministicDirectedSparseGraph.DeterministicVertex vertex = 
-        	new DeterministicDirectedSparseGraph.DeterministicVertex(new VertexID(idString));// this ID will be subsequently modified when we look at the "VERTEX" tag.
+        	new DeterministicDirectedSparseGraph.DeterministicVertex(VertexID.parseID(idString));// this ID will be subsequently modified when we look at the "VERTEX" tag.
         mGraph.addVertex(vertex);
 
         try {
@@ -115,7 +114,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         	label = label.replaceAll(Transform.Initial+" *", "");
         }
         
-       	vertex.setUserDatum(JUConstants.LABEL, new VertexID(label), UserData.SHARED);
+       	vertex.setUserDatum(JUConstants.LABEL, VertexID.parseID(label), UserData.SHARED);
        	if (!vertex.containsUserDatumKey(JUConstants.ACCEPTED))
        		vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
         

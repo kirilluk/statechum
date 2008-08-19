@@ -27,8 +27,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.analysis.learning.experiments.TestAbstractExperiment;
-import statechum.analysis.learning.experiments.TestAbstractExperiment.whatToRun;
+import static statechum.Helper.checkForCorrectException;
+import static statechum.Helper.whatToRun;
 import cern.colt.function.DoubleFunction;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
@@ -127,12 +127,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -148,12 +148,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -170,12 +170,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"too few");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -191,12 +191,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -212,12 +212,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -233,12 +233,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length];
 
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -254,12 +254,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.,99999} ;
 		final double x[] = new double[b.length];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -275,12 +275,12 @@ public class TestSolver {
 		final double b [ ] = {8., 45., -3., 3., 19.} ;
 		final double x[] = new double[b.length+6];
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
@@ -297,13 +297,13 @@ public class TestSolver {
 		
 		for(int i=0;i<solver.j_b.length;++i) x.setQuick(i, solver.j_b[i]);
 		
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				solver.solveExternally();
 			}
 		}, IllegalArgumentException.class,"singular");		
 
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				LUDecompositionQuick coltSolver = new LUDecompositionQuick();
 				coltSolver.decompose(matrix);coltSolver.setLU(matrix);
@@ -311,7 +311,7 @@ public class TestSolver {
 			}
 		}, IllegalArgumentException.class,"singular");		
 
-		TestAbstractExperiment.checkForCorrectException(new whatToRun() {
+		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException {
 				for(int i=0;i<testMatrix.rows();++i) solver.j_x[i]=0;
 				solver.solveUsingColt();

@@ -37,9 +37,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
+public class RPNIBlueAmberFringeLearner extends RPNILearner {
 	
 	public RPNIBlueAmberFringeLearner(Frame parent, Configuration c) {
 		super(parent,c);
@@ -53,20 +52,35 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 	protected int origPlusSize, origMinusSize;
 	
 	@Override
-	public void init(Collection<List<String>> plus, Collection<List<String>> minus)
+	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		scoreComputer.initPTA();
 		scoreComputer.paths.augmentPTA(minus, false);
 		scoreComputer.paths.augmentPTA(plus, true);
 		origMinusSize = plus.size();origMinusSize = minus.size();
+		return scoreComputer;
 	}
 	
-	public void init(PTASequenceEngine en, int plus, int minus)
+	@Override
+	public LearnerGraph init(PTASequenceEngine en, int plus, int minus)
 	{
 		scoreComputer.initPTA();
 		scoreComputer.paths.augmentPTA(en);
 
 		origMinusSize = plus;origMinusSize = minus;
+		return scoreComputer;
+	}
+	
+	/** Identifies a collection of states to merge, sorted in the order of scores. */
+	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
+	{
+		return graph.pairscores.chooseStatePairs();
+	}
+	
+	/** Given a graph, merges a pair of states from it and returns the result. */
+	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+	{
+		return MergeStates.mergeAndDeterminize_general(original, pair);		
 	}
 
 	public String DifferenceBetweenPairOfSets(String prefix, Collection<List<String>> seqOrig,Collection<List<String>> seqNew)
@@ -84,12 +98,12 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 	 * </pre>
 	 * but additionally checks for consistency.
 	 */
-	protected LearnerGraph getMergedGraph(PairScore pair, LearnerGraph newPTA)
+	protected LearnerGraph MergeAndDeterminize(LearnerGraph graph,PairScore pair)
 	{
 		int nonAmberA = 0;
-		if (scoreComputer.config.isConsistencyCheckMode()) nonAmberA = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
+		if (scoreComputer.config.isConsistencyCheckMode()) nonAmberA = graph.getStateNumber()-graph.getAmberStateNumber();
 		LearnerGraph tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
-		if (scoreComputer.config.isConsistencyCheckMode()) assert (newPTA.getStateNumber()-newPTA.getAmberStateNumber()) == nonAmberA;
+		if (scoreComputer.config.isConsistencyCheckMode()) assert (graph.getStateNumber()-graph.getAmberStateNumber()) == nonAmberA;
 
 		if (scoreComputer.config.isConsistencyCheckMode())
 		{
@@ -105,7 +119,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 	 * @param pair pair of states to consider.
 	 * @return questions to ask.
 	 */
-	protected Collection<List<String>> getQuestions(LearnerGraph tempNew, PairScore pair)
+	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		Collection<List<String>> questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 		if (scoreComputer.config.isConsistencyCheckMode()) 
@@ -125,33 +139,33 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		return questions;
 	}
 	
-	@Override
-	public DirectedSparseGraph learnMachine() {
+	public LearnerGraph learnMachine() 
+	{
 		setAutoOracle();
 		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
 		setChanged();
 		newPTA.setName("merge_debug"+0);
 		updateGraph(newPTA);
 		
-		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		plusSize = origPlusSize;minusSize = origMinusSize;
 		int iterations = 0, currentNonAmber = newPTA.getStateNumber()-newPTA.getAmberStateNumber();
 		counterRestarted = 0;
 		while(!possibleMerges.isEmpty())
 		{
 			iterations++;
-			//populateScores(possibleMerges,possibleMergeScoreDistribution);
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = getMergedGraph(pair,newPTA);
+			LearnerGraph temp = topLevelListener.MergeAndDeterminize(scoreComputer,pair);
+			// TODO: this was earlier using newPTA instead of scoreComputer - not sure why it was happily converging.
+			
 			//System.out.println("considering "+pair+" non-amber: "+(newPTA.getStateNumber()-newPTA.getAmberStateNumber()));
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(), temp.paths.getGraph());Visualiser.waitForKey();
 			setChanged();temp.setName("merge_debug"+iterations);
 			//updateGraph(temp);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
-			debugAction(temp, iterations);
 			if(shouldAskQuestions(score))
-				questions = getQuestions(temp, pair);
+				questions = topLevelListener.ComputeQuestions(pair, scoreComputer, temp);
 
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
@@ -160,7 +174,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
-				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
+				Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
@@ -173,7 +187,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
 					//sPlus.add(question);
-					newPTA.paths.augmentPTA(question, true,JUConstants.AMBER);++plusSize;
+					topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,question, true,JUConstants.AMBER);++plusSize;
 					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					if(!tempVertex.isAccept())
 					{
@@ -186,7 +200,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 						assert answer.firstElem < question.size();
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
 						//sMinus.add(subAnswer);
-						newPTA.paths.augmentPTA(subAnswer, false,JUConstants.AMBER);++minusSize;
+						topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,subAnswer, false,JUConstants.AMBER);++minusSize;
 						// important: since vertex IDs are 
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
@@ -214,6 +228,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				scoreComputer.clearColoursButAmber();
 				//System.out.println("finished with speculative update, currently "+scoreComputer.getStateNumber()+" states, "+(scoreComputer.getStateNumber()-scoreComputer.getAmberStateNumber())+" non-amber");
 				iterations = 0;counterRestarted++;
+				topLevelListener.Restart(RestartLearningEnum.restartHARD);
 			}
 			else
 			{
@@ -224,15 +239,14 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				
 				// keep going with the existing model
 				scoreComputer = temp;
+				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
 		assert currentNonAmber == newPTA.getStateNumber()-newPTA.getAmberStateNumber();
-		DirectedSparseGraph result = scoreComputer.paths.getGraph();
-		if(config.getDebugMode())
-			updateGraph(scoreComputer);
-		return result;
+		updateGraph(scoreComputer);
+		return scoreComputer;
 	}
 	
 	/** We might be doing a restart, but it never hurts to go through the existing 
@@ -252,7 +266,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				LearnerGraph tempNew = null;
 				try
 				{
-					tempNew = getMergedGraph(pair, newPTA);
+					tempNew = topLevelListener.MergeAndDeterminize(newPTA, pair);
 				}
 				catch(IllegalArgumentException ex)
 				{// ignore - tempNew is null anyway					
@@ -260,9 +274,9 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 				
 				if (tempNew != null) // merge successful - it would fail if our updates to newPTA have modified scoreComputer (the two are often the same graph)
 				{					
-					for(List<String> question:getQuestions(tempNew, pair))
+					for(List<String> question:topLevelListener.ComputeQuestions(pair, newPTA, tempNew))
 					{
-						Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
+						Pair<Integer,String> answer = CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
 						this.questionCounter++;
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
@@ -272,14 +286,14 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 						
 						if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 						{
-							newPTA.paths.augmentPTA(question, true,JUConstants.AMBER);++plusSize;
+							topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,question, true,JUConstants.AMBER);++plusSize;
 						}
 						else 
 							if(answer.firstElem >= 0)
 							{// The sequence has been rejected by a user
 								assert answer.firstElem < question.size();
 								LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
-								newPTA.paths.augmentPTA(subAnswer, false,JUConstants.AMBER);++minusSize;
+								topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,subAnswer, false,JUConstants.AMBER);++minusSize;
 							}
 					}
 				}
@@ -291,5 +305,10 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 
 	public String getResult() {
 		return null;
+	}
+
+	public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
+			List<String> sequence, boolean accepted, JUConstants newColour) {
+		pta.paths.augmentPTA(sequence, accepted, newColour);
 	}
 }

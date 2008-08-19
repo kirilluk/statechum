@@ -17,7 +17,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -131,7 +131,7 @@ public class TestGD_Multithreaded {
 		gd.init(graphA, graphB, threadNumber,newToOrig);
 		Assert.assertTrue(gd.identifyKeyPairs());
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
-		ChangesRecorder recorder = new ChangesRecorder();
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps(recorder,allKeyPairs);
 		//printListOfPairs(gd,allKeyPairs);
 		for(PairScore pair:allKeyPairs)
@@ -149,10 +149,13 @@ public class TestGD_Multithreaded {
 	 * @param expectedMatchedPairs the number of pairs of states which are expected to be matched
 	 * @param config configuration to use, default will be used if null.
 	 */
-	private final void testComputeGD(String graphA,String graphB,String name, int expectedMatchedPairs, Configuration config)
+	final void testComputeGD(String graphA,String graphB,String name, int expectedMatchedPairs, Configuration config)
 	{
 		testComputeGD_oneway(graphA, graphB, name, expectedMatchedPairs,config);
 		testComputeGD_oneway(graphB, graphA, name, expectedMatchedPairs,config);
+		
+		testNesting(graphA, graphB, name, config);
+		testNesting(graphB, graphA, name, config);
 	}
 	
 	/** Tests GD on the supplied two graphs
@@ -174,7 +177,7 @@ public class TestGD_Multithreaded {
 		gd.identifyKeyPairs();
 		//printListOfPairs(gd, gd.currentWave);
 		//printListOfPairs(gd, gd.frontWave);
-		ChangesRecorder recorder = new ChangesRecorder();
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 		gd.makeSteps(recorder,allKeyPairs);
 		//printListOfPairs(gd, allKeyPairs);
@@ -182,6 +185,50 @@ public class TestGD_Multithreaded {
 		LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+	}
+	
+	private final void testNesting(String graphA,String graphB,String name, Configuration config)
+	{
+		if (config == null) config = Configuration.getDefaultConfiguration();
+		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
+
+		GD gd = new GD();
+		ChangesRecorder rec1 = 	new ChangesRecorder(null);
+		ChangesDisplay  rec2 = new ChangesDisplay(rec1);
+		ChangesCounter  rec3 = new ChangesCounter(grA,grB,rec2);
+		ChangesRecorder rec4 = 	new ChangesRecorder(rec3);
+		ChangesDisplay  rec5 = new ChangesDisplay(rec4);
+		ChangesCounter  rec6 = new ChangesCounter(grA,grB,rec5);
+		ChangesRecorder rec7 = 	new ChangesRecorder(rec6);
+		ChangesDisplay  rec8 = new ChangesDisplay(rec7);
+		ChangesCounter  rec9 = new ChangesCounter(grA,grB,rec8);
+		{
+			LearnerGraph graph1 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			ChangesRecorder.applyGD(graph1, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(), rec9));
+			WMethod.checkM(graph1, grB);Assert.assertEquals(grB.getStateNumber(),graph1.getStateNumber());
+		}
+		{
+			LearnerGraph graph2 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			ChangesRecorder.applyGD(graph2, rec7.writeGD(TestGD.createDoc()));
+			WMethod.checkM(graph2, grB);Assert.assertEquals(grB.getStateNumber(),graph2.getStateNumber());
+		}
+		{
+			LearnerGraph graph3 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			ChangesRecorder.applyGD(graph3, rec4.writeGD(TestGD.createDoc()));
+			WMethod.checkM(graph3, grB);Assert.assertEquals(grB.getStateNumber(),graph3.getStateNumber());
+		}
+		{
+			LearnerGraph graph4 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			ChangesRecorder.applyGD(graph4, rec1.writeGD(TestGD.createDoc()));
+			WMethod.checkM(graph4, grB);Assert.assertEquals(grB.getStateNumber(),graph4.getStateNumber());
+		}
+		String displayResult = rec8.toString();
+		Assert.assertEquals(displayResult,rec5.toString());Assert.assertEquals(displayResult, rec2.toString());
+		
+		int added = rec9.getAdded(),removed = rec9.getRemoved();String result = rec9.toString();
+		Assert.assertEquals(added,rec6.getAdded());Assert.assertEquals(removed,rec6.getRemoved());Assert.assertEquals(result,rec6.toString());
+		Assert.assertEquals(added,rec3.getAdded());Assert.assertEquals(removed,rec3.getRemoved());Assert.assertEquals(result,rec3.toString());
 	}
 	
 	@Test
@@ -235,7 +282,7 @@ public class TestGD_Multithreaded {
 				"@A-a->@B-a-#@C\n@A-d-#@D\n@A-c->@A\n@B-b->@F-b->@G-c-#@C","testComputeGD4",6,null);
 	}
 	
-	/** Trying to confuse keypair identification algorithm with large plateau (i.e. lots of similar states). */ 
+	/** Trying to confuse key pair identification algorithm with large plateau (i.e. lots of similar states). */ 
 	private static final String A6=
 		"A-a->B-a->C-a->D-a->A\n"+
 		"A-b->E\nB-b->F\nC-b->G\nD-b->H\n"+
@@ -266,10 +313,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5a()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config);
-		ChangesCounter counter = new ChangesCounter(grA,grB);
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config));
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, counter);
 		Assert.assertEquals(0,counter.getRemoved());
 		Assert.assertEquals(0,counter.getAdded());
@@ -280,10 +326,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5b_AA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
-		LearnerGraph grB = new LearnerGraph(config);
-		ChangesCounter counter = new ChangesCounter(grA,grB);
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, counter);
 		Assert.assertEquals(0,counter.getRemoved());
 		Assert.assertEquals(0,counter.getAdded());
@@ -294,10 +339,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5b_RA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
-		LearnerGraph grB = new LearnerGraph(config);
-		ChangesRecorder recorder = new ChangesRecorder();
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -309,10 +353,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5b_AR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
-		LearnerGraph grB = new LearnerGraph(config);grB.init.setAccept(false);
-		ChangesRecorder recorder = new ChangesRecorder();
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -324,10 +367,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
-		LearnerGraph grB = new LearnerGraph(config);grB.init.setAccept(false);
-		ChangesRecorder recorder = new ChangesRecorder();
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -339,11 +381,10 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5d_AA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
 		int transitionsCount = grB.countEdges();
-		ChangesCounter counter = new ChangesCounter(grA,grB);
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
 		GD gd = new GD();gd.computeGD(grA, grB, threadNumber, counter);
 		Assert.assertEquals(0,counter.getRemoved());
 		Assert.assertEquals(transitionsCount,counter.getAdded());
@@ -354,10 +395,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5d_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
-		LearnerGraph grB = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
-		ChangesRecorder recorder = new ChangesRecorder();
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -369,11 +409,10 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5e_AA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
-		LearnerGraph grB = new LearnerGraph(config);
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));
 		int transitionsCount = grA.countEdges();
-		ChangesCounter counter = new ChangesCounter(grA,grB);
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, counter);
 		Assert.assertEquals(transitionsCount,counter.getRemoved());
 		Assert.assertEquals(0,counter.getAdded());
@@ -384,10 +423,9 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5e_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
-		LearnerGraph grB = new LearnerGraph(config);grB.init.setAccept(false);
-		ChangesRecorder recorder = new ChangesRecorder();
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -446,14 +484,11 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testComputeGD8b()
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+		final Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setGdFailOnDuplicateNames(true);
-		try
-		{ testComputeGD(A6, D6, "testComputeGD8b_", 9,null);Assert.fail("exception not thrown"); }
-		catch(IllegalArgumentException ex)
-		{
-			Assert.assertTrue(ex.getMessage().contains("are shared between A and B"));
-		}
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			testComputeGD(A6, D6, "testComputeGD8b_", 9,null);
+		}},IllegalArgumentException.class,"are shared between A and B");
 	}
 	
 	/** Generates a long sequence of transitions with the supplied between the supplied states.
@@ -500,7 +535,7 @@ public class TestGD_Multithreaded {
 			GD gd = new GD();
 			gd.init(grA, grB, threadNumber,newToOrig);
 			gd.identifyKeyPairs();
-			ChangesRecorder recorder = new ChangesRecorder();
+			ChangesRecorder recorder = new ChangesRecorder(null);
 			List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 			gd.makeSteps(recorder,allKeyPairs);
 			Assert.assertEquals(expectedMatchedPairs,allKeyPairs.size());
@@ -534,6 +569,32 @@ public class TestGD_Multithreaded {
 			B = B6+generateLine("G@", "T@", "c",20)+generateLine("S@","I@","b",20)+additionB;
 		testComputeGD(A, B, "testComputeGD_big4", 9,null);
 	}
+	
+	@Test 
+	public final void testComputeGD_small1()
+	{
+		Configuration niceConfig = Configuration.getDefaultConfiguration().copy();niceConfig.setGdLowToHighRatio(0.65);
+		testComputeGD("A4-a->B4-a->C4-a-#D4", "A1-a->A1-b->B1-a->C1","testComputeGD_small1",1,niceConfig);
+/*		
+		String A="A4-a->B4-a->C4-a-#D4", B="A1-a->A1-b->B1-a->C1";
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph grA = new LearnerGraph(buildGraph(A,"testComputeGD6A"),config);
+		LearnerGraph grB = new LearnerGraph(buildGraph(B,"testComputeGD6B"),config);
+		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
+		ChangesDisplay recorder = new ChangesDisplay(null);
+		GD gd = new GD();//gd.computeGD(grA, grB, 1, recorder);
+		gd.init(grB, grA, 1,newToOrig);
+		gd.identifyKeyPairs();
+		gd.makeSteps(recorder,allKeyPairs);
+		TestGD.printListOfPairs(gd, allKeyPairs,newToOrig);
+*/	
+	}
+	@Test 
+	public final void testComputeGD_small2()
+	{
+		Configuration niceConfig = Configuration.getDefaultConfiguration().copy();niceConfig.setGdLowToHighRatio(0.65);
+		testComputeGD("A3-a->D3-b->D3-a->C3","A4-a->B4-a->C4-a-#D4", "testComputeGD_small2",3,null);
+	}
 /*
 	@Test
 	public final void testComputeGD_big5()
@@ -554,22 +615,25 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesCounter counter = new ChangesCounter(grA,grB);
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
 		GD gd = new GD();gd.computeGD(grA, grB, threadNumber, counter);
 		Assert.assertEquals(1,counter.getRemoved());
 		Assert.assertEquals(1,counter.getAdded());
-		Assert.assertEquals("diff of testCounterB to testCounterA : 100%",counter.toString());
+		Assert.assertEquals("diff of testCounterB to testCounterA is 100% of testCounterB",counter.toString());
 	}
 
+	/** Tests ChangesDisplay and nesting of change observers. */ 
 	@Test
 	public final void testDisplay()
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesDisplay recorder = new ChangesDisplay();
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesDisplay recorder = new ChangesDisplay(counter);
 		GD gd = new GD();gd.computeGD(grA, grB, threadNumber, recorder);
 		Assert.assertEquals("removed: A - b -> B\n"+
 				"added  : A - c -> B\ninitial : A\n",recorder.toString());
+		Assert.assertEquals(1,counter.getAdded());Assert.assertEquals(1,counter.getRemoved());
 	}
 }

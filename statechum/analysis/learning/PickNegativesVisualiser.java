@@ -36,7 +36,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	 */
 	private static final long serialVersionUID = 4842027206398108774L;
 	
-	RPNIBlueFringeLearner l =  null;
+	RPNILearner l =  null;
 	
 	protected SplitFrame split = null;
 	protected AbstractOracle ans = null;
@@ -81,7 +81,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	/** Collections of positive and negative samples. */
 	Collection<List<String>> sPlus, sMinus;
 	
-	/** The ltl formula to check against. */
+	/** The LTL formula to check against. */
 	Set<String> ltlFormulae = null;
 	
 	/** Configuration for learners. */
@@ -107,16 +107,15 @@ public class PickNegativesVisualiser extends Visualiser {
 					l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae,config);
 				else
 					if (split != null) {
-		        		l = new RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
+		        		l = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearnerTestComponentOpt(PickNegativesVisualiser.this, config);
+		        		l = new RPNIBlueFringeLearner(PickNegativesVisualiser.this, config);
 				
 	        	l.addObserver(PickNegativesVisualiser.this);
 	        	l.setAnswers(ans);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
-	        	l.init(sPlus, sMinus);
-        		DirectedSparseGraph learnt = l.learnMachine();
+        		DirectedSparseGraph learnt = l.learnMachine(sPlus, sMinus).paths.getGraph();
         		if(config.isGenerateTextOutput())
         			OutputUtil.generateTextOutput(learnt);
         		if(config.isGenerateDotOutput())
@@ -195,12 +194,12 @@ public class PickNegativesVisualiser extends Visualiser {
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
 		DijkstraShortestPath p = new DijkstraShortestPath(g);
 		List<Edge> shortPrefix = p.getPath(init, e.getSource());
-		Set<List<String>> prefixStrings = RPNIBlueFringeLearnerOrig.getPaths(shortPrefix);
+		Set<List<String>> prefixStrings = Test_Orig_RPNIBlueFringeLearner.getPaths(shortPrefix);
 		List<Edge> picked = new ArrayList<Edge>();
 		picked.add(e);
-		Set<List<String>> successors = RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
+		Set<List<String>> successors = Test_Orig_RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
 		
-		questions.addAll(RPNIBlueFringeLearnerTestComponent.mergePrefixWithSuffixes(prefixStrings, (Collection<String>)e.getUserDatum(JUConstants.LABEL), successors));
+		questions.addAll(Test_Orig_RPNIBlueFringeLearnerTestComponent.mergePrefixWithSuffixes(prefixStrings, (Collection<String>)e.getUserDatum(JUConstants.LABEL), successors));
 		
 		 Object[] possibleValues = questions.toArray();
 		 Object selectedValue = JOptionPane.showInputDialog(null,

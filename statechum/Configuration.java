@@ -23,15 +23,22 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 
+import static statechum.Helper.throwUnchecked;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+
+import statechum.analysis.learning.rpnicore.Transform;
 
 /** Represents a configuration for a learner. The purpose is a possibility of a 
  * global customisation of all objects used by a learner in the course of 
  * learning by the same object.
  * <p> 
- * When you add to this class, please add the corresponding entries to hashCode and equals. 
+ * When you add to this class, please add the corresponding entries to hashCode and equals.
+ * <p>
+ * This class is using the built-in <em>clone</em> method, hence all attributes have 
+ * to be either primitives or immutable (such as <em>String</em>). 
  */
 public class Configuration implements Cloneable
 {
@@ -330,6 +337,8 @@ public class Configuration implements Cloneable
 		return result;
 	}
 
+	public static final double fpAccuracy = 1e-15; 
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
@@ -393,15 +402,15 @@ public class Configuration implements Cloneable
 			return false;
 		if (questionPathUnionLimit != other.questionPathUnionLimit)
 			return false;
-		if (attenuationK != other.attenuationK)
+		if (Math.abs(attenuationK - other.attenuationK) > fpAccuracy)
 			return false;
 		if (consistencyCheckMode != other.consistencyCheckMode)
 			return false;
 		if (speculativeQuestionAsking != other.speculativeQuestionAsking)
 			return false;
-		if (gdKeyPairThreshold != other.gdKeyPairThreshold)
+		if (Math.abs(gdKeyPairThreshold - other.gdKeyPairThreshold) > fpAccuracy)
 			return false;
-		if (gdLowToHighRatio != other.gdLowToHighRatio)
+		if (Math.abs(gdLowToHighRatio - other.gdLowToHighRatio) > fpAccuracy)
 			return false;
 		if (gdFailOnDuplicateNames != other.gdFailOnDuplicateNames)
 			return false;
@@ -659,19 +668,6 @@ public class Configuration implements Cloneable
 		gdFailOnDuplicateNames = value;
 	}
 	
-	/** Used extensively to convert checked exceptions to IllegalArgumentException
-	 * (obviously in places where no exceptions should occur hence no need to use
-	 * checked exceptions).
-	 * 
-	 * @param description description of why the exception is to be thrown
-	 * @param e exception to convert
-	 */
-	public static void throwUnchecked(String description, Exception e)
-	{
-		IllegalArgumentException ex = new IllegalArgumentException(description+": "+e.getMessage());ex.initCause(e);
-		throw ex;
-	}
-
 	/** Whether a method is get.../is ..., or set...  */
 	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
 	
@@ -740,64 +736,75 @@ public class Configuration implements Cloneable
 				} catch (Exception e) {
 					throwUnchecked("cannot extract a value of "+var.getName(), e);
 				}
-				config.appendChild(varData);
+				config.appendChild(varData);config.appendChild(Transform.endl(doc));
 			}
 		}
 		return config;
 	}
 
-	public void readXML(Element config)
+	/** Loads configuration from XML node.
+	 * 
+	 * @param cnf XML node to load configuration from.
+	 */
+	public void readXML(org.w3c.dom.Node cnf)
 	{
+		if (cnf.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE)
+			throw new IllegalArgumentException("invalid node type passed to readXML");
+		Element config = (Element)cnf;
 		if (!config.getNodeName().equals(configXMLTag))
 			throw new IllegalArgumentException("configuration cannot be loaded from element "+config.getNodeName());
 		NodeList nodes = config.getChildNodes();
 		for(int i=0;i<nodes.getLength();++i)
 		{
-			org.w3c.dom.Element node = (Element)nodes.item(i);// we may write text elements, but they would only contain whitespace and will be dropped when we write out a file. Hence no need to do any filtering.
-			if (!node.getNodeName().equals(configVarTag))
-				throw new IllegalArgumentException("unexpected elment "+node.getNodeName()+" in configuration XML");
-			Field var = null;
-			try
-			{
-				var = getClass().getDeclaredField(node.getAttribute(configVarAttrName));
-				Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
-				Object value = null;String valueAsText = node.getAttribute(configVarAttrValue);
-				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+			org.w3c.dom.Node node = nodes.item(i);
+			if (node.getNodeType() != org.w3c.dom.Node.TEXT_NODE)
+			{// ignore all text nodes
+				if (node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE || !node.getNodeName().equals(configVarTag))
+					throw new IllegalArgumentException("unexpected element "+node.getNodeName()+" in configuration XML");
+				org.w3c.dom.Element currentElement = (Element)node;
+				Field var = null;
+				try
 				{
-					value = Boolean.valueOf(valueAsText); 
+					var = getClass().getDeclaredField(currentElement.getAttribute(configVarAttrName));
+					Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
+					Object value = null;String valueAsText = currentElement.getAttribute(configVarAttrValue);
+					if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+					{
+						value = Boolean.valueOf(valueAsText); 
+					}
+					else
+						if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+						{
+							value = Double.valueOf(valueAsText); 
+						}
+						else
+						if (var.getType().equals(String.class))
+						{
+							value = valueAsText;
+						}
+						else
+							if (var.getType().isEnum())
+							{
+								value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
+							}
+							else
+							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+							{
+								value = Integer.valueOf(valueAsText); 
+							}
+							else
+								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+	
+					setter.invoke(this, new Object[]{value});
 				}
-				else
-					if (var.getType().equals(Double.class) || var.getType().equals(double.class))
-					{
-						value = Double.valueOf(valueAsText); 
-					}
-					else
-					if (var.getType().equals(String.class))
-					{
-						value = valueAsText;
-					}
-					else
-						if (var.getType().isEnum())
-						{
-							value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
-						}
-						else
-						if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
-						{
-							value = Integer.valueOf(valueAsText); 
-						}
-						else
-							throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
-
-				setter.invoke(this, new Object[]{value});
-			}
-			catch(NoSuchFieldException e)
-			{
-				System.err.println("warning: cannot deserialise obsolete field "+node.getAttribute(configVarAttrName));
-			}
-			catch(Exception e)
-			{
-				throwUnchecked("failed to load value of "+var.getName(),e);
+				catch(NoSuchFieldException e)
+				{
+					System.err.println("warning: cannot deserialise obsolete field "+currentElement.getAttribute(configVarAttrName));
+				}
+				catch(Exception e)
+				{
+					throwUnchecked("failed to load value of "+var.getName(),e);
+				}
 			}
 		}
 	}

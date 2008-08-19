@@ -73,9 +73,8 @@ public class Linear {
 		Configuration copyConfig = coregraph.config.copy();copyConfig.setLearnerCloneGraph(true);
 		LearnerGraph copy = coregraph.copy(copyConfig);
 		CmpVertex grInit = Transform.addToGraph(copy, gr,null);
-		copy.linear.moveRejectToHighlight();
 		copy.learnerCache.invalidate();
-		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreRejectStates,false);
+		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreNone,false);
 		double result = ndGraph.computeStateCompatibility(ThreadNumber,ddrh)[ndGraph.vertexToIntNR(copy.init, grInit)];
 		
 		return result;

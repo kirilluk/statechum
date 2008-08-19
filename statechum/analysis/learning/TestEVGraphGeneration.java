@@ -33,8 +33,8 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;

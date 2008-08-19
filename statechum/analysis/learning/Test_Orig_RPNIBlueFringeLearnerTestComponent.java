@@ -34,10 +34,10 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
-public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOrig {
+public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNIBlueFringeLearner {
 	
 
-	public RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c){
+	public Test_Orig_RPNIBlueFringeLearnerTestComponent(Frame parent, Configuration c){
 		super(parent,c);
 	}
 	
@@ -45,7 +45,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 		this.sPlus = argSPlus;
 		this.sMinus = argSMinus;
 		setAutoOracle();
-		model = createAugmentedPTA(model, sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+		model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 		DeterministicDirectedSparseGraph.findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
 
@@ -70,7 +70,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
-				Pair<Integer,String> answer = checkWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
 				this.questionCounter++;
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
@@ -114,7 +114,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			
 			if (restartLearning)
 			{// restart learning
-				model = createAugmentedPTA(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+				model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 				DeterministicDirectedSparseGraph.findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 				setChanged();				
 			}
@@ -182,7 +182,7 @@ public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearnerOri
 			Vertex v = getVertex(model, pathToPoint);
 			if(v == null)
 				questions.add(pathToPoint);
-			else if(RPNIBlueFringeLearnerOrig.different(new OrigStatePair(v, tempV)))
+			else if(Test_Orig_RPNIBlueFringeLearner.different(new OrigStatePair(v, tempV)))
 				questions.add(pathToPoint);
 			
 		}

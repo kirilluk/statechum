@@ -25,7 +25,7 @@ import soot.jimple.toolkits.callgraph.*;
 
 import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNILearner;
 
 
 public class SootCallGraphOracle  implements AbstractOracle {

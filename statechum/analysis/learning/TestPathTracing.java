@@ -18,7 +18,7 @@
 package statechum.analysis.learning;
 
 import static org.junit.Assert.assertEquals;
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,7 +82,7 @@ public class TestPathTracing {
 		final LearnerGraph fsm = new LearnerGraph(g,config);
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
-		Vertex receivedA = RPNIBlueFringeLearnerOrig.getVertex(g, Arrays.asList(path));
+		Vertex receivedA = Test_Orig_RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path));
 		CmpVertex receivedB = new LearnerGraph(g,conf).paths.getVertex(Arrays.asList(path));
 		if (expected == null)
 		{
@@ -114,7 +114,7 @@ public class TestPathTracing {
 		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState)));
 		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(new VertexID(enteredName));
-		Vertex received = RPNIBlueFringeLearnerOrig.getVertex(g, starting, Arrays.asList(path));
+		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, Arrays.asList(path));
 		if (expected == null)
 			Assert.assertNull(received);
 		else

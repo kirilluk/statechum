@@ -17,6 +17,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 package statechum.analysis.learning.rpnicore;
+import static statechum.Helper.checkForCorrectException;
+import static statechum.Helper.whatToRun;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -51,11 +53,9 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.TestRpniLearner;
-import statechum.analysis.learning.experiments.ExperimentGraphMLHandler;
 
-import static statechum.analysis.learning.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
 
 public class TestTransform {
@@ -387,15 +387,15 @@ public class TestTransform {
 	}
 
 	/** The standard beginning of our graphML files. */
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><gml:graphml xmlns:gml=\"http://graphml.graphdrawing.org/xmlns/graphml\"><graph edgedefault=\"directed\" xmlns=\"gml\">\n";
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><"+Transform.graphmlNodeName+" xmlns:gml=\"http://graphml.graphdrawing.org/xmlns/graphml\"><graph edgedefault=\"directed\" xmlns=\"gml\">\n";
 	/** The standard ending of our graphML files. */
-	public static final String graphML_end = "</graph></gml:graphml>"; 
+	public static final String graphML_end = "</graph></"+Transform.graphmlNodeName+">"; 
 
 	protected static final String graphml_beginning = graphML_header+
-		"<node VERTEX=\"Initial A\" "+JUConstants.COLOUR+"=\""+JUConstants.RED+"\" id=\"A\"/>\n"+
-		"<node VERTEX=\"B\"";
+		"<node "+JUConstants.COLOUR.name()+"=\""+JUConstants.RED.name()+"\" VERTEX=\"Initial A\" id=\"A\"/>\n"+
+		"<node ";
 	
-	protected static final String graphml_ending = " id=\"B\"/>\n"+ 
+	protected static final String graphml_ending = "VERTEX=\"B\" id=\"B\"/>\n"+ 
 		"<node VERTEX=\"C\" id=\"C\"/>\n"+
 		"<edge EDGE=\"a\" directed=\"true\" source=\"A\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
 		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
@@ -458,9 +458,9 @@ public class TestTransform {
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.transform.writeGraphML(writer);
 		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
-				" "+JUConstants.ACCEPTED.toString()+"=\"false\""+
-				" "+JUConstants.COLOUR.toString()+"=\""+JUConstants.BLUE.toString().toLowerCase()+"\""+
-				" "+JUConstants.HIGHLIGHT.toString()+"=\"true\""+
+				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
+				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
+				" "+JUConstants.HIGHLIGHT.name()+"=\"true\""+
 				graphml_ending),
 				removeWhiteSpace(writer.toString()));
 	}
@@ -524,16 +524,10 @@ public class TestTransform {
 		{
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
-		
-		try
-		{
-			Transform.loadGraph(doc.createElement("junk"));
-			org.junit.Assert.fail("exception not thrown");
-		}
-		catch(IllegalArgumentException ex)
-		{
-			Assert.assertTrue(ex.getMessage().contains("element does not start with graphml"));
-		}
+		final Document document = doc;
+		checkForCorrectException(new whatToRun() { public void run() {
+			Transform.loadGraph(document.createElement("junk"));
+		}},IllegalArgumentException.class,"element does not start with graphml");
 	}
 
 	/** No graph element. */
@@ -553,16 +547,10 @@ public class TestTransform {
 		{
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
-		org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
-		try
-		{
+		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
+		checkForCorrectException(new whatToRun() { public void run() {
 			Transform.loadGraph(elem);
-			org.junit.Assert.fail("exception not thrown");
-		}
-		catch(IllegalArgumentException ex)
-		{
-			Assert.assertTrue(ex.getMessage().contains("absent graph element"));
-		}
+		}},IllegalArgumentException.class,"absent graph element");
 	}
 	
 	/** No graph element. */
@@ -582,17 +570,35 @@ public class TestTransform {
 		{
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
-		org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
+		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
 		
+		checkForCorrectException(new whatToRun() { public void run() {
+			Transform.loadGraph(elem);
+		}},IllegalArgumentException.class,"absent graph element");
+	}
+	
+	/** Duplicate graph elements. */
+	@Test
+	public final void testGraphMLwriter_loadnode_fail2c() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		Document doc = null;
 		try
 		{
-			Transform.loadGraph(elem);
-			org.junit.Assert.fail("exception not thrown");
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
 		}
-		catch(IllegalArgumentException ex)
+		catch(ParserConfigurationException ex)
 		{
-			Assert.assertTrue(ex.getMessage().contains("absent graph element"));
+			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
+		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.appendChild(doc.createElement("graph"));
+		
+		checkForCorrectException(new whatToRun() { public void run() {
+			Transform.loadGraph(elem);
+		}},IllegalArgumentException.class,"duplicate graph element");
 	}
 	
 	/** A helper method which saves a given graph and subsequently verifies that the graph loads back.
@@ -680,6 +686,14 @@ public class TestTransform {
 				new TreeMap<String,CmpVertex>());
 		Assert.assertTrue(ids_are_valid(graph));
 		
+		// check an ID just over the current one.
+		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+11),graph.config),
+				new TreeMap<String,CmpVertex>());
+		Assert.assertFalse(ids_are_valid(graph));
+		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
+		graph.setIDNumbers();
+		Assert.assertTrue(ids_are_valid(graph));
+		
 	}
 	
 	@Test
@@ -754,7 +768,7 @@ public class TestTransform {
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 	    	try
 	    	{
-	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("accepted=\"false\"", "accepted=\"aa\""))),Configuration.getDefaultConfiguration());
+	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\""))),Configuration.getDefaultConfiguration());
 	    	}
 	    	catch(FatalException ex)
 	    	{
@@ -776,7 +790,7 @@ public class TestTransform {
 	    	
 	    	try
 	    	{
-	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("colour=\"red\"", "colour=\"aa\""))),Configuration.getDefaultConfiguration());
+	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("COLOUR=\"red\"", "COLOUR=\"aa\""))),Configuration.getDefaultConfiguration());
 	    	}
 	    	catch(FatalException ex)
 	    	{

@@ -195,7 +195,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			else
 			{
 				notify();
-				wait();
+				wait();// used to stop the other thread from outrunning the first one by a large margin.
 			}
 		} catch (InterruptedException e) 
 		{

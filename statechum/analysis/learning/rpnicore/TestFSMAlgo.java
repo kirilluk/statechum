@@ -476,7 +476,7 @@ public class TestFSMAlgo {
 	@Test
 	public void testVertexIDEquals2()
 	{
-		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.INIT,9));
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.NEUTRAL,9));
 	}
 
 	public final static String 
@@ -488,14 +488,14 @@ public class TestFSMAlgo {
 	@Test
 	public void testVertexIDEquals3()
 	{
-		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.INIT,5));
+		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEUTRAL,5));
 	}
 	
 	/** Tests equality for VertexIDs with string and numerical IDs. */
 	@Test
 	public void testVertexIDEquals4()
 	{
-		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(idP5), new VertexID(idN5), new VertexID(VertKind.INIT,9));
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(idP5), new VertexID(idN5), new VertexID(VertKind.NEUTRAL,9));
 	}
 
 	/** Tests equality for VertexIDs with string and numerical IDs, checking that cached representation works. */
@@ -503,7 +503,7 @@ public class TestFSMAlgo {
 	public void testVertexIDEquals_cached()
 	{
 		VertexID p=new VertexID(VertKind.POSITIVE,5), q=new VertexID(idP5), 
-		differentA=new VertexID(VertKind.POSITIVE,6), differentB=new VertexID(VertKind.INIT,9);
+		differentA=new VertexID(VertKind.POSITIVE,6), differentB=new VertexID(VertKind.NEUTRAL,9);
 		equalityTestingHelper(p, p, differentA, differentB);// at this point, numeric ID will have a textual representation added
 
 		equalityTestingHelper(p, q, differentA, differentB);

@@ -98,14 +98,14 @@ public class TestGD_ExistingGraphs {
 	public final void runPatch(String fileA, String fileB)
 	{
 		LearnerGraph loadedA = LearnerGraph.loadGraph(fileA, config), loadedB = LearnerGraph.loadGraph(fileB, config); 
-		LearnerGraph grA = Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
-		LearnerGraph grB = Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
+		LearnerGraph grA = loadedA;//Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
+		LearnerGraph grB = loadedB;//Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
 		GD gd = new GD();
 		LearnerGraph loadedExpected = LearnerGraph.loadGraph(fileA, config);
-		LearnerGraph graph = Transform.convertToNumerical(loadedExpected);Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
+		LearnerGraph graph = loadedExpected;//Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
 		ChangesRecorder patcher = new ChangesRecorder(null);
-		Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
-		gd.init(grA, grB, threadNumber,testValueOfNewToOrig);
+		//Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		gd.init(grA, grB, threadNumber);
 		gd.identifyKeyPairs();
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 		gd.makeSteps(patcher,allKeyPairs);

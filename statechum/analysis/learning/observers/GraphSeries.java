@@ -115,7 +115,7 @@ public class GraphSeries {
 		Element result = null;
 		if (graph == null)
 		{
-			graph = Transform.convertToNumerical(newGraph);
+			graph = newGraph.copy(newGraph.config);
 			result = graph.transform.createGraphMLNode(doc);
 		}
 		else
@@ -126,7 +126,7 @@ public class GraphSeries {
 			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
 
 			boolean assertionsEnabled = false;assert assertionsEnabled = true;
-			if (assertionsEnabled) WMethod.checkM(newGraph, graph);
+			if (assertionsEnabled) { WMethod.checkM(newGraph, graph);assert graph.wmethod.checkUnreachableStates() == false; }
 			++graphNumber;totalRate+=rateEstimator.getCompressionRate();
 		}
 		return result;

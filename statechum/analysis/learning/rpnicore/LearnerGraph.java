@@ -627,7 +627,7 @@ public class LearnerGraph {
 	{
 		if (config.getDefaultInitialPTAName().length() > 0)
 			return new VertexID(config.getDefaultInitialPTAName());
-		return new VertexID(VertKind.INIT,vertPositiveID++);
+		return new VertexID(VertKind.POSITIVE,vertPositiveID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when

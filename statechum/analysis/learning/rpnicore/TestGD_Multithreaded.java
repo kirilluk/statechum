@@ -78,12 +78,13 @@ public class TestGD_Multithreaded {
 		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
 
 		GD gd = new GD();
-		gd.init(graphA, graphB, threadNumber,newToOrig);
+		gd.init(graphA, graphB, threadNumber);
 		Assert.assertEquals(graphA.transitionMatrix.size(),gd.statesOfA.size());
+		Assert.assertEquals(graphA.transitionMatrix.size(),gd.copyOfA.getStateNumber());
 		Assert.assertEquals(graphB.transitionMatrix.size(),gd.statesOfB.size());
-		Assert.assertEquals(graphA.transitionMatrix.size()+graphB.transitionMatrix.size(),gd.newToOrig.size());
-		for(CmpVertex v:gd.statesOfA) Assert.assertTrue(graphA.transitionMatrix.containsKey(gd.newToOrig.get(v)));
-		for(CmpVertex v:gd.statesOfB) Assert.assertTrue(graphB.transitionMatrix.containsKey(gd.newToOrig.get(v)));
+		Assert.assertEquals(graphA.transitionMatrix.size()+graphB.transitionMatrix.size(),gd.grCombined.getStateNumber());
+		for(CmpVertex v:gd.statesOfA) Assert.assertTrue(graphA.transitionMatrix.containsKey(v));
+		for(CmpVertex v:gd.statesOfB) Assert.assertTrue(graphB.transitionMatrix.containsKey(gd.newBToOrig.get(v)));
 	}
 
 	@Test
@@ -94,12 +95,12 @@ public class TestGD_Multithreaded {
 		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
 
 		GD gd = new GD();
-		gd.init(graphA, graphB, threadNumber,newToOrig);
+		gd.init(graphA, graphB, threadNumber);
 		Assert.assertTrue(gd.identifyKeyPairs());
 		//printListOfPairs(gd,gd.currentWave);
 		for(PairScore pair:gd.frontWave)
 		{
-			CmpVertex A=gd.newToOrig.get(pair.getQ()), B=gd.newToOrig.get(pair.getR());
+			CmpVertex A=pair.getQ(), B=gd.newBToOrig.get(pair.getR());
 			Assert.assertTrue(B.getID().toString().startsWith("@"));
 			Assert.assertEquals(B.getID().toString(),"@"+A.getID().toString());
 		}
@@ -114,7 +115,7 @@ public class TestGD_Multithreaded {
 		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B-a->@C-a->@A","testFindKeyPairs2B"),Configuration.getDefaultConfiguration());
 
 		GD gd = new GD();
-		gd.init(graphA, graphB, threadNumber,newToOrig);
+		gd.init(graphA, graphB, threadNumber);
 		Assert.assertFalse(gd.identifyKeyPairs());
 		//printListOfPairs(gd,gd.frontWave);
 	}
@@ -128,7 +129,7 @@ public class TestGD_Multithreaded {
 				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
 
 		GD gd = new GD();
-		gd.init(graphA, graphB, threadNumber,newToOrig);
+		gd.init(graphA, graphB, threadNumber);
 		Assert.assertTrue(gd.identifyKeyPairs());
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 		ChangesRecorder recorder = new ChangesRecorder(null);
@@ -136,8 +137,8 @@ public class TestGD_Multithreaded {
 		//printListOfPairs(gd,allKeyPairs);
 		for(PairScore pair:allKeyPairs)
 		{
-			CmpVertex A=gd.newToOrig.get(pair.getQ()), B=gd.newToOrig.get(pair.getR());
-			Assert.assertEquals(B.getID().toString(),A.getID().toString());
+			CmpVertex A=pair.getQ(), B=gd.newBToOrig.get(pair.getR());
+			Assert.assertEquals(B.getID().toString(),"@"+A.getID().toString());
 		}
 	}
 
@@ -173,7 +174,7 @@ public class TestGD_Multithreaded {
 		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
 
 		GD gd = new GD();
-		gd.init(grA, grB, threadNumber,newToOrig);
+		gd.init(grA, grB, threadNumber);
 		gd.identifyKeyPairs();
 		//printListOfPairs(gd, gd.currentWave);
 		//printListOfPairs(gd, gd.frontWave);
@@ -533,7 +534,7 @@ public class TestGD_Multithreaded {
 			LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
 	
 			GD gd = new GD();
-			gd.init(grA, grB, threadNumber,newToOrig);
+			gd.init(grA, grB, threadNumber);
 			gd.identifyKeyPairs();
 			ChangesRecorder recorder = new ChangesRecorder(null);
 			List<PairScore> allKeyPairs = new LinkedList<PairScore>();

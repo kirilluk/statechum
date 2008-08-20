@@ -49,7 +49,6 @@ public class DeterministicDirectedSparseGraph {
 		/** A kind of a state. INIT does not really have to be a special kind but it is convenient to 
 		 * be able to look at an ID and know exactly the sort of state one is looking at.
 		 * <ul>
-		 * <li>INIT is used to designate an initial state.</li>
 		 * <li>NONE is for states which only have string IDs.</li>
 		 * <li>NEUTRAL is used if I wish to give uniform IDs to accept and reject states. 
 		 * This is useful if I would like not to consider all accept states before reject
@@ -58,7 +57,7 @@ public class DeterministicDirectedSparseGraph {
 		 * <li>NEGATIVE means that this is a reject-state.</li>
 		 * <li>POSITIVE means that this is an accept-state.</li>
 		 */
-		public enum VertKind { INIT, NEUTRAL, NEGATIVE, POSITIVE, NONE };
+		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONE };
 		
 		/** Textual representation of this ID, definite value if kind == VertKind.NONE
 		 * and a cached version of a numerical ID if not.
@@ -136,8 +135,6 @@ public class DeterministicDirectedSparseGraph {
 			String result = null;
 			switch(kind)
 			{
-			case INIT:
-				result = "Init";break;
 			case NEGATIVE:
 				result = "N"+idInteger;break;
 			case POSITIVE:

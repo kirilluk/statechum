@@ -338,7 +338,7 @@ public class Transform {
 		{// The idea is to number the new states rather than to clone vertices.
 		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.
 			CmpVertex newVert = LearnerGraph.generateNewCmpVertex(g.nextID(entry.getKey().isAccept()), g.config);
-			assert g.findVertex(newVert.getID()) == null : "duplicate vertex with ID "+newVert.getID();
+			if (g.findVertex(newVert.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getID()+" in graph "+g);
 			assert !g.transitionMatrix.containsKey(newVert) : "duplicate vertex "+newVert;
 			newVert.setAccept(entry.getKey().isAccept());
 			newVert.setHighlight(entry.getKey().isHighlight());

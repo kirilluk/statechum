@@ -140,7 +140,7 @@ public class SpinUtil {
 		                new BufferedInputStream(proc.getInputStream()));
 		            BufferedReader reader = new BufferedReader(tempReader);
 				while ((line = reader.readLine()) != null) {
-					//System.out.println(line);
+					System.out.println(line);
 					 if(line.contains("errors: 0"))
 						 return true;
 				}
@@ -175,20 +175,22 @@ public class SpinUtil {
 			DirectedSparseVertex v = stateIt.next();
 			
 			String currentState = v.getUserDatum(JUConstants.LABEL).toString();
+			if(v.containsUserDatumKey(JUConstants.INITIAL))
+				currentState = "Init";
 			if (!stateMap.keySet().contains(currentState)) {
 				stateMap.put(currentState, new Integer(stateCounter));
 				stateCounter++;
 			}
 			if (!DeterministicDirectedSparseGraph.isAccept(v)){
-				sw.write(v + ": false;\n");
+				sw.write(currentState + ": false;\n");
 				continue;
 			}
 			if(numAcceptingSuccessors(v)==0){
-				sw.write(v + ": goto end;\n");
+				sw.write(currentState + ": goto end;\n");
 				continue;
 			}
 			else{
-				sw.write(v+":\n"+"\tif");
+				sw.write(currentState+":\n"+"\tif");
 				Iterator<DirectedEdge> outEdges = v.getOutEdges().iterator();
 				while(outEdges.hasNext()){
 					DirectedEdge e = outEdges.next();
@@ -197,6 +199,8 @@ public class SpinUtil {
 					if(!DeterministicDirectedSparseGraph.isAccept(e.getDest()))
 							continue;
 					String toState = e.getDest().getUserDatum(JUConstants.LABEL).toString();
+					if(e.getDest().containsUserDatumKey(JUConstants.INITIAL))
+						toState = "Init";
 					if (!stateMap.keySet().contains(toState)) {
 						stateMap.put(toState, new Integer(stateCounter));
 						stateCounter++;

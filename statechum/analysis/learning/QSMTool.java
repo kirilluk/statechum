@@ -70,6 +70,8 @@ public class QSMTool {
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
 		if(textoutput) config.setGenerateTextOutput(true);
 		if(dotoutput) config.setGenerateDotOutput(true);
+		//config.setMinCertaintyThreshold(1);
+		config.setQuestionPathUnionLimit(1);
 		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		if (!includeLTL)

@@ -140,7 +140,7 @@ public class SpinUtil {
 		                new BufferedInputStream(proc.getInputStream()));
 		            BufferedReader reader = new BufferedReader(tempReader);
 				while ((line = reader.readLine()) != null) {
-					System.out.println(line);
+					//System.out.println(line);
 					 if(line.contains("errors: 0"))
 						 return true;
 				}
@@ -186,7 +186,7 @@ public class SpinUtil {
 				continue;
 			}
 			if(numAcceptingSuccessors(v)==0){
-				sw.write(currentState + ": goto end;\n");
+				sw.write(currentState + ": input=50000; goto end;\n");
 				continue;
 			}
 			else{

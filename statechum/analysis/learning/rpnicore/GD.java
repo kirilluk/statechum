@@ -37,11 +37,10 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.DDRH_default;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
@@ -918,13 +917,13 @@ public class GD {
 		{
 			if (topPair != null)
 			{// at least we've got a pair with a score over zero.
-				if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, using "+topPair);
 				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 			}
 			else
 			{// nothing of use detected, the difference will contain a union of all transitions in graphs A and B.
-				if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 					System.out.println("Linear failed to find any pairs with positive scores, the diff is the union of A and B");
 			}
 			result = false;

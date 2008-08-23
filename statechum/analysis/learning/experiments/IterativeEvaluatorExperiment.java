@@ -18,7 +18,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.experiments;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,21 +27,23 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.observers.AccuracyTrackerDecorator;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.PTASequenceEngine;
 
-public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {	
+public class IterativeEvaluatorExperiment {	
 	
 	
 	public static abstract class IterativeEvaluator extends LearnerEvaluator
 	{
 		PTASequenceEngine sPlus = null, sMinus = null;
-		public IterativeEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
+		public IterativeEvaluator(String inputFile, int per, int instance, ExperimentRunner exp, Configuration cnf, String name)
 		{
-			super(inputFile, per, instance, exp);			
+			super(inputFile, per, instance, exp,cnf,name);			
 		}
 
 		/** This one may be overridden by subclass to customise the learner. */
@@ -96,77 +97,14 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 			return learningOutcome;
 		}
 	}
-	
 
-	static class IterativeExperiment extends IterativeEvaluatorExperiment
-	{
-		protected final Configuration conf;
-		
-		/** Constructs an experiment class
-		 * 
-		 * @param qg the questioning strategy to use.
-		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
-		 * @param useSpeculative whether to use speculative question asking.
-		 */
-		public IterativeExperiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
-		{
-			super();conf=Configuration.getDefaultConfiguration().copy();
-			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
-		}
-
-		/** Constructs an experiment class for checking whether the improved merger and
-		 * question generator does the same thing as the old one.
-		 * 
-		 * @param qg the questioning strategy to use.
-		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
-		 */
-		public IterativeExperiment()
-		{
-			super();conf=Configuration.getDefaultConfiguration().copy();
-			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
-			conf.setSpeculativeQuestionAsking(true);
-			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);
-		}
-
-		public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-			return Arrays.asList(new LearnerEvaluatorGenerator[] {
-				new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new IterativeEvaluator(inputFile, percent, instanceID, exp)
-						{
-							@Override
-							protected void changeParameters(Configuration c) 
-							{
-								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-								//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
-								//c.setMinCertaintyThreshold(0); //question threshold
-								//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
-								c.setQuestionGenerator(conf.getQuestionGenerator());
-								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
-								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
-							}
-
-							@Override
-							protected String getLearnerName() {
-								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; speculative : "+conf.isSpeculativeQuestionAsking();
-							}
-						};
-					}
-				}
-			});
-		}
-	}
-
-	@Override
-	public int[] getStages() {return new int[]{100};}
-	
 	public static void main(String []args)
 	{
 		try {
 			LearnerGraph.testMode=true;
 			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
 			LearnerGraph.testMode=false;
+			ExperimentRunner experiment = new ExperimentRunner();
 			
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
 					Configuration.QuestionGeneratorKind.CONVENTIONAL,
@@ -177,10 +115,16 @@ public abstract class IterativeEvaluatorExperiment extends AbstractExperiment {
 					for(int limit:new int[]{-1,3,1})
 					{
 						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
-						AbstractExperiment experiment = new IterativeExperiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
-						experiment.runExperiment(args);
+						Configuration config= Configuration.getDefaultConfiguration().copy();
+						config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
+						config.setQuestionGenerator(qk);
+						config.setQuestionPathUnionLimit(limit);
+						config.setSpeculativeQuestionAsking(speculative);
+						experiment.addLearnerEvaluator(new GeneratorConfiguration(config,IterativeEvaluator.class,experimentDescription));
 					}			
 			
+			//experiment.setOutputDir(experimentDescription+"_");
+			experiment.runExperiment(args);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return;

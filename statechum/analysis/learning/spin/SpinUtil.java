@@ -47,7 +47,7 @@ public class SpinUtil {
 
 	static String defines;
 
-	static String fileRef = "temp"+System.getProperty("file.separator")+"promelaMachine";
+	static String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"promelaMachine";
 	
 	static StringWriter sw;
 

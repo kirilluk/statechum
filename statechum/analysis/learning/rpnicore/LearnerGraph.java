@@ -815,8 +815,9 @@ public class LearnerGraph {
 	}
 
 	/** This one does not compare configuration or IDs - only states/transitions 
-	 * are compared. I think this is best, however note that it is not a 
-	 * congruence: <ul>
+	 * are compared and even that is done by matching identifiers of vertices. 
+	 * I think this is best, however note that it is not a congruence: 
+	 * <ul>
 	 * <li>doing an "augment pta" may hence add vertices with different
 	 * numbers and hence previously identical graphs will become different.
 	 * I think that despite this problem, it is important to be able to consider

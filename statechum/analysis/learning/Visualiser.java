@@ -36,8 +36,11 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.GlobalConfiguration.ENV_PROPERTIES;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.*;
 
 import java.awt.*;
@@ -105,20 +108,22 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 * The name under which to store window information. The default value is
 	 * null which inhibits saving of a layout.
 	 */
-	protected VIZ_PROPERTIES propName = null;
+	protected G_PROPERTIES propName = null;
 
 	/** A popup with Jung control choices. */
 	JPopupMenu popupMenu;
 
+	final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration(); 
+	
 	/**
 	 * Public constructor
 	 * 
 	 * @param windowPropName
 	 *            the name under which to store configuration information.
 	 */
-	public Visualiser(VIZ_PROPERTIES windowPropName) {
+	public Visualiser(G_PROPERTIES windowPropName) {
 		super(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()
-				[loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
+				[GlobalConfiguration.getConfiguration().loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
 		propName = windowPropName;
 		
 	}
@@ -201,8 +206,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
-				saveFrame(Visualiser.this, propName);
-				saveConfiguration();
+				globalConfig.saveFrame(Visualiser.this, propName);
+				globalConfig.saveConfiguration();
 			}
 		});
 		keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
@@ -284,7 +289,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	public void construct(Graph g) {
 		boolean assertsEnabled = false;
 		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
-		if (!assertsEnabled && Boolean.getBoolean(getProperty(VIZ_PROPERTIES.ASSERT, "true")))
+		if (!assertsEnabled && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT)))
 			System.err.println("Pass the -ea argument to JVM to enable assertions");
 
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -331,12 +336,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
 
 		// Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
-		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+System.getProperty("file.separator")+"icon.jpg");if (icon != null)	setIconImage(icon);
+		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+File.separator+"icon.jpg");if (icon != null)	setIconImage(icon);
 
 		setKeyBindings();
 		//getContentPane().removeAll();
 		getContentPane().add(panel);pack();
-		restoreLayout(true,currentGraph);setBounds(loadFrame(propName).getRect());
+		restoreLayout(true,currentGraph);setBounds(globalConfig.loadFrame(propName).getRect());
         setVisible(true);
 	}
 
@@ -729,7 +734,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 */ 
 	public static Visualiser getVisualiser()
 	{
-		if (upperGraphViz == null) upperGraphViz = new Visualiser(VIZ_PROPERTIES.UPPER);
+		if (upperGraphViz == null) upperGraphViz = new Visualiser(G_PROPERTIES.UPPER);
 		return upperGraphViz;
 	}
 	
@@ -782,13 +787,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 				throw new IllegalArgumentException("the first graph to display cannot be null");
 			
 			if (upperGraphViz == null)
-				upperGraphViz=new Visualiser(VIZ_PROPERTIES.UPPER);
+				upperGraphViz=new Visualiser(G_PROPERTIES.UPPER);
 	
 			upperGraphViz.update(null, upperGraph);
 			if (lowerGraph != null)
 			{
 				if (lowerGraphViz == null)
-					lowerGraphViz = new Visualiser(VIZ_PROPERTIES.LOWER);
+					lowerGraphViz = new Visualiser(G_PROPERTIES.LOWER);
 				lowerGraphViz.update(null, lowerGraph);
 			}
 		}
@@ -818,75 +823,6 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			System.exit(1);
 	}
 	
-	public enum VIZ_ENV_PROPERTIES {
-		VIZ_DIR,// the path to visualisation-related information, such as graph layouts and configuration file.
-		VIZ_CONFIG,// the configuration file containing window positions and whether to display an assert-related warning.
-		VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions
-	}
-	
-	public enum VIZ_PROPERTIES { // internal properties
-		ASSERT,// whether to display assert warning.
-		LINEARWARNINGS,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
-		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
-		LOWER, UPPER // window positions, not real properties to be stored in a file.
-		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
-		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
-		;
-	}
-
-	protected static Properties properties = null;
-	
-	protected static Map<String,WindowPosition> windowCoords = null;// if I index by VIZ_PROPERTIES, I cannot serialise into XML
-	
-	/** Default screen to use for any frames created. */
-	public static final int DEFAULT_SCREEN = 0;
-	
-	/** Loads the location/size of a frame from the properties file and positions the frame as appropriate.
-	 * 
-	 * @param frame the frame to position.
-	 * @param name the name of the property to load from
-	 */   
-	protected static WindowPosition loadFrame(VIZ_PROPERTIES name)
-	{
-		if (windowCoords == null)
-			loadConfiguration();
-		
-		WindowPosition result = windowCoords.get(name.name());
-		
-		if (result == null)
-		{// invent default coordinates, using http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
-
-			GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-			GraphicsDevice[] gs = ge.getScreenDevices();
-			int deviceToUse = Integer.valueOf(getProperty(VIZ_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN));
-			if (deviceToUse >= gs.length) deviceToUse =DEFAULT_SCREEN;// use the first one if cannot use the requested one.
-			GraphicsConfiguration gc = gs[deviceToUse].getDefaultConfiguration();
-			
-			// from http://java.sun.com/j2se/1.4.2/docs/api/index.html
-			Rectangle shape = gc.getBounds();
-			Rectangle rect = new Rectangle(new Rectangle(shape.x, shape.y,400,300));
-			if (name == VIZ_PROPERTIES.LOWER)
-				rect.y+=rect.getHeight()+30;
-			result = new WindowPosition(rect,deviceToUse);
-			windowCoords.put(name.name(),result);
-		}
-		
-		return result;
-	}
-	
-	/** Stores the current location/size of a frame to the properties file.
-	 * 
-	 * @param frame the frame to position.
-	 * @param name the name under which to store the property
-	 */   
-	protected static void saveFrame(Frame frame,VIZ_PROPERTIES name)
-	{
-		WindowPosition windowPos = windowCoords.get(name.name());if (windowPos == null) windowPos = new WindowPosition();
-		Rectangle newRect = new Rectangle(frame.getSize());newRect.setLocation(frame.getX(), frame.getY());
-		windowPos.setRect(newRect);
-		windowCoords.put(name.name(), windowPos);
-	}
-
 	/** Retrieves the name of the file to load a graph layout from/store layout to.
 	 * 
 	 * @param g the graph which name to extract
@@ -895,132 +831,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static String getLayoutFileName(Graph g)
 	{
 		String file = (String)g.getUserDatum(JUConstants.TITLE);
-		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
+		String path = System.getProperty(ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
 		if (file == null)
 			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.name()+" property has not been set on the graph");
 		
-		return path+System.getProperty("file.separator")+file.replace(' ', '_')+".xml";
+		return path+File.separator+file.replace(' ', '_')+".xml";
 	}
 	
-	/** Retrieves the name of the file to load configuration information from/store it to.
-	 * 
-	 * @return the file name to load/store configuration information information, or return null if it cannot be retrieved. 
-	 */
-	protected static String getConfigurationFileName()
-	{
-		String path = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+System.getProperty("file.separator")+"graphLayout";
-		String file = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_CONFIG.name());
-		String result = null;
-		if (file != null)
-			result = path+System.getProperty("file.separator")+file+".xml";
-		
-		return result;
-	}	
-	
-	/** Retrieves the name of the property from the property file.
-	 *  The first call to this method opens the property file.
-	 *  
-	 * @param name the name of the property.
-	 * @param defaultValue the default value of the property
-	 * @return property value, default value if not found
-	 */
-	public static String getProperty(VIZ_PROPERTIES name,String defaultValue)
-	{
-		String result = defaultValue;
-		if (properties == null)
-			loadConfiguration();
-		result = properties.getProperty(name.name(), defaultValue);
-		return result;
-	}
-
-	/** Stores the details of the frame position. 
-	 */
-	public static class WindowPosition
-	{
-		private Rectangle rect = null;
-		private int screenDevice;
-		
-		public WindowPosition() {}
-
-		public WindowPosition(Rectangle r, int s)
-		{
-			rect = r;screenDevice = s;
-		}
-		
-		public Rectangle getRect() {
-			return rect;
-		}
-
-		public void setRect(Rectangle r) {
-			this.rect = r;
-		}
-
-		public int getScreenDevice() {
-			return screenDevice;
-		}
-
-		public void setScreenDevice(int screen) {
-			this.screenDevice = screen;
-		}
-
-		
-	}
-	protected static void loadConfiguration()
-	{
-		String configFileName = getConfigurationFileName();
-		if (configFileName != null && new File(configFileName).canRead())
-		try 
-		{
-			System.out.println("Loaded configuration file "+configFileName);
-			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
-			properties = (Properties) decoder.readObject();
-			windowCoords = (HashMap<String, WindowPosition>) decoder.readObject();
-			decoder.close();
-		} catch (Exception e) 
-		{// failed loading, (almost) ignore this.
-			System.err.println("Failed to load "+configFileName);
-			e.printStackTrace();
-		}
-		
-		if (windowCoords == null)
-			windowCoords = new HashMap<String, WindowPosition>();
-		if (properties == null)
-			properties = new Properties();
-	}
-	
-	/** Saves all the current properties in the configuration file. */
-	protected static void saveConfiguration()
-	{
-		String configFileName = getConfigurationFileName();
-		if (windowCoords == null)
-			windowCoords = new HashMap<String, WindowPosition>();
-		if (properties == null)
-			properties = new Properties();
-
-		try {
-			if (configFileName != null)
-			{
-				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(configFileName));
-				encoder.writeObject(properties);encoder.writeObject(windowCoords);encoder.close();
-			}
-		} catch (Exception e) 
-		{// failed loading
-			e.printStackTrace();
-		}		
-	}
-
-	/** Returns true if the configuration file defines the name of the supplied graph as the one 
-	 * transformation of which we should be looking at in detail.
-	 * 
-	 * @param graph the graph we might wish to look at in detail
-	 * @return whether lots of debug output should be enable when this graph is being processed.
-	 */
-	public static boolean isGraphTransformationDebug(DirectedSparseGraph graph)
-	{
-		String name = graph == null? null:(String)graph.getUserDatum(JUConstants.TITLE);
-		return name != null && name.length()>0 && 
-			Visualiser.getProperty(Visualiser.VIZ_PROPERTIES.STOP, "").equals(name);
-	}
 
 	protected static class XMLPersistingLayout extends PersistentLayoutImpl
 	{
@@ -1039,10 +856,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	    public Map<Integer,DoublePair> persist() {
 	    	if (sourceMap == null)
 	    		sourceMap = new TreeMap<Integer,DoublePair>();
-	        Set set = getGraph().getVertices();
-	        for (Iterator iterator = set.iterator(); iterator.hasNext();) 
+	        Set<Vertex> set = getGraph().getVertices();
+	        for (Iterator<Vertex> iterator = set.iterator(); iterator.hasNext();) 
 	        {
-	            Vertex v = (Vertex) iterator.next();
+	            Vertex v = iterator.next();
 	            DoublePair p = new DoublePair(getX(v), getY(v));
 	            sourceMap.put(new Integer(v.hashCode()), p);
 	        }

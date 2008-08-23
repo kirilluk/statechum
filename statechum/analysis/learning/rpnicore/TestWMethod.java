@@ -616,7 +616,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			WMethod.checkM(fsm,fsm,e.getA(),e.getB());
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
 		}
 
 		try
@@ -633,7 +633,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			WMethod.checkM(fsm,fsm,e.getA(),e.getB());
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
 		}
 
 		try
@@ -647,7 +647,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			WMethod.checkM(fsm,fsm,e.getA(),e.getB());
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
 		}
 	}	
 	
@@ -791,7 +791,7 @@ public class TestWMethod {
 		LearnerGraph fsm = new LearnerGraph(g,config);//visFrame.update(null, g);
 		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 		LearnerGraph permFsm = fsm.wmethod.Permute(perm);
-		WMethod.checkM(fsm,permFsm);
+		Assert.assertNull(WMethod.checkM(fsm,permFsm));
 		
 		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
 		fsm.wmethod.checkW_is_corrent(newWset);

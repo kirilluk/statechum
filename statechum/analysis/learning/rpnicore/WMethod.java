@@ -840,10 +840,13 @@ public class WMethod {
 	}
 	
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
-	 * Unreachable states are ignored. 
+	 * Unreachable states are ignored.
+	 * 
+	 * @return DifferentFSMException if machines are different and null otherwise.
 	 */
-	public static void checkM(LearnerGraph graph, LearnerGraph expected, CmpVertex stateGraph, CmpVertex stateExpected)
+	public static DifferentFSMException checkM(LearnerGraph expected, CmpVertex stateExpected, LearnerGraph graph, CmpVertex stateGraph)
 	{
+		assert stateExpected != null && stateGraph != null;
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 
 		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
@@ -855,17 +858,17 @@ public class WMethod {
 			assert graph.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
 			assert expected.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
 			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
-				throw new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
+				return new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
 						
 			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem), expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
 			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
-				throw new DifferentFSMException("different number of transitions from states "+statePair);
+				return new DifferentFSMException("different number of transitions from states "+statePair);
 				
 			for(Entry<String,CmpVertex> labelstate:targets.entrySet())
 			{
 				String label = labelstate.getKey();
 				if (!expectedTargets.containsKey(label))
-					throw new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.secondElem);
+					return new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.secondElem);
 				CmpVertex tState = labelstate.getValue();// the original one
 				CmpVertex expectedState = expectedTargets.get(label);
 				
@@ -878,14 +881,15 @@ public class WMethod {
 			}
 		}
 		
+		return null;
 	}
 
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states are ignored. 
 	 */
-	public static void checkM(LearnerGraph graph, LearnerGraph expected)
+	public static DifferentFSMException checkM(LearnerGraph expected, LearnerGraph graph)
 	{
-		checkM(graph, expected, graph.init,expected.init);
+		return checkM(expected,expected.init, graph, graph.init);
 	}
 
 	/** Given an FSM and a W set, checks if it is a valid W set and throws if not.

@@ -36,7 +36,6 @@ import java.io.*;
 import java.util.*;
 
 import statechum.Configuration;
-import statechum.analysis.learning.Visualiser.VIZ_ENV_PROPERTIES;
 
 public class QSMTool {
 	
@@ -66,7 +65,7 @@ public class QSMTool {
 		// new PickNegativesVisualiser(new
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
 		Configuration config = Configuration.getDefaultConfiguration();
-		String AutoName = System.getProperty(VIZ_ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
+		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
 		if(textoutput) config.setGenerateTextOutput(true);
 		if(dotoutput) config.setGenerateDotOutput(true);

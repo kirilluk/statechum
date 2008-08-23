@@ -12,14 +12,14 @@ public class OutputUtil {
 	
 	public static void generateTextOutput(DirectedSparseGraph g){
 		StringWriter graphout = traverseGraph(g);
-		String fileRef = "temp"+System.getProperty("file.separator")+"textMachineOutput";
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"textMachineOutput";
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
 	}
 	
 	public static void generateDotOutput(DirectedSparseGraph g){
 		StringWriter graphout = dotGraph(g);
-		String fileRef = "temp"+System.getProperty("file.separator")+"dotOutput.dot";
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"dotOutput.dot";
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
 	}

@@ -21,7 +21,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import cern.colt.bitvector.BitVector;
 import cern.colt.list.DoubleArrayList;
@@ -470,6 +469,9 @@ public class LearnerGraphND
 	/** Maps states to inputs accepted and rejected from each of them. */
 	protected Map<CmpVertex,BitVector> inputsAccepted = null,inputsRejected = null;
 
+	/** When this is set to true, various performance warnings are emitted. */
+	protected boolean linearWarningsEnabled = Boolean.valueOf(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS));
+
 	/** Checks the supplied bit-vectors for an intersection.
 	 * Note that the same thing could be accomplished with
 	 * <code>
@@ -879,7 +881,7 @@ public class LearnerGraphND
 	public LSolver buildMatrix_internal(final int [] incompatiblePairs, final int pairsNumber, final int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
 	{ 
-		//if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+		//if (linearWarningsEnabled)
 		//	System.out.println("Initial number of pairs: "+getPairNumber()+", after reduction: "+pairsNumber);
 
 		final int expectedMatrixSize = getExpectedIncomingPerPairOfStates()*pairsNumber;
@@ -974,7 +976,7 @@ public class LearnerGraphND
 								int maxSize = colEntriesNumber+outLabel.getValue().size()*to.size();
 								if (tmpAi.elements().length < maxSize)
 								{
-									if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+									if (linearWarningsEnabled )
 										System.out.println("buildMatrix: warning - resizing arrays tmpAi[thread "+threadNo+"] from "+tmpAi.elements().length+" to "+maxSize);
 									tmpAi.ensureCapacity(maxSize);
 								}
@@ -1022,7 +1024,7 @@ public class LearnerGraphND
 						int expectedMaxSize = pos+colEntriesNumber+1;
 						if (Ax.elements().length < expectedMaxSize)
 						{
-							if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+							if (linearWarningsEnabled)
 								System.out.println("buildMatrix: warning - resizing arrays Ax[thread "+threadNo+"] and Ai[thread "+threadNo+"] from "+Ax.elements().length+" to "+expectedMaxSize);
 							Ax.ensureCapacity(expectedMaxSize);
 							Ai.ensureCapacity(expectedMaxSize);

@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -21,6 +22,7 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -546,10 +548,11 @@ public class TestRecordProgressDecorator {
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 		StringWriter writer = new StringWriter();
 		RecordProgressDecorator recorder = new RecordProgressDecorator(l,writer,1,Configuration.getDefaultConfiguration());recorder.config=expected.config.copy();
-		Collection<List<String>> testSet = buildSet(new String[][]{});
-		recorder.handleLearnerEvaluationData(expected, testSet, null);
+		Collection<List<String>> testSet = new LinkedList<List<String>>();
+		recorder.writeLearnerEvaluationData(new ProgressDecorator.LearnerEvaluationConfiguration(expected, testSet, testConfig, null));
 		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus), buildSet(minus));
 		
+		//System.out.println("compression rate: "+recorder.getCompressionRate());
 		//System.out.println(writer.toString());
 		
 		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,expected.config);
@@ -558,17 +561,25 @@ public class TestRecordProgressDecorator {
 		{// matching two simulators
 			final LearnerSimulator simulator = new LearnerSimulator(new StringReader(writer.toString())),
 			simulator2 = new LearnerSimulator(new StringReader(writer.toString()));
-			simulator.handleLearnerEvaluationData(expected, testSet,null);Assert.assertEquals(expected.config, simulator.config);
-			simulator2.handleLearnerEvaluationData(expected, testSet,null);Assert.assertEquals(expected.config, simulator2.config);
+			
+			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+			Assert.assertEquals(testSet, eval1.testSet);
+			Assert.assertEquals(expected.config, simulator.config);
+			LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData();
+			Assert.assertNull(WMethod.checkM(expected, eval2.graph));
+			Assert.assertEquals(testSet, eval2.testSet);
+			Assert.assertEquals(expected.config, simulator2.config);
 			
 			new Test_LearnerComparator(simulator,simulator2).learnMachine(buildSet(plus), buildSet(minus));
 		}
 
 		{// now a simulator to a learner
-			final LearnerSimulator simulator = new LearnerSimulator(new StringReader(writer.toString())),
-			simulator2 = new LearnerSimulator(new StringReader(writer.toString()));
-			simulator.handleLearnerEvaluationData(expected, testSet,null);Assert.assertEquals(expected.config, simulator.config);
-			simulator2.handleLearnerEvaluationData(expected, testSet,null);Assert.assertEquals(expected.config, simulator2.config);
+			final LearnerSimulator simulator = new LearnerSimulator(new StringReader(writer.toString()));
+			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+			Assert.assertEquals(testSet, eval1.testSet);
+			Assert.assertEquals(expected.config, simulator.config);
 
 			RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,expected.config)
 			{

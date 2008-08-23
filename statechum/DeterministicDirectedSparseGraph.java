@@ -302,7 +302,7 @@ public class DeterministicDirectedSparseGraph {
 		/** Used to hold two objects and nothing else. */
 		public static class MiniPair
 		{
-			private Object key,datum;
+			protected Object key,datum;
 			
 			public Object getKey()
 			{ return key; }

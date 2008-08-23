@@ -17,8 +17,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 package statechum.analysis.learning.rpnicore;
 
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.Visualiser.VIZ_PROPERTIES;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
 import cern.colt.matrix.DoubleFactory1D;
@@ -192,7 +190,7 @@ public class LSolver
 	
 	/** Solves the system of equations, placing the solution in the x array. For details, refer to UMFPACK manual. */
 	static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
-	
+
 	/** Allocates the memory for use by the solver. This was introduced to 
 	 * combat "out-of-memory" errors on 32-bit WinXP but was not useful for this purpose. 
 	 */
@@ -243,7 +241,7 @@ public class LSolver
 		}
 		catch(IllegalArgumentException ex)
 		{
-			if (Boolean.valueOf(Visualiser.getProperty(VIZ_PROPERTIES.LINEARWARNINGS, "false")))
+			if (Boolean.valueOf(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 			{
 				System.err.println("WARNING: failed to load the external solver library");
 				ex.getCause().printStackTrace(System.err);

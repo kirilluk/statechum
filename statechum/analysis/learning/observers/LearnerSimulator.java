@@ -21,16 +21,16 @@ package statechum.analysis.learning.observers;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.Assert;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -42,7 +42,6 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceEngine;
 
 /** An instance of this class behaves like a learner including calls to its decorators, 
@@ -153,6 +152,14 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	/** The element corresponding to the current method call. */
 	protected Element currentElement = null;
 
+	protected static final Map<String,ELEM_KINDS> stringToEnumMap;
+	
+	static {
+		stringToEnumMap = new TreeMap<String,ELEM_KINDS>();
+		for(ELEM_KINDS kind: ELEM_KINDS.values())
+			stringToEnumMap.put(kind.name(), kind);
+	}
+	
 	@Override
 	public LearnerGraph learnMachine()
 	{
@@ -163,59 +170,62 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 			final String elemName = currentElement.getNodeName();
 			if (result != null) // we already know the final graph but there are more elements to come
 				throw new IllegalArgumentException("unexpected element "+elemName+" after the learner result is known");
-			if (elemName.equals(ELEM_KINDS.ELEM_ANSWER.name()))
+			ELEM_KINDS kind = stringToEnumMap.get(elemName);
+			
+		 	if (elemName.equals(Transform.graphmlNodeName) ||
+					elemName.equals(GD.ChangesRecorder.gdGD))
 			{
-				List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(ELEM_KINDS.ATTR_QUESTION.name())),-1);
-				Object outcome = topLevelListener.CheckWithEndUser(graph, question, null);
-				assert outcome == expectedReturnValue;// yes, this should be b
-			} else
-				if (elemName.equals(ELEM_KINDS.ELEM_PAIRS.name()))
-				{
-					topLevelListener.ChooseStatePairs(graph);
-				}
+				String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
+				if (graphKind.equals(ELEM_KINDS.ATTR_LEARNINGOUTCOME.name()))
+						result = series.readGraph(currentElement);
 				else
-					if (elemName.equals(ELEM_KINDS.ELEM_QUESTIONS.name()))
-					{
-						checkSingles(currentElement, childrenQuestions);
-						topLevelListener.ComputeQuestions(readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())),graph,temp);
-					}
-					else if (elemName.equals(ELEM_KINDS.ELEM_MERGEANDDETERMINIZE.name()))
-					{
-						if (currentElement.getElementsByTagName(ELEM_KINDS.ELEM_PAIR.name()).getLength() != 1)
-							throw new IllegalArgumentException("missing or duplicate pair");
-						
-						temp = topLevelListener.MergeAndDeterminize(graph, readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())));
-					}
-					else if (elemName.equals(Transform.graphmlNodeName) ||
-							elemName.equals(GD.ChangesRecorder.gdGD))
-					{
-						String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
-						if (graphKind.equals(ELEM_KINDS.ATTR_LEARNINGOUTCOME.name()))
-								result = series.readGraph(currentElement);
-						else
-							throw new IllegalArgumentException("unexpected kind of graph: "+graphKind);
-					}
-					else if (elemName.equals(ELEM_KINDS.ELEM_RESTART.name()))
-					{
-						if (!currentElement.hasAttribute(ELEM_KINDS.ATTR_KIND.name())) throw new IllegalArgumentException("absent KIND attribute on RESTART");
-						String restartKind = currentElement.getAttribute(ELEM_KINDS.ATTR_KIND.name());
-						RestartLearningEnum mode = Enum.valueOf(RestartLearningEnum.class, restartKind);
-						topLevelListener.Restart(mode);
-						if (mode == RestartLearningEnum.restartNONE)
-							graph = temp;
-						// if we are restarting, graph is unchanged.
-					}
-					else if (elemName.equals(ELEM_KINDS.ELEM_INIT.name()))
-					{
-						InitialData initial = readInitialData(currentElement);
-						graph = topLevelListener.init(initial.plus,initial.minus);
-					}
-					else if (elemName.equals(ELEM_KINDS.ELEM_AUGMENTPTA.name()))
-					{
-						AugmentPTAData augmentData = readAugmentPTA(currentElement);
-						topLevelListener.AugmentPTA(null, augmentData.kind, augmentData.sequence, augmentData.accept, augmentData.colour);
-					}
-				else throw new IllegalArgumentException("Unknown element in XML file "+elemName);
+					throw new IllegalArgumentException("unexpected kind of graph: "+graphKind);
+
+				kind = ELEM_KINDS.ATTR_GRAPHKIND;// means that this case was handled successfully.
+			}
+		 	else
+			if (kind != null)
+				switch(kind)
+				{
+				case ELEM_ANSWER:
+					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(ELEM_KINDS.ATTR_QUESTION.name())),-1);
+					Object outcome = topLevelListener.CheckWithEndUser(graph, question, null);
+					assert outcome == expectedReturnValue;// yes, this should be b
+					break;
+				case ELEM_PAIRS:
+					topLevelListener.ChooseStatePairs(graph);
+					break;
+				case ELEM_QUESTIONS:
+					checkSingles(currentElement, childrenQuestions);
+					topLevelListener.ComputeQuestions(readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())),graph,temp);
+					break;
+				case ELEM_MERGEANDDETERMINIZE:
+					if (currentElement.getElementsByTagName(ELEM_KINDS.ELEM_PAIR.name()).getLength() != 1)
+						throw new IllegalArgumentException("missing or duplicate pair");
+					
+					temp = topLevelListener.MergeAndDeterminize(graph, readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())));
+					break;
+				case ELEM_RESTART:
+					if (!currentElement.hasAttribute(ELEM_KINDS.ATTR_KIND.name())) throw new IllegalArgumentException("absent KIND attribute on RESTART");
+					String restartKind = currentElement.getAttribute(ELEM_KINDS.ATTR_KIND.name());
+					RestartLearningEnum mode = Enum.valueOf(RestartLearningEnum.class, restartKind);
+					topLevelListener.Restart(mode);
+					if (mode == RestartLearningEnum.restartNONE)
+						graph = temp;
+					// if we are restarting, graph is unchanged.
+					break;
+				case ELEM_INIT:
+					InitialData initial = readInitialData(currentElement);
+					graph = topLevelListener.init(initial.plus,initial.minus);
+					break;
+				case ELEM_AUGMENTPTA:
+					AugmentPTAData augmentData = readAugmentPTA(currentElement);
+					topLevelListener.AugmentPTA(null, augmentData.kind, augmentData.sequence, augmentData.accept, augmentData.colour);
+					break;
+				default: kind = null; // force an exception
+				}
+				
+		 		if (kind == null) throw new IllegalArgumentException("Unknown element in XML file "+elemName);
 			currentElement = getNextElement();
 		}
 		
@@ -301,21 +311,16 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		childrenQuestions = new TreeSet<String>();childrenQuestions.addAll(Arrays.asList(new String[]{ELEM_KINDS.ELEM_PAIR.name(),ELEM_KINDS.ELEM_SEQ.name()}));
 	}
 	
-	/** Loads the current learner input parameters and makes sure they match the supplied parameters.
+	/** Loads the current learner input parameters and initialises the internal data in the simulator.
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration. 
 	 */
-	public void handleLearnerEvaluationData(LearnerGraph fsm, Collection<List<String>> testSet,Collection<String> ltl)
+	public LearnerEvaluationConfiguration readLearnerConstructionData()
 	{
 		Element evaluationData = expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name());
 		LearnerEvaluationConfiguration cnf = readLearnerEvaluationConfiguration(evaluationData);
 		config = cnf.config;
 		series = new GraphSeries(config);
-		if (cnf.ltlSequences != null) Assert.assertEquals(cnf.ltlSequences,ltl);
-		else Assert.assertNull(ltl);
-		WMethod.checkM(fsm, cnf.graph);
-		Collection<List<String>> A = new LinkedList<List<String>>(),B = new LinkedList<List<String>>();
-		A.addAll(cnf.testSet);B.addAll(testSet);
-		Assert.assertEquals(A,B);
+		return cnf;
 	}
 
 	/** Returns the graph stored in XML.

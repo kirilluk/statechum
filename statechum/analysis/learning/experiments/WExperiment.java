@@ -19,7 +19,6 @@ package statechum.analysis.learning.experiments;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +27,8 @@ import java.util.Random;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -37,7 +38,7 @@ import statechum.model.testset.PTASequenceEngine;
  * @author kirill
  *
  */
-public class WExperiment extends AbstractExperiment {
+public class WExperiment {
 	public static ArrayList<LearnerGraph> graphs = new ArrayList<LearnerGraph>();
 	
 	/** This one is not static because it refers to the frame to display results. */
@@ -46,9 +47,9 @@ public class WExperiment extends AbstractExperiment {
 		protected Collection<List<String>> tests = null;
 		protected PTASequenceEngine pta = null;
 		
-		public WEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
+		public WEvaluator(String inputFile, int per, int instance, ExperimentRunner exp, Configuration cnf, String name)
 		{
-			super(inputFile, per,instance, exp);			
+			super(inputFile, per,instance, exp, cnf, name);			
 		}
 
 		public void runTheExperiment()
@@ -64,43 +65,12 @@ public class WExperiment extends AbstractExperiment {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see statechum.analysis.learning.experiments.AbstractExperiment#getLearnerGenerators()
-	 */
-	@Override
-	public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-		return Arrays.asList(new LearnerEvaluatorGenerator[] {
-				new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new WEvaluator(inputFile, percent, instanceID, exp)
-						{
-							@Override
-							protected void changeParameters(@SuppressWarnings("unused")	Configuration c) 
-							{
-							}
-		
-							@Override
-							protected String getLearnerName() {
-								return "W_learner";
-							}
-						};
-					}
-				}});
-	}
-
-	/* (non-Javadoc)
-	 * @see statechum.analysis.learning.experiments.AbstractExperiment#getStageNumber()
-	 */
-	@Override
-	public int [] getStages() {
-		return null;
-	}
-
 	public static void main(String []args)
 	{
 		try {
-			new WExperiment().runExperiment(args);
+			ExperimentRunner experiment = new ExperimentRunner();
+			experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),WEvaluator.class,"W_learner"));
+			experiment.runExperiment(args);
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return;

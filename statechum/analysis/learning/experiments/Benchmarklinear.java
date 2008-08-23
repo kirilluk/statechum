@@ -113,7 +113,7 @@ public class Benchmarklinear {
 	public static void mainA(@SuppressWarnings("unused") String[] args)
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		int ThreadNumber=AbstractExperiment.getCpuNumber();
+		int ThreadNumber=ExperimentRunner.getCpuNumber();
 		long tmStarted = new Date().getTime(),tmFinished = 0;;
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.

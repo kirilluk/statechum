@@ -32,6 +32,7 @@ import org.junit.BeforeClass;
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
@@ -42,7 +43,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
-import statechum.Helper.whatToRun;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
@@ -67,7 +67,6 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
 import static statechum.Helper.whatToRun;
 
 public class TestFSMAlgo {
@@ -328,7 +327,7 @@ public class TestFSMAlgo {
 	
 	/** Old data should not affect us. */
 	@Test
-	public void testSerialisationOldJunk()
+	public void testSerialisationOldJunk_normal()
 	{
 		org.w3c.dom.Element elem = new Configuration().writeXML(doc), oldData = doc.createElement(Configuration.configVarTag);
 		oldData.setAttribute(Configuration.configVarAttrName, "old_junk");
@@ -339,6 +338,20 @@ public class TestFSMAlgo {
 		Assert.assertEquals(new Configuration(), cnf);
 	}
 	
+	/** Old data causes an exception to be thrown. */
+	@Test
+	public void testSerialisationOldJunk_strict()
+	{
+		final org.w3c.dom.Element elem = new Configuration().writeXML(doc), oldData = doc.createElement(Configuration.configVarTag);
+		oldData.setAttribute(Configuration.configVarAttrName, "old_junk");
+		oldData.setAttribute(Configuration.configVarAttrValue, "junk");
+		
+		elem.appendChild(oldData);
+		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
+			new Configuration().readXML(elem,true);
+		}}, IllegalArgumentException.class,"cannot deserialise unknown field");
+	}
+	
 
 	/** Unexpected tag. */
 	@Test
@@ -346,7 +359,7 @@ public class TestFSMAlgo {
 	{
 		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createElement("junk"));
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
 			new Configuration().readXML(cnf);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
@@ -1048,7 +1061,7 @@ public class TestFSMAlgo {
 			}
 		});
 
-		if (isGraphTransformationDebug(g))
+		if (GlobalConfiguration.getConfiguration().isGraphTransformationDebug(g))
 		{
 			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
 		}
@@ -1082,7 +1095,8 @@ public class TestFSMAlgo {
 		final LearnerGraph graph = new LearnerGraph(g,conf);
 		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		final LearnerGraph expected = new LearnerGraph(expectedGraph,conf);
-		WMethod.checkM(graph,expected);
+		DifferentFSMException result = WMethod.checkM(graph,expected);
+		if (result != null) throw result;
 	}
 		
 	@Test
@@ -1124,29 +1138,29 @@ public class TestFSMAlgo {
 	{
 		final LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-b->B-a->C", "testCheck6"),config);
 		final LearnerGraph expected = new LearnerGraph(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"),config);
-		assertTrue(checkMBoolean(graph,expected,"A","S"));
-		assertTrue(checkMBoolean(graph,expected,"B","U"));
-		assertTrue(checkMBoolean(graph,expected,"C","Q"));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("S")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("U")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("Q")));
 	}
 
 	@Test
 	public final void testCheckM_multipleEq1() // equivalent states
 	{
 		final LearnerGraph graph = new LearnerGraph(buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckM_multipleEq1"),config);
-		assertTrue(checkMBoolean(graph,graph,"D","C2"));
-		assertTrue(checkMBoolean(graph,graph,"C2","D"));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D"),graph,graph.findVertex("C2")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C2"),graph,graph.findVertex("D")));
 		
-		assertTrue(checkMBoolean(graph,graph,"D1","D2"));
-		assertTrue(checkMBoolean(graph,graph,"D2","D1"));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D1"),graph,graph.findVertex("D2")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("D1")));
 
-		assertTrue(checkMBoolean(graph,graph,"D2","K2"));
-		assertTrue(checkMBoolean(graph,graph,"K2","D2"));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("K2")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("K2"),graph,graph.findVertex("D2")));
 
-		assertFalse(checkMBoolean(graph,graph,"D2","A1"));
-		assertFalse(checkMBoolean(graph,graph,"A1","D2"));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("A1")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A1"),graph,graph.findVertex("D2")));
 
-		assertFalse(checkMBoolean(graph,graph,"D2","F1"));
-		assertFalse(checkMBoolean(graph,graph,"F1","D2"));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("D2"),graph,graph.findVertex("F1")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("F1"),graph,graph.findVertex("D2")));
 	}
 
 	@Test
@@ -1157,7 +1171,8 @@ public class TestFSMAlgo {
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
 		for(String stA:states)
 			for(String stB:states)
-				assertTrue("states "+stA+"and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
+						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 	}
 	
 	@Test
@@ -1168,7 +1183,8 @@ public class TestFSMAlgo {
 		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
 		for(String stA:states)
 			for(String stB:states)
-				assertTrue("states "+stA+"and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+				Assert.assertNull("states "+stA+"and "+stB+" should be equivalent",
+						WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 	}
 	
 	@Test
@@ -1180,23 +1196,11 @@ public class TestFSMAlgo {
 		for(String stA:states)
 			for(String stB:states)
 				if (stA.equals(stB))
-					assertTrue("states "+stA+" and "+stB+" should be equivalent",checkMBoolean(graph,graph,stA,stB));
+					Assert.assertNull("states "+stA+" and "+stB+" should be equivalent",
+							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 				else
-					assertFalse("states "+stA+" and "+stB+" should not be equivalent",checkMBoolean(graph,graph,stA,stB));
-	}
-	
-	/** Same as checkM, but returns a boolean false instead of an exception. */
-	public static boolean checkMBoolean(LearnerGraph graph, LearnerGraph expected, String stateGraph, String stateExpected)
-	{
-		try
-		{
-			WMethod.checkM(graph,expected,graph.findVertex(stateGraph),expected.findVertex(stateExpected));
-		}
-		catch(DifferentFSMException ex)
-		{
-			return false;
-		}
-		return true;
+					Assert.assertNotNull("states "+stA+" and "+stB+" should not be equivalent",
+							WMethod.checkM(graph,graph.findVertex(stA),graph,graph.findVertex(stB)));
 	}
 	
 	@Test
@@ -1204,18 +1208,18 @@ public class TestFSMAlgo {
 	{
 		final LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-b->B-a->C", "testCheck6"), Configuration.getDefaultConfiguration());
 		final LearnerGraph expected = new LearnerGraph(buildGraph("U<-b-U\nQ<-a-U<-a-S","expected graph"),Configuration.getDefaultConfiguration());
-		Assert.assertTrue(checkMBoolean(graph,graph,"A","A"));
-		Assert.assertTrue(checkMBoolean(graph,graph,"B","B"));
-		Assert.assertTrue(checkMBoolean(graph,graph,"C","C"));
-		Assert.assertTrue(checkMBoolean(expected,expected,"Q","Q"));
-		Assert.assertTrue(checkMBoolean(expected,expected,"S","S"));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("A"),graph,graph.findVertex("A")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("B"),graph,graph.findVertex("B")));
+		Assert.assertNull(WMethod.checkM(graph,graph.findVertex("C"),graph,graph.findVertex("C")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S")));
 		
-		Assert.assertFalse(checkMBoolean(graph,expected,"A","Q"));
-		Assert.assertFalse(checkMBoolean(graph,expected,"A","U"));
-		Assert.assertFalse(checkMBoolean(graph,expected,"B","Q"));
-		Assert.assertFalse(checkMBoolean(graph,expected,"B","S"));
-		Assert.assertFalse(checkMBoolean(graph,expected,"C","U"));
-		Assert.assertFalse(checkMBoolean(graph,expected,"C","S"));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("Q")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("A"),expected,expected.findVertex("U")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("Q")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("B"),expected,expected.findVertex("S")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("U")));
+		Assert.assertNotNull(WMethod.checkM(graph,graph.findVertex("C"),expected,expected.findVertex("S")));
 	}
 	
 
@@ -1405,11 +1409,11 @@ public class TestFSMAlgo {
 		Assert.assertTrue(graph.transform.completeGraph(
 				new DeterministicDirectedSparseGraph.VertexID("REJECT")));
 		final LearnerGraph expected = new LearnerGraph(buildGraph(fsmExpected,"completeGraphTest7"),config);
-		Assert.assertTrue(checkMBoolean(graph,expected,"A","A"));
-		Assert.assertTrue(checkMBoolean(graph,expected,"B","B"));
-		Assert.assertTrue(checkMBoolean(graph,expected,"Q","Q"));
-		Assert.assertTrue(checkMBoolean(graph,expected,"S","S"));
-		Assert.assertTrue(checkMBoolean(graph,expected,"REJECT","REJECT"));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("A"),expected,expected.findVertex("A")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("B"),expected,expected.findVertex("B")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("S"),expected,expected.findVertex("S")));
+		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("REJECT"),expected,expected.findVertex("REJECT")));
 	}
 	
 	@Test
@@ -1888,7 +1892,7 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,3}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"),new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), fsm.findVertex("S0")));
 	}
 	
 	@Test
@@ -1901,7 +1905,7 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0,3}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), fsm.findVertex("S0")));
 	}
 
 	@Test
@@ -1914,7 +1918,7 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), fsm.findVertex("S0")));
 	}
 	
 	@Test
@@ -1927,7 +1931,7 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1	,config);
-		WMethod.checkM(fsm, new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), fsm.findVertex("S0"), fsm.findVertex("S0"));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), fsm.findVertex("S0")));
 	}
 
 	@Test

@@ -172,11 +172,68 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		{
 			graph = gr;testSet = tests;config = cnf;ltlSequences = ltl;
 		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((config == null) ? 0 : config.hashCode());
+			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
+			result = prime * result
+					+ ((ltlSequences == null) ? 0 : ltlSequences.hashCode());
+			result = prime * result
+					+ ((testSet == null) ? 0 : testSet.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof LearnerEvaluationConfiguration))
+				return false;
+			final LearnerEvaluationConfiguration other = (LearnerEvaluationConfiguration) obj;
+			assert config != null && other.config != null;
+			if (!config.equals(other.config))
+				return false;
+			
+			assert graph != null && other.graph != null;
+			if (graph == null) {
+				if (other.graph != null)
+					return false;
+			} else if (!graph.equals(other.graph))
+				return false;
+			if (ltlSequences == null) {
+				if (other.ltlSequences != null)
+					return false;
+			} else if (!ltlSequences.equals(other.ltlSequences))
+				return false;
+			if (testSet == null) {
+				if (other.testSet != null)
+					return false;
+			} else if (!testSet.equals(other.testSet))
+				return false;
+			return true;
+		}
+		
 	}
 
-	/** Loads the evaluation configuration. 
+	/** Data need to construct an experiment and evaluate the results. This is not 
+	 * a part of <em>AbstractExperiment</em> because this is only for testing and
+	 * hence one would only want to record
+	 * data from <b>some</b> experiments, not all of them.
+	 * <p>
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration.
-	 * Unexpected elements are ignored. 
+	 * Unexpected elements are ignored.
 	 */
 	public static LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement)
 	{
@@ -534,6 +591,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	}
 	
 	/** Reads the arguments to AugmentPTA from XML element.
+	 * <p>
+	 * At the moment, storage of instances of leaf nodes in trees is not implemented
+	 * (and leaf nodes are used in filtering), hence 
+	 * I have to rely on storage of the whole set of sequences. 
 	 * 
 	 * @param element data to load from
 	 * @return constructed arguments.

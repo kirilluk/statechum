@@ -88,6 +88,11 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		close();
 	}
 
+	public double getCompressionRate()
+	{
+		return series.getCompressionRate();
+	}
+	
 	/** Closes the trace log, writing the constructed XML out. */ 
 	public void close()
 	{
@@ -157,9 +162,9 @@ public class RecordProgressDecorator extends ProgressDecorator {
 	}
 	
 	/** Stores the current learner input parameters. */
-	public void handleLearnerEvaluationData(LearnerGraph graph, Collection<List<String>> testSet, Collection<String> ltl)
+	public void writeLearnerEvaluationData(LearnerEvaluationConfiguration cnf)
 	{
-		topElement.appendChild(writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testSet,config,ltl)));topElement.appendChild(Transform.endl(doc));		
+		topElement.appendChild(writeLearnerEvaluationConfiguration(cnf));topElement.appendChild(Transform.endl(doc));		
 	}
 	
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 

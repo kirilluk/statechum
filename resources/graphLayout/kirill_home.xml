@@ -25,7 +25,7 @@
  <object class="java.util.HashMap"> 
   <void method="put"> 
    <string>UPPER</string> 
-   <object class="statechum.analysis.learning.Visualiser$WindowPosition"> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
     <void property="rect"> 
      <object class="java.awt.Rectangle"> 
       <int>0</int> 

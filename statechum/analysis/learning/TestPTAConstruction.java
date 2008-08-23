@@ -46,7 +46,7 @@ public class TestPTAConstruction
 	public void testAugmentPTA() // only two traces, both accept
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
-		DirectedSparseGraph actualA = new Test_Orig_RPNIBlueFringeLearner(null,Configuration.getDefaultConfiguration()).augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
+		DirectedSparseGraph actualA = Test_Orig_RPNIBlueFringeLearner.augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
 		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
@@ -247,7 +247,7 @@ public class TestPTAConstruction
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
 		try
 		{
-			actualA = new Test_Orig_RPNIBlueFringeLearner(null, Configuration.getDefaultConfiguration()).createAugmentedPTA(plusStrings, minusStrings);
+			actualA = Test_Orig_RPNIBlueFringeLearner.createAugmentedPTA(plusStrings, minusStrings);
 		}
 		catch(IllegalArgumentException e)
 		{

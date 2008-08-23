@@ -289,8 +289,8 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
 		
-		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
-		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA));
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
 		Assert.assertTrue(newA.isHighlight());
 		Assert.assertEquals(1, oldToNew.size());Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
@@ -309,15 +309,15 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
 		
-		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
-		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA));
 		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
 		Assert.assertFalse(fsm.transitionMatrix.get(newA).isEmpty());
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert));
 	}
 
 	@Test
@@ -329,8 +329,8 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
-		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA));
 		
 		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
 		Assert.assertTrue(fsm.transitionMatrix.get(newA).isEmpty());
@@ -338,7 +338,7 @@ public class TestTransform {
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			WMethod.checkM(fsm,fsmSrc,oldToNew.get(oldVert),oldVert);
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmSrc,oldVert));
 	}
 
 	@Test
@@ -351,15 +351,15 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
-		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA));
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
 		Assert.assertTrue(newA.isHighlight());
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert));
 	}
 	
 	@Test
@@ -371,19 +371,19 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = Transform.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		WMethod.checkM(fsm,fsmSrc,fsm.init,fsmSrc.init);
-		WMethod.checkM(fsm,fsmToAdd,newA,fsmToAdd.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA));
 		
 		StatePair whatToMerge = new StatePair(fsm.init,newA);
 		LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
 		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge));
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(fsm, whatToMerge,collectionOfVerticesToMerge);
-		WMethod.checkM(result,fsmSrc,result.init,fsmSrc.init);
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init,result,result.init));
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
 		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
-			WMethod.checkM(fsm,fsmToAdd,oldToNew.get(oldVert),oldVert);
+			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert));
 	}
 
 	/** The standard beginning of our graphML files. */
@@ -482,7 +482,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
-		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+		Assert.assertNull(WMethod.checkM(fsm,fsm.init,actual,actual.init));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
@@ -504,7 +504,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
-		WMethod.checkM(fsm,actual,fsm.init,actual.init);
+		Assert.assertNull(WMethod.checkM(fsm,fsm.init,actual,actual.init));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
@@ -613,7 +613,7 @@ public class TestTransform {
 		LearnerGraph loaded = LearnerGraph.loadGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.wmethod.checkUnreachableStates());Assert.assertTrue(!loaded.wmethod.checkUnreachableStates());
-		WMethod.checkM(loaded, gr);
+		Assert.assertNull(WMethod.checkM(gr,loaded));
 		for(Entry<CmpVertex,LinkedList<String>> entry:gr.wmethod.computeShortPathsToAllStates().entrySet())
 		{
 			CmpVertex v=entry.getKey(),other = loaded.paths.getVertex(entry.getValue());

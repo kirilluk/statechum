@@ -185,7 +185,7 @@ public class TestGD_Multithreaded {
 		Assert.assertEquals(expectedMatchedPairs,allKeyPairs.size());
 		LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	private final void testNesting(String graphA,String graphB,String name, Configuration config)
@@ -207,22 +207,22 @@ public class TestGD_Multithreaded {
 		{
 			LearnerGraph graph1 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph1, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(), rec9));
-			WMethod.checkM(graph1, grB);Assert.assertEquals(grB.getStateNumber(),graph1.getStateNumber());
+			Assert.assertNull(WMethod.checkM(graph1, grB));Assert.assertEquals(grB.getStateNumber(),graph1.getStateNumber());
 		}
 		{
 			LearnerGraph graph2 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph2, rec7.writeGD(TestGD.createDoc()));
-			WMethod.checkM(graph2, grB);Assert.assertEquals(grB.getStateNumber(),graph2.getStateNumber());
+			Assert.assertNull(WMethod.checkM(graph2, grB));Assert.assertEquals(grB.getStateNumber(),graph2.getStateNumber());
 		}
 		{
 			LearnerGraph graph3 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph3, rec4.writeGD(TestGD.createDoc()));
-			WMethod.checkM(graph3, grB);Assert.assertEquals(grB.getStateNumber(),graph3.getStateNumber());
+			Assert.assertNull(WMethod.checkM(graph3, grB));Assert.assertEquals(grB.getStateNumber(),graph3.getStateNumber());
 		}
 		{
 			LearnerGraph graph4 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph4, rec1.writeGD(TestGD.createDoc()));
-			WMethod.checkM(graph4, grB);Assert.assertEquals(grB.getStateNumber(),graph4.getStateNumber());
+			Assert.assertNull(WMethod.checkM(graph4, grB));Assert.assertEquals(grB.getStateNumber(),graph4.getStateNumber());
 		}
 		String displayResult = rec8.toString();
 		Assert.assertEquals(displayResult,rec5.toString());Assert.assertEquals(displayResult, rec2.toString());
@@ -346,7 +346,7 @@ public class TestGD_Multithreaded {
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	/** empty graph, with a single reject state (accept,reject). */
@@ -360,7 +360,7 @@ public class TestGD_Multithreaded {
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	/** empty graph, with a single reject state (accept,reject). */
@@ -374,7 +374,7 @@ public class TestGD_Multithreaded {
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	/** empty graph, with a single accept state. */
@@ -402,7 +402,7 @@ public class TestGD_Multithreaded {
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	/** empty graph, with a single accept state. */
@@ -430,7 +430,7 @@ public class TestGD_Multithreaded {
 		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
 		LearnerGraph graph = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
 	@Test
@@ -542,8 +542,8 @@ public class TestGD_Multithreaded {
 			Assert.assertEquals(expectedMatchedPairs,allKeyPairs.size());
 			LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
-			WMethod.checkM(graph, grB);
-			WMethod.checkM(graph, grB, graph.findVertex(otherA), grB.findVertex(otherB));
+			Assert.assertNull(WMethod.checkM(graph, grB));
+			Assert.assertNull(WMethod.checkM(graph, graph.findVertex(otherA), grB, grB.findVertex(otherB)));
 		}
 	}
 

@@ -31,25 +31,36 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
+import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
-public abstract class IncrementalAccuracyAndQuestionsExperiment extends AbstractExperiment 
+public class IncrementalAccuracyAndQuestionsExperiment
 {	
+	public static final String FS = ExperimentRunner.FS;
+
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{
 		PTASequenceEngine sPlus = null, sMinus = null;
-		public RPNIEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
+		
+		/** Constructs the experiment runner. 
+		 * 
+		 * @param inputFile input file to process
+		 * @param per percentage
+		 * @param instance a single number which can be used to identify this file/percentage/learner_kind combo.
+		 * @param exp the enclosing instance of the experiment - a poor man's way to subclassing nested classes.
+		 * @param cnf configuration to base this learner experiment on
+		 * @param name the name to give to this learner.
+		 */
+		public RPNIEvaluator(String inputFile, int per, int instance, ExperimentRunner exp, Configuration cnf, String name)
 		{
-			super(inputFile, per, instance, exp);			
+			super(inputFile, per, instance, exp, cnf, name);
 		}
-
-		/** This one may be overridden by subclass to customise the learner. */
-		protected abstract void changeParameters(Configuration c);
 
 		protected AtomicInteger questionNumber = new AtomicInteger(0);
 		
@@ -83,7 +94,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
 			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
 			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
-			
+			// Column 0 is the name of the learner. 
 			// Columns 3 and 4
 			result = result+prNeg.getPrecision()+FS+prNeg.getRecall();
 			
@@ -121,76 +132,10 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 
 		private LearnerGraph learn(RPNILearner l, PTASequenceEngine pta)
 		{
-			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
 			LearnerGraph learningOutcome  = l.learnMachine(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
 			l.setQuestionCounter(0);
 			return learningOutcome;
-		}
-	}
-	
-	public int [] getStages()
-	{
-		return new int[]{100};//10,30,60,100};
-	}
-		
-	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
-	{
-		protected final Configuration conf;
-		
-		/** Constructs an experiment class
-		 * 
-		 * @param qg the questioning strategy to use.
-		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
-		 * @param useSpeculative whether to use speculative question asking.
-		 */
-		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
-		{
-			super();conf=Configuration.getDefaultConfiguration().copy();
-			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
-		}
-
-		/** Constructs an experiment class for checking whether the improved merger and
-		 * question generator does the same thing as the old one.
-		 * 
-		 * @param qg the questioning strategy to use.
-		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
-		 */
-		public Experiment()
-		{
-			super();conf=Configuration.getDefaultConfiguration().copy();
-			conf.setQuestionGenerator(Configuration.QuestionGeneratorKind.CONVENTIONAL);
-			conf.setSpeculativeQuestionAsking(true);
-			conf.setQuestionPathUnionLimit(-1);conf.setConsistencyCheckMode(true);
-		}
-
-		public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-			return Arrays.asList(new LearnerEvaluatorGenerator[] {
-				new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new RPNIEvaluator(inputFile, percent, instanceID, exp)
-						{
-							@Override
-							protected void changeParameters(Configuration c) 
-							{
-								c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-								//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
-								//c.setMinCertaintyThreshold(0); //question threshold
-								//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
-								c.setQuestionGenerator(conf.getQuestionGenerator());
-								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
-								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
-							}
-
-							@Override
-							protected String getLearnerName() {
-								return "Questions: "+conf.getQuestionGenerator()+"; union limited to "+conf.getQuestionPathUnionLimit()+"; speculative : "+conf.isSpeculativeQuestionAsking();
-							}
-						};
-					}
-				}
-			});
 		}
 	}
 	
@@ -201,6 +146,8 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
 			LearnerGraph.testMode=false;
 			
+			ExperimentRunner experiment = new ExperimentRunner();
+			List<String> learnerNames= new LinkedList<String>();
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{
 					Configuration.QuestionGeneratorKind.CONVENTIONAL,
 					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
@@ -209,20 +156,34 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				for(boolean speculative:new boolean[]{false})
 					for(int limit:new int[]{-1,3,1})
 					{
+						Configuration config = Configuration.getDefaultConfiguration().copy();
+						config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
+						//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
+						//c.setMinCertaintyThreshold(0); //question threshold
+						//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
+						config.setQuestionGenerator(qk);
+						config.setQuestionPathUnionLimit(limit);
+						config.setSpeculativeQuestionAsking(speculative);
+
 						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
-						AbstractExperiment experiment = new Experiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
-						experiment.runExperiment(args);
-						String ending = experimentDescription+".csv";
-						experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));
-						experiment.postProcessIntoR(2,true, 4, new File(experiment.getOutputDir(),"recall"+ending));
-						experiment.postProcessIntoR(2,true, 5, new File(experiment.getOutputDir(),"questionNumber"+ending));
-						experiment.postProcessIntoR(2,true, 16, new File(experiment.getOutputDir(),"linearA"+ending));
-						experiment.postProcessIntoR(2,true, 17, new File(experiment.getOutputDir(),"linearN"+ending));
-						experiment.postProcessIntoR(2,true, 18, new File(experiment.getOutputDir(),"linearB"+ending));
-						experiment.postProcessIntoR(2,true, 20, new File(experiment.getOutputDir(),"completeness"+ending));
-						experiment.postProcessIntoR(2,true, 21, new File(experiment.getOutputDir(),"restarts"+ending));
+						learnerNames.add(experimentDescription);
+						experiment.addLearnerEvaluator(new GeneratorConfiguration(config,RPNIEvaluator.class,experimentDescription));
 					}			
 			
+			//experiment.setOutputDir(experimentDescription+"_");
+			experiment.runExperiment(args);
+			for(String name:learnerNames)
+			{
+				String ending = ".csv";
+				experiment.postProcessIntoR(name,2,true, 3, new File(experiment.getOutputDir(),name+"-precision"+ending));
+				experiment.postProcessIntoR(name,2,true, 4, new File(experiment.getOutputDir(),name+"-recall"+ending));
+				experiment.postProcessIntoR(name,2,true, 5, new File(experiment.getOutputDir(),name+"-questionNumber"+ending));
+				experiment.postProcessIntoR(name,2,true, 16, new File(experiment.getOutputDir(),name+"-linearA"+ending));
+				experiment.postProcessIntoR(name,2,true, 17, new File(experiment.getOutputDir(),name+"-linearN"+ending));
+				experiment.postProcessIntoR(name,2,true, 18, new File(experiment.getOutputDir(),name+"-linearB"+ending));
+				experiment.postProcessIntoR(name,2,true, 20, new File(experiment.getOutputDir(),name+"-completeness"+ending));
+				experiment.postProcessIntoR(name,2,true, 21, new File(experiment.getOutputDir(),name+"-restarts"+ending));
+			}
 		} catch (Exception e1) {
 			e1.printStackTrace();
 			return;

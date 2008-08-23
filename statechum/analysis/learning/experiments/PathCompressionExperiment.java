@@ -28,20 +28,24 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
+import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import static statechum.model.testset.PTASequenceEngine.stringCollectionSize;
-public class PathCompressionExperiment extends AbstractExperiment {
+public class PathCompressionExperiment {
 
 	
+	public static final String FS = ExperimentRunner.FS;
+
 	/** This one is not static because it refers to the frame to display results. */
 	public static abstract class RPNIEvaluator extends LearnerEvaluator
 	{	
 		PTASequenceEngine pta = null;
 		
-		public RPNIEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
+		public RPNIEvaluator(String inputFile, int per, int instance, ExperimentRunner exp, Configuration cnf, String name)
 		{
-			super(inputFile, per,instance, exp);
+			super(inputFile, per,instance, exp, cnf, name);
 			
 		}
 
@@ -81,36 +85,12 @@ public class PathCompressionExperiment extends AbstractExperiment {
 		return positiveStrings;
 	}
 	
-	@Override
-	public int [] getStages() {
-		return new int[]{10,20,30,40,50,60,70,80,90};
-	};
-	
-	@Override
-	public List<LearnerEvaluatorGenerator> getLearnerGenerators()
+	public static void main(String []args)
 	{
-		return Arrays.asList(new LearnerEvaluatorGenerator[] {
-			new LearnerEvaluatorGenerator() {
-				@Override
-				LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-					return new RPNIEvaluator(inputFile,percent, instanceID, exp)
-					{
-						@Override
-						protected void changeParameters(Configuration c) 
-						{
-							c.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
-						}
-	
-						@Override
-						protected String getLearnerName() {
-							return "Path Compression";
-						}
-
-					};
-				}
-			}
-			// at this point, one may add the above learners with different arguments or completely different learners such as the Angluin's one
-		});
+		ExperimentRunner experiment = new ExperimentRunner();
+		experiment.setLearnerStages(new int[]{10,20,30,40,50,60,70,80,90});
+		Configuration config = Configuration.getDefaultConfiguration();
+		config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+		experiment.addLearnerEvaluator(new GeneratorConfiguration(config,RPNIEvaluator.class,"Path_compression"));
 	}
-	
 }

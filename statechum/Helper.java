@@ -36,7 +36,7 @@ public class Helper {
 	 * @param description description of why the exception is to be thrown
 	 * @param e exception to convert
 	 */
-	public static void throwUnchecked(String description, Exception e)
+	public static void throwUnchecked(String description, Throwable e)
 	{
 		IllegalArgumentException ex = new IllegalArgumentException(description+": "+e.getMessage());ex.initCause(e);
 		throw ex;

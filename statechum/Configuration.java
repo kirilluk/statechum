@@ -334,6 +334,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (int)(gdKeyPairThreshold*100);
 		result = prime * result + (int)(gdLowToHighRatio*100);
 		result = prime * result + (gdFailOnDuplicateNames?1231 : 1237);
+		result = prime * result + (learnerOverwriteOutput?1231 : 1237);
 		return result;
 	}
 
@@ -413,6 +414,8 @@ public class Configuration implements Cloneable
 		if (Math.abs(gdLowToHighRatio - other.gdLowToHighRatio) > fpAccuracy)
 			return false;
 		if (gdFailOnDuplicateNames != other.gdFailOnDuplicateNames)
+			return false;
+		if (learnerOverwriteOutput != other.learnerOverwriteOutput)
 			return false;
 		return true;
 	}
@@ -668,6 +671,29 @@ public class Configuration implements Cloneable
 		gdFailOnDuplicateNames = value;
 	}
 	
+	/** All native code (and sometimes JVM) can crash. This tends to happen when
+	 * JVM runs out of memory and then runs native code which I presume allocates
+	 * some memory. Out-of-memory errors appear to be handled well, but crashes 
+	 * still occur. For this reason, it makes sense to run experiments in a separate
+	 * JVM and re-run those which did not complete due to crash, assuming 
+	 * non-termination is detected by the learner itself). If this is done, we have to
+	 * distinguish a situation with many result files when we'd like to restart
+	 * learning overwriting the existing data and the case when we'd only like to
+	 * restart those which did not complete. The switch below makes it possible to 
+	 * choose one of these two modes. 
+	 */
+	boolean learnerOverwriteOutput = true;
+	
+	public boolean getLearnerOverwriteOutput()
+	{
+		return learnerOverwriteOutput;
+	}
+	
+	public void setLearnerOverwriteOutput(boolean newValue)
+	{
+		learnerOverwriteOutput = newValue;
+	}
+	
 	/** Whether a method is get.../is ..., or set...  */
 	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
 	
@@ -709,7 +735,7 @@ public class Configuration implements Cloneable
 	}
 	
 	public static final String configXMLTag = "configuration", configVarTag="var", configVarAttrName="name",configVarAttrValue="value";
-	
+
 	/** Serialises configuration into XML
 	 * Only primitive strings, enums and primitive data types 
 	 * are taken care of. For this reason, this should only be used on classes such 
@@ -747,6 +773,15 @@ public class Configuration implements Cloneable
 	 * @param cnf XML node to load configuration from.
 	 */
 	public void readXML(org.w3c.dom.Node cnf)
+	{
+		readXML(cnf,false);
+	}
+	/** Loads configuration from XML node.
+	 * 
+	 * @param cnf XML node to load configuration from.
+	 * @param strict whether to throw an exception when XML data refers to unknown variables.
+	 */
+	public void readXML(org.w3c.dom.Node cnf, boolean strict)
 	{
 		if (cnf.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE)
 			throw new IllegalArgumentException("invalid node type passed to readXML");
@@ -799,7 +834,8 @@ public class Configuration implements Cloneable
 				}
 				catch(NoSuchFieldException e)
 				{
-					System.err.println("warning: cannot deserialise obsolete field "+currentElement.getAttribute(configVarAttrName));
+					if (strict)
+					throw new IllegalArgumentException("cannot deserialise unknown field "+currentElement.getAttribute(configVarAttrName));
 				}
 				catch(Exception e)
 				{

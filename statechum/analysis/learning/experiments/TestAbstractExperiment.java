@@ -19,13 +19,13 @@ package statechum.analysis.learning.experiments;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,9 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.experiments.AbstractExperiment.LearnerEvaluator;
+import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
+import statechum.analysis.learning.experiments.ExperimentRunner.LearnerFailed;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -50,7 +52,7 @@ import static statechum.Helper.checkForCorrectException;;
 
 public class TestAbstractExperiment {
 	public static final File testDir = new File("resources","__TestAbstractExperiment__"),
-		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,AbstractExperiment.outputDirNamePrefix+testGraphsDir.getName());
+		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());
 
 	protected final Configuration config = Configuration.getDefaultConfiguration();
 	
@@ -119,6 +121,44 @@ public class TestAbstractExperiment {
 		}
 	}
 	
+	protected static class w_evaluator extends LearnerEvaluator
+	{
+		public w_evaluator(String inputFile, int per, int inID,
+				ExperimentRunner exp, Configuration cnf, String name) {
+			super(inputFile, per, inID, exp, cnf, name);
+		}
+
+		@Override
+		protected void runTheExperiment() {
+			if (WMethod.checkM(recoveryGraph, graph) == null)
+			{// this is the special diagnostic graph
+				LearnerGraph emptyGraph = new LearnerGraph(config);String emptyGraphName = "testAbstractExperiment_graph0.xml"; // an empty graph 
+				try {
+					emptyGraph.transform.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
+				} catch (IOException e) {
+					// if we cannot write a new version of the graph, we shall keep aborting and hence the test will fail.
+				}
+				Runtime.getRuntime().halt(-1); // abort the jvm
+			}
+			else
+				result = result + graph.countEdges()*percent + ExperimentRunner.FS + WMethod.computeWSet_reducedmemory(graph).size();
+		}
+	}
+	
+	protected static class a_evaluator extends LearnerEvaluator
+	{
+
+		public a_evaluator(String inputFile, int per, int inID,
+				ExperimentRunner exp, Configuration cnf, String name) {
+			super(inputFile, per, inID, exp, cnf, name);
+		}
+		
+		@Override
+		protected void runTheExperiment() {
+			result = result + graph.countEdges() + ExperimentRunner.FS + graph.wmethod.computeAlphabet().size()*percent;
+		}
+	}
+	
 	@Before
 	public final void beforeTest()
 	{
@@ -129,55 +169,24 @@ public class TestAbstractExperiment {
 		Assert.assertTrue(testDir.mkdir());Assert.assertTrue(testGraphsDir.mkdir());Assert.assertTrue(testOutputDir.mkdir());
 		populateGraphs();
 
-		multiExp = new AbstractExperiment() {
-			@Override
-			public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-				return Arrays.asList(new LearnerEvaluatorGenerator[]{new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new TestEvaluator(inputFile,percent,instanceID,exp) {
-							@Override
-							protected void runTheExperiment() {
-								result = result + graph.countEdges()*percent + FS + WMethod.computeWSet_reducedmemory(graph).size();
-							}
-							@Override
-							public String getLearnerName() { return "learnerTransitions";	}
-						};
-					}
-					
-				},new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new TestEvaluator(inputFile,percent,instanceID,exp) {
-							@Override
-							protected void runTheExperiment() {
-								result = result + graph.countEdges() + FS + graph.wmethod.computeAlphabet().size()*percent;
-							}
-							@Override
-							public String getLearnerName() { return "learnerAlphabet";	}
-						};
-					}
-					
-				}});
-			}
+		multiExp = new ExperimentRunner();multiExp.graphsPerRunner=4;
+		multiExp.setLearnerStages(new int[]{30,45,90,99});
+		multiExp.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				w_evaluator.class, "learnerTransitions"));
+		multiExp.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				a_evaluator.class, "learnerAlphabet"));
 
-			@Override
-			public int [] getStages() {
-				return new int[]{30,45,90,99};
-			}
-			
-		};
 		List<String> result = new LinkedList<String>();
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			for(int stage:new int[]{30,45,90,99})
-				result.add(gr.getKey()+AbstractExperiment.FS+"learnerAlphabet"+AbstractExperiment.FS+stage+
-						AbstractExperiment.FS+gr.getValue().countEdges()+
-						AbstractExperiment.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+				result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			for(int stage:new int[]{30,45,90,99})
-				result.add(gr.getKey()+AbstractExperiment.FS+"learnerTransitions"+AbstractExperiment.FS+stage+
-						AbstractExperiment.FS+gr.getValue().countEdges()*stage+
-						AbstractExperiment.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
+				result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		multiExpResult = result.toArray(new String[]{});
 	}
 
@@ -189,21 +198,7 @@ public class TestAbstractExperiment {
 	}
 	
 	protected String [] multiExpResult = null;
-	protected AbstractExperiment multiExp = null;
-
-	/** This one is not static because it refers to the frame to display results. */
-	public static abstract class TestEvaluator extends LearnerEvaluator
-	{
-		public TestEvaluator(String inputFile, int per, int instance, AbstractExperiment exp)
-		{
-			super(inputFile, per,instance, exp);			
-		}
-
-		@Override
-		protected void changeParameters(@SuppressWarnings("unused") Configuration c) {
-			// not used
-		}
-	}
+	protected ExperimentRunner multiExp = null;
 
 	/** Checks that the csv file contains the expected data. */
 	protected final void checkCSV(String []expectedData)
@@ -211,7 +206,7 @@ public class TestAbstractExperiment {
 		BufferedReader reader = null;
 		try
 		{
-			reader = new BufferedReader(new FileReader(new File(testOutputDir,AbstractExperiment.resultName)));
+			reader = new BufferedReader(new FileReader(new File(testOutputDir,ExperimentRunner.resultName)));
 			int pos=0;String line = reader.readLine();
 			while(pos < expectedData.length)
 			{
@@ -236,72 +231,156 @@ public class TestAbstractExperiment {
 		}
 	}
 
+	protected static class countEdge_evaluator extends LearnerEvaluator
+	{
+		public countEdge_evaluator(String inputFile, int per, int inID,
+				ExperimentRunner exp, Configuration cnf, String name) {
+			super(inputFile, per, inID, exp, cnf, name);
+		}
+
+		@Override
+		protected void runTheExperiment() {
+			result = result + graph.countEdges();
+		}
+	}
+	
+	protected ExperimentRunner getSingleStageEvaluator()
+	{
+		ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				countEdge_evaluator.class,"testAllGraphsSingleStage"));
+		return experiment;
+	}
+	
+	
 	@Test 
 	public final void testAllGraphsSingleStageSingleEvaluator() throws NumberFormatException, IOException
 	{
-		new AbstractExperiment() {
-			@Override
-			public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-				return Arrays.asList(new LearnerEvaluatorGenerator[]{new LearnerEvaluatorGenerator() {
-					@Override
-					LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-						return new TestEvaluator(inputFile,percent,instanceID,exp) {
-							@Override
-							protected void runTheExperiment() {
-								result = result + graph.countEdges();
-							}
-							@Override
-							public String getLearnerName() { return "testAllGraphsSingleStage";	}
-						};
-					}
-					
-				}});
-			}
-
-			@Override
-			public int [] getStages() {	return null; }
-			
-		}.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		getSingleStageEvaluator().runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
 		List<String> result = new LinkedList<String>();
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
-				result.add(gr.getKey()+AbstractExperiment.FS+"testAllGraphsSingleStage"+AbstractExperiment.FS+gr.getValue().countEdges());
+				result.add(gr.getKey()+ExperimentRunner.FS+"testAllGraphsSingleStage"+ExperimentRunner.FS+gr.getValue().countEdges());
 		checkCSV(result.toArray(new String[]{}));
 	}
 	
+	/** Verify that desktop mode builds the correct spreadsheet. */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator() throws NumberFormatException, IOException
+	public final void testAllGraphsMultiStageMultiEvaluator1() throws NumberFormatException, IOException
 	{
 		multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
 		checkCSV(multiExpResult);
 	}
-	
-	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator1() throws NumberFormatException, IOException
+
+	/** Checks that an exception is thrown if evaluator name is invalid. Valid 
+	 * cases are considered in integration tests.
+	 */
+	@Test
+	public final void testInvalidLearnerEvaluatorName1()
 	{
-		Assert.assertEquals(multiExpResult.length,multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-1"}));
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				w_evaluator.class, "invalid"+FS));
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+			experiment.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		}},IllegalArgumentException.class,"invalid learner name");
 	}
 	
+	/** Checks that an exception is thrown if evaluator name is invalid. Valid 
+	 * cases are considered in integration tests.
+	 */
+	@Test
+	public final void testInvalidLearnerEvaluatorName2()
+	{
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				w_evaluator.class, ""));
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+			experiment.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		}},IllegalArgumentException.class,"invalid learner name");
+	}
+	
+	/** Checks that an exception is thrown if evaluator name is invalid. Valid 
+	 * cases are considered in integration tests.
+	 */
+	@Test
+	public final void testInvalidLearnerEvaluatorName3()
+	{
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
+				w_evaluator.class, null));
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+			experiment.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		}},IllegalArgumentException.class,"invalid learner name");
+	}
+	
+	/** Verify that Grid counting mode returns the correct numbers. */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator2() throws NumberFormatException, IOException
 	{
+		Assert.assertEquals(multiExpResult.length,multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_COUNT}));
+	}
+	
+	/** Verify that the Grid mode builds the correct spreadsheet. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator3() throws NumberFormatException, IOException
+	{
 		for(int i=0;i < multiExpResult.length;++i)
 			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
-		multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-2"});
+		multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
 		checkCSV(multiExpResult);
 	}
 
-	/** No files could be processed. */
+	/** Verify that robust runner builds the correct spreadsheet. 
+	 * @throws InterruptedException */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator_fail1() throws NumberFormatException
+	public final void testAllGraphsMultiStageMultiEvaluator4a() throws NumberFormatException, IOException
+	{
+		multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(), testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+	
+	/** Verify that robust runner builds the correct spreadsheet. 
+	 * @throws InterruptedException */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator4b_slow() throws NumberFormatException, IOException
+	{
+		multiExp.graphsPerRunner=1;
+		multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(), testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+	
+	/** Verify that robust runner builds the correct spreadsheet. 
+	 * @throws InterruptedException */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator4c() throws NumberFormatException, IOException
+	{
+		multiExp.graphsPerRunner=7;
+		multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(), testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+	
+	/** Verify that robust runner builds the correct spreadsheet. 
+	 * @throws InterruptedException */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator4d() throws NumberFormatException, IOException
+	{
+		multiExp.graphsPerRunner=700;
+		multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(), testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+	
+	/** Verify that when asked to post-process an empty collection of files, the Grid mode throws an exception. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_fail1a() throws NumberFormatException
 	{
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
-				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-2"});
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
 			}
-		},IOException.class,""+multiExpResult.length);
+		},LearnerFailed.class,""+multiExpResult.length);
 	}
 	
-	/** One file cannot be processed because it is not found. */
+	/** One file cannot be processed because it is not found. When run via the Grid experiment, the appropriate runner reports a failure. */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator_fail2_A() throws NumberFormatException
 	{
@@ -314,10 +393,10 @@ public class TestAbstractExperiment {
 			}
 		},IOException.class,fileToRemove);
 	}
-	
-	/** One file cannot be processed because it is not found. */
+
+	/** One file cannot be processed because it is not found. When run via the desktop interface, the corresponding file is ignored. */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator_fail2_B() throws NumberFormatException, IOException
+	public final void testAllGraphsMultiStageMultiEvaluator_fail2_B1() throws NumberFormatException, IOException
 	{
 		String fileToRemove = graphs.entrySet().iterator().next().getKey();
 		Assert.assertTrue(new File(testGraphsDir,fileToRemove).delete());
@@ -327,20 +406,44 @@ public class TestAbstractExperiment {
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
-					result.add(gr.getKey()+AbstractExperiment.FS+"learnerAlphabet"+AbstractExperiment.FS+stage+
-						AbstractExperiment.FS+gr.getValue().countEdges()+
-						AbstractExperiment.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
-					result.add(gr.getKey()+AbstractExperiment.FS+"learnerTransitions"+AbstractExperiment.FS+stage+
-						AbstractExperiment.FS+gr.getValue().countEdges()*stage+
-						AbstractExperiment.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
+					result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
+		checkCSV(result.toArray(new String[]{}));
+	}
+
+	/** One file cannot be processed because it is not found. When run via the robust runner, the corresponding file is ignored. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_fail2_B2() throws NumberFormatException, IOException
+	{
+		String fileToRemove = graphs.entrySet().iterator().next().getKey();
+		Assert.assertTrue(new File(testGraphsDir,fileToRemove).delete());
+		multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+
+		List<String> result = new LinkedList<String>();
+		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
+			if (gr.getKey() != fileToRemove)
+				for(int stage:new int[]{30,45,90,99})
+					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
+			if (gr.getKey() != fileToRemove)
+				for(int stage:new int[]{30,45,90,99})
+					result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
+						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		checkCSV(result.toArray(new String[]{}));
 	}
 
 
-	/** One file cannot be processed because it contains junk. */
+	/** One file cannot be processed because it contains junk. Run via the Grid interface. */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator_fail3_A() throws NumberFormatException, IOException
 	{
@@ -350,12 +453,12 @@ public class TestAbstractExperiment {
 			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
-				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-2"});
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
 			}
-		},IOException.class,""+2*4);
+		},LearnerFailed.class,""+2*4);
 	}
 
-	/** One file cannot be processed because it contains junk. */
+	/** One file cannot be processed because it contains junk. Run via the desktop interface. */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator_fail3_B() throws NumberFormatException, IOException
 	{
@@ -365,25 +468,141 @@ public class TestAbstractExperiment {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
 			}
-		},IOException.class,""+2*4);
+		},LearnerFailed.class,""+2*4);
 	}
 
-	/** One file cannot be processed because the learner throws an exception on it. */
+	/** One file cannot be processed because it contains junk. Run via the robust runner interface. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_fail3_C() throws NumberFormatException, IOException
+	{
+		String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		Writer fileWriter = new FileWriter(new File(testGraphsDir,fileToBreak));fileWriter.write("junk");fileWriter.close();
+		checkForCorrectException(new whatToRun() {
+			public void run() throws NumberFormatException, IOException {
+				multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+			}
+		},LearnerFailed.class,""+2*4);
+	}
+
+	
+	protected ExperimentRunner getNonOverwriteExperiment()
+	{
+		ExperimentRunner result = new ExperimentRunner();result.graphsPerRunner=4;
+		result.setLearnerStages(new int[]{30,45,90,99});
+		Configuration cnf = Configuration.getDefaultConfiguration().copy();
+		cnf.setLearnerOverwriteOutput(false);// make sure that existing files are preserved.
+		result.addLearnerEvaluator(new GeneratorConfiguration(cnf,w_evaluator.class, "learnerTransitions"));
+		result.addLearnerEvaluator(new GeneratorConfiguration(cnf,a_evaluator.class, "learnerAlphabet"));
+		return result;
+	}
+	
+	/** One file cannot be processed because it contains junk, but if it has already been
+	 * processed, we shall not notice this. Run via the desktop interface. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_restart1() throws NumberFormatException, IOException
+	{
+		multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		checkCSV(multiExpResult);
+
+		
+		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		Writer fileWriter = new FileWriter(new File(testGraphsDir,fileToBreak));fileWriter.write("junk");fileWriter.close();
+
+		getNonOverwriteExperiment().runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		checkCSV(multiExpResult);
+	}
+
+	/** One file cannot be processed because it contains junk, but if it has already been
+	 * processed, we shall not notice this. Run via the Grid interface. */
+	@Test
+	public final void testAllGraphsMultiStageMultiEvaluator_restart2() throws NumberFormatException, IOException
+	{
+		for(int i=0;i < multiExpResult.length;++i)
+			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
+		multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
+		checkCSV(multiExpResult);
+		
+		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		Writer fileWriter = new FileWriter(new File(testGraphsDir,fileToBreak));fileWriter.write("junk");fileWriter.close();
+
+		ExperimentRunner nonOvExperiment = getNonOverwriteExperiment();
+		for(int i=0;i < multiExpResult.length;++i)
+			nonOvExperiment.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
+		nonOvExperiment.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
+		checkCSV(multiExpResult);
+	}
+	
+	/** One file cannot be processed because it contains junk, but if it has already been
+	 * processed, we shall not notice this. Run via the robust runner interface. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_restart3() throws NumberFormatException, IOException
+	{
+		multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
+		checkCSV(multiExpResult);
+
+		
+		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		Writer fileWriter = new FileWriter(new File(testGraphsDir,fileToBreak));fileWriter.write("junk");fileWriter.close();
+
+		getNonOverwriteExperiment().robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+ 
+	/** The machine which indicates to the learner that it should kill the JVM, but before this
+	 * it has to write the correct data into the file. Upon a restart, we can expect the file to be processed
+	 * successfully. */
+	public static final LearnerGraph recoveryGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->E-a->F-b->F","TestAbstractExperiment"), Configuration.getDefaultConfiguration());
+	
+	/** One file contains a machine which indicates to the learner that it should kill the JVM, but before this
+	 * it has to write the correct data into the file. Upon a restart, we can expect the file to be processed
+	 * successfully. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_recovery1() throws NumberFormatException, IOException
+	{
+		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		recoveryGraph.transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+
+		getNonOverwriteExperiment().robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+		checkCSV(multiExpResult);
+	}
+
+	/** One file contains a machine which indicates to the learner that it should kill the JVM, but before this
+	 * it has to write the correct data into the file. Upon a restart, we can expect the file to be processed
+	 * successfully. This one checks that if we only have one attempt, processing fails. 
+	 */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator_recovery2() throws NumberFormatException, IOException
+	{
+		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		recoveryGraph.transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		final ExperimentRunner experiment = getNonOverwriteExperiment();experiment.restarts=1;
+		checkForCorrectException(new whatToRun() {
+			public void run() throws NumberFormatException, IOException {
+				experiment.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+		}},LearnerFailed.class,""+experiment.graphsPerRunner);// since we modify a file on the first run, the killed jvm corresponds to four files which were supposed to be processed, thus the number is 4.
+	}
+
+	/** One file cannot be processed because the learner throws an exception on it. 
+	 * This test is run via the Grid interface. 
+	 */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_A() throws NumberFormatException, IOException
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		// The following graph has two equivalent states, B and C
 		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		for(int i=0;i < multiExpResult.length;++i)
 			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
-				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-2"});
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
 			}
-		},IOException.class,""+4);
+		},LearnerFailed.class,""+4);
 	}
 	
-	/** One file cannot be processed because the learner throws an exception on it. */
+	/** One file cannot be processed because the learner throws an exception on it.
+	 * This file is run via the desktop interface. 
+	 */
 	@Test 
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_B() throws NumberFormatException, IOException
 	{
@@ -393,11 +612,27 @@ public class TestAbstractExperiment {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
 			}
-		},IOException.class,""+4);
+		},LearnerFailed.class,""+4);
 	}
 	
+	/** One file cannot be processed because the learner throws an exception on it.
+	 * This file is run via the robust runner interface. 
+	 */
 	@Test 
-	public final void testAllGraphsMultiStageMultiEvaluator3() throws NumberFormatException, IOException
+	public final void testAllGraphsMultiStageMultiEvaluator_fail4_C() throws NumberFormatException, IOException
+	{
+		String fileToBreak = graphs.entrySet().iterator().next().getKey();
+		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		checkForCorrectException(new whatToRun() {
+			public void run() throws NumberFormatException, IOException {
+				multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+			}
+		},LearnerFailed.class,""+4);
+	}
+	
+	/** Tests that it is possible to process many files by specifying their numbers on a command line. */
+	@Test 
+	public final void testAllGraphsMultiStageMultiEvaluator5() throws NumberFormatException, IOException
 	{
 		int num=0;
 		for(int i=0;i < multiExpResult.length/graphs.size();++i)
@@ -407,77 +642,45 @@ public class TestAbstractExperiment {
 			for(int j=0;j<graphs.size();++j) cmdLine[j+2] = ""+num++;
 			multiExp.runExperiment(cmdLine);
 		}
-		multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-2"});
+		multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_POSTPROCESS});
 		checkCSV(multiExpResult);
 	}
 
+	/** Test that desktop mode throws an exception when asked to run on a non-existing directory. */ 
 	@Test
 	public final void test_fail1()
 	{
-		checkForCorrectException(new whatToRun() {
-
-			public void run() throws NumberFormatException, IOException {
-				new AbstractExperiment() {
-					@Override
-					public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-						return Arrays.asList(new LearnerEvaluatorGenerator[]{new LearnerEvaluatorGenerator() {
-							@Override
-							LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-								return new TestEvaluator(inputFile,percent,instanceID,exp) {
-									@Override
-									protected void runTheExperiment() {
-										result = result + graph.countEdges();
-									}
-									@Override
-									public String getLearnerName() { return "testAllGraphsSingleStage";	}							
-								};
-							}
-						}});
-					}
-			
-					@Override
-					public int [] getStages() {	return null;}
-					
-				}.runExperiment(new String[]{testGraphsDir.getAbsolutePath()+"non-existing"});
-			}
-			
-		}, IllegalArgumentException.class,"invalid directory");		
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+			getSingleStageEvaluator().runExperiment(
+					new String[]{testGraphsDir.getAbsolutePath()+"non-existing"});
+		}}, IllegalArgumentException.class,"invalid directory");		
 	}
 
+	/** Test that Grid mode throws an exception when asked to run on a non-existing directory. */
 	@Test
 	public final void test_fail_grid1()
 	{
-		checkForCorrectException(new whatToRun() {
-
-			public void run() throws NumberFormatException, IOException {
-				new AbstractExperiment() {
-					
-					@Override
-					public List<LearnerEvaluatorGenerator> getLearnerGenerators() {
-						return Arrays.asList(new LearnerEvaluatorGenerator[]{new LearnerEvaluatorGenerator() {
-							@Override
-							LearnerEvaluator getLearnerEvaluator(String inputFile, int percent, int instanceID, AbstractExperiment exp) {
-								return new TestEvaluator(inputFile,percent,instanceID,exp) {
-									@Override
-									protected void runTheExperiment() {
-										result = result + graph.countEdges();
-									}
-									@Override
-									public String getLearnerName() { return "testAllGraphsSingleStage";	}							
-								};
-							}
-						}});
-					}
-			
-					@Override
-					public int [] getStages() {	return null;}
-					
-				}.runExperiment(new String[]{fileList.getAbsolutePath()+"non-existing",testOutputDir.getAbsolutePath()});
-			}
-			
-		}, IllegalArgumentException.class,"grid mode");		
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+				getSingleStageEvaluator().runExperiment(
+						new String[]{fileList.getAbsolutePath()+"non-existing",testOutputDir.getAbsolutePath()});
+		}}, IllegalArgumentException.class,"grid mode");		
 	}
 	
+	/** Test that robust runner mode throws an exception when asked to run on a non-existing directory. */
+	@Test
+	public final void test_fail_robust()
+	{
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+				getSingleStageEvaluator().robustRunExperiment(
+						fileList.getAbsolutePath()+"non-existing",testOutputDir.getAbsolutePath());
+		}}, FileNotFoundException.class,"");		
+	}
+	
+	/** Constructs a list of files containing the provided string.
+	 * 
+	 * @param junk what to put into a list of files to process in the Grid mode.
+	 * @throws IOException if something goes wrong.
+	 */
 	protected void putIntoFileList(String junk) throws IOException
 	{
 		FileWriter writer = null;
@@ -498,6 +701,7 @@ public class TestAbstractExperiment {
 		}
 	}
 	
+	/** Empty list of files. */
 	@Test
 	public final void test_grid_zero1() throws IOException
 	{
@@ -505,11 +709,12 @@ public class TestAbstractExperiment {
 		checkForCorrectException(new whatToRun() {
 
 			public void run() throws NumberFormatException, IOException {
-				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-1"});
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_COUNT});
 			}
 		},IllegalArgumentException.class,"no usable");
 	}
 	
+	/** List of files containing non-existing files - counting gives an error. */
 	@Test
 	public final void test_grid_zero2() throws IOException
 	{
@@ -517,14 +722,28 @@ public class TestAbstractExperiment {
 		checkForCorrectException(new whatToRun() {
 
 			public void run() throws NumberFormatException, IOException {
-				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"-1"});
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+ExperimentRunner.argCMD_COUNT});
 			}
 			
-		}, IOException.class,"trash");		
+		}, IOException.class,"cannot load file ");		
 	}
 	
+	/** Empty list of files, robust runner. */
 	@Test
-	public final void test_fail_grid2() throws IOException
+	public final void test_grid_zero3() throws IOException
+	{
+		putIntoFileList(null);
+		checkForCorrectException(new whatToRun() {
+
+			public void run() throws NumberFormatException, IOException {
+				multiExp.robustRunExperiment(fileList.getAbsolutePath(),testOutputDir.getAbsolutePath());
+			}
+		},IllegalArgumentException.class,"no usable");
+	}
+	
+	/** Grid mode cannot process a non-existing file. */
+	@Test
+	public final void test_fail_grid2a() throws IOException
 	{
 		putIntoFileList("junk");
 		checkForCorrectException(new whatToRun() {
@@ -536,6 +755,7 @@ public class TestAbstractExperiment {
 		}, IOException.class,"junk");		
 	}
 	
+	/** An index provided is over the number of files in a list. */
 	@Test
 	public final void test_fail_grid3()
 	{
@@ -545,9 +765,10 @@ public class TestAbstractExperiment {
 				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"100"});
 			}
 			
-		}, IllegalArgumentException.class,"Array");		
+		}, IllegalArgumentException.class,"Array task number ");		
 	}
 	
+	/** An unrecognised command provided to the Grid mode. */ 
 	@Test
 	public final void test_fail_grid4() throws IOException
 	{
@@ -561,6 +782,7 @@ public class TestAbstractExperiment {
 		}, IllegalArgumentException.class,"invalid command");		
 	}
 
+	/** Cannot parse the command to the Grid mode. List of files contains junk. */
 	@Test
 	public final void test_fail_grid5() throws IOException
 	{
@@ -574,6 +796,8 @@ public class TestAbstractExperiment {
 		}, NumberFormatException.class,"");		
 	}
 	
+	
+	/** Cannot parse the command to the Grid mode. List of files is reasonable. */
 	@Test
 	public final void test_fail_grid6()
 	{
@@ -585,7 +809,8 @@ public class TestAbstractExperiment {
 			
 		}, NumberFormatException.class,"");		
 	}
-	
+
+	/** The number of the next file to process is invalid. */
 	@Test
 	public final void test_fail_grid7()
 	{
@@ -598,8 +823,22 @@ public class TestAbstractExperiment {
 		}, NumberFormatException.class,"");		
 	}
 	
-	final protected String FS = AbstractExperiment.FS; 
-	protected final String array = "A"+FS+"10"+FS+"4"+"\n"+
+	/** An invalid file number. */ 
+	@Test
+	public final void test_fail_grid8()
+	{
+		checkForCorrectException(new whatToRun() {
+
+			public void run() throws NumberFormatException, IOException {
+				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"0", "-10"});
+			}
+			
+		}, IllegalArgumentException.class,"Array task number ");		
+	}
+
+	final protected String FS = ExperimentRunner.FS; 
+	protected final String array = 
+	 "A"+FS+"10"+FS+"4"+"\n"+
 	 "A"+FS+"15"+FS+"6"+"\n"+
 	 "B"+FS+"10"+FS+"8"+"\n"+
 	 "B"+FS+"15"+FS+"7"+"\n"+
@@ -614,7 +853,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(-1, true, 2, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,-1, true, 2, new BufferedReader(new StringReader(array)), wr);
 	}
 	
 	/** Tests the conversion of a result table into R-friendly format. 
@@ -625,7 +864,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, true, -2, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,1, true, -2, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -633,7 +872,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, true, 20, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,1, true, 20, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -641,7 +880,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(10, true, 2, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,10, true, 2, new BufferedReader(new StringReader(array)), wr);
 	}
 
 	/** Empty buffer. */
@@ -650,7 +889,7 @@ public class TestAbstractExperiment {
 	{
 		checkForCorrectException(new whatToRun() { public void run() throws IOException {
 			StringWriter wr = new StringWriter();
-			AbstractExperiment.postProcessIntoR(0, true,0, new BufferedReader(new StringReader("")), wr);
+			ExperimentRunner.postProcessIntoR(null,0, true,0, new BufferedReader(new StringReader("")), wr);
 		}},IllegalArgumentException.class,"no data to dump");
 	}
 
@@ -662,7 +901,7 @@ public class TestAbstractExperiment {
 	{
 		
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(1, true, 2, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,1, true, 2, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"10"+FS+"15"+"\n"+
 				 "4"+FS+"6"+"\n"+
@@ -672,13 +911,30 @@ public class TestAbstractExperiment {
 	}
 	
 	/** Tests the conversion of a result table into R-friendly format. 
+	 * No data to process.
 	 * @throws IOException 
 	 */
-	@Test(expected=NumberFormatException.class)
-	public final void testResultToR2_fail() throws IOException
+	@Test
+	public final void testResultToR2_fail()
 	{
-		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(0,true, 2, new BufferedReader(new StringReader(array)), wr);
+		final StringWriter wr = new StringWriter();
+		checkForCorrectException(new whatToRun() { public void run () throws IOException {
+		ExperimentRunner.postProcessIntoR(null,0,true, 2, new BufferedReader(new StringReader(array)), wr);
+		}}, NumberFormatException.class,"");
+	}
+	
+	
+	/** Tests the conversion of a result table into R-friendly format. 
+	 * No data to process due to filter.
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR2_fail_filter()
+	{
+		final StringWriter wr = new StringWriter();
+		checkForCorrectException(new whatToRun() { public void run () throws IOException {
+		ExperimentRunner.postProcessIntoR("Q",1,true, 2, new BufferedReader(new StringReader(array)), wr);
+		}}, IllegalArgumentException.class,"no data to dump");
 	}
 	
 	/** Tests the conversion of a result table into R-friendly format. 
@@ -688,13 +944,28 @@ public class TestAbstractExperiment {
 	public final void testResultToR2() throws IOException
 	{
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(0,false, 2, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,0,false, 2, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"A"+FS+"B"+"\n"+
 				"4"+FS+"8"+"\n"+
 				"6"+FS+"7"+"\n"+
 				"3"+FS+"\n"+
 				"5"+FS+"\n",
+				 wr.toString());
+	}
+	
+	/** Tests the conversion of a result table into R-friendly format with filtering on B. 
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR2_filter() throws IOException
+	{
+		StringWriter wr = new StringWriter();
+		ExperimentRunner.postProcessIntoR("10",0,false, 2, new BufferedReader(new StringReader(array)), wr);
+		Assert.assertEquals(
+				"A"+FS+"B"+"\n"+
+				"4"+FS+"8"+"\n"+
+				"3"+FS+"\n",
 				 wr.toString());
 	}
 	
@@ -705,7 +976,7 @@ public class TestAbstractExperiment {
 	public final void testResultToR3() throws IOException
 	{
 		StringWriter wr = new StringWriter();
-		AbstractExperiment.postProcessIntoR(0,false, 1, new BufferedReader(new StringReader(array)), wr);
+		ExperimentRunner.postProcessIntoR(null,0,false, 1, new BufferedReader(new StringReader(array)), wr);
 		Assert.assertEquals(
 				"A"+FS+"B"+"\n"+
 				"10"+FS+"10"+"\n"+

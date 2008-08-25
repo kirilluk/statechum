@@ -20,7 +20,6 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
 import cern.colt.bitvector.BitVector;
 import cern.colt.list.DoubleArrayList;

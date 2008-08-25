@@ -120,26 +120,13 @@ public class GraphSeries {
 		}
 		else
 		{
-			GD.ChangesDisplay display = new GD.ChangesDisplay(null);
-			GD.ChangesCounter rateEstimator = new GD.ChangesCounter(graph,newGraph,display);
-			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, rateEstimator);
+			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
 			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
 
 			boolean assertionsEnabled = false;assert assertionsEnabled = true;
 			if (assertionsEnabled) { WMethod.checkM(newGraph, graph);assert graph.wmethod.checkUnreachableStates() == false; }
-			++graphNumber;totalRate+=rateEstimator.getCompressionRate();
+			++graphNumber;
 		}
 		return result;
 	}
-	
-	/** Returns the estimated average compression rate across the last series of graphs. */
-	public double getCompressionRate()
-	{
-		double result = 0;
-		if (graphNumber > 0)
-			result = totalRate/graphNumber;
-		return result;
-		
-	}
-	
 }

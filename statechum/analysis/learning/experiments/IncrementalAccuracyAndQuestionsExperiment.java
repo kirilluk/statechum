@@ -33,8 +33,9 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
+import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -44,7 +45,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 	public static final String FS = ExperimentRunner.FS;
 
 	/** This one is not static because it refers to the frame to display results. */
-	public static abstract class RPNIEvaluator extends LearnerEvaluator
+	public static class RPNIEvaluator extends LearnerEvaluator
 	{
 		PTASequenceEngine sPlus = null, sMinus = null;
 		
@@ -87,8 +88,8 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			};
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
 
-			LearnerGraph learned = learn(l,sMinus);
-			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
+			LearnerGraph learnt = learn(l,sMinus);
+			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learnt);
 			PTASequenceEngine engine = new PTA_FSMStructure(graph);
 			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
@@ -111,22 +112,22 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			{
 				result = result + FS+"L"+// 14
 				// 15 and 16
-					FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
+					FS+Linear.getSimilarity(graph,learnt, false, 1)+FS+Linear.getSimilarity(graph, learnt, true, 1);
 				// 17
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
+				result = result + FS + Linear.getSimilarityGD(graph,learnt, 1).getCompressionRate();// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
 				// 18
-				result = result + FS;// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
+				result = result + FS + Linear.getSimilarityGD_details(graph,learnt, 1);// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
 			}
 			catch(IllegalArgumentException ex)
 			{
 				StringWriter wr = new StringWriter();ex.printStackTrace(new PrintWriter(wr));
 				result = result+"\n"+"exception from linear: "+ex+
-					" on graph with "+learned.getStateNumber()+" and "+learned.getStateNumber()+" transitions" +
+					" on graph with "+learnt.getStateNumber()+" and "+learnt.getStateNumber()+" transitions" +
 					"\n"+wr.getBuffer().toString();
 			}
 			
 			// 19 and 20
-			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness() + FS +
+			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learnt.paths.getExtentOfCompleteness() + FS +
 				l.getRestarts(); // 21
 		}
 
@@ -157,7 +158,9 @@ public class IncrementalAccuracyAndQuestionsExperiment
 					for(int limit:new int[]{-1,3,1})
 					{
 						Configuration config = Configuration.getDefaultConfiguration().copy();
-						config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);						
+						config.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+						config.setGdFailOnDuplicateNames(false);
+						config.setGdLowToHighRatio(0.65);
 						//c.setCertaintyThreshold(2);c.setGeneralisationThreshold(3);
 						//c.setMinCertaintyThreshold(0); //question threshold
 						//c.setKlimit(0);c.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
@@ -171,18 +174,20 @@ public class IncrementalAccuracyAndQuestionsExperiment
 					}			
 			
 			//experiment.setOutputDir(experimentDescription+"_");
-			experiment.runExperiment(args);
+			//experiment.runExperiment(args);
+			experiment.robustRunExperiment("resources/testfilelist.txt", "output/Incremental");
 			for(String name:learnerNames)
 			{
 				String ending = ".csv";
+				/*
 				experiment.postProcessIntoR(name,2,true, 3, new File(experiment.getOutputDir(),name+"-precision"+ending));
 				experiment.postProcessIntoR(name,2,true, 4, new File(experiment.getOutputDir(),name+"-recall"+ending));
 				experiment.postProcessIntoR(name,2,true, 5, new File(experiment.getOutputDir(),name+"-questionNumber"+ending));
-				experiment.postProcessIntoR(name,2,true, 16, new File(experiment.getOutputDir(),name+"-linearA"+ending));
-				experiment.postProcessIntoR(name,2,true, 17, new File(experiment.getOutputDir(),name+"-linearN"+ending));
-				experiment.postProcessIntoR(name,2,true, 18, new File(experiment.getOutputDir(),name+"-linearB"+ending));
+				experiment.postProcessIntoR(name,2,true, 15, new File(experiment.getOutputDir(),name+"-linear"+ending));
+				experiment.postProcessIntoR(name,2,true, 16, new File(experiment.getOutputDir(),name+"-linearP"+ending));
 				experiment.postProcessIntoR(name,2,true, 20, new File(experiment.getOutputDir(),name+"-completeness"+ending));
 				experiment.postProcessIntoR(name,2,true, 21, new File(experiment.getOutputDir(),name+"-restarts"+ending));
+				*/
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();

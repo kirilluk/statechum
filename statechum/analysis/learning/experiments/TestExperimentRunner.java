@@ -50,7 +50,7 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;;
 
-public class TestAbstractExperiment {
+public class TestExperimentRunner {
 	public static final File testDir = new File("resources","__TestAbstractExperiment__"),
 		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());
 
@@ -64,37 +64,13 @@ public class TestAbstractExperiment {
 			TestFSMAlgo.buildGraph("A-a->A-b->B-c->B", "testAbstractExperiment_graph5.xml")
 	};
 	protected Map<String,LearnerGraph> graphs = new TreeMap<String,LearnerGraph>();
-
-	/** Removes the directory and all its files. If the directory contains 
-	 * other directories, aborts, but not before deleting some files. 
-	 */
-	protected void zapDir(File directory)
-	{
-		if (directory.isDirectory())
-		{
-			for(File f:directory.listFiles())
-			{
-				Assert.assertFalse(f.isDirectory());
-				if (!f.delete())
-				{
-					try {
-						Thread.sleep(1000);// wait for a sec
-					} catch (InterruptedException e) {
-						// ignore
-					}
-					Assert.assertTrue("cannot delete file "+f,f.delete());
-				}
-			}
-			directory.delete();
-		}
-	}
 	
 	/** Clears the test space. */
 	protected void deleteTestDirectories()
 	{
-		zapDir(testGraphsDir);
-		zapDir(testOutputDir);
-		zapDir(testDir);
+		ExperimentRunner.zapDir(testGraphsDir);
+		ExperimentRunner.zapDir(testOutputDir);
+		ExperimentRunner.zapDir(testDir);
 		Assert.assertFalse(testDir.isDirectory());Assert.assertFalse(testGraphsDir.isDirectory());Assert.assertFalse(testOutputDir.isDirectory());
 	}
 	
@@ -168,8 +144,9 @@ public class TestAbstractExperiment {
 		Assert.assertFalse(testDir.isDirectory());Assert.assertFalse(testGraphsDir.isDirectory());
 		Assert.assertTrue(testDir.mkdir());Assert.assertTrue(testGraphsDir.mkdir());Assert.assertTrue(testOutputDir.mkdir());
 		populateGraphs();
-
-		multiExp = new ExperimentRunner();multiExp.graphsPerRunner=4;
+		
+		multiExp = new ExperimentRunner();multiExp.graphsPerRunner=4;multiExp.setTimeBetweenHearbeats(heartbeatTestValue);
+		multiExp.setTimeBetweenHearbeats(heartbeatTestValue);// make things run fast.
 		multiExp.setLearnerStages(new int[]{30,45,90,99});
 		multiExp.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
 				w_evaluator.class, "learnerTransitions"));
@@ -199,6 +176,9 @@ public class TestAbstractExperiment {
 	
 	protected String [] multiExpResult = null;
 	protected ExperimentRunner multiExp = null;
+
+	/** Test value for the heartbeat - we'd like it all happen fast. */
+	private final int heartbeatTestValue = 500;
 
 	/** Checks that the csv file contains the expected data. */
 	protected final void checkCSV(String []expectedData)
@@ -246,7 +226,7 @@ public class TestAbstractExperiment {
 	
 	protected ExperimentRunner getSingleStageEvaluator()
 	{
-		ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;experiment.setTimeBetweenHearbeats(heartbeatTestValue );
 		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
 				countEdge_evaluator.class,"testAllGraphsSingleStage"));
 		return experiment;
@@ -277,7 +257,7 @@ public class TestAbstractExperiment {
 	@Test
 	public final void testInvalidLearnerEvaluatorName1()
 	{
-		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;experiment.setTimeBetweenHearbeats(heartbeatTestValue);
 		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
 				w_evaluator.class, "invalid"+FS));
 		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
@@ -291,7 +271,7 @@ public class TestAbstractExperiment {
 	@Test
 	public final void testInvalidLearnerEvaluatorName2()
 	{
-		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;experiment.setTimeBetweenHearbeats(heartbeatTestValue);
 		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
 				w_evaluator.class, ""));
 		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
@@ -305,7 +285,7 @@ public class TestAbstractExperiment {
 	@Test
 	public final void testInvalidLearnerEvaluatorName3()
 	{
-		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;
+		final ExperimentRunner experiment = new ExperimentRunner();experiment.graphsPerRunner=4;experiment.setTimeBetweenHearbeats(heartbeatTestValue);
 		experiment.addLearnerEvaluator(new GeneratorConfiguration(Configuration.getDefaultConfiguration(),
 				w_evaluator.class, null));
 		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
@@ -487,7 +467,7 @@ public class TestAbstractExperiment {
 	
 	protected ExperimentRunner getNonOverwriteExperiment()
 	{
-		ExperimentRunner result = new ExperimentRunner();result.graphsPerRunner=4;
+		ExperimentRunner result = new ExperimentRunner();result.graphsPerRunner=4;result.setTimeBetweenHearbeats(heartbeatTestValue);
 		result.setLearnerStages(new int[]{30,45,90,99});
 		Configuration cnf = Configuration.getDefaultConfiguration().copy();
 		cnf.setLearnerOverwriteOutput(false);// make sure that existing files are preserved.
@@ -543,8 +523,9 @@ public class TestAbstractExperiment {
 		
 		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
 		Writer fileWriter = new FileWriter(new File(testGraphsDir,fileToBreak));fileWriter.write("junk");fileWriter.close();
-
-		getNonOverwriteExperiment().robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
+		ExperimentRunner runner = getNonOverwriteExperiment();
+		runner.zapOutputDir = false;// since we populated output directory, it seems a bad idea to clear it.
+		runner.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
 		checkCSV(multiExpResult);
 	}
  
@@ -893,11 +874,11 @@ public class TestAbstractExperiment {
 		}},IllegalArgumentException.class,"no data to dump");
 	}
 
-	/** Tests the conversion of a result table into R-friendly format. 
+	/** Tests the conversion of a result table into R-friendly format. Uses integers.
 	 * @throws IOException 
 	 */
 	@Test
-	public final void testResultToR1() throws IOException
+	public final void testResultToR1a() throws IOException
 	{
 		
 		StringWriter wr = new StringWriter();
@@ -905,6 +886,52 @@ public class TestAbstractExperiment {
 		Assert.assertEquals(
 				"10"+FS+"15"+"\n"+
 				 "4"+FS+"6"+"\n"+
+				 "8"+FS+"7"+"\n"+
+				 "3"+FS+"5"+"\n",
+				 wr.toString());
+	}
+	
+	/** Tests the conversion of a result table into R-friendly format. Uses doubles.
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR1b() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		ExperimentRunner.postProcessIntoR(null,1, true, 2, new BufferedReader(new StringReader(
+				 "A"+FS+"10.56"+FS+"4"+"\n"+
+				 "A"+FS+"15"+FS+"6"+"\n"+
+				 "B"+FS+"10.56"+FS+"8"+"\n"+
+				 "B"+FS+"15"+FS+"7"+"\n"+
+				 "A"+FS+"10.56"+FS+"3"+"\n"+
+				 "A"+FS+"15"+FS+"5"+"\n")), wr);
+		Assert.assertEquals(
+				"10.56"+FS+"15"+"\n"+
+				 "4"+FS+"6"+"\n"+
+				 "8"+FS+"7"+"\n"+
+				 "3"+FS+"5"+"\n",
+				 wr.toString());
+	}
+	
+	/** Tests the conversion of a result table into R-friendly format. Uses doubles.
+	 * @throws IOException 
+	 */
+	@Test
+	public final void testResultToR1c() throws IOException
+	{
+		
+		StringWriter wr = new StringWriter();
+		ExperimentRunner.postProcessIntoR(null,1, true, 2, new BufferedReader(new StringReader(
+				 "A"+FS+"10.56"+FS+"4"+"\n"+
+				 "A"+FS+"15"+FS+"6.77"+"\n"+
+				 "B"+FS+"10.56"+FS+"8"+"\n"+
+				 "B"+FS+"15"+FS+"7"+"\n"+
+				 "A"+FS+"10.56"+FS+"3"+"\n"+
+				 "A"+FS+"15"+FS+"5"+"\n")), wr);
+		Assert.assertEquals(
+				"10.56"+FS+"15"+"\n"+
+				 "4"+FS+"6.77"+"\n"+
 				 "8"+FS+"7"+"\n"+
 				 "3"+FS+"5"+"\n",
 				 wr.toString());

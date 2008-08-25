@@ -17,8 +17,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.observers;
 
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -68,8 +68,8 @@ public class TestWriteReadInit {
 				new String[]{"5"}
 		});
 
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
@@ -102,7 +102,7 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit1()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		InitialData data=loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
 		Assert.assertEquals(plus.size(),data.plusSize);Assert.assertEquals(minus.size(), data.minusSize);
@@ -113,11 +113,11 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit2()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				xmlData
 				.replace("<"+ELEM_KINDS.ATTR_POSITIVE_SIZE.name(), "<"+ELEM_KINDS.ATTR_POSITIVE_SIZE.name()+" AA=\"34\" ")
 				.replace("<"+ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), "<"+ELEM_KINDS.ATTR_NEGATIVE_SIZE.name()+" AB=\"TT\" ")
-		));
+				.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		InitialData data=loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
 		loader.config = Configuration.getDefaultConfiguration();
@@ -129,7 +129,7 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail1()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(removeTagFromString(xmlData,ELEM_KINDS.ELEM_INIT)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,ELEM_KINDS.ELEM_INIT).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
@@ -140,15 +140,15 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail2()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		Element positiveToRemove = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(0);
 		initElement.removeChild(positiveToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -159,14 +159,14 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail3()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(dumper.writeSequenceList(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -177,15 +177,15 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail4()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		Element negativeToRemove = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(1);// the second one
 		initElement.removeChild(negativeToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -196,14 +196,14 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail5()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(dumper.writeSequenceList(ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -214,15 +214,15 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail6()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform.graphmlNodeName).item(0);
 		initElement.removeChild(graphToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 		
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -233,15 +233,15 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail7()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
 			.transform.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -252,8 +252,8 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail8()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_POSITIVE_SIZE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				removeTagFromString(xmlData,ELEM_KINDS.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -264,8 +264,8 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail9()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_POSITIVE_SIZE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -276,8 +276,8 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail10()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData
-				.replace(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), "JUNKTAG")));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData
+				.replace(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), "JUNKTAG").getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -288,8 +288,8 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail11()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_NEGATIVE_SIZE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_NEGATIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -300,14 +300,14 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail12()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(dumper.doc.createElement("junk"));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
@@ -318,15 +318,15 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail13()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		Element testSequences = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(0);
 		testSequences.removeAttribute(ELEM_KINDS.ATTR_SEQ.name());testSequences.setAttribute(ELEM_KINDS.ATTR_SEQ.name(), "junk");
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));

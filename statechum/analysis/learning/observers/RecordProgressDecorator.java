@@ -18,11 +18,13 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.observers;
 
+import java.io.OutputStream;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -50,24 +52,37 @@ import statechum.model.testset.PTASequenceEngine;
  * @author kirill
  */
 public class RecordProgressDecorator extends ProgressDecorator {
-	protected Writer outputWriter = null;
+	protected OutputStream outputStream = null;
 	
 	/** The top-most element of the trace log file. */
 	protected Element topElement = null;
 	
+	/** Whether to write pure XML files or zip files where each entry is the compressed XML entry.
+	 * We cannot keep half-gig of XML in memory - have to split and compress. 
+	 */
+	protected boolean writeZip = true;
+	
 	/** Graph compressor. */
 	protected GraphSeries series = null;
 	
-	public RecordProgressDecorator(Learner learner, Writer outWriter, int threadNumber, Configuration conf) 
+	public RecordProgressDecorator(Learner learner, OutputStream outStream, int threadNumber, Configuration conf, boolean writeInZipFormat) 
 	{
-		super(learner);outputWriter = outWriter;config = conf;
+		super(learner);config = conf;writeZip=writeInZipFormat;
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
 		{
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
 			doc = factory.newDocumentBuilder().newDocument();
-			topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform.endl(doc));
+			if (writeZip)
+			{// using http://java.sun.com/developer/technicalArticles/Programming/compression/
+				outputStream=new ZipOutputStream(new java.io.BufferedOutputStream(outStream));
+			}
+			else
+			{// only create a top-level element if writing pure XML.
+				outputStream=outStream;
+				topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform.endl(doc));
+			}
 			series = new GraphSeries(doc,threadNumber,config);
 		}
 		catch(ParserConfigurationException e)
@@ -84,23 +99,20 @@ public class RecordProgressDecorator extends ProgressDecorator {
 	{
 		Element finalGraphXMLNode = series.writeGraph(graph);
 		finalGraphXMLNode.setAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name(),ELEM_KINDS.ATTR_LEARNINGOUTCOME.name());
-		topElement.appendChild(finalGraphXMLNode);topElement.appendChild(Transform.endl(doc));
-		close();
+		writeElement(finalGraphXMLNode);
 	}
 
-	public double getCompressionRate()
-	{
-		return series.getCompressionRate();
-	}
-	
 	/** Closes the trace log, writing the constructed XML out. */ 
 	public void close()
 	{
 		try 
 		{
-			Transformer trans = TransformerFactory.newInstance().newTransformer();
-			trans.transform(new DOMSource(doc),new StreamResult(outputWriter));
-			outputWriter.close();
+			if (!writeZip)
+			{
+				Transformer trans = TransformerFactory.newInstance().newTransformer();
+				trans.transform(new DOMSource(doc),new StreamResult(outputStream));
+			}
+			outputStream.close();
 		} catch (Exception e) {
 			statechum.Helper.throwUnchecked("failed to write out XML ",e);
 		}
@@ -111,11 +123,41 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		
 	}
 	
+	/** Used to give all entries in a zip file unique names. */
+	protected int entryNumber = 1;
+	
+	/** Writes the supplied XML element out, either to XML file or to Zip stream. 
+	 * The destination of data depends on the <em>writeZip</em> attribute.
+	 * 
+	 * @param elem what to write out.
+	 */
+	protected void writeElement(Element elem)
+	{
+		if (writeZip)
+		{
+			try 
+			{
+				doc.appendChild(elem);// add element
+				ZipEntry entry = new ZipEntry(Integer.toString(entryNumber++)+"_"+elem.getNodeName());((ZipOutputStream)outputStream).putNextEntry(entry);
+				Transformer trans = TransformerFactory.newInstance().newTransformer();
+				trans.transform(new DOMSource(doc),new StreamResult(outputStream));// write XML
+				doc.removeChild(elem);// now remove the element, making space for next one.
+			} catch (Exception e) {
+				statechum.Helper.throwUnchecked("failed to write out XML ",e);
+			}
+		}
+		else
+		{
+			topElement.appendChild(elem);topElement.appendChild(Transform.endl(doc));// just add children.
+		}
+	}
+	
 	@Override
 	public LearnerGraph learnMachine(final PTASequenceEngine engine, int plusSize, int minusSize)
 	{
 		LearnerGraph graph = decoratedLearner.learnMachine(engine, plusSize, minusSize);
 		writeResult(graph);
+		close();
 		return graph;
 	}
 	
@@ -124,6 +166,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 	{
 		LearnerGraph graph = decoratedLearner.learnMachine(plus,minus);
 		writeResult(graph);
+		close();
 		return graph;
 	}
 	
@@ -136,7 +179,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		questionElement.setAttribute(ELEM_KINDS.ATTR_QUESTION.name(),strWriter.toString());
 		questionElement.setAttribute(ELEM_KINDS.ATTR_FAILEDPOS.name(), result.firstElem.toString());
 		if (result.secondElem != null) questionElement.setAttribute(ELEM_KINDS.ATTR_LTL.name(), result.secondElem);
-		topElement.appendChild(questionElement);topElement.appendChild(Transform.endl(doc));
+		writeElement(questionElement);
 		return result;
 	}
 
@@ -147,7 +190,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		{
 			pairsElement.appendChild(writePair(p));pairsElement.appendChild(Transform.endl(doc));
 		}
-		topElement.appendChild(pairsElement);topElement.appendChild(Transform.endl(doc));
+		writeElement(pairsElement);
 		return result;
 	}
 	
@@ -157,14 +200,14 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		Element questions = doc.createElement(ELEM_KINDS.ELEM_QUESTIONS.name());
 		Element questionList = writeSequenceList(ELEM_KINDS.ATTR_QUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair));
-		topElement.appendChild(questions);topElement.appendChild(Transform.endl(doc));
+		writeElement(questions);
 		return result;
 	}
 	
 	/** Stores the current learner input parameters. */
 	public void writeLearnerEvaluationData(LearnerEvaluationConfiguration cnf)
 	{
-		topElement.appendChild(writeLearnerEvaluationConfiguration(cnf));topElement.appendChild(Transform.endl(doc));		
+		writeElement(writeLearnerEvaluationConfiguration(cnf));		
 	}
 	
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
@@ -173,7 +216,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		Element mergedGraph = series.writeGraph(result);
 		Element mergeNode = doc.createElement(ELEM_KINDS.ELEM_MERGEANDDETERMINIZE.name());
 		mergeNode.appendChild(mergedGraph);mergeNode.appendChild(writePair(new PairScore(pair.getQ(),pair.getR(),0,0)));
-		topElement.appendChild(mergeNode);topElement.appendChild(Transform.endl(doc));
+		writeElement(mergeNode);
 		return result;
 	}
 
@@ -196,7 +239,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 				return !positiveFilter.shouldBeReturned(name);
 			}
 		};
-		topElement.appendChild(writeInitialData(new InitialData(engine.getData(positiveFilter), plusSize, engine.getData(negativeFilter), minusSize, result)));
+		writeElement(writeInitialData(new InitialData(engine.getData(positiveFilter), plusSize, engine.getData(negativeFilter), minusSize, result)));
 		return result;
 	}
 
@@ -204,7 +247,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 	{
 		LearnerGraph result = decoratedLearner.init(plus, minus);
 		
-		topElement.appendChild(writeInitialData(new InitialData(plus, plus.size(), minus, minus.size(), result)));
+		writeElement(writeInitialData(new InitialData(plus, plus.size(), minus, minus.size(), result)));
 		return result;
 	}
 
@@ -213,13 +256,13 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		decoratedLearner.Restart(mode);
 		Element restartElement = doc.createElement(ELEM_KINDS.ELEM_RESTART.name());
 		restartElement.setAttribute(ELEM_KINDS.ATTR_KIND.name(),mode.toString());
-		topElement.appendChild(restartElement);topElement.appendChild(Transform.endl(doc));
+		writeElement(restartElement);
 	}
 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) 
 	{
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		topElement.appendChild(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));topElement.appendChild(Transform.endl(doc));
+		writeElement(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));
 	}
 }

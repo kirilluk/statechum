@@ -54,6 +54,7 @@ public class GlobalConfiguration {
 		LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
 		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
 		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
+		,TIMEBETWEENHEARTBEATS // How often to check i/o streams and send heartbeat data.
 		;
 	}
 
@@ -73,6 +74,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN);
 		defaultValues.put(G_PROPERTIES.STOP, "");
 		defaultValues.put(G_PROPERTIES.TEMP, "temp");
+		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 	}
 	
 	protected GlobalConfiguration() {}

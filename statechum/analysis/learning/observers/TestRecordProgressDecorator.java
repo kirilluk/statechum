@@ -1,5 +1,7 @@
 package statechum.analysis.learning.observers;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -190,8 +192,8 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{"more data"}
 		});
-		StringWriter output = new StringWriter();
-		ProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		ProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		org.w3c.dom.Element dataElem = dumper.writeSequenceList("someData", data);
 		
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
@@ -206,7 +208,7 @@ public class TestRecordProgressDecorator {
 	
 	@Test
 	public final void testWriteSequences2() {
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(dumpSequencesHelper()));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().getBytes()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -229,12 +231,12 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{"the second set of data"}
 		});
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
 		dumper.topElement.appendChild(dumper.writeSequenceList("moreData", data2));
 		dumper.close();
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(output.toString()));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -254,7 +256,7 @@ public class TestRecordProgressDecorator {
 	/** Invalid XML file. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteSequences_fail1() {
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(dumpSequencesHelper().replaceFirst(ELEM_KINDS.ELEM_SEQ.name(), "TT")));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceFirst(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -267,7 +269,7 @@ public class TestRecordProgressDecorator {
 	/** Expected tag not found */
 	@Test
 	public final void testWriteSequences_fail2() {
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT")));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.expectNextElement("U");
 		}},IllegalArgumentException.class,"encountered");
@@ -281,8 +283,8 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{"more data"}
 		});
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
 		dumper.close();
 		return output.toString();
@@ -292,7 +294,7 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testWriteSequences_fail3() {
 		checkForCorrectException(new whatToRun() { public void run() {
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT")));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
 			ProgressDecorator.readSequenceList(loader.expectNextElement("TT"),"someData");
 		}},IllegalArgumentException.class,"expecting to load a list of sequences");
 	}
@@ -306,12 +308,12 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{"more data"}
 		});
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
 		dumper.close();
 		
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(output.toString()));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			ProgressDecorator.readSequenceList(loader.expectNextElement(ELEM_KINDS.ELEM_SEQ.name()),"AsomeData");
 		}},IllegalArgumentException.class,"expecting to load a list with name ");
@@ -370,8 +372,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles1()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -383,8 +385,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles2()
 	{
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -395,8 +397,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail1()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
@@ -411,8 +413,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail2()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -427,8 +429,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail3()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
@@ -442,8 +444,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail4()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -457,8 +459,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail5()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
@@ -472,8 +474,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail6()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -487,8 +489,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail7()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
@@ -502,8 +504,8 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testCheckSingles_fail8()
 	{
-		StringWriter output = new StringWriter();
-		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element A=null;
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
@@ -522,8 +524,24 @@ public class TestRecordProgressDecorator {
 	 * @param name its name
 	 * @param plus positives
 	 * @param minus negatives.
+	 * @param useZip whether to use ZIP compression with the data stream. 
 	 */
 	protected void checkLearnerProgressRecording(String fsmString, String name,final String [][] plus, final String [][] minus)
+	{
+		checkLearnerProgressRecording(fsmString, name, plus, minus, false);
+		checkLearnerProgressRecording(fsmString, name, plus, minus, true);
+	}
+	
+	/** A modified version of a similar method from TestRpniLearner. This one
+	 * checks that progress recording works correctly.
+	 * 
+	 * @param fsmString fsm to learn
+	 * @param name its name
+	 * @param plus positives
+	 * @param minus negatives.
+	 * @param useZip whether to use ZIP compression with the data stream. 
+	 */
+	protected void checkLearnerProgressRecording(String fsmString, String name,final String [][] plus, final String [][] minus, boolean useZip)
 	{
 		Configuration testConfig = Configuration.getDefaultConfiguration().copy();testConfig.setGdFailOnDuplicateNames(false);
 		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
@@ -546,21 +564,23 @@ public class TestRecordProgressDecorator {
 			}
 		};
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
-		StringWriter writer = new StringWriter();
-		RecordProgressDecorator recorder = new RecordProgressDecorator(l,writer,1,Configuration.getDefaultConfiguration());recorder.config=expected.config.copy();
+		ByteArrayOutputStream logStream = new ByteArrayOutputStream();
+
+		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,Configuration.getDefaultConfiguration(),useZip);recorder.config=expected.config.copy();
 		Collection<List<String>> testSet = new LinkedList<List<String>>();
 		recorder.writeLearnerEvaluationData(new ProgressDecorator.LearnerEvaluationConfiguration(expected, testSet, testConfig, null));
 		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus), buildSet(minus));
 		
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
-		//System.out.println(writer.toString());
-		
+		//System.out.println(logStream.toString()+"============");
+		//System.out.println(logStream.toByteArray().length);
 		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,expected.config);
 		WMethod.checkM(learntMachineNoRejects, expected);
 		
 		{// matching two simulators
-			final LearnerSimulator simulator = new LearnerSimulator(new StringReader(writer.toString())),
-			simulator2 = new LearnerSimulator(new StringReader(writer.toString()));
+			final LearnerSimulator 
+				simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip),
+				simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
 			
 			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
 			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
@@ -575,7 +595,7 @@ public class TestRecordProgressDecorator {
 		}
 
 		{// now a simulator to a learner
-			final LearnerSimulator simulator = new LearnerSimulator(new StringReader(writer.toString()));
+			final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
 			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
 			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
 			Assert.assertEquals(testSet, eval1.testSet);

@@ -26,6 +26,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,7 +41,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Pair;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class ExperimentRunner 
@@ -95,6 +98,19 @@ public class ExperimentRunner
 	{
 	}
 
+	/** Whether to force <em>setLearnerOverwriteOutput(true)</em> on all the learners. */
+	private boolean robust = false;
+	
+	public boolean isRobust()
+	{
+		return robust;
+	}
+	
+	public void setRobust(boolean newValue)
+	{
+		robust = newValue;
+	}
+	
 	/** %% to run a learner through. <em>null</em> means only one stage. */
 	private int [] learnerStages = null;
 	
@@ -164,7 +180,9 @@ public class ExperimentRunner
 				statechum.Helper.throwUnchecked("failed to create an instance of learner evaluator", e);
 			}
 			try {
-				result = c.newInstance(inputFile, percent,instanceID,exp,generatorConfig,name);
+				Configuration cnf = generatorConfig.copy();
+				if (exp.isRobust()) cnf.setLearnerOverwriteOutput(false);
+				result = c.newInstance(inputFile, percent,instanceID,exp,cnf,name);
 			} catch (InvocationTargetException e)
 			{
 				statechum.Helper.throwUnchecked("failed to create an instance", e.getCause());
@@ -774,10 +792,66 @@ public class ExperimentRunner
 	 */
 	public static void main(String args[])
 	{
-		try {
+		try 
+		{
+			
 			XMLDecoder decoder = new XMLDecoder(new FileInputStream(args[0]));
-			ExperimentRunner exp = (ExperimentRunner) decoder.readObject();decoder.close();
+			final ExperimentRunner exp = (ExperimentRunner) decoder.readObject();decoder.close();
 			String []expArgs = new String[args.length-1];System.arraycopy(args, 1, expArgs, 0, args.length-1);
+			if (exp.isForked())
+			{
+				Thread heartbeatThread = new Thread(new Runnable() { 
+					public void run() 
+					{
+						// after processing has started and did not generate an exception, we need
+						// to keep heartbeat going to ensure that this process will terminate
+						// when the parent process has terminated.
+						
+						final int timeOutTicks = 5;// how many heartbeats to wait before timing out
+						
+						long prevTime = new Date().getTime();// each instance remembers the time it was created on, so I cannot re-use an existing instance.
+						long currentTime = prevTime;
+						try {
+							Thread.sleep(exp.timeBetweenHearbeats*3);// wait for the main thread to start processing
+
+							prevTime = new Date().getTime();// account for the time spent waiting for threads to start.
+							currentTime=prevTime;
+						} catch (InterruptedException e1) {
+							// this means that we've been asked to terminate, in this case we
+							// pretend that the heartbeat time has elapsed and terminate.
+
+							currentTime = prevTime + (timeOutTicks+1)*exp.timeBetweenHearbeats;// force the following loop to exit immediately 
+						}
+						
+						try
+						{
+							while (currentTime - timeOutTicks*exp.timeBetweenHearbeats < prevTime)
+							{
+								int avail = System.in.available();
+								if (avail > 0) 
+								{
+									prevTime = currentTime;// reset the timer.
+									while(avail-->0) System.in.read();// drop the chars 
+								} 
+								try {
+									Thread.sleep(exp.timeBetweenHearbeats);// wait for a bit.
+								} catch (InterruptedException e1) {
+									// this means that we've been asked to terminate, in this case we
+									// pretend that the heartbeat time has elapsed and terminate.
+									break;
+								}
+								currentTime = new Date().getTime();
+							}
+						} catch(IOException e)
+						{// failed to read I/O, assume that parent process terminated and abort.
+						}
+						System.exit(-1);// did not receive a heartbeat or were asked to terminate.
+					}
+				},"heartbeat");
+				heartbeatThread.setDaemon(true);
+				heartbeatThread.start();
+			} // if forked
+
 			exp.runExperiment(expArgs);
 		} catch (Exception e) {
 			// no point handling this because the caller will do post-process and will know what happened.
@@ -786,26 +860,147 @@ public class ExperimentRunner
 		
 	}
 
-	/** Displays output/error streams of the supplied process.
+	/** Indicates if the learner is running in a separate JVM or not - separate one
+	 * need heartbeat, integrated does not. 
+	 */
+	private boolean forked = false;
+	
+	public boolean isForked()
+	{
+		return forked;
+	}
+	
+	public void setForked(boolean newValue)
+	{
+		forked = newValue;
+	}
+	
+	/** How often to check i/o streams and send heartbeat data. */
+	protected int timeBetweenHearbeats = Integer.parseInt(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TIMEBETWEENHEARTBEATS));
+	
+	public int getTimeBetweenHearbeats()
+	{
+		return timeBetweenHearbeats;
+	}
+	
+	public void setTimeBetweenHearbeats(int newValue)
+	{
+		timeBetweenHearbeats = newValue;
+	}
+	
+	/** Displays output/error streams of the supplied process
+	 * and supplies the process with heartbeat data.
 	 * 
 	 * @param p process of interest.
 	 * @throws IOException 
 	 */
-	public static void dumpStreams(Process p) throws IOException
+	public void dumpStreams(Process p)
 	{
-		java.io.BufferedReader rd = new java.io.BufferedReader(new java.io.InputStreamReader(p.getErrorStream()));
-		String line = rd.readLine();
-		while(line != null)
+		java.io.InputStream err = p.getErrorStream(),out = p.getInputStream();
+		java.io.OutputStream in = p.getOutputStream();
+		StringBuffer errBuffer = new StringBuffer(), outBuffer = new StringBuffer();
+		byte []dataBuffer = new byte[100];
+		long prevTime = new Date().getTime()-2*timeBetweenHearbeats;
+		boolean processRunning = true;
+		
+		try
 		{
-			System.err.println(line);line = rd.readLine();
+			do
+			{
+				long currentTime = new Date().getTime();
+				if (currentTime - timeBetweenHearbeats > prevTime)
+				{
+					prevTime = currentTime;
+				
+					int avail = err.available();
+					if (avail>0) 
+					{// some data available
+						int availErr = Math.min(dataBuffer.length,avail);
+						err.read(dataBuffer, 0, availErr);
+						for(int i=0;i<availErr;++i) 
+						{
+							byte ch = dataBuffer[i];
+							errBuffer.append((char)ch);
+							if (ch == '\n') 
+							{
+								System.err.print(errBuffer);errBuffer.setLength(0);// received a full line, display and flush
+							}
+						}
+					}
+					
+					avail = out.available();
+					if (avail>0) 
+					{ // some data available
+						int availOut = Math.min(dataBuffer.length,avail);
+						out.read(dataBuffer, 0, availOut);
+						for(int i=0;i<availOut;++i) 
+						{
+							byte ch = dataBuffer[i];
+							outBuffer.append((char)ch);
+							if (ch == '\n') 
+							{
+								System.out.print(outBuffer);outBuffer.setLength(0);// received a full line, display and flush
+							}
+						}
+					}
+					in.write('\n');in.flush();// send heartbeat. If a process has terminated, this will fail, but we would have already absorbed all its output.
+				}
+				
+				try {
+					Thread.sleep(timeBetweenHearbeats);// wait for a bit.
+				} catch (InterruptedException e1) {
+					// this means that we've been asked to terminate, in this case we
+					// pretend that the process has terminated and exit.
+					processRunning = false;
+				}
+				
+				if (processRunning)
+					try
+					{
+						p.exitValue();
+						processRunning = false;// process terminated if exception was not thrown.
+					}
+					catch(IllegalThreadStateException e)
+					{// process not terminated yet, hence continue
+						
+					}
+			} while(processRunning);
+		} catch(IOException e)
+		{// assume that child process terminated.
+			
 		}
-		rd = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
-		line = rd.readLine();
-		while(line != null)
+		System.out.print(outBuffer);System.err.print(errBuffer);
+	}
+	
+	/** Removes the directory and all its files. If the directory contains 
+	 * other directories, aborts, but not before deleting some files. 
+	 */
+	public static void zapDir(File directory)
+	{
+		if (directory.isDirectory())
 		{
-			System.out.println(line);line = rd.readLine();
+			for(File f:directory.listFiles())
+			{
+				if (f.isDirectory()) throw new IllegalArgumentException("directory to erase should not contain directories");
+				if (!f.delete())
+				{
+					try {
+						Thread.sleep(1000);// wait for a second, hoping the lock will be released.
+					} catch (InterruptedException e) {
+						// ignore
+					}
+					if (!f.delete()) throw new IllegalArgumentException("cannot delete file "+f);// if we cannot delete a file after waiting for a second, no point to keep waiting 
+				}
+			}
+			directory.delete();
 		}
 	}
+
+	/** Whether to clear the output directory when we start running - defaults to true.
+	 * Occasionally set to false for testing.
+	 */
+	protected boolean zapOutputDir = true;
+	
 	/** This method is a Grid-mode-only runner which can be provided with
 	 * a configuration to run experiments on and a subclass of 
 	 * <em>LearnerEvaluatorGenerator</em> which actually runs them. It also
@@ -827,38 +1022,65 @@ public class ExperimentRunner
 				reader = new FileReader(graphDir.getAbsolutePath());
 			else
 				reader = new StringReader(getFileListFromDirName(graphDir.getAbsolutePath()).firstElem);
+			File outputDirectory = new File(outputDirName);
+			
+			if (zapOutputDir)
+			{
+				zapDir(outputDirectory.getAbsoluteFile()); // clear the output directory
+				if (!outputDirectory.mkdirs())
+					throw new IllegalArgumentException("failed to create directory "+outputDirectory);
+			}
 			
 			// First, we compute the number of files to process. This also verifies that we can obtain a list of files without throwing an exception.
 			int graphNumber = computeMaxNumber(reader);
 			assert graphNumber > 0;// on zero, exception is thrown by computeMaxNumber.
 			
-			// Now serialise this experiment and get the new JVM load it back.
+			// following http://forums.sun.com/thread.jspa?threadID=563892&messageID=2788740
+			List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+			boolean debuggerArgsFound = false;
+			for(String arg:jvmArgs)
+				if (arg.startsWith("-agentlib:jdwp"))
+				{
+					debuggerArgsFound = true;break;
+				}
+			setForked(!debuggerArgsFound);setRobust(!debuggerArgsFound);
+			
+			// Now serialise this experiment and get the new JVM to load it back.
 			serialisedExperiment = File.createTempFile("experiment", ".xml", new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)));
 			XMLEncoder encoder = new XMLEncoder(new FileOutputStream(serialisedExperiment));
 			encoder.writeObject(this);encoder.close();
 
-			int failures = -1, attempts =0;
-			// following http://forums.sun.com/thread.jspa?threadID=563892&messageID=2788740
-			List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+			int failures = -1, attempts =isForked()?0:restarts-1;// if we start under debugger, only run learner once.
 			while(failures != 0 && attempts++<restarts)
 			{
 				for(int currentGraph = 0;currentGraph < graphNumber;currentGraph+=graphsPerRunner)
 				{
 					int maxGraph = Math.min(currentGraph+graphsPerRunner,graphNumber);
 					List<String> commandLine = new LinkedList<String>();
-					commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
-					commandLine.addAll(jvmArgs);commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
-					commandLine.add(this.getClass().getCanonicalName());
-					commandLine.add(serialisedExperiment.getAbsolutePath());commandLine.add(graphDir.getAbsolutePath());commandLine.add(outputDirName);
+					if (isForked())
+					{// arguments for the JVM to run
+						commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
+						commandLine.addAll(jvmArgs);commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
+						commandLine.add(this.getClass().getCanonicalName());
+					}
+					commandLine.add(serialisedExperiment.getAbsolutePath());commandLine.add(graphDir.getAbsolutePath());commandLine.add(outputDirectory.getAbsolutePath());
 					for(int i=currentGraph;i<maxGraph;++i)
 		    			commandLine.add(Integer.toString(i));
 					String []strArgs = new String[commandLine.size()];int pos=0;for(String str:commandLine) strArgs[pos++]=str;
-		    		Process jvm = Runtime.getRuntime().exec(strArgs);// run every few graphs in a separate JVM
-		    		dumpStreams(jvm);
-		    		try {
-						jvm.waitFor();
-					} catch (InterruptedException e) {
-						statechum.Helper.throwUnchecked("wait for child jvm aborted", e);
+		    		
+					if (isForked())
+					{// run the JVM and wait for it to terminate
+						Process jvm = Runtime.getRuntime().exec(strArgs);// run every few graphs in a separate JVM
+			    		dumpStreams(jvm);
+			    		try {
+							jvm.waitFor();
+						} catch (InterruptedException e) {
+							statechum.Helper.throwUnchecked("wait for child jvm aborted", e);
+						}
+					}
+					else
+					{// running under debugger, hence run directly (the heartbeat flag would've been serialised)
+						ExperimentRunner.main(strArgs);
 					}
 				}
 				
@@ -943,7 +1165,7 @@ public class ExperimentRunner
 		if (colSort < 0 || colNumber < 0)
 			throw new IllegalArgumentException("invalid column number");
 		
-		Map<Object,List<String>> resultMap = new TreeMap<Object,List<String>>();
+		Map<Object,List<String>> resultMap = new java.util.LinkedHashMap<Object,List<String>>();
 		int maxCol = Math.max(colSort,colNumber);
 		
 		String line = tableReader.readLine();
@@ -957,7 +1179,16 @@ public class ExperimentRunner
 			 // for details.
 				if (splitResult.length <= maxCol)
 					throw new IllegalArgumentException("invalid result file: cannot access column "+maxCol+" (failed to parse \""+line+"\")");
-				Object colHeader = numbers?new Integer(splitResult[colSort]):splitResult[colSort];
+				Object colHeader = splitResult[colSort];
+				if (numbers)
+				{
+					try {
+						colHeader = new Integer(splitResult[colSort]);
+					} catch(NumberFormatException e)
+					{// guess it is not an integer, try a double, will throw if it is not a double either.
+						colHeader = new Double(splitResult[colSort]);
+					}
+				}
 				List<String> col = resultMap.get(colHeader);
 				if (col == null) { col = new LinkedList<String>();resultMap.put(colHeader, col); }
 				col.add(splitResult[colNumber]);

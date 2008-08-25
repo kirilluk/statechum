@@ -19,8 +19,8 @@ package statechum.analysis.learning.observers;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,8 +50,8 @@ public class TestWriteReadPair {
 	{
 		graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C", "testWritePairs1"),Configuration.getDefaultConfiguration());
 		PairScore pair = new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7);
-		StringWriter output = new StringWriter();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration());
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writePair(pair));dumper.close();
 		
 		xmlData = output.toString();
@@ -61,7 +61,7 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair1()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		Assert.assertEquals(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7),
 				loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
 	}
@@ -70,7 +70,7 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair2()
 	{
-		LearnerSimulator loader = new LearnerSimulator(new StringReader(addExtraAttribute(xmlData,ELEM_KINDS.ELEM_PAIR)));
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(addExtraAttribute(xmlData,ELEM_KINDS.ELEM_PAIR).getBytes()),false);
 		Assert.assertEquals(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7),
 				loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
 	}
@@ -80,7 +80,7 @@ public class TestWriteReadPair {
 	public final void testWritePair_fail1()
 	{
 		final String wrongTag = "junk";
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(xmlData.replace(ELEM_KINDS.ELEM_PAIR.name(), wrongTag)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.replace(ELEM_KINDS.ELEM_PAIR.name(), wrongTag).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(wrongTag));
 		}},IllegalArgumentException.class,"expected to load a pair but got");
@@ -90,8 +90,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail2()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_Q)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				removeTagFromString(xmlData,ELEM_KINDS.ATTR_Q).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
@@ -101,8 +101,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail3()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_R)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				removeTagFromString(xmlData,ELEM_KINDS.ATTR_R).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
@@ -112,8 +112,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail4()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_SCORE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				removeTagFromString(xmlData,ELEM_KINDS.ATTR_SCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
@@ -123,8 +123,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail5()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_OTHERSCORE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				removeTagFromString(xmlData,ELEM_KINDS.ATTR_OTHERSCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
@@ -134,8 +134,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail6()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_SCORE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_SCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a score");
@@ -145,8 +145,8 @@ public class TestWriteReadPair {
 	@Test
 	public final void testWritePair_fail7()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new StringReader(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_OTHERSCORE)));
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
+				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_OTHERSCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a anotherscore");

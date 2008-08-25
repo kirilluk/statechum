@@ -18,7 +18,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.analysis.learning.observers;
 
-import java.io.Reader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -27,6 +28,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -54,9 +57,15 @@ import statechum.model.testset.PTASequenceEngine;
  */
 public class LearnerSimulator extends ProgressDecorator implements Learner 
 {
+	/** Element of our XML file to consider next (if not a zip file). */
 	protected int childOfTopElement =0;
-	NodeList childElements = null;
+	
+	/** Elements of XML document we're going to play back (if not a zip file). */
+	protected NodeList childElements = null;
 
+	/** Zip input stream. */
+	protected ZipInputStream inputZip = null;
+	
 	/** Graph compressor. */
 	protected GraphSeries series = null;
 
@@ -74,18 +83,87 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	public Element expectNextElement(String name)
 	{
 		org.w3c.dom.Node result = null;
-		do
-		{
-			if (childOfTopElement >= childElements.getLength())
-				throw new IllegalArgumentException("failed to find element called "+name);
-			result = childElements.item(childOfTopElement++);
-		}
-		while(result.getNodeType() == org.w3c.dom.Node.TEXT_NODE);
+		result = getNextElement();
+		if (result == null)
+			throw new IllegalArgumentException("failed to find element called "+name);
+
 		if (!name.equals(result.getNodeName()))
 			throw new IllegalArgumentException("encountered "+result.getNodeName()+" instead of "+name);
-
 		return (Element)result;
 	}
+
+	protected InputStream inputStreamForXMLparser = new InputStream(){
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#available()
+		 */
+		@Override
+		public int available() throws IOException {
+			return inputZip.available();
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#close()
+		 */
+		@Override
+		public void close() {
+			// does nothing to prevent XML parser from closing this stream.
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#mark(int)
+		 */
+		@Override
+		public synchronized void mark(int readlimit) {
+			inputZip.mark(readlimit);
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#markSupported()
+		 */
+		@Override
+		public boolean markSupported() {
+			return inputZip.markSupported();
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#read(byte[], int, int)
+		 */
+		@Override
+		public int read(byte[] b, int off, int len)	throws IOException {
+			return inputZip.read(b, off, len);
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#read(byte[])
+		 */
+		@Override
+		public int read(byte[] b) throws IOException {
+			return inputZip.read(b);
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#reset()
+		 */
+		@Override
+		public synchronized void reset() throws IOException {
+			inputZip.reset();
+		}
+
+		/* (non-Javadoc)
+		 * @see java.io.InputStream#skip(long)
+		 */
+		@Override
+		public long skip(long n) throws IOException {
+			return inputZip.skip(n);
+		}
+
+		@Override
+		public int read() throws IOException {
+			return inputZip.read();
+		}
+		
+	};
 	
 	/** Loads the next element from XML file. Returns <em>null</em> if there are 
 	 * no more elements.
@@ -94,26 +172,49 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	public Element getNextElement()
 	{
 		org.w3c.dom.Node result = null;
-		do
+		if (readZip)
 		{
-			result = childElements.item(childOfTopElement++);
+			ZipEntry entry = null;
+			try {
+				entry = inputZip.getNextEntry();
+			} catch (IOException e) {
+				statechum.Helper.throwUnchecked("failed to load ZIP file entry", e);
+			}
+
+			if (entry != null) 
+			{
+				// Thanks to XML parser closing the input stream, I cannot directly pass
+				// the Zip stream to it. Hence I have to subclass it in order to "disable" the 
+				// close() command.
+				Document d = getDocumentOfXML(inputStreamForXMLparser);
+				result = d.getFirstChild();
+			}
 		}
-		while(childOfTopElement < childElements.getLength() &&
-				result.getNodeType() == org.w3c.dom.Node.TEXT_NODE);
-		
-		if (childOfTopElement >= childElements.getLength())
-			return null;
-		
+		else
+		{
+			do
+			{
+				result = childElements.item(childOfTopElement++);
+			}
+			while(childOfTopElement < childElements.getLength() &&
+					result.getNodeType() == org.w3c.dom.Node.TEXT_NODE);
+			
+			if (result.getNodeType() == org.w3c.dom.Node.TEXT_NODE)
+				result = null;
+		}
 		return (Element)result;
 	}
+	
+	/** Whether the incoming stream is a zip file. */
+	protected boolean readZip = true;
 	
 	/** Loads an XML from the supplied reader and returns the <em>Document</em> corresponding
 	 * to it.
 	 * 
-	 * @param inputReader the reader from which to load XML
+	 * @param inStream the stream from which to load XML.
 	 * @return XML document.
 	 */
-	public static Document getDocumentOfXML(Reader inputReader)
+	public static Document getDocumentOfXML(InputStream inStream)
 	{
 		Document result = null;
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -121,7 +222,7 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		{
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
-			result = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(inputReader));
+			result = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(inStream));
 		}
 		catch(Exception e)
 		{
@@ -130,10 +231,17 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		return result;
 	}
 	
-	public LearnerSimulator(Reader inputReader) 
+	public LearnerSimulator(InputStream inStream, boolean useZip) 
 	{
-		super(null);decoratedLearner=this;
-		doc = getDocumentOfXML(inputReader);childElements = doc.getDocumentElement().getChildNodes();
+		super(null);decoratedLearner=this;readZip=useZip;
+		if (readZip)
+		{
+			inputZip = new ZipInputStream(new java.io.BufferedInputStream(inStream));
+		}
+		else
+		{
+			doc = getDocumentOfXML(inStream);childElements = doc.getDocumentElement().getChildNodes();
+		}
 	}
 	
 	protected Learner topLevelListener = this;

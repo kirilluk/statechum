@@ -39,7 +39,7 @@ public class AllTests {
 		statechum.analysis.learning.TestRpniLearner.class,
 		statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
 		statechum.analysis.learning.TestLoadAnswers.class,
-		statechum.analysis.learning.experiments.TestAbstractExperiment.class,
+		statechum.analysis.learning.experiments.TestExperimentRunner.class,
 		statechum.model.testset.TestPTA_computePrecisionRecall.class,
 		statechum.AllTests.ObserversTests.class
 	}) // commas after the last entry compile from within Eclipse but not from ant

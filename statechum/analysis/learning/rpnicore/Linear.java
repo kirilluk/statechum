@@ -21,7 +21,6 @@ package statechum.analysis.learning.rpnicore;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraphND.DDRH_default;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
 
 public class Linear {
 	final LearnerGraph coregraph;
@@ -49,35 +48,45 @@ public class Linear {
 	 *
 	 * @param forceAccept if true, assumes that all states are accept-states
 	 */
-	public double getSimilarity(LearnerGraph gr, boolean forceAccept, int ThreadNumber)
+	public static double getSimilarity(LearnerGraph reference, LearnerGraph learnt, boolean forceAccept, int ThreadNumber)
 	{
-		Configuration copyConfig = coregraph.config.copy();copyConfig.setLearnerCloneGraph(true);
-		LearnerGraph copy = coregraph.copy(copyConfig);
-		CmpVertex grInit = Transform.addToGraph(copy, gr, null);
+		Configuration copyConfig = reference.config.copy();copyConfig.setLearnerCloneGraph(true);
+		LearnerGraph copy = reference.copy(copyConfig);
+		CmpVertex grInit = Transform.addToGraph(copy, learnt, null);
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
-		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreRejectStates,false);
+		LearnerGraphND ndGraph = new LearnerGraphND(copy,LearnerGraphND.ignoreNone,false);
 		assert ndGraph.getStatesToNumber().containsKey(copy.init);
 		assert ndGraph.getStatesToNumber().containsKey(grInit);
 		return ndGraph.computeStateCompatibility(ThreadNumber,DDRH_default.class)[ndGraph.vertexToIntNR(copy.init, grInit)]; 
 	}
 
-	
-	/** Acts as an oracle, comparing two graphs are returning compatibility score, however
-	 * reject states are not ignored. Accept/reject decisions are copied into highlight
-	 * and then objects of the supplied class are used to compute numbers. 
-	 */
-	public double getSimilarityWithNegatives(LearnerGraph gr, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh)
+	/** Computes similarity via GD. */
+	public static GD.ChangesCounter getSimilarityGD(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
 	{
-		Configuration copyConfig = coregraph.config.copy();copyConfig.setLearnerCloneGraph(true);
-		LearnerGraph copy = coregraph.copy(copyConfig);
-		CmpVertex grInit = Transform.addToGraph(copy, gr,null);
-		copy.learnerCache.invalidate();
-		LearnerGraphND ndGraph = new LearnerGraphND(coregraph,LearnerGraphND.ignoreNone,false);
-		double result = ndGraph.computeStateCompatibility(ThreadNumber,ddrh)[ndGraph.vertexToIntNR(copy.init, grInit)];
-		
-		return result;
+		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
+		GD gd = new GD();
+		// I need to remove reject-states because the learnt machine ends up collecting a huge
+		// number of negative edges implicit in the original one but since we're learning
+		// inherently incomplete systems, it is not clear how to compare
+		LearnerGraph reducedReference = Transform.removeRejectStates(reference, reference.config), 
+			reducedLearnt = Transform.removeRejectStates(learnt, reference.config);
+		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter);
+		return counter;
 	}
-
+	
+	/** Computes similarity via GD and returns details. */
+	public static String getSimilarityGD_details(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
+	{
+		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
+		GD gd = new GD();
+		// I need to remove reject-states because the learnt machine ends up collecting a huge
+		// number of negative edges implicit in the original one but since we're learning
+		// inherently incomplete systems, it is not clear how to compare
+		LearnerGraph reducedReference = Transform.removeRejectStates(reference, reference.config), 
+			reducedLearnt = Transform.removeRejectStates(learnt, reference.config);
+		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter);
+		return reducedReference.countEdges()+"+"+counter.getAdded()+"-"+counter.getRemoved()+"="+reducedLearnt.countEdges();
+		//return Double.toString(counter.getCompressionRate());
+	}
 }

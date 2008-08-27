@@ -59,13 +59,14 @@ public interface Learner
 	public computeStateScores MergeAndDeterminize(computeStateScores original, StatePair pair);
 	
 	/** Given a pair of graphs, computes the set of questions to validate the merge which 
-	 * resulted in the second graph
+	 * resulted in the second graph. The outcome is a list since the order in which questions
+	 * are presented to a user makes a big difference on the outcome of learning.
 	 * 
 	 * @param original the original graph
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public Collection<List<String>> ComputeQuestions(computeStateScores original, computeStateScores temp, computeStateScores.PairScore pair);
+	public List<List<String>> ComputeQuestions(computeStateScores original, computeStateScores temp, computeStateScores.PairScore pair);
 	
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 

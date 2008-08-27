@@ -172,9 +172,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public Collection<List<String>> ComputeQuestions(computeStateScores original, computeStateScores temp, computeStateScores.PairScore pair)
+	public List<List<String>> ComputeQuestions(computeStateScores original, computeStateScores temp, computeStateScores.PairScore pair)
 	{
-		Collection<List<String>> questions = new LinkedList<List<String>>();
+		List<List<String>> questions = new LinkedList<List<String>>();
 		int score = pair.getScore();
 		if(score <this.certaintyThreshold&&score>minCertaintyThreshold)
 		{
@@ -406,7 +406,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends
 		throw new UnsupportedOperationException();
 	}
 	
-    public static Collection<List<String>> sort(Collection<List<String>> data)
+    public static List<List<String>> sort(Collection<List<String>> data)
     {
     	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
     	Collections.sort(result, new Comparator<List<String>>() {

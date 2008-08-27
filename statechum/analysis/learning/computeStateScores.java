@@ -440,7 +440,7 @@ public class computeStateScores implements Cloneable {
 
 	// TODO to test with red = init, with and without loop around it (red=init and no loop is 3_1), with and without states which cannot be reached from a red state,
 	// where a path in the original machine corresponding to a path in the merged one exists or not (tested with 3_1)
-	public Collection<List<String>> computeQS(final StatePair pair, computeStateScores temp)
+	public List<List<String>> computeQS(final StatePair pair, computeStateScores temp)
 	{
 		Vertex tempRed = temp.findVertex((String)pair.getR().getUserDatum(JUConstants.LABEL));
 		PTATestSequenceEngine engine = new PTATestSequenceEngine();

@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments;
 
 import java.util.Collection;
+import java.util.List;
 
 public class PosNegPrecisionRecall extends PrecisionRecall {
 	
@@ -14,7 +15,7 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 	 * @param retneg
 	 * @param relneg
 	 */
-	public PosNegPrecisionRecall(Collection retpos, Collection relpos, Collection retneg, Collection relneg){
+	public PosNegPrecisionRecall(Collection<List<String>> retpos, Collection<List<String>> relpos, Collection<List<String>> retneg, Collection<List<String>> relneg){
 		super();
 		negprecision = computePrecision(retneg, relneg);
 		posprecision = computePrecision(retpos, relpos);
@@ -30,10 +31,10 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 	 * computes the arithmetic mean instead.
 	 */
 	protected double computeMean(double a, double b){
-		if(a==0||b==0){
+		if(a==0||b==0)
 			return (a+b)/2;
-		}
-		else return ((2*a*b)/(a+b));
+		
+		return ((2*a*b)/(a+b));
 	}
 
 	public double getNegprecision() {

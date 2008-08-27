@@ -25,7 +25,7 @@ public class CompareGraphs {
 		DirectedSparseGraph specGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "specGraph");
 		DirectedSparseGraph impGraph = TestFSMAlgo.buildGraph("A-a->B-b->C\nA-b->C", "impGraph");
 		WMethod wm = new WMethod(impGraph,1);
-		Collection testset = wm.getFullTestSet();
+		Collection<List<String>> testset = wm.getFullTestSet();
 		testset.addAll(wm.getTransitionCover());
 		PrecisionRecall pr = computePrecisionRecall(specGraph, impGraph, testset);
 		System.out.println("precision: "+pr.getPrecision()+", recall: "+pr.getRecall());

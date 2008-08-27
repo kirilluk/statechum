@@ -230,9 +230,9 @@ public class PTATestSequenceEngine
 		return nextCurrentNode;
 	}
 
-	public Collection<List<String>> getData()
+	public List<List<String>> getData()
 	{
-		Collection<List<String>> result = new LinkedList<List<String>>();
+		List<List<String>> result = new LinkedList<List<String>>();
 		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
 		Queue<List<String>> currentExplorationSequence = new LinkedList<List<String>>();// FIFO queue
 		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<String>());

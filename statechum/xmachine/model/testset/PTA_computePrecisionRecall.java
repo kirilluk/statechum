@@ -2,6 +2,7 @@ package statechum.xmachine.model.testset;
 
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
@@ -23,12 +24,12 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	protected static class PosNegPrecisionRecallNum extends PosNegPrecisionRecall
 	{
 		public PosNegPrecisionRecallNum() {
-			super(new HashSet(),new HashSet(), new HashSet(), new HashSet());
+			super(new HashSet<List<String>>(),new HashSet<List<String>>(), new HashSet<List<String>>(), new HashSet<List<String>>());
 		}
 		
 // Very strange: if we do not expect any negative (or any positive) sequences, the final precision is always zero.
 		public PosNegPrecisionRecallNum(int pos_Ret, int pos_Rel, int pos_relret, int neg_Ret, int neg_Rel, int neg_relret) {
-			super(new HashSet(),new HashSet(), new HashSet(), new HashSet());
+			super(new HashSet<List<String>>(),new HashSet<List<String>>(), new HashSet<List<String>>(), new HashSet<List<String>>());
 			
 			negprecision = neg_Ret>0?(double)neg_relret/(double)neg_Ret:0;
 			posprecision = pos_Ret>0?(double)pos_relret/(double)pos_Ret:0;

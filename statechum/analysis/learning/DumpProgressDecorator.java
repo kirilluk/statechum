@@ -108,10 +108,10 @@ public class DumpProgressDecorator extends ProgressDecorator {
 		return result;
 	}
 
-	public Collection<List<String>> ComputeQuestions(
+	public List<List<String>> ComputeQuestions(
 			computeStateScores original, computeStateScores temp, PairScore pair) 
 	{
-		Collection<List<String>> result = decoratedLearner.ComputeQuestions(original, temp, pair);
+		List<List<String>> result = decoratedLearner.ComputeQuestions(original, temp, pair);
 		Element questionList = addSequenceList(ELEM_KINDS.ELEM_QUESTIONS.toString(), result);
 		topElement.appendChild(questionList);topElement.appendChild(TestFSMAlgo.FSMStructure.endl(doc));
 		return result;

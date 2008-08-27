@@ -115,6 +115,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearner {
 			Iterator<List<String>> questionIt = questions.iterator();
 			boolean questionAnswered = true;
 			List<String> question = null;
+			statechum.analysis.learning.util.OutputUtil.generateDotOutput(scoreComputer.paths.getGraph());
 			while (questionIt.hasNext() && restartLearning == RestartLearningEnum.restartNONE) {
 				if (questionAnswered) question = questionIt.next();// only pick next question if we've got an answer to the previous one
 				questionAnswered = false;
@@ -131,6 +132,9 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearner {
 					System.out.println("CANCELLED");
 					return null;
 				}
+				
+				if(howAnswerWasObtained == QUESTION_USER)
+					System.out.println("Q: "+ question);
 
 				CmpVertex tempVertex = temp.getVertex(question);
 

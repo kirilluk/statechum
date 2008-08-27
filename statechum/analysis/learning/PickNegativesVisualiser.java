@@ -132,11 +132,17 @@ public class PickNegativesVisualiser extends Visualiser {
 		/** Set to true by the callback from the learner thread. */
 		private boolean learnerStarted = false;
 		
-		final List<String> negatives;
+		List<String> negatives = null;
+		String negLTL = null;
 		
 		public LearnerRestarter(List<String> negs)
 		{
 			negatives = negs;
+		}
+		
+		public LearnerRestarter(String negLTL)
+		{
+			this.negLTL = negLTL;
 		}
 		
 		public void run() {
@@ -147,10 +153,13 @@ public class PickNegativesVisualiser extends Visualiser {
 				try
 				{
 					learnerThread.join();
-					sMinus.add(negatives);
+					if(negatives!=null)
+						sMinus.add(negatives);
+					if(negLTL!=null)
+						ltlFormulae.add(negLTL);
 					Configuration config = Configuration.getDefaultConfiguration();
 					boolean active = true;
-					if(l.getConfig().getMinCertaintyThreshold()>200000)
+					if(l.getConfig().getMinCertaintyThreshold()>200000) //NW: can we get rid of this?
 						active = false;
 					setSimpleConfiguration(config, active, l.getConfig().getMinCertaintyThreshold());
 					startLearner(this);
@@ -180,14 +189,44 @@ public class PickNegativesVisualiser extends Visualiser {
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
-		final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
-		l.terminateLearner();
-		// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
-		// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch the learner.
-		new Thread(new LearnerRestarter(negatives),"learner restarter").start();
+		if(l instanceof BlueFringeSpinLearner){
+			BlueFringeSpinLearner s = (BlueFringeSpinLearner) l;
+			String newLTL = JOptionPane.showInputDialog("New LTL formula:");
+			l.terminateLearner();
+			new Thread(new LearnerRestarter(newLTL),"learner restarter").start();
+		}else{
+			final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
+			l.terminateLearner();
+			// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
+			// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch the learner.
+			new Thread(new LearnerRestarter(negatives),"learner restarter").start();
+		}
 	}
 	
 	private List<String> pickNegativeStrings(Edge selected){
+		DirectedSparseEdge e = (DirectedSparseEdge) selected;
+		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
+		Set<List<String>> questions = new HashSet<List<String>>();
+		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
+		DijkstraShortestPath p = new DijkstraShortestPath(g);
+		List<Edge> shortPrefix = p.getPath(init, e.getSource());
+		Set<List<String>> prefixStrings = Test_Orig_RPNIBlueFringeLearner.getPaths(shortPrefix);
+		List<Edge> picked = new ArrayList<Edge>();
+		picked.add(e);
+		Set<List<String>> successors = Test_Orig_RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
+		
+		questions.addAll(Test_Orig_RPNIBlueFringeLearnerTestComponent.mergePrefixWithSuffixes(prefixStrings, (Collection<String>)e.getUserDatum(JUConstants.LABEL), successors));
+		
+		 Object[] possibleValues = questions.toArray();
+		 Object selectedValue = JOptionPane.showInputDialog(null,
+		             "Choose one", "Add Negative String",
+		             JOptionPane.INFORMATION_MESSAGE, null,
+		             possibleValues, possibleValues[0]);
+		System.out.println(selectedValue);
+		return (List<String>)selectedValue;
+	}
+	
+	private List<String> pickNegativeStringsOrLTL(Edge selected){
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
 		Set<List<String>> questions = new HashSet<List<String>>();

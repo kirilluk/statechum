@@ -16,13 +16,14 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning.PrecisionRecall;
+package statechum.apps;
 
 import java.util.Collection;
 import java.util.List;
 
 import statechum.Configuration;
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine;

@@ -28,9 +28,9 @@ import statechum.Pair;
 
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.PrecisionRecall.CompareGraphs;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.*;
+import statechum.apps.CompareGraphs;
 import statechum.model.testset.PTASequenceEngine;
 
 public class AccuracyTrackerDecorator extends LearnerDecorator

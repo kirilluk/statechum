@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.apps;
 
 /**
  * Takes a text file, structured as follows:
@@ -36,6 +36,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.Configuration;
+import statechum.analysis.learning.PickNegativesVisualiser;
 
 public class QSMTool {
 	

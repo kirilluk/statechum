@@ -8,7 +8,14 @@ package statechum.apps;
  */
 
 import statechum.Configuration;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.JUConstants;
+
+import java.util.*;
+
+import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.rpnicore.*;
+import statechum.DeterministicDirectedSparseGraph;
 
 public class WMethodApp {
 	
@@ -17,7 +24,27 @@ public class WMethodApp {
 		int k = 0;
 		if(args.length>1)
 			k = Integer.parseInt(args[1]);
-		System.out.println(g.wmethod.getFullTestSet(k));
+		displayTests(g.wmethod.getFullTestSet(k), g);
+	}
+	
+	private static void displayTests(Collection<List<String>> tests, LearnerGraph g){
+		Iterator<List<String>> testIt = tests.iterator();
+		int count = 0;
+		while(testIt.hasNext()){
+			count++;
+			List<String> test = testIt.next();
+			int accept = g.paths.tracePath(test);
+			System.out.print("#"+count+" ");
+			if(accept == AbstractOracle.USER_ACCEPTED)
+				System.out.println("ACCEPTED: " + test);
+			else
+				formatRejectString(test, accept);
+		}
+	}
+	
+	private static void formatRejectString(List<String> test, int rejectPoint){
+		System.out.println("ACCEPT: "+ test.subList(0, rejectPoint));
+		System.out.println("\tREJECT: "+test.get(rejectPoint));
 	}
 
 }

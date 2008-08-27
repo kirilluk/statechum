@@ -42,7 +42,7 @@ import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.Transform322;
 import statechum.model.testset.PTASequenceEngine;
 
 /** Stores some arguments and results of calls to learner's methods 
@@ -81,7 +81,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 			else
 			{// only create a top-level element if writing pure XML.
 				outputStream=outStream;
-				topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform.endl(doc));
+				topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform322.endl(doc));
 			}
 			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
 			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
@@ -176,7 +176,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		}
 		else
 		{
-			topElement.appendChild(elem);topElement.appendChild(Transform.endl(doc));// just add children.
+			topElement.appendChild(elem);topElement.appendChild(Transform322.endl(doc));// just add children.
 		}
 	}
 	
@@ -216,7 +216,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		Element pairsElement = doc.createElement(ELEM_KINDS.ELEM_PAIRS.name());
 		for(PairScore p:result)
 		{
-			pairsElement.appendChild(writePair(p));pairsElement.appendChild(Transform.endl(doc));
+			pairsElement.appendChild(writePair(p));pairsElement.appendChild(Transform322.endl(doc));
 		}
 		writeElement(pairsElement);
 		return result;

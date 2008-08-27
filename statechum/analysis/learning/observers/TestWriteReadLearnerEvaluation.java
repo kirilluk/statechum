@@ -30,11 +30,11 @@ import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.Helper.whatToRun;
+import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.Transform322;
 import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 import static statechum.Helper.checkForCorrectException;
@@ -175,7 +175,7 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
-		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(Transform.graphmlNodeName).item(0);
+		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(Transform322.graphmlNodeName).item(0);
 		learnerConfig.removeChild(graphToRemove);
 		
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
@@ -194,7 +194,7 @@ public class TestWriteReadLearnerEvaluation {
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
 		learnerConfig.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
-		.transform.createGraphMLNode(dumper.doc));
+		.transform322.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);

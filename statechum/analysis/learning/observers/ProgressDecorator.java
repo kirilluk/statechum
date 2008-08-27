@@ -65,7 +65,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform322;
+import statechum.analysis.learning.rpnicore.Transform;
 
 public abstract class ProgressDecorator extends LearnerDecorator
 {
@@ -129,8 +129,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		int scoreInt = -1, otherScoreInt = -1;
 		try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
 		try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }
-		return new PairScore(LearnerGraph.generateNewCmpVertex(new VertexID(q), graph.config),
-				LearnerGraph.generateNewCmpVertex(new VertexID(r), graph.config),
+		return new PairScore(LearnerGraph.generateNewCmpVertex(VertexID.parseID(q), graph.config),
+				LearnerGraph.generateNewCmpVertex(VertexID.parseID(r), graph.config),
 				scoreInt,otherScoreInt);		
 	}
 	
@@ -242,7 +242,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		if (!evaluationDataElement.getNodeName().equals(ELEM_KINDS.ELEM_EVALUATIONDATA.name()))
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
-		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform322.graphmlNodeName),
+		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform.graphmlNodeName),
 		nodesSequences = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()),
 		nodesLtl = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()),
 		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag),
@@ -282,17 +282,17 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	public Element writeLearnerEvaluationConfiguration(LearnerEvaluationConfiguration cnf)
 	{
 		Element evaluationData = doc.createElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name());
-		evaluationData.appendChild(cnf.graph.transform322.createGraphMLNode(doc));
+		evaluationData.appendChild(cnf.graph.transform.createGraphMLNode(doc));
 		Element sequenceListElement = writeSequenceList(ELEM_KINDS.ATTR_TESTSET.name(), cnf.testSet);
-		evaluationData.appendChild(Transform322.endl(doc));
-		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(Transform322.endl(doc));
-		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(Transform322.endl(doc));
+		evaluationData.appendChild(Transform.endl(doc));
+		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(Transform.endl(doc));
+		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(Transform.endl(doc));
 		if (cnf.ltlSequences != null)
 		{
 			Element ltl = doc.createElement(ELEM_KINDS.ELEM_LTL.name());
 			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ltlSequences);
 			ltl.setTextContent(ltlsequences.toString());
-			evaluationData.appendChild(ltl);evaluationData.appendChild(Transform322.endl(doc));
+			evaluationData.appendChild(ltl);evaluationData.appendChild(Transform.endl(doc));
 		}
 		if (cnf.graphNumber >= 0)
 		{
@@ -440,9 +440,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		Element elemInit = doc.createElement(ELEM_KINDS.ELEM_INIT.name());
 		Element positive = writeSequenceList(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(ELEM_KINDS.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
 		Element negative = writeSequenceList(ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
-		elemInit.appendChild(initialData.graph.transform322.createGraphMLNode(doc));elemInit.appendChild(Transform322.endl(doc));
-		elemInit.appendChild(positive);elemInit.appendChild(Transform322.endl(doc));
-		elemInit.appendChild(negative);elemInit.appendChild(Transform322.endl(doc));
+		elemInit.appendChild(initialData.graph.transform.createGraphMLNode(doc));elemInit.appendChild(Transform.endl(doc));
+		elemInit.appendChild(positive);elemInit.appendChild(Transform.endl(doc));
+		elemInit.appendChild(negative);elemInit.appendChild(Transform.endl(doc));
 		return elemInit;
 	}
 	
@@ -464,7 +464,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			if (children.item(i).getNodeType() == Node.ELEMENT_NODE)
 			{
 				Element e = (Element)children.item(i);
-				if (e.getNodeName().equals(Transform322.graphmlNodeName))
+				if (e.getNodeName().equals(Transform.graphmlNodeName))
 				{
 					if (result.graph != null)
 						throw new IllegalArgumentException("duplicate graph element");

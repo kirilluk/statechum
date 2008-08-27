@@ -102,20 +102,20 @@ public class Test_CheckLearnerAgainstLog
 		new Test_LearnerComparator(learner2,simulator).learnMachine(initial.plus, initial.minus);
 	}
 
-	protected final static String pathToLogFiles = "/home/kirill/W_experiment/logs/a/";
+	protected final static String pathToLogFiles = "/home/kirill/W_experiment/logs/b/", learner = Configuration.LEARNER.LEARNER_BLUEFRINGE.name();
 	
 	@Test
 	public final void test11() throws FileNotFoundException
 	{
 		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_NORM;
-		check(pathToLogFiles+"2_25Inputs_75_11.xml_log-100.xml");
+		check(pathToLogFiles+"2_25Inputs_75_11.xml_"+learner+"_log-100.xml");
 	}
 	
 	@Test
 	public final void test12() throws FileNotFoundException
 	{
 		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_NORM;
-		check(pathToLogFiles+"3_25Inputs_75_12.xml_log-100.xml");
+		check(pathToLogFiles+"3_25Inputs_75_12.xml_"+learner+"_log-100.xml");
 	}
 	
 	@Test
@@ -123,13 +123,13 @@ public class Test_CheckLearnerAgainstLog
 	{
 		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
 		//copyLogIntoAnotherLog(pathToLogFiles+"0_25Inputs_75_1.xml_log-100.xml");
-		check(pathToLogFiles+"0_25Inputs_75_1.xml_log-100.xml");
+		check(pathToLogFiles+"0_25Inputs_75_1.xml_"+learner+"_log-100.xml");
 	}
 	@Test
 	public final void test10() throws FileNotFoundException
 	{
 		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
 		//copyLogIntoAnotherLog(pathToLogFiles+"0_25Inputs_75_1.xml_log-100.xml");
-		check(pathToLogFiles+"1_25Inputs_75_10.xml_log-100.xml");
+		check(pathToLogFiles+"1_25Inputs_75_10.xml_"+learner+"_log-100.xml");
 	}
 }

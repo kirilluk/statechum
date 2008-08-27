@@ -42,8 +42,9 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform322;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.model.testset.PTASequenceEngine;
 
 /** An instance of this class behaves like a learner including calls to its decorators, 
@@ -294,7 +295,8 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 				throw new IllegalArgumentException("unexpected element "+elemName+" after the learner result is known");
 			ELEM_KINDS kind = stringToEnumMap.get(elemName);
 			
-		 	if (elemName.equals(Transform322.graphmlNodeName))
+		 	if (elemName.equals(Transform.graphmlNodeName) ||
+					elemName.equals(GD.ChangesRecorder.gdGD))
 			{
 				String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
 				if (graphKind.equals(ELEM_KINDS.ATTR_LEARNINGOUTCOME.name()))
@@ -452,7 +454,8 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	 */
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
 	{
-		Element graphNode = getElement(Transform322.graphmlNodeName);
+		Element graphNode = getElement(GD.ChangesRecorder.gdGD);
+		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeName);
 		if (graphNode == null) throw new IllegalArgumentException("failed to find a node with a graph");
 		return series.readGraph(graphNode);
 	}

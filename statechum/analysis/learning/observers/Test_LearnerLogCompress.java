@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.observers;
 
 import java.awt.Image;
 import java.awt.Toolkit;
@@ -48,13 +48,11 @@ import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
+import statechum.Configuration;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser.graphAction;
-import statechum.analysis.learning.observers.Learner;
-import statechum.analysis.learning.observers.LearnerSimulator;
-import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.observers.RecordProgressDecorator;
+import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -219,14 +217,15 @@ public class Test_LearnerLogCompress {
 				try
 				{
 					LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(sourceFile),true);
-					LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
-					eval1.config.setGdFailOnDuplicateNames(false);eval1.graphNumber=graphsInFile;
+					LearnerEvaluationConfiguration evaluationData = simulator.readLearnerConstructionData();
+					evaluationData.config.setGdFailOnDuplicateNames(false);evaluationData.graphNumber=graphsInFile;
 					final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
 					final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 					simulator.setNextElement(nextElement);
+					Configuration recorderConfig = evaluationData.config.copy();recorderConfig.setCompressLogs(true);recorderConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 					RecordProgressDecorator recorder = new RecordProgressDecorator(simulator,new java.io.FileOutputStream(
-						targetFile),threadNumber,eval1.config,true);
-					recorder.writeLearnerEvaluationData(eval1);
+						targetFile),threadNumber,recorderConfig,true);
+					recorder.writeLearnerEvaluationData(evaluationData);
 					DummyWithDelayedProgressIndicator progress = new DummyWithDelayedProgressIndicator(recorder);
 					progress.learnMachine(initial.plus,initial.minus);// load the file provided and compress its contents into the other one.
 					outcome = "compressed "+sourceFile+" to "+targetFile;
@@ -329,7 +328,7 @@ public class Test_LearnerLogCompress {
 					{// assume we've been asked to terminate and do nothing.
 						
 					}
-				}});updaterThread.start();
+				}});updaterThread.setPriority(Thread.NORM_PRIORITY+1);updaterThread.start();
 				
 				// Now, we populate the collection of worker threads.
 				for(Entry<File,Integer> entry:graphSizes.entrySet())

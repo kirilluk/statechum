@@ -29,10 +29,10 @@ import org.junit.Test;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
-import statechum.analysis.learning.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.Transform322;
 import statechum.analysis.learning.rpnicore.WMethod;
 
 import static statechum.Helper.checkForCorrectException;
@@ -68,14 +68,14 @@ public class TestGraphSeries {
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output, 1,renumberConfig,false);
 		GraphSeries series = dumper.series;
 		Element grElement = null;
-		grElement = series.writeGraph(graphA);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-		grElement = series.writeGraph(graphB);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-		grElement = series.writeGraph(graphC);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-		grElement = series.writeGraph(graphD);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+		grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+		grElement = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+		grElement = series.writeGraph(graphC);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+		grElement = series.writeGraph(graphD);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 		dumper.close();
 		xmlData = output.toString();
 	}
@@ -92,19 +92,19 @@ public class TestGraphSeries {
 		Element elem = null;
 		
 		/** We read the entire series. */
-		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform322.graphmlNodeName,elem.getNodeName());
+		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform.graphmlNodeName,elem.getNodeName());
 		graph = series.readGraph(elem);
 		WMethod.checkM(graph, graphA);Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
 		
-		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform322.graphmlNodeName,elem.getNodeName());
+		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(GD.ChangesRecorder.gdGD,elem.getNodeName());
 		graph = series.readGraph(elem);
 		WMethod.checkM(graph, graphB);Assert.assertEquals(graphB.getStateNumber(),graph.getStateNumber());
 		
-		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform322.graphmlNodeName,elem.getNodeName());
+		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(GD.ChangesRecorder.gdGD,elem.getNodeName());
 		graph = series.readGraph(elem);
 		WMethod.checkM(graph, graphC);Assert.assertEquals(graphC.getStateNumber(),graph.getStateNumber());
 
-		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform322.graphmlNodeName,elem.getNodeName());
+		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(GD.ChangesRecorder.gdGD,elem.getNodeName());
 		graph = series.readGraph(elem);
 		WMethod.checkM(graph, graphD);Assert.assertEquals(graphD.getStateNumber(),graph.getStateNumber());
 	}
@@ -149,20 +149,20 @@ public class TestGraphSeries {
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 			GraphSeries series = dumper.series;
 			Element grElement = null;
-			grElement = series.writeGraph(graphA);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-			grElement = series.writeGraph(graphB);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+			grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+			grElement = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 			series.reset();
-			grElement = series.writeGraph(graphC);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-			grElement = series.writeGraph(graphD);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+			grElement = series.writeGraph(graphC);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+			grElement = series.writeGraph(graphD);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 	
-			grElement = series.writeGraph(graphA);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-			grElement = series.writeGraph(graphB);Assert.assertEquals(Transform322.graphmlNodeName, grElement.getNodeName());
-			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+			grElement = series.writeGraph(graphA);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+			grElement = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
+			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 			dumper.close();
 			xmlData = output.toString();
 		}
@@ -200,10 +200,10 @@ public class TestGraphSeries {
 	@Test
 	public final void testWriteMultipleSeries_long1()
 	{
-		tryLongSeries(Transform322.convertToNumerical(graphA), 
-				Transform322.convertToNumerical(graphB), 
-				Transform322.convertToNumerical(graphC),
-				Transform322.convertToNumerical(graphD));
+		tryLongSeries(Transform.convertToNumerical(graphA), 
+				Transform.convertToNumerical(graphB), 
+				Transform.convertToNumerical(graphC),
+				Transform.convertToNumerical(graphD));
 	}
 	
 	@Test
@@ -234,7 +234,7 @@ public class TestGraphSeries {
 				else
 				{
 					Element grElement = series.writeGraph(graph);
-					dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+					dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 				}
 			}
 			dumper.close();
@@ -269,10 +269,10 @@ public class TestGraphSeries {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = dumper.series;
-		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform322.graphmlNodeName, grElement1.getNodeName());
-		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(Transform322.graphmlNodeName, grElement2.getNodeName());
-		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement1.getNodeName());
+		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement2.getNodeName());
+		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 
 		checkForCorrectException(new whatToRun() { public void run() {
 			series.readGraph(grElement2);
@@ -286,10 +286,10 @@ public class TestGraphSeries {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = dumper.series;
-		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform322.graphmlNodeName, grElement1.getNodeName());
-		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
-		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(Transform322.graphmlNodeName, grElement2.getNodeName());
-		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform322.endl(dumper.doc));
+		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement1.getNodeName());
+		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform.endl(dumper.doc));
+		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement2.getNodeName());
+		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 		
 		series.reset();
 		
@@ -351,7 +351,7 @@ public class TestGraphSeries {
 		final GraphSeries series = new GraphSeries(renumberConfig);
 		
 		checkForCorrectException(new whatToRun() { public void run() {
-			series.readGraph(Transform322.endl(dumper.doc));
+			series.readGraph(Transform.endl(dumper.doc));
 		}},IllegalArgumentException.class,"loadGraph was passed a non-element");
 	}
 

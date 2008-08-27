@@ -6,6 +6,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -14,12 +16,22 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Element;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
-import statechum.analysis.learning.TestFSMAlgo;
+import statechum.Pair;
+import statechum.Configuration.IDMode;
+import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 public class TestRecordProgressDecorator {
 

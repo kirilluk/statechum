@@ -34,10 +34,10 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Helper.whatToRun;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.observers.Learner.RestartLearningEnum;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 /**
  * @author kirill

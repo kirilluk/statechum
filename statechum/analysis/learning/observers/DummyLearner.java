@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
-package statechum.analysis.learning.experiments;
+package statechum.analysis.learning.observers;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,8 +25,6 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.observers.Learner;
-import statechum.analysis.learning.observers.LearnerDecorator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 

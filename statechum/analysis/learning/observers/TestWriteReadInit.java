@@ -29,11 +29,11 @@ import org.junit.Test;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
-import statechum.analysis.learning.TestFSMAlgo;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.InitialData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform322;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.Transform;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.breakNumericalValue;
@@ -217,7 +217,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform322.graphmlNodeName).item(0);
+		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform.graphmlNodeName).item(0);
 		initElement.removeChild(graphToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
@@ -237,7 +237,7 @@ public class TestWriteReadInit {
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
-			.transform322.createGraphMLNode(dumper.doc));
+			.transform.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 

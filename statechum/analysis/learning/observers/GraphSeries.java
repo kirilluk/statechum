@@ -22,8 +22,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import statechum.Configuration;
+import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform322;
+import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
 /** Rather often, one would want to be able to load and store a sequence of 
  * graphs, so that only differences between graphs are stored. This 
@@ -82,9 +85,14 @@ public class GraphSeries {
 		if (node.getNodeType() != Node.ELEMENT_NODE)
 			throw new IllegalArgumentException("loadGraph was passed a non-element");
 		Element element = (Element)node;
-		if (element.getNodeName().equals(Transform322.graphmlNodeName))
+		if (element.getNodeName().equals(Transform.graphmlNodeName))
 		{
 			graph=LearnerGraph.loadGraph(element, config);
+		}
+		else if (element.getNodeName().equals(GD.ChangesRecorder.gdGD))
+		{
+			graph = graph != null?graph.copy(config):new LearnerGraph(config);
+			ChangesRecorder.applyGD(graph, element);
 		}
 		else throw new IllegalArgumentException("expected either graph or GD, got "+element.getNodeName());
 		
@@ -104,7 +112,20 @@ public class GraphSeries {
 	public Element writeGraph(LearnerGraph newGraph)
 	{
 		if (doc == null) throw new IllegalArgumentException("read-only series");
-		graph = newGraph.copy(newGraph.config);
-		return graph.transform322.createGraphMLNode(doc);
+		Element result = null;
+		if (graph == null || !config.getCompressLogs())
+		{
+			graph = newGraph.copy(newGraph.config);
+			result = graph.transform.createGraphMLNode(doc);
+		}
+		else
+		{
+			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
+			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
+			boolean assertionsEnabled = false;assert assertionsEnabled = true;
+			if (assertionsEnabled) { WMethod.checkM(newGraph, graph);assert graph.wmethod.checkUnreachableStates() == false; }
+			++graphNumber;
+		}
+		return result;
 	}
 }

@@ -21,6 +21,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -793,6 +794,11 @@ public class RPNIBlueFringeLearnerOrig extends RPNIBlueFringeLearner {
 		boolean rAcceptedO = DeterministicDirectedSparseGraph.isAccept(pair.getR());
 	
 		return qAcceptedO != rAcceptedO;
+	}
+
+	@Override
+	public Learner getLearner() {
+		return null;
 	}
 
 

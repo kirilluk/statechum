@@ -35,6 +35,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -42,6 +43,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.Helper.whatToRun;
 import statechum.analysis.learning.RPNIBlueFringeLearnerOrig.OrigStatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -63,9 +65,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 import static statechum.analysis.learning.Visualiser.isGraphTransformationDebug;
 
 public class TestFSMAlgo {
+	org.w3c.dom.Document doc = null;
 
 	public TestFSMAlgo()
 	{
@@ -81,6 +88,18 @@ public class TestFSMAlgo {
 	{
 		config = (Configuration)mainConfiguration.clone();
 		LearnerGraph.testMode=true;
+
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try
+		{
+			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
+			doc = factory.newDocumentBuilder().newDocument();
+		}
+		catch(ParserConfigurationException e)
+		{
+			statechum.Helper.throwUnchecked("failed to construct DOM document",e);
+		}
 	}
 
 	/** The configuration to use when running tests. */
@@ -200,16 +219,12 @@ public class TestFSMAlgo {
 		for(Field var:Configuration.class.getDeclaredFields())
 		{
 			if (var.getType() != Configuration.class && 
-					var.getName() != "$VRc")// added by eclemma (coverage analysis) 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+						&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())
+						)
 			{
 				String varName = var.getName();
-				String setterName = "set"+(Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
-				Method setter = null;
-				try {
-					setter = Configuration.class.getMethod(setterName, new Class[]{var.getType()});
-				} catch (Exception e) {
-					Assert.fail("failed to obtain setter method "+setterName+" for field "+varName);
-				}
+				Method setter = Configuration.getMethod(Configuration.GETMETHOD_KIND.FIELD_SET, var);
 				Object valueA = null, valueB = null;
 				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 				{
@@ -241,12 +256,17 @@ public class TestFSMAlgo {
 									valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
 							}
 							else
-							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
-							{
-								valueA = varName.hashCode();valueB=setterName.hashCode();// just some integers likely to be different from each other between different variables.
-							}
-							else
-								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+								if (var.getType().equals(LEARNER.class))
+								{
+										valueA = LEARNER.LEARNER_BLUEFRINGE;valueB=LEARNER.LEARNER_BLUEAMBER;
+								}
+								else
+								if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+								{
+									valueA = varName.hashCode();valueB=setter.hashCode();// just some integers likely to be different from each other between different variables.
+								}
+								else
+									throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
 				
 				MethodsArgs.add(new MethodAndArgs(setter,var,valueA,valueB));
 			}
@@ -257,25 +277,138 @@ public class TestFSMAlgo {
 			for(MethodAndArgs currentMethod:MethodsArgs)
 			{
 				Configuration 
-					configA = (Configuration)Configuration.getDefaultConfiguration().clone(),
-					configB = (Configuration)Configuration.getDefaultConfiguration().clone();
+					configA = Configuration.getDefaultConfiguration().copy(),
+					configB = Configuration.getDefaultConfiguration().copy();
 				for(MethodAndArgs orig:MethodsArgs)
 				{
 					orig.method.invoke(configA, new Object[]{orig.Arg});
 					orig.method.invoke(configB, new Object[]{orig.Arg});
 				}
 				Assert.assertEquals(configB, configA);
+				
+				// now test that we can serialise these
+				{
+					org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
+					Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
+					Assert.assertEquals(loadedB, loadedA);
+					Assert.assertEquals(loadedB, configA);
+				}
+
 				currentMethod.method.invoke(configB, new Object[]{currentMethod.AlternativeArg});
 				String errMsg = "configurations differ: field "+currentMethod.field+" is not in use for ";
 				Assert.assertFalse(errMsg+"equals",configB.equals(configA));
 				Assert.assertFalse(errMsg+"equals",configA.equals(configB));
+				
+				{
+					org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
+					Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
+					Assert.assertEquals(loadedA, configA);
+					Assert.assertFalse(errMsg+"equals",loadedB.equals(loadedA));
+					Assert.assertFalse(errMsg+"equals",loadedB.equals(configA));
+					Assert.assertFalse(errMsg+"equals",loadedA.equals(loadedB));
+				}
+				
 				Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			Assert.fail(e.getMessage());
 		}
 	}
+
+	/** Wrong tag. */
+	@Test(expected=IllegalArgumentException.class)
+	public void testSerialisationFailure1()
+	{
+		new Configuration().readXML(doc.createElement("test"));
+	}
 	
+	/** No data to load. */
+	@Test
+	public void testSerialisationEmpty()
+	{
+		Configuration cnf = new Configuration();cnf.readXML(doc.createElement(Configuration.configXMLTag));
+		Assert.assertEquals(new Configuration(), cnf);
+	}
+	
+	/** Old data should not affect us. */
+	@Test
+	public void testSerialisationOldJunk_normal()
+	{
+		org.w3c.dom.Element elem = new Configuration().writeXML(doc), oldData = doc.createElement(Configuration.configVarTag);
+		oldData.setAttribute(Configuration.configVarAttrName, "old_junk");
+		oldData.setAttribute(Configuration.configVarAttrValue, "junk");
+		
+		elem.appendChild(oldData);
+		Configuration cnf = new Configuration();cnf.readXML(elem);
+		Assert.assertEquals(new Configuration(), cnf);
+	}
+	
+	/** Old data causes an exception to be thrown. */
+	@Test
+	public void testSerialisationOldJunk_strict()
+	{
+		final org.w3c.dom.Element elem = new Configuration().writeXML(doc), oldData = doc.createElement(Configuration.configVarTag);
+		oldData.setAttribute(Configuration.configVarAttrName, "old_junk");
+		oldData.setAttribute(Configuration.configVarAttrValue, "junk");
+		
+		elem.appendChild(oldData);
+		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
+			new Configuration().readXML(elem,true);
+		}}, IllegalArgumentException.class,"cannot deserialise unknown field");
+	}
+	
+
+	/** Unexpected tag. */
+	@Test
+	public void testSerialisationFailure2()
+	{
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		cnf.appendChild(doc.createElement("junk"));
+		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
+			new Configuration().readXML(cnf);
+		}},IllegalArgumentException.class,"unexpected element");
+	}
+		
+	/** Text elements are ignored. */
+	@Test
+	public void testSerialisationFailure3a()
+	{
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		cnf.appendChild(doc.createTextNode(Configuration.configVarTag));
+		Configuration c = new Configuration();c.readXML(cnf);
+		Assert.assertEquals(new Configuration(),c);
+	}
+	
+	/** Unexpected type of an element. */
+	@Test
+	public void testSerialisationFailure3b()
+	{
+		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
+		cnf.appendChild(doc.createComment(Configuration.configVarTag));
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(cnf);
+		}},IllegalArgumentException.class,"unexpected element");
+	}
+	
+	/** Unexpected element. */
+	@Test
+	public void testSerialisationFailure4()
+	{
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(doc.createTextNode(Configuration.configXMLTag));
+		}},IllegalArgumentException.class,"invalid node type passed to readXML");
+	}
+		
+	/** Unexpected type of an element. */
+	@Test
+	public void testSerialisationFailure5()
+	{
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+			new Configuration().readXML(doc.createElement("junk"));
+		}},IllegalArgumentException.class,"configuration cannot be loaded from element");
+	}
+		
 	/** Tests that it is not possible to create an invalid vertexid. */
 	@Test(expected=IllegalArgumentException.class)
 	public void testCannotCreateNoneVertexID1()

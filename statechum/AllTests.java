@@ -40,9 +40,22 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
 		statechum.analysis.learning.TestLoadAnswers.class,
 		statechum.analysis.learning.experiments.TestAbstractExperiment.class,
-		statechum.model.testset.TestPTA_computePrecisionRecall.class
+		statechum.model.testset.TestPTA_computePrecisionRecall.class,
+		statechum.AllTests.ObserversTests.class
 	}) // commas after the last entry compile from within Eclipse but not from ant
 	public static class LearnerTests {
+	}
+	
+	@RunWith(Suite.class)
+	@Suite.SuiteClasses({
+		statechum.analysis.learning.observers.TestRecordProgressDecorator.class,
+		statechum.analysis.learning.observers.TestWriteReadPair.class,
+		statechum.analysis.learning.observers.TestWriteReadInit.class,
+		statechum.analysis.learning.observers.TestWriteReadLearnerEvaluation.class,
+		statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
+		statechum.analysis.learning.observers.TestGraphSeries.class
+	})
+	public static class ObserversTests {
 	}
 	
 	@RunWith(Suite.class)
@@ -64,6 +77,7 @@ public class AllTests {
 		statechum.model.testset.TestPrefixRemovingCollection.class,
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
+		statechum.analysis.learning.rpnicore.TestTransform322.class,
 		statechum.analysis.learning.rpnicore.TestWMethod.class
 	})
 	public static class GraphTests {

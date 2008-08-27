@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Pair;
@@ -39,7 +40,6 @@ import statechum.analysis.learning.RPNIBlueAmberFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.*;
@@ -153,10 +153,10 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			for(List<String> seq:minusTrainingSet)
 			{
 				assert seq.size() > 1;
-				assert graph.getVertex(seq) == null;
-				assert graph.getVertex(seq.subList(0, seq.size()-1)) != null;
-				assert sOrigMinus.containsSequence(seq);
-				assert graph.paths.tracePath(seq) == seq.size()-1;
+				assert graph.getVertex(seq) == null;// the seq is negative indeed
+				assert graph.getVertex(seq.subList(0, seq.size()-1)) != null;// the -1 prefix is positive
+				assert sOrigMinus.containsSequence(seq);// make sure PTA construction did not fumble.
+				assert graph.paths.tracePath(seq) == seq.size()-1;// and another check that a -1 prefix is ok
 				totalLenOrig+=seq.size();origNumber++;
 			}
 			assert sOrigMinus.getData().size() == 0;// all negatives
@@ -232,55 +232,33 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
 			PosNegPrecisionRecall prNeg = precRec.crossWith(testSetEngine);
 			
-			final String NA="N/A";
 			// Columns 3 and 4
 			result = result+prNeg.precision+FS+prNeg.recall;
 			
 			result = result + FS + questionNumber+ FS + // 5
 				// Columns 6 and 7
-				ptaPR.precision  + FS + ptaPR.recall + FS +
-				"size:"+size+FS+ // 8
-				"chunks: "+NA +FS+ // 9
-				"per chunk:"+NA + // 10
-				FS+percent+"%"+FS+ // 11
-				"+:"+NA+FS+// 12
-				"-:"+sMinus.getData(PTASequenceEngine.truePred).size(); // 13
-			try
-			{
-				result = result + FS+"L"+// 14
-				// 15 and 16
-					FS+graph.linear.getSimilarity(learned, false, 1)+FS+graph.linear.getSimilarity(learned, true, 1);
-				// 17
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight.class);
-				// 18
-				result = result + FS + graph.linear.getSimilarityWithNegatives(learned, 1, Linear.DDRH_highlight_Neg.class);
-			}
-			catch(IllegalArgumentException ex)
-			{
-				StringWriter wr = new StringWriter();ex.printStackTrace(new PrintWriter(wr));
-				result = result+"\n"+"exception from linear: "+ex+
-					" on graph with "+learned.getStateNumber()+" and "+learned.getStateNumber()+" transitions" +
-					"\n"+wr.getBuffer().toString();
-			}
+				ptaPR.precision  + FS + ptaPR.recall + FS;
 			
 			// 19 and 20
 			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness() + FS +
 				l.getRestarts(); // 21
-			
-			result = result + FS+comparison;
 		}
 
 		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
 		{
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
-			int ptaSize = pta.numberOfLeafNodes();
-			//l.init(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
-			//l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
-			l.loadPTA(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_data");
+			if (useOrig) 
+				l.loadPTA(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_data");
+			else 
+			{
+				//int ptaSize = pta.numberOfLeafNodes();
+				l.init(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
+				//l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			}
 			learningOutcome = l.learnMachine();
 			
-			WMethod.checkM(LearnerGraph.loadGraph(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_learnt", config),
+			if (useOrig) WMethod.checkM(LearnerGraph.loadGraph(origDir+File.separatorChar+number+"_"+(new File(inputFileName).getName())+"_learnt", config),
 					new LearnerGraph(learningOutcome,config));
 			try {
 				new LearnerGraph(learningOutcome,graph.config).transform.writeGraphML(getFileName(FileType.LEARNT));
@@ -382,10 +360,10 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 				//Configuration.QuestionGeneratorKind.SYMMETRIC
 				})
 			for(boolean useAmber:new boolean[]{false})//{false,true})
-			for(boolean useOrig:new boolean[]{true})//{true,false})
+			for(boolean useOrig:new boolean[]{false})//{true,false})
 				for(int limit:((qk == Configuration.QuestionGeneratorKind.ORIGINAL?new int[]{-1}:new int[]{-1,1,3})))
 				{
-					String experimentDescription = "MDATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(useOrig?"ORIG":"NEW");
+					String experimentDescription = "MDATA_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(useOrig?"DEC07":"CURR");
 					AbstractExperiment experiment = new Experiment(qk,limit,false,useOrig,useAmber);experiment.setOutputDir(experimentDescription+"_");
 
 					try
@@ -396,7 +374,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 					{
 						ex.printStackTrace();
 					}
-
+/*
 					try
 					{// the above might've failed, but we still try to build csv files from result.csv
 						String ending = experimentDescription+".csv";
@@ -417,6 +395,7 @@ public abstract class OldIncrementalAccuracyAndQuestionsExperiment extends Abstr
 					{
 						ex.printStackTrace();
 					}
+*/					
 				}
 			
 	}

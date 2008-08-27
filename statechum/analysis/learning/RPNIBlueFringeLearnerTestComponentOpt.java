@@ -33,13 +33,13 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.ArrayOperations;
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.observers.Learner.RestartLearningEnum;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -181,6 +181,82 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		updateGraph(lg);
 	}
 	
+	public Learner getLearner()
+	{
+		return thisLearner;
+	}
+	
+	protected final Learner thisLearner = new Learner()
+	{
+
+		public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
+				List<String> sequence, boolean accepted, JUConstants newColour) {
+			pta.paths.augmentPTA(sequence, accepted, newColour);
+		}
+
+		public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
+				List<String> question, Object[] options) {
+			return RPNIBlueFringeLearnerTestComponentOpt.this.checkWithEndUser(graph, question, options);
+		}
+
+		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
+			return graph.pairscores.chooseStatePairs();
+		}
+
+		public List<List<String>> ComputeQuestions(PairScore pair,
+				LearnerGraph original, LearnerGraph temp) {
+			return ComputeQuestions.computeQS(pair, original,temp);
+		}
+
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) {
+			return MergeStates.mergeAndDeterminize_general(original, pair);
+		}
+
+		public void Restart(@SuppressWarnings("unused")	RestartLearningEnum mode) {
+			// does nothing
+		}
+
+		public String getResult() {
+			return null;
+		}
+
+		public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+		{
+			RPNIBlueFringeLearnerTestComponentOpt.this.init(plus, minus);
+			return RPNIBlueFringeLearnerTestComponentOpt.this.scoreComputer;
+		}
+
+		public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) {
+			RPNIBlueFringeLearnerTestComponentOpt.this.init(engine, plusSize, minusSize);
+			return RPNIBlueFringeLearnerTestComponentOpt.this.scoreComputer;
+		}
+
+		public LearnerGraph learnMachine() {
+			return new LearnerGraph(RPNIBlueFringeLearnerTestComponentOpt.this.learnMachine(),Configuration.getDefaultConfiguration());
+		}
+
+		public LearnerGraph learnMachine(PTASequenceEngine engine, int plusSize, int minusSize) 
+		{
+			topLearner.init(engine, plusSize, minusSize);
+			return new LearnerGraph(RPNIBlueFringeLearnerTestComponentOpt.this.learnMachine(),scoreComputer.config);
+		}
+
+		public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus) 
+		{
+			topLearner.init(plus, minus);
+			return new LearnerGraph(RPNIBlueFringeLearnerTestComponentOpt.this.learnMachine(),scoreComputer.config);
+		}
+
+		
+		public void setTopLevelListener(Learner top) {
+			topLearner = top;
+		}
+		
+	};
+	
+	Learner topLearner = thisLearner;
+
+	
 	/* Note: in order to get the same results from learning as in modified Dec 2007 version 
 	 * on the appropriate branch, the following has to be done:
 	 * 1. DeterministicDirectedSparseGraph.VertexID.comparisonKind = DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
@@ -203,7 +279,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 		newPTA.setName("merge_debug"+0);
 		updateGraph(newPTA);
 		
-		Stack<PairScore> possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+		Stack<PairScore> possibleMerges = topLearner.ChooseStatePairs(scoreComputer);
 		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
 		final int restartOfInterest = -21;
 		while(!possibleMerges.isEmpty())
@@ -216,7 +292,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			LearnerGraph tempNew = null;
 			
 			//tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-			tempNew = MergeStates.mergeAndDeterminize_general(scoreComputer, pair);
+			tempNew = topLearner.MergeAndDeterminize(scoreComputer, pair);
 			LearnerGraph temp=tempNew;
 			if (scoreComputer.config.isConsistencyCheckMode())
 			{
@@ -233,7 +309,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			if(shouldAskQuestions(score))
 			{
 				//questions = ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair, scoreComputer,tempOrig));
-				questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
+				questions = topLearner.ComputeQuestions(pair, scoreComputer, tempNew);
 				if (scoreComputer.config.isConsistencyCheckMode()) 
 				{// checking that all the old questions are included in the new ones
 					assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;
@@ -260,7 +336,7 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = pair.getQ().isAccept();
-				Pair<Integer,String> answer = checkWithEndUser(scoreComputer,question, new Object [] {"Test"});
+				Pair<Integer,String> answer = topLearner.CheckWithEndUser(scoreComputer, question, null);
 				this.questionCounter++;
 				if (answer.firstElem == USER_CANCELLED)
 				{
@@ -274,7 +350,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				{
 					++counterAccepted;
 					//sPlus.add(question);
-					newPTA.paths.augmentPTA(question, true, null);++plusSize;
+					topLearner.AugmentPTA(newPTA, RestartLearningEnum.restartHARD, question, true, null);
+					//newPTA.paths.augmentPTA(question, true, null);
+					++plusSize;
 					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					if (counterRestarted == restartOfInterest) System.out.println(question.toString()+ " <yes>");
 					if(!tempVertex.isAccept())
@@ -289,7 +367,9 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 						++counterRejected;
 						LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
 						//sMinus.add(subAnswer);
-						newPTA.paths.augmentPTA(subAnswer, false, null);++minusSize ;// important: since vertex IDs are 
+						topLearner.AugmentPTA(newPTA, RestartLearningEnum.restartHARD, subAnswer, false, null);
+						//newPTA.paths.augmentPTA(subAnswer, false, null);
+						++minusSize ;// important: since vertex IDs are 
 						// only unique for each instance of ComputeStateScores, only once 
 						// instance should ever receive calls to augmentPTA
 						if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
@@ -321,6 +401,8 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				count.incrementAndGet();
 				restartsToIterations.put(pair, iterations);
 				iterations = 0;
+				topLearner.Restart(RestartLearningEnum.restartHARD);
+				//System.out.println("RESTART "+counterRestarted);
 			}
 			else
 			{
@@ -339,9 +421,10 @@ public class RPNIBlueFringeLearnerTestComponentOpt extends RPNIBlueFringeLearner
 				}
 				count.incrementAndGet();
 				scoresToIterations.put(pair, iterations);
+				topLearner.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+			possibleMerges = topLearner.ChooseStatePairs(scoreComputer);
 			//System.out.println(possibleMerges);
 		}
 		DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);

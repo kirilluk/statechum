@@ -426,7 +426,7 @@ public class PTASequenceEngine
 		return result;
 	}
 	
-	public Collection<List<String>> getData()
+	public List<List<String>> getData()
 	{
 		return getData(null);
 	}
@@ -438,9 +438,9 @@ public class PTASequenceEngine
 	 * @param predicate determines which paths are returned.
 	 * @return the collection of paths for which the predicate holds.
 	 */ 
-	public Collection<List<String>> getData(final FilterPredicate predicate)
+	public List<List<String>> getData(final FilterPredicate predicate)
 	{
-		final Collection<List<String>> result = new LinkedList<List<String>>();
+		final List<List<String>> result = new LinkedList<List<String>>();
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {

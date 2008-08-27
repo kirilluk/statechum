@@ -38,6 +38,7 @@ import javax.swing.event.ListSelectionListener;
 
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -337,4 +338,6 @@ public abstract class RPNIBlueFringeLearner  extends Observable {
 			ex.initCause(e);throw ex;
 		}		
 	}
+	
+	public abstract Learner getLearner(); 
 }

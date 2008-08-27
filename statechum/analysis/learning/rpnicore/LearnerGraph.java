@@ -19,6 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -206,6 +207,7 @@ public class LearnerGraph {
 	final public PairScoreComputation pairscores = new PairScoreComputation(this);
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
+	final public Transform322 transform322 = new Transform322(this);
 	final public Linear linear = new Linear(this);
 	final CachedData learnerCache = new CachedData(this);
 	
@@ -218,7 +220,7 @@ public class LearnerGraph {
 		config = conf;initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
-		
+		Set<VertexID> idSet = new HashSet<VertexID>(); 
 		
 		synchronized (LearnerGraph.syncObj) 
 		{
@@ -227,8 +229,9 @@ public class LearnerGraph {
 				CmpVertex vert = cloneCmpVertex(srcVert,config);
 				origToCmp.put(srcVert, vert);
 
-				if (findVertex(vert.getID()) != null)
+				if (idSet.contains(vert.getID()))
 					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
+				idSet.add(vert.getID());
 				
 				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
 				if (DeterministicDirectedSparseGraph.isInitial(srcVert))// special case for the initial vertex.
@@ -296,6 +299,36 @@ public class LearnerGraph {
 		initPTA();
 	}
 
+	/** Loads a graph from the data in a supplied reader.
+	 * 
+	 * @param from where to load from
+	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
+	 * @return created graph.
+	 */
+	public static LearnerGraph loadGraph(Reader from, Configuration cnf) throws IOException
+	{
+		LearnerGraph graph = null;
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
+			from.close();
+		}
+		return graph;
+	}
+
+	/** Loads a graph from the supplied XML node.
+	 * 
+	 * @param elem XML element to load from
+	 * @param config configuration to use
+	 * @return loaded graph
+	 */
+	public static LearnerGraph loadGraph(org.w3c.dom.Element elem, Configuration config)
+	{
+		return new LearnerGraph(Transform322.loadGraph(elem),config);
+	}
+	
 	/** Loads a graph from a supplied file. 
 	* FIXME: make very specific assumptions about the numbering of states in the loaded graphs when setting vertPositiveID and vertNegativeID
 	*/
@@ -496,7 +529,7 @@ public class LearnerGraph {
 	public synchronized VertexID nextID(boolean accepted)
 	{
 		VertexID result = null;
-		if (config.getMode() == IDMode.POSITIVE_ONLY)
+		if (config.getLearnerIdMode() == IDMode.POSITIVE_ONLY)
 			result = new VertexID(VertKind.NEUTRAL,vertPositiveID++);
 		else
 			result = (accepted?new VertexID(VertKind.POSITIVE,vertPositiveID++):
@@ -509,7 +542,10 @@ public class LearnerGraph {
 	{
 		if (config.getDefaultInitialPTAName().length() > 0)
 			return new VertexID(config.getDefaultInitialPTAName());
-		return new VertexID(VertKind.INIT,vertPositiveID++);
+		
+		// Since the numerical ID of the init vertex is not stored in XML, it is not possible to load it and
+		// hence not feasible to replicate experiments using such vertex.
+		return new VertexID(VertKind.POSITIVE,vertPositiveID++);//new VertexID(VertKind.INIT,vertPositiveID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when

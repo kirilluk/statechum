@@ -55,7 +55,8 @@ abstract public class AbstractExperiment
 	protected static final String FS = ",";
 	
 	public enum FileType { 
-		LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
+		LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } },
+		LOG {String getFileName(String prefix, String suffix) { return prefix+"_log"+suffix+".xml"; } },
 		MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
 		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
 		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };

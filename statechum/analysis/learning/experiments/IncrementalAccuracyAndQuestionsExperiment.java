@@ -20,19 +20,21 @@ package statechum.analysis.learning.experiments;
 
 
 import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import edu.uci.ics.jung.graph.impl.*;
+import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.RPNIBlueAmberFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -53,6 +55,9 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 
 		protected AtomicInteger questionNumber = new AtomicInteger(0);
 		
+		/** Whether to use the blue fringe or the blue-amber amber fringe. */
+		public boolean useAmber = false;
+
 		/** This method is executed on an executor thread. */
 		public void runTheExperiment()
 		{
@@ -62,21 +67,52 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  
 			
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+			RPNIBlueFringeLearner l = null;
+			
+			if (useAmber)
 			{
-				@Override
-				protected Pair<Integer,String> checkWithEndUser(
-						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
-						@SuppressWarnings("unused") final Object [] moreOptions)
+				l = new RPNIBlueAmberFringeLearner(null,config)
 				{
-					questionNumber.addAndGet(1);
-					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
-				}
-			};
+					@Override
+					protected Pair<Integer,String> checkWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused") final Object [] moreOptions)
+					{
+						questionNumber.addAndGet(1);
+						return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+					}
+				};
+			}
+			else
+			{
+				l= new RPNIBlueFringeLearnerTestComponentOpt(null,config)
+				{
+					@Override
+					protected Pair<Integer,String> checkWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused") final Object [] moreOptions)
+					{
+						questionNumber.addAndGet(1);
+						return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+					}
+				};
+			}
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
 
-			LearnerGraph learned = learn(l,sMinus);
+			RecordProgressDecorator recorder = null;
+			try {
+				recorder = new RecordProgressDecorator(l.getLearner(),new java.io.FileOutputStream(getFileName(FileType.LOG)),1,config,true);
+				//recorder.setCompressionMethod(ZipEntry.STORED);// no compression, for speed.
+			} catch (IOException e) {
+				statechum.Helper.throwUnchecked("could not open log file for writing", e);
+			}
+			Collection<List<String>> graphTestSet = graph.wmethod.getFullTestSet(1);
+			recorder.writeLearnerEvaluationData(new ProgressDecorator.LearnerEvaluationConfiguration(graph,graphTestSet,config,null));
+			l.getLearner().setTopLevelListener(recorder);
+
+			LearnerGraph learned = learn(recorder,sMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learned);
 			PTASequenceEngine engine = new PTA_FSMStructure(graph);
 			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
@@ -96,6 +132,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 				FS+percent+"%"+FS+ // 11
 				"+:"+sPlus.getData().size()+FS+// 12
 				"-:"+sMinus.getData(PTASequenceEngine.truePred).size(); // 13
+/*
 			try
 			{
 				result = result + FS+"L"+// 14
@@ -113,21 +150,26 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					" on graph with "+learned.getStateNumber()+" and "+learned.getStateNumber()+" transitions" +
 					"\n"+wr.getBuffer().toString();
 			}
-			
+	*/		
 			// 19 and 20
-			result = result + FS + graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness() + FS +
+			result = result + FS + //graph.paths.getExtentOfCompleteness() + FS + learned.paths.getExtentOfCompleteness() + FS +
 				l.getRestarts(); // 21
 		}
 
-		private LearnerGraph learn(RPNIBlueFringeLearner l, PTASequenceEngine pta)
+		private LearnerGraph learn(Learner l, PTASequenceEngine pta)
 		{
+			return l.learnMachine(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
+/*
 			DirectedSparseGraph learningOutcome = null;
 			changeParameters(config);
 			int ptaSize = pta.numberOfLeafNodes();
-			l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			//l.init(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
+			l.init(new LinkedList<List<String>>(), ArrayOperations.sort(pta.getData(PTASequenceEngine.truePred)));
+
 			learningOutcome = l.learnMachine();
 			l.setQuestionCounter(0);
 			return new LearnerGraph(learningOutcome,config);
+			*/
 		}
 	}
 	
@@ -139,6 +181,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 	static class Experiment extends IncrementalAccuracyAndQuestionsExperiment
 	{
 		protected final Configuration conf;
+		protected boolean useAmberLearner = false;
 		
 		/** Constructs an experiment class
 		 * 
@@ -146,10 +189,11 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 		 * @param limit the limit on the number of paths to choose when looking for paths between a pair of states.
 		 * @param useSpeculative whether to use speculative question asking.
 		 */
-		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative)
+		public Experiment(Configuration.QuestionGeneratorKind qg, int limit, boolean useSpeculative, boolean useAmberArg)
 		{
 			super();conf=(Configuration)Configuration.getDefaultConfiguration().clone();
 			conf.setQuestionGenerator(qg);conf.setQuestionPathUnionLimit(limit);conf.setSpeculativeQuestionAsking(useSpeculative);
+			useAmberLearner = useAmberArg;
 		}
 
 		/** Constructs an experiment class for checking whether the improved merger and
@@ -183,6 +227,7 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 								c.setQuestionGenerator(conf.getQuestionGenerator());
 								c.setQuestionPathUnionLimit(conf.getQuestionPathUnionLimit());
 								c.setSpeculativeQuestionAsking(conf.isSpeculativeQuestionAsking());
+								useAmber = useAmberLearner;
 							}
 
 							@Override
@@ -208,11 +253,12 @@ public abstract class IncrementalAccuracyAndQuestionsExperiment extends Abstract
 					//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
 					//Configuration.QuestionGeneratorKind.SYMMETRIC
 					})
+				for(boolean useAmber:new boolean[]{true})//{false,true})
 				for(boolean speculative:new boolean[]{false})
-					for(int limit:new int[]{-1,3,1})
+					for(int limit:new int[]{-1})//,3,1})
 					{
-						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+(speculative?"_SPEC_":"");
-						AbstractExperiment experiment = new Experiment(qk,limit,speculative);experiment.setOutputDir(experimentDescription+"_");
+						String experimentDescription = "BLUE_"+qk+"_"+(limit<0?"all":limit)+"_"+(useAmber?"AMBER":"BLUE")+"_"+(speculative?"_SPEC_":"");
+						AbstractExperiment experiment = new Experiment(qk,limit,speculative,useAmber);experiment.setOutputDir(experimentDescription+"_");
 						experiment.runExperiment(args);
 						String ending = experimentDescription+".csv";
 						experiment.postProcessIntoR(2,true, 3, new File(experiment.getOutputDir(),"precision"+ending));

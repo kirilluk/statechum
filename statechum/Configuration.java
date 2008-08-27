@@ -18,14 +18,27 @@
 
 package statechum;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
+
+import static statechum.Helper.throwUnchecked;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import statechum.analysis.learning.rpnicore.Transform322;
 
 /** Represents a configuration for a learner. The purpose is a possibility of a 
  * global customisation of all objects used by a learner in the course of 
  * learning by the same object.
  * <p> 
- * When you add to this class, please add the corresponding entries to hashCode and equals. 
+ * When you add to this class, please add the corresponding entries to hashCode and equals.
+ * <p>
+ * This class is using the built-in <em>clone</em> method, hence all attributes have 
+ * to be either primitives or immutable (such as <em>String</em>). 
  */
 public class Configuration implements Cloneable
 {
@@ -95,7 +108,7 @@ public class Configuration implements Cloneable
 		learnerIdMode = m;
 	}
 	
-	public IDMode getMode()
+	public IDMode getLearnerIdMode()
 	{
 		return learnerIdMode;
 	}
@@ -221,6 +234,12 @@ public class Configuration implements Cloneable
 		}
 	}
 	
+	/** Makes a copy of this configuration. Same as clone() but without a need to cast the result. */
+	public Configuration copy()
+	{
+		return (Configuration)clone();
+	}
+	
 	/** Whether construction of LearnerGraph from a Jung graph should clone vertices of that graph. */
 	protected boolean LearnerCloneGraph = true;
 	
@@ -312,9 +331,18 @@ public class Configuration implements Cloneable
 		result = prime * result + (int)(attenuationK*100);
 		result = prime * result + (consistencyCheckMode? 1231 : 1237);
 		result = prime * result + (speculativeQuestionAsking? 1231:1237);
+		result = prime * result + (int)(gdKeyPairThreshold*100);
+		result = prime * result + (int)(gdLowToHighRatio*100);
+		result = prime * result + (gdFailOnDuplicateNames?1231 : 1237);
+		result = prime * result + (learnerOverwriteOutput?1231 : 1237);
+		result = prime * result + gdMaxNumberOfStatesInCrossProduct;
+		result = prime * result + (compressLogs?1231 : 1237);
+		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
 		return result;
 	}
 
+	public static final double fpAccuracy = 1e-15; 
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
@@ -378,12 +406,27 @@ public class Configuration implements Cloneable
 			return false;
 		if (questionPathUnionLimit != other.questionPathUnionLimit)
 			return false;
-		if (attenuationK != other.attenuationK)
+		if (Math.abs(attenuationK - other.attenuationK) > fpAccuracy)
 			return false;
 		if (consistencyCheckMode != other.consistencyCheckMode)
 			return false;
 		if (speculativeQuestionAsking != other.speculativeQuestionAsking)
 			return false;
+		if (Math.abs(gdKeyPairThreshold - other.gdKeyPairThreshold) > fpAccuracy)
+			return false;
+		if (Math.abs(gdLowToHighRatio - other.gdLowToHighRatio) > fpAccuracy)
+			return false;
+		if (gdFailOnDuplicateNames != other.gdFailOnDuplicateNames)
+			return false;
+		if (learnerOverwriteOutput != other.learnerOverwriteOutput)
+			return false;
+		if (gdMaxNumberOfStatesInCrossProduct != other.gdMaxNumberOfStatesInCrossProduct)
+			return false;
+		if (compressLogs != other.compressLogs)
+			return false;
+		if (learnerToUse != other.learnerToUse)
+			return false;
+		
 		return true;
 	}
 
@@ -530,12 +573,71 @@ public class Configuration implements Cloneable
 		generateDotOutput = generateDot;
 	}
 	
+	/** Considering all pairs of states, we need to determine those of 
+	 * them which are over a specific threshold,
+	 * defined as top so many percent (expressed as a fraction, so top 5% is 0.05).
+	 */
+	protected double gdKeyPairThreshold = 0.25;
+	
+	public double getGdKeyPairThreshold()
+	{
+		return gdKeyPairThreshold;
+	}
+	
+	public void setGdKeyPairThreshold(double value)
+	{
+		if (value < 0 || value > 1)
+			throw new IllegalArgumentException("threshold "+value+" is invalid, 0..1 is expected (both inclusive)");
+		gdKeyPairThreshold = value;
+	}
+	
+	/** The highest low-high score ratio for a pair to be considered a key pair.
+	 * If some pairs have high absolute scores, they make kill all other
+	 * candidates for key pairs. For this reason, we'd like to set
+	 * <em>gdKeyPairThreshold</em> not too low and choose
+	 * a state of B which should be paired to a state in A where the 
+	 * corresponding pairs's low score is at most <em>gdLowToHighRatio</em>
+	 * that of its highest score (). Refer to <em>handleRow</em> part of 
+	 * <em>identifyKeyPairs()</em> for details.
+	 */ 
+	protected double gdLowToHighRatio = 0.5;
+	
+	public double getGdLowToHighRatio()
+	{
+		return gdLowToHighRatio;
+	}
+	
+	public void setGdLowToHighRatio(double value)
+	{
+		if (value < 0 || value > 1)
+			throw new IllegalArgumentException("HighLowRatio "+value+" is invalid, expected 0..1");
+		gdLowToHighRatio = value;
+	}
+	
 	/** When doing linear, we need a way to attenuate the compatibility score associated
 	 * to states into which we have transitions. This values provides the appropriate 
 	 * attenuation, which has to be under 1, since otherwise the matrix is likely to be
 	 * singular. Using a value of 0 would imply we ignore all outgoing transitions.
+	 * <p>
+	 * In practice, this value should be rather lower than 1, because otherwise
+	 * it'll lead to very high scores being generated. Consider 
+	 * <tt>A-a->A</tt>. In this case, the equation is <tt>AA=k*AA+1</tt>, so for
+	 * k=0.9, we get AA=10. It is not feasible to fudge the case of loops because
+	 * we can have <tt>A-a->B-a->C-a->A</tt> where the same problem will occur. 
+	 * For this reason, it seems reasonable to keep k to around 0.7 or less.
+	 * In this case, <tt>testFindKeyPairs2()</tt> obtains scores of 6.6 (66 after
+	 * multiplication by 10 and truncation to int).
+	 * <p>
+	 * <b>It is important not to force <em>totalOutgoing</em> to 1</b> for the following
+	 * reason: 
+	 * Consider the case of multiple looping transitions in A, such as 
+	 * <tt>A-a->A-b->A</tt>. In this case, we get an equation 
+	 * AA=k*count(outgoing)*AA+const. For values of k of 0.5 or under, there will
+	 * be a specific number of outgoing transitions such that the matrix will be
+	 * singular. For this reason, the value of constant has to be somewhere around
+	 * 0.6..0.8 
 	 */
-	protected double attenuationK=0.9;
+	protected double attenuationK=0.6;
 	
 	public double getAttenuationK()
 	{
@@ -553,10 +655,253 @@ public class Configuration implements Cloneable
 		attenuationK = k;
 	}
 	
-	/** A test-only version of the above, permitting a valuve of 1. */
+	/** A test-only version of the above, permitting a value of 1. */
 	public void setAttenuationK_testOnly(double k)
 	{
 		if (k<0 || k>1) throw new IllegalArgumentException("attenuation should be within [0,1[");
 		attenuationK = k;
+	}
+
+	/** When there are states in B with the same names as states of A, it is easy
+	 * to confuse between them when we generate a patch for A in <em>computeGD</em>. 
+	 * For this reason, when this situation occurs
+	 * we no longer use original names for vertices of B but instead use the unique IDs generated when
+	 * A and B were combined. When this variable is true, this fallback is not performed and
+	 * an {@link IllegalArgumentException} is thrown.
+	*/
+	protected boolean gdFailOnDuplicateNames = true;
+	
+	public boolean getGdFailOnDuplicateNames()
+	{
+		return gdFailOnDuplicateNames;
+	}
+	
+	public void setGdFailOnDuplicateNames(boolean value)
+	{
+		gdFailOnDuplicateNames = value;
+	}
+	
+	/** All native code (and sometimes JVM) can crash. This tends to happen when
+	 * JVM runs out of memory and then runs native code which I presume allocates
+	 * some memory. Out-of-memory errors appear to be handled well, but crashes 
+	 * still occur. For this reason, it makes sense to run experiments in a separate
+	 * JVM and re-run those which did not complete due to crash, assuming 
+	 * non-termination is detected by the learner itself). If this is done, we have to
+	 * distinguish a situation with many result files when we'd like to restart
+	 * learning overwriting the existing data and the case when we'd only like to
+	 * restart those which did not complete. The switch below makes it possible to 
+	 * choose one of these two modes. 
+	 */
+	protected boolean learnerOverwriteOutput = true;
+	
+	public boolean getLearnerOverwriteOutput()
+	{
+		return learnerOverwriteOutput;
+	}
+	
+	public void setLearnerOverwriteOutput(boolean newValue)
+	{
+		learnerOverwriteOutput = newValue;
+	}
+	
+	/** The number of equations to solve is the square of the number of 
+	 * states in graphs, hence if the total exceeds a reasonable number, we 
+	 * cannot use Linear for comparisons and a fallback is to simply use
+	 * a pair of initial states and disable backward traversal since it is nondeterministic 
+	 * and in the absence of a good measure of state similarity we cannot
+	 * meaningfully choose between different possible pairs of states.
+	 */
+	protected int gdMaxNumberOfStatesInCrossProduct = 800*800;
+	
+	public int getGdMaxNumberOfStatesInCrossProduct()
+	{
+		return gdMaxNumberOfStatesInCrossProduct;
+	}
+	
+	public void setGdMaxNumberOfStatesInCrossProduct(int newValue)
+	{
+		gdMaxNumberOfStatesInCrossProduct = newValue;
+	}
+	
+	/** Whether to store graphs with or without compression in logs. */
+	protected boolean compressLogs = true;
+	
+	public boolean getCompressLogs()
+	{
+		return compressLogs;
+	}
+	
+	public void setCompressLogs(boolean newValue)
+	{
+		compressLogs = newValue;
+	}
+	
+	/** Types of learners implemented. */
+	public enum LEARNER { LEARNER_BLUEFRINGE, LEARNER_BLUEAMBER, LEARNER_BLUEFRINGE_DEC2007 };
+	
+	/** Selects the kind of learner to use. A learner typically has a lot of customization
+	 * options which are set by a configuration.
+	 */
+	protected LEARNER learnerToUse = LEARNER.LEARNER_BLUEFRINGE;
+	
+	public LEARNER getLearnerToUse()
+	{
+		return learnerToUse;
+	}
+	
+	public void setLearnerToUse(LEARNER learner)
+	{
+		learnerToUse = learner;
+	}
+	
+	/** Whether a method is get.../is ..., or set...  */
+	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
+	
+	/** In order to serialise/deserialise data, we need access to fields and getter/setter methods.
+	 * This method takes a field and returns the corresponding method. Although supposedly
+	 * universal, this does not take bean properties into account, such as introspector,
+	 * transient designation and others. 
+	 * 
+	 * @param prefix
+	 * @param var
+	 * @return
+	 */
+	public static Method getMethod(GETMETHOD_KIND kind,java.lang.reflect.Field var)
+	{
+		String varName = var.getName();
+		 
+		String methodNameSuffix = (Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
+		String methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"get":"set")+methodNameSuffix;
+		Method method = null;
+		try {
+			method = Configuration.class.getMethod(methodName, 
+					(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
+		} catch (SecurityException e) {
+			throwUnchecked("security exception on method "+kind+" for variable "+var.getName(), e);
+		} catch (NoSuchMethodException e) {
+			if (kind == GETMETHOD_KIND.FIELD_SET) throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
+
+			// ignore if looking for a getter - method is null indicates we'll try again.
+		}
+		
+		if (method == null) // not found, try another one.
+			try {
+				methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"is":"set")+methodNameSuffix;
+				method = Configuration.class.getMethod(methodName, 
+						(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
+			} catch (Exception e) {
+				throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
+			}		return method;
+	}
+	
+	public static final String configXMLTag = "configuration", configVarTag="var", configVarAttrName="name",configVarAttrValue="value";
+
+	/** Serialises configuration into XML
+	 * Only primitive strings, enums and primitive data types 
+	 * are taken care of. For this reason, this should only be used on classes such 
+	 * as Configuration where I'd like to serialise them into a DOM stream rather than
+	 * use XMLEncoder (see top of DumpProgressDecorator for an explantion why not XMLEncoder).  
+
+	 * @param doc used to create new nodes
+	 * @return an element containing the serialised representation of this configuration
+	 */
+	public Element writeXML(Document doc)
+	{
+		Element config = doc.createElement(configXMLTag); 
+		for(Field var:getClass().getDeclaredFields())
+		{
+			if (var.getType() != Configuration.class && 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis) 
+				&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
+			{
+				Method getter = Configuration.getMethod(GETMETHOD_KIND.FIELD_GET, var);
+				Element varData = doc.createElement(configVarTag);
+				varData.setAttribute(configVarAttrName, var.getName());
+				try {
+					varData.setAttribute(configVarAttrValue, getter.invoke(this, new Object[]{}).toString());
+				} catch (Exception e) {
+					throwUnchecked("cannot extract a value of "+var.getName(), e);
+				}
+				config.appendChild(varData);config.appendChild(Transform322.endl(doc));
+			}
+		}
+		return config;
+	}
+
+	/** Loads configuration from XML node.
+	 * 
+	 * @param cnf XML node to load configuration from.
+	 */
+	public void readXML(org.w3c.dom.Node cnf)
+	{
+		readXML(cnf,false);
+	}
+	/** Loads configuration from XML node.
+	 * 
+	 * @param cnf XML node to load configuration from.
+	 * @param strict whether to throw an exception when XML data refers to unknown variables.
+	 */
+	public void readXML(org.w3c.dom.Node cnf, boolean strict)
+	{
+		if (cnf.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE)
+			throw new IllegalArgumentException("invalid node type passed to readXML");
+		Element config = (Element)cnf;
+		if (!config.getNodeName().equals(configXMLTag))
+			throw new IllegalArgumentException("configuration cannot be loaded from element "+config.getNodeName());
+		NodeList nodes = config.getChildNodes();
+		for(int i=0;i<nodes.getLength();++i)
+		{
+			org.w3c.dom.Node node = nodes.item(i);
+			if (node.getNodeType() != org.w3c.dom.Node.TEXT_NODE)
+			{// ignore all text nodes
+				if (node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE || !node.getNodeName().equals(configVarTag))
+					throw new IllegalArgumentException("unexpected element "+node.getNodeName()+" in configuration XML");
+				org.w3c.dom.Element currentElement = (Element)node;
+				Field var = null;
+				try
+				{
+					var = getClass().getDeclaredField(currentElement.getAttribute(configVarAttrName));
+					Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
+					Object value = null;String valueAsText = currentElement.getAttribute(configVarAttrValue);
+					if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+					{
+						value = Boolean.valueOf(valueAsText); 
+					}
+					else
+						if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+						{
+							value = Double.valueOf(valueAsText); 
+						}
+						else
+						if (var.getType().equals(String.class))
+						{
+							value = valueAsText;
+						}
+						else
+							if (var.getType().isEnum())
+							{
+								value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
+							}
+							else
+							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+							{
+								value = Integer.valueOf(valueAsText); 
+							}
+							else
+								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+	
+					setter.invoke(this, new Object[]{value});
+				}
+				catch(NoSuchFieldException e)
+				{
+					if (strict)
+					throw new IllegalArgumentException("cannot deserialise unknown field "+currentElement.getAttribute(configVarAttrName));
+				}
+				catch(Exception e)
+				{
+					throwUnchecked("failed to load value of "+var.getName(),e);
+				}
+			}
+		}
 	}
 }

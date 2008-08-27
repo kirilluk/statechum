@@ -821,7 +821,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
-	public Collection<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair,
+	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair,
 			@SuppressWarnings("unused")	LearnerGraph original, 
 			@SuppressWarnings("unused")	LearnerGraph temp) 
 	{

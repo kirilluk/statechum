@@ -119,9 +119,9 @@ public class RPNIBlueAmberFringeLearner extends RPNILearner {
 	 * @param pair pair of states to consider.
 	 * @return questions to ask.
 	 */
-	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
-		Collection<List<String>> questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
+		List<List<String>> questions = ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 		if (scoreComputer.config.isConsistencyCheckMode()) 
 		{// checking that all the old questions are included in the new ones
 			assert scoreComputer.config.getQuestionGenerator() == QuestionGeneratorKind.CONVENTIONAL;

@@ -104,7 +104,6 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				catch(IllegalArgumentException ex)
 				{
 					if (failureCode == null) failureCode = ex;
-					System.out.println(Thread.currentThread());ex.printStackTrace();
 					synchronized(this) { notifyAll(); }
 				}
 			}
@@ -119,7 +118,6 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		catch(IllegalArgumentException ex)
 		{
 			if (failureCode == null) failureCode = ex;
-			System.out.println(Thread.currentThread());ex.printStackTrace();
 		}
 		
 		try {
@@ -165,8 +163,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (failureCode != null) throw failureCode;
 		if (expected != null && method != expected)
 		{
-			failureCode = new IllegalArgumentException("inconsistent method calls: "+expected.toString()+" and "+method.toString());
-			notify();
+			if (failureCode != null)
+				failureCode = new IllegalArgumentException("inconsistent method calls: "+expected.toString()+" and "+method.toString());
+			notifyAll();
 			throw failureCode;
 		}
 		
@@ -207,7 +206,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		
 		if (failureCode != null)
 		{
-			notify();
+			notifyAll();
 			throw failureCode;
 		}
 	}
@@ -334,9 +333,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
-	public synchronized Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public synchronized List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		Collection<List<String>> result = null;
+		List<List<String>> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 			result = whatToCompareWith.ComputeQuestions(pair, original, temp);

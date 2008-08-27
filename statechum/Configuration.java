@@ -335,6 +335,9 @@ public class Configuration implements Cloneable
 		result = prime * result + (int)(gdLowToHighRatio*100);
 		result = prime * result + (gdFailOnDuplicateNames?1231 : 1237);
 		result = prime * result + (learnerOverwriteOutput?1231 : 1237);
+		result = prime * result + gdMaxNumberOfStatesInCrossProduct;
+		result = prime * result + (compressLogs?1231 : 1237);
+		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
 		return result;
 	}
 
@@ -417,6 +420,13 @@ public class Configuration implements Cloneable
 			return false;
 		if (learnerOverwriteOutput != other.learnerOverwriteOutput)
 			return false;
+		if (gdMaxNumberOfStatesInCrossProduct != other.gdMaxNumberOfStatesInCrossProduct)
+			return false;
+		if (compressLogs != other.compressLogs)
+			return false;
+		if (learnerToUse != other.learnerToUse)
+			return false;
+		
 		return true;
 	}
 
@@ -659,7 +669,7 @@ public class Configuration implements Cloneable
 	 * A and B were combined. When this variable is true, this fallback is not performed and
 	 * an {@link IllegalArgumentException} is thrown.
 	*/
-	boolean gdFailOnDuplicateNames = true;
+	protected boolean gdFailOnDuplicateNames = true;
 	
 	public boolean getGdFailOnDuplicateNames()
 	{
@@ -682,7 +692,7 @@ public class Configuration implements Cloneable
 	 * restart those which did not complete. The switch below makes it possible to 
 	 * choose one of these two modes. 
 	 */
-	boolean learnerOverwriteOutput = true;
+	protected boolean learnerOverwriteOutput = true;
 	
 	public boolean getLearnerOverwriteOutput()
 	{
@@ -692,6 +702,56 @@ public class Configuration implements Cloneable
 	public void setLearnerOverwriteOutput(boolean newValue)
 	{
 		learnerOverwriteOutput = newValue;
+	}
+	
+	/** The number of equations to solve is the square of the number of 
+	 * states in graphs, hence if the total exceeds a reasonable number, we 
+	 * cannot use Linear for comparisons and a fallback is to simply use
+	 * a pair of initial states and disable backward traversal since it is nondeterministic 
+	 * and in the absence of a good measure of state similarity we cannot
+	 * meaningfully choose between different possible pairs of states.
+	 */
+	protected int gdMaxNumberOfStatesInCrossProduct = 800*800;
+	
+	public int getGdMaxNumberOfStatesInCrossProduct()
+	{
+		return gdMaxNumberOfStatesInCrossProduct;
+	}
+	
+	public void setGdMaxNumberOfStatesInCrossProduct(int newValue)
+	{
+		gdMaxNumberOfStatesInCrossProduct = newValue;
+	}
+	
+	/** Whether to store graphs with or without compression in logs. */
+	protected boolean compressLogs = true;
+	
+	public boolean getCompressLogs()
+	{
+		return compressLogs;
+	}
+	
+	public void setCompressLogs(boolean newValue)
+	{
+		compressLogs = newValue;
+	}
+	
+	/** Types of learners implemented. */
+	public enum LEARNER { LEARNER_BLUEFRINGE, LEARNER_BLUEAMBER, LEARNER_BLUEFRINGE_DEC2007 };
+	
+	/** Selects the kind of learner to use. A learner typically has a lot of customization
+	 * options which are set by a configuration.
+	 */
+	protected LEARNER learnerToUse = LEARNER.LEARNER_BLUEFRINGE;
+	
+	public LEARNER getLearnerToUse()
+	{
+		return learnerToUse;
+	}
+	
+	public void setLearnerToUse(LEARNER learner)
+	{
+		learnerToUse = learner;
 	}
 	
 	/** Whether a method is get.../is ..., or set...  */

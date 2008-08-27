@@ -261,6 +261,7 @@ public class LearnerGraph {
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		if (g.containsUserDatumKey(JUConstants.TITLE))
 			setName((String)g.getUserDatum(JUConstants.TITLE));
+		Set<VertexID> idSet = new HashSet<VertexID>(); 
 		
 		synchronized (LearnerGraph.syncObj) 
 		{
@@ -281,8 +282,9 @@ public class LearnerGraph {
 				else vert = cloneCmpVertex(srcVert,config);
 				origToCmp.put(srcVert, vert);
 
-				if (findVertex(vert.getID()) != null)
+				if (idSet.contains(vert.getID()))
 					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
+				idSet.add(vert.getID());
 				
 				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
 			}
@@ -345,7 +347,7 @@ public class LearnerGraph {
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 	    	String fileToLoad = fileName;
 	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
-	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileToLoad),config);
+	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileToLoad),config);graph.setName(fileName);
 	    	graph.setIDNumbers();
 	    	return graph;
 		}
@@ -606,9 +608,11 @@ public class LearnerGraph {
 	 */
 	public static final Object syncObj = new Object();
 	
+	public static final int initialIDvalue = 1000;
+	
 	/** Important: when a graph is cloned, these should be cloned too in order to avoid creating duplicate vertices at some point in future. */
-	protected int vertPositiveID = 1000;
-	protected int vertNegativeID = 1000;
+	protected int vertPositiveID = initialIDvalue;
+	protected int vertNegativeID = initialIDvalue;
 
 	/** Generates vertex IDs. Since it modifies instance ID-related variables, it has to be synchronized. */
 	public synchronized VertexID nextID(boolean accepted)
@@ -628,6 +632,9 @@ public class LearnerGraph {
 		if (config.getDefaultInitialPTAName().length() > 0)
 			return new VertexID(config.getDefaultInitialPTAName());
 		return new VertexID(VertKind.POSITIVE,vertPositiveID++);
+		// Since the text ID of the initial vertex is "Init" which does not contain numerical ID,
+		// I cannot adequately load graphs containing such vertices. The best solution is to abolish it.
+		//new VertexID(VertKind.INIT,vertPositiveID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
@@ -779,7 +786,7 @@ public class LearnerGraph {
 		learnerCache.invalidate();
 	}
 	
-	/** Initialises this graph with an empty graph. */
+	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
 	public void initEmpty()
 	{
 		transitionMatrix.clear();init=null;

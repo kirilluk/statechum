@@ -284,7 +284,8 @@ public class TestGD_Multithreaded {
 	}
 	
 	/** Trying to confuse key pair identification algorithm with large plateau (i.e. lots of similar states). */ 
-	private static final String A6=
+	private static final String 
+	A6=
 		"A-a->B-a->C-a->D-a->A\n"+
 		"A-b->E\nB-b->F\nC-b->G\nD-b->H\n"+
 		"E-b->F-b->G-b->H-b->E\n"+
@@ -571,6 +572,31 @@ public class TestGD_Multithreaded {
 		testComputeGD(A, B, "testComputeGD_big4", 9,null);
 	}
 	
+	/** Tests emergency fallback. */
+	@Test
+	public final void testComputeGD_big4_fallback()
+	{
+		String A = A6+additionA,
+			B = B6+generateLine("G@", "T@", "c",20)+generateLine("S@","I@","b",20)+additionB;
+		Configuration fallbackConfig = Configuration.getDefaultConfiguration().copy();
+		fallbackConfig.setGdMaxNumberOfStatesInCrossProduct(10);
+		testComputeGD(A, B, "testComputeGD_big4", 9,fallbackConfig);
+	}
+	
+	@Test
+	public final void testComputeGD5b_RA_fallback()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setGdMaxNumberOfStatesInCrossProduct(0);
+		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
+		LearnerGraph grB = Transform.convertToNumerical(new LearnerGraph(config));
+		ChangesRecorder recorder = new ChangesRecorder(null);
+		GD gd = new GD();gd.computeGD(grA, grB, 1, recorder);
+		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+	}
+
 	@Test 
 	public final void testComputeGD_small1()
 	{

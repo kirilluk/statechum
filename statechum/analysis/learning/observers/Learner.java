@@ -105,7 +105,7 @@ public interface Learner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public Collection<List<String>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+	public List<List<String>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
 	
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 

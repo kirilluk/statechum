@@ -36,6 +36,7 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.StringVertex;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -46,6 +47,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -249,18 +251,23 @@ public class TestFSMAlgo {
 							{
 								valueA = ScoreMode.KTAILS;valueB=ScoreMode.COMPATIBILITY;
 							}
-						else
-							if (var.getType().equals(QuestionGeneratorKind.class))
-							{
-									valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
-							}
 							else
-							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
-							{
-								valueA = varName.hashCode();valueB=setter.hashCode();// just some integers likely to be different from each other between different variables.
-							}
-							else
-								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+								if (var.getType().equals(QuestionGeneratorKind.class))
+								{
+										valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
+								}
+								else
+									if (var.getType().equals(LEARNER.class))
+									{
+											valueA = LEARNER.LEARNER_BLUEFRINGE;valueB=LEARNER.LEARNER_BLUEAMBER;
+									}
+									else
+									if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+									{
+										valueA = varName.hashCode();valueB=setter.hashCode();// just some integers likely to be different from each other between different variables.
+									}
+									else
+										throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
 				
 				MethodsArgs.add(new MethodAndArgs(setter,var,valueA,valueB));
 			}

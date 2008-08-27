@@ -41,7 +41,8 @@ public abstract class LearnerDecorator implements Learner {
 	 */
 	public void setTopLevelListener(Learner top)
 	{
-		decoratedLearner.setTopLevelListener(top);
+		if (decoratedLearner != null)
+			decoratedLearner.setTopLevelListener(top);
 	}
 	
 	public LearnerGraph learnMachine()

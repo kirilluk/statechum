@@ -145,7 +145,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	
 	/** A kind action used by this interface. */
-	public abstract class graphAction extends AbstractAction
+	public static abstract class graphAction extends AbstractAction
 	{
 		public graphAction() {}
 		public graphAction(String name, String description)

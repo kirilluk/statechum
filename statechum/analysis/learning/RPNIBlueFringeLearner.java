@@ -209,7 +209,7 @@ public class RPNIBlueFringeLearner extends RPNILearner {
 	 * @param tempNew the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		return ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 	}

@@ -195,7 +195,7 @@ public class GD {
 		{
 			currentWave.clear();
 			populateCurrentWave(forward.matrixForward);
-			populateCurrentWave(inverse.matrixForward);
+			if (!fallbackToInitialPair) populateCurrentWave(inverse.matrixForward);
 			sortWave(currentWave);
 			if (allKeyPairs != null) allKeyPairs.addAll(frontWave);
 			for(PairScore pair:frontWave) 
@@ -279,7 +279,7 @@ public class GD {
 		for(CmpVertex vertex:statesOfB) assert !newToA.contains(vertex.getID());// verify that ids of states of B grCombined do not clash with IDs of states of B. 
 		
 		if (!duplicates.isEmpty())
-		{// duplicates hence use the unique names they were given in grCombined
+		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+duplicates+" are shared between A and B");
 		}
 		
@@ -574,12 +574,12 @@ public class GD {
 		}
 	}
 	
-	/** This class counts requested changes.
+	/** This class counts the requested changes.
 	 */
 	public static class ChangesCounter implements PatchGraph
 	{
 		private int added = 0, removed = 0;
-		private final int transitionsInB;
+		private final int transitionsInA,transitionsInB;
 		private final String nameA, nameB;
 
 		/** Next instance of PatchGraph in a stack of observers. */
@@ -587,7 +587,7 @@ public class GD {
 
 		public ChangesCounter(LearnerGraph a,LearnerGraph b, PatchGraph nextInStack)
 		{
-			transitionsInB=b.countEdges();nameA = a.getNameNotNull();nameB=b.getNameNotNull();
+			transitionsInA=a.countEdges();transitionsInB=b.countEdges();nameA = a.getNameNotNull();nameB=b.getNameNotNull();
 			next = nextInStack;
 		}
 		
@@ -629,6 +629,11 @@ public class GD {
 			return "diff of "+nameB+" to "+nameA+" is "+(int)(100.*getCompressionRate())+"% of "+nameB;
 		}
 
+		public String detailsToString()
+		{
+			return transitionsInA+"+"+added+"-"+removed+"="+transitionsInB;	
+		}
+		
 		public void setInitial(CmpVertex vertex) {
 			if (next != null) next.setInitial(vertex);
 		}
@@ -678,7 +683,7 @@ public class GD {
 			removedPatcher.addTransition(from, label, to);
 		}
 		
-		/** GD tags. */
+		/** GD XML tags. */
 		public static final String gdGD = "GD", gdAdded="gdAdded", gdRemoved = "gdRemoved";
 		
 		/** Writes the recorded changes in a form of an XML tag. */
@@ -769,6 +774,8 @@ public class GD {
 		}
 	}
 	
+	protected boolean fallbackToInitialPair = false;
+	
 	/** Builds the data structures subsequently used in traversal.
 	 * 
 	 * @param a the first graph
@@ -799,54 +806,68 @@ public class GD {
 		newBToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newBToOrig.put(entry.getValue(),entry.getKey());
 		
-		forward = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,false);
-		inverse = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,true);
-		pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, LearnerGraphND.PAIR_INCOMPATIBLE);
-		// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
-		List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-			handlerList.add(new HandleRow<CmpVertex>()
-			{
-				public void init(@SuppressWarnings("unused") int threadNo) {}
-
-				public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
-				{
-					// Now iterate through states
-					for(CmpVertex stateB:statesOfB)
-					{
-						assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==LearnerGraphND.PAIR_INCOMPATIBLE:
-							"duplicate number "+forward.vertexToIntNR(stateB,entryA.getKey())+" for states "+
-							forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
-						pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
-							LearnerGraphND.PAIR_OK;// caching is likely to lower down my performance a lot here
-					}
-					
-					// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
-					// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
-				}
-			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-			public boolean stateToConsider(CmpVertex vert) {
-				return statesOfA.contains(vert);
-			}
-		}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
-		final int numberOfPairs = LearnerGraphND.numberNonNegativeElements(pairScores);
-		assert numberOfPairs == statesOfA.size()*statesOfB.size();
+		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && 
+				statesOfA.size()*statesOfB.size() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
+			fallbackToInitialPair = true;
 		
+		forward = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,false);
+		if (fallbackToInitialPair)
 		{
-			LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
-			//System.out.println(inverse.dumpEquations(solverForward, pairScores, newToOrig));
-			solverForward.solve();
-			solverForward.freeAllButResult();// deallocate memory before creating a large array.
-			scoresForward = solverForward.j_x;
+			if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && // only warn if not forced.
+					Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+				System.out.println("Cannot use Linear since the number of states in a cross-product is "+((double)statesOfA.size()*statesOfB.size()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
+						" times over the limit");
 		}
-
-		{
-			LSolver solverInverse = inverse.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
-			solverInverse.solve();
-			solverInverse.freeAllButResult();// deallocate memory before creating a large array.
-			scoresInverse = solverInverse.j_x;
-		}		
+		else
+		{// normal processing
+			inverse = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,true);
+			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, LearnerGraphND.PAIR_INCOMPATIBLE);
+			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
+				handlerList.add(new HandleRow<CmpVertex>()
+				{
+					public void init(@SuppressWarnings("unused") int threadNo) {}
+	
+					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					{
+						// Now iterate through states
+						for(CmpVertex stateB:statesOfB)
+						{
+							assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==LearnerGraphND.PAIR_INCOMPATIBLE:
+								"duplicate number "+forward.vertexToIntNR(stateB,entryA.getKey())+" for states "+
+								forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
+							pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
+								LearnerGraphND.PAIR_OK;// caching is likely to lower down my performance a lot here
+						}
+						
+						// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
+						// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
+					}
+				});
+			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
+				public boolean stateToConsider(CmpVertex vert) {
+					return statesOfA.contains(vert);
+				}
+			}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+			final int numberOfPairs = LearnerGraphND.numberNonNegativeElements(pairScores);
+			assert numberOfPairs == statesOfA.size()*statesOfB.size();
+			
+			{
+				LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
+				//System.out.println(inverse.dumpEquations(solverForward, pairScores, newToOrig));
+				solverForward.solve();
+				solverForward.freeAllButResult();// deallocate memory before creating a large array.
+				scoresForward = solverForward.j_x;
+			}
+	
+			{
+				LSolver solverInverse = inverse.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
+				solverInverse.solve();
+				solverInverse.freeAllButResult();// deallocate memory before creating a large array.
+				scoresInverse = solverInverse.j_x;
+			}
+		}
 	}
 	
 	/** Goes through the result of linear and identifies candidates for key state pairs.
@@ -855,80 +876,93 @@ public class GD {
 	protected boolean identifyKeyPairs()
 	{
 		currentWave = new ArrayList<PairScore>(java.lang.Math.max(statesOfA.size(),statesOfB.size()));
-		List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-			handlerList.add(new HandleRow<CmpVertex>()
-			{
-				public void init(@SuppressWarnings("unused") int threadNo) {}
-
-				public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
-				{
-					double scoreHigh = -Double.MAX_VALUE,scoreLow = -Double.MAX_VALUE;
-					CmpVertex highState = null;
-					// Now iterate through states
-					for(CmpVertex stateB:statesOfB)
-					{
-						int scorePosition = pairScores[forward.vertexToIntNR(stateB,entryA.getKey())];
-						double scoreForward = scoresForward[scorePosition],scoreBackward=scoresInverse[scorePosition];
-						double score = scoreForward+scoreBackward;
-						if (scoreForward < 0)// if a pair is incompatible, ensure the score is negative
-							score = Math.min(scoreForward, scoreBackward);
-						if (score > scoreHigh)
-						{
-							scoreLow = scoreHigh;scoreHigh = score;highState = stateB;
-						}
-						else
-							if (score > scoreLow) scoreLow = score;
-					}
-					assert highState != null;
-					currentWave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
-				}
-			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-			public boolean stateToConsider(CmpVertex vert) {
-				return statesOfA.contains(vert);
-			}
-		}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
-
-		// now we find so many percent of top values.
-		int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
-		sortWave(currentWave);
+		statesInKeyPairs = new HashSet<CmpVertex>();
+		frontWave = new LinkedList<PairScore>();
 		PairScore topPair = null;
-		if (!currentWave.isEmpty() && currentWave.iterator().next().getScore() > topScore)
+		
+		// If we have to fall back to a pair of initial states, there is no point doing any
+		// of the computation below.
+		if (fallbackToInitialPair)
 		{
-			topPair = currentWave.iterator().next();
-			topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
+			if (combined_initA.isAccept() == combined_initB.isAccept())
+				topPair = new PairScore(combined_initA,combined_initB,0,0);
 		}
-		statesInKeyPairs = new HashSet<CmpVertex>();frontWave = new LinkedList<PairScore>();
-		final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
-		// Key pairs added to the collection.
-		for(PairScore pair:currentWave)
-			if (pair.getScore() > 0 && pair.getScore() >= threshold && // top score good enough
-					(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
-					!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
-					pair.getQ().isAccept() == pair.getR().isAccept() // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
-					)
+		else
+		{// normal processing
+			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
+				handlerList.add(new HandleRow<CmpVertex>()
+				{
+					public void init(@SuppressWarnings("unused") int threadNo) {}
+	
+					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					{
+						double scoreHigh = -Double.MAX_VALUE,scoreLow = -Double.MAX_VALUE;
+						CmpVertex highState = null;
+						// Now iterate through states
+						for(CmpVertex stateB:statesOfB)
+						{
+							int scorePosition = pairScores[forward.vertexToIntNR(stateB,entryA.getKey())];
+							double scoreForward = scoresForward[scorePosition],scoreBackward=scoresInverse[scorePosition];
+							double score = scoreForward+scoreBackward;
+							if (scoreForward < 0)// if a pair is incompatible, ensure the score is negative
+								score = Math.min(scoreForward, scoreBackward);
+							if (score > scoreHigh)
+							{
+								scoreLow = scoreHigh;scoreHigh = score;highState = stateB;
+							}
+							else
+								if (score > scoreLow) scoreLow = score;
+						}
+						assert highState != null;
+						currentWave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
+					}
+				});
+			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
+				public boolean stateToConsider(CmpVertex vert) {
+					return statesOfA.contains(vert);
+				}
+			}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+	
+			// now we find so many percent of top values.
+			int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
+			sortWave(currentWave);
+			if (!currentWave.isEmpty() && currentWave.iterator().next().getScore() > topScore)
 			{
-				frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
+				topPair = currentWave.iterator().next();
+				topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
 			}
+			final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
+			// Key pairs added to the collection.
+			for(PairScore pair:currentWave)
+				if (pair.getScore() > 0 && pair.getScore() >= threshold && // top score good enough
+						(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
+						!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
+						pair.getQ().isAccept() == pair.getR().isAccept() // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+						)
+				{
+					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
+				}
+		}		
+
 		boolean result = true;
 		// We have to be careful if none is found this way.
 		if (frontWave.isEmpty())
 		{
 			if (topPair != null)
 			{// at least we've got a pair with a score over zero.
-				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+				if (!fallbackToInitialPair &&
+						Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, using "+topPair);
 				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 			}
 			else
 			{// nothing of use detected, the difference will contain a union of all transitions in graphs A and B.
 				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
-					System.out.println("Linear failed to find any pairs with positive scores, the diff is the union of A and B");
+					System.out.println("Failed to find any pairs with positive scores, the diff is the union of A and B");
 			}
 			result = false;
 		}
-		
 		return result;
 	}
 	
@@ -953,8 +987,12 @@ public class GD {
 						for(CmpVertex targetStateB:targetB)
 							if (!statesInKeyPairs.contains(targetStateA) && !statesInKeyPairs.contains(targetStateB))
 							{
-								int scorePosition = pairScores[forward.vertexToIntNR(targetStateA,targetStateB)];
-								double score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+								double score = 0;
+								if (!fallbackToInitialPair)
+								{
+									int scorePosition = pairScores[forward.vertexToIntNR(targetStateA,targetStateB)];
+									score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+								}
 								currentWave.add(new PairScore(targetStateA,targetStateB,(int)(multiplier*score),0));
 							}
 				}

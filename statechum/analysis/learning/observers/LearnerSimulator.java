@@ -165,13 +165,28 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		
 	};
 	
+	/** There are cases when I'd like to step back to the previous element. */
+	protected Element nextElement = null;
+	
+	public void setNextElement(Element elem)
+	{// TODO: to test this
+		nextElement = elem;
+	}
+	
 	/** Loads the next element from XML file. Returns <em>null</em> if there are 
 	 * no more elements.
 	 * Text nodes are ignored.
+	 * <p>
+	 * If there is a next element set, returns that element. 
 	 */
 	public Element getNextElement()
 	{
 		org.w3c.dom.Node result = null;
+		if (nextElement != null)
+		{
+			result=nextElement;nextElement=null;
+		}
+		else
 		if (readZip)
 		{
 			ZipEntry entry = null;
@@ -396,7 +411,7 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
-	public Collection<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, 
+	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, 
 			@SuppressWarnings("unused")	LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
 	{
 		return readSequenceList(getElement(ELEM_KINDS.ELEM_SEQ.name()),ELEM_KINDS.ATTR_QUESTIONS.name());

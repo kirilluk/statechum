@@ -113,7 +113,7 @@ public class GraphSeries {
 	{
 		if (doc == null) throw new IllegalArgumentException("read-only series");
 		Element result = null;
-		if (graph == null)
+		if (graph == null || !config.getCompressLogs())
 		{
 			graph = newGraph.copy(newGraph.config);
 			result = graph.transform.createGraphMLNode(doc);
@@ -122,7 +122,6 @@ public class GraphSeries {
 		{
 			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
 			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
-
 			boolean assertionsEnabled = false;assert assertionsEnabled = true;
 			if (assertionsEnabled) { WMethod.checkM(newGraph, graph);assert graph.wmethod.checkUnreachableStates() == false; }
 			++graphNumber;

@@ -79,7 +79,7 @@ public class ComputeQuestions {
 		public SequenceSet getPathsToLearnt();
 	}
 	
-	public static Collection<List<String>> computeQS_general(final StatePair pairToMerge, 
+	public static List<List<String>> computeQS_general(final StatePair pairToMerge, 
 			final LearnerGraph original, final LearnerGraph learnt,final QuestionConstructor qConstructor)
 	{
 		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
@@ -302,7 +302,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static Collection<List<String>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<String>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
@@ -379,7 +379,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static Collection<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
 			return computeQS_orig(new StatePair(merged.getStateLearnt(),merged.getStateLearnt()), original, merged);

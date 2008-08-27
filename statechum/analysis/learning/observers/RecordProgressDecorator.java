@@ -83,7 +83,8 @@ public class RecordProgressDecorator extends ProgressDecorator {
 				outputStream=outStream;
 				topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform.endl(doc));
 			}
-			series = new GraphSeries(doc,threadNumber,config);
+			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
+			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
 		}
 		catch(ParserConfigurationException e)
 		{
@@ -123,6 +124,31 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		
 	}
 	
+	/** Converts an integer to a string, padded with zeroes. 
+	 * Does not use printf - it's too simple for that. 
+	 * 
+	 * <p>
+	 * @param number integer number to convert. 
+	 * @param digits the minimal number of digits, used for alignment. 
+	 * @return result of conversion.
+	 */ 
+	public static String intToString(int number, int digits)
+	{
+		assert number >=0;
+		String value = Integer.toString(number);
+		StringBuffer result = new StringBuffer();
+		for(int i=0;i< digits-value.length();++i) result.append('0');result.append(value);
+		return result.toString();
+	}
+	
+	/** Determines whether compression is used or not. */
+	protected int compressionMethod = ZipEntry.DEFLATED;
+	
+	public void setCompressionMethod(int newValue)
+	{
+		compressionMethod = newValue;
+	}
+	
 	/** Used to give all entries in a zip file unique names. */
 	protected int entryNumber = 1;
 	
@@ -138,7 +164,9 @@ public class RecordProgressDecorator extends ProgressDecorator {
 			try 
 			{
 				doc.appendChild(elem);// add element
-				ZipEntry entry = new ZipEntry(Integer.toString(entryNumber++)+"_"+elem.getNodeName());((ZipOutputStream)outputStream).putNextEntry(entry);
+				ZipEntry entry = new ZipEntry(intToString(entryNumber++,8)+"_"+elem.getNodeName());
+				entry.setMethod(compressionMethod);
+				((ZipOutputStream)outputStream).putNextEntry(entry);
 				Transformer trans = TransformerFactory.newInstance().newTransformer();
 				trans.transform(new DOMSource(doc),new StreamResult(outputStream));// write XML
 				doc.removeChild(elem);// now remove the element, making space for next one.
@@ -194,9 +222,9 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		return result;
 	}
 	
-	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		Collection<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
+		List<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(ELEM_KINDS.ELEM_QUESTIONS.name());
 		Element questionList = writeSequenceList(ELEM_KINDS.ATTR_QUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair));
@@ -257,6 +285,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		Element restartElement = doc.createElement(ELEM_KINDS.ELEM_RESTART.name());
 		restartElement.setAttribute(ELEM_KINDS.ATTR_KIND.name(),mode.toString());
 		writeElement(restartElement);
+		if (mode != RestartLearningEnum.restartNONE) series.reset();
 	}
 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,

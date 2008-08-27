@@ -118,7 +118,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 
 
-	public Collection<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 

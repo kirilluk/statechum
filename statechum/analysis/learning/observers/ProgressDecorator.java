@@ -70,7 +70,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 public abstract class ProgressDecorator extends LearnerDecorator
 {
 	public ProgressDecorator(Learner learner) {
-		super(learner);
+		super(learner);setTopLevelListener(this);
 	}
 
 	private final static Pattern patternBadChars;
@@ -92,7 +92,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		ATTR_QUESTION, ATTR_TESTSET, ATTR_FAILEDPOS, ATTR_LTL, ELEM_PAIR, ELEM_SEQ, ATTR_SEQ, ATTR_Q, ATTR_R, ATTR_SCORE, ATTR_OTHERSCORE, ELEM_RESTART, ATTR_KIND, 
 		ELEM_EVALUATIONDATA,ATTR_GRAPHKIND, ELEM_INIT, ELEM_MERGEANDDETERMINIZE, ATTR_LEARNINGOUTCOME, 
 		ATTR_POSITIVE_SIZE, ATTR_POSITIVE_SEQUENCES, ATTR_NEGATIVE_SIZE, ATTR_NEGATIVE_SEQUENCES,
-		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR
+		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR, ELEM_PROGRESSINDICATOR, ATTR_GRAPHNUMBER
 	};
 	
 	/** Writes the supplied element into XML.
@@ -113,7 +113,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	/** Loads a pair from the supplied XML element.
 	 * 
 	 * @param graph the graph which elements to load 
-	 * TODO: I need to match string IDs to those of the graph but series mangles names of vertices
+	 * TODO: I need to match string IDs to those of the graph but series used to mangle names of vertices, now this should not happen often.
 	 * @param elem element to load from
 	 * @return loaded state pair.
 	 */
@@ -166,6 +166,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
 		public Collection<String> ltlSequences = null;
 		
+		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
+		public transient int graphNumber = -1; 
+
 		public LearnerEvaluationConfiguration() {}
 		
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, Collection<String> ltl)
@@ -242,21 +245,32 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform.graphmlNodeName),
 		nodesSequences = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()),
 		nodesLtl = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()),
-		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag);
+		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag),
+		graphNumberNodes = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name());
 		if (nodesGraph.getLength() < 1) throw new IllegalArgumentException("missing graph");
 		if (nodesGraph.getLength() > 1) throw new IllegalArgumentException("duplicate graph");
 		if (nodesSequences.getLength() < 1) throw new IllegalArgumentException("missing test set");
 		if (nodesSequences.getLength() > 1) throw new IllegalArgumentException("duplicate test set");
 		if (nodesLtl.getLength() > 1) throw new IllegalArgumentException("duplicate ltl sets");
 		if (nodesConfigurations.getLength() > 1) throw new IllegalArgumentException("duplicate configuration");
-			
+		int graphNumber =-1;
+		if (graphNumberNodes.getLength() > 1)
+			try
+			{
+					graphNumber = Integer.parseInt(((Element)graphNumberNodes.item(0)).getAttribute(ELEM_KINDS.ATTR_GRAPHNUMBER.name()));
+			}
+			catch(Exception e)
+			{// ignore - graphNumber is unchanged.
+			}
+
 		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration();
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
 		result.graph = LearnerGraph.loadGraph((Element)nodesGraph.item(0), result.config);
 		result.testSet = readSequenceList((Element)nodesSequences.item(0),ELEM_KINDS.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
-			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1); 
+			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
+		result.graphNumber=graphNumber;
 		return result;
 	}
 
@@ -279,6 +293,12 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ltlSequences);
 			ltl.setTextContent(ltlsequences.toString());
 			evaluationData.appendChild(ltl);evaluationData.appendChild(Transform.endl(doc));
+		}
+		if (cnf.graphNumber >= 0)
+		{
+			Element progressIndicatorElement = doc.createElement(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name());
+			progressIndicatorElement.setAttribute(ELEM_KINDS.ATTR_GRAPHNUMBER.name(), Integer.toString(cnf.graphNumber));
+			evaluationData.appendChild(progressIndicatorElement);
 		}
 		return evaluationData;
 	}
@@ -434,7 +454,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * @param elem where to load from
 	 * @return initial data
 	 */
-	protected InitialData readInitialData(Element elem)
+	public InitialData readInitialData(Element elem)
 	{
 		if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_INIT.name()))
 			throw new IllegalArgumentException("expecting to load learner initial data "+elem.getNodeName());
@@ -485,7 +505,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		return result;
 	}
 	
-	protected static class InitialData
+	public static class InitialData
 	{
 		public Collection<List<String>> plus = null, minus = null;
 		public int plusSize=-1, minusSize =-1;

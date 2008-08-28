@@ -188,7 +188,8 @@ public class Transform {
 	
 	static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
 	{
-	    public Graph getGraph() {
+	    @Override
+		public Graph getGraph() {
 	        return super.getGraph();
 	    }
 		
@@ -227,21 +228,24 @@ public class Transform {
 		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
     	GraphMLFile graphmlFile = new GraphMLFile();
     	graphmlFile.setGraphMLFileHandler(graphHandler);
-    	try
-    	{
-	    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
-	    	NodeList nodes = graphElement.getChildNodes(); 
-	    	for(int i=0;i<nodes.getLength();++i)
+    	synchronized(LearnerGraph.syncObj)
+    	{// multi-core execution understandably fails if I forget to sync on that object
+	    	try
 	    	{
-				org.w3c.dom.Node node = nodes.item(i);
-				if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
-					graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+		    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
+		    	NodeList nodes = graphElement.getChildNodes(); 
+		    	for(int i=0;i<nodes.getLength();++i)
+		    	{
+					org.w3c.dom.Node node = nodes.item(i);
+					if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
+						graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
+		    	}
 	    	}
-    	}
-    	catch(SAXException e)
-    	{
-    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
-    		throw ex;
+	    	catch(SAXException e)
+	    	{
+	    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
+	    		throw ex;
+	    	}
     	}
     	return graphHandler.getGraph();
 	}

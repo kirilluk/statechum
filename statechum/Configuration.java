@@ -338,6 +338,8 @@ public class Configuration implements Cloneable
 		result = prime * result + gdMaxNumberOfStatesInCrossProduct;
 		result = prime * result + (compressLogs?1231 : 1237);
 		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
+		result = prime * result + (useAmber?  1231 : 1237);
+		result = prime * result + (useSpin?  1231 : 1237);
 		return result;
 	}
 
@@ -426,7 +428,10 @@ public class Configuration implements Cloneable
 			return false;
 		if (learnerToUse != other.learnerToUse)
 			return false;
-		
+		if (useAmber != other.useAmber)
+			return false;
+		if (useSpin != other.useSpin)
+			return false;
 		return true;
 	}
 
@@ -736,13 +741,43 @@ public class Configuration implements Cloneable
 		compressLogs = newValue;
 	}
 	
-	/** Types of learners implemented. */
-	public enum LEARNER { LEARNER_BLUEFRINGE, LEARNER_BLUEAMBER, LEARNER_BLUEFRINGE_DEC2007 };
+	/** Whether a learner should be colouring new states with amber/grey. */
+	protected boolean useAmber = false;
+	
+	public boolean getUseAmber()
+	{
+		return useAmber;
+	}
+	
+	public void setUseAmber(boolean newValue)
+	{
+		useAmber = newValue;
+	}
+	
+	/** Whether to use SPIN to reduce the number of questions being asked. */
+	protected boolean useSpin = false;
+
+	public boolean getUseSpin()
+	{
+		return useSpin;
+	}
+	
+	public void setUseSpin(boolean newValue)
+	{
+		useSpin = newValue;
+	}
+	
+	/** Types of compatibility learners implemented - these are supposed to be set
+	 * when traces are recorded for compatibility testing with learners used in May 2008 and 
+	 * December 2007.
+	 */
+	public enum LEARNER { LEARNER_BLUEFRINGE_MAY2008, LEARNER_BLUEAMBER_MAY2008, LEARNER_BLUEFRINGE_DEC2007 };
 	
 	/** Selects the kind of learner to use. A learner typically has a lot of customization
 	 * options which are set by a configuration.
+	 * <p><em>null</em> value here means we are not doing compatibility testing.
 	 */
-	protected LEARNER learnerToUse = LEARNER.LEARNER_BLUEFRINGE;
+	protected LEARNER learnerToUse = null;
 	
 	public LEARNER getLearnerToUse()
 	{
@@ -816,9 +851,13 @@ public class Configuration implements Cloneable
 			{
 				Method getter = Configuration.getMethod(GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
-				varData.setAttribute(configVarAttrName, var.getName());
 				try {
-					varData.setAttribute(configVarAttrValue, getter.invoke(this, new Object[]{}).toString());
+					Object value = getter.invoke(this, new Object[]{});
+					if (value != null)
+					{
+						varData.setAttribute(configVarAttrName, var.getName());
+						varData.setAttribute(configVarAttrValue, value.toString());
+					}
 				} catch (Exception e) {
 					throwUnchecked("cannot extract a value of "+var.getName(), e);
 				}

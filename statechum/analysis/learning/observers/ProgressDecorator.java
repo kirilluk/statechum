@@ -93,7 +93,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		ELEM_EVALUATIONDATA,ATTR_GRAPHKIND, ELEM_INIT, ELEM_MERGEANDDETERMINIZE, ATTR_LEARNINGOUTCOME, 
 		ATTR_POSITIVE_SIZE, ATTR_POSITIVE_SEQUENCES, ATTR_NEGATIVE_SIZE, ATTR_NEGATIVE_SEQUENCES,
 		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR, ELEM_PROGRESSINDICATOR, ATTR_GRAPHNUMBER
-	};
+	}
 	
 	/** Writes the supplied element into XML.
 	 * 
@@ -169,7 +169,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
 
-		public LearnerEvaluationConfiguration() {}
+		public LearnerEvaluationConfiguration() {
+			// rely on defaults above.
+		}
 		
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, Collection<String> ltl)
 		{
@@ -511,7 +513,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public int plusSize=-1, minusSize =-1;
 		public LearnerGraph graph=null;
 		
-		public InitialData() {}
+		public InitialData() {
+			// rely on defaults above.
+		}
 		
 		/** Constructs an instance containing the data from which an initial PTA can be built.
 		 * @param plus positive sequences
@@ -532,14 +536,16 @@ public abstract class ProgressDecorator extends LearnerDecorator
 
 	protected static class AugmentPTAData
 	{
-		public RestartLearningEnum kind;
+		public RestartLearningEnum kind = RestartLearningEnum.restartNONE;
 		
 		/** Sequence to add to PTA. Could be empty. */
-		public List<String> sequence;
-		public boolean accept;
-		public JUConstants colour;
+		public List<String> sequence = null;
+		public boolean accept = false;
+		public JUConstants colour = null;
 		
-		public AugmentPTAData() {}
+		public AugmentPTAData() {
+			// rely on defaults above.
+		}
 		/**
 		* Constructs a class representing arguments to AugmentPTA
 		* @param kind which kind of PTA to modify

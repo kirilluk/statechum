@@ -19,7 +19,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.experiments;
 
 
-import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
@@ -33,7 +32,8 @@ import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
-import statechum.analysis.learning.rpnicore.GD;
+import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.observers.QuestionAndRestartCounter;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -73,8 +73,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  
-			
-			RPNILearner l = new RPNIBlueFringeLearner(null,config)
+			RPNILearner learner = new RPNIBlueFringeLearner(null,config)
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
@@ -86,6 +85,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			};
+			QuestionAndRestartCounter l = new QuestionAndRestartCounter(learner);
 			sPlus = rpg.getExtraSequences(percent/10-1);sMinus = rpg.getAllSequences(percent/10-1);
 
 			LearnerGraph learnt = learn(l,sMinus);
@@ -95,6 +95,9 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
 			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
 			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
+			
+			assert questionNumber.get() == l.getQuestionCounter();
+			
 			// Column 0 is the name of the learner. 
 			// Columns 3 and 4
 			result = result+prNeg.getPrecision()+FS+prNeg.getRecall();
@@ -131,11 +134,10 @@ public class IncrementalAccuracyAndQuestionsExperiment
 				l.getRestarts(); // 21
 		}
 
-		private LearnerGraph learn(RPNILearner l, PTASequenceEngine pta)
+		private LearnerGraph learn(Learner l, PTASequenceEngine pta)
 		{
 			int ptaSize = pta.numberOfLeafNodes();
 			LearnerGraph learningOutcome  = l.learnMachine(pta, ptaSize,ptaSize);// our imaginary positives are prefixes of negatives.
-			l.setQuestionCounter(0);
 			return learningOutcome;
 		}
 	}

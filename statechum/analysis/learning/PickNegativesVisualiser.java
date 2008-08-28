@@ -36,7 +36,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	 */
 	private static final long serialVersionUID = 4842027206398108774L;
 	
-	RPNILearner l =  null;
+	RPNILearnerInstrumented l =  null;
 	
 	protected SplitFrame split = null;
 	protected AbstractOracle ans = null;

@@ -38,7 +38,7 @@ import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
 
-public class RPNIBlueAmberFringeLearner extends RPNILearner {
+public class RPNIBlueAmberFringeLearner extends RPNILearnerInstrumented {
 	
 	public RPNIBlueAmberFringeLearner(Frame parent, Configuration c) {
 		super(parent,c);

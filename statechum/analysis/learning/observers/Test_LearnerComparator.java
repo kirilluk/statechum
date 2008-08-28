@@ -52,30 +52,34 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				try
 				{
 					learningOutcome=whatToCompareWith.learnMachine(plus, minus);
+					checkCall(KIND_OF_METHOD.M_FINISHED);
 				}
 				catch(IllegalArgumentException ex)
 				{
 					if (failureCode == null) failureCode = ex;
-					System.out.println(Thread.currentThread());ex.printStackTrace();
-					synchronized(this) { notifyAll(); }
+					notify();// the only place the first thread can be stuck is the wait() statement in checkCall,
+					// now it will proceed and throw on the exception, unrolling the stack.
 				}
+				
 			}
 			
 		},"other learner");
+		secondThread.setDaemon(true);// ensures termination of the second thread when I kill the main thread.
 		secondThread.start();
 		LearnerGraph result = null;
 		try
 		{
 			result = decoratedLearner.learnMachine(plus, minus);
+			checkCall(KIND_OF_METHOD.M_FINISHED);
 		}
 		catch(IllegalArgumentException ex)
 		{
 			if (failureCode == null) failureCode = ex;
-			System.out.println(Thread.currentThread());ex.printStackTrace();
+			notify();// the only place the second thread can be stuck is the wait() statement in checkCall,
+			// now it will proceed and throw on the exception, unrolling the stack.
 		}
 		
 		try {
-			synchronized(this) { notifyAll(); }
 			secondThread.join();
 		} catch (InterruptedException e) {
 			if (failureCode == null) 
@@ -83,9 +87,15 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
 			}
 		}
+		
+		if (learningOutcome != null && result != null)
+		{
+			DifferentFSMException ex = WMethod.checkM(learningOutcome, result);
+			if (ex != null && failureCode == null) failureCode = ex;
+		}
+
 		if (failureCode != null) throw failureCode;
 		
-		WMethod.checkM(learningOutcome, result);
 		learningOutcome=null;// reset stored data
 		return result;
 	}
@@ -100,28 +110,34 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				try
 				{
 					learningOutcome=whatToCompareWith.learnMachine(engine, plusSize, minusSize);
+					checkCall(KIND_OF_METHOD.M_FINISHED);
 				}
 				catch(IllegalArgumentException ex)
 				{
 					if (failureCode == null) failureCode = ex;
-					synchronized(this) { notifyAll(); }
+					notify();// the only place the first thread can be stuck is the wait() statement in checkCall,
+					// now it will proceed and throw on the exception, unrolling the stack.
 				}
+				
 			}
 			
 		},"other learner");
+		secondThread.setDaemon(true);// ensures termination of the second thread when I kill the main thread.
 		secondThread.start();
 		LearnerGraph result = null;
 		try
 		{
 			result = decoratedLearner.learnMachine(engine, plusSize, minusSize);
+			checkCall(KIND_OF_METHOD.M_FINISHED);
 		}
 		catch(IllegalArgumentException ex)
 		{
 			if (failureCode == null) failureCode = ex;
+			notify();// the only place the second thread can be stuck is the wait() statement in checkCall,
+			// now it will proceed and throw on the exception, unrolling the stack.
 		}
 		
 		try {
-			synchronized(this) { notifyAll(); }
 			secondThread.join();
 		} catch (InterruptedException e) {
 			if (failureCode == null) 
@@ -129,9 +145,15 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
 			}
 		}
+		
+		if (learningOutcome != null && result != null)
+		{
+			DifferentFSMException ex = WMethod.checkM(learningOutcome, result);
+			if (ex != null && failureCode == null) failureCode = ex;
+		}
+
 		if (failureCode != null) throw failureCode;
 		
-		WMethod.checkM(learningOutcome, result);
 		learningOutcome=null;// reset stored data
 		return result;
 	}
@@ -144,7 +166,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
 	
-	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT};
+	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED}
 	
 	/** Next expected call. */
 	protected KIND_OF_METHOD expected = null;
@@ -158,58 +180,34 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @return true if the assignment happened, because <em>expected</em> was null,
 	 * i.e. this is the first thread.
 	 */
-	private synchronized boolean checkCall(KIND_OF_METHOD method)
+	synchronized void checkCall(KIND_OF_METHOD method)
 	{
-		if (failureCode != null) throw failureCode;
-		if (expected != null && method != expected)
+		try 
 		{
-			if (failureCode != null)
-				failureCode = new IllegalArgumentException("inconsistent method calls: "+expected.toString()+" and "+method.toString());
-			notifyAll();
-			throw failureCode;
-		}
-		
-		boolean result = false;// second thread
-		if (expected == null)
-		{
-			expected = method;result = true;// first thread
-		}
-		return result;
-	}
-	
-	/** Synchronises with another thread.
-	 * 
-	 * @param first if this is the first thread to grab <em>expected</em>.
-	 */
-	private synchronized void waitForOtherThread(boolean first)
-	{
-		try {
-			// First thread will wait for the second one to finish its task and notify the first one.
-			if (first)
+			//System.out.println("thread "+Thread.currentThread()+" entered("+method+"), expected = "+expected);
+			if (expected == null)
 			{
-				wait();
-				expected = null;// this will complete before the second thread enters another method.
-				notify();
+				expected = method;
+				wait();// we wait for the second method to get here
 			}
 			else
-			{
-				notify();
-				wait();// used to stop the other thread from outrunning the first one by a large margin.
+			{// the second method
+				if (method != expected && failureCode == null)
+					failureCode = new IllegalArgumentException("inconsistent method calls: "+expected.toString()+" and "+method.toString());
+				expected = null; // reset the expected value
+				notify();// let the first method know we've been there
 			}
-		} catch (InterruptedException e) 
-		{
-			if (failureCode != null) 
+		} catch (InterruptedException e) {
+			if (failureCode == null) 
 			{ 
 				IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
 			}
 		}
-		
-		if (failureCode != null)
-		{
-			notifyAll();
-			throw failureCode;
-		}
+
+		//System.out.println("thread "+Thread.currentThread()+" left, expected = "+expected);
+		if (failureCode != null) throw failureCode;
 	}
+	
 	
 	protected AugmentPTAData augmentData = null;
 
@@ -223,24 +221,27 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 */
 	public synchronized void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
-		
-		boolean first = checkCall(KIND_OF_METHOD.M_AUGMENT);
+
 		AugmentPTAData data = new AugmentPTAData(ptaKind,sequence,accepted,newColour);
-		if (first) 
-			augmentData = data;// we are the first thread here
+		
+		// now call the expected method
+		if (Thread.currentThread() == secondThread)
+		{
+			whatToCompareWith.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
+			augmentData = data;
+		}
 		else
+			decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
+
+		checkCall(KIND_OF_METHOD.M_AUGMENT);
+
+		if (Thread.currentThread() != secondThread)
 		{
 			if (!data.equals(augmentData))  // second thread, checking.
 				failureCode = new IllegalArgumentException("different augment PTA values");
 			augmentData=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 
-		// now call the expected method
-		if (Thread.currentThread() == secondThread)
-			whatToCompareWith.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		else
-			decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 
 	protected Thread secondThread = null;
@@ -259,24 +260,23 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		Pair<Integer, String> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
+		{
 			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, options);
-		else
-			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, options);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_CHECKWITHUSER);
-		if (first)
-		{// we are the first thread here
 			question = argQuestion;cPair = result;
 		}
 		else
-		{// second thread, checking.
+			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, options);
+
+		checkCall(KIND_OF_METHOD.M_CHECKWITHUSER);
+
+		if (Thread.currentThread() != secondThread)
+		{// checking.
 			if (!question.equals(argQuestion))
 				failureCode = new IllegalArgumentException("different CheckWithEndUser questions");
 			if (!cPair.equals(result))
 				failureCode = new IllegalArgumentException("different CheckWithEndUser results "+cPair.firstElem+" v.s. "+result.firstElem+" and "+cPair.secondElem+" v.s. "+result.secondElem);
 			cPair =null;question=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 
 		return result;
 	}
@@ -292,17 +292,18 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	{
 		Stack<PairScore> result = null;
 		if (Thread.currentThread() == secondThread)
+		{
 			result = whatToCompareWith.ChooseStatePairs(graph);
-		else
-			result = decoratedLearner.ChooseStatePairs(graph);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_CHOOSEPAIRS);
-		if (first)
-		{// we are the first thread here
 			pairs = result;
 		}
 		else
-		{// second thread, checking. 
+			result = decoratedLearner.ChooseStatePairs(graph);
+
+		
+		checkCall(KIND_OF_METHOD.M_CHOOSEPAIRS);
+		
+		if (Thread.currentThread() != secondThread)
+		{// checking. 
 			
 		// Since accept/reject labelling is not stored in the XML file, we have to compare pairs discounting accept/reject
 			if (pairs.size() != result.size())
@@ -318,7 +319,6 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			
 			pairs =null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 
 		return result;
 	}
@@ -338,31 +338,29 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		List<List<String>> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
+		{
 			result = whatToCompareWith.ComputeQuestions(pair, original, temp);
-		else
-			result = decoratedLearner.ComputeQuestions(pair, original, temp);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_QUESTIONS);
-		if (first)
-		{// we are the first thread here
 			qPair = pair;questions = result;
 		}
 		else
-		{// second thread, checking, ignoring scores and accept-conditions.
+			result = decoratedLearner.ComputeQuestions(pair, original, temp);
+
+		checkCall(KIND_OF_METHOD.M_QUESTIONS);
+		
+		if (Thread.currentThread() != secondThread)
+		{// checking, ignoring scores and accept-conditions.
 			if (!qPair.getQ().getID().equals(pair.getQ().getID()) || !qPair.getR().getID().equals(pair.getR().getID()))
 					failureCode = new IllegalArgumentException("different ComputeQuestions pair "+qPair+" v.s. "+pair);
 			if (!questions.equals(result))
 				failureCode = new IllegalArgumentException("different ComputeQuestions questions");
 			qPair =null;questions=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 
 		return result;
 	}
 
-	protected LearnerGraph mGraph = null;
-	
 	protected StatePair mPair = null;
+	protected LearnerGraph mGraph = null;
 	
 	/** Returns the graph stored in XML.
 	 * 
@@ -375,30 +373,25 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		LearnerGraph result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
+		{
 			result = whatToCompareWith.MergeAndDeterminize(original, pair);
-		else
-			result = decoratedLearner.MergeAndDeterminize(original, pair);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
-		if (first)
-		{// we are the first thread here
 			mPair = pair;mGraph = result;
 		}
 		else
-		{// second thread, checking, considering that acceptance conditions are not stored in XML.
+			result = decoratedLearner.MergeAndDeterminize(original, pair);
+
+		checkCall(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
+
+		if (Thread.currentThread() != secondThread)
+		{// checking, considering that acceptance conditions are not stored in XML.
 			if (!mPair.getQ().getID().equals(pair.getQ().getID()) || !mPair.getR().getID().equals(pair.getR().getID()))
 				failureCode = new IllegalArgumentException("different MergeAndDeterminize pair "+mPair+" v.s. "+pair);
-			try
-			{
-				WMethod.checkM(mGraph, result);
-			}
-			catch(DifferentFSMException ex)
-			{
+			DifferentFSMException ex = WMethod.checkM(mGraph, result);
+			if (ex != null)
 				failureCode = ex;
-			}
+
 			mPair =null;mGraph=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 		
 		return result;
 	}
@@ -412,22 +405,21 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	public synchronized void Restart(RestartLearningEnum mode) {
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
+		{
 			whatToCompareWith.Restart(mode);
-		else
-			decoratedLearner.Restart(mode);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_RESTART);
-		if (first)
-		{// we are the first thread here
 			rMode = mode;
 		}
 		else
-		{// second thread, checking.
+			decoratedLearner.Restart(mode);
+
+		checkCall(KIND_OF_METHOD.M_RESTART);
+
+		if (Thread.currentThread() != secondThread)
+		{// checking.
 			if (!rMode.equals(mode))
 				failureCode = new IllegalArgumentException("different Restart mode");
 			rMode=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
 	}
 
 	/** Not used by the simulator. */
@@ -446,29 +438,22 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		LearnerGraph result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
+		{
 			result = whatToCompareWith.init(plus, minus);
-		else
-			result = decoratedLearner.init(plus, minus);
-
-		boolean first = checkCall(KIND_OF_METHOD.M_INIT);
-		if (first)
-		{// we are the first thread here
 			iGraph = result;
 		}
 		else
+			result = decoratedLearner.init(plus, minus);
+
+		checkCall(KIND_OF_METHOD.M_INIT);
+
+		if (Thread.currentThread() != secondThread)
 		{// second thread, checking.
-			try
-			{
-				WMethod.checkM(iGraph, result);
-			}
-			catch(DifferentFSMException ex)
-			{
+			DifferentFSMException ex = WMethod.checkM(iGraph, result);
+			if (ex != null)
 				failureCode = ex;
-			}
 			iGraph=null;// reset stored data
 		}
-		waitForOtherThread(first);// make sure that both threads synchronize at this point.
-
 
 		return result;
 	}

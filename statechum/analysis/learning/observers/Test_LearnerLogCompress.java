@@ -61,8 +61,13 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  * 
  * @author kirill
  */
-public class Test_LearnerLogCompress {
-
+public class Test_LearnerLogCompress implements Runnable 
+{
+	public Test_LearnerLogCompress(String directory)
+	{
+		dir=directory;
+	}
+	
 	public void updateProgressBar(final boolean indeterminate, final int bar, final String value)
 	{
 		SwingUtilities.invokeLater(new Runnable() { public void run() {
@@ -90,7 +95,7 @@ public class Test_LearnerLogCompress {
 	protected int graphNumber = 0;
 	
 	/** Display progress every so many graphs read, during counting. */
-	final int modValueGraphCounter = 10;
+	final int modValueGraphCounter = 50;
 	
 	/** Computes the number of "MERGEANDDETERMINIZE" entries in the ZIP file.
 	 * 
@@ -149,6 +154,7 @@ public class Test_LearnerLogCompress {
 			super(learner);totalGraphs=totalG;
 		}
 		
+		@Override
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
 			if (computationAborted) throw new ComputationAbortedException();
 
@@ -182,6 +188,7 @@ public class Test_LearnerLogCompress {
 			super(learner);
 		}
 		
+		@Override
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
 			if (computationAborted) throw new ComputationAbortedException();// if a user hits ESC, all running threads will abort.
 
@@ -240,6 +247,7 @@ public class Test_LearnerLogCompress {
 				{
 					new File(targetFile).delete();// remove result upon failure.
 					outcome = "failure compressing "+sourceFile;
+					e.printStackTrace();
 				}
 		
 			return outcome;
@@ -250,18 +258,19 @@ public class Test_LearnerLogCompress {
 
 	final static int threadNumber = ExperimentRunner.getCpuNumber();
 	
-	public static void main(final String [] args)
+	protected JFrame frame = null;
+	protected JLabel descrLabel = null;
+	protected final List<File> filesToProcess = new LinkedList<File>();
+	protected final String dir;
+	
+	public void initFrame()
 	{
-		final String dir = args[0];
-		final Test_LearnerLogCompress compressor = new Test_LearnerLogCompress();
-		final JFrame frame = new JFrame("Log compressing program");
-		compressor.progressBar = new JProgressBar(0, 100);
-		compressor.progressBar.setValue(0);
-		compressor.progressBar.setStringPainted(true);
+		frame = new JFrame("Log compressing program");
+		progressBar = new JProgressBar(0, 100);
+		progressBar.setValue(0);
+		progressBar.setStringPainted(true);
 		Image icon = Toolkit.getDefaultToolkit().getImage("resources"+File.separator+"icon.jpg");if (icon != null) frame.setIconImage(icon);
 		frame.setLayout(new java.awt.GridLayout(2,0));
-
-		final List<File> filesToProcess = new LinkedList<File>();
 		
 		for(final File file:new File(dir).listFiles(new FileFilter() {
 			public boolean accept(File pathname) {
@@ -270,98 +279,13 @@ public class Test_LearnerLogCompress {
 			}}))
 				filesToProcess.add(file);
 		
-		final JLabel descrLabel = new JLabel("<html><font color=green>Processing "+filesToProcess.size()+" files from "+dir);
+		descrLabel = new JLabel("<html><font color=green>Processing "+filesToProcess.size()+" files from "+dir);
 		frame.getContentPane().add(descrLabel);
-		frame.getContentPane().add(compressor.progressBar);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack();
+		frame.getContentPane().add(progressBar);
 		
 		/** Key bindings. */
 		final Map<Integer,Action> keyToActionMap = new TreeMap<Integer, Action>();
-
-		final Thread workerThread = new Thread(new Runnable() { public void run() {
-			try {
-				/** The runner of computational threads. */
-				final ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
-
-				/** Stores results of execution of evaluators. */
-				final List<Future<String>> results = new LinkedList<Future<String>>();;
-				
-				/** Stores tasks to complete. */
-				final CompletionService<String> runner = new ExecutorCompletionService<String>(executorService);
-				
-				// First, we compute what we need to process 
-				final Map<File,Integer> graphSizes = new TreeMap<File,Integer>();
-				for(File file:filesToProcess)
-					graphSizes.put(file, compressor.computeGraphNumber(file));
-
-				SwingUtilities.invokeLater(new Runnable() { public void run() {
-					descrLabel.setText("<html><font color=green>Processing "+compressor.graphNumber+" graphs from "+dir);
-					frame.pack();
-				}});
-				
-				Thread updaterThread = new Thread(new Runnable() { 
-					private final long prevTime = new Date().getTime();
-					
-					public void run() {
-					try
-					{
-						while(!compressor.computationAborted)
-						{
-							synchronized (this) {
-								wait(3000);
-							}
-							int graphsSoFar = compressor.graphsProcessed.get();
-							if (compressor.graphNumber > 0 && graphsSoFar > 0)
-							{
-								int percent = (int)(1000.*graphsSoFar/compressor.graphNumber);
-								long currentTime = new Date().getTime();
-								long left = compressor.graphNumber*(currentTime-prevTime)/(graphsSoFar*1000);
-								long hrs = left/3600;
-								long mins = (left%3600)/60;
-								if (percent >=0 && (percent % 1) == 0) compressor.updateProgressBar(false, percent/10, "compressing graph "+graphsSoFar+" out of "+compressor.graphNumber+
-										" remaining "+hrs+":"+RecordProgressDecorator.intToString((int)mins,2)+"hr");
-							}
-						}
-					}
-					catch(InterruptedException e)
-					{// assume we've been asked to terminate and do nothing.
-						
-					}
-				}});updaterThread.setPriority(Thread.NORM_PRIORITY+1);updaterThread.start();
-				
-				// Now, we populate the collection of worker threads.
-				for(Entry<File,Integer> entry:graphSizes.entrySet())
-					results.add(runner.submit(compressor.new FileCompressor(entry.getKey(),entry.getValue())));
-
-				// now wait for results.
-				for(Future<String> computationOutcome:results)
-					try {
-						String result = computationOutcome.get();
-						if (result != null) System.out.println("RESULT: "+result);
-					} catch (Exception e) { 
-						//System.out.println("FAILED");
-						//e.printStackTrace();
-					}
-					finally
-					{
-						updaterThread.interrupt();
-						executorService.shutdown();
-					}
-			} 
-			catch(ComputationAbortedException ex)
-			{
-				System.out.println("Aborted");
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-			}
-			finally
-			{
-				frame.setVisible(false);frame.dispose();
-			}
-		}},"worker");
-
+		
 		keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
 			/**
 			 * ID for serialisation.
@@ -372,7 +296,7 @@ public class Test_LearnerLogCompress {
 
 			public void actionPerformed(@SuppressWarnings("unused")	ActionEvent e) 
 			{
-				frame.setVisible(false);frame.dispose();compressor.computationAborted = true;
+				terminateCompressor();
 			}
 		});
 		frame.addKeyListener(new KeyListener() {
@@ -384,17 +308,125 @@ public class Test_LearnerLogCompress {
 			}
 
 			public void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
-			{
+			{// we handle a combined event (keyPressed) instead
 			}
 
 			public void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
-			{
+			{// we handle a combined event (keyPressed) instead
 			}
 			
 		});
+		frame.setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new java.awt.event.WindowAdapter() {
+			@Override
+			public void windowClosing(@SuppressWarnings("unused") java.awt.event.WindowEvent we) {
+				terminateCompressor();
+			}
+		});		
+
 		frame.setVisible(true);
+		frame.pack();
+	}
+	
+	public void run() {
+		Thread updaterThread = null;
+		/** The runner of computational threads. */
+		final ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
+
+		try {
+
+			/** Stores results of execution of evaluators. */
+			final List<Future<String>> results = new LinkedList<Future<String>>();
+			
+			/** Stores tasks to complete. */
+			final CompletionService<String> runner = new ExecutorCompletionService<String>(executorService);
+			
+			// First, we compute what we need to process 
+			final Map<File,Integer> graphSizes = new TreeMap<File,Integer>();
+			for(File file:filesToProcess)
+				graphSizes.put(file, computeGraphNumber(file));
+
+			SwingUtilities.invokeLater(new Runnable() { public void run() {
+				descrLabel.setText("<html><font color=green>Processing "+graphNumber+" graphs from "+dir);
+				progressBar.setIndeterminate(false);
+				progressBar.setString("Starting to compress ... ");
+				frame.pack();
+			}});
+			
+			updaterThread = new Thread(new Runnable() { 
+				private final long prevTime = new Date().getTime();
+				
+				public void run() {
+				try
+				{
+					while(!computationAborted)
+					{
+						synchronized (this) {
+							wait(3000);
+						}
+						int graphsSoFar = graphsProcessed.get();
+						if (graphNumber > 0 && graphsSoFar > 0)
+						{
+							int percent = (int)(1000.*graphsSoFar/graphNumber);
+							long currentTime = new Date().getTime();
+							long left = graphNumber*(currentTime-prevTime)/(graphsSoFar*1000);
+							long hrs = left/3600;
+							long mins = (left%3600)/60;
+							if (percent >=0 && (percent % 1) == 0) updateProgressBar(false, percent/10, "compressing graph "+graphsSoFar+" out of "+graphNumber+
+									" remaining "+hrs+":"+RecordProgressDecorator.intToString((int)mins,2)+"hr");
+						}
+					}
+				}
+				catch(InterruptedException e)
+				{// assume we've been asked to terminate and do nothing.
+					
+				}
+			}});updaterThread.setPriority(Thread.NORM_PRIORITY+1);updaterThread.start();
+			
+			// Now, we populate the collection of worker threads.
+			for(Entry<File,Integer> entry:graphSizes.entrySet())
+				results.add(runner.submit(new FileCompressor(entry.getKey(),entry.getValue())));
+
+			// now wait for results.
+			for(Future<String> computationOutcome:results)
+				try {
+					String result = computationOutcome.get();
+					if (result != null) System.out.println("RESULT: "+result);
+				} catch (Exception e) { 
+					//System.out.println("FAILED");
+					//e.printStackTrace();
+				}
+		} 
+		catch(ComputationAbortedException ex)
+		{
+			System.out.println("Aborted");
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		finally
+		{
+			frame.setVisible(false);frame.dispose();
+			if (updaterThread != null) updaterThread.interrupt();
+			executorService.shutdown();
+		}
+	}
+	
+	protected void terminateCompressor() 
+	{
+		frame.setVisible(false);frame.dispose();computationAborted = true;
+	}
+
+	public static void main(final String [] args)
+	{
+		final String dir = args[0];
+		final Test_LearnerLogCompress compressor = new Test_LearnerLogCompress(dir);
+		compressor.initFrame();
 		
+		final Thread workerThread = new Thread(compressor,"worker");
+
 		workerThread.start();
 	}
+
 }
 

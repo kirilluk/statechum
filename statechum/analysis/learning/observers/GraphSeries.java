@@ -115,7 +115,9 @@ public class GraphSeries {
 		Element result = null;
 		if (graph == null || !config.getCompressLogs())
 		{
-			graph = newGraph.copy(newGraph.config);
+			graph = newGraph.copy(config);// use the config passed in during construction
+			// we need to keep a copy in case the original changes between now and when we get the 
+			// next graph to compress.
 			result = graph.transform.createGraphMLNode(doc);
 		}
 		else

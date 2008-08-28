@@ -185,7 +185,9 @@ public class LearnerGraph {
 	public void clearColoursButAmber()
 	{
 		for(CmpVertex v:transitionMatrix.keySet())
-			if (v.getColour() != JUConstants.AMBER) v.setColour(null);
+			if (!config.getUseAmber() || // clear if not using amber
+					(v.getColour() != JUConstants.AMBER && v.getColour() != JUConstants.GRAY))// or colour is not AMBER or GREY 
+				v.setColour(null);
 		init.setColour(JUConstants.RED);
 	}
 	
@@ -199,7 +201,8 @@ public class LearnerGraph {
 	public int getAmberStateNumber()
 	{
 		int count = 0;
-		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.getColour() == JUConstants.AMBER) ++count;
+		for(CmpVertex vert:transitionMatrix.keySet()) 
+			if (vert.getColour() == JUConstants.AMBER || vert.getColour() == JUConstants.GRAY) ++count;
 		return count;
 	}
 

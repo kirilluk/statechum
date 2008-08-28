@@ -23,7 +23,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.FileReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,8 +38,6 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 
 public abstract class RPNILearner extends Observable implements Learner {
-	protected int questionCounter = 0;
-	
 	protected final Configuration config;
 	
 	/** The frame in relation to which to pop dialog boxes. */
@@ -85,14 +82,6 @@ public abstract class RPNILearner extends Observable implements Learner {
 	public void setTopLevelListener(Learner top)
 	{
 		topLevelListener = top;
-	}
-	
-	protected int counterRestarted = 0;// TODO: to move this to decorators.
-	
-	/** Returns the number of times learner had to restart. */
-	public int getRestarts()
-	{
-		return counterRestarted;
 	}
 	
 	/** Given a score, we need to determine whether to ask questions. This depends on a number
@@ -185,49 +174,10 @@ public abstract class RPNILearner extends Observable implements Learner {
 		// it is appropriate to issue a .join() on the learner thread. 
 	}
 	
-	/** Stores recorded answers. */
-	protected AbstractOracle ans = null;
-	
-	/** Makes it possible to answer questions automatically.
-	 *  
-	 * @param a the class holding stored answers.
-	 */
-	public void setAnswers(AbstractOracle a)
-	{
-		ans = a;
-	}
-		
 	public final static String QUESTION_AUTO = "<auto>"; 
 	public final static String QUESTION_SPIN = "<spin>"; 
 	public final static String QUESTION_USER = "<USER>"; 
-	protected String howAnswerWasObtained = "";
 	
-	protected Pair<Integer,String> handleAutoAnswer(List<String> question)
-	{
-		howAnswerWasObtained = QUESTION_USER;
-		Pair<Integer,String> AutoAnswer = ans == null? null:ans.getAnswer(question);
-		if (AutoAnswer != null)
-		{
-			howAnswerWasObtained = QUESTION_AUTO;
-			return AutoAnswer;
-		}
-		
-		return null;
-	}
-	
-	protected void setAutoOracle()
-	{
-		if (config.getAutoAnswerFileName().length() > 0)
-		{
-			ans = new StoredAnswers();
-			try {
-				((StoredAnswers)ans).setAnswers(new FileReader(config.getAutoAnswerFileName()));
-			} catch (Exception e) {
-				ans = null;
-			}
-		}
-	}
-
 	public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) 
 	{
 	}
@@ -237,8 +187,6 @@ public abstract class RPNILearner extends Observable implements Learner {
 	 */
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,List<String> question, final Object [] moreOptions)
 	{
-		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;
-
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
 		updateGraph(model);
@@ -327,13 +275,5 @@ public abstract class RPNILearner extends Observable implements Learner {
 		if (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) // this one if an exception was thrown
 			answer.getAndSet(AbstractOracle.USER_CANCELLED);
 		return new Pair<Integer,String>(answer.get(),null);
-	}
-	
-	public int getQuestionCounter() {// TODO: this should be moved to decorators
-		return questionCounter;
-	}
-
-	public void setQuestionCounter(int questionCnt) {
-		this.questionCounter = questionCnt;
 	}
 }

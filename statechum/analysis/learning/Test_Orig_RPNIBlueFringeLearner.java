@@ -56,7 +56,7 @@ import edu.uci.ics.jung.utils.UserData;
  * unit level, hence methods supporting logging for integration testing purpose
  * are not implemented. 
  */
-public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
+public class Test_Orig_RPNIBlueFringeLearner extends RPNILearnerInstrumented {
 	
 	public Test_Orig_RPNIBlueFringeLearner(Frame parent, Configuration c) {
 		super(parent, c);

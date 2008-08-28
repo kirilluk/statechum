@@ -806,7 +806,7 @@ public class GD {
 		newBToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		for(Entry<CmpVertex,CmpVertex> entry:origToNewB.entrySet()) newBToOrig.put(entry.getValue(),entry.getKey());
 		
-		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && 
+		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 || 
 				statesOfA.size()*statesOfB.size() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 			fallbackToInitialPair = true;
 		

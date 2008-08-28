@@ -258,7 +258,7 @@ public class TestFSMAlgo {
 								else
 									if (var.getType().equals(LEARNER.class))
 									{
-											valueA = LEARNER.LEARNER_BLUEFRINGE;valueB=LEARNER.LEARNER_BLUEAMBER;
+											valueA = LEARNER.LEARNER_BLUEFRINGE_MAY2008;valueB=LEARNER.LEARNER_BLUEAMBER_MAY2008;
 									}
 									else
 									if (var.getType().equals(Integer.class) || var.getType().equals(int.class))

@@ -247,7 +247,7 @@ public class BlueFringeSpinLearner extends RPNIBlueFringeLearner {
 				scoresToIterations.put(pair, iterations);
 				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
-			possibleMerges = scoreComputer.pairscores.chooseStatePairs();
+			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
 		report.write("\n[ Questions: " + counterAccepted + " accepted "
 				+ counterRejected + " rejected resulting in "

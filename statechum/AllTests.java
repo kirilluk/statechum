@@ -43,7 +43,7 @@ public class AllTests {
 		statechum.model.testset.TestPTA_computePrecisionRecall.class,
 		statechum.AllTests.ObserversTests.class
 	}) // commas after the last entry compile from within Eclipse but not from ant
-	public static class LearnerTests {
+	public static class LearnerTests {// all tests are included in the annotation.
 	}
 	
 	@RunWith(Suite.class)
@@ -54,9 +54,10 @@ public class AllTests {
 		statechum.analysis.learning.observers.TestWriteReadLearnerEvaluation.class,
 		statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
 		statechum.analysis.learning.observers.TestGraphSeries.class,
-		statechum.analysis.learning.observers.TestRecorderIntegration.class
+		statechum.analysis.learning.observers.TestRecorderIntegration.class,
+		statechum.analysis.learning.experiments.Test_CheckLearnerAgainstLog.class
 	})
-	public static class ObserversTests {
+	public static class ObserversTests {// all tests are included in the annotation.
 	}
 	
 	@RunWith(Suite.class)
@@ -65,7 +66,7 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
 		statechum.TestArrayOperations.class
 	})
-	public static class BasicTests {
+	public static class BasicTests {// all tests are included in the annotation.
 	}
 
 	@RunWith(Suite.class)
@@ -80,7 +81,7 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestTransform.class,
 		statechum.analysis.learning.rpnicore.TestWMethod.class
 	})
-	public static class GraphTests {
+	public static class GraphTests {// all tests are included in the annotation.
 	}
 	
 	@RunWith(Suite.class)
@@ -93,6 +94,6 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
 		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class
 		})
-	public static class LinearTests {
+	public static class LinearTests {// all tests are included in the annotation.
 	}
 }

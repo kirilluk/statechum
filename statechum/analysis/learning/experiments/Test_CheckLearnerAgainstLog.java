@@ -17,17 +17,25 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.experiments;
 
+import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Pair;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNILearner;
+import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.observers.Test_LearnerComparator;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -39,12 +47,13 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  * @author kirill
  *
  */
+@RunWith(Parameterized.class)
 public class Test_CheckLearnerAgainstLog 
 {
 	/** This method is a useful troubleshooting aid - the log it creates should be
 	 * identical to that we are playing, but if something is wrong, it is easier
 	 * to spot problems in a log than via a debugger.
-	 */
+	 
 	public void copyLogIntoAnotherLog(String logFileName)
 	{
 		try {
@@ -54,7 +63,7 @@ public class Test_CheckLearnerAgainstLog
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 			simulator.setNextElement(nextElement);
 	
-			RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,evalData.config)
+			RPNILearner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
@@ -77,18 +86,34 @@ public class Test_CheckLearnerAgainstLog
 		} catch (java.io.IOException e) {
 			statechum.Helper.throwUnchecked("failure reading/writing log files", e);
 		}
-	}
+	}*/
 	
 	public void check(String logFileName) throws FileNotFoundException
 	{
 		// now a simulator to a learner
 		final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
-		final LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
 		final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
 		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 		simulator.setNextElement(nextElement);
 
-		RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,eval1.config)
+		// Now we need to choose learner parameters based on the kind of file we are given
+		// (given the pace of Statechum evolution, I cannot expect all the correct options
+		// to be stored in log files).
+		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_MAY2008.name()))
+		{
+			evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
+			evalData.config.setSpeculativeQuestionAsking(false);
+		}
+		else 		
+			if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEAMBER_MAY2008.name()))
+			{
+				evalData.config.setUseAmber(true);evalData.config.setUseSpin(false);
+				evalData.config.setSpeculativeQuestionAsking(false);
+			}
+			else Assert.fail("unknown type of log file");
+		
+		RPNILearner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -96,40 +121,39 @@ public class Test_CheckLearnerAgainstLog
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return new Pair<Integer,String>(eval1.graph.paths.tracePath(question),null);
+				return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
 			}
 		};
 		new Test_LearnerComparator(learner2,simulator).learnMachine(initial.plus, initial.minus);
 	}
 
-	protected final static String pathToLogFiles = "/home/kirill/W_experiment/logs/b/", learner = Configuration.LEARNER.LEARNER_BLUEFRINGE.name();
+	protected final static String pathToLogFiles = "resources/nonsvn/logs";
 	
-	@Test
-	public final void test11() throws FileNotFoundException
+	@Parameters
+	public static Collection<Object[]> data() 
 	{
-		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_NORM;
-		check(pathToLogFiles+"2_25Inputs_75_11.xml_"+learner+"_log-100.xml");
+		Collection<Object []> result = new LinkedList<Object []>();
+		for(File f:new File(pathToLogFiles).listFiles(new FileFilter(){
+
+			public boolean accept(File pathName) {
+				return pathName.canRead() && pathName.isFile() &&
+				pathName.getAbsolutePath().contains(".xml_");
+			}}))
+			result.add(new Object[]{f});
+		
+		return result;
+	}
+
+	protected final File logFileToProcess;
+	
+	public Test_CheckLearnerAgainstLog(File file)
+	{
+		logFileToProcess = file;
 	}
 	
 	@Test
-	public final void test12() throws FileNotFoundException
+	public final void testAgainstLog() throws FileNotFoundException
 	{
-		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_NORM;
-		check(pathToLogFiles+"3_25Inputs_75_12.xml_"+learner+"_log-100.xml");
-	}
-	
-	@Test
-	public final void test1() throws FileNotFoundException
-	{
-		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
-		//copyLogIntoAnotherLog(pathToLogFiles+"0_25Inputs_75_1.xml_log-100.xml");
-		check(pathToLogFiles+"0_25Inputs_75_1.xml_"+learner+"_log-100.xml");
-	}
-	@Test
-	public final void test10() throws FileNotFoundException
-	{
-		//DeterministicDirectedSparseGraph.VertexID.comparisonKind=DeterministicDirectedSparseGraph.VertexID.ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
-		//copyLogIntoAnotherLog(pathToLogFiles+"0_25Inputs_75_1.xml_log-100.xml");
-		check(pathToLogFiles+"1_25Inputs_75_10.xml_"+learner+"_log-100.xml");
+		check(logFileToProcess.getAbsolutePath());
 	}
 }

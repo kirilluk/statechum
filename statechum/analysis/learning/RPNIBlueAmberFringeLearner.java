@@ -45,6 +45,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		origMinusSize = plus.size();origMinusSize = minus.size();
 	}
 	
+	@Override
 	public void init(PTASequenceEngine en, int plus, int minus)
 	{
 		scoreComputer.initPTA();
@@ -109,6 +110,7 @@ public class RPNIBlueAmberFringeLearner extends RPNIBlueFringeLearner {
 		return questions;
 	}
 
+	@Override
 	public Learner getLearner()
 	{
 		return thisLearner;

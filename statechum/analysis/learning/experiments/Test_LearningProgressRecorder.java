@@ -195,7 +195,7 @@ public abstract class Test_LearningProgressRecorder extends AbstractExperiment
 			
 			RPNIBlueFringeLearner l = null;
 			
-			if (config.getLearnerToUse() == LEARNER.LEARNER_BLUEAMBER)
+			if (config.getLearnerToUse() == LEARNER.LEARNER_BLUEAMBER_MAY2008)
 			{
 				l = new RPNIBlueAmberFringeLearner(null,config)
 				{
@@ -372,7 +372,7 @@ public abstract class Test_LearningProgressRecorder extends AbstractExperiment
 				//Configuration.QuestionGeneratorKind.CONVENTIONAL_IMPROVED,
 				//Configuration.QuestionGeneratorKind.SYMMETRIC
 				})
-			for(Configuration.LEARNER learner:new Configuration.LEARNER[]{Configuration.LEARNER.LEARNER_BLUEFRINGE,Configuration.LEARNER.LEARNER_BLUEAMBER})
+			for(Configuration.LEARNER learner:new Configuration.LEARNER[]{Configuration.LEARNER.LEARNER_BLUEFRINGE_MAY2008,Configuration.LEARNER.LEARNER_BLUEAMBER_MAY2008})
 				for(int limit:((qk == Configuration.QuestionGeneratorKind.ORIGINAL?new int[]{-1}:
 					new int[]{-1})))//,1,3})))
 				{

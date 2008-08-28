@@ -53,7 +53,8 @@ public class AllTests {
 		statechum.analysis.learning.observers.TestWriteReadInit.class,
 		statechum.analysis.learning.observers.TestWriteReadLearnerEvaluation.class,
 		statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
-		statechum.analysis.learning.observers.TestGraphSeries.class
+		statechum.analysis.learning.observers.TestGraphSeries.class,
+		statechum.analysis.learning.observers.TestRecorderIntegration.class
 	})
 	public static class ObserversTests {
 	}

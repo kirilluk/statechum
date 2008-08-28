@@ -149,13 +149,13 @@ abstract public class AbstractExperiment
 		public String call()
 		{
 			OUTCOME currentOutcome = OUTCOME.FAILURE;
+			changeParameters(config);
 			String stdOutput = writeResult(currentOutcome,null);// record the failure result in case something fails later and we fail to update the file, such as if we are killed or run out of memory
 			if (stdOutput != null) return stdOutput;
 
 			try
 			{
 				loadGraph();
-				changeParameters(config);
 				runTheExperiment();
 				currentOutcome = OUTCOME.SUCCESS;
 			}

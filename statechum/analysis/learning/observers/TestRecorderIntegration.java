@@ -17,8 +17,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.observers;
 
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
@@ -35,12 +33,13 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
+import statechum.analysis.learning.TestFSMAlgo;
+import static statechum.analysis.learning.TestFSMAlgo.buildSet;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.Transform322;
 import statechum.analysis.learning.rpnicore.WMethod;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -90,13 +89,13 @@ public class TestRecorderIntegration {
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
+			assert RPNIBlueFringeLearner.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
-		RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,testConfig)
+			assert RPNIBlueFringeLearner.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
+		RPNIBlueFringeLearner l = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 		{
 			@Override
-			public Pair<Integer,String> CheckWithEndUser(
+			public Pair<Integer,String> checkWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -106,7 +105,7 @@ public class TestRecorderIntegration {
 		};
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 		ByteArrayOutputStream logStream = new ByteArrayOutputStream();
-		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,testConfig,useZip);
+		RecordProgressDecorator recorder = new RecordProgressDecorator(l.getLearner(),logStream,1,testConfig,useZip);
 		Collection<List<String>> testSet = new LinkedList<List<String>>();
 		recorder.writeLearnerEvaluationData(new ProgressDecorator.LearnerEvaluationConfiguration(expected, testSet, testConfig, null));
 		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus), buildSet(minus));
@@ -114,7 +113,7 @@ public class TestRecorderIntegration {
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
 		//System.out.println(logStream.toString()+"============");
 		//System.out.println(logStream.toByteArray().length);
-		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,testConfig);
+		LearnerGraph learntMachineNoRejects = Transform322.removeRejectStates(learntStructureA,testConfig);
 		WMethod.checkM(learntMachineNoRejects, expected);
 		
 		{// matching two simulators
@@ -123,11 +122,11 @@ public class TestRecorderIntegration {
 				simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
 			
 			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+			WMethod.checkM(expected, eval1.graph);
 			Assert.assertEquals(testSet, eval1.testSet);
 			Assert.assertEquals(expected.config, testConfig);
 			LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval2.graph));
+			WMethod.checkM(expected, eval2.graph);
 			Assert.assertEquals(testSet, eval2.testSet);
 			Assert.assertEquals(expected.config, testConfig);
 			
@@ -137,14 +136,14 @@ public class TestRecorderIntegration {
 		{// now a simulator to a learner
 			final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
 			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+			WMethod.checkM(expected, eval1.graph);
 			Assert.assertEquals(testSet, eval1.testSet);
 			Assert.assertEquals(expected.config, testConfig);
 
-			RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,expected.config)
+			RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearnerTestComponentOpt(null,expected.config)
 			{
 				@Override
-				public Pair<Integer,String> CheckWithEndUser(
+				public Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -152,15 +151,15 @@ public class TestRecorderIntegration {
 					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 				}
 			};
-			new Test_LearnerComparator(learner2,simulator).learnMachine(buildSet(plus), buildSet(minus));
+			new Test_LearnerComparator(learner2.getLearner(),simulator).learnMachine(buildSet(plus), buildSet(minus));
 		}
 
 
 		{// now two learners
-			RPNIBlueFringeLearner learnerA = new RPNIBlueFringeLearner(null,testConfig)
+			RPNIBlueFringeLearner learnerA = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 			{
 				@Override
-				public Pair<Integer,String> CheckWithEndUser(
+				public Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -168,10 +167,10 @@ public class TestRecorderIntegration {
 					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 				}
 			};
-			RPNIBlueFringeLearner learnerB = new RPNIBlueFringeLearner(null,testConfig)
+			RPNIBlueFringeLearner learnerB = new RPNIBlueFringeLearnerTestComponentOpt(null,testConfig)
 			{
 				@Override
-				public Pair<Integer,String> CheckWithEndUser(
+				public Pair<Integer,String> checkWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, 
 						@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -179,7 +178,7 @@ public class TestRecorderIntegration {
 					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 				}
 			};
-			new Test_LearnerComparator(learnerA,learnerB).learnMachine(buildSet(plus), buildSet(minus));
+			new Test_LearnerComparator(learnerA.getLearner(),learnerB.getLearner()).learnMachine(buildSet(plus), buildSet(minus));
 		}
 
 	}

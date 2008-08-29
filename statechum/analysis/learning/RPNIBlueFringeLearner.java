@@ -246,8 +246,8 @@ public class RPNIBlueFringeLearner extends RPNILearnerInstrumented {
 			if (scoreComputer.config.isConsistencyCheckMode())
 			{// TODO: to do this via decorators
 				tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-				WMethod.checkM(tempNew, tempOrig);
-				MergeStates.verifySameMergeResults(tempOrig, tempNew);
+				assert null == WMethod.checkM(tempNew, tempOrig);
+				assert null == MergeStates.checkM_and_colours(tempOrig, tempNew);
 			}
 			
 			setChanged();temp.setName(getName()+iterations);

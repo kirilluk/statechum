@@ -59,6 +59,11 @@ public class TestGD_Multithreaded {
 		return result;
 	}
 
+	public static String parametersToString(Integer threads)
+	{
+		return ""+threads+" threads";
+	}
+	
 	/** Creates the test class with the number of threads to create as an argument. */
 	public TestGD_Multithreaded(int th)
 	{

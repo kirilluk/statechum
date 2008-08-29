@@ -55,6 +55,7 @@ public class AllTests {
 		statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
 		statechum.analysis.learning.observers.TestGraphSeries.class,
 		statechum.analysis.learning.observers.TestRecorderIntegration.class,
+		statechum.analysis.learning.observers.TestAutoAnswers.class,
 		statechum.analysis.learning.experiments.Test_CheckLearnerAgainstLog.class
 	})
 	public static class ObserversTests {// all tests are included in the annotation.

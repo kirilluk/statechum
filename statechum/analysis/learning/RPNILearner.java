@@ -207,7 +207,8 @@ public abstract class RPNILearner extends Observable implements Learner {
 					dialog.setDefaultCloseOperation(
 						    WindowConstants.DO_NOTHING_ON_CLOSE);
 					dialog.addWindowListener(new WindowAdapter() {
-					    public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
+					    @Override
+						public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
 					    	jop.setValue(new Integer(
                                     JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
 					    }

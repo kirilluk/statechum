@@ -20,7 +20,6 @@ package statechum.analysis.learning.observers;
 import java.util.List;
 
 import statechum.Pair;
-import statechum.analysis.learning.observers.Learner.RestartLearningEnum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /** Counts the number of hard/soft restarts and the number of questions asked.

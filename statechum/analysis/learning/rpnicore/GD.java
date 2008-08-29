@@ -17,6 +17,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.rpnicore;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,8 +37,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
+
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
@@ -172,6 +177,15 @@ public class GD {
 		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.get(vert));
 	}
 	
+	/** Records vertices of A which would remain after we remove all transitions 
+	 * which are to be removed, subsequently add all new transitions 
+	 * and finally purge unconnected states. 
+	 */
+	Set<CmpVertex> retainedInA = null;
+	
+	/** Set of states to be added to A. */
+	Set<VertexID> newToA = null;
+	
 	/** Expands the set of key pairs and computes the outcome. 
 	 * 
 	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
@@ -230,21 +244,22 @@ public class GD {
 		// This is resolved below by ensuring that grCombined's B-vertex space does not intersect
 		// with that of the B graph by construction of grCombined.
 		final LearnerGraphMutator remover = new LearnerGraphMutator(copyOfA,grCombined.config,null);
-		final Set<VertexID> newToA = new TreeSet<VertexID>();// the original states of B which have to be added to A
-		final Set<CmpVertex> retainedInA = new TreeSet<CmpVertex>();// vertices participating in transitions which start from A's vertices and lead to vertices of B.
+		newToA = new TreeSet<VertexID>();// the original states of B which have to be added to A
+		retainedInA = new TreeSet<CmpVertex>();// vertices participating in transitions which start from A's vertices and lead to vertices of B.
 		new DCollector()
 		{
 			@Override
 			CmpVertex getOrig(CmpVertex vertex) {
 				CmpVertex keyVertex = newToOrig.get(vertex);
-				if (keyVertex != null) return keyVertex;
+				if (keyVertex != null) return keyVertex;// an existing key pair
+				
+				// this is a state new to B
 				assert newBToOrig.get(vertex) != null;
-				newToA.add(newBToOrig.get(vertex).getID());
+				newToA.add(newBToOrig.get(vertex).getID());// vertices from B which we'd like to add to A, as long as their names do not clash.
 				return vertex;
 			}
 
-			public void addTransition(CmpVertex from, @SuppressWarnings("unused")	String label, 
-					CmpVertex to) {
+			public void addTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
 				if (statesOfA.contains(from))
 					retainedInA.add(from);
 				if (statesOfA.contains(to))
@@ -265,18 +280,22 @@ public class GD {
 		
 		remover.removeDanglingStates();
 		final Set<VertexID> duplicates = new TreeSet<VertexID>();
-		for(CmpVertex vertex:copyOfA.transitionMatrix.keySet()) // iterate through states remaining in A
-			if (newToA.contains(vertex.getID()))
-			{
-				duplicates.add(vertex.getID());// we should not use this vertex
-			}
-		// now iterate through states are source and target states 
+
+		// now iterate through states are source and target states - these may easily
+		// correspond to transitions from B which replace transitions in A. If all connecting
+		// vertices from A's vertex are removed, removeDanglingStates() would eliminate it
+		// even if we subsequently add transitions using it. Hence it is not enough
+		// to go through copyOfA.transitionMatrix.keySet(), we have to visit all states of A
+		// which participate in new transitions and/or initial state.
+		retainedInA.addAll(copyOfA.transitionMatrix.keySet()); // add states remaining in A
 		for(CmpVertex vertex:retainedInA) 
 			if (newToA.contains(vertex.getID()))
 			{
 				duplicates.add(vertex.getID());// we should not use this vertex
 			}
-		for(CmpVertex vertex:statesOfB) assert !newToA.contains(vertex.getID());// verify that ids of states of B grCombined do not clash with IDs of states of B. 
+		
+		for(CmpVertex vertex:statesOfB) assert !newToA.contains(vertex.getID());// verify that ids of states of B grCombined do not clash with IDs of states of B,
+			// here statesOfB are grCombined states and newToA are the original B states. 
 		
 		if (!duplicates.isEmpty())
 		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
@@ -288,6 +307,7 @@ public class GD {
 		{
 
 			@Override
+			/** Called for states of the B part of grCombined to get the corresponding vertices in the original graphs. */ 
 			CmpVertex getOrig(CmpVertex vertex) {
 				CmpVertex keyVertex = newToOrig.get(vertex);
 				if (keyVertex != null) return keyVertex;
@@ -464,6 +484,7 @@ public class GD {
 			else
 				if (fromVert.isAccept() != vert.isAccept()) // it is known but with a different accept condition
 					throw new IllegalArgumentException("vertex "+vert+" has a different accept condition to the one in graph "+graph);
+			
 			return fromVert;
 		}
 		
@@ -741,10 +762,8 @@ public class GD {
 			LearnerGraphMutator graphPatcher = new LearnerGraphMutator(graph,config,null);
 			loadDiff(graphPatcher, elem);
 			graphPatcher.removeDanglingStates();
-			//graph.setIDNumbers();			
-			//System.out.println("Patch: "+graph.transitionMatrix+" "+graph.vertPositiveID+" "+graph.vertNegativeID+" "+graph.wmethod.checkGraphNumeric());
 		}
-		
+				
 		/** Loads diff from XML. This is a part of GD because it only
 		 * handles GD and not general-purpose stuff which would be included in 
 		 * <em>Transform</em>. 
@@ -998,6 +1017,154 @@ public class GD {
 				}
 			}
 		}
+	}
+
+	/** This one is similar to applyGD but computes a union of the remove and added parts,
+	 *  very useful if I wish to visualise the difference between two graphs.
+	 *  <p>
+	 *  Returns labelling of matching pairs of states (including key states)
+	 *  and colouring of edges, used to indicate which transitions are to be removed
+	 *  and which are to be added.
+	 */
+	public DirectedSparseGraph showGD(final LearnerGraph a,final LearnerGraph b, int threads)
+	{
+		Configuration gdConfig = a.config.copy();gdConfig.setGdFailOnDuplicateNames(false);
+		init(a.copy(gdConfig), b, threads);
+		identifyKeyPairs();
+		List<PairScore> allKeyPairs = new LinkedList<PairScore>(), initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
+		final Map<VertexID,CmpVertex> oldVerticesToNew = new TreeMap<VertexID,CmpVertex>();
+		for(CmpVertex v:a.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
+		for(CmpVertex v:b.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
+		final LearnerGraph outcome = new LearnerGraph(gdConfig);outcome.init = null;outcome.transitionMatrix.clear();
+		final LearnerGraphMutator mutator = new LearnerGraphMutator(outcome,gdConfig,null);
+		final Map<String,Map<String,Color>> transitionAnnotation = new TreeMap<String,Map<String,Color>>();
+		
+		makeSteps(new PatchGraph() {
+			boolean wasInitialised = false;
+			
+			private void init()
+			{
+				if (!wasInitialised)
+				{
+					wasInitialised = true;
+					
+					// Here we rely that by the time we start getting calls to add/remove transitions,
+					// it is already known which states will remain and which will not.
+					Set<VertexID> idsOfStatesInA = new TreeSet<VertexID>();
+					for(CmpVertex v:a.transitionMatrix.keySet()) idsOfStatesInA.add(v.getID());// original IDs
+
+					Set<VertexID> retainedIDs = new HashSet<VertexID>();for(CmpVertex v:retainedInA) retainedIDs.add(v.getID());
+					for(VertexID vID:newToA) 
+						if (retainedIDs.contains(vID))
+							renameVertex(vID, "DUP_");
+						else
+							if (idsOfStatesInA.contains(vID))
+								renameVertex(vID, "KEPT_");
+							else
+								renameVertex(vID, "ADD_");
+					
+					for(CmpVertex v:retainedInA) idsOfStatesInA.remove(v.getID());// remove those which will remain
+					idsOfStatesInA.removeAll(newToA);// remove new vertices
+					
+					for(VertexID vID:idsOfStatesInA) 
+					{// There are a few kinds of states, those from the A graph which remain,
+					 // those which are removed and perhaps replaced by states from B with the same names
+					 // those from B which correspond to some states of A, these are ignored.
+					 // those from B which are new, these are added, as long as their names do not intersect 
+					 // names of existing states in A, in which case such new states are given unique names.
+						renameVertex(vID, "DEL_");
+					}
+				}
+			}
+			
+			/** Adds a supplied prefix to vertex ID provided. */
+			private void renameVertex(VertexID currID, String prefix)
+			{
+				VertexID newID = new VertexID(prefix+currID.toString());
+				if (a.findVertex(newID) != null || b.findVertex(newID) != null)
+					throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
+				oldVerticesToNew.put(currID,LearnerGraph.generateNewCmpVertex(newID,a.config));
+			}
+			
+			/** Renames a vertex if it is a removed one. */
+			private CmpVertex getNewName(CmpVertex vertex)
+			{
+				init();
+				
+				CmpVertex result = oldVerticesToNew.get(vertex.getID());
+				if (result == null) 
+				{
+					oldVerticesToNew.put(vertex.getID(),vertex);result = vertex;
+				}
+				return result;
+			}
+	
+			/** Annotates the supplied transition with a specific colour. 
+			 * 
+			 * @param from source state
+			 * @param label transition label
+			 * @param color colour to put on that transition.
+			 */ 
+			private void addAnnotation(CmpVertex from, String label, Color color)
+			{
+				String fromString = from.getID().toString();
+				Map<String,Color> lbl = transitionAnnotation.get(fromString);
+				if (lbl == null)
+				{
+					lbl = new TreeMap<String,Color>();transitionAnnotation.put(fromString, lbl);
+				}
+				lbl.put(label, color);
+			}
+			
+			public void addTransition(CmpVertex from, String origLabel, CmpVertex to) 
+			{
+				String label = "ADD_"+origLabel;
+				CmpVertex fromVertex = getNewName(from);
+				mutator.addTransition(fromVertex, label, getNewName(to));
+				addAnnotation(fromVertex, label, Color.GREEN);
+			}
+
+			public void removeTransition(CmpVertex from, String origLabel, CmpVertex to) 
+			{
+				CmpVertex fromVertex = getNewName(from);
+				addAnnotation(fromVertex, origLabel, Color.RED);
+			}
+
+			public void setInitial(CmpVertex vertex) 
+			{
+				mutator.setInitial(getNewName(vertex));
+			}
+		},allKeyPairs);
+		
+		// We have all new and removed transitions properly labelled, now add the unchanged transitions.
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:a.transitionMatrix.entrySet())
+		{
+			CmpVertex fromVertex = oldVerticesToNew.get(entry.getKey().getID());if (fromVertex == null) fromVertex = entry.getKey();
+			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+			{
+				CmpVertex toVertex = oldVerticesToNew.get(transition.getValue().getID());if (toVertex == null) toVertex = transition.getValue();
+				mutator.addTransition(fromVertex, transition.getKey(), toVertex);
+			}
+		}
+		
+		Map<String,String> labelling = new TreeMap<String,String>();
+		for(PairScore pair:allKeyPairs) 
+		{
+			CmpVertex Q = oldVerticesToNew.get(pair.getQ().getID());
+			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getR()).getID());
+			labelling.put(Q.getID().toString(),R.getID().toString()); 
+		}
+		for(PairScore pair:initialKeyPairs) 
+		{
+			CmpVertex Q = oldVerticesToNew.get(pair.getQ().getID());
+			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getR()).getID());
+			labelling.put(Q.getID().toString(),R.getID().toString()+ " (K) "+pair.getScore()+","+pair.getAnotherScore()); 
+		}
+		DirectedSparseGraph gr = outcome.paths.getGraph();
+		
+		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.CLONE);
+		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.CLONE);
+		return gr;
 	}
 }	
 	

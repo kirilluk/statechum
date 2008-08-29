@@ -48,6 +48,16 @@ public class TestPathTracing {
 		return Configuration.configurationsForTesting();
 	}
 	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return Configuration.parametersToString(config);
+	}
+	
 	public TestPathTracing(Configuration conf)
 	{
 		mainConfiguration = conf;

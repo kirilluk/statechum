@@ -27,6 +27,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
 /** Rather often, one would want to be able to load and store a sequence of 
  * graphs, so that only differences between graphs are stored. This 
@@ -125,7 +126,14 @@ public class GraphSeries {
 			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
 			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
 			boolean assertionsEnabled = false;assert assertionsEnabled = true;
-			if (assertionsEnabled) { WMethod.checkM(newGraph, graph);assert graph.wmethod.checkUnreachableStates() == false; }
+			if (assertionsEnabled) 
+			{
+				// Cannot compare colours here because patches are structural, 
+				// hence where there are no new transitions, colours are retained rather
+				// than changed to new ones.
+				DifferentFSMException ex = WMethod.checkM(newGraph, graph);
+				if (ex != null) throw ex;
+				assert graph.wmethod.checkUnreachableStates() == false; }
 			++graphNumber;
 		}
 		return result;

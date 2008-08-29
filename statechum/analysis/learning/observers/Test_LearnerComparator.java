@@ -19,6 +19,7 @@ package statechum.analysis.learning.observers;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
@@ -28,6 +29,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.observers.ProgressDecorator.AugmentPTAData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
@@ -42,126 +44,126 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	
 	protected LearnerGraph learningOutcome = null;
 	
+	protected abstract class runComparator 
+	{
+		/** Runs the learner and returns the result of learning. */
+		abstract LearnerGraph runLearner(Learner learner);
+		
+		public LearnerGraph runCmp()
+		{
+			secondThread = new Thread(new Runnable() {
+
+				public void run() {
+					try
+					{
+						learningOutcome=runLearner(whatToCompareWith);
+						checkCall(KIND_OF_METHOD.M_FINISHED);
+					}
+					catch(IllegalArgumentException ex)
+					{
+						if (failureCode == null) failureCode = ex;
+						synchronized(Test_LearnerComparator.this)
+						{
+							Test_LearnerComparator.this.notify();// the only place the first thread can be stuck is the wait() statement in checkCall,
+							// now it will proceed and throw on the exception, unrolling the stack.
+						}
+					}
+					
+				}
+				
+			},"other learner");
+			secondThread.setDaemon(true);// ensures termination of the second thread when I kill the main thread.
+			secondThread.start();
+			LearnerGraph result = null;
+			try
+			{
+				result = runLearner(decoratedLearner);
+				checkCall(KIND_OF_METHOD.M_FINISHED);
+			}
+			catch(IllegalArgumentException ex)
+			{
+				if (failureCode == null) failureCode = ex;
+				
+				synchronized(Test_LearnerComparator.this)
+				{
+					Test_LearnerComparator.this.notify();// the only place the second thread can be stuck is the wait() statement in checkCall,
+						// now it will proceed and throw on the exception, unrolling the stack.
+				}
+			}
+			
+			try {
+				secondThread.join();
+			} catch (InterruptedException e) {
+				if (failureCode == null) 
+				{ 
+					IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
+				}
+			}
+			
+			if (learningOutcome != null && result != null)
+				checkGraphEquality(learningOutcome, result);
+
+			if (failureCode != null) throw failureCode;
+			
+			learningOutcome=null;// reset stored data
+			return result;
+			
+		}
+	}
+	
 	@Override
 	public LearnerGraph learnMachine(final Collection<List<String>> plus, 
 			final Collection<List<String>> minus)
 	{
-		secondThread = new Thread(new Runnable() {
-
-			public void run() {
-				try
-				{
-					learningOutcome=whatToCompareWith.learnMachine(plus, minus);
-					checkCall(KIND_OF_METHOD.M_FINISHED);
-				}
-				catch(IllegalArgumentException ex)
-				{
-					if (failureCode == null) failureCode = ex;
-					notify();// the only place the first thread can be stuck is the wait() statement in checkCall,
-					// now it will proceed and throw on the exception, unrolling the stack.
-				}
-				
+		return new runComparator() {
+			@Override
+			LearnerGraph runLearner(Learner learner) 
+			{
+				return learner.learnMachine(plus, minus);
 			}
-			
-		},"other learner");
-		secondThread.setDaemon(true);// ensures termination of the second thread when I kill the main thread.
-		secondThread.start();
-		LearnerGraph result = null;
-		try
-		{
-			result = decoratedLearner.learnMachine(plus, minus);
-			checkCall(KIND_OF_METHOD.M_FINISHED);
-		}
-		catch(IllegalArgumentException ex)
-		{
-			if (failureCode == null) failureCode = ex;
-			notify();// the only place the second thread can be stuck is the wait() statement in checkCall,
-			// now it will proceed and throw on the exception, unrolling the stack.
-		}
-		
-		try {
-			secondThread.join();
-		} catch (InterruptedException e) {
-			if (failureCode == null) 
-			{ 
-				IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
-			}
-		}
-		
-		if (learningOutcome != null && result != null)
-		{
-			DifferentFSMException ex = WMethod.checkM(learningOutcome, result);
-			if (ex != null && failureCode == null) failureCode = ex;
-		}
-
-		if (failureCode != null) throw failureCode;
-		
-		learningOutcome=null;// reset stored data
-		return result;
+		}.runCmp();
 	}
 
 	@Override
 	public LearnerGraph learnMachine(final PTASequenceEngine engine, 
 			final int plusSize,	final int minusSize)
 	{
-		secondThread = new Thread(new Runnable() {
-
-			public void run() {
-				try
-				{
-					learningOutcome=whatToCompareWith.learnMachine(engine, plusSize, minusSize);
-					checkCall(KIND_OF_METHOD.M_FINISHED);
-				}
-				catch(IllegalArgumentException ex)
-				{
-					if (failureCode == null) failureCode = ex;
-					notify();// the only place the first thread can be stuck is the wait() statement in checkCall,
-					// now it will proceed and throw on the exception, unrolling the stack.
-				}
-				
+		return new runComparator() {
+			@Override
+			LearnerGraph runLearner(Learner learner) 
+			{
+				return learner.learnMachine(engine, plusSize, minusSize);
 			}
-			
-		},"other learner");
-		secondThread.setDaemon(true);// ensures termination of the second thread when I kill the main thread.
-		secondThread.start();
-		LearnerGraph result = null;
-		try
-		{
-			result = decoratedLearner.learnMachine(engine, plusSize, minusSize);
-			checkCall(KIND_OF_METHOD.M_FINISHED);
-		}
-		catch(IllegalArgumentException ex)
-		{
-			if (failureCode == null) failureCode = ex;
-			notify();// the only place the second thread can be stuck is the wait() statement in checkCall,
-			// now it will proceed and throw on the exception, unrolling the stack.
-		}
-		
-		try {
-			secondThread.join();
-		} catch (InterruptedException e) {
-			if (failureCode == null) 
-			{ 
-				IllegalArgumentException ex = new IllegalArgumentException("interrupted : "+e);ex.initCause(e);failureCode = ex;
-			}
-		}
-		
-		if (learningOutcome != null && result != null)
-		{
-			DifferentFSMException ex = WMethod.checkM(learningOutcome, result);
-			if (ex != null && failureCode == null) failureCode = ex;
-		}
+		}.runCmp();
 
-		if (failureCode != null) throw failureCode;
-		
-		learningOutcome=null;// reset stored data
-		return result;
 	}
 
+	/** Whether to check colouring of states - not for use with GD because
+	 * since GD does not preserve colours of existing states. 
+	 */
+	protected final boolean checkColours; 
 	
-	public Test_LearnerComparator(Learner what, Learner with)
+	protected void checkGraphEquality(LearnerGraph what, LearnerGraph with)
 	{
-		super(what);
+		DifferentFSMException ex = null;
+		if (checkColours)
+			ex = MergeStates.checkM_and_colours(what,with);
+		else
+			ex = WMethod.checkM(what, with);
+		
+		if (ex != null && failureCode == null) failureCode = ex;
+	}
+	
+	/** Constructs this comparator.
+	 * 
+	 * @param what what to compare
+	 * @param with with what
+	 * @param checkCol whether to bother comparing colours of states - do not use if GD is used
+	 * since it does not preserve colours of existing states.
+	 */
+	public Test_LearnerComparator(Learner what, Learner with, boolean checkCol)
+	{
+		super(what);checkColours = checkCol;
 		whatToCompareWith = with;
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
@@ -184,7 +186,6 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	{
 		try 
 		{
-			//System.out.println("thread "+Thread.currentThread()+" entered("+method+"), expected = "+expected);
 			if (expected == null)
 			{
 				expected = method;
@@ -204,7 +205,6 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			}
 		}
 
-		//System.out.println("thread "+Thread.currentThread()+" left, expected = "+expected);
 		if (failureCode != null) throw failureCode;
 	}
 	
@@ -250,10 +250,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	protected Pair<Integer,String> cPair = null;
 	
 	/** Simulated check.
-	 * @param g estimated graph, not loaded.
-	 * @param question question loaded from XML
+	 * @param g estimated graph, not loaded from XML.
+	 * @param question question loaded from XML or computed by a learner.
 	 * @param options set to null by the simulator.
-	 * @return value loaded from XML
+	 * @return value loaded from XML or computed by the learner.
 	 */
 	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, Object[] options) 
 	{
@@ -281,7 +281,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		return result;
 	}
 
-	protected Stack<PairScore> pairs = null;
+	protected List<PairScore> pairs = null;
 	
 	/** Called by the simulator.
 	 * 
@@ -290,15 +290,22 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 */
 	public synchronized Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 	{
+		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
 		Stack<PairScore> result = null;
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.ChooseStatePairs(graph);
-			pairs = result;
+			pairsAndScores.addAll(result); // make sure that we do not depend on 
+			// subsequent modification of the stack of pairs (one thread may 
+			// outrun another one and make changes to it before another one 
+			// had a chance to compare the two stacks).
+			pairs = pairsAndScores;
 		}
 		else
+		{
 			result = decoratedLearner.ChooseStatePairs(graph);
-
+			pairsAndScores.addAll(result);
+		}
 		
 		checkCall(KIND_OF_METHOD.M_CHOOSEPAIRS);
 		
@@ -306,9 +313,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		{// checking. 
 			
 		// Since accept/reject labelling is not stored in the XML file, we have to compare pairs discounting accept/reject
-			if (pairs.size() != result.size())
-				new IllegalArgumentException("different sizes of ChooseStatePairs collections of pairs, \n"+pairs+" v.s. \n"+result);
-			Iterator<PairScore> ps1 = pairs.iterator(), ps2=result.iterator();
+			if (pairs.size() != pairsAndScores.size())
+				new IllegalArgumentException("different sizes of ChooseStatePairs collections of pairs, \n"+pairs+" v.s. \n"+pairsAndScores);
+			Iterator<PairScore> ps1 = pairs.iterator(), ps2=pairsAndScores.iterator();
 			while(ps1.hasNext())
 			{
 				PairScore p1 = ps1.next(),p2=ps2.next();
@@ -370,25 +377,26 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 */
 	public synchronized LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
-		LearnerGraph result = null;
+		LearnerGraph result = null, copyOfResult = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.MergeAndDeterminize(original, pair);
-			mPair = pair;mGraph = result;
+			copyOfResult = result.copy(result.config);// since a tread which produced result may exit and modify the graph, we have to take a copy of it.
+			mPair = pair;mGraph = copyOfResult;
 		}
 		else
+		{
 			result = decoratedLearner.MergeAndDeterminize(original, pair);
-
+			copyOfResult = result.copy(result.config);
+		}
 		checkCall(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
 
 		if (Thread.currentThread() != secondThread)
 		{// checking, considering that acceptance conditions are not stored in XML.
 			if (!mPair.getQ().getID().equals(pair.getQ().getID()) || !mPair.getR().getID().equals(pair.getR().getID()))
 				failureCode = new IllegalArgumentException("different MergeAndDeterminize pair "+mPair+" v.s. "+pair);
-			DifferentFSMException ex = WMethod.checkM(mGraph, result);
-			if (ex != null)
-				failureCode = ex;
+			checkGraphEquality(mGraph, copyOfResult);
 
 			mPair =null;mGraph=null;// reset stored data
 		}
@@ -435,23 +443,25 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param minus value loaded from XML
 	 */
 	public synchronized LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
-		LearnerGraph result = null;
+		LearnerGraph result = null, copyOfResult = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.init(plus, minus);
-			iGraph = result;
+			copyOfResult = result.copy(result.config);
+			iGraph = copyOfResult;
 		}
 		else
+		{
 			result = decoratedLearner.init(plus, minus);
-
+			copyOfResult = result.copy(result.config);
+		}
 		checkCall(KIND_OF_METHOD.M_INIT);
 
 		if (Thread.currentThread() != secondThread)
 		{// second thread, checking.
-			DifferentFSMException ex = WMethod.checkM(iGraph, result);
-			if (ex != null)
-				failureCode = ex;
+			checkGraphEquality(iGraph, copyOfResult);
+
 			iGraph=null;// reset stored data
 		}
 

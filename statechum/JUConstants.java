@@ -37,6 +37,7 @@ public enum JUConstants {
 		stringRepresentation = textualName;
 	}
 	
+	@Override
 	public String toString()
 	{
 		return stringRepresentation;

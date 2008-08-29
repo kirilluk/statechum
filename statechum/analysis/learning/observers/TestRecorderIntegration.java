@@ -58,18 +58,31 @@ public class TestRecorderIntegration {
 		for(boolean zip:new boolean[]{false,true})
 			for(boolean logCompression:new boolean[]{false,true})
 				for(boolean forceFallback:new boolean[]{false,true})
-			result.add(new Object[]{new Boolean(zip),new Boolean(logCompression),new Boolean(forceFallback)});
+					for(RecorderTestKind kind:RecorderTestKind.values())
+			result.add(new Object[]{new Boolean(zip),new Boolean(logCompression),new Boolean(forceFallback),kind});
 		
 		return result;
 	}
 
-	private final boolean useZip, useCompression, forceGDfallback;
+	private final boolean useZip;
+	private final RecorderTestKind kind;
+	boolean useCompression;
+	boolean forceGDfallback;
 	
-	public TestRecorderIntegration(boolean zip,boolean logCompression, boolean forceFallback)
+	public TestRecorderIntegration(boolean zip,boolean logCompression, boolean forceFallback,RecorderTestKind k)
 	{
-		useZip=zip;useCompression=logCompression;forceGDfallback=forceFallback;
+		useZip=zip;useCompression=logCompression;forceGDfallback=forceFallback;kind = k;
+	}
+
+	public static String parametersToString(Boolean zip,Boolean logCompression, Boolean forceFallback,RecorderTestKind k)
+	{
+		return (zip?"ZIP":"XML")+", "+(logCompression?"GD":" no compression")+
+			", "+(forceFallback?"GD_fallback":"GD_usual")+
+			", "+k.toString();
 	}
 	
+	enum RecorderTestKind { RECORDERTEST_SS, RECORDERTEST_SL, RECORDERTEST_LL}
+
 	/** A modified version of a similar method from TestRpniLearner. This one
 	 * checks that progress recording works correctly.
 	 * 
@@ -117,71 +130,78 @@ public class TestRecorderIntegration {
 		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,testConfig);
 		WMethod.checkM(learntMachineNoRejects, expected);
 		
-		{// matching two simulators
-			final LearnerSimulator 
-				simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip),
-				simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
+		switch(kind)
+		{
+			case RECORDERTEST_SS:
+			{// matching two simulators
+				final LearnerSimulator 
+					simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip),
+					simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
+				
+				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+				Assert.assertEquals(testSet, eval1.testSet);
+				Assert.assertEquals(expected.config, testConfig);
+				LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData();
+				Assert.assertNull(WMethod.checkM(expected, eval2.graph));
+				Assert.assertEquals(testSet, eval2.testSet);
+				Assert.assertEquals(expected.config, testConfig);
+				
+				new Test_LearnerComparator(simulator,simulator2,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				break;
+			}
 			
-			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
-			Assert.assertEquals(testSet, eval1.testSet);
-			Assert.assertEquals(expected.config, testConfig);
-			LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval2.graph));
-			Assert.assertEquals(testSet, eval2.testSet);
-			Assert.assertEquals(expected.config, testConfig);
-			
-			new Test_LearnerComparator(simulator,simulator2).learnMachine(buildSet(plus), buildSet(minus));
-		}
-
-		{// now a simulator to a learner
-			final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
-			LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
-			Assert.assertNull(WMethod.checkM(expected, eval1.graph));
-			Assert.assertEquals(testSet, eval1.testSet);
-			Assert.assertEquals(expected.config, testConfig);
-
-			RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,expected.config)
-			{
-				@Override
-				public Pair<Integer,String> CheckWithEndUser(
-						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
-						@SuppressWarnings("unused")	final Object [] moreOptions)
+			case RECORDERTEST_SL:
+			{// now a simulator to a learner
+				final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
+				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
+				Assert.assertEquals(testSet, eval1.testSet);
+				Assert.assertEquals(expected.config, testConfig);
+	
+				RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,expected.config)
 				{
-					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
-				}
-			};
-			new Test_LearnerComparator(learner2,simulator).learnMachine(buildSet(plus), buildSet(minus));
-		}
+					@Override
+					public Pair<Integer,String> CheckWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused")	final Object [] moreOptions)
+					{
+						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+					}
+				};
+				new Test_LearnerComparator(learner2,simulator,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				break;
+			}
 
-
-		{// now two learners
-			RPNIBlueFringeLearner learnerA = new RPNIBlueFringeLearner(null,testConfig)
-			{
-				@Override
-				public Pair<Integer,String> CheckWithEndUser(
-						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
-						@SuppressWarnings("unused")	final Object [] moreOptions)
+			case RECORDERTEST_LL:
+			{// now two learners
+				RPNIBlueFringeLearner learnerA = new RPNIBlueFringeLearner(null,testConfig)
 				{
-					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
-				}
-			};
-			RPNIBlueFringeLearner learnerB = new RPNIBlueFringeLearner(null,testConfig)
-			{
-				@Override
-				public Pair<Integer,String> CheckWithEndUser(
-						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
-						@SuppressWarnings("unused")	final Object [] moreOptions)
+					@Override
+					public Pair<Integer,String> CheckWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused")	final Object [] moreOptions)
+					{
+						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+					}
+				};
+				RPNIBlueFringeLearner learnerB = new RPNIBlueFringeLearner(null,testConfig)
 				{
-					return new Pair<Integer,String>(expected.paths.tracePath(question),null);
-				}
-			};
-			new Test_LearnerComparator(learnerA,learnerB).learnMachine(buildSet(plus), buildSet(minus));
+					@Override
+					public Pair<Integer,String> CheckWithEndUser(
+							@SuppressWarnings("unused")	LearnerGraph model,
+							List<String> question, 
+							@SuppressWarnings("unused")	final Object [] moreOptions)
+					{
+						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+					}
+				};
+				new Test_LearnerComparator(learnerA,learnerB,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				break;
+			}
 		}
-
 	}
 
 	/** These tests check the framework to verify that 

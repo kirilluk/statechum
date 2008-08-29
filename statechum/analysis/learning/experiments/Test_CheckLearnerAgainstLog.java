@@ -124,7 +124,7 @@ public class Test_CheckLearnerAgainstLog
 				return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
 			}
 		};
-		new Test_LearnerComparator(learner2,simulator).learnMachine(initial.plus, initial.minus);
+		new Test_LearnerComparator(learner2,simulator,false).learnMachine(initial.plus, initial.minus);
 	}
 
 	protected final static String pathToLogFiles = "resources/nonsvn/logs";
@@ -144,6 +144,11 @@ public class Test_CheckLearnerAgainstLog
 		return result;
 	}
 
+	public static String parametersToString(File f)
+	{
+		return f.getName();
+	}
+	
 	protected final File logFileToProcess;
 	
 	public Test_CheckLearnerAgainstLog(File file)

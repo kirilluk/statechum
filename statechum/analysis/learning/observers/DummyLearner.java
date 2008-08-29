@@ -85,11 +85,13 @@ public class DummyLearner extends LearnerDecorator
 		return decoratedLearner.init(engine, plusSize, minusSize);
 	}
 	
+	@Override
 	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		return decoratedLearner.learnMachine(plus,minus);
 	}
 	
+	@Override
 	public LearnerGraph learnMachine(PTASequenceEngine engine, int plusSize, int minusSize)
 	{
 		return decoratedLearner.learnMachine(engine,plusSize,minusSize);

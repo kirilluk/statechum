@@ -534,33 +534,32 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		SwingUtilities.invokeLater(this);
 	}
 
-	public static class Picked implements PickedInfo
+	public static class EdgeColour
 	{
-		final Map<String,Set<String>> transitionsUsedInC;
+		final Map<String,Map<String,Color>> transitionColours;
 		final Map<String,String> extraLabels;
 		
-		public Picked(Graph graph)
+		public EdgeColour(Graph graph)
 		{
-			transitionsUsedInC = (Map<String,Set<String>>)graph.getUserDatum(JUConstants.EDGE);
+			transitionColours = (Map<String,Map<String,Color>>)graph.getUserDatum(JUConstants.EDGE);
 			extraLabels = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
 		}
 		/** Given an edge and a label, determines if there is an annotation associated with that label.
 		 * 
 		 * @param e edge to consider
 		 * @param currentLabel label (an edge may have multiple labels if it represents multiple parallel edges)
-		 * @return true if annotation is present.
+		 * @return colour if annotation is present and null otherwise.
 		 */
-		public boolean isPickedLabel(ArchetypeEdge e, String currentLabel) 
+		public Color getEdgeColour(ArchetypeEdge e, String currentLabel) 
 		{
-			boolean result = false;
+			Color result = null;
 			
 			if (e instanceof DeterministicEdge)
 			{
 				DeterministicEdge edge = (DeterministicEdge)e;
 				String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString();
-	   			if (transitionsUsedInC != null && transitionsUsedInC.containsKey(source))
-					if (transitionsUsedInC.get(source).contains(currentLabel))
-						result = true;
+	   			if (transitionColours != null && transitionColours.containsKey(source))
+					result = transitionColours.get(source).get(currentLabel);
 			}
 			return result;
 		}
@@ -588,21 +587,27 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			return getPickedLabel(v) != null;
 		}
 
-		public boolean isPicked(ArchetypeEdge e) {
+		/** A colour of an inconsistent edge. */
+		public final Color inconsistent = Color.MAGENTA;
+		
+		public Color getPickedColour(ArchetypeEdge e) {
       		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
     		Iterator<String> labelIt = labels.iterator();
+    		Color col = null;
     		while(labelIt.hasNext()){
     			String currentLabel = labelIt.next();
-    			if (isPickedLabel(e, currentLabel))
-    					return true;
+    			Color newCol = getEdgeColour(e, currentLabel);
+    			if (col == null) col = newCol;
+    			else 
+    				if (col != newCol) col = inconsistent;
     		}
-    		return false;
+    		return col;
 		}
 		
 	}
 	
 	private static PluggableRenderer labelEdges(Graph graph,PluggableRenderer render){
-		final Picked paintChooser = new Picked(graph);
+		final EdgeColour paintChooser = new EdgeColour(graph);
 		EdgeStringer stringer = new EdgeStringer(){
             public String getLabel(ArchetypeEdge e) {
             	String result = "";
@@ -614,8 +619,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             		while(labelIt.hasNext()){
             			String currentLabel = labelIt.next();
             			label = label.concat(currentLabel);
-            			if (paintChooser.isPickedLabel(e, currentLabel))
+            			/*
+            			if (paintChooser.getEdgeColour(e, currentLabel) != null)
             					label=label.concat(" @");
+            			*/
             			label=label.concat(" ");
             		}
             		result = label+" ]";
@@ -625,8 +632,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             }
         };
         render.setEdgeStringer(stringer);
-        render.setEdgePaintFunction(new PickableEdgePaintFunction(paintChooser, Color.BLACK, 
-        		Color.BLUE));
+        render.setEdgePaintFunction(new AbstractEdgePaintFunction() {
+			public Paint getDrawPaint(Edge e) {
+				Color result = paintChooser.getPickedColour(e);
+				return result != null?result:Color.BLACK;
+			}});
         return render;
 	}
 	
@@ -694,11 +704,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	
 	private static PluggableRenderer labelVertices(PluggableRenderer r, Graph graph){
 		StringLabeller labeller = StringLabeller.getLabeller(graph,"name");
-		final Picked paintChooser = new Picked(graph);
+		final EdgeColour paintChooser = new EdgeColour(graph);
 		labeller.clear();
-		Iterator labelIt = graph.getVertices().iterator();
-		while(labelIt.hasNext()){
-			Vertex v = (Vertex)labelIt.next();
+		Iterator<Vertex> labelIt = graph.getVertices().iterator();
+		while(labelIt.hasNext())
+		{
+			Vertex v = labelIt.next();
 			try{
 				Object label = v.getUserDatum(JUConstants.LABEL).toString();
 				if (label != null)

@@ -74,6 +74,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		return Configuration.configurationsForTesting();
 	}
 	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return Configuration.parametersToString(config);
+	}
+	
 	public TestRpniLearner(Configuration conf) {
 		super(null,conf);mainConfiguration = conf;
 	}

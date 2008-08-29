@@ -39,7 +39,7 @@ public class TestSolverRandomly {
 	protected final DoubleFunction randomGenerator;
 	protected final int size;
 	
-	public TestSolverRandomly(final Random conf, int s) {
+	public TestSolverRandomly(@SuppressWarnings("unused") final int ignored, final Random conf, int s) {
 		size = s;
 		randomGenerator = new DoubleFunction() {
 			private final Random rnd = conf;
@@ -57,11 +57,16 @@ public class TestSolverRandomly {
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(int i=5;i<20;++i)
-			result.add(new Object[]{new Random(i),new Integer(i*20)});
+			result.add(new Object[]{i,new Random(i),new Integer(i*20)});
 		
 		return result;
 	}
 
+	public static String parametersToString(final Integer i, @SuppressWarnings("unused") final Random conf, Integer s)
+	{
+		return "random("+i+"), size "+s;
+	}
+	
 	@Test
 	public final void testExternalSolver_random()
 	{

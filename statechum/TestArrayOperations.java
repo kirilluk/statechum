@@ -539,7 +539,8 @@ public class TestArrayOperations {
 	          }
 	        }
 
-	        public boolean equals( Object obj )
+	        @Override
+			public boolean equals( Object obj )
 	        {
 	          return this == obj;
 	        }

@@ -43,13 +43,14 @@ public class StoredAnswers implements AbstractOracle
 	{
 		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8;
 
-		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_AUTO+")* *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
+		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+") *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
+		final Pattern usefulData = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+").*");
 		BufferedReader reader = new BufferedReader(src);//new FileReader(src));
 		String line = reader.readLine();
 		while( line != null )
 		{
-			if (line.trim().length() > 0)
-			{
+			if (line.trim().length() > 0 && usefulData.matcher(line).lookingAt())
+			{// we are here if the line is non-empty and contains the magic keyword
 				Matcher lexer = pat.matcher(line);
 				if (!lexer.lookingAt() || lexer.group(GROUP_TEXT) == null)
 					throwEx(line);

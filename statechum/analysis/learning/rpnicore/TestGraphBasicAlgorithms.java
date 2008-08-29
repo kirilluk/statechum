@@ -64,6 +64,16 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		return Configuration.configurationsForTesting();
 	}
 	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return Configuration.parametersToString(config);
+	}
+	
 	public TestGraphBasicAlgorithms(Configuration conf) {
 		super(null,conf);mainConfiguration = conf;
 	}
@@ -227,10 +237,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		{
 			Assert.assertNotNull(exNew);Assert.assertNotNull(exCaching);throw exCaching;
 		}
-		else
-		{
-			Assert.assertNull(exNew);Assert.assertNull(exCaching);
-		}
+		Assert.assertNull(exNew);Assert.assertNull(exCaching);
 	}
 	
 	

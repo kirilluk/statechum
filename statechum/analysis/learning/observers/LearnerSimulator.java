@@ -267,6 +267,7 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	 * 
 	 * @param top new top of the stack of listeners.
 	 */
+	@Override
 	public void setTopLevelListener(Learner top)
 	{
 		topLevelListener = top;

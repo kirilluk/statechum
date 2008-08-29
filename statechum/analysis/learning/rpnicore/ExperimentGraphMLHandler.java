@@ -35,6 +35,7 @@ import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 
 public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 
+	@Override
 	protected Edge createEdge(Map attributeMap) {
 		Graph mGraph = getGraph();
 		StringLabeller mLabeller = getLabeller();
@@ -78,6 +79,7 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         return e;
     }
 	
+	@Override
 	protected ArchetypeVertex createVertex(Map attributeMap) {
 		Graph mGraph = getGraph();
 		StringLabeller mLabeller = getLabeller();

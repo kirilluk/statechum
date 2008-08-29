@@ -108,7 +108,7 @@ public class RPNIBlueAmberFringeLearner extends RPNILearnerInstrumented {
 		if (scoreComputer.config.isConsistencyCheckMode())
 		{
 			LearnerGraph tempOrig = MergeStates.mergeAndDeterminize(scoreComputer, pair);
-			MergeStates.verifySameMergeResults(tempOrig, tempNew);
+			assert null == MergeStates.checkM_and_colours(tempOrig, tempNew);
 		}
 		return tempNew;
 	}

@@ -317,6 +317,7 @@ public class PairScoreComputation {
 			return firstElem.compareTo(o.firstElem);
 		}
 		
+		@Override
 		public String toString()
 		{
 			return "["+firstElem+"->"+secondElem+"]";
@@ -448,6 +449,7 @@ public class PairScoreComputation {
 				return true;
 			}
 			
+			@Override
 			public String toString()
 			{
 				return "[ "+ClassNumber+" -> "+outgoingTransitions+" ]";

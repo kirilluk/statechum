@@ -17,7 +17,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.observers;
 
+import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.Reader;
 import java.util.List;
 
 import statechum.Configuration;
@@ -51,20 +53,28 @@ public class AutoAnswers extends DummyLearner {
 	protected void setAutoOracle(Configuration config)
 	{
 		if (config.getAutoAnswerFileName().length() > 0)
-		{
-			ans = new StoredAnswers();
 			try {
-				((StoredAnswers)ans).setAnswers(new FileReader(config.getAutoAnswerFileName()));
-			} catch (Exception e) {
-				ans = null;
+				loadAnswers(new FileReader(config.getAutoAnswerFileName()));
+			} catch (FileNotFoundException e) {
+				// does not matter - ans remains null
 			}
-		}
 	}
 
 	public AutoAnswers(Learner learner) {
 		super(learner);
 	}
 
+	void loadAnswers(Reader from)
+	{
+		ans = new StoredAnswers();
+		try {
+			((StoredAnswers)ans).setAnswers(from);
+		} catch (Exception e) {
+			ans = null;
+		}		
+	}
+	
+	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, Object[] options) 
 	{
 		if (ans == null) setAutoOracle(graph.config);
@@ -72,11 +82,11 @@ public class AutoAnswers extends DummyLearner {
 		
 		if (ans != null)
 		{// first, attempt auto	
-			ans.getAnswer(question);
+			answer = ans.getAnswer(question);
 			howAnswerWasObtained = RPNILearner.QUESTION_AUTO;
 		}
 		
-		if (answer != null)
+		if (answer == null)
 		{// auto did not provide an answer, pass the question further
 			answer = decoratedLearner.CheckWithEndUser(graph, question, options);
 			howAnswerWasObtained = RPNILearner.QUESTION_USER;// we expect to be last in the chain, but do not really care.

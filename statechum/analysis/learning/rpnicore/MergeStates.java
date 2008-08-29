@@ -63,18 +63,19 @@ public class MergeStates {
 	 * in addition to checking for isomorphism of the graphs.
 	 * Used for consistency checking.
 	 */
-	public static void verifySameMergeResults(LearnerGraph A, LearnerGraph B)
+	public static DifferentFSMException checkM_and_colours(LearnerGraph A, LearnerGraph B)
 	{
-		WMethod.checkM(A, B);
+		DifferentFSMException ex = WMethod.checkM(A, B);if (ex != null) return ex;
 		for(Entry<CmpVertex,LinkedList<String>> entry:A.wmethod.computeShortPathsToAllStates().entrySet())
 		{
 			CmpVertex Bstate = B.getVertex(entry.getValue());
 			CmpVertex Astate = entry.getKey();
 			if (Bstate.getColour() != Astate.getColour())
-				throw new DifferentFSMException("states "+ Astate + " (" +
+				return new DifferentFSMException("states "+ Astate + " (" +
 						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
 						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
-		}	 
+		}
+		return null;
 	}
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.

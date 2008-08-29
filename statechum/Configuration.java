@@ -299,6 +299,18 @@ public class Configuration implements Cloneable
 		Configuration strings = new Configuration();same.setLearnerUseStrings(true);same.setLearnerCloneGraph(false);
 		return Arrays.asList(new Object[][] { { same }, { clone }, { strings }} );
 	}
+	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return (config.isLearnerUseStrings()?"String vertex":"Jung vertex")+", "+
+			(config.isLearnerCloneGraph()?"clone":"no_clone");
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()

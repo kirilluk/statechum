@@ -96,10 +96,9 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 					if((answer.firstElem==question.size()-1)&&!DeterministicDirectedSparseGraph.isAccept(tempVertex)){
 						continue;
 					}
-					else{
-						assert accepted == true;
-						restartLearning = true;break;
-					}
+					assert accepted == true;
+					restartLearning = true;
+					break;
 				}
 				else if (answer.firstElem == AbstractOracle.USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);

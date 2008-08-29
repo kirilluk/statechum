@@ -482,7 +482,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
-		Assert.assertNull(WMethod.checkM(fsm,fsm.init,actual,actual.init));
+		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
@@ -504,7 +504,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
-		Assert.assertNull(WMethod.checkM(fsm,fsm.init,actual,actual.init));
+		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	

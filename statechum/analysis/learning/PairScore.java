@@ -60,6 +60,7 @@ public class PairScore extends StatePair implements Comparable<StatePair>
 	 * 
 	 * @param b the state pair to compare to.
 	 */
+	@Override
 	public int compareTo(StatePair b){
 		PairScore pB = (PairScore)b;
 		if (score != pB.score)
@@ -84,6 +85,7 @@ public class PairScore extends StatePair implements Comparable<StatePair>
 		return true;
 	}
 	
+	@Override
 	public String toString(){
 		return "[ "+getQ().getID().toString()+"("+getQ().isAccept()+"), "+getR().getID().toString()+"("+getR().isAccept()+") : "+score+","+compatibilityScore+" ]";
 	}

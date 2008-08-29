@@ -8,14 +8,11 @@ package statechum.apps;
  */
 
 import statechum.Configuration;
-import statechum.JUConstants;
 
 import java.util.*;
 
 import statechum.analysis.learning.AbstractOracle;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.rpnicore.*;
-import statechum.DeterministicDirectedSparseGraph;
 
 public class WMethodApp {
 	

@@ -52,6 +52,16 @@ public class TestGraphConstructionWithDifferentConf {
 		return Configuration.configurationsForTesting();
 	}
 
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return Configuration.parametersToString(config);
+	}
+	
 	/** Make sure that whatever changes a test have made to the 
 	 * configuration, next test is not affected.
 	 */

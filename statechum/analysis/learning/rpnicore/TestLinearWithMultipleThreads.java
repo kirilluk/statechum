@@ -72,6 +72,11 @@ public class TestLinearWithMultipleThreads {
 		return result;
 	}
 	
+	public static String parametersToString(Integer threads)
+	{
+		return ""+threads+" threads";
+	}
+	
 	private Configuration config = null;
 	
 	@Before

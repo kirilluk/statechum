@@ -104,6 +104,7 @@ public abstract class RPNILearnerInstrumented extends RPNILearner {
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
+	@Override
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,List<String> question, final Object [] moreOptions)
 	{
 		Pair<Integer,String> autoAnswer = handleAutoAnswer(question);if (autoAnswer != null) return autoAnswer;

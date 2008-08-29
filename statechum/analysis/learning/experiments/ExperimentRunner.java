@@ -52,11 +52,11 @@ public class ExperimentRunner
 	protected static final String FS = ",";
 	
 	public enum FileType { 
-		LEARNT {String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
-		TESTDATA {String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
-		MINUS_AND_TEST {String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
+		LEARNT {@Override String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
+		TESTDATA {@Override String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
+		MINUS_AND_TEST {@Override String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
 		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
-		RESULT {String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
+		RESULT {@Override String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
 
 		abstract String getFileName(String prefix, String suffix);
 	};

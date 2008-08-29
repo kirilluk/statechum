@@ -82,6 +82,11 @@ public class TestGD_ExistingGraphs {
 		threadNumber = th;fileNameA=fileA;fileNameB=fileB;low_to_high_ratio=ratio;
 	}
 	
+	public static String parametersToString(Integer th, Double ratio, String fileA, String fileB)
+	{
+		return "threshold: "+th+" ratio: "+ratio+", "+fileA+" v.s. "+fileB;
+	}
+	
 	@Before
 	public final void beforeTest()
 	{

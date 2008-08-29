@@ -36,6 +36,7 @@ public class StatePair extends Pair<CmpVertex,CmpVertex> implements Comparable<S
 		return secondElem;
 	}
 	
+	@Override
 	public String toString(){
 		return "[ "+((getQ() == null)?"NULL":getQ().getID().toString())+", "+((getR() == null)?"NULL":getR().getID().toString())+" ]";
 	}

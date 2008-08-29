@@ -52,6 +52,7 @@ public class PathCompressionExperiment {
 		/** This one may be overridden by subclass to customise the learner. */
 		protected abstract void changeParameters(Configuration c);
 				
+		@Override
 		public void runTheExperiment()
 		{
 			buildSets();

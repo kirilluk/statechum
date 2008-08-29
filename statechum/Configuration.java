@@ -66,7 +66,7 @@ public class Configuration implements Cloneable
 	 */
 	protected boolean bumpPositives = false;
 	
-	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY }
+	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY };
 
 	/** Some algorithms depend on the order in which elements of a graph are traversed;
 	 * this in turn depends on the lexicographic order of their names (see testDeterminism()
@@ -77,7 +77,7 @@ public class Configuration implements Cloneable
 	 */
 	protected IDMode learnerIdMode = IDMode.NONE; // creation of new vertices is prohibited.
 
-	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS }
+	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS };
 	
 	/** The are a few ways in which one can compute scores associated to pairs of states,
 	 * using a conventional computation, using compatibility scores (during traversal of pairs,
@@ -165,7 +165,7 @@ public class Configuration implements Cloneable
 	 * </li>
 	 * </ul>
 	 */
-	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL }
+	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL };
 	
 	protected QuestionGeneratorKind questionGenerator = QuestionGeneratorKind.CONVENTIONAL;
 	
@@ -299,6 +299,18 @@ public class Configuration implements Cloneable
 		Configuration strings = new Configuration();same.setLearnerUseStrings(true);same.setLearnerCloneGraph(false);
 		return Arrays.asList(new Object[][] { { same }, { clone }, { strings }} );
 	}
+	
+	/** Given a test configuration, returns a textual description of its purpose. 
+	 * 
+	 * @param config configuration to consider
+	 * @return description.
+	 */ 
+	public static String parametersToString(Configuration config)
+	{
+		return (config.isLearnerUseStrings()?"String vertex":"Jung vertex")+", "+
+			(config.isLearnerCloneGraph()?"clone":"no_clone");
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
@@ -338,6 +350,8 @@ public class Configuration implements Cloneable
 		result = prime * result + gdMaxNumberOfStatesInCrossProduct;
 		result = prime * result + (compressLogs?1231 : 1237);
 		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
+		result = prime * result + (useAmber?  1231 : 1237);
+		result = prime * result + (useSpin?  1231 : 1237);
 		return result;
 	}
 
@@ -426,7 +440,10 @@ public class Configuration implements Cloneable
 			return false;
 		if (learnerToUse != other.learnerToUse)
 			return false;
-		
+		if (useAmber != other.useAmber)
+			return false;
+		if (useSpin != other.useSpin)
+			return false;
 		return true;
 	}
 
@@ -785,7 +802,7 @@ public class Configuration implements Cloneable
 	}
 	
 	/** Whether a method is get.../is ..., or set...  */
-	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET} 
+	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
 	
 	/** In order to serialise/deserialise data, we need access to fields and getter/setter methods.
 	 * This method takes a field and returns the corresponding method. Although supposedly
@@ -846,9 +863,13 @@ public class Configuration implements Cloneable
 			{
 				Method getter = Configuration.getMethod(GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
-				varData.setAttribute(configVarAttrName, var.getName());
 				try {
-					varData.setAttribute(configVarAttrValue, getter.invoke(this, new Object[]{}).toString());
+					Object value = getter.invoke(this, new Object[]{});
+					if (value != null)
+					{
+						varData.setAttribute(configVarAttrName, var.getName());
+						varData.setAttribute(configVarAttrValue, value.toString());
+					}
 				} catch (Exception e) {
 					throwUnchecked("cannot extract a value of "+var.getName(), e);
 				}

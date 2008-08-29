@@ -194,7 +194,6 @@ public class TestExperimentRunner {
 				++pos;line=reader.readLine();
 			}
 			Assert.assertNull(line);
-			reader.close();
 		}
 		catch(IOException ex)
 		{

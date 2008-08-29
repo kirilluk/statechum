@@ -323,8 +323,14 @@ public class LearnerGraph {
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	try
+	    	{
 	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
-			from.close();
+	    	}
+	    	finally
+	    	{
+	    		from.close();
+	    	}
 		}
 		return graph;
 	}

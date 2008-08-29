@@ -350,9 +350,11 @@ public class ExperimentRunner
 			// first, check if we need to do anything (i.e. data file exists and shows a successful completion. */
 			boolean needToProcess = config.getLearnerOverwriteOutput();
 			if (!needToProcess)
+			{
+				BufferedReader reader = null;
 				try
 				{
-					BufferedReader reader = new BufferedReader(new FileReader(getFileName(FileType.RESULT)));
+					reader = new BufferedReader(new FileReader(getFileName(FileType.RESULT)));
 					String line = reader.readLine();
 					if (line != null && line.contains(LearnerEvaluator.OUTCOME.RUNNING.name()))
 						needToProcess = true;// previously incomplete run
@@ -364,7 +366,16 @@ public class ExperimentRunner
 					// which will take place when there are multiple runners and one of them
 					// crashes before others have a chance to run.
 				}
-			
+				finally
+				{
+					if (reader != null)
+						try {
+							reader.close();
+						} catch (IOException e) {
+							// ignore the exception
+						}
+				}
+			}
 			OUTCOME currentOutcome = OUTCOME.RUNNING;
 			String percentValue = "";
 			if (experiment.useStages())
@@ -450,7 +461,8 @@ public class ExperimentRunner
 			}
 			finally
 			{
-				try { if (outputWriter != null) outputWriter.close(); } 
+				try { if (outputWriter != null) outputWriter.close(); 
+				} 
 				catch (IOException e) {
 					// ignore this
 				}
@@ -480,20 +492,26 @@ public class ExperimentRunner
 	private void loadFileNames(Reader fileNameListReader) throws IOException
 	{
 		BufferedReader reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
-		String line = reader.readLine();
-		while(line != null)
+		try
 		{
-			line = line.trim();
-			if (line.length() > 0 && !line.startsWith("#"))
+			String line = reader.readLine();
+			while(line != null)
 			{
-				if (new File(line).canRead())
-					fileName.add(line);
-				else
-					throw new IOException("cannot load file "+line);
+				line = line.trim();
+				if (line.length() > 0 && !line.startsWith("#"))
+				{
+					if (new File(line).canRead())
+						fileName.add(line);
+					else
+						throw new IOException("cannot load file "+line);
+				}
+				line = reader.readLine();
 			}
-			line = reader.readLine();
 		}
-		reader.close();
+		finally
+		{
+			reader.close();
+		}
 		
 		if (fileName.isEmpty())
 			throw new IllegalArgumentException("no usable files found");
@@ -913,7 +931,7 @@ public class ExperimentRunner
 					prevTime = currentTime;
 				
 					int avail = err.available();
-					if (avail>0) 
+					while (avail>0) 
 					{// some data available
 						int availErr = Math.min(dataBuffer.length,avail);
 						err.read(dataBuffer, 0, availErr);
@@ -926,10 +944,11 @@ public class ExperimentRunner
 								System.err.print(errBuffer);errBuffer.setLength(0);// received a full line, display and flush
 							}
 						}
+						avail = err.available();
 					}
 					
 					avail = out.available();
-					if (avail>0) 
+					while (avail>0) 
 					{ // some data available
 						int availOut = Math.min(dataBuffer.length,avail);
 						out.read(dataBuffer, 0, availOut);
@@ -942,6 +961,7 @@ public class ExperimentRunner
 								System.out.print(outBuffer);outBuffer.setLength(0);// received a full line, display and flush
 							}
 						}
+						avail = out.available();
 					}
 					in.write('\n');in.flush();// send heartbeat. If a process has terminated, this will fail, but we would have already absorbed all its output.
 				}

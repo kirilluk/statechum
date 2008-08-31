@@ -1274,8 +1274,8 @@ public class TestPTASequenceEngine
 		seqOne.unite(seqOneB);
 		
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
-				new String[] {"a","a",	"a","b","c"},
 				new String[] {"a","a"},
+				new String[] {"a","a",	"a","b","c"}
 		}));
 		
 		SequenceSet seqDifferent2 = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
@@ -1302,8 +1302,8 @@ public class TestPTASequenceEngine
 	{
 		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
 		SequenceSet seqOne = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
-				new String[] {"a","c"},
 				new String[] {"a","a"},
+				new String[] {"a","c"},
 				new String[] {"c"}
 		}));seqOne.limitTo(1);
 		Assert.assertFalse(seqOne.isEmpty());
@@ -1331,8 +1331,8 @@ public class TestPTASequenceEngine
 		seqOne.limitTo(2);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
-				new String[] {"a","a"},
-				new String[] {"c" }
+				new String[] {"a","c"},
+				new String[] {"a","a" }
 				}));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b"}}
@@ -1355,8 +1355,8 @@ public class TestPTASequenceEngine
 		}));seqOne.limitTo(2000);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
-				new String[] {"a","a"},
 				new String[] {"a","c"},
+				new String[] {"a","a"},
 				new String[] {"c"}
 				}));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {
@@ -1380,8 +1380,8 @@ public class TestPTASequenceEngine
 		}));seqOne.limitTo(-1);
 		Assert.assertFalse(seqOne.isEmpty());
 		SequenceSet seqTwo = seqStart.cross(TestFSMAlgo.buildList(new String[][] {
-				new String[] {"a","a"},
 				new String[] {"a","c"},
+				new String[] {"a","a"},
 				new String[] {"c"}
 				}));
 		SequenceSet seqDifferent1 = seqTwo.cross(TestFSMAlgo.buildList(new String[][] {

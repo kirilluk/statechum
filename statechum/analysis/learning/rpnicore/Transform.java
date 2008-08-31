@@ -169,7 +169,7 @@ public class Transform {
 		{
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
-			doc = factory.newDocumentBuilder().newDocument();
+			doc = factory.newDocumentBuilder().newDocument();doc.setXmlStandalone(true);
 		}
 		catch(ParserConfigurationException ex)
 		{

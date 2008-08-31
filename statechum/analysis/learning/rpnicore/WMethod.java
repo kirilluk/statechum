@@ -565,7 +565,9 @@ public class WMethod {
 			Collections.sort(labelList, new Comparator<String>(){
 
 				public int compare(String o1, String o2) {
-					return -distinguishingLabels.get(o1).get() + distinguishingLabels.get(o2).get();
+					int diffInNumberOfdistStates = -distinguishingLabels.get(o1).get() + distinguishingLabels.get(o2).get();
+					if (diffInNumberOfdistStates != 0) return diffInNumberOfdistStates;
+					return o1.compareTo(o2);// otherwise, just compare strings.
 				}
 				
 			});

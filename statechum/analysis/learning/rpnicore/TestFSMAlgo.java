@@ -1590,7 +1590,11 @@ public class TestFSMAlgo {
 	 */
 	public static List<List<String>> buildList(String [][] data)
 	{
-		List<List<String>> result = new LinkedList<List<String>>();result.addAll(buildSet(data));
+		List<List<String>> result = new LinkedList<List<String>>();
+		for(String []seq:data)
+		{
+			result.add(Arrays.asList(seq));
+		}
 		return result;
 	}
 	

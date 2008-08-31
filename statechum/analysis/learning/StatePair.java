@@ -5,7 +5,7 @@ import edu.uci.ics.jung.graph.*;
 
 public class StatePair implements Comparable {
 	
-	private Vertex q, r;
+	private final Vertex q, r;
 	
 	public StatePair(Vertex q, Vertex r){
 		this.q = q;

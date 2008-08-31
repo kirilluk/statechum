@@ -50,7 +50,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		super(null);
 	}
 
-	protected int checkPath(FSMStructure expected, DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
+	protected int checkPath(FSMStructure expected, @SuppressWarnings("unused") DirectedSparseGraph model,List<String> question, @SuppressWarnings("unused")	final Object [] moreOptions)
 	{
 		int answer = WMethod.tracePath(expected, question);
 		return answer;
@@ -72,6 +72,7 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 		
 		RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(visFrame)
 		{
+			@Override
 			protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 			{
 				return checkPath(expected, g, question, moreOptions);
@@ -181,8 +182,8 @@ public class TestRpniLearner extends RPNIBlueFringeLearnerTestComponent
 	{
 		if (v.getUserDatum(JUConstants.ACCEPTED).toString().equalsIgnoreCase("true"))
 			return true;
-		else
-			return false;
+		
+		return false;
 	}
 
 	static protected PairScore constructPairScore(String a,String b, int score)

@@ -101,8 +101,8 @@ public class PTATestSequenceEngine
 		{
 			if (!isAccept())
 				return "REJECT";
-			else
-				return ""+ID+"("+fsmState+")";
+			
+			return ""+ID+"("+fsmState+")";
 		}
 	}
 	

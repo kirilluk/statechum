@@ -573,6 +573,10 @@ public class computeStateScores implements Cloneable {
 		public String toString(){
 			return "[ "+getQ().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getQ())+"), "+getR().getUserDatum(JUConstants.LABEL)+"("+TestRpniLearner.isAccept(getR())+") : "+score+","+compatibilityScore+" ]";
 		}
+
+		public int getAnotherScore() {
+			return compatibilityScore;
+		}
 	}
 
 	public Vertex getVertex(List<String> seq)
@@ -1230,7 +1234,7 @@ public class computeStateScores implements Cloneable {
 	{
 		if (id_mode == IDMode.POSITIVE_ONLY)
 			return "V"+vertPositiveID++;
-		else return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
+		return (accepted?"P"+vertPositiveID++:"N"+vertNegativeID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when

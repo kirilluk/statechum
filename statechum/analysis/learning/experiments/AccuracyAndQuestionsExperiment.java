@@ -234,6 +234,7 @@ public class AccuracyAndQuestionsExperiment {
 			final FSMStructure fsm = WMethod.getGraphData(graph);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
+				@Override
 				protected int checkWithEndUser(DirectedSparseGraph model,List<String> question, final Object [] moreOptions)
 				{
 					return tracePath(fsm, question);

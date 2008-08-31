@@ -13,12 +13,13 @@ import edu.uci.ics.jung.utils.*;
 public class RPNIBlueFringeLearnerTestComponent extends RPNIBlueFringeLearner {
 	
 
-	public RPNIBlueFringeLearnerTestComponent(Frame parentFrame){
-		super(parentFrame);
+	public RPNIBlueFringeLearnerTestComponent(Frame frame){
+		super(frame);
 	}
 	
 	
 	
+	@Override
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus) 	{
 		this.sPlus = sPlus;
 		this.sMinus = sMinus;

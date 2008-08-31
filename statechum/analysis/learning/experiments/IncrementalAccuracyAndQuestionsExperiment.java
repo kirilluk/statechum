@@ -9,6 +9,7 @@ import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,17 +34,18 @@ import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.io.GraphMLFile;
 import edu.uci.ics.jung.utils.UserData;
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
-import statechum.analysis.learning.DumpProgressDecorator;
-import statechum.analysis.learning.MatchProgressDecorator;
-import statechum.analysis.learning.ProgressDecorator;
+import statechum.Configuration.LEARNER;
 import statechum.analysis.learning.RPNIBlueFringeLearner;
 import statechum.analysis.learning.RPNIBlueFringeLearnerTestComponentOpt;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.computeStateScores;
 import statechum.analysis.learning.TestFSMAlgo.FSMStructure;
 import statechum.analysis.learning.computeStateScores.IDMode;
+import statechum.analysis.learning.observers.RecordProgressDecorator;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.xmachine.model.testset.*;
 import statechum.xmachine.model.testset.PTATestSequenceEngine.sequenceSet;
 import static statechum.xmachine.model.testset.WMethod.getGraphData;
@@ -52,10 +54,11 @@ import static statechum.xmachine.model.testset.WMethod.tracePath;
 public class IncrementalAccuracyAndQuestionsExperiment {
 
 	private final ExecutorService executorService;
+	private int ThreadNumber = 1; // the default for single-cpu systems.
 	
 	public IncrementalAccuracyAndQuestionsExperiment(String outputD)
 	{
-		int ThreadNumber = 1; // the default for single-cpu systems.
+		
 		String cpuNum = System.getProperty("threadnum");
 		if (cpuNum != null)
 		{
@@ -164,11 +167,12 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		public static Collection<List<String>> plus = null;
 		
 		public enum FileType { 
-			DATA {String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
-			TESTDATA {String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
-			LEARNT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_learnt"+".xml"; } }, 
-			MINUS_AND_TEST {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_mt"+".xml"; } }, 
-			RESULT {String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_result"+".txt"; } };
+			DATA {@Override	String getFileName(String prefix, String suffix) { return prefix+"_data"+suffix+".xml"; } }, 
+			TESTDATA {@Override	String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
+			LEARNT {@Override String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_learnt"+".xml"; } }, 
+			MINUS_AND_TEST {@Override String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_mt"+".xml"; } }, 
+			LOG {@Override String getFileName(String prefix, String suffix) { return prefix+"_log"+suffix+".xml"; } },
+			RESULT {@Override String getFileName(String prefix, @SuppressWarnings("unused") String suffix) { return prefix+"_result"+".txt"; } };
 			
 			abstract String getFileName(String prefix, String suffix);
 		};
@@ -211,6 +215,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 			final AtomicInteger atomicInt = new AtomicInteger(0);
 			RPNIBlueFringeLearnerTestComponentOpt l = new RPNIBlueFringeLearnerTestComponentOpt(null)
 			{
+				@Override
 				protected int checkWithEndUser(
 						@SuppressWarnings("unused")	DirectedSparseGraph model,
 						List<String> question, 
@@ -291,22 +296,23 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 
 
 			changeParametersOnComputeStateScores(l.getScoreComputer());
-			ProgressDecorator testDecorator = null;
+
+			RecordProgressDecorator testDecorator = null;
+			Configuration recordingConfig = Configuration.getDefaultConfiguration().copy();
+			recordingConfig.setLearnerToUse(LEARNER.LEARNER_BLUEFRINGE_DEC2007);
 			try {
-				//testDecorator = new DumpProgressDecorator(l,new FileWriter(getFileName(FileType.DATA)));
-				testDecorator = new MatchProgressDecorator(l,new FileReader(getFileName(FileType.DATA)));
+				String logfileName = FileType.LOG.getFileName(outputDir+"_"+renumberSeed+File.separatorChar+instanceID+"_"+(new File(inputFileName).getName())+"_"+recordingConfig.getLearnerToUse(),"");
+				testDecorator = new RecordProgressDecorator(l.getLearner(),new FileOutputStream(logfileName),1,recordingConfig,true);
+				//testDecorator = new MatchProgressDecorator(l,new FileReader(getFileName(FileType.DATA)));
 			} catch (IOException e) {
 				IllegalArgumentException ex = new IllegalArgumentException("failed to construct recording decorator: "+e.getMessage());ex.initCause(e);
 				throw ex;
 			}
 			
 			Collection<List<String>> testSet = wm.getFullTestSet();
-			testDecorator.handleLearnerEvaluationData(fsm, testSet);
-			testDecorator.init(plusPTA, minusPTA.getData());
+			testDecorator.writeLearnerEvaluationData(new LearnerEvaluationConfiguration(graph, testSet, recordingConfig,null));
 			changeParametersOnLearner(l);
-			learningOutcome = testDecorator.learnMachine();
-			testDecorator.close();
-
+			learningOutcome = testDecorator.learnMachine(plusPTA, minusPTA.getData());
 			l.setQuestionCounter(0);
 			FSMStructure learned = WMethod.getGraphData(learningOutcome);
 
@@ -406,7 +412,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		double size = samples.size();
 		List<String>[] sampleArray = (List<String>[])samples.toArray(new List[samples.size()]);
 		int currSize = current.size();
-		for(int i=currSize;i<(int)currSize+number&&i<size;i++){
+		for(int i=currSize;i<currSize+number&&i<size;i++){
 			current.add(sampleArray[i]);
 		}
 		return current;
@@ -466,7 +472,7 @@ public class IncrementalAccuracyAndQuestionsExperiment {
 		}
 		
 		@Override
-		protected void changeParametersOnLearner(RPNIBlueFringeLearner l)
+		protected void changeParametersOnLearner(@SuppressWarnings("unused") RPNIBlueFringeLearner l)
 		{
 		}
 		

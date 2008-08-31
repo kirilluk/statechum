@@ -332,7 +332,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static Collection<List<String>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<String>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)

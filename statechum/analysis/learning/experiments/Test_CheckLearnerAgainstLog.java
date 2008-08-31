@@ -30,16 +30,23 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.Pair;
-import statechum.analysis.learning.RPNILearner;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertexID.ComparisonKind;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.Test_LearnerComparator;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.MergeStates;
 
 /**
  * Makes sure a learner performs exactly as the record in a log.
@@ -91,11 +98,11 @@ public class Test_CheckLearnerAgainstLog
 	public void check(String logFileName) throws FileNotFoundException
 	{
 		// now a simulator to a learner
+		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
+			VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;// this is a major change in a configuration of learners, affecting the comparison between vertex IDs 
+
 		final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
 		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
-		final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
-		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
-		simulator.setNextElement(nextElement);
 
 		// Now we need to choose learner parameters based on the kind of file we are given
 		// (given the pace of Statechum evolution, I cannot expect all the correct options
@@ -111,20 +118,81 @@ public class Test_CheckLearnerAgainstLog
 				evalData.config.setUseAmber(true);evalData.config.setUseSpin(false);
 				evalData.config.setSpeculativeQuestionAsking(false);
 			}
-			else Assert.fail("unknown type of log file");
+			else 
+				if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
+				{// we'd like to make sure that the initial configuration is loaded with the correct configuration values.
+					evalData.config.setInitialIDvalue(1);
+					VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
+					evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
+					evalData.config.setSpeculativeQuestionAsking(false);
+					evalData.config.setDefaultInitialPTAName("Init");
+				}
+				else
+					Assert.fail("unknown type of log file");
+
+		final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
+		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
+		simulator.setNextElement(nextElement);
 		
-		RPNILearner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
+		Learner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
-			{
-				return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
-			}
+					{
+						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+					}
 		};
+
+		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
+		{// have to patch the learner.
+			
+			learner2 = new RPNIUniversalLearner(null,null,evalData.config) {
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.observers.DummyLearner#init(java.util.Collection, java.util.Collection)
+				 */
+				@Override
+				public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus,
+						@SuppressWarnings("unused")	Collection<List<String>> minus) 
+				{
+					return super.init(plus, minus);
+				}
+
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.RPNIUniversalLearner#ComputeQuestions(statechum.analysis.learning.PairScore, statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.rpnicore.LearnerGraph)
+				 */
+				@Override
+				public List<List<String>> ComputeQuestions(PairScore pair,	LearnerGraph original, LearnerGraph tempNew) 
+				{
+					return ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair,original,tempNew));
+				}
+
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.RPNIUniversalLearner#MergeAndDeterminize(statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.StatePair)
+				 */
+				@Override
+				public LearnerGraph MergeAndDeterminize(LearnerGraph original,	StatePair pair) 
+				{
+					return MergeStates.mergeAndDeterminize(original,pair);
+				}
+				
+				@Override
+				public Pair<Integer,String> CheckWithEndUser(
+						@SuppressWarnings("unused")	LearnerGraph model,
+						List<String> question, 
+						@SuppressWarnings("unused")	final Object [] moreOptions)
+					{
+						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+					}
+			};
+		    
+		}
+
 		new Test_LearnerComparator(learner2,simulator,false).learnMachine(initial.plus, initial.minus);
+		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
+			VertexID.comparisonKind = ComparisonKind.COMPARISON_NORM;// reset this one if needed.
 	}
 
 	protected final static String pathToLogFiles = "resources/nonsvn/logs";

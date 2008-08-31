@@ -259,7 +259,8 @@ public class LearnerGraph {
 	 */
 	public LearnerGraph(Graph g,Configuration conf)
 	{
-		config = conf;initEmpty();
+		config = conf;vertNegativeID = conf.getInitialIDvalue();vertPositiveID = conf.getInitialIDvalue();
+		initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		if (g.containsUserDatumKey(JUConstants.TITLE))
@@ -395,7 +396,7 @@ public class LearnerGraph {
 
 	public LearnerGraph(Configuration conf)
 	{
-		config = conf;
+		config = conf;vertNegativeID = conf.getInitialIDvalue();vertPositiveID = conf.getInitialIDvalue();
 		initPTA();
 	}
 
@@ -617,11 +618,9 @@ public class LearnerGraph {
 	 */
 	public static final Object syncObj = new Object();
 	
-	public static final int initialIDvalue = 1000;
-	
 	/** Important: when a graph is cloned, these should be cloned too in order to avoid creating duplicate vertices at some point in future. */
-	protected int vertPositiveID = initialIDvalue;
-	protected int vertNegativeID = initialIDvalue;
+	protected int vertPositiveID = 0;
+	protected int vertNegativeID = 0;
 
 	/** Generates vertex IDs. Since it modifies instance ID-related variables, it has to be synchronized. */
 	public synchronized VertexID nextID(boolean accepted)

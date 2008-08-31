@@ -146,7 +146,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 			{
 				temp.setName(learntGraphName+"_"+iterations);
 				updateGraph(temp);
-				questions = topLevelListener.ComputeQuestions(pair, ptaHardFacts, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+				questions = topLevelListener.ComputeQuestions(pair, scoreComputer	, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 			}
 			
 			Iterator<List<String>> questionIt = questions.iterator();

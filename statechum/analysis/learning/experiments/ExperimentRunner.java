@@ -55,6 +55,7 @@ public class ExperimentRunner
 		LEARNT {@Override String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
 		TESTDATA {@Override String getFileName(String prefix, String suffix) { return prefix+"_testdata"+suffix+".xml"; } }, 
 		MINUS_AND_TEST {@Override String getFileName(String prefix, String suffix) { return prefix+"_mt"+suffix+".xml"; } }, 
+		LOG {@Override String getFileName(String prefix, String suffix) { return prefix+"_log"+suffix+".xml"; } },
 		//CSV {String getFileName(String prefix, String suffix) { return "experiment_"+prefix+".csv"; } }, 
 		RESULT {@Override String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
 

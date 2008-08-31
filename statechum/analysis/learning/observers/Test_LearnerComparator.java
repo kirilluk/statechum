@@ -151,6 +151,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			ex = WMethod.checkM(what, with);
 		
+		//Assert.assertTrue(WMethod.sameStateSet(what,with));
 		if (ex != null && failureCode == null) failureCode = ex;
 	}
 	
@@ -168,7 +169,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
 	
-	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED}
+	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED, M_METHODEXIT}
 	
 	/** Next expected call. */
 	protected KIND_OF_METHOD expected = null;
@@ -242,6 +243,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			augmentData=null;// reset stored data
 		}
 
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
+
 	}
 
 	protected Thread secondThread = null;
@@ -277,6 +282,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				failureCode = new IllegalArgumentException("different CheckWithEndUser results "+cPair.firstElem+" v.s. "+result.firstElem+" and "+cPair.secondElem+" v.s. "+result.secondElem);
 			cPair =null;question=null;// reset stored data
 		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
 
 		return result;
 	}
@@ -327,6 +336,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			pairs =null;// reset stored data
 		}
 
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
+
 		return result;
 	}
 
@@ -359,9 +372,13 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			if (!qPair.getQ().getID().equals(pair.getQ().getID()) || !qPair.getR().getID().equals(pair.getR().getID()))
 					failureCode = new IllegalArgumentException("different ComputeQuestions pair "+qPair+" v.s. "+pair);
 			if (!questions.equals(result))
-				failureCode = new IllegalArgumentException("different ComputeQuestions questions");
+				failureCode = new IllegalArgumentException("different ComputeQuestions questions: \n"+questions+"\n v.s.\n"+result);
 			qPair =null;questions=null;// reset stored data
 		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
 
 		return result;
 	}
@@ -400,6 +417,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 
 			mPair =null;mGraph=null;// reset stored data
 		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
 		
 		return result;
 	}
@@ -428,6 +449,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 				failureCode = new IllegalArgumentException("different Restart mode");
 			rMode=null;// reset stored data
 		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
 	}
 
 	/** Not used by the simulator. */
@@ -464,6 +489,10 @@ public class Test_LearnerComparator extends LearnerDecorator {
 
 			iGraph=null;// reset stored data
 		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
 
 		return result;
 	}

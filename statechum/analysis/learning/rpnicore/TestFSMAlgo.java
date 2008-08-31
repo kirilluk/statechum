@@ -514,22 +514,7 @@ public class TestFSMAlgo {
 	@Test
 	public void testVertexIDEquals4()
 	{
-		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(idP5), new VertexID(idN5), new VertexID(VertKind.NEUTRAL,9));
-	}
-
-	/** Tests equality for VertexIDs with string and numerical IDs, checking that cached representation works. */
-	@Test
-	public void testVertexIDEquals_cached()
-	{
-		VertexID p=new VertexID(VertKind.POSITIVE,5), q=new VertexID(idP5), 
-		differentA=new VertexID(VertKind.POSITIVE,6), differentB=new VertexID(VertKind.NEUTRAL,9);
-		equalityTestingHelper(p, p, differentA, differentB);// at this point, numeric ID will have a textual representation added
-
-		equalityTestingHelper(p, q, differentA, differentB);
-		equalityTestingHelper(p, new VertexID(idP5), differentA, differentB);
-		equalityTestingHelper(new VertexID(idP5), q, differentA, differentB);
-		equalityTestingHelper(new VertexID(idP5), q, new VertexID(idP6), new VertexID(VertKind.POSITIVE,6));
-		equalityTestingHelper(new VertexID(idP5), q, new VertexID(idN5), new VertexID(VertKind.POSITIVE,6));
+		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(idN5), new VertexID(idP5));
 	}
 
 	/** Tests VertexID toString methods. */
@@ -551,8 +536,8 @@ public class TestFSMAlgo {
 		VertexID pA=new VertexID(VertKind.POSITIVE,5), pB=new VertexID(idP5),
 			qA = new VertexID(VertKind.POSITIVE,6);
 		checkLessHelper(pA,qA);
-		checkLessHelper(pB,qA);// now qA has a cached representation of its string value.
-		checkLessHelper(pB,qA);
+		checkLessHelper(qA,pB);// now qA has a cached representation of its string value.
+		checkLessHelper(qA,pB);
 		checkLessHelper(pA,qA);
 	}
 	
@@ -578,7 +563,7 @@ public class TestFSMAlgo {
 		
 		Assert.assertTrue("P10".compareTo("P5") < 0);
 		
-		Assert.assertTrue(pB.compareTo(new VertexID(idP5)) > 0);
+		Assert.assertTrue(pB.compareTo(new VertexID(idP5)) < 0);
 		
 		checkLessHelper(pA,qA);
 		checkLessHelper(pA,pB);

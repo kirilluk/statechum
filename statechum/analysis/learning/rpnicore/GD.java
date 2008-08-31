@@ -1124,7 +1124,7 @@ public class GD {
 				addAnnotation(fromVertex, label, Color.GREEN);
 			}
 
-			public void removeTransition(CmpVertex from, String origLabel, CmpVertex to) 
+			public void removeTransition(CmpVertex from, String origLabel, @SuppressWarnings("unused") CmpVertex to) 
 			{
 				CmpVertex fromVertex = getNewName(from);
 				addAnnotation(fromVertex, origLabel, Color.RED);

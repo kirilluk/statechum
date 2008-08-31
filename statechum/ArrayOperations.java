@@ -357,7 +357,7 @@ public class ArrayOperations {
       return true;
     }
 
-    public static Collection<List<String>> sort(Collection<List<String>> data)
+    public static List<List<String>> sort(Collection<List<String>> data)
     {
     	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
     	Collections.sort(result, new Comparator<List<String>>() {

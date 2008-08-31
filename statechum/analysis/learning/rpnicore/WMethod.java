@@ -891,6 +891,19 @@ public class WMethod {
 	{
 		return checkM(expected,expected.init, graph, graph.init);
 	}
+	
+	/** Checks if the two graphs have the same set of states. */
+	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
+	{
+		Set<CmpVertex> A=expected.transitionMatrix.keySet(), B=graph.transitionMatrix.keySet();
+		Set<CmpVertex> AmB = new TreeSet<CmpVertex>(),BmA=new TreeSet<CmpVertex>();
+		AmB.addAll(A);AmB.removeAll(B);BmA.addAll(B);BmA.removeAll(A);
+		if (!A.equals(B))
+		{
+			System.out.println("different sets of states,\nA-B="+AmB+"\nB-A="+BmA);
+		}
+		return A.equals(B);
+	}
 
 	/** Given an FSM and a W set, checks if it is a valid W set and throws if not.
 	 * 

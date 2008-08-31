@@ -64,11 +64,11 @@ public class DeterministicDirectedSparseGraph {
 		 * and a cached version of a numerical ID if not.
 		 */
 		private String idString; 
-		private VertKind kind;
-		private int idInteger;
+		private final VertKind kind;
+		private final int idInteger;
 		
 		/** Cached hash code. */
-		private int cachedHash;
+		private final int cachedHash;
 		
 		protected VertexID()
 		{// default values to ensure failure of operations
@@ -84,7 +84,8 @@ public class DeterministicDirectedSparseGraph {
 		public VertexID(String id)
 		{
 			if (id == null) throw new IllegalArgumentException("invalid id");
-			idString = id;kind=VertKind.NONE;idInteger=0;cachedHash = idString.hashCode();
+			idString = id;kind=VertKind.NONE;idInteger=0;
+			cachedHash = ~idString.hashCode(); // aims to ensure that "P5" and positive,5 have different hashes since we now consider them different.
 		}
 		
 		/** When XML files are loaded, IDs are always textual, however we'd like
@@ -193,7 +194,11 @@ public class DeterministicDirectedSparseGraph {
 		public static ComparisonKind comparisonKind = ComparisonKind.COMPARISON_NORM;
 		
 		public int compareTo(VertexID o) {
-			if (comparisonKind == ComparisonKind.COMPARISON_NORM && kind != VertKind.NONE && o.kind != VertKind.NONE)
+			if (comparisonKind == ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG) // Dec2007 compatibility mode
+				return idString.compareTo(o.idString);
+			
+			// normal comparison mode
+			if (kind != VertKind.NONE && o.kind != VertKind.NONE)
 			{// if both this one and the other ID are numeric, use a numeric comparison.
 				int kindDifference = kind.compareTo(o.kind);
 				if (kindDifference != 0)
@@ -202,14 +207,13 @@ public class DeterministicDirectedSparseGraph {
 				return idInteger - o.idInteger;				
 			}
 			
-			// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
-			//assignStringID_ifNeeded();
-			
-			// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
-			//o.assignStringID_ifNeeded();
+			int kindDifference = kind.compareTo(o.kind);
+			if (kindDifference != 0) // we should never compare textual representation of numbers to the actual numbers, because 
+				// it is easy to get into a nontransitive situation where init>P39>N1017>Init (Statechum verision 338)
+				return kindDifference;
 
 			int lenDifference = idString.length() - o.idString.length();
-			if (comparisonKind == ComparisonKind.COMPARISON_NORM && lenDifference !=0)
+			if (lenDifference !=0)
 				return lenDifference;
 			return idString.compareTo(o.idString);
 		}
@@ -235,18 +239,12 @@ public class DeterministicDirectedSparseGraph {
 				return false;
 			final VertexID other = (VertexID) obj;
 			
-			if (kind != VertKind.NONE && other.kind != VertKind.NONE)
-			{
-				if (kind != other.kind)
-					return false;
-				return idInteger == other.idInteger;
-			}
-			
-			// if this ID is numerical but we are attempting to compare it with a textual Id, add a text id.
-			assignStringID_ifNeeded();
-			// if this ID is textual but we are attempting to compare it with a numerical Id, add a text id to that ID.
-			other.assignStringID_ifNeeded();
+			if (kind != other.kind) // never compare integers with strings
+				return false;
 
+			if (kind != VertKind.NONE && other.kind != VertKind.NONE)
+				return idInteger == other.idInteger;
+			
 			return idString.equals(other.idString);
 		}
 		

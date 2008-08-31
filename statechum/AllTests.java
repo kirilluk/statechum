@@ -27,9 +27,9 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.BasicTests.class,
 	statechum.AllTests.GraphTests.class,
+	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.LinearTests.class
 })
 public class AllTests {

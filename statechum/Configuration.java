@@ -352,6 +352,8 @@ public class Configuration implements Cloneable
 		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
 		result = prime * result + (useAmber?  1231 : 1237);
 		result = prime * result + (useSpin?  1231 : 1237);
+		result = prime * result + initialIDvalue;
+		
 		return result;
 	}
 
@@ -444,6 +446,9 @@ public class Configuration implements Cloneable
 			return false;
 		if (useSpin != other.useSpin)
 			return false;
+		if (initialIDvalue != other.initialIDvalue)
+			return false;
+		
 		return true;
 	}
 
@@ -799,6 +804,19 @@ public class Configuration implements Cloneable
 	public void setLearnerToUse(LEARNER learner)
 	{
 		learnerToUse = learner;
+	}
+	
+	/** The number to start numbering vertices in a PTA from. */
+	protected int initialIDvalue = 1000;
+	
+	public int getInitialIDvalue()
+	{
+		return initialIDvalue;
+	}
+	
+	public void setInitialIDvalue(int newValue)
+	{
+		initialIDvalue = newValue;
 	}
 	
 	/** Whether a method is get.../is ..., or set...  */

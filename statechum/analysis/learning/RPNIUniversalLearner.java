@@ -134,6 +134,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
+			updateGraph(temp);
 			if (scoreComputer.config.getUseSpin() && !SpinUtil.check(temp.paths.getGraph(), ltl)) {
 				List<String> counterexample = new LinkedList<String>();
 				counterexample.addAll(SpinUtil.getCurrentCounterExample());

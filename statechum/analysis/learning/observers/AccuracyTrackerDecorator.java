@@ -74,6 +74,10 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 		return returnString;
 	}
 	
+	public LearnerGraph learnMachine(Collection<List<String>> sPlus,  Collection<List<String>> sMinus){
+		init(sPlus,sMinus);
+		return learnMachine();
+	}
 
 	public LearnerGraph learnMachine()
 	{

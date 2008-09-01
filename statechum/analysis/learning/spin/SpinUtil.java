@@ -186,7 +186,7 @@ public class SpinUtil {
 				continue;
 			}
 			if(numAcceptingSuccessors(v)==0){
-				sw.write(currentState + ": input=50000; goto end;\n");
+				sw.write(currentState + ": goto end;\n"); //input=50000; 
 				continue;
 			}
 			else{
@@ -300,18 +300,23 @@ public class SpinUtil {
 					proc.getInputStream()));
 			while ((line = input.readLine()) != null) {
 				SpinData.add(line);
+				System.out.println(line);
 				if(line.contains("trail ends after"))
 					break;
 				if (line.contains("<valid end state>")&&line.contains("proc  1")){
-					counterExample.add("Dummy");
+					counterExample.add("Dummy"); //not sure why I was adding the dummy
 					break;
 				}
 				else if (line.contains("[input")) {
 					int inputIndex = line.indexOf("[input =") + 8;
 					int closingBracket = line.indexOf("]", inputIndex);
-					counterExample.add(inverseFunctionMap.get(Integer
+					String function = inverseFunctionMap.get(Integer
 							.valueOf(line.substring(inputIndex,
-									closingBracket).trim())));
+									closingBracket).trim()));
+					if(function !=null)
+						counterExample.add(function);
+					else 
+						counterExample.add("dummy");
 				} 
 				else if (line.contains("<<<<<"))
 					break;

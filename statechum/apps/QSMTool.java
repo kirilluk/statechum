@@ -82,7 +82,7 @@ public class QSMTool {
 		pnv.startLearner(null);
 	}
 
-	private static void process(String fileString, Set<List<String>> sPlus,
+	public static void process(String fileString, Set<List<String>> sPlus,
 			Set<List<String>> sMinus, Set<String> ltl) {
 		if (fileString.trim().equalsIgnoreCase(""))
 			return;

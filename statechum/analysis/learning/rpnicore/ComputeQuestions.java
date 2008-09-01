@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -381,17 +382,22 @@ public class ComputeQuestions {
 	 */
 	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
+		List<List<String>> result = null;
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
-			return computeQS_orig(new StatePair(merged.getStateLearnt(),merged.getStateLearnt()), original, merged);
-		
-		QuestionConstructor qConstructor=null;
-		switch(original.config.getQuestionGenerator())
+			result = computeQS_orig(new StatePair(merged.getStateLearnt(),merged.getStateLearnt()), original, merged);
+		else
 		{
-			case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
-			case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
-			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
-			case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
+			QuestionConstructor qConstructor=null;
+			switch(original.config.getQuestionGenerator())
+			{
+				case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
+				case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
+				case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
+				case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
+			}
+			result = computeQS_general(pair, original, merged, qConstructor);
 		}
-		return computeQS_general(pair, original, merged, qConstructor);
+		
+		return ArrayOperations.sort(result);
 	}
 }

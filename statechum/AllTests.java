@@ -30,7 +30,8 @@ import org.junit.runners.Suite;
 	statechum.AllTests.BasicTests.class,
 	statechum.AllTests.GraphTests.class,
 	statechum.AllTests.LearnerTests.class,
-	statechum.AllTests.LinearTests.class
+	statechum.AllTests.LinearTests.class,
+	statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
 })
 public class AllTests {
 	@RunWith(Suite.class)
@@ -55,8 +56,7 @@ public class AllTests {
 		statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
 		statechum.analysis.learning.observers.TestGraphSeries.class,
 		statechum.analysis.learning.observers.TestRecorderIntegration.class,
-		statechum.analysis.learning.observers.TestAutoAnswers.class,
-		statechum.analysis.learning.experiments.Test_CheckLearnerAgainstLog.class
+		statechum.analysis.learning.observers.TestAutoAnswers.class
 	})
 	public static class ObserversTests {// all tests are included in the annotation.
 	}

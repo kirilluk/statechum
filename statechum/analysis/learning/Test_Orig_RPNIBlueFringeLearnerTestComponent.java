@@ -44,7 +44,6 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> argSPlus, Collection<List<String>> argSMinus) 	{
 		this.sPlus = argSPlus;
 		this.sMinus = argSMinus;
-		setAutoOracle();
 		model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 		DeterministicDirectedSparseGraph.findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
@@ -71,7 +70,6 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 				List<String> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
 				Pair<Integer,String> answer = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
-				this.questionCounter++;
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");
@@ -80,7 +78,6 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 				Vertex tempVertex = getVertex(temp, question);
 				if(answer.firstElem == AbstractOracle.USER_ACCEPTED){
 					sPlus.add(question);
-					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <yes>");
 					
 					if(!DeterministicDirectedSparseGraph.isAccept(tempVertex))
 					{
@@ -92,7 +89,6 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));sMinus.add(subAnswer);
 					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
 
-					if (ans != null) System.out.println(howAnswerWasObtained+question.toString()+ " <no> at position "+answer.firstElem+", element.firstelem "+question.get(answer.firstElem));
 					if((answer.firstElem==question.size()-1)&&!DeterministicDirectedSparseGraph.isAccept(tempVertex)){
 						continue;
 					}

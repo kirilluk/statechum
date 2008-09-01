@@ -25,21 +25,25 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.algorithms.shortestpath.*;
 
+import statechum.analysis.learning.observers.AutoAnswers;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.*;
 import statechum.analysis.learning.util.*;
-import statechum.analysis.learning.spin.*;
 
 public class PickNegativesVisualiser extends Visualiser {
     /**
-	 *  ID for serialization.
+	 *  ID for serialisation.
 	 */
 	private static final long serialVersionUID = 4842027206398108774L;
 	
-	RPNILearnerInstrumented l =  null;
+	/** This one does the learning. */
+	RPNILearner innerLearner =  null;
+	
+	/** This is a decorator. */
+	Learner autoAnswersDecorator = null;
 	
 	protected SplitFrame split = null;
-	protected AbstractOracle ans = null;
 	
 	public PickNegativesVisualiser()
 	{
@@ -47,15 +51,10 @@ public class PickNegativesVisualiser extends Visualiser {
 	}
 	
 	
-	public PickNegativesVisualiser(SplitFrame frm, AbstractOracle an)
+	public PickNegativesVisualiser(SplitFrame frm)
 	{
 		super();
-		split = frm;ans = an;
-	}
-	
-	public PickNegativesVisualiser(AbstractOracle an){
-		super();
-		ans = an;
+		split = frm;
 	}
 	
 	/** The learner thread. */
@@ -97,6 +96,7 @@ public class PickNegativesVisualiser extends Visualiser {
     {
 		sPlus=plus;sMinus=minus;ltlFormulae=ltl;config=conf;
     }
+	
 	public void startLearner(final ThreadStartedInterface whomToNotify)
     {
 	   	learnerThread = new Thread(new Runnable()
@@ -104,18 +104,18 @@ public class PickNegativesVisualiser extends Visualiser {
 			public void run()
 			{
 				if (ltlFormulae != null)
-					l = new BlueFringeSpinLearner(PickNegativesVisualiser.this, ltlFormulae,config);
+					innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, ltlFormulae,config);
 				else
 					if (split != null) {
-		        		l = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
+						innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
 		        	}
 		        	else
-		        		l = new RPNIBlueFringeLearner(PickNegativesVisualiser.this, config);
+		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, null,config);
 				
-	        	l.addObserver(PickNegativesVisualiser.this);
-	        	l.setAnswers(ans);
+				innerLearner.addObserver(PickNegativesVisualiser.this);
+				autoAnswersDecorator=new AutoAnswers(innerLearner);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
-        		DirectedSparseGraph learnt = l.learnMachine(sPlus, sMinus).paths.getGraph();
+        		DirectedSparseGraph learnt = autoAnswersDecorator.learnMachine(sPlus, sMinus).paths.getGraph();
         		if(config.isGenerateTextOutput())
         			OutputUtil.generateTextOutput(learnt);
         		if(config.isGenerateDotOutput())
@@ -140,9 +140,9 @@ public class PickNegativesVisualiser extends Visualiser {
 			negatives = negs;
 		}
 		
-		public LearnerRestarter(String negLTL)
+		public LearnerRestarter(String argNegLTL)
 		{
-			this.negLTL = negLTL;
+			this.negLTL = argNegLTL;
 		}
 		
 		public void run() {
@@ -157,11 +157,7 @@ public class PickNegativesVisualiser extends Visualiser {
 						sMinus.add(negatives);
 					if(negLTL!=null)
 						ltlFormulae.add(negLTL);
-					Configuration config = Configuration.getDefaultConfiguration();
-					boolean active = true;
-					if(l.getConfig().getMinCertaintyThreshold()>200000) //NW: can we get rid of this?
-						active = false;
-					setSimpleConfiguration(config, active, l.getConfig().getMinCertaintyThreshold());
+
 					startLearner(this);
 					synchronized (this) {
 						while(!learnerStarted)
@@ -185,18 +181,18 @@ public class PickNegativesVisualiser extends Visualiser {
 		
 	}
 	
-	public void mouseReleased(MouseEvent e) {
+	@Override
+	public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
-		if(l instanceof BlueFringeSpinLearner){
-			BlueFringeSpinLearner s = (BlueFringeSpinLearner) l;
+		if(ltlFormulae != null){
 			String newLTL = JOptionPane.showInputDialog("New LTL formula:");
-			l.terminateLearner();
+			innerLearner.terminateUserDialogueFrame();
 			new Thread(new LearnerRestarter(newLTL),"learner restarter").start();
 		}else{
 			final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
-			l.terminateLearner();
+			innerLearner.terminateUserDialogueFrame();
 			// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
 			// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch the learner.
 			new Thread(new LearnerRestarter(negatives),"learner restarter").start();

@@ -19,7 +19,6 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.oracles;
 
 import java.awt.Frame;
-import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,29 +29,26 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
-public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
+public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 	
 
 	
-	public RPNIBlueFringeSootLearner(Frame parent){
-		super(parent,Configuration.getDefaultConfiguration());
+	public RPNIBlueFringeSootLearner(Frame parent, Configuration conf){
+		super(parent,null,conf);
 	}
 	
 	@Override
 	public LearnerGraph learnMachine()
 	{
-		SootCallGraphOracle oracle = (SootCallGraphOracle)ans;
+		SootCallGraphOracle oracle = new SootCallGraphOracle();
 		Map<Integer, AtomicInteger> whichScoresWereUsedForMerging = new HashMap<Integer,AtomicInteger>(),
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
 		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
-		String pairsMerged = "";
-		StringWriter report = new StringWriter();
-		counterAccepted =0;counterRejected =0;counterRestarted = 0;counterEmptyQuestions = 0;report.write("\n[ PTA: "+scoreComputer.paths.getStatistics(false)+" ] ");
 		setChanged();
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
-		int plusSize = origPlusSize, minusSize = origMinusSize, iterations = 0;
+		int iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
@@ -63,8 +59,6 @@ public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 			if(shouldAskQuestions(score))
 			{
 				questions = topLevelListener.ComputeQuestions(pair, scoreComputer, temp);
-				if (questions.isEmpty())
-					++counterEmptyQuestions;
 			} 
 			boolean restartLearning = false;
 			Iterator<List<String>> questionIt = questions.iterator();
@@ -72,21 +66,17 @@ public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
 				Pair<Integer,String> answer = CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
-				this.questionCounter++;
 				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
 					String to = question.get(answer.firstElem);
-					newPTA.augmentPairs(new StringPair(from, to), false);
-					++counterRejected;
+					newPTA.sootsupport.augmentPairs(new StringPair(from, to), false);
 					if( (answer.firstElem < question.size()-1) || tempVertex.isAccept()){
-						pairsMerged=pairsMerged+"ABOUT TO RESTART because accept vertex was rejected for a pair "+pair+" ========\n";
 						restartLearning = true;break;
 					}
 				}
 				else if(answer.firstElem == AbstractOracle.USER_ACCEPTED)
 				{
-					++counterAccepted;
-					topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,question, true,null);++plusSize;
+					topLevelListener.AugmentPTA(newPTA,RestartLearningEnum.restartHARD,question, true,null);
 				}
 				else 
 						throw new IllegalArgumentException("unexpected user choice");
@@ -98,8 +88,7 @@ public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				
 				scoreComputer.clearColours();
-				setChanged();++counterRestarted;
-				pairsMerged=pairsMerged+"========== RESTART "+counterRestarted+" ==========\n";
+				setChanged();
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
 				{
@@ -116,7 +105,6 @@ public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 				// the original PTA which will be modified as a result of new sequences being added to it.
 				// temp is different too, hence there is no way for me to compute compatibility score here.
 				// This is hence computed inside the obtainPair method.
-				pairsMerged=pairsMerged+pair+" questions: "+questions.size()+"\n";
 				
 				// keep going with the existing model
 				scoreComputer = temp;
@@ -133,13 +121,6 @@ public class RPNIBlueFringeSootLearner extends	RPNIBlueFringeLearner {
 			
 			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
-		report.write("\n[ Questions: "+counterAccepted+" accepted "+counterRejected+" rejected resulting in "+counterRestarted+ " restarts; "+counterEmptyQuestions+" empty sets of questions ]\n[ Learned automaton: "+scoreComputer.paths.getStatistics(true)+" ] ");
-		report.write("\n[ final sets of questions, plus: "+plusSize+" minus: "+minusSize+" ] ");
-		report.write("\n[ Pair scores to iteration numbers:"+pairScoresAndIterations(scoresToIterations,"MERGED-ITERATIONS"));
-		report.write("\n[ Restart scores to iteration numbers:"+pairScoresAndIterations(restartsToIterations,"RESTART-ITERATIONS"));
-		report.write("\n[ Pairs merged (score-number of times):"+HistogramToSeries(whichScoresWereUsedForMerging,"MERGED"));
-		report.write("\n[ Pairs restarted (score-number of times):"+HistogramToSeries(restartScoreDistribution,"RESTARTED"));
-		report.write("\n Pair merge details: \n"+pairsMerged);
 		//DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
 		updateGraph(scoreComputer);
 		return scoreComputer;

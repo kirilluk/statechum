@@ -47,6 +47,7 @@ import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -114,7 +115,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		for(String [] path:minus)
 			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
 		// Visualiser.getVisualiser()
-		RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,testConfig)
+		Learner l = new RPNIUniversalLearner(null,null,testConfig)
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(

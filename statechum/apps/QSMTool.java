@@ -65,7 +65,7 @@ public class QSMTool {
 		}
 		// new PickNegativesVisualiser(new
 		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
-		Configuration config = Configuration.getDefaultConfiguration();
+		Configuration config = Configuration.getDefaultConfiguration().copy();
 		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
 		if(textoutput) config.setGenerateTextOutput(true);

@@ -1070,7 +1070,7 @@ public class ExperimentRunner
 			serialisedExperiment = File.createTempFile("experiment", ".xml", new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)));
 			XMLEncoder encoder = new XMLEncoder(new FileOutputStream(serialisedExperiment));
 			encoder.writeObject(this);encoder.close();
-
+			int learnerCounter = 1;
 			int failures = -1, attempts =isForked()?0:restarts-1;// if we start under debugger, only run learner once.
 			while(failures != 0 && attempts++<restarts)
 			{
@@ -1092,6 +1092,7 @@ public class ExperimentRunner
 					if (isForked())
 					{// run the JVM and wait for it to terminate
 						Process jvm = Runtime.getRuntime().exec(strArgs);// run every few graphs in a separate JVM
+						System.out.println("started learner process "+learnerCounter++);
 			    		dumpStreams(jvm);
 			    		try {
 							jvm.waitFor();

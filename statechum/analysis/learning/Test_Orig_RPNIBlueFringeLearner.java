@@ -56,7 +56,7 @@ import edu.uci.ics.jung.utils.UserData;
  * unit level, hence methods supporting logging for integration testing purpose
  * are not implemented. 
  */
-public class Test_Orig_RPNIBlueFringeLearner extends RPNILearnerInstrumented {
+public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	
 	public Test_Orig_RPNIBlueFringeLearner(Frame parent, Configuration c) {
 		super(parent, c);
@@ -260,18 +260,17 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearnerInstrumented {
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
 					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,new Object[0]);// zero means "yes", everything else is "no"
-					questionCounter++;
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
 					if(response.firstElem == AbstractOracle.USER_ACCEPTED){
 						sPlus.add(question);
-						System.out.println(howAnswerWasObtained+question+ " <yes>");
+						System.out.println(question+ " <yes>");
 						if(accepted == false)// KIRR: how can this be true? If it were so, there would be no questions to ask
 							return learnMachine(sPlus,sMinus);
 					}
 					else{
 						sMinus.add(question.subList(0, response.firstElem));
-						System.out.println(howAnswerWasObtained+question+ " <no>");
+						System.out.println(question+ " <no>");
 						if(accepted == true){// KIRR: this cannot be false either
 							return learnMachine(sPlus,sMinus);
 						}

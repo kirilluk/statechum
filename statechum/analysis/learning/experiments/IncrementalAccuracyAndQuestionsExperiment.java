@@ -28,7 +28,7 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNILearner;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
@@ -74,7 +74,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  
-			RPNILearner learner = new RPNIBlueFringeLearner(null,config)
+			RPNILearner learner = new RPNIUniversalLearner(null,null,config)
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(

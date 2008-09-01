@@ -162,7 +162,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	
 	/** Cancels a dialog, if present. With no dialog, learner thread will terminate within a reasonable amount of time.
 	 */
-	public void terminateLearner()
+	public void terminateUserDialogueFrame()
 	{
 		assert(SwingUtilities.isEventDispatchThread());
 		if (dialog != null && jop != null && dialog.isVisible())

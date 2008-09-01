@@ -36,7 +36,7 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.AbstractOracle;
-import statechum.analysis.learning.RPNIBlueFringeLearner;
+import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
@@ -106,7 +106,7 @@ public class TestRecorderIntegration {
 			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
 		for(String [] path:minus)
 			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
-		RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,testConfig)
+		Learner l = new RPNIUniversalLearner(null,null,testConfig)
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -159,7 +159,7 @@ public class TestRecorderIntegration {
 				Assert.assertEquals(testSet, eval1.testSet);
 				Assert.assertEquals(expected.config, testConfig);
 	
-				RPNIBlueFringeLearner learner2 = new RPNIBlueFringeLearner(null,expected.config)
+				Learner learner2 = new RPNIUniversalLearner(null,null,expected.config)
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
@@ -176,7 +176,7 @@ public class TestRecorderIntegration {
 
 			case RECORDERTEST_LL:
 			{// now two learners
-				RPNIBlueFringeLearner learnerA = new RPNIBlueFringeLearner(null,testConfig)
+				Learner learnerA = new RPNIUniversalLearner(null,null,testConfig)
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
@@ -187,7 +187,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 					}
 				};
-				RPNIBlueFringeLearner learnerB = new RPNIBlueFringeLearner(null,testConfig)
+				Learner learnerB = new RPNIUniversalLearner(null,null,testConfig)
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(

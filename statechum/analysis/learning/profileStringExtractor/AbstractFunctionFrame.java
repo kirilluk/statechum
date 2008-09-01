@@ -189,6 +189,9 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		return panel;
 	}
 	
+	/** Configuration passed to a learner. */
+	Configuration config = Configuration.getDefaultConfiguration().copy();
+	
 	public void actionPerformed(ActionEvent e){
 		if(e.getActionCommand().equals(buttonRemove)){
 			String name = names.getSelectedValue().toString();
@@ -213,30 +216,15 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
-				Configuration config = Configuration.getDefaultConfiguration();
+				
 				PickNegativesVisualiser.setSimpleConfiguration(config, true,0);
-				new PickNegativesVisualiser(split,ans).construct(sPlus, new HashSet<List<String>>(),null,config);
+				new PickNegativesVisualiser(split).construct(sPlus, new HashSet<List<String>>(),null,config);
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
 				return;
 			}
 		}
-	}
-
-	/** Stores recorded answers. */
-	protected StoredAnswers ans = null;
-	
-	/** Makes it possible to answer questions automatically. 
-	 * @throws IOException if thrown by the StoredAnswers
-	 * @throws FileNotFoundException if file requested was not found.
-	 */
-	public void loadAnswers(File file) throws FileNotFoundException, IOException
-	{
-		if (ans == null)
-			ans = new StoredAnswers();
-		
-		ans.setAnswers(new FileReader(file));
 	}
 
 	public Set<String[]> getStrings(Set sPlus){

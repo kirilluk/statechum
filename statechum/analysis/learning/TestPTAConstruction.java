@@ -135,7 +135,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.scoreComputer.paths.getGraph();
@@ -149,7 +149,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
@@ -165,7 +165,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)
@@ -258,7 +258,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
 			actualC = l.scoreComputer.paths.getGraph();
@@ -272,7 +272,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
@@ -288,7 +288,7 @@ public class TestPTAConstruction
 		try
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();
-			RPNIBlueFringeLearner l = new RPNIBlueFringeLearner(null,config);
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,null,config);
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)

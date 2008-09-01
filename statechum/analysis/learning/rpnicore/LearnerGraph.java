@@ -30,7 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -44,7 +43,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.oracles.*;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -225,7 +223,6 @@ public class LearnerGraph {
 	 * text IDs share a namespace, it is possible that an existing ID
 	 * the two will have the same string as the previously-loaded text.
 	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and anohter way via ant
-	 * TODO: add textual IDs to tests which are being run under parameterised JUnit framework.  
 	 */
 	protected void setIDNumbers()
 	{
@@ -252,6 +249,7 @@ public class LearnerGraph {
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
 	final CachedData learnerCache = new CachedData(this);
+	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
 	
 	/** Initialises the class used to compute scores between states.
 	 *
@@ -410,70 +408,6 @@ public class LearnerGraph {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	/**
-	 * Augment every occurrence of the first label in the pair in the PTA
-	 * with an edge to the second label in the pair, that is either accepted or not
-	 */
-	public void augmentPairs(StringPair pair, boolean accepted){
-		Collection<CmpVertex> fromVertices = findVertices(pair.getFrom());
-		for (CmpVertex vertex : fromVertices) {
-			Collection<List<String>> tails = getTails(vertex, new ArrayList<String>(), new HashSet<List<String>>());
-			for (List<String> list : tails) {
-				addNegativeEdges(vertex, list, pair, accepted);
-			}
-		}
-	}
-	
-	private void addNegativeEdges(CmpVertex fromVertex,List<String> tail, StringPair pair, boolean accepted){
-		Stack<String> callStack = new Stack<String>();
-		addVertex(fromVertex, accepted, pair.getTo());
-		CmpVertex currentVertex = fromVertex;
-		for(int i=0;i<tail.size();i++){
-			String element = tail.get(i);
-			currentVertex = transitionMatrix.get(currentVertex).get(element);
-			if(element.equals("ret")&&!callStack.isEmpty()){
-				callStack.pop();
-				if(callStack.isEmpty())
-					addVertex(currentVertex, accepted, pair.getTo());
-			}
-			else if (!element.equals("ret"))
-				callStack.push(element);
-			else if (element.equals("ret")&&callStack.isEmpty())
-				return;
-		}
-	}
-	
-	private Collection<List<String>> getTails(CmpVertex vertex, ArrayList<String> currentList, Collection<List<String>> collection){
-		Map<String,CmpVertex> successors = transitionMatrix.get(vertex);
-		if(successors.isEmpty()){
-			collection.add(currentList);
-			return collection;
-		}
-
-		Iterator<String> keyIt = successors.keySet().iterator();
-		while(keyIt.hasNext()){
-			String key = keyIt.next();
-			currentList.add(key);
-			collection.addAll(getTails(successors.get(key),currentList,collection));
-		}
-		return collection;
-	}
-	
-	/**
-	 *returns set of vertices that are the destination of label
-	 */
-	private Collection<CmpVertex> findVertices(String label)
-	{
-		Collection<CmpVertex> vertices = new HashSet<CmpVertex>();
-		Iterator<Map<String, CmpVertex>> outgoingEdgesIt = transitionMatrix.values().iterator();
-		while(outgoingEdgesIt.hasNext()){
-			Map<String,CmpVertex> edges = outgoingEdgesIt.next();
-			if(edges.keySet().contains(label))
-				vertices.add(edges.get(label));
-		}
-		return vertices;
 	}
 			
 	public CmpVertex getVertex(List<String> seq)

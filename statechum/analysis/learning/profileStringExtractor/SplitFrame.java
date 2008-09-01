@@ -21,8 +21,6 @@ package statechum.analysis.learning.profileStringExtractor;
 import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.*;
 
 import javax.swing.*;
@@ -92,14 +90,8 @@ public class SplitFrame extends JFrame implements ActionListener{
 		this.setTree(methodTree);
 		frame.setFilesToHandlers(ex.getFileToHandler());
 		frame.readFromFile(new File(resourcesDir+"jhotdraw"));
-		if (args.length > 1)
-		{
-				try {
-					frame.loadAnswers(new File(resourcesDir+args[1]));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-		}
+		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
+		if (AutoName != null) frame.config.setAutoAnswerFileName(AutoName);
 		frame.actionPerformed(new ActionEvent(this,ActionEvent.ACTION_PERFORMED,AbstractFunctionFrame.buttonInferMachine));
 	}
 	
@@ -241,7 +233,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 		}
 	}
 	
-	public Set<String[]> addTest(Set sPlus){
+	public Set<String[]> addTest(Set<List<String>> sPlus){
 		Set<String[]> set = null;
 		JFileChooser fc = new JFileChooser();
 		fc.setMultiSelectionEnabled(false);
@@ -273,6 +265,7 @@ public class SplitFrame extends JFrame implements ActionListener{
 		methodList.setListData(pathToStrings());
 	}
 	
+	@Override
 	public void dispose(){
 		super.dispose();
 		frame.dispose();

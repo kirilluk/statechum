@@ -67,7 +67,7 @@ public class IterativeEvaluatorExperiment {
 			//config.setKlimit(2);
 			//config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 			config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
-			Learner l = new AccuracyTrackerDecorator(new RPNIBlueFringeLearner(null,config){
+			Learner l = new AccuracyTrackerDecorator(new RPNIUniversalLearner(null,null,config){
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,

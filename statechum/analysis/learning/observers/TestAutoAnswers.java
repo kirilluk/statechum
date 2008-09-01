@@ -42,33 +42,48 @@ public class TestAutoAnswers {
 	private String partA = 				
 		RPNILearner.QUESTION_USER+"[c, a, c] <no> at position 2, element c\n"+
 		RPNILearner.QUESTION_USER+"[c, a, b, p, a] <no> at position 2, element b\n"+
+		RPNILearner.QUESTION_USER+"[c, b, b] <no> at position 2, element b\n"+
 		RPNILearner.QUESTION_USER+"[c, b, p, e] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[c, a, p, a] <no> at position 2, element p\n"+
 		RPNILearner.QUESTION_USER+"[c, p, a] <no> at position 1, element p\n"+
 		RPNILearner.QUESTION_USER+"[p, a] <no> at position 0, element p\n"+
 		RPNILearner.QUESTION_USER+"[e, c, b, p] <yes>\n"+
+		RPNILearner.QUESTION_USER+"[e, c, e, c] <yes>\n"+
+		RPNILearner.QUESTION_USER+"[e, a] <no> at position 1, element a\n"+
 		RPNILearner.QUESTION_USER+"[e, p] <no> at position 1, element p\n",
 		partB = 
 			RPNILearner.QUESTION_USER+"[e] <yes>\n"+
 			RPNILearner.QUESTION_USER+"[e, p, a] <no> at position 1, element p\n"+
 			RPNILearner.QUESTION_USER+"[e, a, a] <no> at position 1, element a\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, a] <yes>\n"+
+			RPNILearner.QUESTION_USER+"[e, c, b, c] <no> at position 3, element c\n"+
+			RPNILearner.QUESTION_USER+"[c, e, c] <yes>\n"+
+			RPNILearner.QUESTION_USER+"[e, c] <yes>\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, c] <no> at position 3, element c\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, p] <no> at position 3, element p\n"+
 			RPNILearner.QUESTION_USER+"[e, c, a, b] <no> at position 3, element b\n",
 
 	partC = 
 		RPNILearner.QUESTION_USER+"[e, c, a, e, c] <yes>\n"+
+		RPNILearner.QUESTION_USER+"[c, b, c] <no> at position 2, element c\n"+
 		RPNILearner.QUESTION_USER+"[e, c, c] <no> at position 2, element c\n"+
 		RPNILearner.QUESTION_USER+"[e, c, p] <no> at position 2, element p\n"+
+		RPNILearner.QUESTION_USER+"[e, c, b, b] <no> at position 3, element b\n"+
 		RPNILearner.QUESTION_USER+"[e, c, b, p, a] <no> at position 4, element a\n"+
 		RPNILearner.QUESTION_USER+"[e, c, b, p, e] <yes>\n"+
+		RPNILearner.QUESTION_USER+"[e, c, b, p, e, e] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[e, b] <no> at position 1, element b\n"+
 		RPNILearner.QUESTION_USER+"[e, e] <yes>\n";	
-		
+	
+	// The machine I'm talking of is the following:
+	// A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n
+	// B-e->A\nC-e->A\nD-e->A\nE-e->A\nF-e->A\nG-e->A\n
+	
 	@Test
 	public void testAuto0()
 	{
+		//Visualiser.updateFrame(new LearnerGraph(TestFSMAlgo.buildGraph("A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n"+
+		//"B-e->A\nC-e->A\nD-e->A\nE-e->A\nF-e->A\nG-e->A\n","testAutoAnswers0"),Configuration.getDefaultConfiguration()),null);
 		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);

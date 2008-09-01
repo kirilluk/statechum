@@ -17,7 +17,10 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.observers;
 
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+
 import java.io.FileNotFoundException;
+import java.util.HashMap;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -26,37 +29,58 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.WMethod;
 
 /**
  * @author kirill
  *
  */
 public class Test_CheckComputeQuestions {
-	
 	public static void main(@SuppressWarnings("unused") String [] args)
+	{
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->A-b->B", "testTestGeneration4"),Configuration.getDefaultConfiguration());
+		System.out.println("W set is "+WMethod.computeWSet_reducedmemory(fsm));
+		
+			HashMap<String,Integer> map = new HashMap<String,Integer>();
+			map.put("b", 1);
+			map.put("a", 0);
+			map.put("c", 3);
+			System.out.println("a".hashCode()+" "+"b".hashCode());
+			System.out.println("b,a map is : "+map);
+		/*
+		String A="A",B="B";
+		
+		System.out.println(A.hashCode()+" "+B.hashCode());
+		
+		HashMap<String,String> m = new HashMap<String,String>();
+		m.put(A, A);m.put(B, B);
+		System.out.println(m);
+		*/
+	}
+	public static void mainA(@SuppressWarnings("unused") String [] args)
 	{
 		Configuration evalData = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph original = LearnerGraph.loadGraph("00000010_ELEM_MERGEANDDETERMINIZE", evalData); 
 		System.out.println(original);
 	}
 	
-	public static void mainA(@SuppressWarnings("unused") String [] args)
+	public static void mainB(@SuppressWarnings("unused") String [] args)
 	{
 		VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
 
 		LearnerSimulator simulator;
 		try {
-			simulator = new LearnerSimulator(new java.io.FileInputStream("/home/kirill/workspace/XMachineTool/resources/nonsvn/logs/2_25Inputs_75_1.xml_LEARNER_BLUEFRINGE_DEC2007_log-100.xml"),true);
+			simulator = new LearnerSimulator(new java.io.FileInputStream("/home/kirill/workspace/XMachineTool_j6/resources/nonsvn/logs/3_25Inputs_75_12.xml_LEARNER_BLUEFRINGE_MAY2008_log-100.xml"),true);
 			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
 			evalData.config.setInitialIDvalue(1);
 			evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
 			evalData.config.setSpeculativeQuestionAsking(false);
 			evalData.config.setDefaultInitialPTAName("Init");
 			
-			LearnerGraph original = LearnerGraph.loadGraph("/home/kirill/workspace/XMachineTool/original.xml", evalData.config); 
-			LearnerGraph merged = LearnerGraph.loadGraph("/home/kirill/workspace/XMachineTool/transformed.xml", evalData.config);
+			LearnerGraph original = LearnerGraph.loadGraph("/home/kirill/workspace/XMachineTool_j6/original.xml", evalData.config); 
+			LearnerGraph merged = LearnerGraph.loadGraph("/home/kirill/workspace/XMachineTool_j6/transformed.xml", evalData.config);
 			
-			System.out.println(ComputeQuestions.computeQS_origReduced(new PairScore(original.findVertex("P91"), original.findVertex("P38"),19,0), original, merged));
+			System.out.println(ComputeQuestions.computeQS(new PairScore(original.findVertex("P91"), original.findVertex("P38"),19,0), original, merged));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

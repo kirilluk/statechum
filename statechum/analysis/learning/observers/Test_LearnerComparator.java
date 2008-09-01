@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import statechum.ArrayOperations;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
@@ -151,7 +152,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			ex = WMethod.checkM(what, with);
 		
-		//Assert.assertTrue(WMethod.sameStateSet(what,with));
+		//org.junit.Assert.assertTrue(WMethod.sameStateSet(what,with));
 		if (ex != null && failureCode == null) failureCode = ex;
 	}
 	

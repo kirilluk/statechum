@@ -111,9 +111,11 @@ public class RPNIUniversalLearner extends RPNILearner {
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 
-		if (scoreComputer.config.getUseSpin() && !SpinUtil.check(ptaHardFacts.paths.getGraph(), ltl))
-			throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl));
-		
+		if (scoreComputer.config.getUseSpin()){
+			Set<List<String>> counters = SpinUtil.check(ptaHardFacts.paths.getGraph(), ltl);
+			if(counters.size()>0)
+				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, counters));
+		}
 		setChanged();scoreComputer.setName(learntGraphName+"_init");
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
@@ -135,12 +137,17 @@ public class RPNIUniversalLearner extends RPNILearner {
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			updateGraph(temp);
-			if (scoreComputer.config.getUseSpin() && !SpinUtil.check(temp.paths.getGraph(), ltl)) {
-				List<String> counterexample = new LinkedList<String>();
-				counterexample.addAll(SpinUtil.getCurrentCounterExample());
-				System.out.println("<temp> "+counterexample.subList(0, counterexample.size()-1));
-				topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterexample.subList(0, counterexample.size()-1), false,colourToAugmentWith);
-				restartLearning = RestartLearningEnum.restartSOFT;
+			if (scoreComputer.config.getUseSpin()){
+
+				Set<List<String>> counterExamples = SpinUtil.check(temp.paths.getGraph(), ltl);
+				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
+				while(counterExampleIt.hasNext()){
+					List<String> counterExample = counterExampleIt.next();
+					System.out.println("<temp> "+counterExample);
+					topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
+				}
+				if(counterExamples.size()>0)
+					restartLearning = RestartLearningEnum.restartSOFT;
 			}
 			
 			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) 
@@ -219,12 +226,13 @@ public class RPNIUniversalLearner extends RPNILearner {
 						{
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <ltl> "+newLtl);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ltl);tmpLtl.add(newLtl);
-							if (!SpinUtil.check(ptaHardFacts.paths.getGraph(), tmpLtl))
+							Set<List<String>> counters = SpinUtil.check(ptaHardFacts.paths.getGraph(), tmpLtl);
+							if (counters.size()>0)
 							{
 								if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
-									throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(tmpLtl));
+									throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(tmpLtl, counters));
 								
-								System.out.println(getHardFactsContradictionErrorMessage(tmpLtl));
+								System.out.println(getHardFactsContradictionErrorMessage(tmpLtl, counters));
 							}
 							else 
 							{// LTL does not contradict hard facts, update them and restart learning.
@@ -274,22 +282,19 @@ public class RPNIUniversalLearner extends RPNILearner {
 		return scoreComputer;
 	}
 
-	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl)
+	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl, Set<List<String>> counters)
 	{
-		String errString = "LTL formula contradicts hard facts, counter-example is "+SpinUtil.getCurrentCounterExample()+"\n";
+		String errString = "LTL formula contradicts hard facts\n";
+		Iterator<List<String>> counterIt = counters.iterator();
+		while(counterIt.hasNext()){
+			errString.concat(counterIt.next()+"\n");
+		}
 		for(String elem:tmpLtl) errString+=elem+"\n";
 		return errString;
 	}
 	
 	protected int checkWithSPIN (List<String> question){
-		int ret = -1;
-		if(!SpinUtil.check(question, ltl)){
-			List<String> counterExample = SpinUtil.getCurrentCounterExample();
-			//System.out.println(counterExample.subList(0, counterExample.size()));
-			return counterExample.size()-1;
-		}
-		
-		return ret;
+		return SpinUtil.check(question, ltl);
 	}
 	
 	/** We might be doing a restart, but it never hurts to go through the existing 

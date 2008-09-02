@@ -54,17 +54,15 @@ public class SpinUtil {
 	static Map<String, Integer> functionMap;
 
 	static Map<Integer, String> inverseFunctionMap;
-
-	public static boolean check(DirectedSparseGraph g, Set<String> ltl) {
+	
+	public static Set<List<String>> check(DirectedSparseGraph g, Set<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(g);
 		createInverseMap();
-		if(!checkLTL(concatenatedLTL(ltl)))
-			return false;
-		return true;
+		return checkLTL(concatenatedLTL(ltl));
 	}
 	
 	private static String concatenatedLTL(Set<String> ltl){
@@ -78,21 +76,25 @@ public class SpinUtil {
 		return ltlString;
 	}
 	
-	public static boolean check (List<String> question, Set<String> ltl){
+	public static int check (List<String> question, Set<String> ltl){
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(question);
 		createInverseMap();
-		if(!checkLTL(concatenatedLTL(ltl)))
-			return false;
-		return true;
+		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
+		if(counters.size()==0)
+			return -1;
+		else{
+			return counters.iterator().next().size();
+		}
+		
 	}
 	
 	
 	
-	private static boolean checkLTL(String ltl){
+	private static Set<List<String>> checkLTL(String ltl){
 		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(fileRef);
@@ -107,50 +109,76 @@ public class SpinUtil {
 		}
 	}
 
-	private static boolean runSpin(char safetyLiveness) {
+	/*
+	 * returns a set of counter examples
+	 */
+	private static Set<List<String>> runSpin(char safetyLiveness) {
 		List<String[]> cmdArray = new ArrayList<String[]>();
-		cmdArray.add(0, (String[]) Arrays
+		cmdArray.add(0, (String[]) Arrays.asList("rm", "*.trail").toArray());
+		cmdArray.add(1, (String[]) Arrays
 				.asList("spin", "-Z", "promelaMachine").toArray());
-		cmdArray.add(1, (String[]) Arrays.asList("spin", "-a", "-X",
+		cmdArray.add(2, (String[]) Arrays.asList("spin", "-a", "-X",
 				"promelaMachine").toArray());
 		if( safetyLiveness == 's'){ //compile pan for checking safety properties
-			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
-				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE",  "-DBFS", "-DSAFETY", "-DNXT",
+			cmdArray.add(3, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE",  "-DSAFETY", "-DNXT", "-DBFS", "-DREACH",
 				//"-DNOREDUCE", 
 				"-DNOFAIR", "pan.c").toArray());
-			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
-				"-m10000", "-w19", "-A", "-i").toArray());
+			cmdArray.add(4, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
+				"-m10000", "-w19", "-A", "-e", "-c0").toArray()); //"-i"
 		}
 		else{ //compile pan for checking liveness properties
-			cmdArray.add(2, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+			cmdArray.add(3, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 					"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
 					//"-DNOREDUCE", 
 					"-DNOFAIR", "pan.c").toArray());
-			cmdArray.add(3, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
+			cmdArray.add(4, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
 					"-m10000", "-w19", "-a", "-c1").toArray());
 		}
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 5; i++) {
 			try {
 				String line;
 				ProcessBuilder pb = new ProcessBuilder(cmdArray.get(i));
 				pb.directory(new File(fileRef).getParentFile());
-				
 				Process proc = pb.start();
 				InputStreamReader tempReader = new InputStreamReader(
-		                new BufferedInputStream(proc.getInputStream()));
-		            BufferedReader reader = new BufferedReader(tempReader);
-				while ((line = reader.readLine()) != null) {
-					//System.out.println(line);
-					 if(line.contains("errors: 0"))
-						 return true;
+	                new BufferedInputStream(proc.getInputStream()));
+	            BufferedReader reader = new BufferedReader(tempReader); 
+	            
+	            while ((line = reader.readLine()) != null) {
+	            	if(line.contains("errors: 0"))
+	            		return new HashSet<List<String>>();
+	            	//System.out.println(line);
+					
 				}
-				if (proc.waitFor() != 0)
-					return false;
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
+			
 		}
-		return false;
+		return getCounterExamples();
+	}
+
+	private static Set<List<String>> getCounterExamples(){
+		Set<List<String>> counterExamples = new HashSet<List<String>>();
+		String[] filelist;
+		File f = new File(fileRef).getParentFile();		
+		SpinUtil sp = new SpinUtil();
+		filelist = f.list(sp.new TrailFileFilter());
+		for(int i=0; i< filelist.length; i++){
+			List<String> counterExample = getCounterExample(i);
+			if(!counterExample.isEmpty())
+				counterExamples.add(counterExample);
+		}
+		return counterExamples;
+	}
+	
+	public class TrailFileFilter implements FilenameFilter 
+	{ 
+	   public boolean accept(java.io.File f, java.lang.String g) 
+	    { 
+	       return (g.indexOf(".trail") != -1);
+	   } 
 	}
 
 	
@@ -222,13 +250,12 @@ public class SpinUtil {
 		
 		sw.write("end: \n\tskip;\n}\n\ninit {\nrun machine();\n}");
 		printLegend(sw, functionMap);
-		//generateDefines(functionMap);
 	}
 	
 	private static void generatePromela(List<String> question) {
 		functionMap = new HashMap<String, Integer>();
 		sw = new StringWriter();
-		sw.write("int input = 50000;\nproctype machine(){\n");
+		sw.write("int input=50000;\nproctype machine(){\n");
 		Iterator<String> questionIt = question.iterator();
 		
 		while (questionIt.hasNext()) {
@@ -285,10 +312,10 @@ public class SpinUtil {
 		}
 		sw.write("\n*/");
 	}
-
-	public static List<String> getCurrentCounterExample() {
+	
+	private static List<String> getCounterExample(int i){
 		List<String> counterExample = new ArrayList<String>();
-		String[] trace = new String[]{"spin", "-t", "-p", "promelaMachine"};
+		String[] trace = new String[]{"spin", "-t"+(i+1), "-p", "-c", "promelaMachine"};
 		LinkedList<String> SpinData = new LinkedList<String>(); 
 		try {
 			String line;
@@ -300,12 +327,11 @@ public class SpinUtil {
 					proc.getInputStream()));
 			while ((line = input.readLine()) != null) {
 				SpinData.add(line);
-				System.out.println(line);
+				//System.out.println(line);
 				if(line.contains("trail ends after"))
 					break;
 				if (line.contains("<valid end state>")&&line.contains("proc  1")){
-					counterExample.add("Dummy"); //not sure why I was adding the dummy
-					break;
+					return new ArrayList<String>(); //don't want to return this counterexample
 				}
 				else if (line.contains("[input")) {
 					int inputIndex = line.indexOf("[input =") + 8;
@@ -315,8 +341,6 @@ public class SpinUtil {
 									closingBracket).trim()));
 					if(function !=null)
 						counterExample.add(function);
-					else 
-						counterExample.add("dummy");
 				} 
 				else if (line.contains("<<<<<"))
 					break;
@@ -326,14 +350,11 @@ public class SpinUtil {
 			e.printStackTrace();
 		}
 		if (counterExample.isEmpty())
-		{
-			String errMessage = "empty counter-example was returned from Spin "+
-			(!SpinData.isEmpty()?"even though some data was returned by Spin, below\n":"because no data was returned");
-			for(String text:SpinData)
-				errMessage+=text+"\n";
-			throw new IllegalArgumentException(errMessage);
+			return counterExample;
+		else{
+			counterExample.remove(counterExample.size()-1);
+			return counterExample;
 		}
-		return counterExample;
 	}
 
 	private static void setup(DirectedSparseGraph g,
@@ -346,7 +367,7 @@ public class SpinUtil {
 			stateMap.put(state, new Integer(stateCounter));
 			stateCounter++;
 		}
-		sw.write("int input = 50000;\nproctype machine(){\ngoto Init;\n");
+		sw.write("int input=50000;\nproctype machine(){\ngoto Init;\n");
 	}
 
 }

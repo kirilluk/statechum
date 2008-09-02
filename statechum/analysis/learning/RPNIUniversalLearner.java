@@ -24,6 +24,7 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.oracles.RPNIBlueFringeSootLearner;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -112,7 +113,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 		LearnerGraph ptaSoftFacts = scoreComputer;
 
 		if (scoreComputer.config.getUseSpin()){
-			Set<List<String>> counters = SpinUtil.check(ptaHardFacts.paths.getGraph(), ltl);
+			Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, ltl);
 			if(counters.size()>0)
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, counters));
 		}
@@ -139,12 +140,13 @@ public class RPNIUniversalLearner extends RPNILearner {
 			updateGraph(temp);
 			if (scoreComputer.config.getUseSpin()){
 
-				Set<List<String>> counterExamples = SpinUtil.check(temp.paths.getGraph(), ltl);
+				Collection<List<String>> counterExamples = SpinUtil.check(temp, ltl);
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext()){
 					List<String> counterExample = counterExampleIt.next();
-					System.out.println("<temp> "+counterExample);
 					topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
+					System.out.println("<temp> "+counterExample);
+					
 				}
 				if(counterExamples.size()>0)
 					restartLearning = RestartLearningEnum.restartSOFT;
@@ -226,7 +228,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 						{
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <ltl> "+newLtl);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ltl);tmpLtl.add(newLtl);
-							Set<List<String>> counters = SpinUtil.check(ptaHardFacts.paths.getGraph(), tmpLtl);
+							Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl);
 							if (counters.size()>0)
 							{
 								if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
@@ -282,7 +284,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 		return scoreComputer;
 	}
 
-	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl, Set<List<String>> counters)
+	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl, Collection<List<String>> counters)
 	{
 		String errString = "LTL formula contradicts hard facts\n";
 		Iterator<List<String>> counterIt = counters.iterator();

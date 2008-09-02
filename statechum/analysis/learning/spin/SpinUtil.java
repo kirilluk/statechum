@@ -27,7 +27,9 @@ import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.util.*;
+import statechum.analysis.learning.rpnicore.*;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -55,14 +57,48 @@ public class SpinUtil {
 
 	static Map<Integer, String> inverseFunctionMap;
 	
-	public static Set<List<String>> check(DirectedSparseGraph g, Set<String> ltl) {
+	public static Collection<List<String>> check(LearnerGraph g, Set<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
-		generatePromela(g);
+		generatePromela(g.paths.getGraph());
 		createInverseMap();
-		return checkLTL(concatenatedLTL(ltl));
+		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
+		removeInvalidPrefixCounters(counters, g);
+		return sort(counters);
+	}
+	
+	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph g){
+		Iterator<List<String>> counterIt = counters.iterator();
+		while(counterIt.hasNext()){
+			List<String> counter = counterIt.next();
+			if(g.paths.tracePath(counter.subList(0, counter.size()-1))!= AbstractOracle.USER_ACCEPTED)
+				counters.remove(counter);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private static List<List<String>> sort(Set<List<String>> counters){
+		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
+		counterList.addAll(counters);
+		Collections.sort(counterList, new Comparator() {
+            public int compare(Object o1, Object o2) {
+                List<String> s1 = (List<String>) o1;
+                List<String> s2 = (List<String>) o2;
+
+                if (s1.size() < s2.size()) {
+                    return -1;
+                }
+                else if (s1.size() > s2.size()) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
+            }
+        });
+		return counterList;
 	}
 	
 	private static String concatenatedLTL(Set<String> ltl){

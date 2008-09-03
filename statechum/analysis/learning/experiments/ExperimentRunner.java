@@ -907,19 +907,33 @@ public class ExperimentRunner
 		timeBetweenHearbeats = newValue;
 	}
 	
+	public interface HandleProcessIO
+	{
+		/** Called each heartbeat, could be used to prod a process. 
+		 * @throws IOException if something fails. 
+		 */
+		public void OnHeartBeat() throws IOException;
+		
+		/** Called each time a line is read from the standard output of the monitored process. */
+		public void StdOut(StringBuffer b);
+		/** Called each time a line is read from the standard error stream of the monitored process.. */
+		public void StdErr(StringBuffer b);
+	}
+	
 	/** Displays output/error streams of the supplied process
 	 * and supplies the process with heartbeat data.
 	 * 
 	 * @param p process of interest.
+	 * @param probeInterval how often to check a process for input and/or prod it.
+	 * @param handler object to handle input/output data.
 	 * @throws IOException 
 	 */
-	public void dumpStreams(Process p)
+	public static void dumpStreams(Process p, int probeInterval, HandleProcessIO handler)
 	{
 		java.io.InputStream err = p.getErrorStream(),out = p.getInputStream();
-		java.io.OutputStream in = p.getOutputStream();
 		StringBuffer errBuffer = new StringBuffer(), outBuffer = new StringBuffer();
 		byte []dataBuffer = new byte[100];
-		long prevTime = new Date().getTime()-2*timeBetweenHearbeats;
+		long prevTime = new Date().getTime()-2*probeInterval;
 		boolean processRunning = true;
 		
 		try
@@ -927,7 +941,7 @@ public class ExperimentRunner
 			do
 			{
 				long currentTime = new Date().getTime();
-				if (currentTime - timeBetweenHearbeats > prevTime)
+				if (currentTime - probeInterval > prevTime)
 				{
 					prevTime = currentTime;
 				
@@ -942,7 +956,7 @@ public class ExperimentRunner
 							errBuffer.append((char)ch);
 							if (ch == '\n') 
 							{
-								System.err.print(errBuffer);errBuffer.setLength(0);// received a full line, display and flush
+								handler.StdErr(errBuffer);errBuffer.setLength(0);// received a full line, display and flush
 							}
 						}
 						avail = err.available();
@@ -959,16 +973,16 @@ public class ExperimentRunner
 							outBuffer.append((char)ch);
 							if (ch == '\n') 
 							{
-								System.out.print(outBuffer);outBuffer.setLength(0);// received a full line, display and flush
+								handler.StdOut(outBuffer);outBuffer.setLength(0);// received a full line, display and flush
 							}
 						}
 						avail = out.available();
 					}
-					in.write('\n');in.flush();// send heartbeat. If a process has terminated, this will fail, but we would have already absorbed all its output.
+					handler.OnHeartBeat();
 				}
 				
 				try {
-					Thread.sleep(timeBetweenHearbeats);// wait for a bit.
+					Thread.sleep(probeInterval);// wait for a bit.
 				} catch (InterruptedException e1) {
 					// this means that we've been asked to terminate, in this case we
 					// pretend that the process has terminated and exit.
@@ -990,7 +1004,48 @@ public class ExperimentRunner
 		{// assume that child process terminated.
 			
 		}
-		System.out.print(outBuffer);System.err.print(errBuffer);
+		
+		try
+		{
+			int avail = err.available();
+			while (avail>0) 
+			{// some data available
+				int availErr = Math.min(dataBuffer.length,avail);
+				err.read(dataBuffer, 0, availErr);
+				for(int i=0;i<availErr;++i) 
+				{
+					byte ch = dataBuffer[i];
+					errBuffer.append((char)ch);
+				}
+				avail = err.available();
+			}
+		}
+		catch(IOException e) { 
+			// failed to copy data from the stream. Dump to stderr but ignore otherwise.
+			e.printStackTrace();
+		}
+		
+		try
+		{
+			int avail = out.available();
+			while (avail>0) 
+			{ // some data available
+				int availOut = Math.min(dataBuffer.length,avail);
+				out.read(dataBuffer, 0, availOut);
+				for(int i=0;i<availOut;++i) 
+				{
+					byte ch = dataBuffer[i];
+					outBuffer.append((char)ch);
+				}
+				avail = out.available();
+			}
+		}
+		catch(IOException e) { 
+			// failed to copy data from the stream. Dump to stderr but ignore otherwise.
+			e.printStackTrace();
+		}
+		if (outBuffer.length() > 0) handler.StdOut(outBuffer);
+		if (errBuffer.length() > 0) handler.StdOut(errBuffer);
 	}
 	
 	/** Removes the directory and all its files. If the directory contains 
@@ -1091,9 +1146,22 @@ public class ExperimentRunner
 		    		
 					if (isForked())
 					{// run the JVM and wait for it to terminate
-						Process jvm = Runtime.getRuntime().exec(strArgs);// run every few graphs in a separate JVM
+						final Process jvm = Runtime.getRuntime().exec(strArgs);// run every few graphs in a separate JVM
 						System.out.println("started learner process "+learnerCounter++);
-			    		dumpStreams(jvm);
+			    		dumpStreams(jvm,timeBetweenHearbeats,new HandleProcessIO() {
+			    			final java.io.OutputStream in = jvm.getOutputStream();
+
+			    			public void OnHeartBeat() throws IOException {
+								in.write('\n');in.flush();// send heartbeat. If a process has terminated, this will fail, but we would have already absorbed all its output.
+			    			}
+
+			    			public void StdErr(StringBuffer b) {
+			    				System.out.print(b.toString());
+			    			}
+
+			    			public void StdOut(StringBuffer b) {
+			    				System.err.print(b.toString());
+			    			}});
 			    		try {
 							jvm.waitFor();
 						} catch (InterruptedException e) {

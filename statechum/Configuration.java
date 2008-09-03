@@ -77,7 +77,7 @@ public class Configuration implements Cloneable
 	 */
 	protected IDMode learnerIdMode = IDMode.NONE; // creation of new vertices is prohibited.
 
-	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS };
+	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS, GENERAL };
 	
 	/** The are a few ways in which one can compute scores associated to pairs of states,
 	 * using a conventional computation, using compatibility scores (during traversal of pairs,

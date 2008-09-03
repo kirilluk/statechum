@@ -188,7 +188,7 @@ public class LearnerGraphND
 	 * @param filter the filter to use when deciding which states to consider and which to throw away.
 	 * @param transitionMatrixND matrix to build
 	 */
-	private static void buildForward(LearnerGraph coregraph,StatesToConsider filter,
+	static void buildForward(LearnerGraph coregraph,StatesToConsider filter,
 			Map<CmpVertex,Map<String,List<CmpVertex>>> transitionMatrixND)
 	{
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())

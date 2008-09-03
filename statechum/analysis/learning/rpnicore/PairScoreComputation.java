@@ -149,6 +149,12 @@ public class PairScoreComputation {
 		{
 			computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;
 		}
+		else		
+		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
+		{
+			LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
+			computedScore = computePairCompatibilityScore_general(pairToComputeFrom, collectionOfVerticesToMerge);compatibilityScore=computedScore;
+		}
 		else
 		{
 			computedScore = coregraph.pairscores.computeStateScore(pairToComputeFrom);

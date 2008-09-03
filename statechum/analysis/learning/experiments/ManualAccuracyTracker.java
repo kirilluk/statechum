@@ -36,22 +36,21 @@ public class ManualAccuracyTracker {
 			e.printStackTrace();
 		}
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		//config.setQuestionPathUnionLimit(1);
+		config.setQuestionPathUnionLimit(1);
 		if(active)
 			config.setAskQuestions(true);
 		if(!ltl.isEmpty())
 			config.setUseSpin(true);
-		String target = "A-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
-		"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nB-initialise->C-" +
-		"receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nE-receiveAck->G-announceLeadership->C";
+		String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
+		"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
 		LearnerGraph targetMachine = new LearnerGraph(TestFSMAlgo.buildGraph(target, "Target"), config);
-
-		
+		//statechum.analysis.learning.util.OutputUtil.generateDotOutput(targetMachine.paths.getGraph());
 		
 		RPNILearner l = new RPNIUniversalLearner(null, ltl,config);
-		AccuracyTrackerDecorator atd = new AccuracyTrackerDecorator(l,targetMachine,targetMachine.wmethod.getFullTestSet(1));
+		AccuracyTrackerDecorator atd = new AccuracyTrackerDecorator(l,targetMachine);
 		atd.init(sPlus, sMinus);
 		atd.learnMachine();
+		System.out.println(atd.getResult());
 	}
 	
 	

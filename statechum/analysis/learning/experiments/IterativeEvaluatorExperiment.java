@@ -78,7 +78,7 @@ public class IterativeEvaluatorExperiment {
 					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
 				}
 			}
-			, graph, tests);
+			, graph);
 			sMinus = rpg.getAllSequencesPercentageInterval(1);
 
 			learn(l,sMinus);

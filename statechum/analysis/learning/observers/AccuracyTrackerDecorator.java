@@ -28,6 +28,7 @@ import statechum.Pair;
 
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.apps.CompareGraphs;
@@ -40,11 +41,12 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults = null;
 
-	public AccuracyTrackerDecorator(Learner learner, LearnerGraph target, Collection<List<String>> argTests){
+	public AccuracyTrackerDecorator(Learner learner, LearnerGraph target){
 		super(learner);
 
 		results = new LinkedList<List<ResultsContainer>>();
-		tests = argTests;
+		tests = target.wmethod.getFullTestSet(1);
+		
 		specfsm = target;
 	}
 
@@ -54,6 +56,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 		double accuracy = CompareGraphs.computeAccuracy(graph, specfsm, tests);
 		ResultsContainer result = new ResultsContainer(accuracy, pr);
 		currentResults.add(result);
+		
 	}
 	
 	public String resultsToString(){

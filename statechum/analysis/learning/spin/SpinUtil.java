@@ -25,11 +25,13 @@ package statechum.analysis.learning.spin;
 import java.io.*;
 import java.util.*;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.util.*;
 import statechum.analysis.learning.rpnicore.*;
+import sun.security.krb5.Config;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -71,11 +73,19 @@ public class SpinUtil {
 	
 	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph g){
 		Iterator<List<String>> counterIt = counters.iterator();
+		Collection<List<String>> toBeRemoved = new HashSet<List<String>>();
+		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
 		while(counterIt.hasNext()){
 			List<String> counter = counterIt.next();
 			if(g.paths.tracePath(counter.subList(0, counter.size()-1))!= AbstractOracle.USER_ACCEPTED)
-				counters.remove(counter);
+				toBeRemoved.add(counter);
+			else if(counterPTA.paths.tracePath(counter.subList(0, counter.size()-1))!= AbstractOracle.USER_ACCEPTED)
+				toBeRemoved.add(counter);
+			else
+				counterPTA.paths.augmentPTA(counter, false, null);
+				
 		}
+		counters.removeAll(toBeRemoved);
 	}
 	
 	@SuppressWarnings("unchecked")

@@ -36,6 +36,7 @@ public class ManualAccuracyTracker {
 			e.printStackTrace();
 		}
 		Configuration config = Configuration.getDefaultConfiguration().copy();
+		//config.setQuestionPathUnionLimit(1);
 		if(active)
 			config.setAskQuestions(true);
 		if(!ltl.isEmpty())

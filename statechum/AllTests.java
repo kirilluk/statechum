@@ -66,6 +66,7 @@ public class AllTests {
 	@Suite.SuiteClasses({
 		statechum.analysis.learning.rpnicore.TestFSMParser.class,
 		statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
+		statechum.apps.TestQSMTool.class,
 		statechum.TestArrayOperations.class
 	})
 	public static class BasicTests {// all tests are included in the annotation.

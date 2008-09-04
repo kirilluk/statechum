@@ -925,6 +925,7 @@ public class Configuration implements Cloneable
 	{
 		readXML(cnf,false);
 	}
+	
 	/** Loads configuration from XML node.
 	 * 
 	 * @param cnf XML node to load configuration from.
@@ -946,51 +947,62 @@ public class Configuration implements Cloneable
 				if (node.getNodeType() != org.w3c.dom.Node.ELEMENT_NODE || !node.getNodeName().equals(configVarTag))
 					throw new IllegalArgumentException("unexpected element "+node.getNodeName()+" in configuration XML");
 				org.w3c.dom.Element currentElement = (Element)node;
-				Field var = null;
-				try
-				{
-					var = getClass().getDeclaredField(currentElement.getAttribute(configVarAttrName));
-					Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
-					Object value = null;String valueAsText = currentElement.getAttribute(configVarAttrValue);
-					if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
-					{
-						value = Boolean.valueOf(valueAsText); 
-					}
-					else
-						if (var.getType().equals(Double.class) || var.getType().equals(double.class))
-						{
-							value = Double.valueOf(valueAsText); 
-						}
-						else
-						if (var.getType().equals(String.class))
-						{
-							value = valueAsText;
-						}
-						else
-							if (var.getType().isEnum())
-							{
-								value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
-							}
-							else
-							if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
-							{
-								value = Integer.valueOf(valueAsText); 
-							}
-							else
-								throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
-	
-					setter.invoke(this, new Object[]{value});
-				}
-				catch(NoSuchFieldException e)
-				{
-					if (strict)
-					throw new IllegalArgumentException("cannot deserialise unknown field "+currentElement.getAttribute(configVarAttrName));
-				}
-				catch(Exception e)
-				{
-					throwUnchecked("failed to load value of "+var.getName(),e);
-				}
+				assignValue(currentElement.getAttribute(configVarAttrName),currentElement.getAttribute(configVarAttrValue),strict);
 			}
 		}
+	}
+	
+	/** Given the name of the attribute and a new value, converts the value into the correct type and 
+	 * assigns it.
+	 * @param attr name of attribute
+	 * @param value value
+	 * @param strict if unknown attributes should cause an exception to be thrown rather than just ignored.
+	 */
+	public void assignValue(String attrName, String attrValue, boolean strict)
+	{
+		Field var = null;
+		try
+		{
+			var = getClass().getDeclaredField(attrName);
+			Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
+			Object value = null;String valueAsText = attrValue;
+			if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
+			{
+				value = Boolean.valueOf(valueAsText); 
+			}
+			else
+				if (var.getType().equals(Double.class) || var.getType().equals(double.class))
+				{
+					value = Double.valueOf(valueAsText); 
+				}
+				else
+				if (var.getType().equals(String.class))
+				{
+					value = valueAsText;
+				}
+				else
+					if (var.getType().isEnum())
+					{
+						value = Enum.valueOf((Class<Enum>)var.getType(), valueAsText);
+					}
+					else
+					if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+					{
+						value = Integer.valueOf(valueAsText); 
+					}
+					else
+						throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
+
+			setter.invoke(this, new Object[]{value});
+		}
+		catch(NoSuchFieldException e)
+		{
+			if (strict)
+			throw new IllegalArgumentException("cannot deserialise unknown field "+attrName);
+		}
+		catch(Exception e)
+		{
+			throwUnchecked("failed to load value of "+var.getName(),e);
+		}		
 	}
 }

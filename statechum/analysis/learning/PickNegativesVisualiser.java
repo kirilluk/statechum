@@ -64,19 +64,6 @@ public class PickNegativesVisualiser extends Visualiser {
 		public void threadStarted();
 	}
 
-	public static void setSimpleConfiguration(Configuration config,final boolean active, final int k)
-	{
-		if(!active){
-			config.setKlimit(k);
-			config.setAskQuestions(false); 
-			if(k>=0)
-				config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
-		}
-		else
-			config.setKlimit(-1);
-		config.setDebugMode(true);
-	}
-	
 	/** Collections of positive and negative samples. */
 	Collection<List<String>> sPlus, sMinus;
 	

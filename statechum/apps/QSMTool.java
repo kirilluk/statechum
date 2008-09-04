@@ -38,85 +38,145 @@ import java.util.*;
 import statechum.Configuration;
 import statechum.analysis.learning.PickNegativesVisualiser;
 
-public class QSMTool {
+public class QSMTool 
+{
+	protected int k = -1;
 	
-	private static boolean includeLTL =false;
-	private static int k = -1;
-	private static boolean textoutput = false;
-	private static boolean dotoutput = false;
-
-	public static void main(String[] args) {
-		Set<List<String>> sPlus = new HashSet<List<String>>();
-		Set<List<String>> sMinus = new HashSet<List<String>>();
-		Set<String> ltl = new HashSet<String>();
-		boolean active = true;
+	/** Learner configuration to be set. */
+	protected Configuration config = Configuration.getDefaultConfiguration().copy();
+	protected Set<List<String>> sPlus = new HashSet<List<String>>();
+	protected Set<List<String>> sMinus = new HashSet<List<String>>();
+	protected Set<String> ltl = null;
+	protected boolean active = true;
+	
+	public static void main(String[] args) 
+	{
+		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);tool.runExperiment();
+	}
+	
+	public void loadConfig(String inputFileName)
+	{
 		try {
-			BufferedReader in = new BufferedReader(new FileReader(args[0]));
-			String fileString;
-			String activePassive = in.readLine();
-			if (activePassive.trim().equalsIgnoreCase("passive"))
-				active = false;
-			while ((fileString = in.readLine()) != null) {
-				process(fileString, sPlus, sMinus, ltl);
-			}
-			in.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+			loadConfig(new FileReader(inputFileName));
+		} catch (FileNotFoundException e) {
+			statechum.Helper.throwUnchecked("could not open a file with initial data", e);
 		}
-		// new PickNegativesVisualiser(new
-		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
-		Configuration config = Configuration.getDefaultConfiguration().copy();
+	}
+	
+	public void loadConfig(Reader inputData)
+	{
 		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
-		if(textoutput) config.setGenerateTextOutput(true);
-		if(dotoutput) config.setGenerateDotOutput(true);
-		//config.setMinCertaintyThreshold(1);
-		//config.setQuestionPathUnionLimit(1);
-		PickNegativesVisualiser.setSimpleConfiguration(config, active, k);
+	
+		try {
+			BufferedReader in = new BufferedReader(inputData);
+			String fileString;
+			while ((fileString = in.readLine()) != null) {
+				process(fileString);
+			}
+			in.close();
+		
+		} catch (IOException e) {
+			statechum.Helper.throwUnchecked("failed to read learner initial data", e);
+		}
+	}
+	
+	public void runExperiment()
+	{
+		setSimpleConfiguration(config, active, k);
+
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
-		if (!includeLTL)
-			pnv.construct(sPlus, sMinus, null, config);
-		else
-			pnv.construct(sPlus, sMinus, ltl, config);
+		pnv.construct(sPlus, sMinus, ltl, config);
 		
 		pnv.startLearner(null);
+		// new PickNegativesVisualiser(new
+		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
+		//config.setMinCertaintyThreshold(1);
+		//config.setQuestionPathUnionLimit(1);
 	}
 
-	public static void process(String fileString, Set<List<String>> sPlus,
-			Set<List<String>> sMinus, Set<String> ltl) {
-		if (fileString.trim().equalsIgnoreCase(""))
-			return;
-		StringTokenizer tokenizer = new StringTokenizer(fileString.substring(1));
-		ArrayList<String> sequence = new ArrayList<String>();
-		while (tokenizer.hasMoreTokens())
-			sequence.add(tokenizer.nextToken());
-		if (fileString.startsWith("+"))
-			sPlus.add(sequence);
-		else if (fileString.startsWith("-"))
-			sMinus.add(sequence);
-		else if (fileString.startsWith("ltl")){
-			includeLTL = true;
-			if(fileString.substring(4).trim().length()>0)
-				ltl.add(getLtlString(sequence));
-			
+	public static void setSimpleConfiguration(Configuration config,final boolean active, final int k)
+	{
+		if(!active){
+			config.setKlimit(k);
+			config.setAskQuestions(false); 
+			if(k>=0)
+				config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
 		}
-		else if (fileString.startsWith("k")){
-			String value = fileString.substring(1).trim();
+		else
+			config.setKlimit(-1);
+		config.setDebugMode(true);
+	}
+	
+	private boolean isCmdWithArgs(String arg,String cmd)
+	{
+		if (arg.equals(cmd))
+			throw new IllegalArgumentException("Argument required for command "+cmd);
+		return arg.startsWith(cmd);
+	}
+	
+	public void process(String lineOfText) 
+	{
+		String fileString = lineOfText.trim();
+		if (fileString.length() == 0)
+			return;// ignore empty lines.
+		if (isCmdWithArgs(fileString,cmdPositive))
+			sPlus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
+		else if (isCmdWithArgs(fileString,cmdNegative))
+			sMinus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
+		else if (isCmdWithArgs(fileString,cmdLTL))
+		{
+			if (ltl == null) ltl=new TreeSet<String>();
+			ltl.add(fileString.substring(cmdLTL.length()+1));
+		}
+		else if (isCmdWithArgs(fileString,cmdK))
+		{
+			String value = fileString.substring(cmdK.length()+1).trim();
 			k = Integer.valueOf(value);
 		}
-		else if(fileString.startsWith("textoutput"))
-			textoutput = true;
-		else if(fileString.startsWith("dotoutput"))
-			dotoutput = true;
-
+		else if(fileString.startsWith(cmdTextOutput))
+			config.setGenerateTextOutput(true);
+		else if(fileString.startsWith(cmdDotOutput))
+			config.setGenerateDotOutput(true);
+		else
+			if (fileString.startsWith(cmdPassive))
+				active = false;
+			else
+				if (isCmdWithArgs(fileString,cmdConfig))
+				{
+					List<String> values= tokeniseInput(fileString.substring(cmdConfig.length()+1));
+					if (values.size() != 2)
+						throw new IllegalArgumentException("invalid configuration option "+fileString);
+					
+					config.assignValue(values.get(0),values.get(1),true);
+				}
+				else
+				if (isCmdWithArgs(fileString,cmdComment))
+				{// do nothing
+				}
+				else
+					throw new IllegalArgumentException("invalid command "+fileString);
 	}
 
-	private static String getLtlString(List<String> sequence) {
-		String expression = new String();
-		for (int i = 1; i < sequence.size(); i++) {
-			expression = expression.concat(sequence.get(i));
-		}
-		return expression;
+	public static final String 
+		cmdLTL = "ltl", 
+		cmdK = "k", 
+		cmdPositive="+", 
+		cmdNegative="-", 
+		cmdConfig="conf",
+		cmdTextOutput = "textoutput", 
+		cmdDotOutput="dotoutput",
+		cmdComment="#",
+		cmdPassive="passive";
+	
+	private static List<String> tokeniseInput(String str)
+	{
+		StringTokenizer tokenizer = new StringTokenizer(str);
+		List<String> sequence = new ArrayList<String>();
+		while (tokenizer.hasMoreTokens())
+			sequence.add(tokenizer.nextToken());
+		assert !sequence.isEmpty();
+		return sequence;
 	}
 
 }

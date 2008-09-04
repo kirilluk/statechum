@@ -25,6 +25,7 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.analysis.learning.*;
+import statechum.apps.QSMTool;
 
 import javax.xml.parsers.*;
 import javax.swing.*;
@@ -217,7 +218,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
 				
-				PickNegativesVisualiser.setSimpleConfiguration(config, true,0);
+				QSMTool.setSimpleConfiguration(config, true,0);
 				new PickNegativesVisualiser(split).construct(sPlus, new HashSet<List<String>>(),null,config);
 			}
 			catch(Exception ex){

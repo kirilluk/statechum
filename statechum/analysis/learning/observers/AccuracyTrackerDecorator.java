@@ -77,11 +77,13 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 		return returnString;
 	}
 	
+	@Override
 	public LearnerGraph learnMachine(Collection<List<String>> sPlus,  Collection<List<String>> sMinus){
 		init(sPlus,sMinus);
 		return learnMachine();
 	}
 
+	@Override
 	public LearnerGraph learnMachine()
 	{
 		currentResults = new LinkedList<ResultsContainer>();
@@ -156,5 +158,10 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
+	}
+
+
+	public LearnerGraph AddConstraints(LearnerGraph graph) {
+		return decoratedLearner.AddConstraints(graph);
 	}
 }

@@ -18,8 +18,8 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +98,7 @@ public class LTL_to_ba {
 	protected static int timeBetweenHearbeats=20;
 
 	/** Concatenates LTL and checks for forbidden words. */
-	public static StringBuffer concatenateLTL(List<String> ltl)
+	public static StringBuffer concatenateLTL(Collection<String> ltl)
 	{
 		StringBuffer ltlCombined = new StringBuffer();
 		boolean first = true;
@@ -121,21 +121,17 @@ public class LTL_to_ba {
 		baError = "ltl2ba",baSimpleComment="\\s*/\\*.*\\*/\\n*";
 	
 	private final Configuration config;
-	protected Map<CmpVertex,Map<String,List<CmpVertex>>> matrix = null;
-	private final LearnerGraph origGraph;
+	protected MatrixND matrixFromLTL = null;
+	
 	/** Constructs class which will use LTL to augment the supplied graph.
 	 * 
 	 * @param cnf configuration to use
 	 * @param from graph to fold LTL into
 	 */
-	public LTL_to_ba(Configuration cnf, LearnerGraph from)
+	public LTL_to_ba(Configuration cnf)
 	{
 		config = cnf;
-		matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		origGraph = from;
-
-		if (from != null)
-			alphabet = from.wmethod.computeAlphabet();
+		matrixFromLTL = new MatrixND();
 	}
 		
 	private static final int lexSTART =8;
@@ -223,8 +219,8 @@ public class LTL_to_ba {
 		if (vert == null)
 		{// add new vertex
 			vert = LearnerGraph.generateNewCmpVertex(new VertexID(name), config);
-			vert.setAccept(name.startsWith("accept_"));
-			matrix.put(vert,new TreeMap<String,List<CmpVertex>>());
+			vert.setAccept(name.startsWith("accept_"));vert.setColour(JUConstants.AMBER);
+			matrixFromLTL.matrix.put(vert,new TreeMap<String,List<CmpVertex>>());
 			verticesUsed.put(name, vert);
 		}
 		return vert;
@@ -307,7 +303,7 @@ public class LTL_to_ba {
 				switch(currentMatch)
 				{
 				case lexTRANSITION:
-					Map<String,List<CmpVertex>> row = matrix.get(currentState);
+					Map<String,List<CmpVertex>> row = matrixFromLTL.matrix.get(currentState);
 					CmpVertex target = addState(lexer.group(lexTRANSITIONTARGET));
 					for(String currLabel:interpretString(lexer.group(lexTRANSITIONLABEL)))
 					{
@@ -331,58 +327,80 @@ public class LTL_to_ba {
 				
 			currentMatch = lexer.getMatchType();
 		}
+		
+		matrixFromLTL.init = findInitialState(matrixFromLTL.matrix);
 	}
 	
 	/** For each input where there is no transition from a state,
 	 * this function will add a transition to an amber-coloured reject-state.
 	 */  
-	protected Map<CmpVertex,Map<String,List<CmpVertex>>> completeMatrix(LearnerGraph graph)
+	protected LearnerGraph completeMatrix(LearnerGraph graph)
 	{
-		int rejectNumber = 1;
-		Set<VertexID> idsInUse = new HashSet<VertexID>();for(CmpVertex v:graph.transitionMatrix.keySet()) idsInUse.add(v.getID());
-		Map<CmpVertex,Map<String,List<CmpVertex>>> result = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,result);
-
-		List<CmpVertex> currentStates = new LinkedList<CmpVertex>();currentStates.addAll(result.keySet());
+		LearnerGraph result = graph.copy(graph.config);
+		List<CmpVertex> currentStates = new LinkedList<CmpVertex>();currentStates.addAll(result.transitionMatrix.keySet());
 		for(CmpVertex state:currentStates)
 		{
-			Map<String,List<CmpVertex>> row = result.get(state);
+			Map<String,CmpVertex> row = result.transitionMatrix.get(state);
 			Set<String> remaining = new TreeSet<String>();remaining.addAll(alphabet);remaining.removeAll(row.keySet());
 			for(String str:remaining)
 			{
-				String newName = "reject_"+rejectNumber++;
-				assert !idsInUse.contains(new VertexID(newName));
-				CmpVertex reject = LearnerGraph.generateNewCmpVertex(new VertexID(newName),config);
+				CmpVertex reject = LearnerGraph.generateNewCmpVertex(result.nextID(false),config);
 				reject.setAccept(false);reject.setColour(JUConstants.AMBER);
-				result.put(reject, new TreeMap<String,List<CmpVertex>>());
-				List<CmpVertex> rejectTarget = new LinkedList<CmpVertex>();rejectTarget.add(reject);
-				row.put(str, rejectTarget);
+				result.transitionMatrix.put(reject, new TreeMap<String,CmpVertex>());
+				row.put(str, reject);
 			}
 		}
 		
 		return result;
 	}
 	
-	/** Adds transitions from a different matrix, to the current one. */
-	protected static void addFromMatrix(Map<CmpVertex,Map<String,List<CmpVertex>>> matrix,LearnerGraph origGraph)
+	protected static class MatrixND
 	{
-		Set<VertexID> idsInUse = new HashSet<VertexID>();for(CmpVertex v:matrix.keySet()) idsInUse.add(v.getID());
-		for(CmpVertex v:origGraph.transitionMatrix.keySet()) assert !idsInUse.contains(v.getID());// ensure non-intersection of vertices.
+		Map<CmpVertex,Map<String,List<CmpVertex>>> matrix;
+		CmpVertex init;
 		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> matrixOrig = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(origGraph,LearnerGraphND.ignoreNone,matrixOrig);
-		CmpVertex init = findInitialState(matrix);
-		
-		// and now add the rest of the transitions.
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixOrig.entrySet())
+		public MatrixND()
 		{
-			Map<String,List<CmpVertex>> row = 
-				entry.getKey() == origGraph.init?matrix.get(init):matrix.get(entry.getKey());
+			matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
+			init = null;
+		}
+	}
+	
+	/** Puts together transitions from a different matrices and returns the result of addition, which
+	 * is most likely non-deterministic.
+	 */
+	protected static MatrixND UniteTransitionMatrices(
+			MatrixND matrixToAdd, LearnerGraph origGraph)
+	{
+		CmpVertex init = matrixToAdd.init;
+		LearnerGraph grIds = new LearnerGraph(origGraph.config);
+		grIds.vertNegativeID = origGraph.vertNegativeID;grIds.vertPositiveID=origGraph.vertPositiveID;
+		
+		// given that all text identifiers go before (or after) numerical ones, we're not
+		// going to hit a state clash if we simply generate state names
+		// based on the existing IDs of origGraph. 
+		Map<CmpVertex,CmpVertex> firstToSecond = new TreeMap<CmpVertex,CmpVertex>();
+		firstToSecond.put(init, origGraph.init);
+		for(CmpVertex firstVertex:matrixToAdd.matrix.keySet())
+			if (firstVertex != init)
+			{
+				CmpVertex vert = LearnerGraph.generateNewCmpVertex(grIds.nextID(firstVertex.isAccept()), origGraph.config);
+				vert.setAccept(firstVertex.isAccept());vert.setHighlight(firstVertex.isHighlight());vert.setColour(firstVertex.getColour());
+				firstToSecond.put(firstVertex, vert);
+			}
+
+		MatrixND matrixResult = convertToND(origGraph);
+		
+		// Add the transitions.
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixToAdd.matrix.entrySet())
+		{
+			CmpVertex entryKey = firstToSecond.get(entry.getKey());
+			Map<String,List<CmpVertex>> row = matrixResult.matrix.get(entryKey);
 			if (row == null)
 			{
-				row = new TreeMap<String,List<CmpVertex>>();matrix.put(entry.getKey(), row);
+				row = new TreeMap<String,List<CmpVertex>>();matrixResult.matrix.put(entryKey, row);
 			}
-			for(Entry<String,List<CmpVertex>> transition:matrixOrig.get(entry.getKey()).entrySet())
+			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
 			{
 				List<CmpVertex> targets = row.get(transition.getKey());
 				if (targets == null)
@@ -390,12 +408,11 @@ public class LTL_to_ba {
 					targets = new LinkedList<CmpVertex>();row.put(transition.getKey(), targets);
 				}
 				for(CmpVertex v:transition.getValue())
-					if (v != origGraph.init) // since this init does not make it into the final graph, we have to change all references to it, to the new initial vertex.
-						targets.add(v);
-					else
-						targets.add(init);
+					targets.add(firstToSecond.get(v));
 			}
 		}
+		
+		return matrixResult;
 	}		
 	
 	/** Alphabet of a graph we'd like to augment with LTL. */
@@ -438,7 +455,7 @@ public class LTL_to_ba {
 		boolean expectWord = true;// this means that we are waiting for a word
 		
 		Set<String> currentValue = new TreeSet<String>();// the outcome of the left-hand side.
-		// A + ! ! ! B
+
 		OPERATION currentOperation = OPERATION.ASSIGN;
 		while(currentMatch >= 0 && currentMatch != exprClose)
 		{
@@ -503,7 +520,7 @@ public class LTL_to_ba {
 	}
 	
 	/** The notation for each label in a BA is one of the following:
-	 * "label", "!label", "1".
+	 * "label", "1".
 	 * 
 	 * @param left the left-hand side and the receiver of the outcome of the operation.
 	 * @param oper the operation to perform between the supplied sets,
@@ -528,7 +545,7 @@ public class LTL_to_ba {
 	}
 	
 	/** The notation for each label in a BA is one of the following:
-	 * "label", "!label", "1".
+	 * "label", "1".
 	 * 
 	 * @param label label to interpret, using an alphabet.
 	 * @return result of interpretation.
@@ -596,10 +613,10 @@ public class LTL_to_ba {
 	 * @param matrixND non-deterministic matrix
 	 * @return deterministic version of it.
 	 */
-	protected LearnerGraph buildDeterministicGraph(final Map<CmpVertex,Map<String,List<CmpVertex>>> matrixND)
+	protected LearnerGraph buildDeterministicGraph(final MatrixND matrixND)
 	{
 		Map<Set<CmpVertex>,EqClass> equivalenceClasses = new HashMap<Set<CmpVertex>,EqClass>();
-		CmpVertex init = findInitialState(matrixND);
+		CmpVertex init = matrixND.init;
 		/** Maps sets of target states to the corresponding known states. */
 		LearnerGraph result = new LearnerGraph(config);result.transitionMatrix.clear();
 		EqClass initial = new EqClass(LearnerGraph.cloneCmpVertex(init, config));initial.add(init);
@@ -614,7 +631,7 @@ public class LTL_to_ba {
 			Map<String,EqClass> inputToTargetClass = new HashMap<String,EqClass>();
 			for(CmpVertex vertex:currentClass)
 			{
-				for(Entry<String,List<CmpVertex>> transition:matrixND.get(vertex).entrySet())
+				for(Entry<String,List<CmpVertex>> transition:matrixND.matrix.get(vertex).entrySet())
 				{
 					EqClass targets = inputToTargetClass.get(transition.getKey());
 					if (targets == null)
@@ -666,7 +683,7 @@ public class LTL_to_ba {
 	}
 
 	/** Runs a supplied ltl formula through ltl2ba.
-	 * The internal matrix is populated by the graph returned by ltl2ba
+	 * The graph returned by ltl2ba is stored in the internal matrix. 
 	 *
 	 * @param ltl formula to run
 	 */
@@ -682,7 +699,7 @@ public class LTL_to_ba {
 			}
 
 			public void StdErr(StringBuffer b) {
-				System.out.print(b.toString());
+				System.err.print(b.toString());
 			}
 
 			public void StdOut(StringBuffer b) {
@@ -693,29 +710,57 @@ public class LTL_to_ba {
 			statechum.Helper.throwUnchecked("failed to run ltl2ba", e1);
 		} catch (InterruptedException e) {
 			statechum.Helper.throwUnchecked("wait for ltl2ba to terminate aborted", e);
-		}		
+		}
 		
 		parse(converterOutput.toString());
 	}
+
+	/** A deterministic automaton corresponding to LTL formulas. */
+	protected LearnerGraph automatonLoadedFromLTL = null;
 	
-	/** Takes a collection of LTL formulae and returns the corresponding FSM,
+	/** Takes a collection of LTL formulae and builds the corresponding FSM,
 	 * assuming the properties are all safety ones.
 	 * 
 	 * @param ltl formulas to run
-	 * @return the corresponding FSM
 	 */
-	protected LearnerGraph ltlToBA(List<String> ltl)
+	public void ltlToBA(Collection<String> ltl, LearnerGraph graph)
 	{
+		if (graph != null)
+			alphabet = graph.wmethod.computeAlphabet();
 		runLTL2BA(concatenateLTL(ltl).toString());
-		for(CmpVertex v:matrix.keySet())
+		for(CmpVertex v:matrixFromLTL.matrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");
-		Map<CmpVertex,Map<String,List<CmpVertex>>> m = completeMatrix(buildDeterministicGraph(matrix));
-		addFromMatrix(m,origGraph);
+		
+		synchronized(LearnerGraph.syncObj)
+		{
+			automatonLoadedFromLTL = completeMatrix(buildDeterministicGraph(matrixFromLTL));
+		}
+	}
+	
+	/** Converts a deterministic matrix into a non-deterministic representation, needed for
+	 * some methods. */
+	protected static MatrixND convertToND(LearnerGraph graph)
+	{
+		MatrixND matrixResult = new MatrixND();
+		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,matrixResult.matrix);
+		matrixResult.init = graph.init;
+		return matrixResult;
+	}
+	
+	/** Augments the supplied graph with the one obtained from LTL. The two graphs are expected 
+	 * to have identical alphabets, otherwise LTL graph will be invalid.
+	 * 
+	 * @param what
+	 * @return
+	 */
+	public LearnerGraph augmentGraph(LearnerGraph what)
+	{
+		MatrixND automaton = UniteTransitionMatrices(convertToND(automatonLoadedFromLTL),what);
 		LearnerGraph result = null;
 		synchronized(LearnerGraph.syncObj)
 		{
-			result = buildDeterministicGraph(m);
+			result = buildDeterministicGraph(automaton);
 		}
 		return result;
 	}

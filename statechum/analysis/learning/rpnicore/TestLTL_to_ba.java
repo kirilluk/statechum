@@ -19,10 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.junit.Assert;
@@ -30,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
 
 import static statechum.Helper.checkForCorrectException;
@@ -45,7 +41,7 @@ public class TestLTL_to_ba {
 	public final void beforeTest()
 	{
 		config = Configuration.getDefaultConfiguration().copy();		
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"a","b","c"}));
 		
 		expectedFromASEExample = new LearnerGraph(TestFSMAlgo.buildGraph(
@@ -525,14 +521,14 @@ public class TestLTL_to_ba {
 		}},IllegalArgumentException.class,"extra tokens at the end ");
 	}
 	
-	/** Converts LTL into a deterministic automaton without adding reject-transitions or merging with the initial graph. */
-	protected LearnerGraph loadWithoutMerging(String text)
+	/** Converts LTL into a deterministic automaton without adding reject-transitions. */
+	protected LearnerGraph loadLTLFromOutputOfLTL2BA(String text)
 	{
 		ba.parse(text);
 		LearnerGraph result = null;
 		synchronized(LearnerGraph.syncObj)
 		{
-			result = ba.buildDeterministicGraph(ba.matrix);
+			result = ba.buildDeterministicGraph(ba.matrixFromLTL);
 		}
 		return result;
 	}
@@ -544,7 +540,7 @@ public class TestLTL_to_ba {
 		"state_init: false;\n}\n"
 		;
 		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Very simple graph */
@@ -560,7 +556,7 @@ public class TestLTL_to_ba {
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0"),config);
 		expected.findVertex("B").setAccept(false);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Very simple graph with a state containing no outgoing transitions. */
@@ -576,7 +572,7 @@ public class TestLTL_to_ba {
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "testLTL_ba_graph0"),config);
 		expected.findVertex("B").setAccept(false);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Very simple graph with an unreachable state */
@@ -594,7 +590,7 @@ public class TestLTL_to_ba {
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0"),config);
 		expected.findVertex("B").setAccept(false);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Absent initial state */
@@ -609,7 +605,7 @@ public class TestLTL_to_ba {
 		"state_b: if :: (a) -> goto state_b fi;"+
 		"}\n";
 		checkForCorrectException(new whatToRun() { public void run() {
-			ba.parse(text);ba.buildDeterministicGraph(ba.matrix);
+			ba.parse(text);ba.buildDeterministicGraph(ba.matrixFromLTL);
 		}},IllegalArgumentException.class,"absent initial state");
 	}
 	
@@ -622,7 +618,7 @@ public class TestLTL_to_ba {
 		"if :: (!a && b) -> goto accept_init fi;\n"+
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A", "testLTL_ba_graph1"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Conjunction of labels */
@@ -634,7 +630,7 @@ public class TestLTL_to_ba {
 		":: (!a && !b) -> goto accept_init \n"+
 		"fi;}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->A", "testLTL_ba_graph2"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Conjunction of labels */
@@ -650,7 +646,7 @@ public class TestLTL_to_ba {
 		":: (b) -> goto accept_A\n"+
 		"fi;}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B", "testLTL_ba_graph3"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Conjunction of labels */
@@ -666,7 +662,7 @@ public class TestLTL_to_ba {
 		":: (!b && b) -> goto accept_A\n"+
 		"fi;}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B", "testLTL_ba_graph4"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Conjunction of labels */
@@ -682,7 +678,7 @@ public class TestLTL_to_ba {
 		":: (1) -> goto accept_A\n"+
 		"fi;}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-a->B\nB-b->B\nB-c->B", "testLTL_ba_graph4"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	/** Testing of a routine to turn a non-deterministic graph into a deterministic one. */
@@ -724,7 +720,7 @@ public class TestLTL_to_ba {
 				"FG-a->AB\n"+
 				"AB-a->CD\nAB-b->B\nAB-c->D\n"
 				, "testLTL_ba_nd1"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
 	@Test
@@ -767,7 +763,7 @@ public class TestLTL_to_ba {
 				"BE-b->B-a->C-a->I\n"+"ABDE-b->B\n"+"IBCE-b->B\n"+"IABDE-b->B\n"+"IABCDE-b->B\n"+"B-b->B\n"+
 				"BE-c->E-a->I\n"+"ABDE-c->E\n"+"IBCE-c->E\n"+"IABDE-c->E\n"+"IABCDE-c->E\n"+"E-c->E\n"
 				, "testLTL_ba_nd2"),config);
-		Assert.assertNull(WMethod.checkM(expected,loadWithoutMerging(text)));
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 
 	/** Inconsistent accept/reject labelling between states F and G. */
@@ -802,7 +798,7 @@ public class TestLTL_to_ba {
 		":: (a) -> goto accept_B\n"+
 		"fi;}\n";
 		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.buildDeterministicGraph(ba.matrix);
+			ba.parse(text);ba.buildDeterministicGraph(ba.matrixFromLTL);
 		}},IllegalArgumentException.class,"inconsistent labelling");
 	}
 	
@@ -838,7 +834,7 @@ public class TestLTL_to_ba {
 		":: (a) -> goto reject_B\n"+
 		"fi;}\n";
 		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.buildDeterministicGraph(ba.matrix);
+			ba.parse(text);ba.buildDeterministicGraph(ba.matrixFromLTL);
 		}},IllegalArgumentException.class,"inconsistent labelling");
 	}
 	
@@ -846,9 +842,9 @@ public class TestLTL_to_ba {
 	@Test
 	public final void testLTL_bigger()
 	{
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
-		LearnerGraph actual = loadWithoutMerging("never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
+		LearnerGraph actual = loadLTLFromOutputOfLTL2BA("never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
 				"			accept_init :    /* init */\n"+
 				"				if\n"+
 				"				:: (!close) -> goto accept_init\n"+
@@ -876,49 +872,49 @@ public class TestLTL_to_ba {
 	@Test
 	public final void testLTL_integration_empty()
 	{
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
 		ba.runLTL2BA("false");
-		Assert.assertNull(WMethod.checkM(ba.buildDeterministicGraph(ba.matrix),expected));
+		Assert.assertNull(WMethod.checkM(expected,ba.buildDeterministicGraph(ba.matrixFromLTL)));
 	}
 	
 	/** This one is an integration test of ltl2ba. Third test : a bigger automaton. */
 	@Test
 	public final void testLTL_integration_bigger()
 	{
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		Assert.assertNull(WMethod.checkM(ba.buildDeterministicGraph(ba.matrix),expectedFromASEExample));
+		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.buildDeterministicGraph(ba.matrixFromLTL)));
 	}
 	
 	/** This one is an integration test of ltl2ba. Third test : completing a bigger automaton. */
 	@Test
 	public final void testLTL_integration_bigger2()
 	{
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		LearnerGraph result = ba.buildDeterministicGraph(ba.completeMatrix(ba.buildDeterministicGraph(ba.matrix)));
+		LearnerGraph result = ba.completeMatrix(ba.buildDeterministicGraph(ba.matrixFromLTL));
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph(
 				"I-close->1\nI-edit->I1\nI-save->I1\nI-load->I1\n"+
 				"1-load->I1-close->1\n"+
 				"I1-edit->I1-save->I1-load->I1\n"+
 				"1-edit-#R1\n"+"1-save-#R2\n"+"1-close-#R3\n"
 				,"testLTL_bigger"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 
 	@Test
 	public final void testLTL_complete2()
 	{
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-c->B-b->B", "testLTL_ba_graph3"),config);
-		LearnerGraph result = ba.buildDeterministicGraph(ba.completeMatrix(graph));
+		LearnerGraph result = ba.completeMatrix(graph);
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B\n"+
 				"A-b-#R1\n"+"B-a-#R2\n"+"B-c-#R3"
 				, "testLTL_complete2"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 	
 	/** Tests of adding to graph. */
@@ -928,13 +924,10 @@ public class TestLTL_to_ba {
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
 		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B", "testLTL_add1"),config);
 		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,matrix);
-		LTL_to_ba.addFromMatrix(matrix,graphToAdd);
-		LearnerGraph result = ba.buildDeterministicGraph(matrix);
+		LearnerGraph result = ba.buildDeterministicGraph(LTL_to_ba.UniteTransitionMatrices(LTL_to_ba.convertToND(graph),graphToAdd));
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B\n"
 				, "testLTL_complete2"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 	
 	/** Tests of adding to graph. */
@@ -944,13 +937,10 @@ public class TestLTL_to_ba {
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
 		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,matrix);
-		LTL_to_ba.addFromMatrix(matrix,graphToAdd);
-		LearnerGraph result = ba.buildDeterministicGraph(matrix);
+		LearnerGraph result = ba.buildDeterministicGraph(LTL_to_ba.UniteTransitionMatrices(LTL_to_ba.convertToND(graph),graphToAdd));
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
 				, "testLTL_complete2"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 	
 	/** Tests of adding to graph. */
@@ -960,14 +950,11 @@ public class TestLTL_to_ba {
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-b->S", "testLTL_ba_graph3"),config);
 		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,matrix);
-		LTL_to_ba.addFromMatrix(matrix,graphToAdd);
-		LearnerGraph result = ba.buildDeterministicGraph(matrix);
+		LearnerGraph result = ba.buildDeterministicGraph(LTL_to_ba.UniteTransitionMatrices(LTL_to_ba.convertToND(graph),graphToAdd));
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"+
 				"A-b->S"
 				, "testLTL_complete2"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 	
 	/** Tests of adding to graph. */
@@ -977,32 +964,69 @@ public class TestLTL_to_ba {
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-d->S", "testLTL_ba_graph3"),config);
 		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
-		Map<CmpVertex,Map<String,List<CmpVertex>>> matrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		LearnerGraphND.buildForward(graph,LearnerGraphND.ignoreNone,matrix);
-		LTL_to_ba.addFromMatrix(matrix,graphToAdd);
-		LearnerGraph result = ba.buildDeterministicGraph(matrix);
+		LearnerGraph result = ba.buildDeterministicGraph(LTL_to_ba.UniteTransitionMatrices(LTL_to_ba.convertToND(graph),graphToAdd));
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
 				, "testLTL_complete2"),config);
-		Assert.assertNull(WMethod.checkM(expected,result));
+		Assert.assertNull(WMethod.checkM(result,expected));
+	}
+
+	@Test
+	public final void testLTL_add5()
+	{
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("P-a->Q-a->S-a->U\nP-b->R-a->T", "testLTL_add5_A"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B-a->B-b-#C", "testLTL_add5_B"),config);
+
+		LearnerGraph result = ba.buildDeterministicGraph(LTL_to_ba.UniteTransitionMatrices(LTL_to_ba.convertToND(graph),graphToAdd));
+		Assert.assertNull(WMethod.checkM(graphToAdd,result));
 	}
 	
 	/** Tests the all-final states property. */
 	@Test
 	public final void testLTL_integration_subsystem_nonfinal()
 	{
-		ba=new LTL_to_ba(config,null);ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close","open"}));
 		checkForCorrectException(new whatToRun() { public void run() {
-			ba.ltlToBA(Arrays.asList(new String[]{"([](close-><>open))"}));
-			ba.buildDeterministicGraph(ba.matrix);
+			ba.ltlToBA(Arrays.asList(new String[]{"([](close-><>open))"}),null);
 		}},IllegalArgumentException.class,"not all states are accept");
 	}
+
 	@Test
 	public final void testLTL_integration_subsystem()
 	{
-		ba=new LTL_to_ba(config,new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config));ba.alphabet = new HashSet<String>();
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
-		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}));
-		Assert.assertNull(WMethod.checkM(ba.buildDeterministicGraph(ba.matrix),expectedFromASEExample));
+		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
+		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+		ba.automatonLoadedFromLTL = Transform.removeRejectStates(ba.automatonLoadedFromLTL, ba.automatonLoadedFromLTL.config);
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
+	}
+	
+	/** Checks that multiple calls to Augment return the same result. */
+	@Test
+	public final void testLTL_integration_subsystem2()
+	{
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
+		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
+		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
+		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+		ba.automatonLoadedFromLTL = Transform.removeRejectStates(ba.automatonLoadedFromLTL, ba.automatonLoadedFromLTL.config);
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
+	}
+	
+	/** Checks that multiple calls to Augment return the same result and that augmenting with a single-state graph returns the internal graph. */
+	@Test
+	public final void testLTL_integration_subsystem3()
+	{
+		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
+		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
+		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
+		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(new LearnerGraph(Configuration.getDefaultConfiguration())),ba.automatonLoadedFromLTL));
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(new LearnerGraph(Configuration.getDefaultConfiguration())),ba.automatonLoadedFromLTL));
+		Assert.assertNull(WMethod.checkM(ba.augmentGraph(new LearnerGraph(Configuration.getDefaultConfiguration())),ba.automatonLoadedFromLTL));
 	}
 }

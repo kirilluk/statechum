@@ -23,7 +23,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
-import statechum.ArrayOperations;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
@@ -170,7 +169,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
 	
-	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED, M_METHODEXIT}
+	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED, M_METHODEXIT, M_ADDCONSTRAINTS}
 	
 	/** Next expected call. */
 	protected KIND_OF_METHOD expected = null;
@@ -504,6 +503,39 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			@SuppressWarnings("unused")	int minusSize) 
 	{
 		throw new UnsupportedOperationException("only init with collections is supported");
+	}
+
+	protected LearnerGraph cGraph = null;
+
+	public LearnerGraph AddConstraints(LearnerGraph graph) 
+	{
+		LearnerGraph result = null, copyOfResult = null;
+		// First, we call the expected method
+		if (Thread.currentThread() == secondThread)
+		{
+			result = whatToCompareWith.AddConstraints(graph);
+			copyOfResult = result.copy(result.config);
+			cGraph = copyOfResult;
+		}
+		else
+		{
+			result = decoratedLearner.AddConstraints(graph);
+			copyOfResult = result.copy(result.config);
+		}
+		checkCall(KIND_OF_METHOD.M_ADDCONSTRAINTS);
+		
+		if (Thread.currentThread() != secondThread)
+		{// second thread, checking.
+			checkGraphEquality(cGraph, copyOfResult);
+
+			cGraph=null;// reset stored data
+		}
+
+		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
+
+		return result;
 	}
 
 }

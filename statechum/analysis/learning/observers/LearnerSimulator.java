@@ -301,16 +301,25 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 			{
 				String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
 				if (graphKind.equals(ELEM_KINDS.ATTR_LEARNINGOUTCOME.name()))
-						result = series.readGraph(currentElement);
+				{
+					result = series.readGraph(currentElement);
+					kind = ELEM_KINDS.ATTR_GRAPHKIND;// means that this case was handled successfully.
+				}
 				else
-					throw new IllegalArgumentException("unexpected kind of graph: "+graphKind);
+					if (graphKind.equals(ELEM_KINDS.ATTR_WITHCONSTRAINTS.name()))
+					{
+						kind = ELEM_KINDS.ATTR_WITHCONSTRAINTS;// means that this case was handled successfully.
+					}
+					else
+						throw new IllegalArgumentException("unexpected kind of graph: "+graphKind);
 
-				kind = ELEM_KINDS.ATTR_GRAPHKIND;// means that this case was handled successfully.
 			}
 		 	else
 			if (kind != null)
 				switch(kind)
 				{
+				case ATTR_WITHCONSTRAINTS:
+					topLevelListener.AddConstraints(graph);break;
 				case ELEM_ANSWER:
 					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(ELEM_KINDS.ATTR_QUESTION.name())),-1);
 					Object outcome = topLevelListener.CheckWithEndUser(graph, question, null);
@@ -488,6 +497,14 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		return initial.graph;
 	}
 
+	/** Since it is a simulator, only the return value is loaded from XML and whatever is 
+	 * passed in is estimated.
+	 */
+	public LearnerGraph AddConstraints(@SuppressWarnings("unused") LearnerGraph graph) 
+	{
+		return series.readGraph(currentElement);
+	}
+	
 	/** Since the learner does not know that the answer should be, we cannot 
 	 * easily reconstruct the PTAEngine which is expected to be parameterised
 	 * by the automaton. For this reason, we only store the corresponding collections and the 
@@ -535,4 +552,5 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	{
 		return learnMachine();
 	}
+
 }

@@ -353,6 +353,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (useAmber?  1231 : 1237);
 		result = prime * result + (useSpin?  1231 : 1237);
 		result = prime * result + initialIDvalue;
+		result = prime * result + (useConstraints? 1231 : 1237);
 		
 		return result;
 	}
@@ -447,6 +448,8 @@ public class Configuration implements Cloneable
 		if (useSpin != other.useSpin)
 			return false;
 		if (initialIDvalue != other.initialIDvalue)
+			return false;
+		if (useConstraints != other.useConstraints)
 			return false;
 		
 		return true;
@@ -817,6 +820,23 @@ public class Configuration implements Cloneable
 	public void setInitialIDvalue(int newValue)
 	{
 		initialIDvalue = newValue;
+	}
+	
+	/** A number of constraints might be in use which may be included in a PTA to 
+	 * make learning faster. Upon a restart, such constraints are automatically
+	 * added since restarts indicate when additional information was added and
+	 * hence we need to be able to use it to propagate constraints.
+	 */
+	protected boolean useConstraints = false;
+	
+	public boolean isUseConstraints()
+	{
+		return useConstraints;
+	}
+	
+	public void setUseConstraints(boolean newValue)
+	{
+		useConstraints = newValue;
 	}
 	
 	/** Whether a method is get.../is ..., or set...  */

@@ -51,7 +51,8 @@ import statechum.model.testset.PTASequenceEngine;
  *
  * @author kirill
  */
-public class RecordProgressDecorator extends ProgressDecorator {
+public class RecordProgressDecorator extends ProgressDecorator 
+{
 	protected OutputStream outputStream = null;
 	
 	/** The top-most element of the trace log file. */
@@ -102,7 +103,7 @@ public class RecordProgressDecorator extends ProgressDecorator {
 		finalGraphXMLNode.setAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name(),ELEM_KINDS.ATTR_LEARNINGOUTCOME.name());
 		writeElement(finalGraphXMLNode);
 	}
-
+	
 	/** Closes the trace log, writing the constructed XML out. */ 
 	public void close()
 	{
@@ -293,5 +294,16 @@ public class RecordProgressDecorator extends ProgressDecorator {
 	{
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 		writeElement(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));
+	}
+
+	public LearnerGraph AddConstraints(LearnerGraph graph) 
+	{
+		LearnerGraph result = decoratedLearner.AddConstraints(graph);
+
+		Element ptaWithConstraintsGraphXMLNode = series.writeGraph(result);
+		ptaWithConstraintsGraphXMLNode.setAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name(),ELEM_KINDS.ATTR_WITHCONSTRAINTS.name());
+		writeElement(ptaWithConstraintsGraphXMLNode);
+		
+		return result;
 	}
 }

@@ -24,8 +24,8 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.oracles.RPNIBlueFringeSootLearner;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
+import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.spin.SpinUtil;
@@ -87,6 +87,21 @@ public class RPNIUniversalLearner extends RPNILearner {
 		return MergeStates.mergeAndDeterminize_general(original, pair);		
 	}
 
+	/** A graph representing constraints to be folded into PTA before learning commences and 
+	 * upon every restart.
+	 */
+	protected LTL_to_ba constraints = null;
+	
+	public LearnerGraph AddConstraints(LearnerGraph pta)
+	{
+		if (constraints == null)
+		{
+			constraints = new LTL_to_ba(config);
+			constraints.ltlToBA(ltl, pta);
+		}
+		return constraints.augmentGraph(pta);
+	}
+	
 	/** Given a pair of graphs, computes the set of questions to validate the merge which 
 	 * resulted in the second graph
 	 * 
@@ -111,7 +126,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 		final Configuration shallowCopy = scoreComputer.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
-
+		if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
 		if (scoreComputer.config.getUseSpin()){
 			Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, ltl);
 			if(counters.size()>0)
@@ -189,7 +204,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
 					if (scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
-					//if (ans != null) System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
+
 					questionAnswered = true;
 					if (!tempVertex.isAccept()) {
 						if(!answerFromSpin)
@@ -239,6 +254,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 							else 
 							{// LTL does not contradict hard facts, update them and restart learning.
 								ltl.add(newLtl);
+								constraints = null;// make sure constraints are rebuilt if in use
 								restartLearning = RestartLearningEnum.restartHARD;
 								break;
 							}
@@ -259,6 +275,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 					ptaSoftFacts = ptaHardFacts.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				}
 				scoreComputer = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
+				if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
 				scoreComputer.clearColoursButAmber();// this one will clear all colours if amber mode is not set.
 
 				setChanged();

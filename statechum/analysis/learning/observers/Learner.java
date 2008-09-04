@@ -129,4 +129,12 @@ public interface Learner
 	 * @param newColour
 	 */
 	public void AugmentPTA(LearnerGraph pta,RestartLearningEnum ptaKind,List<String> sequence, boolean accepted, JUConstants newColour);
+	
+	/** Given a PTA, this method adds constraints to it, this could be reject states determined
+	 * by Soot or an automaton obtained from LTL.
+	 * 
+	 * @param graph PTA to augment
+	 * @return result of augmentation.
+	 */ 
+	public LearnerGraph AddConstraints(LearnerGraph graph);
 }

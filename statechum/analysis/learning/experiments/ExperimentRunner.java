@@ -1156,11 +1156,11 @@ public class ExperimentRunner
 			    			}
 
 			    			public void StdErr(StringBuffer b) {
-			    				System.out.print(b.toString());
+			    				System.err.print(b.toString());
 			    			}
 
 			    			public void StdOut(StringBuffer b) {
-			    				System.err.print(b.toString());
+			    				System.out.print(b.toString());
 			    			}});
 			    		try {
 							jvm.waitFor();

@@ -68,16 +68,23 @@ public class QSMTool
 		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
 	
+		BufferedReader in = null;
 		try {
-			BufferedReader in = new BufferedReader(inputData);
+			in = new BufferedReader(inputData);
 			String fileString;
 			while ((fileString = in.readLine()) != null) {
 				process(fileString);
 			}
-			in.close();
 		
 		} catch (IOException e) {
 			statechum.Helper.throwUnchecked("failed to read learner initial data", e);
+		}
+		finally
+		{
+			if (in != null)
+				try { in.close(); } catch (IOException e) 
+				{// ignored.
+				}
 		}
 	}
 	

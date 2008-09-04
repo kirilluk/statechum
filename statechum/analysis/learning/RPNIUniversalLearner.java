@@ -152,6 +152,8 @@ public class RPNIUniversalLearner extends RPNILearner {
 
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
+			Visualiser.updateFrame(temp, null);
+			
 			updateGraph(temp);
 			if (scoreComputer.config.getUseSpin()){
 
@@ -190,8 +192,10 @@ public class RPNIUniversalLearner extends RPNILearner {
 				boolean answerFromSpin = false;
 				if(answer != null && answer.firstElem >= 0) 
 					answerFromSpin = true;
-				else
+				else{
+					System.out.println("<question> "+question);
 					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, new Object[] { "LTL"});
+				}
 				
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
 					System.out.println("CANCELLED");

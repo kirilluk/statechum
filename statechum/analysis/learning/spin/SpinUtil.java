@@ -67,8 +67,9 @@ public class SpinUtil {
 		generatePromela(g.paths.getGraph());
 		createInverseMap();
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
-		removeInvalidPrefixCounters(counters, g);
-		return sort(counters);
+		List<List<String>>sortedCounters = sort(counters);
+		removeInvalidPrefixCounters(sortedCounters, g);
+		return sortedCounters;
 	}
 	
 	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph g){
@@ -77,18 +78,21 @@ public class SpinUtil {
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
 		while(counterIt.hasNext()){
 			List<String> counter = counterIt.next();
-			if(g.paths.tracePath(counter.subList(0, counter.size()-1))!= AbstractOracle.USER_ACCEPTED)
+			if(g.paths.tracePath(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
 				toBeRemoved.add(counter);
-			else if(counterPTA.paths.tracePath(counter.subList(0, counter.size()-1))!= AbstractOracle.USER_ACCEPTED)
-				toBeRemoved.add(counter);
-			else
-				counterPTA.paths.augmentPTA(counter, false, null);
+			else{ 
+				try{
+					counterPTA.paths.augmentPTA(counter, false, null);
+				}
+				catch(Exception e){
+					toBeRemoved.add(counter);
+				}
+			}
 				
 		}
 		counters.removeAll(toBeRemoved);
 	}
 	
-	@SuppressWarnings("unchecked")
 	private static List<List<String>> sort(Set<List<String>> counters){
 		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
 		counterList.addAll(counters);

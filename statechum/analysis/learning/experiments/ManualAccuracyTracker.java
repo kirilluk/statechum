@@ -10,7 +10,7 @@ import statechum.apps.QSMTool;
 public class ManualAccuracyTracker extends QSMTool {
 	
 	public static void main(String[] args){
-		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);tool.runExperiment();
+		ManualAccuracyTracker tool = new ManualAccuracyTracker();tool.loadConfig(args[0]);tool.runExperiment();
 	}
 	
 	@Override
@@ -24,12 +24,11 @@ public class ManualAccuracyTracker extends QSMTool {
 		String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
 		"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
 		LearnerGraph targetMachine = new LearnerGraph(TestFSMAlgo.buildGraph(target, "Target"), config);
-		//statechum.analysis.learning.util.OutputUtil.generateDotOutput(targetMachine.paths.getGraph());
-		
 		RPNILearner l = new RPNIUniversalLearner(null, ltl,config);
 		AccuracyTrackerDecorator atd = new AccuracyTrackerDecorator(l,targetMachine);
 		atd.init(sPlus, sMinus);
-		atd.learnMachine();
+		LearnerGraph learned = atd.learnMachine();
+		statechum.analysis.learning.util.OutputUtil.generateDotOutput(learned.paths.getGraph());
 		System.out.println(atd.getResult());
 	}
 	

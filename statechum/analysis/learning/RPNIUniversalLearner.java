@@ -161,8 +161,10 @@ public class RPNIUniversalLearner extends RPNILearner {
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext()){
 					List<String> counterExample = counterExampleIt.next();
-					topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
-					System.out.println("<temp> "+counterExample);
+					if(ptaHardFacts.paths.tracePath(counterExample)!=AbstractOracle.USER_ACCEPTED){
+						topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
+						System.out.println("<temp> "+counterExample);
+					}
 					
 				}
 				if(counterExamples.size()>0)

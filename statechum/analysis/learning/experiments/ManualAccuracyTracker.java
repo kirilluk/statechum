@@ -16,7 +16,6 @@ public class ManualAccuracyTracker extends QSMTool {
 	@Override
 	public void runExperiment()
 	{
-		config.setQuestionPathUnionLimit(1);
 		if(active)
 			config.setAskQuestions(true);
 		if(!ltl.isEmpty())

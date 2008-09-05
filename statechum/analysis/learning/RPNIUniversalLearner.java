@@ -152,19 +152,15 @@ public class RPNIUniversalLearner extends RPNILearner {
 
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
-			Visualiser.updateFrame(temp, null);
-			
 			updateGraph(temp);
 			if (scoreComputer.config.getUseSpin()){
 
-				Collection<List<String>> counterExamples = SpinUtil.check(temp, ltl);
+				Collection<List<String>> counterExamples = SpinUtil.check(temp, scoreComputer, ltl);
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext()){
 					List<String> counterExample = counterExampleIt.next();
-					if(ptaHardFacts.paths.tracePath(counterExample)!=AbstractOracle.USER_ACCEPTED){
-						topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
-						System.out.println("<temp> "+counterExample);
-					}
+					topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
+					System.out.println("<temp> "+counterExample);
 					
 				}
 				if(counterExamples.size()>0)

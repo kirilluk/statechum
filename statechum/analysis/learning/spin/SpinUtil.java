@@ -59,27 +59,43 @@ public class SpinUtil {
 
 	static Map<Integer, String> inverseFunctionMap;
 	
-	public static Collection<List<String>> check(LearnerGraph g, Set<String> ltl) {
+	public static Collection<List<String>> check(LearnerGraph temp, LearnerGraph current, Set<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
-		generatePromela(g.paths.getGraph());
+		generatePromela(temp.paths.getGraph());
 		createInverseMap();
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
 		List<List<String>>sortedCounters = sort(counters);
-		removeInvalidPrefixCounters(sortedCounters, g);
+		removeInvalidPrefixCounters(sortedCounters, current, ltl);
 		return sortedCounters;
 	}
 	
-	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph g){
+	public static Collection<List<String>> check(LearnerGraph temp, Set<String> ltl) {
+		functionCounter = 0;
+		stateCounter = 0;
+		sw = new StringWriter();
+		defines = new String();
+		generatePromela(temp.paths.getGraph());
+		createInverseMap();
+		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
+		List<List<String>>sortedCounters = sort(counters);
+		return sortedCounters;
+	}
+	
+	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph current, Set<String> ltl){
 		Iterator<List<String>> counterIt = counters.iterator();
 		Collection<List<String>> toBeRemoved = new HashSet<List<String>>();
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
 		while(counterIt.hasNext()){
 			List<String> counter = counterIt.next();
-			if(g.paths.tracePath(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
+			if(current.paths.tracePath(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
 				toBeRemoved.add(counter);
+			else if(current !=null)
+				if(current.paths.tracePath(counter) == AbstractOracle.USER_ACCEPTED)
+					toBeRemoved.add(counter);
+			
 			else{ 
 				try{
 					counterPTA.paths.augmentPTA(counter, false, null);
@@ -396,9 +412,11 @@ public class SpinUtil {
 					break;
 
 			}
+			proc.destroy();
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
+		
 		if (counterExample.isEmpty())
 			return counterExample;
 		else{

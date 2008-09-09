@@ -21,6 +21,7 @@ package statechum.analysis.learning.observers;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.Stack;
 
 import statechum.JUConstants;
@@ -36,7 +37,7 @@ import statechum.model.testset.PTASequenceEngine;
 
 public class AccuracyTrackerDecorator extends LearnerDecorator
 {
-	protected Collection<List<String>> tests;
+	protected Collection<List<String>> tests, samples;
 	protected LearnerGraph specfsm;
 	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults = null;
@@ -46,14 +47,19 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 
 		results = new LinkedList<List<ResultsContainer>>();
 		tests = target.wmethod.getFullTestSet(1);
+		RandomPathGenerator rpg = new RandomPathGenerator(target, new Random(100),5);
+		double nSquared = (target.getStateNumber()*target.getStateNumber())/2;
+		int number = (int)(nSquared + (nSquared%2));
+		rpg.generateRandomPosNeg(number, 1);
 		
+		samples = rpg.getAllSequences(0).getData(PTASequenceEngine.truePred);
 		specfsm = target;
 	}
 
 	
 	public void trackResults(LearnerGraph graph) {
 		PosNegPrecisionRecall pr = CompareGraphs.compare(tests, specfsm, graph);
-		double accuracy = CompareGraphs.computeAccuracy(graph, specfsm, tests);
+		double accuracy = CompareGraphs.computeAccuracy(graph, specfsm, samples);
 		ResultsContainer result = new ResultsContainer(accuracy, pr);
 		currentResults.add(result);
 		

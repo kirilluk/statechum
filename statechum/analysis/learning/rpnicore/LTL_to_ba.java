@@ -35,6 +35,7 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
@@ -219,7 +220,7 @@ public class LTL_to_ba {
 		if (vert == null)
 		{// add new vertex
 			vert = LearnerGraph.generateNewCmpVertex(new VertexID(name), config);
-			vert.setAccept(name.startsWith("accept_"));vert.setColour(JUConstants.AMBER);
+			vert.setAccept(name.startsWith("accept_"));vert.setColour(ltlColour);
 			matrixFromLTL.matrix.put(vert,new TreeMap<String,List<CmpVertex>>());
 			verticesUsed.put(name, vert);
 		}
@@ -332,7 +333,7 @@ public class LTL_to_ba {
 	}
 	
 	/** For each input where there is no transition from a state,
-	 * this function will add a transition to an amber-coloured reject-state.
+	 * this function will add a transition to an inf-amber-coloured reject-state.
 	 */  
 	protected LearnerGraph completeMatrix(LearnerGraph graph)
 	{
@@ -345,7 +346,7 @@ public class LTL_to_ba {
 			for(String str:remaining)
 			{
 				CmpVertex reject = LearnerGraph.generateNewCmpVertex(result.nextID(false),config);
-				reject.setAccept(false);reject.setColour(JUConstants.AMBER);
+				reject.setAccept(false);reject.setColour(ltlColour);
 				result.transitionMatrix.put(reject, new TreeMap<String,CmpVertex>());
 				row.put(str, reject);
 			}
@@ -619,11 +620,13 @@ public class LTL_to_ba {
 		CmpVertex init = matrixND.init;
 		/** Maps sets of target states to the corresponding known states. */
 		LearnerGraph result = new LearnerGraph(config);result.transitionMatrix.clear();
-		EqClass initial = new EqClass(LearnerGraph.cloneCmpVertex(init, config));initial.add(init);
-		initial.getVertex().setColour(init.getColour());
+		CmpVertex newInitialState = LearnerGraph.generateNewCmpVertex(result.nextID(init.isAccept()),config);
+		newInitialState.setAccept(init.isAccept());newInitialState.setHighlight(init.isHighlight());newInitialState.setColour(init.getColour());
+		EqClass initial = new EqClass(newInitialState);initial.add(init);
 		result.init = initial.getVertex();
 		//result.transitionMatrix.put(initial.getVertex(), new TreeMap<String,CmpVertex>());
 		Queue<EqClass> currentExplorationBoundary = new LinkedList<EqClass>();// FIFO queue containing equivalence classes to be explored
+
 		currentExplorationBoundary.add(initial);equivalenceClasses.put(initial,initial);
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -648,7 +651,7 @@ public class LTL_to_ba {
 			// Now I have iterated through all states in the current class and
 			// assembled collections of states corresponding to destination classes.
 			
-			assert !result.transitionMatrix.containsKey(currentClass.getVertex());
+			assert !result.transitionMatrix.containsKey(currentClass.getVertex()) : "duplicate state "+currentClass.getVertex();
 			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();result.transitionMatrix.put(currentClass.getVertex(),row);
 			// Now I need to iterate through those new classes and
 			// 1. update the transition diagram.
@@ -665,9 +668,9 @@ public class LTL_to_ba {
 					// Now we need to set colours to Amber if all states are amber.
 					boolean allAmber = true;
 					for(CmpVertex vertex:realTargetState)
-						if (vertex.getColour() != JUConstants.AMBER)
+						if (vertex.getColour() != ltlColour)
 							allAmber = false;
-					if (allAmber) realTargetState.getVertex().setColour(JUConstants.AMBER);
+					if (allAmber) realTargetState.getVertex().setColour(ltlColour);
 				}
 								
 				row.put(transition.getKey(), realTargetState.getVertex());
@@ -677,11 +680,15 @@ public class LTL_to_ba {
 					if (v.isAccept() != realTargetState.getVertex().isAccept())
 						throw new IllegalArgumentException("inconsistent labelling on transitions from "+currentClass+" - " + transition.getKey() + " -> "+realTargetState);
 			}
-		}	
+		}
 
+		result.setName("after making deterministic");
+		//Visualiser.updateFrame(result, result);
 		return result;
 	}
 
+	public static final JUConstants ltlColour = JUConstants.INF_AMBER;
+	
 	/** Runs a supplied ltl formula through ltl2ba.
 	 * The graph returned by ltl2ba is stored in the internal matrix. 
 	 *

@@ -119,7 +119,10 @@ public class TestQSMTool {
 	public final void testLoad7()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
-				"conf attenuationK 0.34\nconf defaultInitialPTAName test\nconf compressLogs true\nconf learnerIdMode NONE"));
+				QSMTool.cmdConfig+" attenuationK 0.34\n"+
+				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
+				QSMTool.cmdConfig+" compressLogs true\n"+
+				QSMTool.cmdConfig+" learnerIdMode NONE"));
 		Assert.assertEquals(-1,tool.k);
 		Configuration expectedConfig = Configuration.getDefaultConfiguration().copy();
 		expectedConfig.setAttenuationK(0.34);
@@ -137,8 +140,12 @@ public class TestQSMTool {
 	public final void testLoad8()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
-				"conf attenuationK 0.34\nconf defaultInitialPTAName test\nconf compressLogs false\nconf learnerIdMode NONE\n"+
-				"ltl this is a test\nltl more test"
+				QSMTool.cmdConfig+" attenuationK 0.34\n"+
+				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
+				QSMTool.cmdConfig+" compressLogs false\n"+
+				QSMTool.cmdConfig+" learnerIdMode NONE\n"+
+				QSMTool.cmdLTL+" this is a test\n"+
+				QSMTool.cmdLTL+" more test"
 		));
 		Assert.assertEquals(-1,tool.k);
 		Configuration expectedConfig = Configuration.getDefaultConfiguration().copy();
@@ -158,7 +165,10 @@ public class TestQSMTool {
 	public final void testLoad9()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
-				"conf attenuationK 0.34\nconf defaultInitialPTAName test\nconf compressLogs true\nconf learnerIdMode NONE\n"+
+				QSMTool.cmdConfig+" attenuationK 0.34\n"+
+				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
+				QSMTool.cmdConfig+" compressLogs true\n"+
+				QSMTool.cmdConfig+" learnerIdMode NONE\n"+
 				QSMTool.cmdDotOutput+"\n"+QSMTool.cmdTextOutput
 		));
 		Assert.assertEquals(-1,tool.k);
@@ -203,7 +213,7 @@ public class TestQSMTool {
 	public final void testEmpty3()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("ltl"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdLTL));
 		}},IllegalArgumentException.class,"Argument required");
 	}
 	
@@ -211,7 +221,7 @@ public class TestQSMTool {
 	public final void testInsufficientArgsForProperty1()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig));
 		}},IllegalArgumentException.class,"Argument required");
 	}
 	
@@ -219,7 +229,7 @@ public class TestQSMTool {
 	public final void testInsufficientArgsForProperty2()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf a"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" a"));
 		}},IllegalArgumentException.class,"invalid configuration");
 	}
 	
@@ -227,7 +237,7 @@ public class TestQSMTool {
 	public final void testWrongProperty()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf junk test"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" junk test"));
 		}},IllegalArgumentException.class,"cannot deserialise");
 	}
 	
@@ -236,7 +246,7 @@ public class TestQSMTool {
 	public final void testWrongValueForProperty1()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf learnerIdMode JUNK"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" learnerIdMode JUNK"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
 	
@@ -245,7 +255,7 @@ public class TestQSMTool {
 	public final void testWrongValueForProperty2()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf klimit 2.0"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" klimit 2.0"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
 	
@@ -254,7 +264,7 @@ public class TestQSMTool {
 	public final void testWrongValueForProperty3()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf gdLowToHighRatio AAA34"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio AAA34"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
 	
@@ -263,7 +273,7 @@ public class TestQSMTool {
 	public final void testWrongValueForProperty4()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("conf gdLowToHighRatio 34"));
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio 34"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
 	

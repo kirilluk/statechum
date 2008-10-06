@@ -218,9 +218,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			{
 				setVisible(false);dispose();
 				Visualiser.syncValue.set(true);
+				
+				System.exit(1);
+				/*
 				synchronized (Visualiser.syncObject) {
 					Visualiser.syncObject.notify();
-				}
+				}*/
 			}
 		});
 		keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
@@ -648,11 +651,16 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		}
 		
 		public Shape getShape(Vertex v) {
+			JUConstants c = (JUConstants)v.getUserDatum(JUConstants.COLOUR);
+
 			if (DeterministicDirectedSparseGraph.isInitial(v))
 				return factory.getRegularStar(v, 7);
 			else
 				if ( !DeterministicDirectedSparseGraph.isAccept(v) )
 					return factory.getRectangle(v);
+				else
+					if (c == JUConstants.INF_AMBER)
+						return factory.getRoundRectangle(v);
 			return factory.getEllipse(v);
 		}
 	}
@@ -693,6 +701,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 							if (c == JUConstants.AMBER)
 								col = Color.YELLOW;
 							else
+								if (c == JUConstants.INF_AMBER)
+									col = new Color(210, 210, 0);
 								if (c == JUConstants.GRAY)
 									col = Color.GRAY;
 				}
@@ -830,8 +840,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			}
 		}
 		
-		if (syncValue.get())
-			System.exit(1);
+		//if (syncValue.get())
+		//	System.exit(1);
 	}
 	
 	/** Retrieves the name of the file to load a graph layout from/store layout to.

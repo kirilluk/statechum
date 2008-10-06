@@ -99,7 +99,9 @@ public class RPNIUniversalLearner extends RPNILearner {
 			constraints = new LTL_to_ba(config);
 			constraints.ltlToBA(ltl, pta);
 		}
-		return constraints.augmentGraph(pta);
+		LearnerGraph result = constraints.augmentGraph(pta);
+		//Visualiser.updateFrame(result, null);
+		return result;
 	}
 	
 	/** Given a pair of graphs, computes the set of questions to validate the merge which 
@@ -191,7 +193,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 				if(answer != null && answer.firstElem >= 0) 
 					answerFromSpin = true;
 				else{
-					System.out.println("<question> "+question);
+					//System.out.println("<question> "+question);
 					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, new Object[] { "LTL"});
 				}
 				

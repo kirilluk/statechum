@@ -37,6 +37,11 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.analysis.learning.PickNegativesVisualiser;
+import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.rpnicore.LTL_to_ba;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class QSMTool 
 {
@@ -48,10 +53,19 @@ public class QSMTool
 	protected Set<List<String>> sMinus = new HashSet<List<String>>();
 	protected Set<String> ltl = null;
 	protected boolean active = true;
+	protected boolean showLTL = false;
 	
 	public static void main(String[] args) 
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);tool.runExperiment();
+		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);
+		if (tool.showLTL)
+		{
+			Learner l = new RPNIUniversalLearner(null,tool.ltl,tool.config);
+			LTL_to_ba ba = new LTL_to_ba(tool.config);ba.ltlToBA(tool.ltl, l.init(tool.sPlus, tool.sMinus));
+			Visualiser.updateFrame(ba.augmentGraph(new LearnerGraph(tool.config)), null);
+		}
+		else
+			tool.runExperiment();
 	}
 	
 	public void loadConfig(String inputFileName)
@@ -158,8 +172,13 @@ public class QSMTool
 					config.assignValue(values.get(0),values.get(1),true);
 				}
 				else
-				if (isCmdWithArgs(fileString,cmdComment))
+				if (fileString.startsWith(cmdComment))
 				{// do nothing
+				}
+				else
+				if (fileString.startsWith(cmdShowLTL))
+				{
+					showLTL = true;
 				}
 				else
 					throw new IllegalArgumentException("invalid command "+fileString);
@@ -170,11 +189,12 @@ public class QSMTool
 		cmdK = "k", 
 		cmdPositive="+", 
 		cmdNegative="-", 
-		cmdConfig="conf",
+		cmdConfig="config",
 		cmdTextOutput = "textoutput", 
 		cmdDotOutput="dotoutput",
 		cmdComment="#",
-		cmdPassive="passive";
+		cmdPassive="passive",
+		cmdShowLTL="showltl";
 	
 	private static List<String> tokeniseInput(String str)
 	{

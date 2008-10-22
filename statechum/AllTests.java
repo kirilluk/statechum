@@ -31,7 +31,8 @@ import org.junit.runners.Suite;
 	statechum.AllTests.GraphTests.class,
 	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.LinearTests.class,
-	statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
+	statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
+	statechum.analysis.learning.TestSmt.class
 })
 public class AllTests {
 	@RunWith(Suite.class)

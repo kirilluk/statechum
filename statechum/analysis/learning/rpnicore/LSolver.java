@@ -278,7 +278,7 @@ public class LSolver
 	/** Attempts to load the library from the specified path 
 	 * implicitly (considering java.library.path variable)
 	 */
-	private static UnsatisfiedLinkError tryLoading(String name)
+	public static UnsatisfiedLinkError tryLoading(String name)
 	{
 		UnsatisfiedLinkError result = null;
 		

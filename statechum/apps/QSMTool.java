@@ -105,9 +105,10 @@ public class QSMTool
 	public void runExperiment()
 	{
 		setSimpleConfiguration(config, active, k);
-		if(!ltl.isEmpty())
-			config.setUseSpin(true);
-
+		if(ltl!=null){
+			if(!ltl.isEmpty())
+				config.setUseSpin(true);
+		}
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		pnv.construct(sPlus, sMinus, ltl, config);
 		

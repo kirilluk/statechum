@@ -20,9 +20,8 @@ package statechum.analysis.learning;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.io.IOException;
-
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -31,9 +30,14 @@ import statechum.Helper.whatToRun;
 public class TestSmt {
 
 	@BeforeClass
-	public static void initTest()
+	public static void initSmtTest()
 	{
 		Smt.loadLibrary();
+	}
+	
+	@Before
+	public void before()
+	{
 		Smt.configureYices(-1, true);
 	}
 	
@@ -95,9 +99,26 @@ public class TestSmt {
 	public void testYices_error1()
 	{
 		
-		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException, IOException {
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
 			Smt smt = new Smt();smt.loadData("(define x::int)\n(assert (A> x 1))");
 		}}, IllegalArgumentException.class,"Undefined name \"A>\"");
+	}
+	
+	/** Checks that if type checking is not enabled, the error goes undetected. */
+	@Test
+	public void testYices_error2_not_reported()
+	{
+		Smt.configureYices(-1, false);
+		Smt smt = new Smt();smt.loadData("(define x::bool)\n(assert (> x 1))");
+	}
+	
+	/** Cannot parse - type error. */
+	@Test
+	public void testYices_error2()
+	{
+		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
+			Smt smt = new Smt();smt.loadData("(define x::bool)\n(assert (> x 1))");
+		}}, IllegalArgumentException.class,"argument is not a numeral");
 	}
 	
 	/** Check if a field can be correctly extracted. */
@@ -118,13 +139,13 @@ public class TestSmt {
 	@Test(expected=NoSuchFieldError.class)
 	public void testCorrectFieldExtraction2()
 	{
-		Smt.testGetField(new Object(){ int context; });		
+		Smt.testGetField(new Object(){ @SuppressWarnings("unused") int context; });		
 	}
 	
 	/** Check if a field can be correctly extracted. */
 	@Test
 	public void testCorrectFieldExtraction3()
 	{
-		Assert.assertTrue(Smt.testGetField(new Object(){ long context; }));		
+		Assert.assertTrue(Smt.testGetField(new Object(){ @SuppressWarnings("unused") long context; }));		
 	}
 }

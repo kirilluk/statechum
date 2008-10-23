@@ -96,6 +96,8 @@ public class LTL_to_ba {
 		}
 		ltlForbiddenWords = Pattern.compile(expr.toString());
 	}
+	
+	/** Refer to the description of dumpStreams in ExperimentRunner class for details on this. */
 	protected static int timeBetweenHearbeats=20;
 
 	/** Concatenates LTL and checks for forbidden words. */
@@ -729,6 +731,9 @@ public class LTL_to_ba {
 	 * assuming the properties are all safety ones.
 	 * 
 	 * @param ltl formulas to run
+	 * @param graph in order to correctly interpret symbols used by ltl2ba 
+	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
+	 * This information is extracted from the supplied graph.
 	 */
 	public void ltlToBA(Collection<String> ltl, LearnerGraph graph)
 	{

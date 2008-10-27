@@ -92,13 +92,13 @@ public class TestRecorderIntegration {
 	 * @param minus negatives.
 	 * @param useZip whether to use ZIP compression with the data stream. 
 	 */
-	protected void checkLearnerProgressRecording(String fsmString, String name,final String [][] plus, final String [][] minus)
+	protected void checkLearnerProgressRecording(String fsmString, String name, final String [][] plus, final String [][] minus)
 	{
 		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
 		testConfig.setGdFailOnDuplicateNames(false);
 		if (forceGDfallback) testConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 		testConfig.setCompressLogs(useCompression);
-		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, "sample FSM");
+		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, name);
 		final LearnerGraph expected = new LearnerGraph(g,testConfig);
 		
 		// now sanity checking on the plus and minus sets

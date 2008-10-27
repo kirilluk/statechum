@@ -115,7 +115,7 @@ public class LearnerGraph {
 		private final CmpVertex red = init;
 		
 		public NonExistingPaths()
-		{
+		{// nothing to initialise here
 		}
 		
 		public Object getInitState() {

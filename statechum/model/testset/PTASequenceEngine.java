@@ -449,6 +449,7 @@ public class PTASequenceEngine
 
 			@Override
 			public void nodeEntered(@SuppressWarnings("unused") PTAExplorationNode currentNode, @SuppressWarnings("unused") LinkedList<PTAExplorationNode> pathToInit) {
+				// this is needed to implement an interface, but we only care if a leaf is entered.
 			}
 
 			@Override
@@ -469,6 +470,7 @@ public class PTASequenceEngine
 						@SuppressWarnings("unused") PTAExplorationNode currentNode,
 						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
 			{
+				// this is needed to implement an interface, but we only care if a leaf is entered.
 			}
 			
 		};
@@ -515,7 +517,7 @@ public class PTASequenceEngine
 			if (returned) result.append(DebugDataValues.sequenceReturned);else result.append(DebugDataValues.sequenceTrashed);
 			return result.toString();
 		}
-	};
+	}
 		
 	/** Returns a representation of nodes held in the supplied set.
 	 * Important: do not change the returned data unless you are prepared to modify tests
@@ -550,6 +552,7 @@ public class PTASequenceEngine
 						@SuppressWarnings("unused") PTAExplorationNode currentNode,
 						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
 			{
+				// this is needed to implement an interface, but we only care if a node (or a leaf) is entered.
 			}
 			
 			private void addPath(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit)
@@ -691,6 +694,7 @@ public class PTASequenceEngine
 			public void nodeEntered(
 					@SuppressWarnings("unused")	PTAExplorationNode currentNode,
 					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) {
+				// nothing to do here.
 			}
 
 			@Override
@@ -785,6 +789,7 @@ public class PTASequenceEngine
 			@Override
 			public void nodeLeft(@SuppressWarnings("unused")	PTAExplorationNode currentNode,
 					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) {
+				// nothing to do here.
 			}
 
 		};

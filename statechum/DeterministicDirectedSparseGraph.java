@@ -58,7 +58,7 @@ public class DeterministicDirectedSparseGraph {
 		 * <li>NEGATIVE means that this is a reject-state.</li>
 		 * <li>POSITIVE means that this is an accept-state.</li>
 		 */
-		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONE };
+		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONE }
 		
 		/** Textual representation of this ID, definite value if kind == VertKind.NONE
 		 * and a cached version of a numerical ID if not.
@@ -185,7 +185,7 @@ public class DeterministicDirectedSparseGraph {
 		 * The COMPARISON_LEXICOGRAPHIC_ORIG is used for checking the compatibility to 
 		 * the Dec 2007 version.
 		 */
-		public enum ComparisonKind { COMPARISON_NORM, COMPARISON_LEXICOGRAPHIC_ORIG };
+		public enum ComparisonKind { COMPARISON_NORM, COMPARISON_LEXICOGRAPHIC_ORIG }
 		
 		/** Determines the behaviour of <em>compareTo</em>. This has to be static and sadly public.
 		 * I could've passed an extra member from LearnerGraph or such which would determine this,

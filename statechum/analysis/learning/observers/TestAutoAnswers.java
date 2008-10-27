@@ -137,7 +137,7 @@ public class TestAutoAnswers {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					@SuppressWarnings("unused")	List<String> question, 
+					List<String> question, 
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Pair<Integer,String> result = semiUser.ans.getAnswer(question);

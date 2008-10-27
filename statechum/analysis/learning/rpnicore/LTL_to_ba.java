@@ -35,7 +35,6 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
@@ -704,7 +703,7 @@ public class LTL_to_ba {
 			final Process ltlconverter = Runtime.getRuntime().exec(new String[]{"ltl2ba", "-f",ltl});// run LTL2BA
 			ExperimentRunner.dumpStreams(ltlconverter,timeBetweenHearbeats,new HandleProcessIO() {
 
-			public void OnHeartBeat() {
+			public void OnHeartBeat() {// no prodding is done for a short-running converter.
 			}
 
 			public void StdErr(StringBuffer b) {

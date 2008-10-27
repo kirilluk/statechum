@@ -133,7 +133,8 @@ public class GraphSeries {
 				// than changed to new ones.
 				DifferentFSMException ex = WMethod.checkM(newGraph, graph);
 				if (ex != null) throw ex;
-				assert graph.wmethod.checkUnreachableStates() == false; }
+				assert graph.wmethod.checkUnreachableStates() == false; 
+			}
 			++graphNumber;
 		}
 		return result;

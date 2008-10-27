@@ -48,7 +48,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.Helper.whatToRun;
-import static statechum.Helper.checkForCorrectException;;
+import static statechum.Helper.checkForCorrectException;
 
 public class TestExperimentRunner {
 	public static final File testDir = new File("resources","__TestAbstractExperiment__"),

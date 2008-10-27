@@ -440,6 +440,7 @@ public class TestLinearWithMultipleThreads {
 		{
 			public void init(@SuppressWarnings("unused") int threadNo)
 			{
+				// No per-thread initialisation is needed.
 			}
 			
 			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA,@SuppressWarnings("unused")  int threadNo) 

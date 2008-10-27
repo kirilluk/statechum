@@ -28,7 +28,7 @@ public class PTASequenceSetAutomaton implements FSMAbstraction {
 	public static final String theOnlyState = "TheOnlyState";
 		
 	public PTASequenceSetAutomaton() 
-	{ 
+	{// nothing to initialise
 	}
 	
 	public Object getInitState() 

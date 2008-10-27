@@ -50,7 +50,9 @@ public class Configuration implements Cloneable
 	 */
 	protected int pairsMergedPerHypothesis=0;
 	
-	public Configuration() {}
+	public Configuration() {
+		// the initial values are provided for each variable inline.
+	}
 	
 	protected final static Configuration defaultConfig = new Configuration();
 	
@@ -66,7 +68,7 @@ public class Configuration implements Cloneable
 	 */
 	protected boolean bumpPositives = false;
 	
-	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY };
+	public enum IDMode { NONE, POSITIVE_NEGATIVE, POSITIVE_ONLY }
 
 	/** Some algorithms depend on the order in which elements of a graph are traversed;
 	 * this in turn depends on the lexicographic order of their names (see testDeterminism()
@@ -77,7 +79,7 @@ public class Configuration implements Cloneable
 	 */
 	protected IDMode learnerIdMode = IDMode.NONE; // creation of new vertices is prohibited.
 
-	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS, GENERAL };
+	public enum ScoreMode { CONVENTIONAL, COMPATIBILITY, KTAILS, GENERAL }
 	
 	/** The are a few ways in which one can compute scores associated to pairs of states,
 	 * using a conventional computation, using compatibility scores (during traversal of pairs,
@@ -165,7 +167,7 @@ public class Configuration implements Cloneable
 	 * </li>
 	 * </ul>
 	 */
-	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL };
+	public enum QuestionGeneratorKind { CONVENTIONAL, CONVENTIONAL_IMPROVED, SYMMETRIC, ORIGINAL }
 	
 	protected QuestionGeneratorKind questionGenerator = QuestionGeneratorKind.CONVENTIONAL;
 	
@@ -791,7 +793,7 @@ public class Configuration implements Cloneable
 	 * when traces are recorded for compatibility testing with learners used in May 2008 and 
 	 * December 2007.
 	 */
-	public enum LEARNER { LEARNER_BLUEFRINGE_MAY2008, LEARNER_BLUEAMBER_MAY2008, LEARNER_BLUEFRINGE_DEC2007 };
+	public enum LEARNER { LEARNER_BLUEFRINGE_MAY2008, LEARNER_BLUEAMBER_MAY2008, LEARNER_BLUEFRINGE_DEC2007 }
 	
 	/** Selects the kind of learner to use. A learner typically has a lot of customization
 	 * options which are set by a configuration.
@@ -840,7 +842,7 @@ public class Configuration implements Cloneable
 	}
 	
 	/** Whether a method is get.../is ..., or set...  */
-	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET}; 
+	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET} 
 	
 	/** In order to serialise/deserialise data, we need access to fields and getter/setter methods.
 	 * This method takes a field and returns the corresponding method. Although supposedly

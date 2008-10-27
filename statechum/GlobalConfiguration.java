@@ -35,6 +35,9 @@ import java.util.TreeMap;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 /**
+ * Unlike <em>Configuration</em> which stores a set of variables for a specific learning-process, an instance of this
+ * class reflects configuration parameters for the whole of Statechum.
+ * 
  * @author kirill
  *
  */
@@ -77,7 +80,9 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 	}
 	
-	protected GlobalConfiguration() {}
+	protected GlobalConfiguration() {
+		// the initial values are provided for each variable inline.
+	}
 	
 	private static final GlobalConfiguration globalConfiguration = new GlobalConfiguration();
 	
@@ -194,7 +199,9 @@ public class GlobalConfiguration {
 		private Rectangle rect = null;
 		private int screenDevice;
 		
-		public WindowPosition() {}
+		public WindowPosition() {
+			// need a default constructor.
+		}
 
 		public WindowPosition(Rectangle r, int s)
 		{

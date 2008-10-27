@@ -179,7 +179,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	public final static String QUESTION_USER = "<USER>"; 
 	
 	public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) 
-	{
+	{// this method is used to let observers know what is going on, the actual restarts are handled by the main learner routine.
 	}
 	
 	/** Displays a tentative graph and asks user a supplied question. 
@@ -223,10 +223,10 @@ public abstract class RPNILearner extends Observable implements Learner {
 					            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
 							{
 								int i = 0;for(;i < options.length && options[i] != value;++i);
-									if (i == options.length)
-										i = AbstractOracle.USER_CANCELLED;// nothing was chosen
-									else
-										i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
+								if (i == options.length)
+									i = AbstractOracle.USER_CANCELLED;// nothing was chosen
+								else
+									i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
 									
 								// one of the choices was made, determine which one and close the window
 								answer.getAndSet( i );

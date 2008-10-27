@@ -567,7 +567,7 @@ public class PathRoutines {
 			public void nodeLeft(
 					@SuppressWarnings("unused") PTAExplorationNode currentNode,
 					@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
+			{// nothing to do here but this method is needed to implement an interface.
 			}
 		};
 		exploration.walkThroughAllPaths();

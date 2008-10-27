@@ -522,10 +522,9 @@ public class TestGD {
 	/** Displays the supplied list of pairs, converting names of states
 	 * from the notation of the combined graph to their original names. 
 	 * 
-	 * @param gd
 	 * @param listOfPairs
 	 */
-	protected static void printListOfPairs(GD gd,List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> newToOrig)
+	protected static void printListOfPairs(List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> newToOrig)
 	{
 		System.out.print("[ ");
 		for(PairScore pair:listOfPairs) System.out.print(

@@ -172,7 +172,9 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
-				public void init(@SuppressWarnings("unused") int threadNo) {}
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
 	
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{
@@ -207,7 +209,9 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
-				public void init(@SuppressWarnings("unused") int threadNo) {}
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
 	
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{
@@ -243,7 +247,9 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
-				public void init(@SuppressWarnings("unused") int threadNo) {}
+				public void init(@SuppressWarnings("unused") int threadNo) {
+					// No per-thread initialisation is needed.
+				}
 	
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{

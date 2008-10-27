@@ -60,7 +60,7 @@ public class ExperimentRunner
 		RESULT {@Override String getFileName(String prefix, String suffix) { return prefix+"_result"+suffix+".txt"; } };
 
 		abstract String getFileName(String prefix, String suffix);
-	};
+	}
 
 	/** The runner of computational threads. */
 	private ExecutorService executorService;
@@ -157,7 +157,7 @@ public class ExperimentRunner
 
 		
 		
-		public enum GENERATORCONFIG{ ELEM_CONFIG, ATTR_NAME, ATTR_CLASS };
+		public enum GENERATORCONFIG{ ELEM_CONFIG, ATTR_NAME, ATTR_CLASS }
 		
 		public GeneratorConfiguration() {
 			generatorConfig = Configuration.getDefaultConfiguration().copy();
@@ -433,7 +433,7 @@ public class ExperimentRunner
 		 * 
 		 * @author kirill
 		 */
-		enum OUTCOME { SUCCESS, RUNNING, FAILURE };
+		enum OUTCOME { SUCCESS, RUNNING, FAILURE }
 
 		/** Write the provided string into the result file. 
 		 * 

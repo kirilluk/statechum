@@ -29,7 +29,6 @@ import statechum.Pair;
 
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.apps.CompareGraphs;

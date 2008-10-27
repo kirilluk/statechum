@@ -846,7 +846,9 @@ public class GD {
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
 				handlerList.add(new HandleRow<CmpVertex>()
 				{
-					public void init(@SuppressWarnings("unused") int threadNo) {}
+					public void init(@SuppressWarnings("unused") int threadNo) {
+						// No per-thread initialisation is needed.
+					}
 	
 					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
 					{
@@ -912,7 +914,9 @@ public class GD {
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
 				handlerList.add(new HandleRow<CmpVertex>()
 				{
-					public void init(@SuppressWarnings("unused") int threadNo) {}
+					public void init(@SuppressWarnings("unused") int threadNo) {
+						// No per-thread initialisation is needed.						
+					}
 	
 					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
 					{

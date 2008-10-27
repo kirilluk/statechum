@@ -740,7 +740,9 @@ public class PairScoreComputation {
 				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
 				handlerList.add(new HandleRow<CmpVertex>()
 				{
-					public void init(@SuppressWarnings("unused") int threadNo) {}
+					public void init(@SuppressWarnings("unused") int threadNo) {
+						// No per-thread initialisation is needed.
+					}
 	
 					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
 					{

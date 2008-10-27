@@ -147,7 +147,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	/** A kind action used by this interface. */
 	public static abstract class graphAction extends AbstractAction
 	{
-		public graphAction() {}
+		/**
+		 * ID for serialization.
+		 */
+		private static final long serialVersionUID = -939337272930400183L;
+		public graphAction() {
+			// empty default constructor.
+		}
 		public graphAction(String name, String description)
 		{
 			super(name);putValue(SHORT_DESCRIPTION, description);
@@ -305,11 +311,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			}
 
 			public void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
-			{
+			{// this method is intentionally left blank - keypresses/releases are handled by the keyPressed method.
 			}
 
 			public void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
-			{
+			{// this method is intentionally left blank - keypresses/releases are handled by the keyPressed method.
 			}
 			
 		});
@@ -915,12 +921,15 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 
 	public void mouseClicked(@SuppressWarnings("unused") MouseEvent e) {
+		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
 	public void mouseEntered(@SuppressWarnings("unused") MouseEvent e) {
+		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
 	public void mouseExited(@SuppressWarnings("unused") MouseEvent e) {
+		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
 	// The following is from http://java.sun.com/docs/books/tutorial/uiswing/components/menu.html#popup

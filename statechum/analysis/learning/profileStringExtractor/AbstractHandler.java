@@ -130,8 +130,8 @@ public abstract class AbstractHandler extends DefaultHandler {
 		Map<Integer, String> methodDefs = classMethods.getMethodDefs();
 		Map<Integer, Set<Integer>> classesToMethods = classMethods.getClassesToMethods();
 		Integer classId = findKeyFor(classesToMethods,methodId);
-		String className = (String)classDefs.get(classId);
-		String methodName = (String)methodDefs.get(methodId);
+		String className = classDefs.get(classId);
+		String methodName = methodDefs.get(methodId);
 		return className+"."+methodName;
 	}
 	
@@ -141,8 +141,8 @@ public abstract class AbstractHandler extends DefaultHandler {
 		Map<Integer, Set<Integer>> classesToMethods = classMethods.getClassesToMethods();
 		Map<Integer, String> methodToSignature = classMethods.getMethodSignatures();
 		Integer classId = findKeyFor(classesToMethods,methodId);
-		String className = (String)classDefs.get(classId);
-		String methodName = (String)methodDefs.get(methodId);
+		String className = classDefs.get(classId);
+		String methodName = methodDefs.get(methodId);
 		String methodSignature = methodToSignature.get(methodId);
 		return className+"."+methodName+methodSignature;
 	}

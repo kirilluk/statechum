@@ -55,7 +55,7 @@ import statechum.model.testset.PTASequenceEngine;
  *  
  * @author kirill
  */
-public class LearnerSimulator extends ProgressDecorator implements Learner 
+public class LearnerSimulator extends ProgressDecorator
 {
 	/** Element of our XML file to consider next (if not a zip file). */
 	protected int childOfTopElement =0;
@@ -374,14 +374,15 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	 */ 
 	protected Object expectedReturnValue = null;
 	
-	/** Simulated check.
+	/** Simulated check. Arguments are unused since they are loaded from XML by <em>learnMachine</em>.
+	 *  
 	 * @param g estimated graph, not loaded.
 	 * @param question question loaded from XML
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, 
-			@SuppressWarnings("unused")	List<String> question, Object[] options) 
+			@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") Object[] options) 
 	{
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(ELEM_KINDS.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;
@@ -456,13 +457,13 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 		return cnf;
 	}
 
-	/** Returns the graph stored in XML.
+	/** Returns the graph stored in XML. Arguments are unused since they are passed from <em>learnMachine</em> which loads them from XML.
 	 * 
 	 * @param original graph to be processed, the simulator attempts to supply a relevant value, however it is not certain to be correct.
 	 * @param pair the pair to be merged. Loaded from XML file.
 	 * @return graph loaded from XML file.
 	 */
-	public LearnerGraph MergeAndDeterminize(LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
+	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
 	{
 		Element graphNode = getElement(GD.ChangesRecorder.gdGD);
 		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeName);
@@ -475,7 +476,7 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	 * @param mode value loaded from XML.
 	 */
 	public void Restart(@SuppressWarnings("unused")	RestartLearningEnum mode) 
-	{
+	{// Does nothing in the simulator. 
 	}
 
 	/** We deliberately avoid storing this so as to be able to change 
@@ -487,11 +488,13 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 	}
 
 	/** Both arguments and the return value are stored by the simulator.
-	 *  
+	 * Arguments are unused since they are passed from <em>learnMachine</em> which loads them from XML.
+	 * 
 	 * @param plus value loaded from XML
 	 * @param minus value loaded from XML
 	 */
-	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus) 
+	public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus, 
+			@SuppressWarnings("unused") Collection<List<String>> minus) 
 	{
 		InitialData initial = readInitialData(currentElement);// wastefully load the element once again - does not matter because this is done very infrequently
 		return initial.graph;
@@ -530,8 +533,7 @@ public class LearnerSimulator extends ProgressDecorator implements Learner
 			@SuppressWarnings("unused") List<String> sequence, 
 			@SuppressWarnings("unused") boolean accepted, 
 			@SuppressWarnings("unused") JUConstants newColour) 
-	{
-		
+	{// Does nothing in the simulator. 		
 	}
 
 	/** Since this is a simulator, values of the collections passed are ignored.

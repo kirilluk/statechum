@@ -111,7 +111,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 	 * @param tempNew the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<String>> ComputeQuestions(PairScore pair, @SuppressWarnings("unused") LearnerGraph original, LearnerGraph tempNew)
 	{
 		return ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 	}
@@ -173,7 +173,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 			{
 				temp.setName(learntGraphName+"_"+iterations);
 				updateGraph(temp);
-				questions = topLevelListener.ComputeQuestions(pair, scoreComputer	, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+				questions = topLevelListener.ComputeQuestions(pair, scoreComputer, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 			}
 			
 			Iterator<List<String>> questionIt = questions.iterator();
@@ -210,7 +210,8 @@ public class RPNIUniversalLearner extends RPNILearner {
 					if (scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
 
 					questionAnswered = true;
-					if (!tempVertex.isAccept()) {
+					if (!tempVertex.isAccept()) 
+					{// contradiction with the result of merging
 						if(!answerFromSpin)
 							restartLearning = RestartLearningEnum.restartHARD;
 						else
@@ -229,7 +230,8 @@ public class RPNIUniversalLearner extends RPNILearner {
 					// only unique for each instance of ComputeStateScores, only
 					// one instance should ever receive calls to augmentPTA
 
-					if ((answer.firstElem < question.size() - 1) || tempVertex.isAccept()) {
+					if ((answer.firstElem < question.size() - 1) || tempVertex.isAccept()) 
+					{// contradiction with the result of merging
 						assert accepted == true;
 						if(!answerFromSpin)
 							restartLearning = RestartLearningEnum.restartHARD;
@@ -263,11 +265,11 @@ public class RPNIUniversalLearner extends RPNILearner {
 								break;
 							}
 						}
-					// no formula was entered, do not set the <em>questionAnswered</em> to answered, hence 
-				    // when we get to the top of the loop, we'll re-pop the previous question.
-				}
-				else
-					throw new IllegalArgumentException("unexpected user choice "+answer);
+						// no formula was entered, do not set the <em>questionAnswered</em> to answered, hence 
+					    // when we get to the top of the loop, we'll re-pop the previous question.
+					}
+					else
+						throw new IllegalArgumentException("unexpected user choice "+answer);
 			}
 
 			if (restartLearning != RestartLearningEnum.restartNONE) {// restart learning

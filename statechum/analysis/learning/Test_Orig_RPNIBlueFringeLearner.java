@@ -150,6 +150,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			return r;
 		}
 		
+		@Override
 		public String toString(){
 			return "[ "+((q == null)?"NULL":q.getUserDatum(JUConstants.LABEL))+", "+((r == null)?"NULL":r.getUserDatum(JUConstants.LABEL))+" ]";
 		}
@@ -234,7 +235,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * but not participating in the logging-and-comparing type of testing.
 	 */ 
 	@Override 
-	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus) {
+	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<String>> plus, @SuppressWarnings("unused") Collection<List<String>> minus) {
 		DirectedSparseGraph model = init(sPlus, sMinus).paths.getGraph();
 		
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
@@ -284,9 +285,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 	}
 	
-	protected boolean compatible(DirectedSparseGraph model, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+	protected boolean compatible(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus){
 		boolean returnValue = true;
-		for(List<String> string:sMinus)
+		for(List<String> string:minus)
 		{
 			Vertex v = getVertex(model,string);
 			if(v != null){
@@ -294,7 +295,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 					returnValue = false;
 			}
 		}
-		for(List<String> string:sPlus)
+		for(List<String> string:plus)
 		{
 			Vertex v = getVertex(model,string);
 			if(v == null)
@@ -398,7 +399,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * of a tree. This method does not make that presumption, but simply returns the direct successors
 	 * of the source vertex that are accepted.
 	 */
-	protected static HashSet<List<String>> getShortSuffixes(DirectedSparseGraph g, Vertex v){
+	protected static HashSet<List<String>> getShortSuffixes(@SuppressWarnings("unused") DirectedSparseGraph g, Vertex v){
 		HashSet<List<String>> returnStrings = new HashSet<List<String>>();
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
@@ -757,7 +758,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return pta;
 	}
 	
-	protected static Vertex getVertex (DirectedSparseGraph g,Vertex v, List<String> string){
+	protected static Vertex getVertex (@SuppressWarnings("unused") DirectedSparseGraph g,Vertex v, List<String> string){
 		Vertex current = v;
 		if (current == null)
 			return null;

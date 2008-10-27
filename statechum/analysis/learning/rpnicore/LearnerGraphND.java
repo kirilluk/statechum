@@ -560,7 +560,9 @@ public class LearnerGraphND
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 		handlerList.add(new HandleRow<List<CmpVertex>>()
 		{
-			public void init(@SuppressWarnings("unused") int threadNo) {}
+			public void init(@SuppressWarnings("unused") int threadNo) {
+				// No per-thread initialisation is needed.
+			}
 
 			Set<Integer> sourceData = new TreeSet<Integer>();
 

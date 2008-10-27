@@ -31,7 +31,7 @@ import statechum.model.testset.PTASequenceEngine;
 
 public interface Learner 
 {
-	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT };
+	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT }
 	
 	/** Learns the machine. When different learning events occur, the learner
 	 * calls its listeners (which are the decorators); these listeners are given

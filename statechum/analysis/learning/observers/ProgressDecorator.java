@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ *  
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 /* Design problems:
  * 
@@ -64,6 +64,7 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
 
@@ -92,7 +93,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		ATTR_QUESTION, ATTR_TESTSET, ATTR_FAILEDPOS, ATTR_LTL, ELEM_PAIR, ELEM_SEQ, ATTR_SEQ, ATTR_Q, ATTR_R, ATTR_SCORE, ATTR_OTHERSCORE, ELEM_RESTART, ATTR_KIND, 
 		ELEM_EVALUATIONDATA,ATTR_GRAPHKIND, ELEM_INIT, ELEM_MERGEANDDETERMINIZE, ATTR_LEARNINGOUTCOME, 
 		ATTR_POSITIVE_SIZE, ATTR_POSITIVE_SEQUENCES, ATTR_NEGATIVE_SIZE, ATTR_NEGATIVE_SEQUENCES,
-		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR, ELEM_PROGRESSINDICATOR, ATTR_GRAPHNUMBER, ATTR_WITHCONSTRAINTS
+		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR, ELEM_PROGRESSINDICATOR, ELEM_LABELDETAILS, ATTR_GRAPHNUMBER, ATTR_WITHCONSTRAINTS
 	}
 	
 	/** Writes the supplied element into XML.
@@ -165,6 +166,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Collection<List<String>> testSet = null;
 		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
 		public Collection<String> ltlSequences = null;
+		public LabelRepresentation labelDetails = null;
 		
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
@@ -173,9 +175,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			// rely on defaults above.
 		}
 		
-		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, Collection<String> ltl)
+		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, 
+				Collection<String> ltl, LabelRepresentation lblDetails)
 		{
-			graph = gr;testSet = tests;config = cnf;ltlSequences = ltl;
+			graph = gr;testSet = tests;config = cnf;ltlSequences = ltl;labelDetails=lblDetails;
+			
 		}
 
 		/* (non-Javadoc)
@@ -191,7 +195,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			result = prime * result
 					+ ((ltlSequences == null) ? 0 : ltlSequences.hashCode());
 			result = prime * result
-					+ ((testSet == null) ? 0 : testSet.hashCode());
+				+ ((testSet == null) ? 0 : testSet.hashCode());
+			result = prime * result
+				+ ((labelDetails == null) ? 0 : labelDetails.hashCode());
 			return result;
 		}
 
@@ -222,10 +228,17 @@ public abstract class ProgressDecorator extends LearnerDecorator
 					return false;
 			} else if (!ltlSequences.equals(other.ltlSequences))
 				return false;
+
 			if (testSet == null) {
 				if (other.testSet != null)
 					return false;
 			} else if (!testSet.equals(other.testSet))
+				return false;
+
+			if (labelDetails == null) {
+				if (other.labelDetails != null)
+					return false;
+			} else if (!labelDetails.equals(other.labelDetails))
 				return false;
 			return true;
 		}
@@ -248,13 +261,15 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		nodesSequences = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()),
 		nodesLtl = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()),
 		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag),
-		graphNumberNodes = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name());
+		graphNumberNodes = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name()),
+		nodesLabelDetails = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LABELDETAILS.name());
 		if (nodesGraph.getLength() < 1) throw new IllegalArgumentException("missing graph");
 		if (nodesGraph.getLength() > 1) throw new IllegalArgumentException("duplicate graph");
 		if (nodesSequences.getLength() < 1) throw new IllegalArgumentException("missing test set");
 		if (nodesSequences.getLength() > 1) throw new IllegalArgumentException("duplicate test set");
 		if (nodesLtl.getLength() > 1) throw new IllegalArgumentException("duplicate ltl sets");
 		if (nodesConfigurations.getLength() > 1) throw new IllegalArgumentException("duplicate configuration");
+		if (nodesLabelDetails.getLength() > 1) throw new IllegalArgumentException("duplicate label details");
 		int graphNumber =-1;
 		if (graphNumberNodes.getLength() > 1)
 			try
@@ -272,6 +287,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		result.testSet = readSequenceList((Element)nodesSequences.item(0),ELEM_KINDS.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
 			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
+		if (nodesLabelDetails.getLength() > 0)
+		{
+			result.labelDetails = new LabelRepresentation();
+			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0) );
+		}
 		result.graphNumber=graphNumber;
 		return result;
 	}
@@ -295,6 +315,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ltlSequences);
 			ltl.setTextContent(ltlsequences.toString());
 			evaluationData.appendChild(ltl);evaluationData.appendChild(Transform.endl(doc));
+		}
+		if (cnf.labelDetails != null)
+		{
+			evaluationData.appendChild(cnf.labelDetails.storeToXML(doc));evaluationData.appendChild(Transform.endl(doc));
 		}
 		if (cnf.graphNumber >= 0)
 		{
@@ -512,7 +536,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Collection<List<String>> plus = null, minus = null;
 		public int plusSize=-1, minusSize =-1;
 		public LearnerGraph graph=null;
-		
+		public LabelRepresentation labelDetails = null;
 		public InitialData() {
 			// rely on defaults above.
 		}

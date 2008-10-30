@@ -354,6 +354,8 @@ public class Configuration implements Cloneable
 		result = prime * result + ((learnerToUse == null)?0: learnerToUse.hashCode());
 		result = prime * result + (useAmber?  1231 : 1237);
 		result = prime * result + (useSpin?  1231 : 1237);
+		result = prime * result + (useLTL?  1231 : 1237);
+		result = prime * result + (useSMT?  1231 : 1237);
 		result = prime * result + initialIDvalue;
 		result = prime * result + (useConstraints? 1231 : 1237);
 		
@@ -448,6 +450,10 @@ public class Configuration implements Cloneable
 		if (useAmber != other.useAmber)
 			return false;
 		if (useSpin != other.useSpin)
+			return false;
+		if (useLTL != other.useLTL)
+			return false;
+		if (useSMT != other.useSMT)
 			return false;
 		if (initialIDvalue != other.initialIDvalue)
 			return false;
@@ -776,8 +782,40 @@ public class Configuration implements Cloneable
 		useAmber = newValue;
 	}
 	
-	/** Whether to use SPIN to reduce the number of questions being asked. */
-	protected boolean useSpin = false;
+	/** Whether to use LTL models to reduce the number of questions being asked. */
+	protected boolean useLTL = false;
+	
+	public boolean getUseLTL()
+	{
+		return useLTL;
+	}
+	
+	public void setUseLTL(boolean newValue)
+	{
+		useLTL = newValue;
+	}
+
+	/** Whether to use a constraint solver in order to check whether paths exist or not.
+	 */
+	protected boolean useSMT = false;
+	
+	public boolean getUseSMT()
+	{
+		return useSMT;
+	}
+	
+	public void setUseSMT(boolean newValue)
+	{
+		useSMT = newValue;
+	}
+
+	/** Whether to use SPIN to check LTL models rather than doing it directly, which is 
+	 * faster for simple models and slower for larger ones. When SPIN is not used, a 
+	 * "maximal automaton" is built from LTL formulae and is intersected with tentative 
+	 * automata at every opportunity (to find counterexamples and update a tentative automaton
+	 * with negative information).  
+	 */
+	protected boolean useSpin = true;
 
 	public boolean getUseSpin()
 	{
@@ -887,7 +925,7 @@ public class Configuration implements Cloneable
 	 * Only primitive strings, enums and primitive data types 
 	 * are taken care of. For this reason, this should only be used on classes such 
 	 * as Configuration where I'd like to serialise them into a DOM stream rather than
-	 * use XMLEncoder (see top of DumpProgressDecorator for an explantion why not XMLEncoder).  
+	 * use XMLEncoder (see top of DumpProgressDecorator for an explanation why not XMLEncoder).  
 
 	 * @param doc used to create new nodes
 	 * @return an element containing the serialised representation of this configuration

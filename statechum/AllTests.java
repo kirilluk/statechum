@@ -83,7 +83,8 @@ public class AllTests {
 		statechum.model.testset.TestPrefixRemovingCollection.class,
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
-		statechum.analysis.learning.rpnicore.TestWMethod.class
+		statechum.analysis.learning.rpnicore.TestWMethod.class,
+		statechum.analysis.learning.rpnicore.TestLabelRepresentation.class
 	})
 	public static class GraphTests {// all tests are included in the annotation.
 	}

@@ -53,6 +53,7 @@ public class GlobalConfiguration {
 		ASSERT,// whether to display assert warning.
 		TEMP, // temporary directory to use
 		LINEARWARNINGS,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
+		SMTWARNINGS,// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
 		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
 		LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
 		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
@@ -73,6 +74,7 @@ public class GlobalConfiguration {
 	static
 	{
 		defaultValues.put(G_PROPERTIES.LINEARWARNINGS, "false");
+		defaultValues.put(G_PROPERTIES.SMTWARNINGS, "false");
 		defaultValues.put(G_PROPERTIES.ASSERT, "false");
 		defaultValues.put(G_PROPERTIES.GRAPHICS_MONITOR, ""+DEFAULT_SCREEN);
 		defaultValues.put(G_PROPERTIES.STOP, "");

@@ -258,7 +258,7 @@ public class PathRoutines {
 
 
 	/** Computes all possible shortest paths from the supplied source state to the 
-	 * all states in the graph returns a map from a state to the corresponding PTA. The easiest 
+	 * all states in the graph.<p> Returns a map from a state to the corresponding PTA. The easiest 
 	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
 	 * this also permits one to trace them in some automaton and junk irrelevant ones.
 	 * 

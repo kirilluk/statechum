@@ -1,20 +1,20 @@
 /** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * 
+ * This file is part of StateChum.
+ * 
+ * statechum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning.observers;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
@@ -106,7 +106,7 @@ public class TestRecorderIntegration {
 			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
 		for(String [] path:minus)
 			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
-		Learner l = new RPNIUniversalLearner(null,null,testConfig)
+		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -121,7 +121,7 @@ public class TestRecorderIntegration {
 		ByteArrayOutputStream logStream = new ByteArrayOutputStream();
 		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,testConfig,useZip);
 		Collection<List<String>> testSet = new LinkedList<List<String>>();
-		recorder.writeLearnerEvaluationData(new ProgressDecorator.LearnerEvaluationConfiguration(expected, testSet, testConfig, null));
+		recorder.writeLearnerEvaluationData(new LearnerEvaluationConfiguration(expected, testSet, testConfig, null, null));
 		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus), buildSet(minus));
 		
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
@@ -159,7 +159,7 @@ public class TestRecorderIntegration {
 				Assert.assertEquals(testSet, eval1.testSet);
 				Assert.assertEquals(expected.config, testConfig);
 	
-				Learner learner2 = new RPNIUniversalLearner(null,null,expected.config)
+				Learner learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,expected.config,null,null))
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
@@ -176,7 +176,7 @@ public class TestRecorderIntegration {
 
 			case RECORDERTEST_LL:
 			{// now two learners
-				Learner learnerA = new RPNIUniversalLearner(null,null,testConfig)
+				Learner learnerA = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
@@ -187,7 +187,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 					}
 				};
-				Learner learnerB = new RPNIUniversalLearner(null,null,testConfig)
+				Learner learnerB = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 				{
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(

@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ *  
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning.observers;
 
@@ -168,8 +168,14 @@ public class LearnerSimulator extends ProgressDecorator
 	/** There are cases when I'd like to step back to the previous element. */
 	protected Element nextElement = null;
 	
+	/** This makes it possible to handle look-ahead by one token, by doing a <em>getNextElement()</em>
+	 * and subsequently putting it back.
+	 * 
+	 * @param elem element to put back. This is expected to be an element obtained by 
+	 * calling <em>getNextElement()</em>. 
+	 */
 	public void setNextElement(Element elem)
-	{// TODO: to test this
+	{// TODO: to test this in conjunction with getNextElement
 		nextElement = elem;
 	}
 	

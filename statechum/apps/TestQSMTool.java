@@ -28,10 +28,12 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
+import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
 
 /**
  * This one tests the ability of QSMTool to load a configuration.
@@ -46,11 +48,12 @@ public class TestQSMTool {
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(""));
 		Assert.assertEquals(-1,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -58,11 +61,12 @@ public class TestQSMTool {
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a"));
 		Assert.assertEquals(-1,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -70,11 +74,12 @@ public class TestQSMTool {
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n+ a b\n- q er t y"));
 		Assert.assertEquals(-1,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}, new String[]{"q","er","t","y"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	/** Repeated sequence. */
@@ -83,11 +88,12 @@ public class TestQSMTool {
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n+ a b\n- q er t y\n- q er t y\n- q er t y"));
 		Assert.assertEquals(-1,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}, new String[]{"q","er","t","y"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -95,11 +101,12 @@ public class TestQSMTool {
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\nk 8\n\n"));
 		Assert.assertEquals(8,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -108,11 +115,12 @@ public class TestQSMTool {
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
 				"k 8\n\npassive"));
 		Assert.assertEquals(8,tool.k);
-		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.config);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(false,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -129,11 +137,12 @@ public class TestQSMTool {
 		expectedConfig.setDefaultInitialPTAName("test");
 		expectedConfig.setCompressLogs(true);
 		expectedConfig.setLearnerIdMode(IDMode.NONE);
-		Assert.assertEquals(expectedConfig,tool.config);
+		Assert.assertEquals(expectedConfig,tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -153,12 +162,13 @@ public class TestQSMTool {
 		expectedConfig.setDefaultInitialPTAName("test");
 		expectedConfig.setCompressLogs(false);
 		expectedConfig.setLearnerIdMode(IDMode.NONE);
-		Assert.assertEquals(expectedConfig,tool.config);
+		Assert.assertEquals(expectedConfig,tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
 		Set<String> expectedltl = new TreeSet<String>();expectedltl.addAll(Arrays.asList(new String[]{"this is a test","more test"}));
-		Assert.assertEquals(expectedltl,tool.ltl);
+		Assert.assertEquals(expectedltl,tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -178,11 +188,12 @@ public class TestQSMTool {
 		expectedConfig.setCompressLogs(true);
 		expectedConfig.setLearnerIdMode(IDMode.NONE);
 		expectedConfig.setGenerateDotOutput(true);expectedConfig.setGenerateTextOutput(true);
-		Assert.assertEquals(expectedConfig,tool.config);
+		Assert.assertEquals(expectedConfig,tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
-		Assert.assertNull(tool.ltl);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertEquals(true,tool.active);
+		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
@@ -284,6 +295,50 @@ public class TestQSMTool {
 		checkForCorrectException(new whatToRun() { public void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("k 2.0"));
 		}},NumberFormatException.class,"");
+	}
+	
+	/** Loading of labels. No data provided in label descriptions*/
+	@Test
+	public final void testLoadXMLabels1()
+	{
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
+		"k 8\n\npassive\n"+QSMTool.cmdData+"\n"+QSMTool.cmdData));
+		Assert.assertEquals(8,tool.k);
+		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}}),tool.sMinus);
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
+		Assert.assertEquals(false,tool.active);
+		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
+	}
+	
+	/** Loading of labels. Valid data provided in label descriptions*/
+	@Test
+	public final void testLoadXMLabels2()
+	{
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
+			QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.PRE+" decl_N"+"\n"+
+			QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.POST+" constraint_N"+"\n"+
+			QSMTool.cmdData));
+		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
+		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
+		
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"decl_0"+ENDL+
+				LabelRepresentation.assertString+ENDL+"constraint_0"+ENDL+')'+ENDL
+				,
+				tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new String[]{})));
+	}
+	
+	/** Loading of labels. Invalid data provided in label descriptions*/
+	@Test
+	public final void testLoadXMLabels_Error()
+	{
+		checkForCorrectException(new whatToRun() { public void run() {
+			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
+				QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.PRE+" decl_N"+"\n"+
+				QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
+				QSMTool.cmdData));
+		}},IllegalArgumentException.class,"expected [PRE");
 	}
 	
 	

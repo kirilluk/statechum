@@ -10,6 +10,10 @@
    <string>true</string> 
   </void> 
   <void method="put"> 
+   <string>SMTWARNINGS</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
    <string>BUILDGRAPH</string> 
    <string>testNewLearner1b</string> 
   </void> 

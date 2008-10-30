@@ -1,20 +1,20 @@
 /** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * 
+ * This file is part of StateChum.
+ * 
+ * statechum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning.observers;
 
 import java.io.ByteArrayInputStream;
@@ -32,11 +32,13 @@ import statechum.Configuration;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
+import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 
@@ -50,12 +52,15 @@ public class TestWriteReadLearnerEvaluation {
 	String xmlData = null;
 	Collection<List<String>> testData = null;
 	Collection<String> ltl = null;
+	LabelRepresentation labels = null;
 	
 	@Before
 	public final void beforeTest()
 	{
 		config = Configuration.getDefaultConfiguration().copy();
+		double defaultK = config.getAttenuationK();
 		config.setAttenuationK(0.333);// make sure this configuration is different from the default one.
+		Assert.assertFalse(config.getAttenuationK() == defaultK);// and make sure that the two are indeed not the same.
 		anotherconfig = Configuration.getDefaultConfiguration().copy();
 		Assert.assertFalse(config.equals(anotherconfig));
 		
@@ -69,10 +74,18 @@ public class TestWriteReadLearnerEvaluation {
 				"![](setfiletype -> X((storefile) || (rename)))",
 				"ltl ![]((initialise) -> X(connect))",
 				"ltl !(XX(initialise))" });
+		labels = new LabelRepresentation();
+		labels.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
+		labels.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
+		labels.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
+		labels.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
+		labels.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
+		labels.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
+
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeLearnerEvaluationConfiguration(
-				new LearnerEvaluationConfiguration(graph,testData,config,ltl)));dumper.close();
+				new LearnerEvaluationConfiguration(graph,testData,config,ltl,labels)));dumper.close();
 		
 		xmlData = output.toString();
 	}
@@ -88,6 +101,7 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(labels,cnf.labelDetails);
 	}
 	
 	/** Missing configuration. */
@@ -96,7 +110,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		Element configToRemove = (Element)learnerConfig.getElementsByTagName(Configuration.configXMLTag).item(0);
 		learnerConfig.removeChild(configToRemove);
 		
@@ -107,6 +121,7 @@ public class TestWriteReadLearnerEvaluation {
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(labels,cnf.labelDetails);
 	}
 	
 	/** A completely unexpected element is ignored. */
@@ -115,7 +130,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,config,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,config,ltl,labels));
 		learnerConfig.appendChild(dumper.doc.createElement("junk"));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
@@ -126,9 +141,10 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(labels,cnf.labelDetails);
 	}	
 
-	/** Missing ltl part. */
+	/** Missing LTL part. */
 	@Test
 	public final void testLearnerEvaluation10()
 	{
@@ -136,7 +152,7 @@ public class TestWriteReadLearnerEvaluation {
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 			Element configToRemove = (Element)learnerConfig.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()).item(0);
 			org.w3c.dom.Node crlf = configToRemove.getNextSibling();
 			learnerConfig.removeChild(configToRemove);learnerConfig.removeChild(crlf);
@@ -147,7 +163,7 @@ public class TestWriteReadLearnerEvaluation {
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,null));
+			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,null,labels));
 			dumper.topElement.appendChild(learnerConfig);dumper.close();anotherXML = output.toString();
 		}
 		Assert.assertEquals(anotherXML,xmlData);
@@ -156,9 +172,42 @@ public class TestWriteReadLearnerEvaluation {
 		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
+		Assert.assertEquals(labels,cnf.labelDetails);
 		Assert.assertNull(cnf.ltlSequences);
 	}
 	
+	/** Missing part with labels. */
+	@Test
+	public final void testLearnerEvaluation11()
+	{
+		String anotherXML = null;
+		{
+			ByteArrayOutputStream output = new ByteArrayOutputStream();
+			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
+			Element configToRemove = (Element)learnerConfig.getElementsByTagName(ELEM_KINDS.ELEM_LABELDETAILS.name()).item(0);
+			org.w3c.dom.Node crlf = configToRemove.getNextSibling();
+			learnerConfig.removeChild(configToRemove);learnerConfig.removeChild(crlf);
+			
+			dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
+		}
+
+		{
+			ByteArrayOutputStream output = new ByteArrayOutputStream();
+			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,null));
+			dumper.topElement.appendChild(learnerConfig);dumper.close();anotherXML = output.toString();
+		}
+		Assert.assertEquals(anotherXML,xmlData);
+		
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
+		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name()));
+		WMethod.checkM(cnf.graph, graph);
+		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
+		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertNull(cnf.labelDetails);
+	}
+
 	/** Missing main element. */
 	@Test
 	public final void testLearnerEvaluation3()
@@ -168,13 +217,14 @@ public class TestWriteReadLearnerEvaluation {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"expecting to load learner evaluation data");
 	}
+	
 	/** Missing graph. */
 	@Test
 	public final void testLearnerEvaluation4()
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(Transform.graphmlNodeName).item(0);
 		learnerConfig.removeChild(graphToRemove);
 		
@@ -192,7 +242,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		learnerConfig.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
 		.transform.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
@@ -209,7 +259,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(0);
 		learnerConfig.removeChild(graphToRemove);
 		
@@ -227,7 +277,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		learnerConfig.appendChild(dumper.writeSequenceList(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name(), 
 				TestFSMAlgo.buildList(new String[][]{
 						new String[]{ "t","some test data"},
@@ -247,7 +297,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl));
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
 		learnerConfig.appendChild(anotherconfig.writeXML(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
@@ -255,6 +305,22 @@ public class TestWriteReadLearnerEvaluation {
 		checkForCorrectException(new whatToRun() { public void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate configuration");
+	}	
+	
+	/** Duplicate label definition. */
+	@Test
+	public final void testLearnerEvaluation12()
+	{
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
+		learnerConfig.appendChild(labels.storeToXML(dumper.doc));
+		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
+		
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
+		checkForCorrectException(new whatToRun() { public void run() {
+			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name()));
+		}}, IllegalArgumentException.class,"duplicate label details");
 	}	
 	
 }

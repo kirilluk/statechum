@@ -103,7 +103,7 @@ public class LearnerGraph {
 		{
 			if (currentState == null)
 				return true;// always return reject-nodes
-			return ((CmpVertex)currentState).isAccept();
+			return ((CmpVertex)currentState).isAccept();// TODO: This line will ever return false because X-m testing is never used on graphs with explicit reject states 
 		}
 
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
@@ -151,6 +151,12 @@ public class LearnerGraph {
 	 */
 	protected List<PairScore> pairsAndScores;
 
+	/** Stores pairs of states which should either never be merged due to constraints which cannot 
+	 * be easily expressed with counter-examples such as non-determinism related to intersection of
+	 * domains of labels from them (those which can be expressed using labels should be added to the maximal
+	 * automaton). 
+	 */
+	
 	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
 	protected CmpVertex stateLearnt = null;
 	
@@ -222,7 +228,7 @@ public class LearnerGraph {
 	 * not know this but both newly-generated numerical IDs and original
 	 * text IDs share a namespace, it is possible that an existing ID
 	 * the two will have the same string as the previously-loaded text.
-	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and anohter way via ant
+	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and another way via ant
 	 */
 	protected void setIDNumbers()
 	{
@@ -240,7 +246,7 @@ public class LearnerGraph {
 				&& id.getIngegerID() >= vertNegativeID)
 			vertNegativeID = id.getIngegerID()+1;
 	}
-	
+
 	final public ComputeQuestions questions = new ComputeQuestions(this);
 	final public PathRoutines paths = new PathRoutines(this);
 	final public MergeStates merger = new MergeStates(this);
@@ -250,7 +256,7 @@ public class LearnerGraph {
 	final public Linear linear = new Linear(this);
 	final CachedData learnerCache = new CachedData(this);
 	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
-	
+
 	/** Initialises the class used to compute scores between states.
 	 *
 	 * @param g the graph it will be used on 

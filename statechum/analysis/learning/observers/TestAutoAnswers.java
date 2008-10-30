@@ -1,20 +1,20 @@
 /** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * 
+ * This file is part of StateChum.
+ * 
+ * statechum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning.observers;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
@@ -30,6 +30,7 @@ import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /** Tests that AutoAnswers works.
@@ -88,7 +89,7 @@ public class TestAutoAnswers {
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,null,testConfig)
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -132,7 +133,7 @@ public class TestAutoAnswers {
 				partA
 		));
 		
-		RPNILearner learner = new RPNIUniversalLearner(null,null,testConfig)
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -172,7 +173,7 @@ public class TestAutoAnswers {
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
-		RPNILearner learner = new RPNIUniversalLearner(null,null,testConfig)
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(

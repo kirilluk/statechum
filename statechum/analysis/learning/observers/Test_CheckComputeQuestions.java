@@ -73,7 +73,7 @@ public class Test_CheckComputeQuestions {
 			simulator = new LearnerSimulator(new java.io.FileInputStream("/home/kirill/workspace/XMachineTool_j6/resources/nonsvn/logs/3_25Inputs_75_12.xml_LEARNER_BLUEFRINGE_MAY2008_log-100.xml"),true);
 			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
 			evalData.config.setInitialIDvalue(1);
-			evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
+			evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);
 			evalData.config.setSpeculativeQuestionAsking(false);
 			evalData.config.setDefaultInitialPTAName("Init");
 			

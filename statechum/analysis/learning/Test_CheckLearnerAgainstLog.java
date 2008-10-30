@@ -1,20 +1,20 @@
 /** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * 
+ * This file is part of StateChum.
+ * 
+ * statechum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning;
 
 import java.io.File;
@@ -38,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID.ComparisonKind;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.observers.Test_LearnerComparator;
 import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -56,8 +57,9 @@ public class Test_CheckLearnerAgainstLog
 {
 	/** This method is a useful troubleshooting aid - the log it creates should be
 	 * identical to that we are playing, but if something is wrong, it is easier
-	 * to spot problems in a log than via a debugger.
-	 
+	 * to spot problems in a log than via a debugger. Additionally, this routine can be used 
+	 * to compress or uncompress an existing log.  
+	 */
 	public void copyLogIntoAnotherLog(String logFileName)
 	{
 		try {
@@ -67,7 +69,7 @@ public class Test_CheckLearnerAgainstLog
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 			simulator.setNextElement(nextElement);
 	
-			RPNILearner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
+			RPNILearner learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,evalData.config,null,null))
 			{
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
@@ -90,8 +92,16 @@ public class Test_CheckLearnerAgainstLog
 		} catch (java.io.IOException e) {
 			statechum.Helper.throwUnchecked("failure reading/writing log files", e);
 		}
-	}*/
+	}
 	
+	/** The actual test method - 
+	 * <ul><li>loads the configuration from log.</li>
+	 * <li>creates a learner based on the configuration and runs it.</li>
+	 * <li>checks most arguments and return values of most methods called by a learner against values recorded in the log.</li>
+	 * </ul> 
+	 * @param logFileName log to play
+	 * @throws FileNotFoundException if log is not where it should be.
+	 */
 	public void check(String logFileName) throws FileNotFoundException
 	{
 		// now a simulator to a learner
@@ -106,13 +116,13 @@ public class Test_CheckLearnerAgainstLog
 		// to be stored in log files).
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_MAY2008.name()))
 		{
-			evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
+			evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);
 			evalData.config.setSpeculativeQuestionAsking(false);
 		}
 		else 		
 			if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEAMBER_MAY2008.name()))
 			{
-				evalData.config.setUseAmber(true);evalData.config.setUseSpin(false);
+				evalData.config.setUseAmber(true);evalData.config.setUseLTL(false);
 				evalData.config.setSpeculativeQuestionAsking(false);
 			}
 			else 
@@ -120,7 +130,7 @@ public class Test_CheckLearnerAgainstLog
 				{// we'd like to make sure that the initial configuration is loaded with the correct configuration values.
 					evalData.config.setInitialIDvalue(1);
 					VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;
-					evalData.config.setUseAmber(false);evalData.config.setUseSpin(false);
+					evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);
 					evalData.config.setSpeculativeQuestionAsking(false);
 					evalData.config.setDefaultInitialPTAName("Init");
 				}
@@ -131,7 +141,7 @@ public class Test_CheckLearnerAgainstLog
 		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 		simulator.setNextElement(nextElement);
 		
-		Learner learner2 = new RPNIUniversalLearner(null,null,evalData.config)
+		Learner learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,evalData.config,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
@@ -146,13 +156,13 @@ public class Test_CheckLearnerAgainstLog
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 		{// have to patch the learner.
 			
-			learner2 = new RPNIUniversalLearner(null,null,evalData.config) {
+			learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,evalData.config,null,null)) 
+			{
 				/* (non-Javadoc)
 				 * @see statechum.analysis.learning.observers.DummyLearner#init(java.util.Collection, java.util.Collection)
 				 */
 				@Override
-				public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus,
-						@SuppressWarnings("unused")	Collection<List<String>> minus) 
+				public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 				{
 					return super.init(plus, minus);
 				}
@@ -199,7 +209,6 @@ public class Test_CheckLearnerAgainstLog
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(File f:new File(pathToLogFiles).listFiles(new FileFilter(){
-
 			public boolean accept(File pathName) {
 				return pathName.canRead() && pathName.isFile() &&
 				pathName.getAbsolutePath().contains(".xml_");

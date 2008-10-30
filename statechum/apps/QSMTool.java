@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.apps;
 
@@ -40,7 +40,9 @@ import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
+import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class QSMTool 
@@ -48,10 +50,9 @@ public class QSMTool
 	protected int k = -1;
 	
 	/** Learner configuration to be set. */
-	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 	protected Set<List<String>> sPlus = new HashSet<List<String>>();
 	protected Set<List<String>> sMinus = new HashSet<List<String>>();
-	protected Set<String> ltl = null;
+	protected LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration();
 	protected boolean active = true;
 	protected boolean showLTL = false;
 	
@@ -60,9 +61,9 @@ public class QSMTool
 		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);
 		if (tool.showLTL)
 		{
-			Learner l = new RPNIUniversalLearner(null,tool.ltl,tool.config);
-			LTL_to_ba ba = new LTL_to_ba(tool.config);ba.ltlToBA(tool.ltl, l.init(tool.sPlus, tool.sMinus));
-			Visualiser.updateFrame(ba.augmentGraph(new LearnerGraph(tool.config)), null);
+			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);
+			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);ba.ltlToBA(tool.learnerInitConfiguration.ltlSequences, l.init(tool.sPlus, tool.sMinus));
+			Visualiser.updateFrame(ba.augmentGraph(new LearnerGraph(tool.learnerInitConfiguration.config)), null);
 		}
 		else
 			tool.runExperiment();
@@ -80,7 +81,7 @@ public class QSMTool
 	public void loadConfig(Reader inputData)
 	{
 		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
-		if (AutoName != null) config.setAutoAnswerFileName(AutoName);
+		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
 	
 		BufferedReader in = null;
 		try {
@@ -104,13 +105,12 @@ public class QSMTool
 	
 	public void runExperiment()
 	{
-		setSimpleConfiguration(config, active, k);
-		if(ltl!=null){
-			if(!ltl.isEmpty())
-				config.setUseSpin(true);
-		}
+		setSimpleConfiguration(learnerInitConfiguration.config, active, k);
+		if(learnerInitConfiguration.ltlSequences!=null && !learnerInitConfiguration.ltlSequences.isEmpty())
+			learnerInitConfiguration.config.setUseLTL(true);
+
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
-		pnv.construct(sPlus, sMinus, ltl, config);
+		pnv.construct(sPlus, sMinus, learnerInitConfiguration);
 		
 		pnv.startLearner(null);
 		// new PickNegativesVisualiser(new
@@ -121,7 +121,8 @@ public class QSMTool
 
 	public static void setSimpleConfiguration(Configuration config,final boolean active, final int k)
 	{
-		if(!active){
+		if(!active)
+		{
 			config.setKlimit(k);
 			config.setAskQuestions(false); 
 			if(k>=0)
@@ -150,8 +151,8 @@ public class QSMTool
 			sMinus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
 		else if (isCmdWithArgs(fileString,cmdLTL))
 		{
-			if (ltl == null) ltl=new TreeSet<String>();
-			ltl.add(fileString.substring(cmdLTL.length()+1));
+			if (learnerInitConfiguration.ltlSequences == null) learnerInitConfiguration.ltlSequences=new TreeSet<String>();
+			learnerInitConfiguration.ltlSequences.add(fileString.substring(cmdLTL.length()+1));
 		}
 		else if (isCmdWithArgs(fileString,cmdK))
 		{
@@ -159,32 +160,39 @@ public class QSMTool
 			k = Integer.valueOf(value);
 		}
 		else if(fileString.startsWith(cmdTextOutput))
-			config.setGenerateTextOutput(true);
+			learnerInitConfiguration.config.setGenerateTextOutput(true);
 		else if(fileString.startsWith(cmdDotOutput))
-			config.setGenerateDotOutput(true);
+			learnerInitConfiguration.config.setGenerateDotOutput(true);
 		else
-			if (fileString.startsWith(cmdPassive))
-				active = false;
-			else
-				if (isCmdWithArgs(fileString,cmdConfig))
-				{
-					List<String> values= tokeniseInput(fileString.substring(cmdConfig.length()+1));
-					if (values.size() != 2)
-						throw new IllegalArgumentException("invalid configuration option "+fileString);
-					
-					config.assignValue(values.get(0),values.get(1),true);
-				}
-				else
-				if (fileString.startsWith(cmdComment))
-				{// do nothing
-				}
-				else
-				if (fileString.startsWith(cmdShowLTL))
-				{
-					showLTL = true;
-				}
-				else
-					throw new IllegalArgumentException("invalid command "+fileString);
+		if (fileString.startsWith(cmdPassive))
+			active = false;
+		else
+		if (isCmdWithArgs(fileString,cmdConfig))
+		{
+			List<String> values= tokeniseInput(fileString.substring(cmdConfig.length()+1));
+			if (values.size() != 2)
+				throw new IllegalArgumentException("invalid configuration option "+fileString);
+			
+			learnerInitConfiguration.config.assignValue(values.get(0),values.get(1),true);
+		}
+		else
+		if (fileString.startsWith(cmdComment))
+		{// do nothing
+		}
+		else
+		if (fileString.startsWith(cmdShowLTL))
+		{
+			showLTL = true;
+		}
+		else
+		if (fileString.startsWith(cmdData))
+		{
+			if (learnerInitConfiguration.labelDetails == null)
+				learnerInitConfiguration.labelDetails = new LabelRepresentation();
+			learnerInitConfiguration.labelDetails.parseLabel(fileString.substring(cmdData.length()).trim());
+		}
+		else
+			throw new IllegalArgumentException("invalid command "+fileString);
 	}
 
 	public static final String 
@@ -197,6 +205,7 @@ public class QSMTool
 		cmdDotOutput="dotoutput",
 		cmdComment="#",
 		cmdPassive="passive",
+		cmdData="xm",
 		cmdShowLTL="showltl";
 	
 	private static List<String> tokeniseInput(String str)

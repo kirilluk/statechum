@@ -27,6 +27,7 @@ import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.*;
 import statechum.analysis.learning.util.*;
@@ -67,11 +68,8 @@ public class PickNegativesVisualiser extends Visualiser {
 	/** Collections of positive and negative samples. */
 	Collection<List<String>> sPlus, sMinus;
 	
-	/** The LTL formula to check against. */
-	Set<String> ltlFormulae = null;
-	
 	/** Configuration for learners. */
-	Configuration config = null; 
+	LearnerEvaluationConfiguration conf = null; 
 	
 	/** Starts the learning thread with the supplied sets of positive and negative examples.
 	 * 
@@ -79,9 +77,9 @@ public class PickNegativesVisualiser extends Visualiser {
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> plus, final Collection<List<String>> minus,final Set<String> ltl, final Configuration conf)
+	public void construct(final Collection<List<String>> plus, final Collection<List<String>> minus,final LearnerEvaluationConfiguration evalCnf)
     {
-		sPlus=plus;sMinus=minus;ltlFormulae=ltl;config=conf;
+		sPlus=plus;sMinus=minus;conf=evalCnf;
     }
 	
 	public void startLearner(final ThreadStartedInterface whomToNotify)
@@ -90,22 +88,22 @@ public class PickNegativesVisualiser extends Visualiser {
 		{
 			public void run()
 			{
-				if (ltlFormulae != null)
-					innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, ltlFormulae,config);
+				if (conf.ltlSequences != null)
+					innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);
 				else
 					if (split != null) {
-						innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, config);
+						innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, conf.config);
 		        	}
 		        	else
-		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, null,config);
+		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ltlSequences will always be null.
 				
 				innerLearner.addObserver(PickNegativesVisualiser.this);
 				autoAnswersDecorator=new AutoAnswers(innerLearner);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
         		DirectedSparseGraph learnt = autoAnswersDecorator.learnMachine(sPlus, sMinus).paths.getGraph();
-        		if(config.isGenerateTextOutput())
+        		if(conf.config.isGenerateTextOutput())
         			OutputUtil.generateTextOutput(learnt);
-        		if(config.isGenerateDotOutput())
+        		if(conf.config.isGenerateDotOutput())
         			OutputUtil.generateDotOutput(learnt);
         		
 			}
@@ -143,7 +141,7 @@ public class PickNegativesVisualiser extends Visualiser {
 					if(negatives!=null)
 						sMinus.add(negatives);
 					if(negLTL!=null)
-						ltlFormulae.add(negLTL);
+						conf.ltlSequences.add(negLTL);
 
 					startLearner(this);
 					synchronized (this) {
@@ -173,7 +171,7 @@ public class PickNegativesVisualiser extends Visualiser {
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
-		if(ltlFormulae != null){
+		if(conf.ltlSequences != null){
 			String newLTL = JOptionPane.showInputDialog("New LTL formula:");
 			innerLearner.terminateUserDialogueFrame();
 			new Thread(new LearnerRestarter(newLTL),"learner restarter").start();

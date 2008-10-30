@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -24,8 +24,10 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
+import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.spin.SpinUtil;
@@ -38,13 +40,14 @@ import javax.swing.JOptionPane;
 
 public class RPNIUniversalLearner extends RPNILearner {
 
-	private Set<String> ltl;
-
-	public RPNIUniversalLearner(Frame parent, Set<String> ltlFormulae, Configuration conf) 
+	private Collection<String> ltl;
+	private LabelRepresentation labelDetails;
+	
+	public RPNIUniversalLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) 
 	{
-		super(parent, conf);
-		ltl = ltlFormulae;
-		scoreComputer = new LearnerGraph(conf);
+		super(parent, evalCnf.config);
+		ltl = evalCnf.ltlSequences;labelDetails=evalCnf.labelDetails;
+		scoreComputer = new LearnerGraph(evalCnf.config);
 	}
 
 	protected LearnerGraph scoreComputer = null;
@@ -129,7 +132,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 		if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
-		if (scoreComputer.config.getUseSpin()){
+		if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
 			Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, ltl);
 			if(counters.size()>0)
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, counters));
@@ -155,7 +158,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			updateGraph(temp);
-			if (scoreComputer.config.getUseSpin()){
+			if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
 
 				Collection<List<String>> counterExamples = SpinUtil.check(temp, scoreComputer, ltl);
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
@@ -186,7 +189,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 				
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
-				if (scoreComputer.config.getUseSpin())
+				if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin())
 					answer = new Pair<Integer,String>(checkWithSPIN(question),null);
 				
 				boolean answerFromSpin = false;
@@ -207,7 +210,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) {
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
-					if (scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
+					if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
 
 					questionAnswered = true;
 					if (!tempVertex.isAccept()) 
@@ -225,7 +228,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						topLevelListener.AugmentPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
-					if (scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,colourToAugmentWith);
+					if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,colourToAugmentWith);
 					// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// one instance should ever receive calls to augmentPTA
@@ -307,7 +310,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 		return scoreComputer;
 	}
 
-	protected String getHardFactsContradictionErrorMessage(Set<String> tmpLtl, Collection<List<String>> counters)
+	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, Collection<List<String>> counters)
 	{
 		String errString = "LTL formula contradicts hard facts\n";
 		Iterator<List<String>> counterIt = counters.iterator();

@@ -31,7 +31,6 @@ import statechum.JUConstants;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.util.*;
 import statechum.analysis.learning.rpnicore.*;
-import sun.security.krb5.Config;
 
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.graph.*;
@@ -59,7 +58,7 @@ public class SpinUtil {
 
 	static Map<Integer, String> inverseFunctionMap;
 	
-	public static Collection<List<String>> check(LearnerGraph temp, LearnerGraph current, Set<String> ltl) {
+	public static Collection<List<String>> check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
@@ -68,11 +67,11 @@ public class SpinUtil {
 		createInverseMap();
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
 		List<List<String>>sortedCounters = sort(counters);
-		removeInvalidPrefixCounters(sortedCounters, current, ltl);
+		removeInvalidPrefixCounters(sortedCounters, current);
 		return sortedCounters;
 	}
 	
-	public static Collection<List<String>> check(LearnerGraph temp, Set<String> ltl) {
+	public static Collection<List<String>> check(LearnerGraph temp, Collection<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
@@ -84,7 +83,7 @@ public class SpinUtil {
 		return sortedCounters;
 	}
 	
-	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph current, Set<String> ltl){
+	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph current){
 		Iterator<List<String>> counterIt = counters.iterator();
 		Collection<List<String>> toBeRemoved = new HashSet<List<String>>();
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
@@ -131,7 +130,7 @@ public class SpinUtil {
 		return counterList;
 	}
 	
-	private static String concatenatedLTL(Set<String> ltl){
+	private static String concatenatedLTL(Collection<String> ltl){
 		String ltlString = "";
 		for (String string : ltl) {
 			if(!ltlString.equals(""))
@@ -142,7 +141,7 @@ public class SpinUtil {
 		return ltlString;
 	}
 	
-	public static int check (List<String> question, Set<String> ltl){
+	public static int check (List<String> question, Collection<String> ltl){
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();

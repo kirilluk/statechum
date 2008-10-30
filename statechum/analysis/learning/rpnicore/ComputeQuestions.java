@@ -129,7 +129,7 @@ public class ComputeQuestions {
 		}
 
 		public void addQuestionsForState(AMEquivalenceClass state, 
-				@SuppressWarnings("unused")	LearnerGraph original, LearnerGraph learnt, 
+				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
 		{
@@ -183,7 +183,7 @@ public class ComputeQuestions {
 
 		public void addQuestionsForState(AMEquivalenceClass state, 
 				LearnerGraph original, LearnerGraph learnt, 
-				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
+				StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
 		{
 			if (fanout == null)

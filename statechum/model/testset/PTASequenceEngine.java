@@ -570,6 +570,7 @@ public class PTASequenceEngine
 	/** Returns a representation of nodes held in the supplied set.
 	 * Important: do not change the returned data unless you are prepared to modify tests
 	 * relying on it, such as testComputePathsSBetween1.
+	 * Note: this one is only used for consistency checking of getDebugDataMapDepth (the higher-order version of this routine).  
 	 * 
 	 * @param targetNodes nodes to "display"
 	 * @return a map from a textual representation of nodes in the set to whether this is accept/reject/leaf/inner/returned/trashed node.

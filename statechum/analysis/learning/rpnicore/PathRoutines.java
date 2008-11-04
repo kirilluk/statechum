@@ -440,22 +440,30 @@ public class PathRoutines {
 		return ;
 	}
 
-	public LearnerGraph augmentPTA(Collection<List<String>> strings, boolean accepted)
+	public LearnerGraph augmentPTA(Collection<List<String>> strings, boolean accepted, boolean maximalAutomaton)
 	{
 		for(List<String> sequence:strings)
-			augmentPTA(sequence, accepted,null);
+			augmentPTA(sequence, accepted,maximalAutomaton,null);
 		return coregraph;
 	}
 	
 	/** Given a path and whether it is an accept or reject-path adds this path to the graph. 
 	 * An accept-path added in its entirety; reject-path has the last node as reject and the rest are accept ones.
+	 * <p>
+	 * The special case is when we add a path to a maximal automaton which is accepting a language which is not
+	 * prefix-closed. For this reason, when a reject path is added which clashes with an existing path,
+	 * the existing path is truncated at the new reject-node. Repeated addition of reject sequences can hence
+	 * render parts of the state space inaccessible; this is to be expected and can be easily removed by computing
+	 * a state cover (as a map of states->sequences) and removing all state not mentioned in it. 
 	 * 
 	 * @param sequence the path to add
 	 * @param accepted whether the last element is accept or reject.
+	 * @param maxAutomaton whether to interpret the current automaton as a maximal automaton 
+	 * (where a reject-node overrides an accept one)
 	 * @param newColour the colour to assign to all new vertices, usually this should be left at null.
 	 * @return the current (updated) graph. 
 	 */
-	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted, JUConstants newColour)
+	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted, boolean maximalAutomaton, JUConstants newColour)
 	{
 		CmpVertex currentState = coregraph.init, prevState = null;
 		Iterator<String> inputIt = sequence.iterator();
@@ -466,7 +474,8 @@ public class PathRoutines {
 			if (!currentState.isAccept())
 			{// not the last state and the already-reached state is not accept, while all prefixes of reject sequences should be accept ones. 
 				currentState.setHighlight(true);
-				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+				throw new IllegalArgumentException("incompatible "+
+						(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position)+" when trying to append "+sequence);
 			}
 			prevState = currentState;lastInput = inputIt.next();++position;
 			
@@ -489,13 +498,38 @@ public class PathRoutines {
 			
 		}
 		else
-		{// we reached the end of the PTA
-			if (currentState.isAccept() != accepted)
-			{
-				currentState.setHighlight(true);
-				throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
-			}
+		{// we reached the end of the string to add to the PTA, with currentState being the current PTA state.
 			
+			if (!maximalAutomaton)
+			{
+				if (currentState.isAccept() != accepted)
+				{
+					currentState.setHighlight(true);
+					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+				}
+			}
+			else
+			{// the case when a path is being added to a maximal automaton
+				if (accepted && !currentState.isAccept())
+				{
+					currentState.setHighlight(true);
+					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+				}
+
+				if (!accepted && currentState.isAccept())
+				{
+					if (prevState != null)
+						// truncate the current path, as long as it is not empty
+						synchronized (LearnerGraph.syncObj) 
+						{
+							coregraph.addVertex(prevState, accepted, lastInput).setColour(newColour);
+						}
+					else
+					{// for an empty path, set the current (i.e. initial state) to a reject-state and clear outgoing transitions.
+						currentState.setAccept(false);coregraph.transitionMatrix.get(currentState).clear();
+					}
+				}
+			}
 		}
 	
 		coregraph.learnerCache.invalidate();
@@ -636,8 +670,6 @@ public class PathRoutines {
 
 	/** Numerous methods using this class expect to be able to interpret the state 
 	 * machine as a flowgraph, this method builds one.
-	 * Always make sure this one is called after finished with making changes to
-	 *  
 	 */
 	public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
 	{
@@ -978,7 +1010,7 @@ public class PathRoutines {
 	{
 		int pos = tracePath(path);
 		List<String> seq = path;
-		assert(pos == AbstractOracle.USER_ACCEPTED || pos < path.size());
+		assert pos == AbstractOracle.USER_ACCEPTED || pos < path.size();
 		if (pos >= 0)
 				seq = path.subList(0, pos+1);// up to a rejected position plus one
 		return seq;

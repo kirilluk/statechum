@@ -52,6 +52,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -671,7 +672,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).paths.getGraph(),testConfig),
 			expectedMachine = new LearnerGraph(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"),testConfig);
 
-		TestFSMAlgo.checkM(g2, machineToMerge,testConfig);
+		TestEquivalenceChecking.checkM(machineToMerge, g2, testConfig);
 		
 		Assert.assertFalse("unreachable states - original",mergeResultA.wmethod.checkUnreachableStates());
 		Assert.assertFalse("unreachable states",mergeResultB.wmethod.checkUnreachableStates());

@@ -54,10 +54,11 @@ public class RPNIUniversalLearner extends RPNILearner {
 
 	@Override
 	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
-	{
+	{// Given that we may have a graph with a single reject-state, we'd like to start by adding
+	 // reject-sequences first.
 		scoreComputer.initPTA();
-		scoreComputer.paths.augmentPTA(minus, false);
-		scoreComputer.paths.augmentPTA(plus, true);
+		scoreComputer.paths.augmentPTA(minus, false,false);
+		scoreComputer.paths.augmentPTA(plus, true,false);
 		return scoreComputer;
 	}
 
@@ -114,14 +115,14 @@ public class RPNIUniversalLearner extends RPNILearner {
 	 * @param tempNew the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<String>> ComputeQuestions(PairScore pair, @SuppressWarnings("unused") LearnerGraph original, LearnerGraph tempNew)
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		return ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 	}
 
 	public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
-		pta.paths.augmentPTA(sequence, accepted, newColour);
+		pta.paths.augmentPTA(sequence, accepted, false, newColour);
 	}
 
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";

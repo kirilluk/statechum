@@ -20,6 +20,7 @@ package statechum.analysis.learning;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,8 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.DebugDataValues;
@@ -40,11 +43,14 @@ import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import static statechum.Helper.checkForCorrectException;
+import static statechum.Helper.whatToRun;
+import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 public class TestPTAConstruction
 {
 	@Test
-	public void testAugmentPTA() // only two traces, both accept
+	public void testAugmentPTA_Simple() // only two traces, both accept
 	{
 		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
 		DirectedSparseGraph actualA = Test_Orig_RPNIBlueFringeLearner.augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
@@ -53,11 +59,11 @@ public class TestPTAConstruction
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		config.setAllowedToCloneNonCmpVertex(true);
 		LearnerGraph l = new LearnerGraph(config);
-		actualC = l.paths.augmentPTA(plusStrings, true).paths.getGraph();
+		actualC = l.paths.augmentPTA(plusStrings, true,false).paths.getGraph();
 		DeterministicDirectedSparseGraph.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
-		TestFSMAlgo.checkM(actualA, expectedPTA,config);
-		TestFSMAlgo.checkM(actualC, expectedPTA,config);
+		checkM(expectedPTA,actualA, config);
+		checkM(expectedPTA,actualC, config);
 	}
 
 	private static PTASequenceEngine buildPTA(Set<List<String>> plusStrings,Set<List<String>> minusStrings)
@@ -72,6 +78,11 @@ public class TestPTAConstruction
 		final Boolean rejectAllStates = new Boolean(theOnlyStateReject);
 		final AtomicBoolean statesAccept = new AtomicBoolean(true);
 		PTASequenceEngine allSequences = new PTASequenceEngine();
+		
+		// Here we are building a PTA which consists of accept states for plusStrings and reject-states
+		// for minusStrings. This way if a plus string is a prefix of a plusString, the prefix will
+		// be labelled with Boolean(true) states and the suffix - with Boolean(false) states.
+		// Note that the suffix may contain many states.
 		allSequences.init(new PTASequenceSetAutomaton()
 		{
 			@Override
@@ -98,16 +109,19 @@ public class TestPTAConstruction
 	private void checkPTAConsistency(PTASequenceEngine engine,Set<List<String>> sequences, boolean accept)
 	{
 		SequenceSet initSeq = engine.new SequenceSet();initSeq.setIdentity();
+		int leafNumber = engine.getDebugDataMapDepth(null).size();
 		// Now we check the consistency
 		for(List<String> seq:sequences)
 		{
-			SequenceSet endOfSeq = initSeq.crossWithSequence(seq);
+			SequenceSet endOfSeq = initSeq.crossWithSequence(seq);// this is aimed to follow a path in a PTA
+				// to a state which is not necessarily a tail-state (hence no use calling getDebugDataMapDepth(null),
+				// but can inadvertently add a new sequence, hence we have to check that it has to happened at the end.
 			Map<String,String> map = engine.getDebugDataMapDepth(endOfSeq);
 			assert map.size() == 1: "expected size of 1, got "+map.size();
 			String attrs = map.values().iterator().next();
 			// For reject-sequences,
-			// If the end of the sequence is not a leaf, it should be considered positive, hence throw.
-			// If the end of the sequence is a leaf but should be returned, throw.
+			// If the end of the sequence is not a leaf, it should be considered an accept-sequence, hence throw.
+			// If the end of the sequence is a leaf but should be returned, this is also an accept-sequence (see the sequence engine construction above) throw.
 			// The only remaining case is that the end is a leaf and should not be returned - this is ok.
 			if (!accept && !attrs.equals(DebugDataValues.booleanToString(true,false)))
 				throw new IllegalArgumentException("reject-sequence "+seq+" is present in PTA with a positive ending");
@@ -115,14 +129,16 @@ public class TestPTAConstruction
 			// (we assume that non-leaf is always returned.) 
 			if (accept && attrs.equals(DebugDataValues.booleanToString(true,false)))
 				throw new IllegalArgumentException("reject-sequence "+seq+" is present in PTA with a negative ending");
-		}		
+		}
+		Assert.assertEquals(leafNumber, engine.getDebugDataMapDepth(null).size());
 	}
 	
-	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings)
+	@SuppressWarnings("null")
+	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualC = null, actualD = null, actualE = null;
-		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
+		DirectedSparseGraph actualA = null, actualC = null, actualD = null, actualE = null, actualF = null;
+		IllegalArgumentException eA = null, eC = null, eD = null, eE = null, eF = null;
 		try
 		{
 			actualA = Test_Orig_RPNIBlueFringeLearner.createAugmentedPTA(plusStrings, minusStrings);
@@ -179,11 +195,28 @@ public class TestPTAConstruction
 			eE = e;
 		}
 
-		if (eA != null)
+		try
 		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			l.scoreComputer.initPTA();
+			l.scoreComputer.paths.augmentPTA(minusStrings, false,true);
+			l.scoreComputer.paths.augmentPTA(plusStrings, true,true);
+			actualF = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eF = e;
+		}
+
+		if (eA != null)
+		{// an exception has been thrown, hence verify that all way of PTA construction have thrown too.
 			Assert.assertNotNull(eC);
 			Assert.assertNotNull(eD);
 			Assert.assertNotNull(eE);
+			if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNotNull(eF);
 			throw eA;
 		}
 		
@@ -191,7 +224,8 @@ public class TestPTAConstruction
 		Assert.assertNull(eC);
 		Assert.assertNull(eD);
 		Assert.assertNull(eE);
-				
+		if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNull(eF);
+		
 		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualA.getEdges().size());
 
@@ -201,8 +235,14 @@ public class TestPTAConstruction
 		Assert.assertEquals(1, actualD.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualD.getEdges().size());
 
-		Assert.assertEquals(1, actualE.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualE.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualE.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0, actualE.getEdges().size());
+
+		if (expectMaxAutomataToBeTheSameAsPTA)
+		{
+			Assert.assertEquals(1, actualF.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualF.getVertices().iterator().next()) )); 
+			Assert.assertEquals(0, actualF.getEdges().size());
+		}
 	}
 	
 	/** An empty accept trace. */
@@ -212,7 +252,7 @@ public class TestPTAConstruction
 		checkEmptyPTA(
 				new String[][] { new String[]{}},
 				new String[][] { }
-			);
+			,true);
 	}
 
 	/** An empty reject trace. */
@@ -222,9 +262,48 @@ public class TestPTAConstruction
 		checkEmptyPTA(
 				new String[][] { },
 				new String[][] { new String[]{} }
-			);
+			,false);
 	}
 
+	/** Make sure that we can augment a graph with a single state which is a reject-state. */
+	@Test
+	public void testPTAconstruction_singleRejectState()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
+		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		// set the initial state to be reject
+		l.scoreComputer.initPTA();l.scoreComputer.getVertex(new LinkedList<String>()).setAccept(false);
+		// and check how augmentPTA works with such a PTA
+		for(boolean maxAutomaton:new boolean[]{true,false})
+		{
+			for(List<String> sequence:buildSet(new String[][] { new String[]{} }))
+				l.scoreComputer.paths.augmentPTA(sequence, false,maxAutomaton,null);
+			for(List<String> sequence:buildSet(new String[][] { }))
+				l.scoreComputer.paths.augmentPTA(sequence, true,maxAutomaton,null);
+			DirectedSparseGraph actualC = l.scoreComputer.paths.getGraph();
+			Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+			Assert.assertEquals(0, actualC.getEdges().size());
+		}
+	}
+
+	/** For a maximal automaton, a reject-path overrides an accept-one. This is a test with a single-state graph. */
+	@Test
+	public void testPTAconstruction_singleRejectState_max()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
+		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		l.scoreComputer.initPTA();
+		for(List<String> sequence:buildSet(new String[][] { new String[]{} }))
+			l.scoreComputer.paths.augmentPTA(sequence, false,true,null);
+		for(List<String> sequence:buildSet(new String[][] { }))
+			l.scoreComputer.paths.augmentPTA(sequence, true,true,null);
+		DirectedSparseGraph actualC = l.scoreComputer.paths.getGraph();
+		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0, actualC.getEdges().size());
+	}
+	
 	/** Empty traces. */
 	@Test
 	public void testPTAconstruction1c()
@@ -232,7 +311,7 @@ public class TestPTAConstruction
 		checkEmptyPTA(
 				new String[][] {},
 				new String[][] {}
-			);
+			,true);
 	}
 
 	/** Builds a PTA from the supplied arguments using two different methods. If any of them throws, checks that another one throws too and then rethrows the exception. 
@@ -240,12 +319,13 @@ public class TestPTAConstruction
 	 * @param arrayPlusStrings allowed sequences
 	 * @param arrayMinusStrings sequences ending at a reject state
 	 * @param expectedPTA a textual representation of a PTA which should be built.
+	 * @param expectMaxAutomataToBeTheSameAsPTA whether we expect augmentation of a maximal automaton to yield the same result as that of a normal PTA.
 	 */
-	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA)
+	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
 		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
-		DirectedSparseGraph actualA = null, actualC =null, actualD = null, actualE = null;
-		IllegalArgumentException eA = null, eC = null, eD = null, eE = null;
+		DirectedSparseGraph actualA = null, actualC =null, actualD = null, actualE = null, actualF = null;
+		IllegalArgumentException eA = null, eC = null, eD = null, eE = null, eF = null;
 		try
 		{
 			actualA = Test_Orig_RPNIBlueFringeLearner.createAugmentedPTA(plusStrings, minusStrings);
@@ -302,11 +382,28 @@ public class TestPTAConstruction
 			eE = e;
 		}
 
+		try
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();
+			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			l.scoreComputer.initPTA();
+			l.scoreComputer.paths.augmentPTA(minusStrings, false,true);
+			l.scoreComputer.paths.augmentPTA(plusStrings, true,true);
+			actualF = l.scoreComputer.paths.getGraph();
+		}
+		catch(IllegalArgumentException e)
+		{
+			// ignore this - it might be expected.
+			eF = e;
+		}
+
 		if (eA != null)
 		{
 			Assert.assertNotNull(eC);
 			Assert.assertNotNull(eD);
 			Assert.assertNotNull(eE);
+			if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNotNull(eF);
 			throw eA;
 		}
 
@@ -314,64 +411,177 @@ public class TestPTAConstruction
 		Assert.assertNull(eC);
 		Assert.assertNull(eD);
 		Assert.assertNull(eE);
+		if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNull(eF);
 
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setAllowedToCloneNonCmpVertex(true);
-		TestFSMAlgo.checkM(actualA, expectedPTA,config);
-		TestFSMAlgo.checkM(actualC, expectedPTA,config);
+		checkM(expectedPTA,actualA, config);
+		checkM(expectedPTA,actualC, config);
 		//Visualiser.updateFrame(actualE,TestFSMAlgo.buildGraph(expectedPTA,"expected graph"));Visualiser.waitForKey();
-		TestFSMAlgo.checkM(actualD,expectedPTA ,config);
-		TestFSMAlgo.checkM(actualE,expectedPTA ,config);
+		checkM(expectedPTA,actualD,config);
+		checkM(expectedPTA,actualE,config);
+		
+		if (expectMaxAutomataToBeTheSameAsPTA) checkM(expectedPTA,actualF,config);
 	}
 	
+	/** Builds a maximal automaton from the supplied arguments. 
+	 * 
+	 * @param arrayPlusStrings allowed sequences.
+	 * @param arrayMinusStrings sequences ending at a reject state.
+	 * @param initialMax the maximal automaton to augment.
+	 * @param expectedMAX a textual representation of a maximal automaton 
+	 * which should be an outcome of augmenting the supplied one with the provided sequences.
+	 */
+	private void checkMAXconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String initialMax,String expectedMAX)
+	{
+		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
+		DirectedSparseGraph actualF = null;
+		
+		LearnerGraph graph = initialMax == null? 
+				new LearnerGraph(Configuration.getDefaultConfiguration().copy()):
+					new LearnerGraph(TestFSMAlgo.buildGraph(initialMax, "initial_max"),Configuration.getDefaultConfiguration().copy());
+		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		graph.paths.augmentPTA(plusStrings, true,true);
+		graph.paths.augmentPTA(minusStrings, false,true);
+		actualF = graph.paths.getGraph();
+		checkM(expectedMAX,actualF,graph.config);
+	}
+	
+	/** A trace goes through a reject-state. */
 	@Test
-	public void testPTAconstruction2()// two accept traces and one reject one
+	public void testPTAconstruction2()
 	{
 		checkPTAconstruction(
 			new String[][] { new String[]{"a","b","c"}, new String[]{"a","d","c"}},
 			new String[][] { new String[]{"a","b","c","d"} },
 			"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2"
-			);
+			,true);
 	}
 
+	/** A trace goes through a reject-state. */
 	@Test
-	public void testPTAconstruction3()// two accept traces and two reject ones
+	public void testPTAconstruction3()
 	{
 		checkPTAconstruction(
 				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
 				new String[][] { new String[]{"a","b","c","d"}, new String[]{"a","u"} },
-				"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2\nB-u-#A2");
+				"A-a->B--b->C-c->End1-d-#REJ\nB--d->C2-c->End2\nB-u-#A2",true);
 	}
 
+	/** A trace goes through a reject-state. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction4()// a trace goes through a reject-state
+	public void testPTAconstruction4()
 	{
 		checkPTAconstruction(
 				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
 				new String[][] { new String[]{"a","b","c","d"}, 
 						new String[]{"a","b"} },
-				"junk");
+				"junk",false);
 	}
 
 
+	/** A trace goes through a reject-state. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction5()// a trace goes through a reject-state
+	public void testPTAconstruction5()
 	{
 		checkPTAconstruction(
 				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
 				new String[][] { new String[]{"a","b","c","d"}, 
 						new String[]{"a","b","c"} },
-				"junk");
+				"junk",false);
 	}
 
-
+	/** A trace goes through a reject-state. */
 	@Test(expected = IllegalArgumentException.class)
-	public void testPTAconstruction6()// a trace goes through a reject-state
+	public void testPTAconstruction6()
 	{
 		checkPTAconstruction(
 				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
 				new String[][] { new String[]{"a","b","c","d"}, 
 						new String[]{"a","b","c","d","e"} },
-				"junk");
+				"junk",true);
+	}
+	
+	/** A trace goes through a reject-state. */
+	@Test
+	public void testPTAconstruction_max1()
+	{
+		checkMAXconstruction(
+				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
+				new String[][] { 
+						new String[]{"a","b","c"} },null,
+				"A-a->B-b->C1-c-#REJC\nB-d->D-c->C2\n");
+	}
+	
+	/** Checks that if we add a positive path over a negative, we get an exception regardless of whether we add this to 
+	 * a maximal automaton or to a PTA.
+	 */
+	@Test
+	public void testAddPositive()
+	{
+		Set<List<String>> plusStrings = buildSet(new String[][] { 
+				new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}}), 
+		minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}});
+
+		for(boolean max:new boolean[]{true,false})
+		{
+			final boolean maxAutomaton = max;
+			Configuration config = Configuration.getDefaultConfiguration().copy();
+			final RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
+			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+			l.scoreComputer.initPTA();
+			l.scoreComputer.paths.augmentPTA(minusStrings, false,maxAutomaton);
+			l.scoreComputer.paths.augmentPTA(plusStrings, true,maxAutomaton);
+			
+			checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
+				l.scoreComputer.paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}}),true,maxAutomaton);
+			}},IllegalArgumentException.class,"incompatible ");
+		}
+	}
+	
+	/** Tests that updating a maximal automata can chop off parts of a tree. */
+	@Test
+	public void testPTAconstruction_max2()
+	{
+		checkMAXconstruction(
+				new String[][] { new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},
+				new String[][] { new String[]{"a","b","c"} }, null,
+						"A-a->B-b->C1-c-#REJC\nB-d->D-c->C2\n");
+	}
+	
+	/** Tests that updating a maximal automata can chop off parts of a tree. */
+	@Test
+	public void testPTAconstruction_max3()
+	{
+		checkMAXconstruction(
+				new String[][] { },
+				new String[][] { new String[]{"a","b","c"} }, "A-a->B-b->C-c->A",
+						"A-a->B-b->C1-c-#REJC\n");
+	}
+
+	/** Tests that updating a maximal automata can chop off parts of a tree. */
+	@Test
+	public void testPTAconstruction_max4()
+	{
+		checkMAXconstruction(
+				new String[][] { },
+				new String[][] { new String[]{"a","b"} }, "A-a->B-b->C-c->A\nA-b->C-d->C",
+					"A-a->B-b-#rejC\nC-c->A\nA-b->C-d->C");
+	}
+	
+	/** Tests that updating a maximal automata can chop off parts of a tree. */
+	@Test
+	public void testPTAconstruction_max5()
+	{
+		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{} });
+		
+		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max"),Configuration.getDefaultConfiguration().copy());
+		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		graph.paths.augmentPTA(minusStrings, false,true);
+
+		final LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+		expected.getVertex(new LinkedList<String>()).setAccept(false);
+		DifferentFSMException result = WMethod.checkM(expected,graph);
+		Assert.assertNull(result);
 	}
 }

@@ -34,6 +34,7 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import edu.uci.ics.jung.graph.Edge;
@@ -94,7 +95,7 @@ public class TestEVGraphGeneration {
 			 v.removeUserDatum(VERTEX);
 		}
 		//updateFrame(TestFSMAlgo.buildGraph(expected,"expected"),g);
-		TestFSMAlgo.checkM(g,expected, Configuration.getDefaultConfiguration());
+		TestEquivalenceChecking.checkM(expected, g, Configuration.getDefaultConfiguration());
 	}
 	
 	@Test

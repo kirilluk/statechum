@@ -1,25 +1,20 @@
-
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
-
-
-
-
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 package statechum.analysis.learning.spin;
 
 import java.io.*;
@@ -97,7 +92,7 @@ public class SpinUtil {
 			
 			else{ 
 				try{
-					counterPTA.paths.augmentPTA(counter, false, null);
+					counterPTA.paths.augmentPTA(counter, false, false,null);
 				}
 				catch(Exception e){
 					toBeRemoved.add(counter);
@@ -111,12 +106,9 @@ public class SpinUtil {
 	private static List<List<String>> sort(Set<List<String>> counters){
 		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
 		counterList.addAll(counters);
-		Collections.sort(counterList, new Comparator() {
-            public int compare(Object o1, Object o2) {
-                List<String> s1 = (List<String>) o1;
-                List<String> s2 = (List<String>) o2;
-
-                if (s1.size() < s2.size()) {
+		Collections.sort(counterList, new Comparator<List<String>>() {
+            public int compare(List<String> s1, List<String> s2) {
+                 if (s1.size() < s2.size()) {
                     return -1;
                 }
                 else if (s1.size() > s2.size()) {
@@ -151,10 +143,8 @@ public class SpinUtil {
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
 		if(counters.size()==0)
 			return -1;
-		else{
-			return counters.iterator().next().size();
-		}
 		
+		return counters.iterator().next().size();
 	}
 	
 	
@@ -240,7 +230,7 @@ public class SpinUtil {
 	
 	public class TrailFileFilter implements FilenameFilter 
 	{ 
-	   public boolean accept(java.io.File f, java.lang.String g) 
+	   public boolean accept(@SuppressWarnings("unused") java.io.File f, java.lang.String g) 
 	    { 
 	       return (g.indexOf(".trail") != -1);
 	   } 

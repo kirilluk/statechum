@@ -74,10 +74,39 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> {
 	}
 
 	public int compareTo(Pair<A, B> o) {
-		int firstComp = firstElem.compareTo(o.firstElem);
+		int firstComp = 0;
+		
+		if (firstElem == null)
+		{
+			if (o.firstElem != null)
+				firstComp = -1;
+		}
+		else
+		{
+			if (o.firstElem == null)
+				firstComp = 1;
+			else
+				firstComp = firstElem.compareTo(o.firstElem);
+		}
 		
 		if(firstComp != 0)
-			return firstComp; 
-		return secondElem.compareTo(o.secondElem);
+			return firstComp;
+		
+		int secondComp = 0;
+		
+		if (secondElem == null)
+		{
+			if (o.secondElem != null)
+				secondComp = -1;
+		}
+		else
+		{
+			if (o.secondElem == null)
+				secondComp = 1;
+			else
+				secondComp = secondElem.compareTo(o.secondElem);
+		}
+		
+		return secondComp;
 	}
 }

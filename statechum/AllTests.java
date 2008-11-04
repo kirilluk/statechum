@@ -65,8 +65,11 @@ public class AllTests {
 	
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
+		statechum.TestConfiguration.class,
 		statechum.analysis.learning.rpnicore.TestFSMParser.class,
 		statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
+		statechum.analysis.learning.rpnicore.TestEquivalenceChecking.class,
+		statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
 		statechum.apps.TestQSMTool.class,
 		statechum.TestArrayOperations.class
 	})

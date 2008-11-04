@@ -54,6 +54,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataExcep
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.Visualiser;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
@@ -827,4 +828,17 @@ public class TestTransform {
 	{
 		Assert.assertEquals("Hamming distances min: 1 max: 1", new Transform(g).ComputeHamming(false));
 	}
+	
+	@Test
+	public final void testAugmentFromMax1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("I-a->D-a-#E\nI-d-#E\nI-c->F-b->G", "testAugmentFromMax1_max"),config);
+		Transform.augmentFromMAX(gr, max, true, true, true);
+		//Visualiser.updateFrame(gr, max);
+		//Visualiser.waitForKey();
+		TestEquivalenceChecking.checkM("H-a->A-a-#BE\nH-d-#BE\nH-c->BF-b->C", gr.paths.getGraph(), config);
+	}
+	
 }

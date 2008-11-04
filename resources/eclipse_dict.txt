@@ -17,3 +17,5 @@ decorators
 uplink
 heartbeat
 fallback
+yices
+zip

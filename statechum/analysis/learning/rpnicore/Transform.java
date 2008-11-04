@@ -61,6 +61,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
@@ -667,52 +668,57 @@ public class Transform {
 	 * @param what tentative PTA to update
 	 * @param from maximal automaton to update from
 	 * @param override whether to replace parts of tentative PTA with those from maximal automaton if the two are in conflict.
-	 * @param unroll whether to unroll loops - this produces are more accurate result at the expense of an increase of the state number in a tentative PTA.
 	 * @param maxIsPartial whether a maximal automaton is partial, i.e. there may be sequences in our tentative PTA which are not reflected in a 
 	 * maximal automaton. Given that the two are different graphs which may have different alphabets, it might be best to check for such an
 	 * incompatibility at runtime here since such a case should never happen anyway (this would be so if our ltl2ba system did not produce a correct
-	 * automaton). 
+	 * automaton).
+	 * @param config configuration to use for construction of a new graph.
+	 * @param checkWasModified used only for testing (should be false otherwise). When set to true this method checks that 
+	 * the graphModified variable reflects the equivalence of the original and new graphs.
+	 * @return the result of updating graph with the maximal automaton if the graph was modified; null otherwise. The original graph is untouched. 
 	 */
-	public static void augmentFromMAX(LearnerGraph graph, LearnerGraph from, boolean override, boolean unroll, boolean maxIsPartial)
+	public static LearnerGraph augmentFromMAX(LearnerGraph graph, LearnerGraph from, boolean override, 
+			boolean maxIsPartial, Configuration config, boolean checkWasModified)
 	{
 		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		final Map<StatePair,CmpVertex> pairsToGraphStates = new HashMap<StatePair,CmpVertex>();
-
+		LearnerGraph result = new LearnerGraph(config);
 		// Two sets are constructed so that I do not have to think about vertices which are shared between the two graphs regardless whether such a case is possible or not.
-		final Set<CmpVertex> encounteredGraph = new HashSet<CmpVertex>(), encounteredMax = new HashSet<CmpVertex>();
+		final Set<CmpVertex> encounteredGraph = new HashSet<CmpVertex>();
 		StatePair statePair = new StatePair(graph.init,from.init);
-		currentExplorationBoundary.add(statePair);pairsToGraphStates.put(statePair, statePair.firstElem);
-		encounteredGraph.add(statePair.firstElem);encounteredMax.add(statePair.secondElem);
-		
-		if (!statePair.firstElem.isAccept() && statePair.firstElem.isAccept())
-			// tentative graph is reject but the maximal automaton is accept, nothing to do in this case
-			return;
-		
-		if (statePair.firstElem.isAccept() != statePair.firstElem.isAccept())
+		pairsToGraphStates.put(statePair, statePair.firstElem);
+		encounteredGraph.add(statePair.firstElem);
+		result.init = LearnerGraph.cloneCmpVertex(graph.init, config);
+		result.transitionMatrix.put(result.init, new TreeMap<String,CmpVertex>());
+		pairsToGraphStates.put(statePair, result.init);
+		boolean graphModified = false;
+		if (statePair.firstElem.isAccept() && !statePair.secondElem.isAccept())
 		{// initial states are incompatible because the tentative automaton is accept and 
-		 // the max automaton is reject (the other case handled above) 
-		 // hence either override if possible and requested or throw.
+		 // the max automaton is reject, hence either override if possible and requested or throw.
 			if (override)
 			{
-				graph.transitionMatrix.get(graph.init).clear();graph.init.setAccept(false);
+				result.init.setAccept(false);graphModified = true;
 			}
 			else
 				throw new IllegalArgumentException("incompatible labelling: maximal automaton is all-reject and tentative one is not");			
 			
 		}
 
+		if (statePair.firstElem.isAccept() == statePair.secondElem.isAccept())
+			currentExplorationBoundary.add(statePair);
+
 		Map<String,CmpVertex> emptyTargets = new TreeMap<String,CmpVertex>();
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			statePair = currentExplorationBoundary.remove();
-			assert statePair.secondElem == null || graph.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
-			assert from.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
-			assert statePair.firstElem.isAccept() == statePair.secondElem.isAccept() : "incompatible labelling of "+statePair;
+			assert graph.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
+			assert statePair.secondElem == null || from.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
+			assert statePair.secondElem == null || statePair.firstElem.isAccept() == statePair.secondElem.isAccept() : "incompatible labelling of "+statePair;
 						
 			Map<String,CmpVertex> graphTargets = graph.transitionMatrix.get(statePair.firstElem), 
 				maxTargets = statePair.secondElem == null? emptyTargets:from.transitionMatrix.get(statePair.secondElem);
-				
+			CmpVertex currentRepresentative = pairsToGraphStates.get(statePair);assert currentRepresentative != null;
 			for(Entry<String,CmpVertex> labelstate:graphTargets.entrySet())
 			{
 				String label = labelstate.getKey();
@@ -735,47 +741,51 @@ public class Transform {
 				// i.e. it contains a number of counter-examples rather than all possible sequences. This is another
 				// thing to check for in this method - if taking on LTL-derived graph this should be deemed an error.
 				boolean shouldDescend = true;
-				if (maxState != null && !unroll)
-				{// if we have matched states, the decision to descend if not unrolling 
-				 // loops depends on whether we've already seen a corresponding state in a max automaton
-					shouldDescend = !encounteredMax.contains(maxState);
-					if (shouldDescend) encounteredMax.add(maxState);// if not seen add it there
-				}
 				CmpVertex nextGraphVertex = pairsToGraphStates.get(nextPair);
 				if (nextGraphVertex == null)
 				{// not seen this pair already hence might have to clone.
 					if (!encounteredGraph.contains(graphState))
-					{// since we did not see this pair before, the first encountered vertex (graphState) is now a representative of the pair nextPair
-						pairsToGraphStates.put(nextPair,graphState);
-						nextGraphVertex = graphState;encounteredGraph.add(graphState);
+					{// since we did not see this pair before, the first encountered 
+					 // vertex (graphState) is now a representative of the pair nextPair
+						nextGraphVertex = LearnerGraph.cloneCmpVertex(graphState, config);encounteredGraph.add(graphState);
+						pairsToGraphStates.put(nextPair,nextGraphVertex);
+						result.transitionMatrix.put(nextGraphVertex, new TreeMap<String,CmpVertex>());
+						shouldDescend = nextGraphVertex.isAccept();
 					}
 					else
 					{// graphState already paired with one of the states in maximal automaton hence clone the state
 						boolean accept = graphState.isAccept() && (maxState == null || maxState.isAccept());
-						nextGraphVertex = LearnerGraph.generateNewCmpVertex(graph.nextID(accept), graph.config);
-						if (graph.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+graph);
-						assert !graph.transitionMatrix.containsKey(nextGraphVertex) : "duplicate vertex "+nextGraphVertex;
+						
+						if (graphState.isAccept() != accept)
+						{ 
+							if (!override)
+								throw new IllegalArgumentException("incompatible labelling: maximal automaton chops off some paths in a tentative automaton");
+							graphModified=true;
+						}
+						nextGraphVertex = LearnerGraph.generateNewCmpVertex(result.nextID(accept), config);
+						if (result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
+						assert !result.transitionMatrix.containsKey(nextGraphVertex) : "duplicate vertex "+nextGraphVertex;
 						nextGraphVertex.setAccept(accept);
 						nextGraphVertex.setHighlight(graphState.isHighlight());
 						nextGraphVertex.setColour(graphState.getColour());
-						graph.transitionMatrix.put(nextGraphVertex,new TreeMap<String,CmpVertex>());
+						result.transitionMatrix.put(nextGraphVertex,new TreeMap<String,CmpVertex>());
 
 						pairsToGraphStates.put(nextPair, nextGraphVertex);
-						if (!unroll || !nextGraphVertex.isAccept()) shouldDescend = false;
+						if (!accept) shouldDescend = false;
 					}
 				}
 				else
 					shouldDescend = false;
 				
-				graphTargets.put(label,nextGraphVertex);// the only case when this is no-op is when we've reached the original representative (such as when loops are not unrolled).
-				System.out.println(statePair+" - "+label+" -> "+nextPair+" ( represented by "+nextGraphVertex+" )");
+				result.transitionMatrix.get(currentRepresentative).put(label,nextGraphVertex);
+				//System.out.println(statePair+" ( represented by "+currentRepresentative+" ) - "+label+" -> "+nextPair+" ( represented by "+nextGraphVertex+" )");
+				
 				// Now proceed if we did not encounter this pair;
 				// if not unrolling loops, we proceed if neither of the two states were met.
 				if (shouldDescend)
-				{// need to explore all transitions from the new state pair.
+				// need to explore all transitions from the new state pair.
 					currentExplorationBoundary.offer(nextPair);
-					encounteredGraph.add(graphState);if (maxState != null) encounteredMax.add(maxState);
-				}
+				
 			}
 			
 			for(Entry<String,CmpVertex> labelstate:maxTargets.entrySet())
@@ -786,13 +796,20 @@ public class Transform {
 					CmpVertex newVert = pairsToGraphStates.get(new StatePair(null,labelstate.getValue()));
 					if (newVert == null)
 					{
-						newVert = graph.transform.copyVertexUnderDifferentName(labelstate.getValue());
+						newVert = result.transform.copyVertexUnderDifferentName(labelstate.getValue());
 						pairsToGraphStates.put(new StatePair(null,labelstate.getValue()), newVert);
 					}
-					graphTargets.put(label, newVert);
+					result.transitionMatrix.get(currentRepresentative).put(label, newVert);graphModified=true;
 				}
 			}
 		}
+		
+		if (checkWasModified)
+		{// if graphModified is true the graph should not have been modified and vice-versa
+			DifferentFSMException ex = WMethod.checkM(graph, result);
+			assert graphModified == (ex != null);
+		}
+		return graphModified?result:null;
 	}
 
 }

@@ -54,7 +54,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataExcep
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
-import statechum.analysis.learning.Visualiser;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
@@ -829,16 +828,161 @@ public class TestTransform {
 		Assert.assertEquals("Hamming distances min: 1 max: 1", new Transform(g).ComputeHamming(false));
 	}
 	
+	/** Tests merging of the two automata on page 18 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax1()
+	public final void testAugmentFromMax1_AB()
 	{
-		Configuration config = Configuration.getDefaultConfiguration();
+		final Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr"),config);
 		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("I-a->D-a-#E\nI-d-#E\nI-c->F-b->G", "testAugmentFromMax1_max"),config);
-		Transform.augmentFromMAX(gr, max, true, true, true);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true, config, true);
 		//Visualiser.updateFrame(gr, max);
 		//Visualiser.waitForKey();
-		TestEquivalenceChecking.checkM("H-a->A-a-#BE\nH-d-#BE\nH-c->BF-b->C", gr.paths.getGraph(), config);
+		TestEquivalenceChecking.checkM("H-a->A-a-#BE\nH-d-#BE\nH-c->BF-b->C", result.paths.getGraph(), config);
 	}
 	
+	/** Tests merging of the two automata on page 18 of "why_nondet_does_not_matter.xoj" */
+	@Test
+	public final void testAugmentFromMax1_nonoverride()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr"),config);
+		final LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("I-a->D-a-#E\nI-d-#E\nI-c->F-b->G", "testAugmentFromMax1_max"),config);
+		checkForCorrectException(new whatToRun() {	public void run() throws NumberFormatException 
+		{
+			Transform.augmentFromMAX(gr, max, false, true,config, true);
+		}}, IllegalArgumentException.class, "incompatible");
+	}
+	
+	/** Tests merging of the two automata on page 18 of "why_nondet_does_not_matter.xoj" */
+	@Test
+	public final void testAugmentFromMax1_BA()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		String automatonWithReject = "I-a->D-a-#E\nI-d-#E\nI-c->F-b->G";
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(automatonWithReject, "testAugmentFromMax1_max"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		Assert.assertNull(result);
+	}
+
+	/** Tests merging of the two automata on page 17 of "why_nondet_does_not_matter.xoj" */
+	@Test
+	public final void testAugmentFromMax2_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("B-b->D-b->F-a->F-b->B", "testAugmentFromMax2_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		Assert.assertNull(result);
+	}
+
+	/** Tests merging of the two automata on page 17 of "why_nondet_does_not_matter.xoj" */
+	@Test
+	public final void testAugmentFromMax3_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G\n"+
+				"A-c->A\nC-c->C", "testAugmentFromMax3_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("B-b->D-b->F-a->F-b->B\n"+
+				"B-c->D-c->F-c->B", "testAugmentFromMax3_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		Assert.assertNull(result);
+	}
+	
+	@Test
+	public final void testAugmentFromMax4_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		String origGraph = "A-b->A-a->A-c->B-c->C\n";
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(origGraph, "testAugmentFromMax4_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("E-a->F-a->G-a->H", "testAugmentFromMax4_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
+		Assert.assertNull(result);
+	}
+
+	@Test
+	public final void testAugmentFromMax5_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("E-a->F-a->G-a->H-a-#I", "testAugmentFromMax5_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
+		TestEquivalenceChecking.checkM("AE-a->AF-a->AG-a->AH-a-#I\n"+
+				"AE-b->P-c->B-c->C\nP-a->P-b->P\nAE-c->B\nAF-b->P\nAF-c->B\nAG-b->P\nAG-c->B\nAH-b->P\nAH-c->B", result.paths.getGraph(), config);
+	}
+	
+	@Test
+	public final void testAugmentFromMax6_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
+		LearnerGraph max = new LearnerGraph(config);max.init.setAccept(false);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
+		Assert.assertNull(WMethod.checkM(max, result));
+	}
+	
+	@Test
+	public final void testAugmentFromMax6_AB_nooverride()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
+		final LearnerGraph max = new LearnerGraph(config);max.init.setAccept(false);
+		checkForCorrectException(new whatToRun() {	public void run() throws NumberFormatException 
+			{
+				Transform.augmentFromMAX(gr, max, false, true,config, true);
+			}}, IllegalArgumentException.class, "incompatible");
+	}
+
+	@Test
+	public final void testAugmentFromMax6_BA()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(config);gr.init.setAccept(false);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
+		Assert.assertNull(result);
+	}
+
+	@Test
+	public final void testAugmentFromMax7_AB()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("B-b->D-b->F-a->F-b->B\nD-a-#E", "testAugmentFromMax7_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		TestEquivalenceChecking.checkM("AB-b->AD-b->AF-b->AB\nAF-a->CF-b->CB-b->CD-b->CF-a->EF-b-#G\n"+
+				"AB-a->C-b->C-a->E-b-#G\nCB-a->E\nAD-a-#H\nCD-a-#H", result.paths.getGraph(), config);
+	}
+
+	@Test
+	public final void testAugmentFromMax7_AB_nooverride()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr"),config);
+		final LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("B-b->D-b->F-a->F-b->B\nD-a-#E", "testAugmentFromMax7_max"),config);
+		checkForCorrectException(new whatToRun() {	public void run() throws NumberFormatException 
+			{
+				Transform.augmentFromMAX(gr, max, false, true,config, true);
+			}}, IllegalArgumentException.class, "incompatible");
+	}
+	
+	@Test
+	public final void testAugmentFromMax8_a()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr"),config);
+		LearnerGraph max = new LearnerGraph(config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		Assert.assertNull(result);
+	}
+	@Test
+	public final void testAugmentFromMax8_b()
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr"),config);
+		LearnerGraph max = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->A-c->A-d->A", "testAugmentFromMax7_max"),config);
+		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
+		Assert.assertNull(result);
+	}
 }

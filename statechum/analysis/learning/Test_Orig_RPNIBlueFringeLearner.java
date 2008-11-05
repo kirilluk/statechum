@@ -1,23 +1,23 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-
-
-This is an original version of the learner, kept in order to do regression-testing.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * 
+ * This is an original version of the learner, kept in order to perform regression testing.
+ */ 
 package statechum.analysis.learning;
 
 import java.awt.Frame;
@@ -549,8 +549,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	
 	/** After merging, a graph may exhibit non-determinism, in which case it is made deterministic
 	 * by merging nodes. For instance, for A->B and A->C being a non-deterministic choice at node A, 
-	 * nodes B and C are to
-	 * be merged. This function identifies such a (B,C).
+	 * nodes B and C are to be merged. This function identifies such a (B,C).
 	 * 
 	 * @param model
 	 * @return a pair of states to be merged or null if the graph is deterministic.

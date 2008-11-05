@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -586,16 +586,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	@Test
-	public final void findMergablePair1()
+	public final void findMergeablePair1()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergablePair1");
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergeablePair1");
 		Assert.assertNull(Test_Orig_RPNIBlueFringeLearner.findMergablePair(g));
 	}
 	
 	@Test
-	public final void findMergablePair2()
+	public final void findMergeablePair2()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergablePair2");
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair2");
 		Vertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
@@ -606,9 +606,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	@Test
-	public final void findMergablePair3a()
+	public final void findMergeablePair3a()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergablePair3a");
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a");
 		Vertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("D"), g);
@@ -618,9 +618,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void findMergablePair3b()
+	public final void findMergeablePair3b()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergablePair3b");
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b");
 		Vertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), g);
@@ -630,9 +630,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void findMergablePair4()
+	public final void findMergeablePair4()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergablePair4");
+		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergeablePair4");
 		OrigStatePair actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertNull(actualA);
 	}
@@ -978,6 +978,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testChooseStatePairs(String fsm, String [] initialReds, String [][] expectedReds, List<PairScore> expectedPairs, String graphName)
 	{
 		final DirectedSparseGraph gB = TestFSMAlgo.buildGraph(fsm, graphName);
+		//Visualiser.updateFrame(new LearnerGraph(gB,Configuration.getDefaultConfiguration()), null);Visualiser.waitForKey();
 		// check how the reference pair selection function performs
 		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
 		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {

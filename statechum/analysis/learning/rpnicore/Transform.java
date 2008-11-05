@@ -778,8 +778,7 @@ public class Transform {
 					shouldDescend = false;
 				
 				result.transitionMatrix.get(currentRepresentative).put(label,nextGraphVertex);
-				//System.out.println(statePair+" ( represented by "+currentRepresentative+" ) - "+label+" -> "+nextPair+" ( represented by "+nextGraphVertex+" )");
-				
+
 				// Now proceed if we did not encounter this pair;
 				// if not unrolling loops, we proceed if neither of the two states were met.
 				if (shouldDescend)

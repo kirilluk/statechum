@@ -20,6 +20,8 @@ package statechum.analysis.learning.observers;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -207,7 +209,7 @@ public class LearnerSimulator extends ProgressDecorator
 				// Thanks to XML parser closing the input stream, I cannot directly pass
 				// the Zip stream to it. Hence I have to subclass it in order to "disable" the 
 				// close() command.
-				Document d = getDocumentOfXML(inputStreamForXMLparser);
+				Document d = getDocumentOfXML(new InputStreamReader(inputStreamForXMLparser));
 				result = d.getFirstChild();
 			}
 		}
@@ -232,10 +234,10 @@ public class LearnerSimulator extends ProgressDecorator
 	/** Loads an XML from the supplied reader and returns the <em>Document</em> corresponding
 	 * to it.
 	 * 
-	 * @param inStream the stream from which to load XML.
+	 * @param reader the reader from which to load XML.
 	 * @return XML document.
 	 */
-	public static Document getDocumentOfXML(InputStream inStream)
+	public static Document getDocumentOfXML(Reader reader)
 	{
 		Document result = null;
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -243,7 +245,7 @@ public class LearnerSimulator extends ProgressDecorator
 		{
 			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
-			result = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(inStream));
+			result = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(reader));
 		}
 		catch(Exception e)
 		{
@@ -261,7 +263,7 @@ public class LearnerSimulator extends ProgressDecorator
 		}
 		else
 		{
-			doc = getDocumentOfXML(inStream);childElements = doc.getDocumentElement().getChildNodes();
+			doc = getDocumentOfXML(new InputStreamReader(inStream));childElements = doc.getDocumentElement().getChildNodes();
 		}
 	}
 	
@@ -302,7 +304,7 @@ public class LearnerSimulator extends ProgressDecorator
 				throw new IllegalArgumentException("unexpected element "+elemName+" after the learner result is known");
 			ELEM_KINDS kind = stringToEnumMap.get(elemName);
 			
-		 	if (elemName.equals(Transform.graphmlNodeName) ||
+		 	if (elemName.equals(Transform.graphmlNodeNameNS) ||
 					elemName.equals(GD.ChangesRecorder.gdGD))
 			{
 				String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
@@ -472,7 +474,7 @@ public class LearnerSimulator extends ProgressDecorator
 	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
 	{
 		Element graphNode = getElement(GD.ChangesRecorder.gdGD);
-		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeName);
+		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeNameNS);
 		if (graphNode == null) throw new IllegalArgumentException("failed to find a node with a graph");
 		return series.readGraph(graphNode);
 	}

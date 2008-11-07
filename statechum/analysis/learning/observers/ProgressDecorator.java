@@ -101,7 +101,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * @param element to write
 	 * @return the constructed XML element.
 	 */
-	public Element writePair(PairScore element)
+	public static Element writePair(PairScore element, Document doc)
 	{
 		Element pairElement = doc.createElement(ELEM_KINDS.ELEM_PAIR.name());
 		pairElement.setAttribute(ELEM_KINDS.ATTR_Q.name(), element.getQ().getID().toString());
@@ -118,7 +118,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * @param elem element to load from
 	 * @return loaded state pair.
 	 */
-	public PairScore readPair(LearnerGraph graph, Element elem)
+	public static PairScore readPair(LearnerGraph graph, Element elem)
 	{
 		if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_PAIR.name()))
 			throw new IllegalArgumentException("expected to load a pair but got "+elem.getNodeName());
@@ -257,7 +257,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		if (!evaluationDataElement.getNodeName().equals(ELEM_KINDS.ELEM_EVALUATIONDATA.name()))
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
-		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform.graphmlNodeName),
+		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform.graphmlNodeNameNS),
 		nodesSequences = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()),
 		nodesLtl = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()),
 		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag),
@@ -283,7 +283,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration();
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
-		result.graph = LearnerGraph.loadGraph((Element)nodesGraph.item(0), result.config);
+		result.graph = Transform.loadGraph((Element)nodesGraph.item(0), result.config);
 		result.testSet = readSequenceList((Element)nodesSequences.item(0),ELEM_KINDS.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
 			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
@@ -490,11 +490,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			if (children.item(i).getNodeType() == Node.ELEMENT_NODE)
 			{
 				Element e = (Element)children.item(i);
-				if (e.getNodeName().equals(Transform.graphmlNodeName))
+				if (e.getNodeName().equals(Transform.graphmlNodeNameNS))
 				{
 					if (result.graph != null)
 						throw new IllegalArgumentException("duplicate graph element");
-					result.graph = LearnerGraph.loadGraph(e, config);
+					result.graph = Transform.loadGraph(e, config);
 				}
 				else
 					if (e.getNodeName().equals(ELEM_KINDS.ELEM_SEQ.name()))

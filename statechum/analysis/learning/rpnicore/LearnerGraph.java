@@ -1,27 +1,24 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
- * This file is part of StateChum
+ * This file is part of StateChum.
  * 
- * StateChum is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  * 
- * StateChum is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  * 
- * You should have received a copy of the GNU General Public License along with
- * StateChum. If not, see <http://www.gnu.org/licenses/>.
- */ 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.rpnicore;
 
-import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,11 +40,11 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.io.GraphMLFile;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -156,6 +153,40 @@ public class LearnerGraph {
 	 * domains of labels from them (those which can be expressed using labels should be added to the maximal
 	 * automaton). 
 	 */
+	protected Map<CmpVertex,Set<CmpVertex>> incompatibles;
+
+	/** Adds a supplied pair to the collection of incompatible elements. 
+	 *  It is assumed that the two states belong to the graph; one would perhaps also not want to make them equal.
+	 * @param A one of the vertices to add
+	 * @param B another vertex to add.
+	 */
+	void addToIncompatibles(CmpVertex A, CmpVertex B)
+	{
+		assert !A.getID().equals(B.getID());
+		addToIncompatibles_internal(A, B);
+		addToIncompatibles_internal(B, A);
+	}
+
+	private void addToIncompatibles_internal(CmpVertex A, CmpVertex B)
+	{
+		Set<CmpVertex> incSet = incompatibles.get(A);
+		if (incSet == null)
+		{
+			incSet = new HashSet<CmpVertex>();incompatibles.put(A,incSet);
+		}
+		incSet.add(B);
+	}
+	
+	/** Verifies whether a supplied pair is recorded as incompatible.
+	 *  
+	 * @param pair what to check. It is assumed that the two states belong to the graph.
+	 * @return true if a pair is incompatible, false otherwise.
+	 */
+	public boolean checkIncompatible(StatePair pair)
+	{
+		Set<CmpVertex> incSet = incompatibles.get(pair.getQ());
+		return incSet != null && incSet.contains(pair.getR());
+	}
 	
 	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
 	protected CmpVertex stateLearnt = null;
@@ -267,6 +298,7 @@ public class LearnerGraph {
 		initEmpty();
 		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
+		incompatibles = new HashMap<CmpVertex,Set<CmpVertex>>();
 		if (g.containsUserDatumKey(JUConstants.TITLE))
 			setName((String)g.getUserDatum(JUConstants.TITLE));
 		Set<VertexID> idSet = new HashSet<VertexID>(); 
@@ -315,58 +347,6 @@ public class LearnerGraph {
 		setIDNumbers();
 	}
 
-	/** Loads a graph from the data in a supplied reader.
-	 * 
-	 * @param from where to load from
-	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
-	 * @return created graph.
-	 */
-	public static LearnerGraph loadGraph(Reader from, Configuration cnf) throws IOException
-	{
-		LearnerGraph graph = null;
-		synchronized (LearnerGraph.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	try
-	    	{
-	    	graph = new LearnerGraph(graphmlFile.load(from),cnf);
-	    	}
-	    	finally
-	    	{
-	    		from.close();
-	    	}
-		}
-		return graph;
-	}
-
-	/** Loads a graph from the supplied XML node.
-	 * 
-	 * @param elem XML element to load from
-	 * @param config configuration to use
-	 * @return loaded graph
-	 */
-	public static LearnerGraph loadGraph(org.w3c.dom.Element elem, Configuration config)
-	{
-		return new LearnerGraph(Transform.loadGraph(elem),config);
-	}
-	
-	/** Loads a graph from a supplied file. 
-	*/
-	public static LearnerGraph loadGraph(String fileName,Configuration config)
-	{
-		synchronized (LearnerGraph.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	String fileToLoad = fileName;
-	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
-	    	LearnerGraph graph = new LearnerGraph(graphmlFile.load(fileToLoad),config);graph.setName(fileName);
-	    	graph.setIDNumbers();
-	    	return graph;
-		}
-	}
-
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
 	 * This is particularly useful for testing.
 	 */ 
@@ -402,18 +382,6 @@ public class LearnerGraph {
 	{
 		config = conf;vertNegativeID = conf.getInitialIDvalue();vertPositiveID = conf.getInitialIDvalue();
 		initPTA();
-	}
-
-	/** Saves the supplied graph into the file, ignoring possible errors. */
-	public static void dumpGraph(LearnerGraph what, String name)
-	{
-		try {
-			LearnerGraph tmpGraph = what.copy(what.config);tmpGraph.clearColours();
-			tmpGraph.getVertex(Arrays.asList(new String[]{})).setColour(null);
-			tmpGraph.transform.writeGraphML(name+".xml");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 			
 	public CmpVertex getVertex(List<String> seq)
@@ -477,6 +445,13 @@ public class LearnerGraph {
 			for(Entry<String,CmpVertex> rowEntry:entry.getValue().entrySet())
 				row.put(rowEntry.getKey(),oldToNew.get(rowEntry.getValue()));
 		}
+		
+		for(Entry<CmpVertex,Set<CmpVertex>> entry:incompatibles.entrySet())
+			if (!result.incompatibles.containsKey(entry.getKey()))
+			{
+				for(CmpVertex vert:entry.getValue())
+					result.addToIncompatibles(entry.getKey(),vert);
+			}
 		return result;
 	}
 
@@ -738,7 +713,7 @@ public class LearnerGraph {
 	public void initEmpty()
 	{
 		transitionMatrix.clear();init=null;
-		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);incompatibles=new HashMap<CmpVertex,Set<CmpVertex>>();
 		learnerCache.invalidate();
 	}
 

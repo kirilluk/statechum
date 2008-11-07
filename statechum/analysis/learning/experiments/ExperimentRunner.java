@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.experiments;
 
@@ -45,6 +45,7 @@ import statechum.GlobalConfiguration;
 import statechum.Pair;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.Transform;
 
 public class ExperimentRunner 
 {
@@ -96,7 +97,7 @@ public class ExperimentRunner
 	}
 
 	public ExperimentRunner()
-	{
+	{// Empty default constructor
 	}
 
 	/** Whether to force <em>setLearnerOverwriteOutput(true)</em> on all the learners. */
@@ -417,7 +418,7 @@ public class ExperimentRunner
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
 			try
 			{
-				graph = LearnerGraph.loadGraph(new FileReader(inputFileName),cnf);
+				graph = Transform.loadGraph(new FileReader(inputFileName),cnf);
 			}
 			catch(Exception ex)
 			{

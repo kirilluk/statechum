@@ -1,20 +1,21 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum.analysis.learning.rpnicore;
 
 import java.awt.Color;
@@ -174,7 +175,7 @@ public class GD {
 	protected void printIncoming(String name)
 	{
 		CmpVertex vert = grCombined.findVertex(name);
-		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.get(vert));
+		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.matrix.get(vert));
 	}
 	
 	/** Records vertices of A which would remain after we remove all transitions 
@@ -774,12 +775,12 @@ public class GD {
 		static public void loadDiff(PatchGraph graphPatcher, Element elem)
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			LearnerGraph gr = LearnerGraph.loadGraph(getGraphElement(elem, gdRemoved),config);
+			LearnerGraph gr = Transform.loadGraph(getGraphElement(elem, gdRemoved),config);
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 					graphPatcher.removeTransition(entry.getKey(), transition.getKey(), transition.getValue());
 
-			gr = LearnerGraph.loadGraph(getGraphElement(elem, gdAdded),config);
+			gr = Transform.loadGraph(getGraphElement(elem, gdAdded),config);
 			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 					graphPatcher.addTransition(entry.getKey(), transition.getKey(), transition.getValue());
@@ -997,13 +998,13 @@ public class GD {
 	 * @param matrixA the first (non-deterministic) matrix
 	 * @param matrixB the second (non-deterministic) matrix.
 	 */
-	protected void populateCurrentWave(Map<CmpVertex,Map<String,List<CmpVertex>>> matrix) 
+	protected void populateCurrentWave(TransitionMatrixND matrixND) 
 	{
 		for(PairScore pair:frontWave)
 		{
-			for(Entry<String,List<CmpVertex>> targetA:matrix.get(pair.getQ()).entrySet())
+			for(Entry<String,List<CmpVertex>> targetA:matrixND.matrix.get(pair.getQ()).entrySet())
 			{
-				List<CmpVertex> targetB = matrix.get(pair.getR()).get(targetA.getKey());
+				List<CmpVertex> targetB = matrixND.matrix.get(pair.getR()).get(targetA.getKey());
 				if (targetB != null)
 				{// matched pair, now iterate over target states
 					for(CmpVertex targetStateA:targetA.getValue())

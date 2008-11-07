@@ -1,24 +1,26 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum.analysis.learning.rpnicore;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -30,6 +32,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
@@ -110,22 +113,29 @@ public class TestGD_ExistingGraphs {
 	
 	public final void runPatch(String fileA, String fileB)
 	{
-		LearnerGraph loadedA = LearnerGraph.loadGraph(fileA, config), loadedB = LearnerGraph.loadGraph(fileB, config); 
-		LearnerGraph grA = loadedA;//Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
-		LearnerGraph grB = loadedB;//Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
-		GD gd = new GD();
-		LearnerGraph loadedExpected = LearnerGraph.loadGraph(fileA, config);
-		LearnerGraph graph = loadedExpected;//Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
-		ChangesRecorder patcher = new ChangesRecorder(null);
-		//Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
-		gd.computeGD(grA, grB, threadNumber, patcher);
-/*		gd.init(grA, grB, threadNumber);
-		gd.identifyKeyPairs();
-		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
-		gd.makeSteps(patcher,allKeyPairs);*/
-		ChangesRecorder.applyGD(graph, patcher.writeGD(TestGD.createDoc()));//gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
-		WMethod.checkM(graph, grB);
-		Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
+		try
+		{
+			LearnerGraph loadedA = Transform.loadGraph(fileA, config), loadedB = Transform.loadGraph(fileB, config); 
+			LearnerGraph grA = loadedA;//Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
+			LearnerGraph grB = loadedB;//Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
+			GD gd = new GD();
+			LearnerGraph loadedExpected = Transform.loadGraph(fileA, config);
+			LearnerGraph graph = loadedExpected;//Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
+			ChangesRecorder patcher = new ChangesRecorder(null);
+			//Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
+			gd.computeGD(grA, grB, threadNumber, patcher);
+	/*		gd.init(grA, grB, threadNumber);
+			gd.identifyKeyPairs();
+			List<PairScore> allKeyPairs = new LinkedList<PairScore>();
+			gd.makeSteps(patcher,allKeyPairs);*/
+			ChangesRecorder.applyGD(graph, patcher.writeGD(TestGD.createDoc()));//gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
+			WMethod.checkM(graph, grB);
+			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
+		}
+		catch(IOException ex)
+		{
+			Helper.throwUnchecked("failed to load a file", ex);
+		}
 	}
 	
 	@Test
@@ -143,12 +153,19 @@ public class TestGD_ExistingGraphs {
 	@Test
 	public final void testGD_AA()
 	{
-		LearnerGraph grA = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
-		LearnerGraph grB = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
-		LearnerGraph graph = Transform.convertToNumerical(LearnerGraph.loadGraph(fileNameA, config));
-		GD gd = new GD();
-		ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null));
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		try
+		{
+			LearnerGraph grA = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
+			LearnerGraph grB = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
+			LearnerGraph graph = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
+			GD gd = new GD();
+			ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null));
+			WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		}
+		catch(IOException ex)
+		{
+			Helper.throwUnchecked("failed to load a file", ex);
+		}
 	}
 	
 }

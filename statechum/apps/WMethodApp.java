@@ -1,3 +1,21 @@
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
+
 package statechum.apps;
 
 /*
@@ -8,7 +26,9 @@ package statechum.apps;
  */
 
 import statechum.Configuration;
+import statechum.Helper;
 
+import java.io.IOException;
 import java.util.*;
 
 import statechum.analysis.learning.AbstractOracle;
@@ -17,11 +37,18 @@ import statechum.analysis.learning.rpnicore.*;
 public class WMethodApp {
 	
 	public static void main(String[] args){
-		LearnerGraph g = LearnerGraph.loadGraph(args[0], Configuration.getDefaultConfiguration());
-		int k = 0;
-		if(args.length>1)
-			k = Integer.parseInt(args[1]);
-		displayTests(g.wmethod.getFullTestSet(k), g);
+		try
+		{
+			LearnerGraph g = Transform.loadGraph(args[0], Configuration.getDefaultConfiguration());
+			int k = 0;
+			if(args.length>1)
+				k = Integer.parseInt(args[1]);
+			displayTests(g.wmethod.getFullTestSet(k), g);
+		}
+		catch(IOException ex)
+		{
+			Helper.throwUnchecked("failed to load graph", ex);
+		}
 	}
 	
 	private static void displayTests(Collection<List<String>> tests, LearnerGraph g){

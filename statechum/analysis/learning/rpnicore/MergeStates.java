@@ -59,7 +59,8 @@ public class MergeStates {
 		coregraph = computeStateScores;
 	}
 
-	/** Verifies that vertices with the same name have the same colour in the two graphs,
+	/** Verifies that vertices with the same name have the same colour in the two graphs
+	 * and that same sets of vertex pairs are declared incompatible,
 	 * in addition to checking for isomorphism of the graphs.
 	 * Used for consistency checking.
 	 */
@@ -75,6 +76,8 @@ public class MergeStates {
 						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
 						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
 		}
+		if (!A.incompatibles.equals(B.incompatibles))
+			return new DifferentFSMException("sets of incompatible states differ");
 		return null;
 	}
 	/** Merges the supplied pair of states states of the supplied machine. 

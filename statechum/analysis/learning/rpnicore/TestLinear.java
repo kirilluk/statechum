@@ -1,20 +1,20 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.rpnicore;
 
@@ -187,8 +187,8 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward, filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.matrix, filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.matrix.size()));
 		Assert.assertEquals(0, threadToRowNumber.size());
 		//Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 	}
@@ -224,8 +224,8 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward.matrix,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.matrix.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());
 		Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 		
@@ -263,8 +263,8 @@ public class TestLinear {
 				
 			});
 		Assert.assertArrayEquals(new int[]{0,0,1,1,2},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixInverse.size()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse.matrix,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixInverse.matrix.size()));
 		Assert.assertEquals(2, threadToRowNumber.size());
 		int counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
@@ -272,8 +272,8 @@ public class TestLinear {
 		
 		threadToRowNumber.clear();
 		Assert.assertArrayEquals(new int[]{0,3,4,6,7},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,gr.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.matrix,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.matrix.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());// only one thread gets to do anything because A and B are within its scope.
 		counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
@@ -359,12 +359,12 @@ public class TestLinear {
 		}
 	}
 	
-	private final void checkSource_Target_are_expected(Map<CmpVertex,Map<String,List<CmpVertex>>> data,
+	private final void checkSource_Target_are_expected(TransitionMatrixND matrixND,
 			Set<CmpVertex> expected)
 	{
-		Assert.assertEquals("source states mismatch",expected, data.keySet());
+		Assert.assertEquals("source states mismatch",expected, matrixND.matrix.keySet());
 		Set<CmpVertex> targetSet = new HashSet<CmpVertex>();
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:data.entrySet())
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixND.matrix.entrySet())
 			for(List<CmpVertex> list:entry.getValue().values())
 				targetSet.addAll(list);
 		// target states are supposed to be a subset of the main set of states, hence a subset of the expected states
@@ -429,12 +429,12 @@ public class TestLinear {
 	 * @param A name of the first state
 	 * @param B name of the second state
 	 */
-	private final void getMatcherValue(LearnerGraph gr,Map<CmpVertex,Map<String,List<CmpVertex>>> matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
+	private final void getMatcherValue(LearnerGraph gr,TransitionMatrixND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(gr.findVertex(A),gr.findVertex(B),matrixND.get(gr.findVertex(A)),matrixND.get(gr.findVertex(B)));
+		matcher.compute(gr.findVertex(A),gr.findVertex(B),matrixND.matrix.get(gr.findVertex(A)),matrixND.matrix.get(gr.findVertex(B)));
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(gr.findVertex(B),gr.findVertex(A),matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
+		matcher.compute(gr.findVertex(B),gr.findVertex(A),matrixND.matrix.get(gr.findVertex(B)),matrixND.matrix.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag);
 		
@@ -446,7 +446,7 @@ public class TestLinear {
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),matrixND.get(gr.findVertex(B)),matrixND.get(gr.findVertex(A)));
+		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),matrixND.matrix.get(gr.findVertex(B)),matrixND.matrix.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag);
 	}

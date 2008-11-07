@@ -1,20 +1,21 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum.analysis.learning.observers;
 
 import static statechum.Helper.checkForCorrectException;
@@ -45,16 +46,33 @@ public class TestWriteReadPair {
 	LearnerGraph graph = null;
 	String xmlData = null;
 	
+	/** Dumps a supplied pair into an XML and returns a string of text corresponding to the XML element produced. For testing only.
+	 * 
+	 * @param pair what to dump
+	 * @return result of representing the supplied pair in XML.
+	 */
+	private static String pairToXMLDocument(PairScore pair)
+	{
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		dumper.topElement.appendChild(ProgressDecorator.writePair(pair,dumper.doc));dumper.close();
+		
+		return output.toString();
+	}
+	
+	public static String pairToXML(PairScore pair)
+	{
+		return "< "+ELEM_KINDS.ELEM_PAIR+" "+ELEM_KINDS.ATTR_OTHERSCORE.name()+"=\""+Integer.toString(pair.getAnotherScore())+"\" "+
+		ELEM_KINDS.ATTR_Q.name()+"=\""+pair.getQ().getID().toString()+"\" "+
+		ELEM_KINDS.ATTR_R.name()+"=\""+pair.getR().getID().toString()+"\" "+
+		ELEM_KINDS.ATTR_SCORE.name()+"=\""+Integer.toString(pair.getScore())+"\"/>";
+	}
+	
 	@Before
 	public final void beforeTest()
 	{
 		graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C", "testWritePairs1"),Configuration.getDefaultConfiguration());
-		PairScore pair = new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7);
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		dumper.topElement.appendChild(dumper.writePair(pair));dumper.close();
-		
-		xmlData = output.toString();
+		xmlData=pairToXMLDocument(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7));
 	}
 	
 	/** Tests writing a pair. */
@@ -63,7 +81,7 @@ public class TestWriteReadPair {
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		Assert.assertEquals(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7),
-				loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
+				ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
 	}
 	
 	/** Tests writing a pair: extra attribute ignored. */
@@ -72,7 +90,7 @@ public class TestWriteReadPair {
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(addExtraAttribute(xmlData,ELEM_KINDS.ELEM_PAIR).getBytes()),false);
 		Assert.assertEquals(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7),
-				loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
+				ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name())));
 	}
 	
 	/** Failure reading a pair. */
@@ -82,7 +100,7 @@ public class TestWriteReadPair {
 		final String wrongTag = "junk";
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.replace(ELEM_KINDS.ELEM_PAIR.name(), wrongTag).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(wrongTag));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(wrongTag));
 		}},IllegalArgumentException.class,"expected to load a pair but got");
 	}
 
@@ -93,7 +111,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,ELEM_KINDS.ATTR_Q).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
 
@@ -104,7 +122,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,ELEM_KINDS.ATTR_R).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
 
@@ -115,7 +133,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,ELEM_KINDS.ATTR_SCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
 
@@ -126,7 +144,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,ELEM_KINDS.ATTR_OTHERSCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
 
@@ -137,7 +155,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_SCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a score");
 	}
 
@@ -148,7 +166,7 @@ public class TestWriteReadPair {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_OTHERSCORE).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
+			ProgressDecorator.readPair(graph, loader.expectNextElement(ELEM_KINDS.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a anotherscore");
 	}
 

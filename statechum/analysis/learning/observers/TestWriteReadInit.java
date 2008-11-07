@@ -217,7 +217,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform.graphmlNodeName).item(0);
+		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform.graphmlNodeNameNS).item(0);
 		initElement.removeChild(graphToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();

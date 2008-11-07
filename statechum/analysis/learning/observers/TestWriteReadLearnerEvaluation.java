@@ -225,7 +225,7 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(Transform.graphmlNodeName).item(0);
+		Element graphToRemove = (Element)learnerConfig.getElementsByTagName(Transform.graphmlNodeNameNS).item(0);
 		learnerConfig.removeChild(graphToRemove);
 		
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();

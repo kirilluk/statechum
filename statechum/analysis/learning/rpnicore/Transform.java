@@ -1,25 +1,27 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.rpnicore;
 
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.w3c.dom.Text;
 import org.xml.sax.Attributes;
@@ -60,11 +63,11 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.observers.LearnerSimulator;
+import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceSetAutomaton;
-import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 public class Transform {
 	final LearnerGraph coregraph;
@@ -110,8 +113,11 @@ public class Transform {
 	/** Graphml namespace */
 	protected static final String graphmlNS="gml";
 	
+	/** Graphml top-level node tag if a name space is not used. */
+	public static final String graphmlNodeName = "graphml";
+	
 	/** Graphml top-level node tag. */
-	public static final String graphmlNodeName = graphmlNS+":graphml";
+	public static final String graphmlNodeNameNS = graphmlNS+":"+graphmlNodeName;
 	
 	/** Graphml uri */
 	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";	
@@ -137,7 +143,7 @@ public class Transform {
 	
 	public Element createGraphMLNode(Document doc)
 	{
-		Element graphElement = doc.createElementNS(graphlmURI,graphmlNodeName);
+		Element graphElement = doc.createElementNS(graphlmURI,graphmlNodeNameNS);
 		Element graphTop = doc.createElementNS(graphmlNS,"graph");
 		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
@@ -154,6 +160,22 @@ public class Transform {
 				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
 				graphTop.appendChild(endl(doc));
 			}
+		if (!coregraph.incompatibles.isEmpty())
+		{
+			Element incompatibleData = doc.createElementNS(graphmlNS,graphmlData);incompatibleData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
+			Set<CmpVertex> encounteredNodes = new HashSet<CmpVertex>();
+			for(Entry<CmpVertex,Set<CmpVertex>> entry:coregraph.incompatibles.entrySet())
+			{
+				encounteredNodes.add(entry.getKey());
+				for(CmpVertex vert:entry.getValue())
+					if (!encounteredNodes.contains(vert))
+					{
+						incompatibleData.appendChild(ProgressDecorator.writePair(new PairScore(entry.getKey(),vert,0,0), doc));incompatibleData.appendChild(endl(doc));
+					}
+			}
+			
+			graphTop.appendChild(incompatibleData);graphTop.appendChild(endl(doc));
+		}
 		return graphElement;
 	}
 	
@@ -189,6 +211,9 @@ public class Transform {
 		}
 	}
 	
+	/** We need to be able to get access to a graph being loaded and the only 
+	 * possible way is to override an appropriate method. 
+	 */
 	static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
 	{
 	    @Override
@@ -198,6 +223,9 @@ public class Transform {
 		
 	}
 
+	public static final String graphmlAttribute="attribute", graphmlGraph = "graph", graphmlData="data", 
+		graphmlDataKey = "key",graphmlDataIncompatible="key_incompatible";
+	
 	/** Converts DOM collection of attributes to the SAX one.
 	 * @param namedMap what to convert
 	 * @return the SAX collection, ready to be passed to a SAX listener. 
@@ -209,19 +237,22 @@ public class Transform {
 			for(int i=0;i<namedMap.getLength();++i) 
 			{
 				org.w3c.dom.Node node = namedMap.item(i);
-				collection.addAttribute(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), "attribute", node.getNodeValue());
+				collection.addAttribute(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), graphmlAttribute, node.getNodeValue());
 			}
 		return collection;
 	}
 	
-	/** Given a node in a document, loads a graph from this node. 
-	 * @param elem the graphml element to load 
+	/** Loads a graph from the supplied XML node.
+	 * 
+	 * @param elem XML element to load from
+	 * @param config configuration to use
+	 * @return loaded graph
 	 */
-	public static Graph loadGraph(Element elem)
+	public static LearnerGraph loadGraph(org.w3c.dom.Element elem, Configuration config)
 	{
-		if (!elem.getNodeName().equals(Transform.graphmlNodeName))
-			throw new IllegalArgumentException("element does not start with graphml");
-		NodeList graphs = elem.getElementsByTagName("graph");
+		if (!elem.getNodeName().equals(Transform.graphmlNodeNameNS) && !elem.getNodeName().equals(Transform.graphmlNodeName))
+			throw new IllegalArgumentException("element name "+elem.getNodeName()+" is not graphml");
+		NodeList graphs = elem.getElementsByTagName(graphmlGraph);
 		if (graphs.getLength() < 1)
 			throw new IllegalArgumentException("absent graph element");
 		if (graphs.getLength() > 1)
@@ -250,9 +281,88 @@ public class Transform {
 	    		throw ex;
 	    	}
     	}
-    	return graphHandler.getGraph();
+    	LearnerGraph result = new LearnerGraph(graphHandler.getGraph(),config);
+    	NodeList nodes = graphElement.getChildNodes(); 
+    	for(int i=0;i<nodes.getLength();++i)
+    	{
+			org.w3c.dom.Node node = nodes.item(i);
+			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
+			{
+				if (node.getNodeName().equals(graphmlData))
+				{
+					if (graphmlDataIncompatible.equals(((Element)node).getAttribute(graphmlDataKey)))
+					{
+						NodeList children = node.getChildNodes();
+						for(int childNum=0;childNum<children.getLength();++childNum)
+							if (children.item(childNum).getNodeType() == Node.ELEMENT_NODE)
+							{
+								PairScore pair=ProgressDecorator.readPair(result, (Element)children.item(childNum));
+								CmpVertex a = result.findVertex(pair.firstElem.getID()), b = result.findVertex(pair.secondElem.getID()); 
+								if (a == null)
+									throw new IllegalArgumentException("Unknown state "+pair.firstElem);
+								if (b == null)
+									throw new IllegalArgumentException("Unknown state "+pair.secondElem);
+								result.addToIncompatibles(pair.getQ(), pair.getR());
+							}
+						
+					}
+					else
+						throw new IllegalArgumentException("unexpected key "+((Element)node).getAttribute(graphmlDataKey));
+				}
+				else // a node which is not a "data" node.
+					if (!node.getNodeName().equals("node") && !node.getNodeName().equals("edge"))
+						throw new IllegalArgumentException("unexpected node "+node.getNodeName()+" in graph");
+			}
+    	}
+    	
+    	return result;
+	}	
+	
+	/** Loads a graph from the data in a supplied reader.
+	 */
+	public static LearnerGraph loadGraph(Reader from, Configuration cnf)
+	{
+		LearnerGraph graph = null;
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	try
+	    	{
+	    		graph = loadGraph(LearnerSimulator.getDocumentOfXML(from).getDocumentElement(), cnf);
+	    	}
+	    	finally
+	    	{
+	    		try
+	    		{ if (from != null) from.close(); }
+	    		catch(IOException ex)
+	    		{// exception on close is ignored.	    			
+	    		}
+	    	}
+		}
+		return graph;
 	}
 	
+	/** Loads a graph from a supplied file.
+	 *  
+	 * @param from where to load from
+	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
+	 * @return created graph.
+	*/
+	public static LearnerGraph loadGraph(String fileName,Configuration config) throws IOException
+	{
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	GraphMLFile graphmlFile = new GraphMLFile();
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	String fileToLoad = fileName;
+	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
+    		LearnerGraph graph = loadGraph(new FileReader(fileToLoad),config);graph.setName(fileName);
+    		graph.setIDNumbers();
+	    	return graph;
+		}
+	}
+
 	/** Returns a state, randomly chosen according to the supplied random number generator. */
 	public static CmpVertex pickRandomState(LearnerGraph g, Random rnd)
 	{
@@ -387,25 +497,6 @@ public class Transform {
 		LearnerGraph result = new LearnerGraph(what.config);result.init = null;result.transitionMatrix.clear();
 		result.init = addToGraph(result, what, null);if (what.getName() != null) result.setName(what.getName());
 		return result;
-	}
-
-	public static void addToGraph_tmp(LearnerGraph g, List<String> initPath, LearnerGraph what)
-	{
-		PTASequenceEngine engine = new PTASequenceEngine();
-		engine.init(new PTASequenceSetAutomaton());		
-		SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity();initSet.crossWithSequence(initPath);
-		
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-		{// for all states in our new machine, compute paths to them.
-			SequenceSet result = engine.new SequenceSet();
-			what.paths.computePathsSBetween(what.init, entry.getKey(), initSet, result);
-			result.crossWithSet(entry.getValue().keySet());
-		}
-		
-		// Now engine contains a sort of a transition cover of "what", except that only 
-		// transitions present in "what" will be covered. All sequences in this set have
-		// initPath prepended to them, so that I can merge the result into g directly.
-		g.paths.augmentPTA(engine);
 	}
 	
 	/** Inverts states' acceptance conditions. */

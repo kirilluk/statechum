@@ -1,3 +1,21 @@
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
+
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
@@ -65,7 +83,7 @@ public class LearnerGraphND
 			graph=g;
 		}
 		
-		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
+		public boolean stateToConsider(CmpVertex vert) {
 			return graph.transitionMatrix.get(vert).size() > 0;
 		}
 	}
@@ -76,7 +94,7 @@ public class LearnerGraphND
 		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
 			return true;
 		}
-	};
+	}
 	
 	public final static StatesToConsider ignoreNone = new ignoreNoneClass();
 	
@@ -99,8 +117,8 @@ public class LearnerGraphND
 	public LearnerGraphND(LearnerGraph coregraph,StatesToConsider stateFilter, boolean direction)
 	{
 		alphabet = coregraph.learnerCache.getAlphabet();config=coregraph.config;filter=stateFilter;
-		matrixInverse = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		matrixForward = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
+		matrixInverse = new TransitionMatrixND();
+		matrixForward = new TransitionMatrixND();
 
 		stateToNumberMap = new TreeMap<CmpVertex,Integer>();
 		numberToStateArray = coregraph.buildStateToIntegerMap(filter,stateToNumberMap);
@@ -135,7 +153,7 @@ public class LearnerGraphND
 	/** Transition matrices, has to be TreeMap to ensure traversal through entry sets 
 	 * in the order of CmpVertex's IDs.
 	 */ 
-	public TreeMap<CmpVertex,Map<String,List<CmpVertex>>> matrixInverse, matrixForward;
+	public TransitionMatrixND matrixInverse, matrixForward;
 	
 	/** Returns the number of states to be considered. 
 	 * All others are filtered out by the filter.
@@ -186,10 +204,10 @@ public class LearnerGraphND
 	 * 
 	 * @param coregraph the graph to build <em>transitionMatrixND</em> from.
 	 * @param filter the filter to use when deciding which states to consider and which to throw away.
-	 * @param transitionMatrixND matrix to build
+	 * @param matrixND matrix to build
 	 */
 	static void buildForward(LearnerGraph coregraph,StatesToConsider filter,
-			Map<CmpVertex,Map<String,List<CmpVertex>>> transitionMatrixND)
+			TransitionMatrixND matrixND)
 	{
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
@@ -201,7 +219,7 @@ public class LearnerGraphND
 						List<CmpVertex> targetList = new LinkedList<CmpVertex>();targetList.add(transition.getValue());
 						entryForState.put(transition.getKey(), targetList);
 					}
-				transitionMatrixND.put(entry.getKey(), entryForState);
+				matrixND.matrix.put(entry.getKey(), entryForState);
 			}
 		
 		// It cannot happen that some target states will not be included in the set
@@ -217,17 +235,17 @@ public class LearnerGraphND
 	 * @param coregraph the graph to build <em>transitionMatrixND</em> from.
 	 * @param filter the filter to use when deciding which states 
 	 * to consider and which to throw away.
-	 * @param transitionMatrixND matrix to build
+	 * @param matrixND matrix to build
 	 */
 	private static void buildInverse(LearnerGraph coregraph,StatesToConsider filter,
-			Map<CmpVertex,Map<String,List<CmpVertex>>> transitionMatrixND)
+			TransitionMatrixND matrixND)
 	{
 		// First, we fill the map with empty entries - 
 		// it is crucially important to fill in all the entries which can be accessed during the triangular exploration, 
 		// otherwise holes will lead to the sequence of numbers explored to be discontinuous, causing a failure.
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
-				transitionMatrixND.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
+				matrixND.matrix.put(entry.getKey(),new TreeMap<String,List<CmpVertex>>());
 		
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
@@ -235,7 +253,7 @@ public class LearnerGraphND
 				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 					if (filter.stateToConsider(transition.getValue()))
 					{
-						Map<String,List<CmpVertex>> row = transitionMatrixND.get(transition.getValue());
+						Map<String,List<CmpVertex>> row = matrixND.matrix.get(transition.getValue());
 						List<CmpVertex> sourceStates = row.get(transition.getKey());
 						if (sourceStates == null)
 						{
@@ -249,7 +267,7 @@ public class LearnerGraphND
 	private int estimatePairIndegree()
 	{
 		int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixInverse.entrySet())
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixInverse.matrix.entrySet())
 			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
 			{
 				++incomingCnt;
@@ -571,12 +589,12 @@ public class LearnerGraphND
 
 			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
 			{// we are never called with entryA which has been filtered out.
-				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.get(entryA.getKey()).entrySet();// the "inverse" row
+				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.matrix.get(entryA.getKey()).entrySet();// the "inverse" row
 				BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
 				
 				// Now iterate through states, pre-filtered during construction of matrixInverse but in the same order 
 				// because they are ordered by their IDs and we are using a TreeMap to store 'em.
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.matrix.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
 					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
@@ -632,8 +650,8 @@ public class LearnerGraphND
 				}// B-loop
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber, matrixForward, filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.size()));
+		performRowTasks(handlerList, ThreadNumber, matrixForward.matrix, filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.matrix.size()));
 		//inputsAccepted=null;inputsRejected=null;
 		
 		// At this point, we've marked all clearly incompatible pairs of states and need to propagate 
@@ -647,9 +665,9 @@ public class LearnerGraphND
 			int currentStatePair = vertexToIntNR(pair.firstElem,pair.secondElem);
 			incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
 
-			Map<String,List<CmpVertex>> rowB = matrixInverse.get(pair.secondElem);
+			Map<String,List<CmpVertex>> rowB = matrixInverse.matrix.get(pair.secondElem);
 			
-			for(Entry<String,List<CmpVertex>> outLabel:matrixInverse.get(pair.firstElem).entrySet())
+			for(Entry<String,List<CmpVertex>> outLabel:matrixInverse.matrix.get(pair.firstElem).entrySet())
 			{
 				List<CmpVertex> to = rowB.get(outLabel.getKey());
 				if (to != null)
@@ -797,7 +815,7 @@ public class LearnerGraphND
 			return sharedSameHighlight; 
 		}
 		
-	};
+	}
 	
 	public static class DDRH_default extends DetermineDiagonalAndRightHandSide
 	{
@@ -930,10 +948,10 @@ public class LearnerGraphND
 			{
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];
-				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.get(entryA.getKey()).entrySet();
+				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.matrix.get(entryA.getKey()).entrySet();
 					
 				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.matrix.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
 					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
@@ -1002,7 +1020,7 @@ public class LearnerGraphND
 									}
 							}
 						}
-						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.get(stateB.getKey()));
+						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.matrix.get(stateB.getKey()));
 						b[currentStatePair]=ddrhInstance.getRightHandSide();
 						if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
 						
@@ -1067,8 +1085,8 @@ public class LearnerGraphND
 				}// stateB_It.hasNext()
 			}
 		});
-		performRowTasks(handlerList, ThreadNumber, matrixForward,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.size()));
+		performRowTasks(handlerList, ThreadNumber, matrixForward.matrix,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,matrixForward.matrix.size()));
 		// At this point, we are finished building the matrices, it's time to populate the main arrays.
 		
 		// First, we compute the number of non-zero elements.

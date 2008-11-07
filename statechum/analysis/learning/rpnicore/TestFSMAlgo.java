@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning.rpnicore;
 
@@ -77,7 +77,7 @@ public class TestFSMAlgo {
 	 * configuration, next test is not affected.
 	 */
 	@Before
-	public void beforeTest()
+	public final void beforeTest()
 	{
 		config = mainConfiguration.copy();
 		LearnerGraph.testMode=true;
@@ -98,7 +98,7 @@ public class TestFSMAlgo {
 	/** The configuration to use when running tests. */
 	Configuration config = null, mainConfiguration = null;
 
-	static protected OrigStatePair constructOrigPair(String a,String b)
+	static final protected OrigStatePair constructOrigPair(String a,String b)
 	{
 		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();
 		aV.addUserDatum(JUConstants.LABEL, a, UserData.SHARED);
@@ -111,7 +111,7 @@ public class TestFSMAlgo {
 	 * are checked for equality.
 	 * The last two arguments are supposed to be different from any of the first two. 
 	 */
-	static public void equalityTestingHelper(Object p, Object q, 
+	static final public void equalityTestingHelper(Object p, Object q, 
 			Object differentA, Object differentB)
 	{
 		assertTrue(p.equals(p));assertTrue(q.equals(q));
@@ -145,7 +145,7 @@ public class TestFSMAlgo {
 	
 	/** Used to check that compareTo method works well. */ 
 	@SuppressWarnings("unchecked")
-	static private void checkLessHelper(Comparable p, Comparable q)
+	static final private void checkLessHelper(Comparable p, Comparable q)
 	{
 		assertFalse(p.equals(q));assertFalse(p.hashCode() == q.hashCode());
 		assertTrue(p.compareTo(q)<0);
@@ -157,7 +157,7 @@ public class TestFSMAlgo {
 
 	/** Tests that text IDs can be automatically converted into numeric ones. */
 	@Test
-	public void testParseID1()
+	public final void testParseID1()
 	{
 		VertexID id = VertexID.parseID("this is a test");
 		Assert.assertEquals(VertKind.NONE,id.getKind());
@@ -165,7 +165,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID2()
+	public final void testParseID2()
 	{
 		VertexID id = VertexID.parseID("Pthis is a test");
 		Assert.assertEquals(VertKind.NONE,id.getKind());
@@ -173,7 +173,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID3()
+	public final void testParseID3()
 	{
 		VertexID id = VertexID.parseID("P2this is a test");
 		Assert.assertEquals(VertKind.NONE,id.getKind());
@@ -181,7 +181,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID4()
+	public final void testParseID4()
 	{
 		VertexID id = VertexID.parseID("");
 		Assert.assertEquals(VertKind.NONE,id.getKind());
@@ -189,7 +189,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID5()
+	public final void testParseID5()
 	{
 		VertexID id = VertexID.parseID("P00");
 		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
@@ -198,7 +198,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID6()
+	public final void testParseID6()
 	{
 		VertexID id = VertexID.parseID("P100789");
 		Assert.assertEquals(VertKind.POSITIVE,id.getKind());
@@ -207,7 +207,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testParseID7()
+	public final void testParseID7()
 	{
 		VertexID id = VertexID.parseID("N100789");
 		Assert.assertEquals(VertKind.NEGATIVE,id.getKind());
@@ -218,28 +218,28 @@ public class TestFSMAlgo {
 	
 	/** Tests that it is not possible to create an invalid vertexid. */
 	@Test(expected=IllegalArgumentException.class)
-	public void testCannotCreateNoneVertexID1()
+	public final void testCannotCreateNoneVertexID1()
 	{
 		new VertexID(VertKind.NONE,3);
 	}
 	
 	/** Tests that it is not possible to create an invalid vertexid. */
 	@Test(expected=IllegalArgumentException.class)
-	public void testCannotCreateNoneVertexID2()
+	public final void testCannotCreateNoneVertexID2()
 	{
 		new VertexID(null);
 	}
 	
 	/** Tests equality for VertexIDs. */
 	@Test
-	public void testVertexIDEquals1()
+	public final void testVertexIDEquals1()
 	{
 		equalityTestingHelper(new VertexID("A"), new VertexID("A"), new VertexID("B"), new VertexID("C"));
 	}
 
 	/** Tests equality for VertexIDs. */
 	@Test
-	public void testVertexIDEquals2()
+	public final void testVertexIDEquals2()
 	{
 		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEGATIVE,9), new VertexID(VertKind.NEUTRAL,9));
 	}
@@ -251,21 +251,21 @@ public class TestFSMAlgo {
 	
 	/** Tests equality for VertexIDs. */
 	@Test
-	public void testVertexIDEquals3()
+	public final void testVertexIDEquals3()
 	{
 		equalityTestingHelper(new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.NEGATIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.NEUTRAL,5));
 	}
 	
 	/** Tests equality for VertexIDs with string and numerical IDs. */
 	@Test
-	public void testVertexIDEquals4()
+	public final void testVertexIDEquals4()
 	{
 		equalityTestingHelper(new VertexID(VertKind.POSITIVE,5), new VertexID(VertKind.POSITIVE,5), new VertexID(idN5), new VertexID(idP5));
 	}
 
 	/** Tests VertexID toString methods. */
 	@Test
-	public void testVertexIDToString()
+	public final void testVertexIDToString()
 	{
 		Assert.assertEquals("P5", new VertexID(idP5).toString());
 		Assert.assertEquals("N5", new VertexID(idN5).toString());
@@ -277,7 +277,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testVertexIDLess1()
+	public final void testVertexIDLess1()
 	{
 		VertexID pA=new VertexID(VertKind.POSITIVE,5), pB=new VertexID(idP5),
 			qA = new VertexID(VertKind.POSITIVE,6);
@@ -288,7 +288,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testVertexIDLess2()
+	public final void testVertexIDLess2()
 	{
 		VertexID pA=new VertexID(idP5), pB=new VertexID(VertKind.POSITIVE,5),
 			qA = new VertexID(idP6);
@@ -299,7 +299,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testVertexIDLess3()
+	public final void testVertexIDLess3()
 	{
 		VertexID pA=new VertexID(VertKind.POSITIVE,5), pB=new VertexID(VertKind.POSITIVE,10),
 			qA = new VertexID(VertKind.POSITIVE,6);
@@ -324,14 +324,14 @@ public class TestFSMAlgo {
 
 	/** Resets the attributes on vertices used for equality testing. */
 	@Before
-	public void beforeTests()
+	public final void beforeTests()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);DvertA.setColour(null);DvertB.setColour(null);DvertA.setHighlight(false);DvertB.setHighlight(false);
 		SvertA.setAccept(true);SvertB.setAccept(true);SvertA.setColour(null);SvertB.setColour(null);SvertA.setHighlight(false);SvertB.setHighlight(false);
 	}
 	
 	@Test
-	public void checkDEquality1()
+	public final void checkDEquality1()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);
 		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
@@ -339,7 +339,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void checkDEquality2()
+	public final void checkDEquality2()
 	{
 		DvertA.setAccept(false);DvertB.setAccept(false);
 		equalityTestingHelper(DvertA,DvertA,DdifferentA,SdifferentA);equalityTestingHelper(DvertB,DvertB,DdifferentA,SdifferentA);
@@ -347,7 +347,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void checkDEquality3()
+	public final void checkDEquality3()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(false);
 		equalityTestingHelper(DvertA,DvertA,DvertB,DdifferentA);equalityTestingHelper(DvertB,DvertB,DvertA,DdifferentA);
@@ -355,7 +355,7 @@ public class TestFSMAlgo {
 	
 	@Test
 	/** Checks that attributes other than accept and name are ignored. */
-	public void checkDEquality_ignoresAttrs()
+	public final void checkDEquality_ignoresAttrs()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);
 		DvertA.setColour(JUConstants.RED);DvertA.setHighlight(true);DvertA.addUserDatum(JUConstants.INITIAL, "", UserData.SHARED);DvertA.addUserDatum(JUConstants.JUNKVERTEX, "a", UserData.SHARED);
@@ -364,7 +364,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void checkSEquality1()
+	public final void checkSEquality1()
 	{
 		SvertA.setAccept(true);SvertB.setAccept(true);
 		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
@@ -372,7 +372,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void checkSEquality2()
+	public final void checkSEquality2()
 	{
 		SvertA.setAccept(false);SvertB.setAccept(false);
 		equalityTestingHelper(SvertA,SvertA,SdifferentA,DdifferentA);equalityTestingHelper(SvertB,SvertB,SdifferentA,DdifferentA);
@@ -381,7 +381,7 @@ public class TestFSMAlgo {
 
 	@Test
 	/** Checks that if one is accept and another one is reject, they are different. */ 
-	public void checkSEquality3()
+	public final void checkSEquality3()
 	{
 		SvertA.setAccept(true);SvertB.setAccept(false);
 		equalityTestingHelper(SvertA,SvertA,SvertB,SdifferentA);
@@ -390,7 +390,7 @@ public class TestFSMAlgo {
 
 	@Test
 	/** Checks that attributes other than accept and name are ignored. */
-	public void checkSEquality_ignoresAttrs()
+	public final void checkSEquality_ignoresAttrs()
 	{
 		SvertA.setAccept(true);SvertB.setAccept(true);
 		SvertA.setColour(JUConstants.RED);SvertA.setHighlight(true);
@@ -402,7 +402,7 @@ public class TestFSMAlgo {
 	 * (StringVertex v.s. DeterminisitcVertex), equals returns false.
 	 * Right now, we allow comparisons between different types, hence the test is commented out. 
 	@Test
-	public void checkSEquality4()
+	public final void checkSEquality4()
 	{
 		DvertA.setAccept(true);DvertB.setAccept(true);SvertA.setAccept(true);SvertB.setAccept(true);
 		equalityTestingHelper(DvertA,DvertB,SvertA,SvertB);
@@ -412,25 +412,25 @@ public class TestFSMAlgo {
 	/** Checks that implementations of different types can be compared. 
 	 */
 	@Test
-	public void checkEquality_differentTypes()
+	public final void checkEquality_differentTypes()
 	{
 		equalityTestingHelper(SvertA,DvertA,SdifferentA,DdifferentA);
 	}
 
 	@Test
-	public void checkDComparison1()
+	public final void checkDComparison1()
 	{
 		checkLessHelper(DvertA, new DeterministicVertex("b"));
 	}
 	
 	@Test
-	public void checkSComparison1()
+	public final void checkSComparison1()
 	{
 		checkLessHelper(SvertA, new StringVertex("b"));
 	}
 	
 	@Test
-	public void checkComparison_differentTypes()
+	public final void checkComparison_differentTypes()
 	{
 		checkLessHelper(DvertA, new StringVertex("b"));
 		checkLessHelper(SvertA, new DeterministicVertex("b"));
@@ -443,20 +443,20 @@ public class TestFSMAlgo {
 	 * actually be equal, but the way Java5 collections compare them makes it impossible
 	 * to use equals without causing a comparison between vertices of the two types. 
 	@Test(expected=IllegalArgumentException.class)
-	public void checkComparison_fail1()
+	public final void checkComparison_fail1()
 	{
 		SvertA.compareTo(DvertA);
 	}
 		
 	@Test(expected=IllegalArgumentException.class)
-	public void checkComparison_fail2()
+	public final void checkComparison_fail2()
 	{
 		DvertA.compareTo(SvertA);
 	}
 	 */
 	
 	@Test
-	public void testDeterministicVertexComparison1_old()
+	public final void testDeterministicVertexComparison1_old()
 	{
 		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
 		assertFalse(p.equals(q));
@@ -468,7 +468,7 @@ public class TestFSMAlgo {
 	}
 		
 	@Test
-	public void testDeterministicVertexComparison2_old()
+	public final void testDeterministicVertexComparison2_old()
 	{
 		DeterministicVertex p = new DeterministicVertex("A"), q= new DeterministicVertex("B");
 		assertFalse(p.equals(q));
@@ -480,7 +480,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testDeterministicVertexComparison3_old()
+	public final void testDeterministicVertexComparison3_old()
 	{
 		DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("P");
 		assertTrue(p.equals(q));
@@ -488,19 +488,19 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected=IllegalArgumentException.class)
-	public void testEqClassEquality_fail1()
+	public final void testEqClassEquality_fail1()
 	{
 		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{}));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
-	public void testEqClassEquality_fail2()
+	public final void testEqClassEquality_fail2()
 	{
 		new AMEquivalenceClass(null);
 	}
 	
 	@Test
-	public void testEqClass_toString1()
+	public final void testEqClass_toString1()
 	{
 		Assert.assertEquals("[B->{B,A,D}]",
 		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
@@ -508,7 +508,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testEqClass_toString2()
+	public final void testEqClass_toString2()
 	{
 		Assert.assertEquals("[B->{B}]",
 		new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
@@ -516,7 +516,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testEqClassEquality1()
+	public final void testEqClassEquality1()
 	{
 		equalityTestingHelper(
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
@@ -534,7 +534,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testEqClassEquality2()
+	public final void testEqClassEquality2()
 	{
 		equalityTestingHelper(
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
@@ -552,7 +552,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testEqClassEquality3()
+	public final void testEqClassEquality3()
 	{
 		equalityTestingHelper(
 				new AMEquivalenceClass(Arrays.asList(new CmpVertex[]{
@@ -685,7 +685,7 @@ public class TestFSMAlgo {
 	 * each pair of above, against another pair. 
 	 */
 	@Test
-	public void testStatePairEquality()
+	public final void testStatePairEquality()
 	{
 		final Object samePairs[] = new StatePair[]{
 				new StatePair(new StringVertex("a"), new StringVertex("b")),
@@ -769,7 +769,7 @@ public class TestFSMAlgo {
 		
 	}
 	
-	private static void checkLess(String a,String b,String c,String d)
+	private final static void checkLess(String a,String b,String c,String d)
 	{
 		checkLessHelper(new StatePair(new StringVertex(a), new StringVertex(b)), new StatePair(new StringVertex(c), new StringVertex(d)));
 		checkLessHelper(new StatePair(new DeterministicVertex(a), new StringVertex(b)), new StatePair(new DeterministicVertex(c), new StringVertex(d)));
@@ -777,7 +777,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testStatePairComparison()
+	public final void testStatePairComparison()
 	{
 		checkLess("a","b","c","d");
 		checkLess("a","b","a","c");
@@ -785,7 +785,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testStatePairComparisonWithNull()
+	public final void testStatePairComparisonWithNull()
 	{
 		checkLessHelper(new StatePair(null,null),new StatePair(new StringVertex("a"),null)); 
 		checkLessHelper(new StatePair(null,null),new StatePair(null,new StringVertex("a"))); 
@@ -802,7 +802,7 @@ public class TestFSMAlgo {
 	 * @return Jung graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static DirectedSparseGraph buildGraph(String fsm,String name)
+	public final static DirectedSparseGraph buildGraph(String fsm,String name)
 	{
 		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
 		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
@@ -875,7 +875,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void completeComputeAlphabet0()
+	public final void completeComputeAlphabet0()
 	{
 		Set<String> alphabet = DeterministicDirectedSparseGraph.computeAlphabet(new DirectedSparseGraph());
 		Assert.assertTrue(alphabet.isEmpty());
@@ -893,7 +893,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testComputeFSMAlphabet2()
+	public final void testComputeFSMAlphabet2()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3");
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b"}));
@@ -921,7 +921,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void completeComputeAlphabet5()
+	public final void completeComputeAlphabet5()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5");
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b","c"}));
@@ -935,19 +935,19 @@ public class TestFSMAlgo {
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
-	public void testFindVertex0()
+	public final void testFindVertex0()
 	{
 		DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, null, new DirectedSparseGraph());
 	}
 
 	@Test
-	public void testFindVertex1()
+	public final void testFindVertex1()
 	{
 		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, "bb", new DirectedSparseGraph()));
 	}
 	
 	@Test
-	public void testFindVertex2()
+	public final void testFindVertex2()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2");
 		//Visualiser.updateFrame(g, g);Visualiser.waitForKey();
@@ -955,7 +955,7 @@ public class TestFSMAlgo {
 	}
 		
 	@Test
-	public void testFindVertex3()
+	public final void testFindVertex3()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3");
 		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
@@ -963,42 +963,42 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testFindVertex4a()
+	public final void testFindVertex4a()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a"));
 		Assert.assertNull(v);
 	}
 
 	@Test
-	public void testFindVertex4b()
+	public final void testFindVertex4b()
 	{
 		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 
 	@Test
-	public void testFindVertex5()
+	public final void testFindVertex5()
 	{
 		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
-	public void testFindVertex6()
+	public final void testFindVertex6()
 	{
 		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("C"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
 		Assert.assertEquals(new VertexID("C"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
-	public void testFindVertex7()
+	public final void testFindVertex7()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
 		Assert.assertEquals(new VertexID("S"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
-	public void testFindVertex8()
+	public final void testFindVertex8()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
 		Assert.assertEquals(new VertexID("Q"), v.getUserDatum(JUConstants.LABEL));
@@ -1006,19 +1006,147 @@ public class TestFSMAlgo {
 
 	
 	@Test
-	public void testFindInitial1()
+	public final void testFindInitial1()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
-	public void testFindInitial2()
+	public final void testFindInitial2()
 	{
 		Vertex v = DeterministicDirectedSparseGraph.findInitial(new DirectedSparseGraph());
 		Assert.assertNull(v);
 	}
 
+	/** Adding A, B as incompatible states. */
+	@Test
+	public final void testAddToIncompatibles1()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		
+		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+	}
+	
+	/** Adding B, A as incompatible states. */
+	@Test
+	public final void testAddToIncompatibles2()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+	}
+	
+	/** Adding B, A as incompatible states twice. */
+	@Test
+	public final void testAddToIncompatibles3()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+	}
+	
+	/** Adding B, A as incompatible states twice. */
+	@Test
+	public final void testAddToIncompatibles4()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+	}
+	
+	/** Adding B, A as incompatible states twice. */
+	@Test
+	public final void testAddToIncompatibles5()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.addToIncompatibles(grf.findVertex("C"),grf.findVertex("A"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("D"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("D"),grf.findVertex("A"))));
+	}
+	
+	/** Checking that copying a graph clones the array. */
+	@Test
+	public final void testIncompatibles5()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		LearnerGraph graph2 = grf.copy(Configuration.getDefaultConfiguration());
+		
+		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
+		
+		graph2.addToIncompatibles(grf.findVertex("C"),grf.findVertex("A"));
+		
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
+		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
+		Assert.assertTrue(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
+		Assert.assertTrue(graph2.checkIncompatible(new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
+	}
+	
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data
@@ -1070,13 +1198,13 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testBuildSet1()
+	public final void testBuildSet1()
 	{
 		assertTrue(buildSet(new String[] []{}).isEmpty());
 	}
 
 	@Test
-	public void testBuildSet2()
+	public final void testBuildSet2()
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(new LinkedList<String>());
@@ -1084,7 +1212,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testBuildSet3A()
+	public final void testBuildSet3A()
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
@@ -1093,7 +1221,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testBuildSet3B()
+	public final void testBuildSet3B()
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
@@ -1101,7 +1229,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testBuildSet4()
+	public final void testBuildSet4()
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
@@ -1113,7 +1241,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test
-	public void testBuildStringMap1()
+	public final void testBuildStringMap1()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		
@@ -1122,7 +1250,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testBuildStringMap2()
+	public final void testBuildStringMap2()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value2");expectedResult.put("b","value3");
@@ -1134,7 +1262,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test
-	public void testBuildStringMap3()
+	public final void testBuildStringMap3()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1147,7 +1275,7 @@ public class TestFSMAlgo {
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap4()
+	public final void testBuildStringMap4()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1160,7 +1288,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap5()
+	public final void testBuildStringMap5()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1173,7 +1301,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap6()
+	public final void testBuildStringMap6()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1186,7 +1314,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap7()
+	public final void testBuildStringMap7()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1199,7 +1327,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap8()
+	public final void testBuildStringMap8()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1212,7 +1340,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap9()
+	public final void testBuildStringMap9()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1225,7 +1353,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap10()
+	public final void testBuildStringMap10()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
@@ -1238,7 +1366,7 @@ public class TestFSMAlgo {
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testBuildStringMap11()
+	public final void testBuildStringMap11()
 	{
 		Map<String,String> expectedResult = new HashMap<String,String>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");

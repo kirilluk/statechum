@@ -1,4 +1,4 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -217,7 +217,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		Element pairsElement = doc.createElement(ELEM_KINDS.ELEM_PAIRS.name());
 		for(PairScore p:result)
 		{
-			pairsElement.appendChild(writePair(p));pairsElement.appendChild(Transform.endl(doc));
+			pairsElement.appendChild(writePair(p,doc));pairsElement.appendChild(Transform.endl(doc));
 		}
 		writeElement(pairsElement);
 		return result;
@@ -228,7 +228,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		List<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(ELEM_KINDS.ELEM_QUESTIONS.name());
 		Element questionList = writeSequenceList(ELEM_KINDS.ATTR_QUESTIONS.name(), result);
-		questions.appendChild(questionList);questions.appendChild(writePair(pair));
+		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
 		writeElement(questions);
 		return result;
 	}
@@ -244,7 +244,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		LearnerGraph result = decoratedLearner.MergeAndDeterminize(original, pair);
 		Element mergedGraph = series.writeGraph(result);
 		Element mergeNode = doc.createElement(ELEM_KINDS.ELEM_MERGEANDDETERMINIZE.name());
-		mergeNode.appendChild(mergedGraph);mergeNode.appendChild(writePair(new PairScore(pair.getQ(),pair.getR(),0,0)));
+		mergeNode.appendChild(mergedGraph);mergeNode.appendChild(writePair(new PairScore(pair.getQ(),pair.getR(),0,0),doc));
 		writeElement(mergeNode);
 		return result;
 	}

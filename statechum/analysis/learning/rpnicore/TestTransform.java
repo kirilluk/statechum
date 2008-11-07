@@ -1,20 +1,20 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.rpnicore;
 import static statechum.Helper.checkForCorrectException;
@@ -42,8 +42,6 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 
 import edu.uci.ics.jung.exceptions.FatalException;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.io.GraphMLFile;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
@@ -52,8 +50,10 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.observers.TestWriteReadPair;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
@@ -387,20 +387,22 @@ public class TestTransform {
 	}
 
 	/** The standard beginning of our graphML files. */
-	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><"+Transform.graphmlNodeName+" xmlns:gml=\"http://graphml.graphdrawing.org/xmlns/graphml\"><graph edgedefault=\"directed\" xmlns=\"gml\">\n";
+	public static final String graphML_header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><"+Transform.graphmlNodeNameNS+" xmlns:gml=\"http://graphml.graphdrawing.org/xmlns/graphml\"><graph edgedefault=\"directed\" xmlns=\"gml\">\n";
 	/** The standard ending of our graphML files. */
-	public static final String graphML_end = "</graph></"+Transform.graphmlNodeName+">"; 
+	public static final String graphML_end = "</graph></"+Transform.graphmlNodeNameNS+">"; 
 
 	protected static final String graphml_beginning = graphML_header+
 		"<node "+JUConstants.COLOUR.name()+"=\""+JUConstants.RED.name()+"\" VERTEX=\"Initial A\" id=\"A\"/>\n"+
 		"<node ";
 	
-	protected static final String graphml_ending = "VERTEX=\"B\" id=\"B\"/>\n"+ 
+	protected static final String graphml_nodes_edges = "VERTEX=\"B\" id=\"B\"/>\n"+ 
 		"<node VERTEX=\"C\" id=\"C\"/>\n"+
 		"<edge EDGE=\"a\" directed=\"true\" source=\"A\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
 		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
 		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
-		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
+		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n";
+
+	protected static final String graphml_ending = graphml_nodes_edges+ 
 		graphML_end;
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -466,6 +468,28 @@ public class TestTransform {
 	}
 	
 	@Test
+	public final void testGraphMLwriter_incompatible1() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		fsm.addToIncompatibles(fsm.findVertex("B"), fsm.findVertex("A"));
+		fsm.addToIncompatibles(fsm.findVertex("B"), fsm.findVertex("C"));
+		StringWriter writer = new StringWriter();
+		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
+		fsm.transform.writeGraphML(writer);
+		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
+				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
+				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
+				" "+JUConstants.HIGHLIGHT.name()+"=\"true\""+
+				graphml_nodes_edges+
+				"<"+Transform.graphmlData+" "+Transform.graphmlDataKey+"=\""+Transform.graphmlDataIncompatible+"\">"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("C"),fsm.findVertex("B"),0,0))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("A"),0,0))+"\n"+
+				"</"+Transform.graphmlData+">"+
+				graphML_end),
+				removeWhiteSpace(writer.toString()));
+	}
+	
+	@Test
 	public final void testGraphMLwriter_loadnode1() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
@@ -481,7 +505,7 @@ public class TestTransform {
 		{
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
-		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
+		LearnerGraph actual = Transform.loadGraph(fsm.transform.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
@@ -503,7 +527,7 @@ public class TestTransform {
 		{
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
-		LearnerGraph actual = new LearnerGraph(Transform.loadGraph(fsm.transform.createGraphMLNode(doc)),Configuration.getDefaultConfiguration());
+		LearnerGraph actual = Transform.loadGraph(fsm.transform.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
@@ -526,8 +550,8 @@ public class TestTransform {
 		}
 		final Document document = doc;
 		checkForCorrectException(new whatToRun() { public void run() {
-			Transform.loadGraph(document.createElement("junk"));
-		}},IllegalArgumentException.class,"element does not start with graphml");
+			Transform.loadGraph(document.createElement("junk"),Configuration.getDefaultConfiguration());
+		}},IllegalArgumentException.class,"element name junk");
 	}
 
 	/** No graph element. */
@@ -549,7 +573,7 @@ public class TestTransform {
 		}
 		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
 		checkForCorrectException(new whatToRun() { public void run() {
-			Transform.loadGraph(elem);
+			Transform.loadGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"absent graph element");
 	}
 	
@@ -573,7 +597,7 @@ public class TestTransform {
 		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
 		
 		checkForCorrectException(new whatToRun() { public void run() {
-			Transform.loadGraph(elem);
+			Transform.loadGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"absent graph element");
 	}
 	
@@ -597,7 +621,7 @@ public class TestTransform {
 		final org.w3c.dom.Element elem = fsm.transform.createGraphMLNode(doc);elem.appendChild(doc.createElement("graph"));
 		
 		checkForCorrectException(new whatToRun() { public void run() {
-			Transform.loadGraph(elem);
+			Transform.loadGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"duplicate graph element");
 	}
 	
@@ -610,7 +634,7 @@ public class TestTransform {
 	{
 		final Configuration config = Configuration.getDefaultConfiguration();
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
-		LearnerGraph loaded = LearnerGraph.loadGraph(new StringReader(writer.toString()),config);
+		LearnerGraph loaded = Transform.loadGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.wmethod.checkUnreachableStates());Assert.assertTrue(!loaded.wmethod.checkUnreachableStates());
 		Assert.assertNull(WMethod.checkM(gr,loaded));
@@ -626,6 +650,7 @@ public class TestTransform {
 		}
 
 		Assert.assertTrue(ids_are_valid(loaded));
+		Assert.assertEquals(gr.incompatibles,loaded.incompatibles);
 	}
 
 	/** Checks if simply creating vertices we may get an ID with existing number. */
@@ -758,24 +783,54 @@ public class TestTransform {
 	}
 	
 	@Test
+	public final void testGraphMLWriter6() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
+		checkLoading(fsm);
+	}
+
+	/** Loading graphs with reject pairs. */
+	@Test
+	public final void testGraphMLWriter_incompatible1() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
+		fsm.addToIncompatibles(fsm.findVertex("B"), fsm.findVertex("C"));
+		checkLoading(fsm);
+	}
+	
+	/** Loading graphs with reject pairs. */
+	@Test
+	public final void testGraphMLWriter_incompatible2() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
+		fsm.addToIncompatibles(fsm.findVertex("B"), fsm.findVertex("A"));
+		fsm.addToIncompatibles(fsm.findVertex("B"), fsm.findVertex("C"));
+		checkLoading(fsm);
+	}
+	
+	/** Loading graphs with reject pairs. */
+	@Test
+	public final void testGraphMLWriter_incompatible3() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
+		for(CmpVertex vert:fsm.transitionMatrix.keySet())
+			for(CmpVertex vert2:fsm.transitionMatrix.keySet())
+				if (vert != vert2)
+					fsm.addToIncompatibles(vert,vert2);
+		checkLoading(fsm);
+	}
+	
+	@Test
 	public final void testGraphMLWriter_fail_on_load_boolean() throws IOException
 	{
-		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
-		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
+		final StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	try
-	    	{
-	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\""))),Configuration.getDefaultConfiguration());
-	    	}
-	    	catch(FatalException ex)
-	    	{
-	    		Assert.assertTrue(ex.getCause() instanceof IllegalUserDataException);
-	    	}
+	    	checkForCorrectException(new whatToRun() { public void run() {
+	    		Transform.loadGraph(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\"")),Configuration.getDefaultConfiguration());
+	    	}},IllegalUserDataException.class,"invalid colour");
 		}		
-		
 	}
 	
 	@Test
@@ -785,41 +840,68 @@ public class TestTransform {
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
 	    	
 	    	try
 	    	{
-	    		new LearnerGraph(graphmlFile.load(new StringReader(writer.toString().replace("COLOUR=\"red\"", "COLOUR=\"aa\""))),Configuration.getDefaultConfiguration());
+	    		Transform.loadGraph(new StringReader(writer.toString().replace("COLOUR=\"red\"", "COLOUR=\"aa\"")),Configuration.getDefaultConfiguration());
 	    	}
 	    	catch(FatalException ex)
 	    	{
 	    		Assert.assertTrue(ex.getCause() instanceof IllegalUserDataException);
 	    	}
 		}		
-		
 	}
 	
 	@Test
-	public final void testGraphMLWriter_load__despite_Initial() throws IOException
+	public final void testGraphMLWriter_fail_on_load_pairs() throws IOException
+	{
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
+		final StringWriter writer = new StringWriter();
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
+		gr.transform.writeGraphML(writer);
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	
+	    	checkForCorrectException(new whatToRun() { public void run() {
+	    		Transform.loadGraph(new StringReader(writer.toString().replace(Transform.graphmlDataIncompatible, "AA")),Configuration.getDefaultConfiguration());
+	    	}},IllegalArgumentException.class,"unexpected key");
+		}		
+	}
+	
+	@Test
+	public final void testGraphMLWriter_fail_on_load_invalid_node() throws IOException
+	{
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
+		final StringWriter writer = new StringWriter();
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
+		gr.transform.writeGraphML(writer);
+		synchronized (LearnerGraph.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	
+	    	checkForCorrectException(new whatToRun() { public void run() {
+	    		Transform.loadGraph(new StringReader(writer.toString().replace(Transform.graphmlData, "AA")),Configuration.getDefaultConfiguration());
+	    	}},IllegalArgumentException.class,"unexpected node");
+		}		
+	}
+	
+	@Test
+	public final void testGraphMLWriter_load_despite_Initial() throws IOException
 	{
 		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
 		synchronized (LearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	Graph brokenGraph=graphmlFile.load(new StringReader(writer.toString().replace("VERTEX=\"BB1\"", "VERTEX=\""+Transform.Initial+" BB1\"")));
 	    	try
 	    	{
-	    		new LearnerGraph(brokenGraph,Configuration.getDefaultConfiguration());
+	    		Transform.loadGraph(new StringReader(writer.toString().replace("VERTEX=\"BB1\"", "VERTEX=\""+Transform.Initial+" BB1\"")),Configuration.getDefaultConfiguration());
 	    	}
 	    	catch(IllegalArgumentException ex)
 	    	{
 	    		Assert.assertTrue(ex.getMessage().contains("are both labelled as initial"));
 	    	}
 		}		
-		
 	}
 	
 	@Test

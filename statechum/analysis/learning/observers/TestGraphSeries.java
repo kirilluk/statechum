@@ -68,7 +68,7 @@ public class TestGraphSeries {
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output, 1,renumberConfig,false);
 		GraphSeries series = dumper.series;
 		Element grElement = null;
-		grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+		grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeNameNS, grElement.getNodeName());
 		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 		grElement = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
 		dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
@@ -92,7 +92,7 @@ public class TestGraphSeries {
 		Element elem = null;
 		
 		/** We read the entire series. */
-		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform.graphmlNodeName,elem.getNodeName());
+		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(Transform.graphmlNodeNameNS,elem.getNodeName());
 		graph = series.readGraph(elem);
 		WMethod.checkM(graph, graphA);Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
 		
@@ -149,12 +149,12 @@ public class TestGraphSeries {
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 			GraphSeries series = dumper.series;
 			Element grElement = null;
-			grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+			grElement = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeNameNS, grElement.getNodeName());
 			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 			grElement = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
 			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 			series.reset();
-			grElement = series.writeGraph(graphC);Assert.assertEquals(Transform.graphmlNodeName, grElement.getNodeName());
+			grElement = series.writeGraph(graphC);Assert.assertEquals(Transform.graphmlNodeNameNS, grElement.getNodeName());
 			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 			grElement = series.writeGraph(graphD);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement.getNodeName());
 			dumper.topElement.appendChild(grElement);dumper.topElement.appendChild(Transform.endl(dumper.doc));
@@ -269,7 +269,7 @@ public class TestGraphSeries {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = dumper.series;
-		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement1.getNodeName());
+		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeNameNS, grElement1.getNodeName());
 		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement2.getNodeName());
 		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform.endl(dumper.doc));
@@ -286,7 +286,7 @@ public class TestGraphSeries {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = dumper.series;
-		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeName, grElement1.getNodeName());
+		Element grElement1 = series.writeGraph(graphA);Assert.assertEquals(Transform.graphmlNodeNameNS, grElement1.getNodeName());
 		dumper.topElement.appendChild(grElement1);dumper.topElement.appendChild(Transform.endl(dumper.doc));
 		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(GD.ChangesRecorder.gdGD, grElement2.getNodeName());
 		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(Transform.endl(dumper.doc));

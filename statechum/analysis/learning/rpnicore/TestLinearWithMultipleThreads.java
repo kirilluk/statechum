@@ -1,20 +1,20 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
-
-This file is part of StateChum.
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.analysis.learning.rpnicore;
 
@@ -92,10 +92,10 @@ public class TestLinearWithMultipleThreads {
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
 		DetermineDiagonalAndRightHandSide ddrhInstance = new LearnerGraphND.DDRH_default();
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entryA:ndGraph.matrixForward.entrySet())
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entryA:ndGraph.matrixForward.matrix.entrySet())
 		{
 			// Now iterate through states
-			Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.entrySet().iterator();
+			Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.matrix.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
 				Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
@@ -117,10 +117,10 @@ public class TestLinearWithMultipleThreads {
 		DoubleMatrix2D result = DoubleFactory2D.sparse.make(size,size,0);
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entryA:ndGraph.matrixForward.entrySet())
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entryA:ndGraph.matrixForward.matrix.entrySet())
 		{
 			// Now iterate through states
-			Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.entrySet().iterator();
+			Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.matrix.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
 				Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
@@ -448,7 +448,7 @@ public class TestLinearWithMultipleThreads {
 				Assert.assertTrue(LearnerGraphND.ignoreRejectStates.stateToConsider(entryA.getKey()));
 					
 				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.matrix.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
 					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
@@ -465,8 +465,8 @@ public class TestLinearWithMultipleThreads {
 				}// iterating through states (stateB)
 			}
 		});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.size()));
+		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward.matrix,filter,
+				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.matrix.size()));
 		return result;
 	}
 

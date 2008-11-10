@@ -1,25 +1,27 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Helper.whatToRun;
+
 import java.util.Collection;
 
 import junit.framework.Assert;
@@ -39,6 +41,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
+import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper; 
 
 @RunWith(Parameterized.class)
 public class TestGraphConstructionWithDifferentConf {
@@ -86,7 +89,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public final void testFSMStructureEquals1a()
 	{
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
-		TestFSMAlgo.equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB);
 
 		Assert.assertFalse(a.equals(null));
 		Assert.assertFalse(a.equals("hello"));
@@ -99,7 +102,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals2a"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals2a"),config);
-		TestFSMAlgo.equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB);
 	}
 	
 	/** Tests that reject states do not mess up anything. */
@@ -108,7 +111,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2b"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2b"),config);
-		TestFSMAlgo.equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB);
 	}
 	
 	/** Tests that different types of states make a difference on the outcome of a comparison. */
@@ -117,7 +120,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2c"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2c"),config);
-		TestFSMAlgo.equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB);
 	}
 	
 	/** Tests that state colour does not affect a comparison. */
@@ -128,7 +131,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2d"),config);
 		a.findVertex("B").setColour(JUConstants.RED);
 		a.findVertex("A").setHighlight(true);
-		TestFSMAlgo.equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,b,differentA,differentB);
 	}
 	
 	@Test
@@ -138,7 +141,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals3"),config);
 		
 		b.initEmpty();
-		TestFSMAlgo.equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB);
 	}
 	
 	@Test
@@ -148,7 +151,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals4"),config);
 		
 		b.initPTA();
-		TestFSMAlgo.equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB);
 	}
 	
 	@Test
@@ -158,7 +161,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals6"),config);
 		
 		b.init=new StringVertex("B");
-		TestFSMAlgo.equalityTestingHelper(a,a,b,differentB);
+		equalityTestingHelper(a,a,b,differentB);
 	}
 
 	/** Tests that clones are faithful replicas. */
@@ -168,10 +171,10 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1"),config);
 		LearnerGraph bClone = b.copy(b.config);
-		TestFSMAlgo.equalityTestingHelper(a,bClone,differentA, differentB);
-		TestFSMAlgo.equalityTestingHelper(b,bClone,differentA, differentB);
+		equalityTestingHelper(a,bClone,differentA, differentB);
+		equalityTestingHelper(b,bClone,differentA, differentB);
 		bClone.initPTA();
-		TestFSMAlgo.equalityTestingHelper(a,b,bClone,differentB);
+		equalityTestingHelper(a,b,bClone,differentB);
 	}
 
 	/** Tests that clones are faithful replicas. */
@@ -182,7 +185,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone2"),config);
 		LearnerGraph bClone = b.copy(b.config);
 		b.initPTA();
-		TestFSMAlgo.equalityTestingHelper(a,bClone,b,differentB);
+		equalityTestingHelper(a,bClone,b,differentB);
 	}
 
 	@Test
@@ -296,5 +299,21 @@ public class TestGraphConstructionWithDifferentConf {
 		//v.addUserDatum(JUConstants.INITIAL, false, UserData.SHARED);
 		v.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
 		checkWithVertex(v, "is not labelled", "testGraphConstructionFail7");	
+	}
+	
+	/** Non-determinism is ok for non-deterministic matrix. */
+	@Test
+	public final void testGraphConstruction_nondet_1a()
+	{
+		new TransitionMatrixND(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
+	}
+
+	/** Non-determinism is bad for a deterministic graph. */
+	@Test
+	public final void testGraphConstruction_nondet_1b()
+	{
+		checkForCorrectException(new whatToRun() { public void run() {
+			new LearnerGraph(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
+		}},IllegalArgumentException.class,"non-deterministic");
 	}
 }

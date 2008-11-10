@@ -66,6 +66,7 @@ public class AllTests {
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
 		statechum.TestConfiguration.class,
+		statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
 		statechum.analysis.learning.rpnicore.TestFSMParser.class,
 		statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
 		statechum.analysis.learning.rpnicore.TestTransitionMatrixND.class,
@@ -88,7 +89,7 @@ public class AllTests {
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
 		statechum.analysis.learning.rpnicore.TestWMethod.class,
-		statechum.analysis.learning.rpnicore.TestLabelRepresentation.class
+		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class
 	})
 	public static class GraphTests {// all tests are included in the annotation.
 	}

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -38,7 +37,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -59,27 +57,6 @@ public class MergeStates {
 		coregraph = computeStateScores;
 	}
 
-	/** Verifies that vertices with the same name have the same colour in the two graphs
-	 * and that same sets of vertex pairs are declared incompatible,
-	 * in addition to checking for isomorphism of the graphs.
-	 * Used for consistency checking.
-	 */
-	public static DifferentFSMException checkM_and_colours(LearnerGraph A, LearnerGraph B)
-	{
-		DifferentFSMException ex = WMethod.checkM(A, B);if (ex != null) return ex;
-		for(Entry<CmpVertex,LinkedList<String>> entry:A.wmethod.computeShortPathsToAllStates().entrySet())
-		{
-			CmpVertex Bstate = B.getVertex(entry.getValue());
-			CmpVertex Astate = entry.getKey();
-			if (Bstate.getColour() != Astate.getColour())
-				return new DifferentFSMException("states "+ Astate + " (" +
-						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
-						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
-		}
-		if (!A.incompatibles.equals(B.incompatibles))
-			return new DifferentFSMException("sets of incompatible states differ");
-		return null;
-	}
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
@@ -131,7 +108,7 @@ public class MergeStates {
 		for(Collection<CmpVertex> eqClass:mergedVertices)
 		{
 			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);
-			equivalenceClass.mergedVertex=LearnerGraph.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);equivalenceClass.computeMergedColour();
+			equivalenceClass.mergedVertex=AbstractTransitionMatrix.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);equivalenceClass.computeMergedColour();
 			mergedStates.add(equivalenceClass);
 			
 			for(CmpVertex v:eqClass)
@@ -150,7 +127,7 @@ public class MergeStates {
 			Map<String,CmpVertex> row = result.transitionMatrix.get(current.mergedVertex);
 			if (row == null)
 			{
-				row = new TreeMap<String,CmpVertex>();result.transitionMatrix.put(current.mergedVertex, row);
+				row = result.createNewRow();result.transitionMatrix.put(current.mergedVertex, row);
 			}
 
 			for(CmpVertex equivalentVertex:current.vertices)

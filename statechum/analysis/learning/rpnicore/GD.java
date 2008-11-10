@@ -175,7 +175,7 @@ public class GD {
 	protected void printIncoming(String name)
 	{
 		CmpVertex vert = grCombined.findVertex(name);
-		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.matrix.get(vert));
+		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.transitionMatrix.get(vert));
 	}
 	
 	/** Records vertices of A which would remain after we remove all transitions 
@@ -479,8 +479,8 @@ public class GD {
 			CmpVertex fromVert = graph.findVertex(vert.getID());
 			if (fromVert == null)
 			{// vertex with this ID is not already known
-				fromVert = LearnerGraph.cloneCmpVertex(vert, cloneConfig);
-				graph.transitionMatrix.put(fromVert,new TreeMap<String,CmpVertex>());
+				fromVert = AbstractTransitionMatrix.cloneCmpVertex(vert, cloneConfig);
+				graph.transitionMatrix.put(fromVert,graph.createNewRow());
 			}
 			else
 				if (fromVert.isAccept() != vert.isAccept()) // it is known but with a different accept condition
@@ -830,7 +830,7 @@ public class GD {
 				statesOfA.size()*statesOfB.size() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 			fallbackToInitialPair = true;
 		
-		forward = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,false);
+		forward = new LearnerGraphND(grCombined,TransitionMatrixND.ignoreNone,false);
 		if (fallbackToInitialPair)
 		{
 			if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && // only warn if not forced.
@@ -840,7 +840,7 @@ public class GD {
 		}
 		else
 		{// normal processing
-			inverse = new LearnerGraphND(grCombined,LearnerGraphND.ignoreNone,true);
+			inverse = new LearnerGraphND(grCombined,TransitionMatrixND.ignoreNone,true);
 			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, LearnerGraphND.PAIR_INCOMPATIBLE);
 			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
@@ -877,7 +877,7 @@ public class GD {
 			
 			{
 				LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
-				//System.out.println(inverse.dumpEquations(solverForward, pairScores, newToOrig));
+				//System.out.println(forward.dumpEquations(solverForward, pairScores, newBToOrig));
 				solverForward.solve();
 				solverForward.freeAllButResult();// deallocate memory before creating a large array.
 				scoresForward = solverForward.j_x;
@@ -885,6 +885,7 @@ public class GD {
 	
 			{
 				LSolver solverInverse = inverse.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
+				//System.out.println(inverse.dumpEquations(solverInverse, pairScores, newBToOrig));
 				solverInverse.solve();
 				solverInverse.freeAllButResult();// deallocate memory before creating a large array.
 				scoresInverse = solverInverse.j_x;
@@ -1002,9 +1003,9 @@ public class GD {
 	{
 		for(PairScore pair:frontWave)
 		{
-			for(Entry<String,List<CmpVertex>> targetA:matrixND.matrix.get(pair.getQ()).entrySet())
+			for(Entry<String,List<CmpVertex>> targetA:matrixND.transitionMatrix.get(pair.getQ()).entrySet())
 			{
-				List<CmpVertex> targetB = matrixND.matrix.get(pair.getR()).get(targetA.getKey());
+				List<CmpVertex> targetB = matrixND.transitionMatrix.get(pair.getR()).get(targetA.getKey());
 				if (targetB != null)
 				{// matched pair, now iterate over target states
 					for(CmpVertex targetStateA:targetA.getValue())
@@ -1088,7 +1089,7 @@ public class GD {
 				VertexID newID = new VertexID(prefix+currID.toString());
 				if (a.findVertex(newID) != null || b.findVertex(newID) != null)
 					throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
-				oldVerticesToNew.put(currID,LearnerGraph.generateNewCmpVertex(newID,a.config));
+				oldVerticesToNew.put(currID,AbstractTransitionMatrix.generateNewCmpVertex(newID,a.config));
 			}
 			
 			/** Renames a vertex if it is a removed one. */

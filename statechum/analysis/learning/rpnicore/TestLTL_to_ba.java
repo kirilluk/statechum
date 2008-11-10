@@ -527,9 +527,9 @@ public class TestLTL_to_ba {
 	{
 		ba.parse(text);
 		LearnerGraph result = null;
-		synchronized(LearnerGraph.syncObj)
+		synchronized(AbstractTransitionMatrix.syncObj)
 		{
-			result = ba.matrixFromLTL.buildDeterministicGraph(config);
+			result = ba.matrixFromLTL.buildDeterministicGraph();
 		}
 		return result;
 	}
@@ -606,7 +606,7 @@ public class TestLTL_to_ba {
 		"state_b: if :: (a) -> goto state_b fi;"+
 		"}\n";
 		checkForCorrectException(new whatToRun() { public void run() {
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph(config);
+			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
 		}},IllegalArgumentException.class,"absent initial state");
 	}
 	
@@ -799,7 +799,7 @@ public class TestLTL_to_ba {
 		":: (a) -> goto accept_B\n"+
 		"fi;}\n";
 		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph(config);
+			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
 		}},IllegalArgumentException.class,"inconsistent labelling");
 	}
 	
@@ -835,7 +835,7 @@ public class TestLTL_to_ba {
 		":: (a) -> goto reject_B\n"+
 		"fi;}\n";
 		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph(config);
+			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
 		}},IllegalArgumentException.class,"inconsistent labelling");
 	}
 	
@@ -877,7 +877,7 @@ public class TestLTL_to_ba {
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
 		ba.runLTL2BA("false");
-		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.buildDeterministicGraph(config)));
+		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.buildDeterministicGraph()));
 	}
 	
 	/** This one is an integration test of ltl2ba. Third test : a bigger automaton. */
@@ -887,7 +887,7 @@ public class TestLTL_to_ba {
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.buildDeterministicGraph(config)));
+		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.buildDeterministicGraph()));
 	}
 	
 	/** This one is an integration test of ltl2ba. Third test : completing a bigger automaton. */
@@ -897,7 +897,7 @@ public class TestLTL_to_ba {
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		LearnerGraph result = ba.completeMatrix(ba.matrixFromLTL.buildDeterministicGraph(config));
+		LearnerGraph result = ba.matrixFromLTL.buildDeterministicGraph().transform.completeMatrix();
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph(
 				"I-close->1\nI-edit->I1\nI-save->I1\nI-load->I1\n"+
 				"1-load->I1-close->1\n"+

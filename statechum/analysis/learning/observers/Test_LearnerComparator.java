@@ -1,4 +1,4 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum.
  * 
@@ -29,7 +29,6 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.observers.ProgressDecorator.AugmentPTAData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
@@ -149,7 +148,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	{
 		DifferentFSMException ex = null;
 		if (checkColours)
-			ex = MergeStates.checkM_and_colours(what,with);
+			ex = WMethod.checkM_and_colours(what,with);
 		else
 			ex = WMethod.checkM(what, with);
 		

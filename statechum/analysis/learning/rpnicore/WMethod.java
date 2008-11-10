@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -894,6 +893,30 @@ public class WMethod {
 		return checkM(expected,expected.init, graph, graph.init);
 	}
 	
+	/** Verifies that vertices with the same name have the same colour in the two graphs
+	 * and that same sets of vertex pairs are declared incompatible,
+	 * in addition to checking for isomorphism of the graphs.
+	 * Used for consistency checking.
+	 * <p>
+	 * Important: unreachable states are not checked for.
+	 */
+	public static DifferentFSMException checkM_and_colours(LearnerGraph A, LearnerGraph B)
+	{
+		DifferentFSMException ex = WMethod.checkM(A, B);if (ex != null) return ex;
+		for(Entry<CmpVertex,LinkedList<String>> entry:A.wmethod.computeShortPathsToAllStates().entrySet())
+		{
+			CmpVertex Bstate = B.getVertex(entry.getValue());
+			CmpVertex Astate = entry.getKey();
+			if (Bstate.getColour() != Astate.getColour())
+				return new DifferentFSMException("states "+ Astate + " (" +
+						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
+						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
+		}
+		if (!A.incompatibles.equals(B.incompatibles))
+			return new DifferentFSMException("sets of incompatible states differ");
+		return null;
+	}
+
 	/** Checks if the two graphs have the same set of states. */
 	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
 	{

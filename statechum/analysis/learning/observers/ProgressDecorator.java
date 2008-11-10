@@ -64,6 +64,7 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.rpnicore.AbstractTransitionMatrix;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -130,8 +131,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		int scoreInt = -1, otherScoreInt = -1;
 		try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
 		try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }
-		return new PairScore(LearnerGraph.generateNewCmpVertex(VertexID.parseID(q), graph.config),
-				LearnerGraph.generateNewCmpVertex(VertexID.parseID(r), graph.config),
+		return new PairScore(AbstractTransitionMatrix.generateNewCmpVertex(VertexID.parseID(q), graph.config),
+				AbstractTransitionMatrix.generateNewCmpVertex(VertexID.parseID(r), graph.config),
 				scoreInt,otherScoreInt);		
 	}
 	

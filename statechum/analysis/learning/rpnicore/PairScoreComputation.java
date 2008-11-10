@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -744,7 +743,7 @@ public class PairScoreComputation {
 						// No per-thread initialisation is needed.
 					}
 	
-					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
 					{
 						// Now iterate through states
 						Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
@@ -765,7 +764,7 @@ public class PairScoreComputation {
 					}
 				});
 			}
-			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
+			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,TransitionMatrixND.ignoreNone,
 					LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);

@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -131,7 +130,7 @@ public class LTL_to_ba {
 	public LTL_to_ba(Configuration cnf)
 	{
 		config = cnf;
-		matrixFromLTL = new TransitionMatrixND();
+		matrixFromLTL = new TransitionMatrixND(config);
 	}
 		
 	private static final int lexSTART =8;
@@ -218,9 +217,9 @@ public class LTL_to_ba {
 
 		if (vert == null)
 		{// add new vertex
-			vert = LearnerGraph.generateNewCmpVertex(new VertexID(name), config);
+			vert = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(name), config);
 			vert.setAccept(name.startsWith("accept_"));vert.setColour(TransitionMatrixND.ltlColour);
-			matrixFromLTL.matrix.put(vert,new TreeMap<String,List<CmpVertex>>());
+			matrixFromLTL.transitionMatrix.put(vert,matrixFromLTL.createNewRow());
 			verticesUsed.put(name, vert);
 		}
 		return vert;
@@ -303,7 +302,7 @@ public class LTL_to_ba {
 				switch(currentMatch)
 				{
 				case lexTRANSITION:
-					Map<String,List<CmpVertex>> row = matrixFromLTL.matrix.get(currentState);
+					Map<String,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
 					CmpVertex target = addState(lexer.group(lexTRANSITIONTARGET));
 					for(String currLabel:interpretString(lexer.group(lexTRANSITIONLABEL)))
 					{
@@ -329,19 +328,6 @@ public class LTL_to_ba {
 		}
 		
 		matrixFromLTL.findInitialState(initStateName);
-	}
-	
-	/** For each input where there is no transition from a state,
-	 * this function will add a transition to an inf-amber-coloured reject-state.
-	 */  
-	protected LearnerGraph completeMatrix(LearnerGraph graph)
-	{
-		LearnerGraph result = graph.copy(graph.config);
-		VertexID rejectID = result.nextID(false);
-		result.transform.completeGraph(rejectID);
-		result.findVertex(rejectID).setColour(TransitionMatrixND.ltlColour);
-		result.findVertex(rejectID).setAccept(false);
-		return result;
 	}
 	
 	/** Alphabet of a graph we'd like to augment with LTL. */
@@ -547,13 +533,13 @@ public class LTL_to_ba {
 		if (graph != null)
 			alphabet = graph.wmethod.computeAlphabet();
 		runLTL2BA(concatenateLTL(ltl).toString());
-		for(CmpVertex v:matrixFromLTL.matrix.keySet())
+		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");
 		
-		synchronized(LearnerGraph.syncObj)
+		synchronized(AbstractTransitionMatrix.syncObj)
 		{
-			automatonLoadedFromLTL = completeMatrix(matrixFromLTL.buildDeterministicGraph(config));
+			automatonLoadedFromLTL = matrixFromLTL.buildDeterministicGraph().transform.completeMatrix();
 		}
 	}
 		
@@ -565,11 +551,11 @@ public class LTL_to_ba {
 	 */
 	public LearnerGraph augmentGraph(LearnerGraph what)
 	{
-		TransitionMatrixND automaton = TransitionMatrixND.UniteTransitionMatrices(TransitionMatrixND.convertToND(automatonLoadedFromLTL),what);
+		TransitionMatrixND automaton = TransitionMatrixND.UniteTransitionMatrices(new TransitionMatrixND(automatonLoadedFromLTL),what);
 		LearnerGraph result = null;
-		synchronized(LearnerGraph.syncObj)
+		synchronized(AbstractTransitionMatrix.syncObj)
 		{
-			result = automaton.buildDeterministicGraph(config);
+			result = automaton.buildDeterministicGraph();
 		}
 		return result;
 	}

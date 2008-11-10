@@ -80,7 +80,7 @@ public class QSMTool
 	
 	public void loadConfig(Reader inputData)
 	{
-		String AutoName = System.getProperty(statechum.GlobalConfiguration.ENV_PROPERTIES.VIZ_AUTOFILENAME.name());
+		String AutoName = System.getProperty(statechum.GlobalConfiguration.G_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
 	
 		BufferedReader in = null;

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -38,7 +37,7 @@ import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.ScoreMode;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.equalityTestingHelper;
+import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
 public class TestConfiguration {
 	public TestConfiguration()

@@ -1,20 +1,21 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum;
 
 import java.awt.Frame;
@@ -42,13 +43,6 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
  *
  */
 public class GlobalConfiguration {
-
-	public enum ENV_PROPERTIES {
-		VIZ_DIR,// the path to visualisation-related information, such as graph layouts and configuration file.
-		VIZ_CONFIG,// the configuration file containing window positions and whether to display an assert-related warning.
-		VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions
-	}
-
 	public enum G_PROPERTIES { // internal properties
 		ASSERT,// whether to display assert warning.
 		TEMP, // temporary directory to use
@@ -56,9 +50,13 @@ public class GlobalConfiguration {
 		SMTWARNINGS,// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
 		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
 		LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
-		, STOP // used to stop execution - a walkaround re JUnit Eclipse bug on linux amd64.
+		, STOP // used to stop execution - a workaround re JUnit Eclipse bug on linux amd64.
 		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
 		,TIMEBETWEENHEARTBEATS // How often to check i/o streams and send heartbeat data.
+		,ASSERT_ENABLED // whether assertions are enabled - in this case some additional checks are carried out outside of assert statements
+		,VIZ_DIR// the path to visualisation-related information, such as graph layouts and configuration file.
+		,VIZ_CONFIG// the configuration file containing window positions and whether to display an assert-related warning.
+		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions
 		;
 	}
 
@@ -71,6 +69,7 @@ public class GlobalConfiguration {
 	 * Default values of Statechum-wide attributes. 
 	 */
 	protected static final Map<G_PROPERTIES, String> defaultValues = new TreeMap<G_PROPERTIES, String>();
+	
 	static
 	{
 		defaultValues.put(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -80,6 +79,15 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.STOP, "");
 		defaultValues.put(G_PROPERTIES.TEMP, "temp");
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
+		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
+		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
+	}
+	
+	private static boolean assertionsEnabled = false;
+	
+	public boolean isAssertEnabled()
+	{
+		return assertionsEnabled || Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED));
 	}
 	
 	protected GlobalConfiguration() {
@@ -139,8 +147,8 @@ public class GlobalConfiguration {
 	 */
 	protected static String getConfigurationFileName()
 	{
-		String path = System.getProperty(ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
-		String file = System.getProperty(ENV_PROPERTIES.VIZ_CONFIG.name());
+		String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
+		String file = System.getProperty(G_PROPERTIES.VIZ_CONFIG.name());
 		String result = null;
 		if (file != null)
 			result = path+File.separator+file+".xml";

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -32,7 +31,7 @@ import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
 
-public class TestLabelRepresentation {
+public class TestSmtLabelRepresentation {
 	Configuration config = null;
 	
 	@Before
@@ -178,7 +177,7 @@ public class TestLabelRepresentation {
 			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ "       somePostcondB");
 		}
 		LabelRepresentation lblsDiffB = new LabelRepresentation();
-		TestFSMAlgo.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB);
+		TestEqualityComparisonAndHashCode.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB);
 	}
 	
 	@Test

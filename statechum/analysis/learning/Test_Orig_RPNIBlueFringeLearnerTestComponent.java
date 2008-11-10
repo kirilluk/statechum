@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -41,10 +41,11 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		super(parent,c);
 	}
 	
-	public DirectedSparseGraph learnMachine(DirectedSparseGraph model, Collection<List<String>> argSPlus, Collection<List<String>> argSMinus) 	{
+	@Override
+	public LearnerGraph learnMachine(Collection<List<String>> argSPlus, Collection<List<String>> argSMinus) 	{
 		this.sPlus = argSPlus;
 		this.sMinus = argSMinus;
-		model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
+		DirectedSparseGraph model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
 		DeterministicDirectedSparseGraph.findInitial(model).setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
 		setChanged();
 
@@ -99,9 +100,9 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 				else if (answer.firstElem == AbstractOracle.USER_ACCEPTED-1){
 					// sPlus = this.parentFrame.addTest(sPlus);
 					if(sPlus == null)
-						return model;
+						return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 					if(!containsSubString(sPlus, question))
-						return learnMachine(DeterministicDirectedSparseGraph.initialise(), sPlus, sMinus);
+						return learnMachine(sPlus, sMinus);
 				}
 				
 			}
@@ -120,7 +121,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
 		updateGraph(new LearnerGraph(model,Configuration.getDefaultConfiguration()));
-		return model;
+		return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 	}
 	
 	

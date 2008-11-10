@@ -506,7 +506,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = Transform.loadGraph(fsm.transform.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
-		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
+		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
@@ -528,7 +528,7 @@ public class TestTransform {
 			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
 		}
 		LearnerGraph actual = Transform.loadGraph(fsm.transform.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
-		Assert.assertNull(MergeStates.checkM_and_colours(fsm, actual));
+		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual));
 		Assert.assertEquals(fsm.init, actual.init);
 	}
 	
@@ -690,30 +690,30 @@ public class TestTransform {
 		graph.setIDNumbers();
 		Assert.assertTrue(ids_are_valid(graph));
 		final int currentPlus = graph.vertPositiveID, currentMinus = graph.vertNegativeID; 
-		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentMinus+10),graph.config),
-				new TreeMap<String,CmpVertex>());
+		graph.transitionMatrix.put(AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentMinus+10),graph.config),
+				graph.createNewRow());
 		Assert.assertFalse(ids_are_valid(graph));
 		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
 		graph.setIDNumbers();
 		Assert.assertTrue(ids_are_valid(graph));
 
-		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+10),graph.config),
-				new TreeMap<String,CmpVertex>());
+		graph.transitionMatrix.put(AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+10),graph.config),
+				graph.createNewRow());
 		Assert.assertFalse(ids_are_valid(graph));
 		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
 		graph.setIDNumbers();
 		Assert.assertTrue(ids_are_valid(graph));
 		
-		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEUTRAL,currentPlus+4),graph.config),
-				new TreeMap<String,CmpVertex>());
+		graph.transitionMatrix.put(AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(VertKind.NEUTRAL,currentPlus+4),graph.config),
+				graph.createNewRow());
 		Assert.assertTrue(ids_are_valid(graph));
-		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentPlus+4),graph.config),
-				new TreeMap<String,CmpVertex>());
+		graph.transitionMatrix.put(AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(VertKind.NEGATIVE,currentPlus+4),graph.config),
+				graph.createNewRow());
 		Assert.assertTrue(ids_are_valid(graph));
 		
 		// check an ID just over the current one.
-		graph.transitionMatrix.put(LearnerGraph.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+11),graph.config),
-				new TreeMap<String,CmpVertex>());
+		graph.transitionMatrix.put(AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(VertKind.POSITIVE,currentPlus+11),graph.config),
+				graph.createNewRow());
 		Assert.assertFalse(ids_are_valid(graph));
 		Assert.assertFalse(ids_are_valid(graph));// check that ids_are_valid did not mess up the IDs
 		graph.setIDNumbers();
@@ -825,7 +825,7 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	checkForCorrectException(new whatToRun() { public void run() {
 	    		Transform.loadGraph(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\"")),Configuration.getDefaultConfiguration());
@@ -838,7 +838,7 @@ public class TestTransform {
 	{
 		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	try
@@ -860,7 +860,7 @@ public class TestTransform {
 		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
 		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
 		gr.transform.writeGraphML(writer);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public void run() {
@@ -877,7 +877,7 @@ public class TestTransform {
 		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
 		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
 		gr.transform.writeGraphML(writer);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public void run() {
@@ -891,7 +891,7 @@ public class TestTransform {
 	{
 		LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		StringWriter writer = new StringWriter();gr.transform.writeGraphML(writer);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	try
 	    	{

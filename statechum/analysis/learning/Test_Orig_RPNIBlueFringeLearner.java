@@ -16,7 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * 
- * This is an original version of the learner, kept in order to perform regression testing.
+ * This is the original version of the learner, kept in order to perform regression testing.
  */ 
 package statechum.analysis.learning;
 
@@ -231,7 +231,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		throw new NotImplementedException();
 	}
 
-	/** This one is the very old implementation of the learner, kept for some regression testing 
+	/** This one is a very old implementation of the learner, kept for some regression testing 
 	 * but not participating in the logging-and-comparing type of testing.
 	 */ 
 	@Override 

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -1066,7 +1065,7 @@ public class TestWMethod {
 	public final void testVertexToInt0()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c-#C","testVertexToInt0"),config);
-		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,LearnerGraphND.ignoreRejectStates,false);
+		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,TransitionMatrixND.ignoreRejectStates,false);
 		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("A")));
 		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("B")));
 		Assert.assertFalse(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("C")));
@@ -1075,7 +1074,7 @@ public class TestWMethod {
 	public final void testVertexToInt1()
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
-		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,LearnerGraphND.ignoreRejectStates,false);
+		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,TransitionMatrixND.ignoreRejectStates,false);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(0,ndGraph.vertexToIntNR(A,A));
@@ -1087,7 +1086,7 @@ public class TestWMethod {
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<String>())));
-		LearnerGraphND numericNDGraph = new LearnerGraphND(numericGraph,LearnerGraphND.ignoreRejectStates,false);
+		LearnerGraphND numericNDGraph = new LearnerGraphND(numericGraph,TransitionMatrixND.ignoreRejectStates,false);
 		CmpVertex A = numericGraph.paths.getVertex(Arrays.asList(new String[]{})),
 			B = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b"})),
 			C = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b","c"}));
@@ -1126,8 +1125,8 @@ public class TestWMethod {
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);
-		Assert.assertNull(MergeStates.checkM_and_colours(graph,g));
-		Assert.assertNull(MergeStates.checkM_and_colours(g,graph));
+		Assert.assertNull(WMethod.checkM_and_colours(graph,g));
+		Assert.assertNull(WMethod.checkM_and_colours(g,graph));
 	}
 	
 	@Test
@@ -1137,8 +1136,8 @@ public class TestWMethod {
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);
-		Assert.assertNull(MergeStates.checkM_and_colours(graph,g));
-		Assert.assertNull(MergeStates.checkM_and_colours(g,graph));
+		Assert.assertNull(WMethod.checkM_and_colours(graph,g));
+		Assert.assertNull(WMethod.checkM_and_colours(g,graph));
 	}
 	
 	@Test
@@ -1148,8 +1147,8 @@ public class TestWMethod {
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("B").setColour(JUConstants.RED);
-		Assert.assertNotNull(MergeStates.checkM_and_colours(graph,g));
-		Assert.assertNotNull(MergeStates.checkM_and_colours(g,graph));
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph));
 	}
 	
 	@Test
@@ -1159,8 +1158,8 @@ public class TestWMethod {
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
 		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("D").setColour(JUConstants.RED);
-		Assert.assertNotNull(MergeStates.checkM_and_colours(graph,g));
-		Assert.assertNotNull(MergeStates.checkM_and_colours(g,graph));
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph));
 	}
 	
 	@BeforeClass

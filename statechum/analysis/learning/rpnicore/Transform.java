@@ -262,7 +262,7 @@ public class Transform {
 		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
     	GraphMLFile graphmlFile = new GraphMLFile();
     	graphmlFile.setGraphMLFileHandler(graphHandler);
-    	synchronized(LearnerGraph.syncObj)
+    	synchronized(AbstractTransitionMatrix.syncObj)
     	{// multi-core execution understandably fails if I forget to sync on that object
 	    	try
 	    	{
@@ -323,7 +323,7 @@ public class Transform {
 	public static LearnerGraph loadGraph(Reader from, Configuration cnf)
 	{
 		LearnerGraph graph = null;
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
@@ -351,7 +351,7 @@ public class Transform {
 	*/
 	public static LearnerGraph loadGraph(String fileName,Configuration config) throws IOException
 	{
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
 	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
@@ -383,9 +383,9 @@ public class Transform {
 		Iterator<String> inputIt = possibilities.iterator();
 		if (inputIt.hasNext())
 		{
-			CmpVertex newVertex = LearnerGraph.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
+			CmpVertex newVertex = AbstractTransitionMatrix.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
 			newVertex.setAccept(false);
-			coregraph.transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
+			coregraph.transitionMatrix.put(newVertex, coregraph.createNewRow());
 			coregraph.transitionMatrix.get(v).put(inputIt.next(),newVertex);
 		}
 	}
@@ -395,18 +395,19 @@ public class Transform {
 	 * prefix PrefixNew.
 	 * 
 	 * @param g graph to transform.
-	 * @param NrToKeep number of labels to keep.
+	 * @param argNrToKeep number of labels to keep.
 	 * @param PrefixNew prefix of new labels.
 	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
 	 */
-	public static void relabel(LearnerGraph g, int NrToKeep, String PrefixNew)
+	public static void relabel(LearnerGraph g, int argNrToKeep, String PrefixNew)
 	{
+		int NrToKeep = argNrToKeep;
 		Map<String,String> fromTo = new TreeMap<String,String>();
 		int newLabelCnt = 0;
 		TreeMap<CmpVertex,Map<String,CmpVertex>> newMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
 		{
-			Map<String,CmpVertex> newRow = new TreeMap<String,CmpVertex>();
+			Map<String,CmpVertex> newRow = g.createNewRow();
 			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 			{
 				if (NrToKeep > 0 && !fromTo.containsKey(transition.getKey()))
@@ -445,11 +446,12 @@ public class Transform {
 	 * </pre>
 	 * @param g target into which to merge what
 	 * @param what graph to merge into g.
-	 * @param whatToG maps original vertices to those included in the graph <em>g</em>.
+	 * @param argWhatToG maps original vertices to those included in the graph <em>g</em>.
 	 * @return vertex in g corresponding to the initial vertex in what 
 	 */ 
-	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what,Map<CmpVertex,CmpVertex> whatToG)
+	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what,Map<CmpVertex,CmpVertex> argWhatToG)
 	{
+		Map<CmpVertex,CmpVertex> whatToG = argWhatToG;
 		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();else whatToG.clear();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{// The idea is to number the new states rather than to clone vertices.
@@ -460,7 +462,7 @@ public class Transform {
 
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
 		{
-			Map<String,CmpVertex> row = new TreeMap<String,CmpVertex>();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
+			Map<String,CmpVertex> row = g.createNewRow();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
 			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
 				row.put(transition.getKey(), whatToG.get(transition.getValue()));
 		}
@@ -477,13 +479,13 @@ public class Transform {
 	 */
 	public CmpVertex copyVertexUnderDifferentName(CmpVertex what)
 	{
-		CmpVertex newVert = LearnerGraph.generateNewCmpVertex(coregraph.nextID(what.isAccept()), coregraph.config);
+		CmpVertex newVert = AbstractTransitionMatrix.generateNewCmpVertex(coregraph.nextID(what.isAccept()), coregraph.config);
 		if (coregraph.findVertex(newVert.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getID()+" in graph "+coregraph);
 		assert !coregraph.transitionMatrix.containsKey(newVert) : "duplicate vertex "+newVert;
 		newVert.setAccept(what.isAccept());
 		newVert.setHighlight(what.isHighlight());
 		newVert.setColour(what.getColour());
-		coregraph.transitionMatrix.put(newVert,new TreeMap<String,CmpVertex>());
+		coregraph.transitionMatrix.put(newVert,coregraph.createNewRow());
 		return newVert;
 	}
 	
@@ -568,7 +570,7 @@ public class Transform {
 			{
 				if (rejectVertex == null)
 				{
-					rejectVertex = LearnerGraph.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
+					rejectVertex = AbstractTransitionMatrix.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
 				}
 				Map<String,CmpVertex> row = entry.getValue();
 				for(String rejLabel:labelsToRejectState)
@@ -577,10 +579,23 @@ public class Transform {
 		}
 
 		if (rejectVertex != null)
-			coregraph.transitionMatrix.put(rejectVertex,new TreeMap<String,CmpVertex>());
+			coregraph.transitionMatrix.put(rejectVertex,coregraph.createNewRow());
 		
 		coregraph.learnerCache.invalidate();
 		return rejectVertex != null;
+	}
+
+	/** For each input where there is no transition from a state,
+	 * this function will add a transition to an inf-amber-coloured reject-state.
+	 */  
+	public LearnerGraph completeMatrix()
+	{
+		LearnerGraph result = coregraph.copy(coregraph.config);
+		VertexID rejectID = result.nextID(false);
+		result.transform.completeGraph(rejectID);
+		result.findVertex(rejectID).setColour(TransitionMatrixND.ltlColour);
+		result.findVertex(rejectID).setAccept(false);
+		return result;
 	}
 
 	/** Given a state and a W set, computes a map from those sequences to booleans representing
@@ -779,8 +794,8 @@ public class Transform {
 		StatePair statePair = new StatePair(graph.init,from.init);
 		pairsToGraphStates.put(statePair, statePair.firstElem);
 		encounteredGraph.add(statePair.firstElem);
-		result.init = LearnerGraph.cloneCmpVertex(graph.init, config);
-		result.transitionMatrix.put(result.init, new TreeMap<String,CmpVertex>());
+		result.init = AbstractTransitionMatrix.cloneCmpVertex(graph.init, config);
+		result.transitionMatrix.put(result.init, result.createNewRow());
 		pairsToGraphStates.put(statePair, result.init);
 		boolean graphModified = false;
 		if (statePair.firstElem.isAccept() && !statePair.secondElem.isAccept())
@@ -798,7 +813,7 @@ public class Transform {
 		if (statePair.firstElem.isAccept() == statePair.secondElem.isAccept())
 			currentExplorationBoundary.add(statePair);
 
-		Map<String,CmpVertex> emptyTargets = new TreeMap<String,CmpVertex>();
+		Map<String,CmpVertex> emptyTargets = result.createNewRow();
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -838,9 +853,9 @@ public class Transform {
 					if (!encounteredGraph.contains(graphState))
 					{// since we did not see this pair before, the first encountered 
 					 // vertex (graphState) is now a representative of the pair nextPair
-						nextGraphVertex = LearnerGraph.cloneCmpVertex(graphState, config);encounteredGraph.add(graphState);
+						nextGraphVertex = AbstractTransitionMatrix.cloneCmpVertex(graphState, config);encounteredGraph.add(graphState);
 						pairsToGraphStates.put(nextPair,nextGraphVertex);
-						result.transitionMatrix.put(nextGraphVertex, new TreeMap<String,CmpVertex>());
+						result.transitionMatrix.put(nextGraphVertex, result.createNewRow());
 						shouldDescend = nextGraphVertex.isAccept();
 					}
 					else
@@ -853,13 +868,13 @@ public class Transform {
 								throw new IllegalArgumentException("incompatible labelling: maximal automaton chops off some paths in a tentative automaton");
 							graphModified=true;
 						}
-						nextGraphVertex = LearnerGraph.generateNewCmpVertex(result.nextID(accept), config);
+						nextGraphVertex = AbstractTransitionMatrix.generateNewCmpVertex(result.nextID(accept), config);
 						if (result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
 						assert !result.transitionMatrix.containsKey(nextGraphVertex) : "duplicate vertex "+nextGraphVertex;
 						nextGraphVertex.setAccept(accept);
 						nextGraphVertex.setHighlight(graphState.isHighlight());
 						nextGraphVertex.setColour(graphState.getColour());
-						result.transitionMatrix.put(nextGraphVertex,new TreeMap<String,CmpVertex>());
+						result.transitionMatrix.put(nextGraphVertex,result.createNewRow());
 
 						pairsToGraphStates.put(nextPair, nextGraphVertex);
 						if (!accept) shouldDescend = false;

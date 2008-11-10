@@ -27,6 +27,12 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
+/** Tests the low-level parser for graphs. High-level functionality is tested
+ * using <em>TestGraphConstruction</em>
+ * 
+ * @author kirill
+ *
+ */
 public class TestFSMParser {
 	/** Used to receive state transitions extracted from textual FSM representation. */
 	interface TransitionReceiver

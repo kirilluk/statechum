@@ -19,7 +19,6 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,55 +30,19 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.JUConstants;
 import statechum.StringVertex;
-import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
  */
-public class LearnerGraph {
-	/** The initial vertex. */
-	CmpVertex init;
-
-	/** The name of this graph to be displayed by visualiser. */
-	protected String graphName = null;
-	
-	public void setName(String newGraphName)
-	{
-		graphName = newGraphName;
-	}
-	
-	public String getName()
-	{
-		return graphName;
-	}
-	
-	public static final String unknownName = "<UNKNOWN>";
-	
-	/** Returns a name if assigned and "Unknown" otherwise. 
-	 * 
-	 * @return name of this graph, never null.
-	 */
-	public String getNameNotNull()
-	{
-		String name = getName();return name == null?unknownName:name;
-	}
-	
-	/** Transition matrix. */
-	Map<CmpVertex,Map<String,CmpVertex>> transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
-			
+public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex> 
+{
 	/** Represents a slightly different view of this machine and used in W set generation. */
 	public abstract class FSMImplementation implements FSMAbstraction
 	{
@@ -119,7 +82,7 @@ public class LearnerGraph {
 			return red;
 		}
 	
-		public final CmpVertex junkVertex = LearnerGraph.generateNewCmpVertex(new VertexID("JUNK"),config);
+		public final CmpVertex junkVertex = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID("JUNK"),config);
 				
 		public Object getNextState(Object currentState, String input) 
 		{
@@ -196,87 +159,11 @@ public class LearnerGraph {
 		return stateLearnt;
 	}
 	
-	/** The configuration stores parameters used by a variety methods
-	 * involved in learning;
-	 */
-	public final Configuration config;
-	
 	/** Used to switch on a variety of consistency checks. */
 	public static boolean testMode = false;
 
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
-	
-	
-	/** Resets all the colour labelling to the initial value. */
-	public void clearColours()
-	{
-		for(CmpVertex v:transitionMatrix.keySet())
-			v.setColour(null);
-		init.setColour(JUConstants.RED);
-	}
-	
-	/** Resets all the colour labelling to the initial value, keeping the Amber. */
-	public void clearColoursButAmber()
-	{
-		for(CmpVertex v:transitionMatrix.keySet())
-			if (!config.getUseAmber() || // clear if not using amber
-					(v.getColour() != JUConstants.AMBER && v.getColour() != JUConstants.GRAY))// or colour is not AMBER or GREY 
-				v.setColour(null);
-		init.setColour(JUConstants.RED);
-	}
-	
-	/** Returns the number of states in the state machine. */
-	public int getStateNumber()
-	{
-		return transitionMatrix.size();
-	}
-	
-	/** Returns the number of amber states in the state machine. */
-	public int getAmberStateNumber()
-	{
-		int count = 0;
-		for(CmpVertex vert:transitionMatrix.keySet()) 
-			if (vert.getColour() == JUConstants.AMBER || vert.getColour() == JUConstants.GRAY) ++count;
-		return count;
-	}
-
-	/** Returns the number of accept states. */
-	public int getAcceptStateNumber()
-	{
-		int count = 0;
-		for(CmpVertex vert:transitionMatrix.keySet()) if (vert.isAccept()) ++count;
-		return count;
-	}
-	
-	/** Identifies maximal values of currently used IDs and makes sure 
-	 * that generation of IDs will not return any of the existing ones.
-	 * <p>
-	 * It is important to note that use of this method does not always 
-	 * ensure that IDs are not duplicates because graphs can be loaded 
-	 * with textual IDs which were originally numeric but were
-	 * converted into text before graphs were written out. Since we do 
-	 * not know this but both newly-generated numerical IDs and original
-	 * text IDs share a namespace, it is possible that an existing ID
-	 * the two will have the same string as the previously-loaded text.
-	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and another way via ant
-	 */
-	protected void setIDNumbers()
-	{
-		for(CmpVertex vert:transitionMatrix.keySet())
-			updateIDWith(vert);
-	}
-	
-	public void updateIDWith(CmpVertex vert)
-	{
-		VertexID id = vert.getID();
-		if ((id.getKind() == VertKind.NEUTRAL || id.getKind() == VertKind.POSITIVE)
-			&& id.getIngegerID() >= vertPositiveID)
-			vertPositiveID = id.getIngegerID()+1;
-		if ((id.getKind() == VertKind.NEGATIVE)
-				&& id.getIngegerID() >= vertNegativeID)
-			vertNegativeID = id.getIngegerID()+1;
-	}
 
 	final public ComputeQuestions questions = new ComputeQuestions(this);
 	final public PathRoutines paths = new PathRoutines(this);
@@ -288,63 +175,81 @@ public class LearnerGraph {
 	final CachedData learnerCache = new CachedData(this);
 	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
 
-	/** Initialises the class used to compute scores between states.
+	/** Constructs a StateChum graph from a Jung Graph
 	 *
-	 * @param g the graph it will be used on 
+	 * @param g the graph to build StateChum graph from
+	 * @param conf configuration to use
 	 */
 	public LearnerGraph(Graph g,Configuration conf)
 	{
-		config = conf;vertNegativeID = conf.getInitialIDvalue();vertPositiveID = conf.getInitialIDvalue();
+		super(conf);
+		TransitionMatrixND matrixND=new TransitionMatrixND(g,conf);
+		loadFrom(matrixND);
+	}
+	
+	/** Constructs a StateChum graph from the supplied graph. An IllegalArgumentException is thrown if a non-deterministic choice is detected.
+	 * Use <em>buildDeterministicGraph</em> for a proper conversion of a non-deterministic structure to
+	 * a deterministic one.
+	 *
+	 * @param matrixND the matrix to build graph from.
+	 */
+	public LearnerGraph(TransitionMatrixND matrixND)
+	{
+		super(matrixND.config);
+		loadFrom(matrixND);
+	}
+	
+	/** Loads the data in the graph from the supplied graph. An IllegalArgumentException is thrown if a non-deterministic choice is detected.
+	 * Use <em>buildDeterministicGraph</em> for a proper conversion of a non-deterministic structure to
+	 * a deterministic one.
+	 * 
+	 * @param matrixND the matrix to build graph from.
+	 */
+	private void loadFrom(TransitionMatrixND matrixND)
+	{
 		initEmpty();
-		Map<Vertex,CmpVertex> origToCmp = new HashMap<Vertex,CmpVertex>();
+		setName(matrixND.getName());
+		
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
 		incompatibles = new HashMap<CmpVertex,Set<CmpVertex>>();
-		if (g.containsUserDatumKey(JUConstants.TITLE))
-			setName((String)g.getUserDatum(JUConstants.TITLE));
-		Set<VertexID> idSet = new HashSet<VertexID>(); 
 		
-		synchronized (LearnerGraph.syncObj) 
+		// now we need to turn potentially non-deterministic choices of target states to deterministic ones.
+		vertNegativeID = matrixND.vertNegativeID;vertPositiveID=matrixND.vertPositiveID;
+
+		Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
+		
+		// First, clone vertices
+		for(CmpVertex state:matrixND.transitionMatrix.keySet())
 		{
-			for(Vertex srcVert:(Set<Vertex>)g.getVertices())
-			{
-				CmpVertex vert = null;
-				if (DeterministicDirectedSparseGraph.isInitial(srcVert))// special case for the initial vertex.
-				{
-					vert = cloneCmpVertex(srcVert,config);//generateNewCmpVertex(getDefaultInitialPTAName(),config);
-					Object property = srcVert.getUserDatum(JUConstants.INITIAL);
-					if (!(property instanceof Boolean) || !((Boolean)property).booleanValue())
-						throw new IllegalArgumentException("invalid init property");
-
-					if (init != null)
-						throw new IllegalArgumentException("vertices "+srcVert+" and "+init+" are both labelled as initial states");
-					init = vert;
-				}
-				else vert = cloneCmpVertex(srcVert,config);
-				origToCmp.put(srcVert, vert);
-
-				if (idSet.contains(vert.getID()))
-					throw new IllegalArgumentException("multiple states with the same name "+vert.getID());
-				idSet.add(vert.getID());
-				
-				transitionMatrix.put(vert,new TreeMap<String,CmpVertex>());// using TreeMap makes everything predictable
-			}
-		} // synchronized (LearnerGraph.syncObj)
-
-		if (init == null)
-			throw new IllegalArgumentException("missing initial state");
-		init.setColour(JUConstants.RED);
-
-		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
-		while(edgeIter.hasNext())
-		{	
-			DirectedSparseEdge edge = edgeIter.next();
-			Map<String,CmpVertex> outgoing = transitionMatrix.get(origToCmp.get(edge.getSource()));
-			assert origToCmp.containsKey(edge.getDest());// this cannot fail if we handle normal Jung graphs which will never let me add an edge with vertex not in the graph
-			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
-			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
+			CmpVertex newState = cloneCmpVertex(state, config);oldToNew.put(state, newState);
+			transitionMatrix.put(newState, createNewRow());
 		}
+		init = oldToNew.get(matrixND.init);
 		
-		setIDNumbers();
+		// Now clone edges.
+		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixND.transitionMatrix.entrySet())
+			transitionMatrix.put(oldToNew.get(entry.getKey()),convertRowToDet(entry.getValue(), oldToNew, entry.getKey()));
+	}
+
+	/** Given a deterministic row represented in a non-deterministic form, converts that row to a deterministic form.
+	 *  
+	 * @param map what to convert
+	 * @param oldToNew map used to convert vertices from those in the original map to those to be used in the result map. If null, no conversion is performed.
+	 * @param from the source state of the outgoing transitions - used in an error message
+	 * @return result of conversion 
+	 */
+	public Map<String,CmpVertex> convertRowToDet(Map<String,List<CmpVertex>> map, Map<CmpVertex,CmpVertex> oldToNew, CmpVertex from)
+	{
+		Map<String,CmpVertex> result = createNewRow();
+		for(Entry<String,List<CmpVertex>> rowEntry:map.entrySet())
+		{
+			if (rowEntry.getValue().size() != 1)
+				throw new IllegalArgumentException("non-deterministic or empty target state for transition from state "+from+" with label "+rowEntry.getKey());
+			CmpVertex target = rowEntry.getValue().iterator().next();if (oldToNew != null) target = oldToNew.get(target);
+			assert target != null;
+			result.put(rowEntry.getKey(),target);
+		}
+		return result;
 	}
 
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
@@ -358,29 +263,9 @@ public class LearnerGraph {
 		learnerCache.maxScore=score;
 	}
 	
-	/** Given a set of labels and a target state, this method adds to a supplied map an association 
-	 * of every label with the specified target state.
-	 * 
-	 * @param labels labels
-	 * @param to target state
-	 * @param map a map associating state <i>to</i> with each of the labels. If this is <i>null</i>, a new map is created.
-	 * @return an updated map.
-	 */ 
-	public static Map<String,CmpVertex> createLabelToStateMap(Collection<String> labels,CmpVertex to,Map<String,CmpVertex> map)
-	{
-		Map<String,CmpVertex> result = (map == null)? new LinkedHashMap<String,CmpVertex>() : map;
-		for(String label:labels)
-		{
-			if (result.containsKey(label))
-				throw new IllegalArgumentException("nondeterminism detected for label "+label);
-			result.put(label,to);
-		}
-		return result;
-	}
-
 	public LearnerGraph(Configuration conf)
 	{
-		config = conf;vertNegativeID = conf.getInitialIDvalue();vertPositiveID = conf.getInitialIDvalue();
+		super(conf);
 		initPTA();
 	}
 			
@@ -402,7 +287,7 @@ public class LearnerGraph {
 		
 		return result;
 	}
-	
+
 	public int countEdges()
 	{
 		Iterator<Map<String,CmpVertex>> outIt = transitionMatrix.values().iterator();
@@ -434,7 +319,7 @@ public class LearnerGraph {
 		for(CmpVertex state:transitionMatrix.keySet())
 		{
 			CmpVertex newState = cloneCmpVertex(state, copyConfiguration);oldToNew.put(state, newState);
-			result.transitionMatrix.put(newState, new TreeMap<String, CmpVertex>());
+			result.transitionMatrix.put(newState, createNewRow());
 		}
 		result.init = oldToNew.get(init);
 		
@@ -455,35 +340,21 @@ public class LearnerGraph {
 		return result;
 	}
 
-	/** Finds a vertex with a supplied identifier in a transition matrix.
-	 * <p>
-	 * <b>Important</b>: do not change the acceptance condition on the returned vertex: 
-	 * it will mess up the transition matrix since hash code is dependent on acceptance.
-	 */
-	public CmpVertex findVertex(String name)
+	/** Initialises this graph with a single-state PTA. */
+	@Override
+	public void initPTA()
 	{
-		if (name == null)
-			return null;
-		return findVertex(VertexID.parseID(name));
+		super.initPTA();
+		learnerCache.invalidate();
 	}
 	
-	/** Finds a vertex with a supplied identifier in a transition matrix.
-	 * <p>
-	 * <b>Important</b>: do not change the acceptance condition on the returned vertex: 
-	 * it will mess up the transition matrix since hash code is dependent on acceptance.
-	 */
-	public CmpVertex findVertex(VertexID name)
+	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
+	@Override
+	public void initEmpty()
 	{
-		CmpVertex result = null;
-		Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> entryIt = transitionMatrix.entrySet().iterator();
-		while(entryIt.hasNext() && result == null)
-		{
-			CmpVertex currentVert = entryIt.next().getKey();
-			VertexID vertName = currentVert.getID();
-			if (vertName.equals(name))
-				result = currentVert;
-		}
-		return result;
+		super.initEmpty();
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);incompatibles=new HashMap<CmpVertex,Set<CmpVertex>>();
+		learnerCache.invalidate();
 	}
 
 	/** Used to determine which states to consider/ignore during linear.
@@ -510,7 +381,6 @@ public class LearnerGraph {
 	 */
 	CmpVertex[] buildStateToIntegerMap(StatesToConsider whatToConsider, Map<CmpVertex,Integer> vertToIntMap)
 	{
-		//Map<CmpVertex,Integer> map = new TreeMap<CmpVertex,Integer>();
 		int size=0;for(CmpVertex vert:transitionMatrix.keySet()) 
 			if (whatToConsider == null || whatToConsider.stateToConsider(vert)) size++;
 		CmpVertex [] intToVertexMap = new CmpVertex[size];
@@ -523,41 +393,6 @@ public class LearnerGraph {
 			}
 		assert num == size;
 		return intToVertexMap;
-	}
-
-	/** A very important object - this one is used when I wish to create new vertices or edges in a Jung graph.
-	 * There are many threads which may wish to do that; the potential outcome is that a single thread may end up
-	 * with multiple Vertices with the same ID, as repeatedly observed on 50-6. Holding a lock on this global object 
-	 * when creating vertices/edges eliminates the potential of such racing, which occurs when public static int ID
-	 * gets increased by Jung in the course of object creation.
-	 */
-	public static final Object syncObj = new Object();
-	
-	/** Important: when a graph is cloned, these should be cloned too in order to avoid creating duplicate vertices at some point in future. */
-	protected int vertPositiveID = 0;
-	protected int vertNegativeID = 0;
-
-	/** Generates vertex IDs. Since it modifies instance ID-related variables, it has to be synchronized. */
-	public synchronized VertexID nextID(boolean accepted)
-	{
-		VertexID result = null;
-		if (config.getLearnerIdMode() == IDMode.POSITIVE_ONLY)
-			result = new VertexID(VertKind.NEUTRAL,vertPositiveID++);
-		else
-			result = (accepted?new VertexID(VertKind.POSITIVE,vertPositiveID++):
-					new VertexID(VertKind.NEGATIVE,vertNegativeID++));
-
-		return result;
-	}
-
-	public synchronized VertexID getDefaultInitialPTAName()
-	{
-		if (config.getDefaultInitialPTAName().length() > 0)
-			return new VertexID(config.getDefaultInitialPTAName());
-		return new VertexID(VertKind.POSITIVE,vertPositiveID++);
-		// Since the text ID of the initial vertex is "Init" which does not contain numerical ID,
-		// I cannot adequately load graphs containing such vertices. The best solution is to abolish it.
-		//new VertexID(VertKind.INIT,vertPositiveID++);
 	}
 	
 	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
@@ -574,86 +409,9 @@ public class LearnerGraph {
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
-		transitionMatrix.put(newVertex, new TreeMap<String,CmpVertex>());
+		transitionMatrix.put(newVertex, createNewRow());
 		transitionMatrix.get(prevState).put(input,newVertex);
 		return newVertex;
-	}
-
-	/** Creates a new vertex with the supplied name; the specific 
-	 * type generated depends on the configuration supplied. 
-	 * 
-	 * @param name the name of the vertex to generate
-	 * @param conf the configuration to use when deciding what to produce.
-	 * @return the new vertex.
-	 */
-	public static CmpVertex generateNewCmpVertex(VertexID name,Configuration conf)
-	{
-		synchronized(syncObj)
-		{
-			return conf.isLearnerUseStrings()? 
-					new StringVertex(name):
-					new DeterministicVertex(name);			
-		}		
-	}
-	
-	/** This is not quite like a real clone - it clones depending on the 
-	 * global configuration, so it is possible to turn a DeterministicVertex 
-	 * into a StringVertex and the other way around. Moreover, cloning a 
-	 * deterministic vertex requires holding a lock which is currently located in this class.
-	 * <p>
-	 * Important: if configuration specifies "do not clone", this one simply returns the 
-	 * vertex it has been passed (with one exception). 
-	 * There is an exception to this rule: if the supplied vertex
-	 * is not a CmpVertex and the configuration permits handling of such vertices, 
-	 * it will always be cloned. 
-	 * 
-	 * @param vertToClone vertex to clone.
-	 * @param conf configuration to use when cloning.
-	 * @return the result of cloning.
-	 */
-	public static CmpVertex cloneCmpVertex(Object vertToClone,Configuration conf)
-	{
-		CmpVertex result = null;
-		if (vertToClone instanceof CmpVertex)
-		{// normal processing
-			CmpVertex vert = (CmpVertex)vertToClone;
-			if (!conf.isLearnerCloneGraph())
-				result = vert;
-			else
-			{
-				result = generateNewCmpVertex(vert.getID(),conf);
-				result.setColour(vert.getColour());
-				result.setAccept(vert.isAccept());
-				result.setHighlight(vert.isHighlight());
-			}
-		}
-		else
-		{// we've been passed something which is not a CmpVertex
-			if (!(vertToClone instanceof Vertex))
-				throw new IllegalArgumentException("Cannot clone vertex which is neither a CmpVertex nor Vertex, what was passed is "+vertToClone);
-			if (!conf.isAllowedToCloneNonCmpVertex())
-				throw new IllegalArgumentException("Cannot clone a non-CmpVertex - prohibited using configuration");
-			
-			Vertex srcVert = (Vertex)vertToClone;
-			if (!srcVert.containsUserDatumKey(JUConstants.LABEL))
-				throw new IllegalArgumentException("vertex "+srcVert+" is not labelled");
-			
-			// Copying the attributes associated with the vertex
-			Object label = srcVert.getUserDatum(JUConstants.LABEL);
-			if (label instanceof VertexID)
-				result = generateNewCmpVertex((VertexID)label, conf);
-			else
-				if (label instanceof String)
-					result = generateNewCmpVertex(VertexID.parseID((String)label), conf);
-				else
-					throw new IllegalArgumentException("vertex with label "+label+" has an unsupported type");
-			result.setAccept(DeterministicDirectedSparseGraph.isAccept(srcVert));
-			if (srcVert.containsUserDatumKey(JUConstants.COLOUR))
-				result.setColour((JUConstants)srcVert.getUserDatum(JUConstants.COLOUR));
-			if (srcVert.containsUserDatumKey(JUConstants.HIGHLIGHT))
-				result.setHighlight(true);
-		}
-		return result;
 	}
 
 	/** Converts a transition into an FSM structure, by taking a copy.
@@ -697,99 +455,10 @@ public class LearnerGraph {
 			throw new IllegalArgumentException("Some states in the transition table are not included in vFrom");
 		return fsm;
 	}
-	
-	/** Initialises this graph with a single-state PTA. */
-	public void initPTA()
-	{
-		initEmpty(); 
-		init = generateNewCmpVertex(getDefaultInitialPTAName(),config);
-		init.setAccept(true);init.setColour(JUConstants.RED);
-		
-		transitionMatrix.put(init,new TreeMap<String,CmpVertex>());
-		learnerCache.invalidate();
-	}
-	
-	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
-	public void initEmpty()
-	{
-		transitionMatrix.clear();init=null;
-		pairsAndScores = new ArrayList<PairScore>(pairArraySize);incompatibles=new HashMap<CmpVertex,Set<CmpVertex>>();
-		learnerCache.invalidate();
-	}
 
 	@Override
-	public String toString()
-	{
-		return "Graph "+getNameNotNull()+" states: "+transitionMatrix.size();//+" (hash "+transitionMatrix.hashCode()+")";
-	}
-
-	/** This one does not consider configuration or IDs - only states/transitions 
-	 * are compared. I think this is best, however note that it is not a 
-	 * congruence: doing an "augment pta" may hence add vertices with different
-	 * numbers and hence previously identical graphs will become different.
-	 * I think that despite this problem, it is important to be able to consider
-	 * graphs with isomorphic transition diagrams to be the same.
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		//result = prime * result + ((config == null) ? 0 : config.hashCode());
-		//result = prime * result + vertNegativeID;
-		//result = prime * result + vertPositiveID;
-		result = prime * result + (init == null?0:init.hashCode());
-		result = prime * result + transitionMatrix.hashCode();
-		return result;
-	}
-
-	/** This one does not compare configuration or IDs - only states/transitions 
-	 * are compared and even that is done by matching identifiers of vertices. 
-	 * I think this is best, however note that it is not a congruence: 
-	 * <ul>
-	 * <li>doing an "augment pta" may hence add vertices with different
-	 * numbers and hence previously identical graphs will become different.
-	 * I think that despite this problem, it is important to be able to consider
-	 * graphs with isomorphic transition diagrams to be the same.</li>
-	 * <li>configurations are not compared, hence two graphs may behave differently 
-	 * when I try to learn using them.</li>
-	 * </ul>
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!(obj instanceof LearnerGraph))
-			return false;
-		final LearnerGraph other = (LearnerGraph) obj;
-		/*
-		if (config == null) {
-			if (other.config != null)
-				return false;
-		} else if (!config.equals(other.config))
-			return false;
-		if (vertNegativeID != other.vertNegativeID)
-			return false;
-		if (vertPositiveID != other.vertPositiveID)
-			return false;
-		*/
-		if (init == null)
-		{
-			if (other.init != null)
-				return false;
-		}
-		else
-			if (!init.equals(other.init))
-				return false;
-		
-		if (!transitionMatrix.equals(other.transitionMatrix)) // This is enough to check that the content of the matrices is the same.
-			return false;
-		return true;
+	public Map<String, CmpVertex> createNewRow() {
+		return new TreeMap<String,CmpVertex>();// using TreeMap makes everything predictable
 	}
 }
 

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -485,7 +484,7 @@ public class PathRoutines {
 		if (currentState == null)
 		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
 
-			synchronized (LearnerGraph.syncObj) 
+			synchronized (AbstractTransitionMatrix.syncObj) 
 			{
 				while(inputIt.hasNext())
 				{
@@ -520,7 +519,7 @@ public class PathRoutines {
 				{
 					if (prevState != null)
 						// truncate the current path, as long as it is not empty
-						synchronized (LearnerGraph.syncObj) 
+						synchronized (AbstractTransitionMatrix.syncObj) 
 						{
 							coregraph.addVertex(prevState, accepted, lastInput).setColour(newColour);
 						}
@@ -565,7 +564,7 @@ public class PathRoutines {
 					{// this one will happily add lots of reject nodes along the same path, however this cannot
 					 // happen because due to the way addVertex is used by nodeEntered and leafEntered
 					 // accept == true everyone other than the last node in a path.
-						synchronized (LearnerGraph.syncObj) 
+						synchronized (AbstractTransitionMatrix.syncObj) 
 						{
 							ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());
 						}
@@ -632,7 +631,7 @@ public class PathRoutines {
 	{
 		DirectedSparseGraph result = null;
 		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{
 			result = new DirectedSparseGraph();
 			if (name != null)
@@ -643,7 +642,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
 				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = (DeterministicVertex)LearnerGraph.cloneCmpVertex(source,cloneConfig);
+				DeterministicVertex vert = (DeterministicVertex)AbstractTransitionMatrix.cloneCmpVertex(source,cloneConfig);
 				if (coregraph.init == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				result.addVertex(vert);
@@ -714,7 +713,7 @@ public class PathRoutines {
 	public DirectedSparseGraph OrigGetGraph(String name)
 	{
 		DirectedSparseGraph result = null;
-		synchronized (LearnerGraph.syncObj) 
+		synchronized (AbstractTransitionMatrix.syncObj) 
 		{
 			result = new DirectedSparseGraph();
 			if (name != null)

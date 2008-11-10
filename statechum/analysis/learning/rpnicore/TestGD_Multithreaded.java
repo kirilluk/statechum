@@ -1,20 +1,21 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
@@ -170,10 +171,11 @@ public class TestGD_Multithreaded {
 	 * @param graphB second graph
 	 * @param name prefix of the names to give to graphs. 
 	 * @param expectedMatchedPairs the number of pairs of states which are expected to be matched
-	 * @param config configuration to use, default will be used if null.
+	 * @param argConfig configuration to use, default will be used if null.
 	 */
-	private final void testComputeGD_oneway(String graphA,String graphB,String name, int expectedMatchedPairs, Configuration config)
+	private final void testComputeGD_oneway(String graphA,String graphB,String name, int expectedMatchedPairs, Configuration argConfig)
 	{
+		Configuration config = argConfig;
 		if (config == null) config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
@@ -193,9 +195,9 @@ public class TestGD_Multithreaded {
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 	
-	private final void testNesting(String graphA,String graphB,String name, Configuration config)
+	private final void testNesting(String graphA,String graphB,String name, Configuration argConfig)
 	{
-		if (config == null) config = Configuration.getDefaultConfiguration();
+		Configuration config = argConfig;if (config == null) config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
 
@@ -209,22 +211,22 @@ public class TestGD_Multithreaded {
 		ChangesRecorder rec7 = 	new ChangesRecorder(rec6);
 		ChangesDisplay  rec8 = new ChangesDisplay(rec7);
 		ChangesCounter  rec9 = new ChangesCounter(grA,grB,rec8);
-		{
+		{// compute GD and check that changes recorded by rec9 are correct.
 			LearnerGraph graph1 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph1, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(), rec9));
 			Assert.assertNull(WMethod.checkM(graph1, grB));Assert.assertEquals(grB.getStateNumber(),graph1.getStateNumber());
 		}
-		{
+		{// check that changes propagated to rec7 are correct.
 			LearnerGraph graph2 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph2, rec7.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph2, grB));Assert.assertEquals(grB.getStateNumber(),graph2.getStateNumber());
 		}
-		{
+		{// check that changes propagated to rec4 are correct.
 			LearnerGraph graph3 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph3, rec4.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph3, grB));Assert.assertEquals(grB.getStateNumber(),graph3.getStateNumber());
 		}
-		{
+		{// check that changes propagated to rec1 are correct.
 			LearnerGraph graph4 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph4, rec1.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph4, grB));Assert.assertEquals(grB.getStateNumber(),graph4.getStateNumber());

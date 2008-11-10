@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -39,7 +39,6 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
-import statechum.GlobalConfiguration.ENV_PROPERTIES;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.*;
 
@@ -296,9 +295,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 	
 	public void construct(Graph g) {
-		boolean assertsEnabled = false;
-		assert assertsEnabled = true; // from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
-		if (!assertsEnabled && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT)))
+		if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT)))
 			System.err.println("Pass the -ea argument to JVM to enable assertions");
 
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -858,7 +855,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	protected static String getLayoutFileName(Graph g)
 	{
 		String file = (String)g.getUserDatum(JUConstants.TITLE);
-		String path = System.getProperty(ENV_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
+		String path = System.getProperty(G_PROPERTIES.VIZ_DIR.name());if (path == null) path="resources"+File.separator+"graphLayout";
 		if (file == null)
 			throw new IllegalArgumentException("cannot obtain graph name, the "+JUConstants.TITLE.name()+" property has not been set on the graph");
 		

@@ -23,6 +23,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -126,8 +127,7 @@ public class GraphSeries {
 		{
 			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
 			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
-			boolean assertionsEnabled = false;assert assertionsEnabled = true;
-			if (assertionsEnabled) 
+			if (GlobalConfiguration.getConfiguration().isAssertEnabled()) 
 			{
 				// Cannot compare colours here because patches are structural, 
 				// hence where there are no new transitions, colours are retained rather

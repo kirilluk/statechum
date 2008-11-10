@@ -245,7 +245,7 @@ public class TestGD {
 		WMethod.checkM(gr, expected);
 	}
 	
-	/** remove a transition to an initial state. */
+	/** remove a transition from an initial state. */
 	@Test
 	public final void testRemoveTransitions3()
 	{

@@ -389,8 +389,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
-	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, 
-			@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") Object[] options) 
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, Object[] options) 
 	{
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(ELEM_KINDS.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;
@@ -430,8 +429,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
-	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, 
-			@SuppressWarnings("unused")	LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp)
 	{
 		return readSequenceList(getElement(ELEM_KINDS.ELEM_SEQ.name()),ELEM_KINDS.ATTR_QUESTIONS.name());
 	}
@@ -471,7 +469,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param pair the pair to be merged. Loaded from XML file.
 	 * @return graph loaded from XML file.
 	 */
-	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
+	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
 		Element graphNode = getElement(GD.ChangesRecorder.gdGD);
 		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeNameNS);
@@ -483,7 +481,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * 
 	 * @param mode value loaded from XML.
 	 */
-	public void Restart(@SuppressWarnings("unused")	RestartLearningEnum mode) 
+	public void Restart(RestartLearningEnum mode) 
 	{// Does nothing in the simulator. 
 	}
 
@@ -501,8 +499,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param plus value loaded from XML
 	 * @param minus value loaded from XML
 	 */
-	public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus, 
-			@SuppressWarnings("unused") Collection<List<String>> minus) 
+	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus) 
 	{
 		InitialData initial = readInitialData(currentElement);// wastefully load the element once again - does not matter because this is done very infrequently
 		return initial.graph;
@@ -536,11 +533,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param accepted loaded from XML.
 	 * @param newColour loaded from XML.
 	 */
-	public void AugmentPTA(@SuppressWarnings("unused") LearnerGraph pta, 
-			@SuppressWarnings("unused") RestartLearningEnum ptaKind, 
-			@SuppressWarnings("unused") List<String> sequence, 
-			@SuppressWarnings("unused") boolean accepted, 
-			@SuppressWarnings("unused") JUConstants newColour) 
+	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind, 
+			List<String> sequence, boolean accepted, JUConstants newColour) 
 	{// Does nothing in the simulator. 		
 	}
 

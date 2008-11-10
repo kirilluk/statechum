@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -416,5 +417,20 @@ abstract public class AbstractTransitionMatrix<TARGET_TYPE> {
 		if (!transitionMatrix.equals(other.transitionMatrix)) // This is enough to check that the content of the matrices is the same.
 			return false;
 		return true;
+	}
+
+	/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
+	 * or recorded as incompatible.
+	 *  
+	 * @param pair what to check. It is assumed that the two states belong to the graph.
+	 * @return false if a pair is incompatible, true otherwise.
+	 */
+	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, Map<CmpVertex,Set<CmpVertex>> incompatibles)
+	{
+		if (Q.isAccept() != R.isAccept())
+			return false;
+
+		Set<CmpVertex> incSet = incompatibles.get(Q);
+		return incSet == null || !incSet.contains(R);
 	}
 }

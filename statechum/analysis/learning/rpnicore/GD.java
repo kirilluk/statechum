@@ -218,14 +218,14 @@ public class GD {
 				newToOrig.put(pair.getR(),pair.getQ());// since we now know 
 				// which state of A pair.getQ() of combined corresponds to, change the mapping.
 				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
-				assert pair.getQ().isAccept() == pair.getR().isAccept();
+				assert AbstractTransitionMatrix.checkCompatible(pair.getQ(),pair.getR(),grCombined.incompatibles);
 				aTOb.put(pair.getQ(),pair.getR());
 			}
 			assert aTOb.size() == aTOb.values().size() : " duplicate right-hand side in key pairs";
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
-						pair.getQ().isAccept() == pair.getR().isAccept()) // we should not merge incompatible pairs
+						AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 				}
@@ -483,8 +483,8 @@ public class GD {
 				graph.transitionMatrix.put(fromVert,graph.createNewRow());
 			}
 			else
-				if (fromVert.isAccept() != vert.isAccept()) // it is known but with a different accept condition
-					throw new IllegalArgumentException("vertex "+vert+" has a different accept condition to the one in graph "+graph);
+				if (!AbstractTransitionMatrix.checkCompatible(fromVert,vert, graph.incompatibles)) // it is known but with a different accept condition
+					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);
 			
 			return fromVert;
 		}
@@ -907,7 +907,7 @@ public class GD {
 		// of the computation below.
 		if (fallbackToInitialPair)
 		{
-			if (combined_initA.isAccept() == combined_initB.isAccept())
+			if (AbstractTransitionMatrix.checkCompatible(combined_initA, combined_initB, grCombined.incompatibles))
 				topPair = new PairScore(combined_initA,combined_initB,0,0);
 		}
 		else
@@ -963,7 +963,7 @@ public class GD {
 				if (pair.getScore() > 0 && pair.getScore() >= threshold && // top score good enough
 						(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
 						!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
-						pair.getQ().isAccept() == pair.getR().isAccept() // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+						AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
 						)
 				{
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());

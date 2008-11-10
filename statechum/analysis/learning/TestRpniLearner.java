@@ -1209,11 +1209,17 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	private void testGeneralPairScoreComputation(String machine, String graphName, int expectedScore,
-			String[][] expectedSrc)
+			String[][] expectedSrc,String [][]incompatibles)
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machine, graphName);
 		//Visualiser.updateFrame(g, null);
 		LearnerGraph fsm = new LearnerGraph(g,config);
+		if (incompatibles != null)
+			for(String [] incompatibleRow:incompatibles)
+			{
+				assert incompatibleRow.length == 2;
+				fsm.addToIncompatibles(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]));
+			}
 		Collection<Collection<CmpVertex>> result = new LinkedList<Collection<CmpVertex>>();
 		int score = -2;
 		//Visualiser.waitForKey();
@@ -1223,7 +1229,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			matchCollectionsOfVertices(result, expectedSrc);
 		
 		result.clear();score = -2;
-		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(new VertexID("A")),fsm.findVertex(new VertexID("B"))),result);
+		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(new VertexID("B")),fsm.findVertex(new VertexID("A"))),result);
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);
@@ -1237,6 +1243,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"A-b->E",
 				"testPairCompatible1",
 				3, new String[][] {new String[]{"A","B","C"}, new String[]{"D","E"} }
+				,null
 		);
 	}
 
@@ -1259,6 +1266,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"A-b-#E",
 				"testPairCompatible1",
 				-1, null
+				,null
 		);
 	}
 	
@@ -1273,6 +1281,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"testPairCompatible_general_A",
 				7, new String[][] {new String[]{"A","B1","B"}, new String[]{"P1","P2"},
 						new String[]{"C1","C2","C3"}, new String[]{"D1","D2","D3"}}
+				,null
 		);
 	}
 
@@ -1290,6 +1299,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"testPairCompatible_general_B",
 				14, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5"}, new String[]{"C1","C2","C3"},
 						new String[]{"D1","D2","D3"}, new String[]{"T1","T2","T3","T4","T5"}}
+				,null
 		);
 	}
 
@@ -1307,19 +1317,23 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"testPairCompatible_general_C",
 				20, new String[][] {new String[]{"A","B","B1","B2","B3","B4","B5","B10","B11","B12","B13","B14","B15"}, new String[]{"C1","C2","C3"},
 						new String[]{"D1","D2","D3"}, new String[]{"T1","T2","T3","T4","T5"}}
+				,null
 		);
 	}
-	
-	@Test
-	public final void testPairCompatible_general_D()
-	{
-		testGeneralPairScoreComputation(
+
+	private static final String testGeneralD_fsm =
 		"S-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA-c->A2-c->A3\n"+"A5<-a-A3-b->A4\n"+
 		"A-d->B\n"+
 		"B-c->B1-b->B2-a->B3-b->B4-d->B5\n"+
 			"B1-c->B6-b->B7\n"+
 		"B-a->BD1-a->BD2-a->BD3-b->BD4-c->BD5\n"+
-		"B-b->BB1-b->BB2",
+		"B-b->BB1-b->BB2";
+
+	
+	@Test
+	public final void testPairCompatible_general_D()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
 		"testPairCompatible5",
 		12, new String[][] {
 				new String[]{"A","B"}, new String[]{"BB1","B1","A2" },
@@ -1327,15 +1341,36 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				new String[]{"A1","BD1"},new String[]{"B7","A4"},
 				new String[]{"B3","A5","BD3"}, new String[]{"B4","BD4"},
 				new String[]{"B5"}, new String[]{"BD5"},new String[]{"S"}}
+		,null
 		);
 	}
 
+	@Test
+	public final void testPairCompatible_general_D_fail1()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
+		"testPairCompatible5",
+		12, new String[][] {
+				new String[]{"A","B"}, new String[]{"BB1","B1","A2" },
+				new String[]{"BB2","B2","B6","A3","BD2"},
+				new String[]{"A1","BD1"},new String[]{"B7","A4"},
+				new String[]{"B3","A5","BD3"}, new String[]{"B4","BD4"},
+				new String[]{"B5"}, new String[]{"BD5"},new String[]{"S"}}
+		,new String[][]{
+				new String[]{"BB2","BD2"}
+		}
+		);
+	}
+
+	
 	@Test
 	public final void testPairCompatible3()
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid1,11,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible3");
-		testGeneralPairScoreComputation(largeGraph1_invalid1, "testPairCompatible3",-1,null);
+		testGeneralPairScoreComputation(largeGraph1_invalid1, "testPairCompatible3",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1343,7 +1378,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid2,11,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible4");
-		testGeneralPairScoreComputation(largeGraph1_invalid2, "testPairCompatible4",-1,null);
+		testGeneralPairScoreComputation(largeGraph1_invalid2, "testPairCompatible4",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1354,7 +1391,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 					// the fact that there is a path of length 3 which is 
 					// incompatible may or may not cause ktails to choke, 
 					// depending on the order of traversal. At present, it does not.
-		testGeneralPairScoreComputation(largeGraph1_invalid3, "testPairCompatible5",-1,null);
+		testGeneralPairScoreComputation(largeGraph1_invalid3, "testPairCompatible5",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1362,7 +1401,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid4,-1,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible6");
-		testGeneralPairScoreComputation(largeGraph1_invalid4, "testPairCompatible6",-1,null);
+		testGeneralPairScoreComputation(largeGraph1_invalid4, "testPairCompatible6",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1370,7 +1411,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testScoreAndCompatibilityComputation(largeGraph1_invalid5,11,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible7");
-		testGeneralPairScoreComputation(largeGraph1_invalid5, "testPairCompatible7",-1,null);
+		testGeneralPairScoreComputation(largeGraph1_invalid5, "testPairCompatible7",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1382,6 +1425,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				8,new String[][] {
 				new String[]{"S","BL1","BL6"}, new String[]{"A","B","BL2","BL3","BL7","BL8"},
 				new String[]{"BL9","BL4"},new String[]{"BL5"}}
+				,null
 			);
 	}
 
@@ -1394,6 +1438,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				8,new String[][] {
 				new String[]{"S","BL1","BL6"}, new String[]{"A","B","BL2","BL3","BL7","BL8"},
 				new String[]{"BL9","BL4"},new String[]{"BL5"}, new String[]{"B1"}}
+				,null
 		);
 	}
 
@@ -1402,7 +1447,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testScoreAndCompatibilityComputation(largeGraph2_invalid1,5,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_3");
-		testGeneralPairScoreComputation(largeGraph2_invalid1, "testPairCompatible2_3",-1,null);
+		testGeneralPairScoreComputation(largeGraph2_invalid1, "testPairCompatible2_3",-1,null
+				,null
+				);
 	}
 
 	@Test
@@ -1410,7 +1457,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testScoreAndCompatibilityComputation(largeGraph4_invalid1,5,-1,-1,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible2_4");
-		testGeneralPairScoreComputation(largeGraph4_invalid1, "testPairCompatible2_4",-1,null);
+		testGeneralPairScoreComputation(largeGraph4_invalid1, "testPairCompatible2_4",-1,null
+				,null
+				);
 	}
 	
 	@Test
@@ -1420,7 +1469,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		testScoreAndCompatibilityComputation(fsm,2,2,0,
 				maxScoreConstant,maxScoreConstant,2,"testPairCompatible3_1");
 		testGeneralPairScoreComputation(fsm, "testPairCompatible3_1",3,new String[][] {
-				new String[]{"A","B","C","D"}});
+				new String[]{"A","B","C","D"}}
+				,null
+		);
 	}
 
 	@Test
@@ -1430,7 +1481,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		testScoreAndCompatibilityComputation(fsm,5,5,2,
 				maxScoreConstant,maxScoreConstant,maxScoreConstant,"testPairCompatible3_2");
 		testGeneralPairScoreComputation(fsm, "testPairCompatible3_2",6,new String[][] {
-				new String[]{"J","E"},new String[]{"A","B","G","I"},new String[]{"C","F","H"}});
+				new String[]{"J","E"},new String[]{"A","B","G","I"},new String[]{"C","F","H"}}
+				,null
+		);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////

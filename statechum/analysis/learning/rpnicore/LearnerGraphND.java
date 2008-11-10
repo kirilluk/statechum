@@ -49,11 +49,14 @@ import cern.colt.matrix.DoubleMatrix2D;
  * state machines, represented with the class below.
  */
 public class LearnerGraphND
-{	
+{
+	/** An alphabet of the considered graphs. */
 	final Set<String> alphabet;
 	final Configuration config;
 
 	final StatesToConsider filter;
+	
+	final Map<CmpVertex,Set<CmpVertex>> incompatibles;
 	
 	/** Associates this object to LinearGraph it is using for data to operate on. 
 	 * Important: the constructor should not access any data in computeStateScores 
@@ -71,7 +74,8 @@ public class LearnerGraphND
 		alphabet = coregraph.learnerCache.getAlphabet();config=coregraph.config;filter=stateFilter;
 		matrixInverse = new TransitionMatrixND(config);
 		matrixForward = new TransitionMatrixND(config);
-
+		incompatibles = coregraph.incompatibles;
+		
 		stateToNumberMap = new TreeMap<CmpVertex,Integer>();
 		numberToStateArray = coregraph.buildStateToIntegerMap(filter,stateToNumberMap);
 		assert numberToStateArray.length == stateToNumberMap.size();
@@ -492,9 +496,10 @@ public class LearnerGraphND
 					// different threads handle non-intersecting ranges of them, hence most of the time,
 					// there should be no "cache thrashing".
 					BitVector B_accepted=inputsAccepted.get(stateB.getKey()),B_rejected=inputsRejected.get(stateB.getKey());
-					if (stateB.getKey().isAccept() != entryA.getKey().isAccept() ||// relevant if we do not filter 
-							// any states initially; this is the case where there are states 
+					if (!AbstractTransitionMatrix.checkCompatible(stateB.getKey(), entryA.getKey(), incompatibles) ||// relevant in two cases: 
+							// (A) if we do not filter any states initially; this is the case where there are states 
 							// without outgoing transitions which may be incompatible due to different labelling.
+							// (B) some pairs of states are recorded as incompatible
 							intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
 					{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
 						sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
@@ -639,10 +644,9 @@ public class LearnerGraphND
 		 * based on state values. States are needed to ensure that incompatible vertices get
 		 * appropriate scores.
 		 */
-		protected void compute(CmpVertex stateA, CmpVertex stateB,Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
+		protected void compute(boolean incompatible, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
 		{
 			sharedSameHighlight = 0;sharedOutgoing = 0;totalOutgoing = 0;
-			boolean incompatible = stateA.isAccept() != stateB.isAccept();
 			
 			for(Entry<String,List<CmpVertex>> entry:rowA.entrySet())
 			{
@@ -667,7 +671,7 @@ public class LearnerGraphND
 			{// force a relatively high incompatibility score
 				sharedOutgoing = PAIR_INCOMPATIBLE*(totalOutgoing >0?totalOutgoing:1);
 				// When linear is used to choose states to be merged, incompatible states are filtered out
-				// before this method is even called. In addition states with totalOutgoing == 0 are 
+				// before this method is even called. In addition, states with totalOutgoing == 0 are 
 				// filtered out too. The only case when totalOutgoing is zero is the case of GD when
 				// no states are filtered out.
 				// TODO: to eliminate empty rows with the only diagonal non-zero from the set of rows considered by linear
@@ -921,7 +925,7 @@ public class LearnerGraphND
 									}
 							}
 						}
-						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.transitionMatrix.get(stateB.getKey()));
+						ddrhInstance.compute(!AbstractTransitionMatrix.checkCompatible(entryA.getKey(),stateB.getKey(), incompatibles), entryA.getValue(),matrixForward.transitionMatrix.get(stateB.getKey()));
 						b[currentStatePair]=ddrhInstance.getRightHandSide();
 						if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
 						

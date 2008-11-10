@@ -34,7 +34,6 @@ import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 
@@ -123,7 +122,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	 * @param A one of the vertices to add
 	 * @param B another vertex to add.
 	 */
-	void addToIncompatibles(CmpVertex A, CmpVertex B)
+	public void addToIncompatibles(CmpVertex A, CmpVertex B)
 	{
 		assert !A.getID().equals(B.getID());
 		addToIncompatibles_internal(A, B);
@@ -138,17 +137,6 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 			incSet = new HashSet<CmpVertex>();incompatibles.put(A,incSet);
 		}
 		incSet.add(B);
-	}
-	
-	/** Verifies whether a supplied pair is recorded as incompatible.
-	 *  
-	 * @param pair what to check. It is assumed that the two states belong to the graph.
-	 * @return true if a pair is incompatible, false otherwise.
-	 */
-	public boolean checkIncompatible(StatePair pair)
-	{
-		Set<CmpVertex> incSet = incompatibles.get(pair.getQ());
-		return incSet != null && incSet.contains(pair.getR());
 	}
 	
 	/** The state corresponding to the red and blue states after the merge of which this graph was built. */

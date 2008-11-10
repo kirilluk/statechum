@@ -335,10 +335,12 @@ public class TestLinear {
 	 */
 	private final void getMatcherValue(LearnerGraph gr,TransitionMatrixND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(gr.findVertex(A),gr.findVertex(B),matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
+		matcher.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.incompatibles),
+				matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(gr.findVertex(B),gr.findVertex(A),matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
+		matcher.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag);
 		
@@ -350,7 +352,8 @@ public class TestLinear {
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
+		anotherMather.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag);
 	}

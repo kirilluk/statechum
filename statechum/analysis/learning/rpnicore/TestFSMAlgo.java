@@ -316,21 +316,26 @@ public class TestFSMAlgo {
 		Assert.assertNull(v);
 	}
 
+	private final boolean checkIncompatible(LearnerGraph gr,StatePair pair)
+	{
+		return !AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), gr.incompatibles);
+	}
+	
 	/** Adding A, B as incompatible states. */
 	@Test
 	public final void testAddToIncompatibles1()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		
 		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
 	/** Adding B, A as incompatible states. */
@@ -338,16 +343,16 @@ public class TestFSMAlgo {
 	public final void testAddToIncompatibles2()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		
 		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
 	/** Adding B, A as incompatible states twice. */
@@ -355,17 +360,17 @@ public class TestFSMAlgo {
 	public final void testAddToIncompatibles3()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		
 		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
 		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
 	/** Adding B, A as incompatible states twice. */
@@ -373,17 +378,17 @@ public class TestFSMAlgo {
 	public final void testAddToIncompatibles4()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		
 		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
 		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
 	/** Adding B, A as incompatible states twice. */
@@ -391,19 +396,17 @@ public class TestFSMAlgo {
 	public final void testAddToIncompatibles5()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		
 		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
 		grf.addToIncompatibles(grf.findVertex("C"),grf.findVertex("A"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("D"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("D"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
 	/** Checking that copying a graph clones the array. */
@@ -411,37 +414,37 @@ public class TestFSMAlgo {
 	public final void testIncompatibles5()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
 		LearnerGraph graph2 = grf.copy(Configuration.getDefaultConfiguration());
 		
 		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
 		
 		graph2.addToIncompatibles(grf.findVertex("C"),grf.findVertex("A"));
 		
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
-		Assert.assertTrue(grf.checkIncompatible(new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
-		Assert.assertFalse(grf.checkIncompatible(new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
-		Assert.assertFalse(graph2.checkIncompatible(new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
-		Assert.assertTrue(graph2.checkIncompatible(new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
-		Assert.assertTrue(graph2.checkIncompatible(new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("A"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
+		Assert.assertTrue(checkIncompatible(graph2,new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
 	}
 	
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.

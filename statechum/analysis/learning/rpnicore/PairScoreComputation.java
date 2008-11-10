@@ -238,8 +238,8 @@ public class PairScoreComputation {
 			// nodes with identical moves, PTA nodes do not contribute to anything - we only need
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
-			//System.out.println(" "+currentPair);
-			if (currentPair.getQ().isAccept() != currentPair.getR().isAccept())
+
+			if (!AbstractTransitionMatrix.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.incompatibles))
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
@@ -473,7 +473,7 @@ public class PairScoreComputation {
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair currentPair = currentExplorationBoundary.remove();
-			if (currentPair.firstElem.isAccept() != currentPair.secondElem.isAccept())
+			if (!AbstractTransitionMatrix.checkCompatible(currentPair.firstElem,currentPair.secondElem,coregraph.incompatibles))
 			{
 				score = -1;
 				break;// incompatibility
@@ -600,7 +600,7 @@ public class PairScoreComputation {
 	 */
 	public int computeStateScore(StatePair pair)
 	{
-		if (pair.getR().isAccept() != pair.getQ().isAccept())
+		if (!AbstractTransitionMatrix.checkCompatible(pair.getR(),pair.getQ(),coregraph.incompatibles))
 			return -1;
 
 		int score = 0;
@@ -632,7 +632,7 @@ public class PairScoreComputation {
 					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
 					if (nextBlueState != null)
 					{// both states can make a transition
-						if (redEntry.getValue().isAccept() != nextBlueState.isAccept())
+						if (!AbstractTransitionMatrix.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.incompatibles))
 							return -1;// incompatible states
 						
 						if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
@@ -754,7 +754,7 @@ public class PairScoreComputation {
 									!filter.stateToConsider(stateB.getKey()))
 							{
 								int score = 0;
-								if (stateB.getKey().isAccept() != entryA.getKey().isAccept()) score=LearnerGraphND.PAIR_INCOMPATIBLE;
+								if (!AbstractTransitionMatrix.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.incompatibles)) score=LearnerGraphND.PAIR_INCOMPATIBLE;
 								if (score>threshold)
 									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
 

@@ -54,6 +54,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.observers.TestWriteReadPair;
+import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 import static statechum.analysis.learning.rpnicore.Transform.HammingDistance;
@@ -866,6 +867,48 @@ public class TestTransform {
 	    	checkForCorrectException(new whatToRun() { public void run() {
 	    		Transform.loadGraph(new StringReader(writer.toString().replace(Transform.graphmlDataIncompatible, "AA")),Configuration.getDefaultConfiguration());
 	    	}},IllegalArgumentException.class,"unexpected key");
+		}		
+	}
+	
+	/** Unknown state in a pair. */
+	@Test
+	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate1() throws IOException
+	{
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
+		final StringWriter writer = new StringWriter();
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
+		gr.transform.writeGraphML(writer);
+		synchronized (AbstractTransitionMatrix.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	
+	    	checkForCorrectException(new whatToRun() { public void run() {
+	    		Transform.loadGraph(new StringReader(writer.toString().replace(
+		    		ELEM_KINDS.ATTR_Q.name()+"=\""+gr.findVertex("S").getID().toString(),
+		    		ELEM_KINDS.ATTR_Q.name()+"=\""+"T"
+	    		)),Configuration.getDefaultConfiguration());
+	    	}},IllegalArgumentException.class,"Unknown state T");
+		}		
+	}
+	
+	/** Unknown state in a pair. */
+	@Test
+	public final void testGraphMLWriter_fail_on_load_pairs_unknownstate2() throws IOException
+	{
+		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
+		final StringWriter writer = new StringWriter();
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("A"));
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("S"));
+		gr.transform.writeGraphML(writer);
+		synchronized (AbstractTransitionMatrix.syncObj) 
+		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
+	    	
+	    	checkForCorrectException(new whatToRun() { public void run() {
+	    		Transform.loadGraph(new StringReader(writer.toString().replace(
+		    		ELEM_KINDS.ATTR_R.name()+"=\""+gr.findVertex("A").getID().toString(),
+		    		ELEM_KINDS.ATTR_R.name()+"=\""+"T"
+	    		)),Configuration.getDefaultConfiguration());
+	    	}},IllegalArgumentException.class,"Unknown state T");
 		}		
 	}
 	

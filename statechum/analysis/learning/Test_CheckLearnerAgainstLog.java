@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.ComparisonKind;
 import statechum.analysis.learning.observers.Learner;
@@ -40,7 +41,6 @@ import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.RecordProgressDecorator;
 import statechum.analysis.learning.observers.Test_LearnerComparator;
-import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -65,7 +65,7 @@ public class Test_CheckLearnerAgainstLog
 		try {
 			final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
 			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
-			final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
+			final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 			simulator.setNextElement(nextElement);
 	
@@ -74,7 +74,7 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
+						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
 					return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
@@ -118,12 +118,14 @@ public class Test_CheckLearnerAgainstLog
 		{
 			evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);
 			evalData.config.setSpeculativeQuestionAsking(false);
+			evalData.config.setIgnoreDepthInTheChoiceOfRepresentatives(true);evalData.config.setIgnoreVertexAttributesInLogReplay(true);
 		}
 		else 		
 			if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEAMBER_MAY2008.name()))
 			{
 				evalData.config.setUseAmber(true);evalData.config.setUseLTL(false);
 				evalData.config.setSpeculativeQuestionAsking(false);
+				evalData.config.setIgnoreDepthInTheChoiceOfRepresentatives(true);evalData.config.setIgnoreVertexAttributesInLogReplay(true);
 			}
 			else 
 				if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
@@ -133,25 +135,16 @@ public class Test_CheckLearnerAgainstLog
 					evalData.config.setUseAmber(false);evalData.config.setUseLTL(false);
 					evalData.config.setSpeculativeQuestionAsking(false);
 					evalData.config.setDefaultInitialPTAName("Init");
+					evalData.config.setIgnoreDepthInTheChoiceOfRepresentatives(true);evalData.config.setIgnoreVertexAttributesInLogReplay(true);
 				}
 				else
 					Assert.fail("unknown type of log file");
 
-		final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
+		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 		simulator.setNextElement(nextElement);
-		
-		Learner learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,evalData.config,null,null))
-		{
-			@Override
-			public Pair<Integer,String> CheckWithEndUser(
-					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, 
-					@SuppressWarnings("unused")	final Object [] moreOptions)
-					{
-						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
-					}
-		};
+
+		Learner learner2 = null;
 
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 		{// have to patch the learner.
@@ -188,7 +181,7 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
+						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
@@ -196,8 +189,52 @@ public class Test_CheckLearnerAgainstLog
 			};
 		    
 		}
+		else
+		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_MAY2008.name()) ||
+				logFileName.contains(Configuration.LEARNER.LEARNER_BLUEAMBER_MAY2008.name())
+		 )
+		{// have to patch the learner.
+			
+			learner2 = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,evalData.config,null,null)) 
+			{
+				/* (non-Javadoc)
+				 * @see statechum.analysis.learning.observers.DummyLearner#init(java.util.Collection, java.util.Collection)
+				 */
+				@Override
+				public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+				{
+					scoreComputer.initPTA_1();		
+					scoreComputer.paths.augmentPTA(minus, false,false);
+					scoreComputer.paths.augmentPTA(plus, true,false);
+					return scoreComputer;
+				}
 
-		new Test_LearnerComparator(learner2,simulator,false).learnMachine(initial.plus, initial.minus);
+				@Override
+				public Pair<Integer,String> CheckWithEndUser(
+						@SuppressWarnings("unused")	LearnerGraph model,
+						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						@SuppressWarnings("unused")	final Object [] moreOptions)
+						{
+							return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+						}
+			};
+		}
+		
+		// There is a reason why we should ignore vertex names (WMethod.VERTEX_COMPARISON_KIND.NONE): 
+		// they are generated by GD to appear 
+		// as close to the original graph as possible, but we are comparing the result of reconstruction
+		// of the current graph by GD against the one generated by the learner. The following example shows
+		// why simply insisting on the correct names will not work:
+		// 
+		//	B-a5->D\nB-a19->A-a5->C
+		// if vertices A B are merged, paths A-a5->D and B-a5->C are collapsed,
+		// hence the outcome is A-a19->A-a5->C   because we have to merge A,B and C,D,
+		// where A and C respectively are winners.
+		// GD comparison of the two graphs determines that we need to remove the part
+		// of the first graph starting with a19 transition and just loop a19 around B.
+		// This way, states B and D are preserved and the outcome of reconstruction is  B-a19->B-a5->D
+		// which is bisimular to the expected graph but state names are different.
+		new Test_LearnerComparator(learner2,simulator,!evalData.config.isIgnoreVertexAttributesInLogReplay()).learnMachine(initial.plus, initial.minus);
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_NORM;// reset this one if needed.
 	}
@@ -211,7 +248,9 @@ public class Test_CheckLearnerAgainstLog
 		for(File f:new File(pathToLogFiles).listFiles(new FileFilter(){
 			public boolean accept(File pathName) {
 				return pathName.canRead() && pathName.isFile() &&
-				pathName.getAbsolutePath().contains(".xml_");
+				pathName.getAbsolutePath().contains(".xml_")
+				//&&	pathName.getAbsolutePath().contains("2_25Inputs_75_1.xml_LEARNER_BLUEFRINGE_MAY2008")
+				;
 			}}))
 			result.add(new Object[]{f});
 		

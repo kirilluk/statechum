@@ -80,7 +80,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
+						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);
@@ -119,9 +119,9 @@ public class IncrementalAccuracyAndQuestionsExperiment
 				// 15 and 16
 					FS+Linear.getSimilarity(graph,learnt, false, 1)+FS+Linear.getSimilarity(graph, learnt, true, 1);
 				// 17
-				result = result + FS + Linear.getSimilarityGD(graph,learnt, 1).getCompressionRate();// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
+				result = result + FS + Linear.getSimilarityGD(graph,learnt, 1).getCompressionRate();// + graph.linear.getSimilarityWithNegatives(learned, 1, GDLearnerGraph.DDRH_default.class);
 				// 18
-				result = result + FS + Linear.getSimilarityGD_details(graph,learnt, 1);// + graph.linear.getSimilarityWithNegatives(learned, 1, LearnerGraphND.DDRH_default.class);
+				result = result + FS + Linear.getSimilarityGD_details(graph,learnt, 1);// + graph.linear.getSimilarityWithNegatives(learned, 1, GDLearnerGraph.DDRH_default.class);
 			}
 			catch(IllegalArgumentException ex)
 			{
@@ -147,10 +147,6 @@ public class IncrementalAccuracyAndQuestionsExperiment
 	public static void main(String []args)
 	{
 		try {
-			LearnerGraph.testMode=true;
-			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
-			LearnerGraph.testMode=false;
-			
 			ExperimentRunner experiment = new ExperimentRunner();
 			List<String> learnerNames= new LinkedList<String>();
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{

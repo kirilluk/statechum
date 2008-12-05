@@ -18,11 +18,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,44 +32,20 @@ import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-import org.xml.sax.helpers.AttributesImpl;
-
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.io.GraphMLFile;
-
 import statechum.Configuration;
-import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
-import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.observers.LearnerSimulator;
-import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
-public class Transform {
+public class Transform 
+{
 	final LearnerGraph coregraph;
 	
-	/** Associates this object to ComputeStateScores it is using for data to operate on. 
-	 * Important: the constructor should not access any data in computeStateScores 
-	 * because it is usually invoked during the construction phase of ComputeStateScores 
+	/** Associates this object to LearnerGraph it is using for data to operate on. 
+	 * Important: the constructor should not access any data in LearnerGraph 
+	 * because it is usually invoked during the construction phase of LearnerGraph 
 	 * when no data is yet available.
 	 */
 	Transform(LearnerGraph g)
@@ -95,509 +66,22 @@ public class Transform {
 		return distance;
 	}
 	
-	/** a marker for an initial state in a graphML file. */
-	public static final String Initial = "Initial";
-	
-	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
-	protected String transformNodeName(CmpVertex node)
-	{
-		return (node == coregraph.init? Initial+" ":"")+node.getID().toString(); 
-	}
-
-	/** Writes a graph into a graphML file. All vertices are written. */
-	public void writeGraphML(String name) throws IOException
-	{
-		FileWriter writer = new FileWriter(name);writeGraphML(writer);writer.close();
-	}
-	
-	/** Graphml namespace */
-	protected static final String graphmlNS="gml";
-	
-	/** Graphml top-level node tag if a name space is not used. */
-	public static final String graphmlNodeName = "graphml";
-	
-	/** Graphml top-level node tag. */
-	public static final String graphmlNodeNameNS = graphmlNS+":"+graphmlNodeName;
-	
-	/** Graphml uri */
-	protected static final String graphlmURI="http://graphml.graphdrawing.org/xmlns/graphml";	
-	
-	protected Element createStateNode(Document doc, CmpVertex node)
-	{
-		if (node.getID().toString().contains(Initial))
-			throw new IllegalArgumentException("Invalid node name "+node);
-		Element nodeElement = doc.createElementNS(graphmlNS,"node");
-		nodeElement.setAttribute("id",node.getID().toString());
-		nodeElement.setIdAttribute("id", true);
-		nodeElement.setAttribute("VERTEX", transformNodeName(node));
-		if (!node.isAccept()) nodeElement.setAttribute(JUConstants.ACCEPTED.name(),Boolean.toString(node.isAccept()));
-		if (node.isHighlight()) nodeElement.setAttribute(JUConstants.HIGHLIGHT.name(),Boolean.toString(node.isHighlight()));
-		if (node.getColour() != null) nodeElement.setAttribute(JUConstants.COLOUR.name(),node.getColour().name());
-		return nodeElement;
-	}
-	
-	public static Text endl(Document doc)
-	{
-		return doc.createTextNode("\n");		
-	}
-	
-	public Element createGraphMLNode(Document doc)
-	{
-		Element graphElement = doc.createElementNS(graphlmURI,graphmlNodeNameNS);
-		Element graphTop = doc.createElementNS(graphmlNS,"graph");
-		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
-		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
-		graphTop.appendChild(endl(doc));
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
-		{
-			graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
-		}
-		for(Entry<CmpVertex,Map<String,CmpVertex>> vert:coregraph.transitionMatrix.entrySet())
-			for(Entry<String,CmpVertex> transition:vert.getValue().entrySet())
-			{
-				Element edge = doc.createElementNS(graphmlNS,"edge");edge.setAttribute("source", vert.getKey().getID().toString());
-				edge.setAttribute("target", transition.getValue().getID().toString());edge.setAttribute("directed", "true");
-				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
-				graphTop.appendChild(endl(doc));
-			}
-		if (!coregraph.incompatibles.isEmpty())
-		{
-			Element incompatibleData = doc.createElementNS(graphmlNS,graphmlData);incompatibleData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
-			Set<CmpVertex> encounteredNodes = new HashSet<CmpVertex>();
-			for(Entry<CmpVertex,Set<CmpVertex>> entry:coregraph.incompatibles.entrySet())
-			{
-				encounteredNodes.add(entry.getKey());
-				for(CmpVertex vert:entry.getValue())
-					if (!encounteredNodes.contains(vert))
-					{
-						incompatibleData.appendChild(ProgressDecorator.writePair(new PairScore(entry.getKey(),vert,0,0), doc));incompatibleData.appendChild(endl(doc));
-					}
-			}
-			
-			graphTop.appendChild(incompatibleData);graphTop.appendChild(endl(doc));
-		}
-		return graphElement;
-	}
-	
-	/** Writes a graph into a graphML file. All vertices are written.
-	 * 
-	 * @throws IOException if an I/O error occurs or 
-	 * any vertex has a substring "Initial" in it, because this substring is used to designate 
-	 * an initial state in the graphml file. Most of the time, "Init" is used instead in the graphs.
-	 * @throws ParserConfigurationException 
-	 */
-	public void writeGraphML(Writer writer) throws IOException
-	{
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		Document doc = null;
-		try
-		{
-			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
-			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
-			doc = factory.newDocumentBuilder().newDocument();doc.setXmlStandalone(true);
-		}
-		catch(ParserConfigurationException ex)
-		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
-		}
-		doc.appendChild(createGraphMLNode(doc));
-		// based on http://www.exampledepot.com/egs/javax.xml.transform/WriteDom.html
-		try {
-			Transformer trans = TransformerFactory.newInstance().newTransformer();
-			trans.transform(new DOMSource(doc),new StreamResult(writer));
-		} catch (Exception e) {
-			IOException ex = new IOException("failed to write out XML "+e);ex.initCause(e);
-			throw ex;
-		}
-	}
-	
-	/** We need to be able to get access to a graph being loaded and the only 
-	 * possible way is to override an appropriate method. 
-	 */
-	static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
-	{
-	    @Override
-		public Graph getGraph() {
-	        return super.getGraph();
-	    }
-		
-	}
-
-	public static final String graphmlAttribute="attribute", graphmlGraph = "graph", graphmlData="data", 
-		graphmlDataKey = "key",graphmlDataIncompatible="key_incompatible";
-	
-	/** Converts DOM collection of attributes to the SAX one.
-	 * @param namedMap what to convert
-	 * @return the SAX collection, ready to be passed to a SAX listener. 
-	 */
-	static protected Attributes Attributes_DOM_to_SAX(NamedNodeMap namedMap)
-	{
-		AttributesImpl collection = new AttributesImpl();
-		if (namedMap != null)
-			for(int i=0;i<namedMap.getLength();++i) 
-			{
-				org.w3c.dom.Node node = namedMap.item(i);
-				collection.addAttribute(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), graphmlAttribute, node.getNodeValue());
-			}
-		return collection;
-	}
-	
-	/** Loads a graph from the supplied XML node.
-	 * 
-	 * @param elem XML element to load from
-	 * @param config configuration to use
-	 * @return loaded graph
-	 */
-	public static LearnerGraph loadGraph(org.w3c.dom.Element elem, Configuration config)
-	{
-		if (!elem.getNodeName().equals(Transform.graphmlNodeNameNS) && !elem.getNodeName().equals(Transform.graphmlNodeName))
-			throw new IllegalArgumentException("element name "+elem.getNodeName()+" is not graphml");
-		NodeList graphs = elem.getElementsByTagName(graphmlGraph);
-		if (graphs.getLength() < 1)
-			throw new IllegalArgumentException("absent graph element");
-		if (graphs.getLength() > 1)
-			throw new IllegalArgumentException("duplicate graph element");
-		Element graphElement = (Element)graphs.item(0);
-
-		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
-    	GraphMLFile graphmlFile = new GraphMLFile();
-    	graphmlFile.setGraphMLFileHandler(graphHandler);
-    	synchronized(AbstractTransitionMatrix.syncObj)
-    	{// multi-core execution understandably fails if I forget to sync on that object
-	    	try
-	    	{
-		    	graphHandler.startElement(graphElement.getNamespaceURI(), graphElement.getLocalName(), graphElement.getNodeName(), Attributes_DOM_to_SAX(graphElement.getAttributes())); // so as to applease the lack of any clue Jung has about graphml namespaces
-		    	NodeList nodes = graphElement.getChildNodes(); 
-		    	for(int i=0;i<nodes.getLength();++i)
-		    	{
-					org.w3c.dom.Node node = nodes.item(i);
-					if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
-						graphHandler.startElement(node.getNamespaceURI(), node.getLocalName(), node.getNodeName(), Attributes_DOM_to_SAX(node.getAttributes()));
-		    	}
-	    	}
-	    	catch(SAXException e)
-	    	{
-	    		IllegalArgumentException ex = new IllegalArgumentException("failed to write out XML "+e);ex.initCause(e);
-	    		throw ex;
-	    	}
-    	}
-    	LearnerGraph result = new LearnerGraph(graphHandler.getGraph(),config);
-    	NodeList nodes = graphElement.getChildNodes(); 
-    	for(int i=0;i<nodes.getLength();++i)
-    	{
-			org.w3c.dom.Node node = nodes.item(i);
-			if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
-			{
-				if (node.getNodeName().equals(graphmlData))
-				{
-					if (graphmlDataIncompatible.equals(((Element)node).getAttribute(graphmlDataKey)))
-					{
-						NodeList children = node.getChildNodes();
-						for(int childNum=0;childNum<children.getLength();++childNum)
-							if (children.item(childNum).getNodeType() == Node.ELEMENT_NODE)
-							{
-								PairScore pair=ProgressDecorator.readPair(result, (Element)children.item(childNum));
-								CmpVertex a = result.findVertex(pair.firstElem.getID()), b = result.findVertex(pair.secondElem.getID()); 
-								if (a == null)
-									throw new IllegalArgumentException("Unknown state "+pair.firstElem);
-								if (b == null)
-									throw new IllegalArgumentException("Unknown state "+pair.secondElem);
-								result.addToIncompatibles(pair.getQ(), pair.getR());
-							}
-						
-					}
-					else
-						throw new IllegalArgumentException("unexpected key "+((Element)node).getAttribute(graphmlDataKey));
-				}
-				else // a node which is not a "data" node.
-					if (!node.getNodeName().equals("node") && !node.getNodeName().equals("edge"))
-						throw new IllegalArgumentException("unexpected node "+node.getNodeName()+" in graph");
-			}
-    	}
-    	
-    	return result;
-	}	
-	
-	/** Loads a graph from the data in a supplied reader.
-	 */
-	public static LearnerGraph loadGraph(Reader from, Configuration cnf)
-	{
-		LearnerGraph graph = null;
-		synchronized (AbstractTransitionMatrix.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	try
-	    	{
-	    		graph = loadGraph(LearnerSimulator.getDocumentOfXML(from).getDocumentElement(), cnf);
-	    	}
-	    	finally
-	    	{
-	    		try
-	    		{ if (from != null) from.close(); }
-	    		catch(IOException ex)
-	    		{// exception on close is ignored.	    			
-	    		}
-	    	}
-		}
-		return graph;
-	}
-	
-	/** Loads a graph from a supplied file.
-	 *  
-	 * @param from where to load from
-	 * @param cnf configuration to use (determines types of nodes created, such as whether they are Jung nodes or Strings).
-	 * @return created graph.
-	*/
-	public static LearnerGraph loadGraph(String fileName,Configuration config) throws IOException
-	{
-		synchronized (AbstractTransitionMatrix.syncObj) 
-		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
-	    	String fileToLoad = fileName;
-	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
-    		LearnerGraph graph = loadGraph(new FileReader(fileToLoad),config);graph.setName(fileName);
-    		graph.setIDNumbers();
-	    	return graph;
-		}
-	}
-
-	/** Returns a state, randomly chosen according to the supplied random number generator. */
-	public static CmpVertex pickRandomState(LearnerGraph g, Random rnd)
-	{
-		int nr = rnd.nextInt(g.transitionMatrix.size());
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
-			if (nr-- == 0)
-				return entry.getKey();
-		
-		throw new IllegalArgumentException("something wrong with the graph - expected state was not found");
-	}
-
 	/** Adds a reject transition to a randomly-chosen state, if possible (the chosen state has an input not in the current alphabet). */
 	public void addRejectStateRandomly(Random rnd)
 	{
-		CmpVertex v =pickRandomState(coregraph, rnd);
+		CmpVertex v =coregraph.pathroutines.pickRandomState(rnd);
 		HashSet<String> possibilities = new HashSet<String>();possibilities.addAll(coregraph.learnerCache.getAlphabet());
 		possibilities.removeAll(coregraph.transitionMatrix.get(v).keySet());
 		Iterator<String> inputIt = possibilities.iterator();
 		if (inputIt.hasNext())
 		{
-			CmpVertex newVertex = AbstractTransitionMatrix.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
+			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
 			newVertex.setAccept(false);
 			coregraph.transitionMatrix.put(newVertex, coregraph.createNewRow());
 			coregraph.transitionMatrix.get(v).put(inputIt.next(),newVertex);
 		}
 	}
 	
-	/** 
-	 * Relabels graph, keeping NrToKeep original labels. All new ones are generated with
-	 * prefix PrefixNew.
-	 * 
-	 * @param g graph to transform.
-	 * @param argNrToKeep number of labels to keep.
-	 * @param PrefixNew prefix of new labels.
-	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
-	 */
-	public static void relabel(LearnerGraph g, int argNrToKeep, String PrefixNew)
-	{
-		int NrToKeep = argNrToKeep;
-		Map<String,String> fromTo = new TreeMap<String,String>();
-		int newLabelCnt = 0;
-		TreeMap<CmpVertex,Map<String,CmpVertex>> newMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:g.transitionMatrix.entrySet())
-		{
-			Map<String,CmpVertex> newRow = g.createNewRow();
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-			{
-				if (NrToKeep > 0 && !fromTo.containsKey(transition.getKey()))
-				{
-					NrToKeep--;fromTo.put(transition.getKey(),transition.getKey());// keep the label and reduce the counter.
-				}
-				else
-					if (!fromTo.containsKey(transition.getKey()))
-					{
-						if(transition.getKey().startsWith(PrefixNew))
-							throw new IllegalArgumentException("there is already a transition with prefix "+PrefixNew+" in the supplied graph");
-						fromTo.put(transition.getKey(), PrefixNew+newLabelCnt++);
-					}
-				newRow.put(fromTo.get(transition.getKey()), transition.getValue());
-			}
-			newMatrix.put(entry.getKey(), newRow);
-		}
-		g.transitionMatrix = newMatrix;g.learnerCache.invalidate();
-	}
-	
-	/** Adds all states and transitions from graph <em>what</em> to graph <em>g</em>.
-	 * Very useful for renumbering nodes on graphs loaded from GraphML and such, because
-	 * numerical node IDs can be useful. The current implementation does not require this
-	 * because it is easy to build a map from existing identifiers to numbers.
-	 * <em>WMethod.buildStateToIntegerMap()</em> does exactly this and the outcome is cached
-	 * and used by <em>vertexToInt</em> and <em>vertexToIntNR</em>.
-	 * <p>
-	 * An example of using this method to renumber vertices is shown below:
-	 * <pre>
-	 * LearnerGraph grTmp = new LearnerGraph(g.config);
-	 * CmpVertex newInit = addToGraph(grTmp,g);StatePair whatToMerge = new StatePair(grTmp.init,newInit);
-	 * LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
-	 * grTmp.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge);
-	 * LearnerGraph result = MergeStates.mergeAndDeterminize_general(grTmp, whatToMerge,collectionOfVerticesToMerge);
-	 * WMethod.computeWSet(result);
-	 * </pre>
-	 * @param g target into which to merge what
-	 * @param what graph to merge into g.
-	 * @param argWhatToG maps original vertices to those included in the graph <em>g</em>.
-	 * @return vertex in g corresponding to the initial vertex in what 
-	 */ 
-	public static CmpVertex addToGraph(LearnerGraph g, LearnerGraph what,Map<CmpVertex,CmpVertex> argWhatToG)
-	{
-		Map<CmpVertex,CmpVertex> whatToG = argWhatToG;
-		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();else whatToG.clear();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-		{// The idea is to number the new states rather than to clone vertices.
-		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.
-			CmpVertex newVert = g.transform.copyVertexUnderDifferentName(entry.getKey());
-			whatToG.put(entry.getKey(),newVert);
-		}
-
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-		{
-			Map<String,CmpVertex> row = g.createNewRow();g.transitionMatrix.put(whatToG.get(entry.getKey()),row);
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-				row.put(transition.getKey(), whatToG.get(transition.getValue()));
-		}
-		g.learnerCache.invalidate();
-		return whatToG.get(what.init);
-	}
-
-	/** In many cases we have a vertex from some graph we'd like to add to another graph, but we cannot
-	 * just do a clone because we may encounter a name clash. This method takes care of this by creating 
-	 * an entirely new vertex and copies all the attributes of an existing vertex to the new one.
-	 * 
-	 * @param what what to add to the current graph
-	 * @return the newly-added vertex.
-	 */
-	public CmpVertex copyVertexUnderDifferentName(CmpVertex what)
-	{
-		CmpVertex newVert = AbstractTransitionMatrix.generateNewCmpVertex(coregraph.nextID(what.isAccept()), coregraph.config);
-		if (coregraph.findVertex(newVert.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getID()+" in graph "+coregraph);
-		assert !coregraph.transitionMatrix.containsKey(newVert) : "duplicate vertex "+newVert;
-		newVert.setAccept(what.isAccept());
-		newVert.setHighlight(what.isHighlight());
-		newVert.setColour(what.getColour());
-		coregraph.transitionMatrix.put(newVert,coregraph.createNewRow());
-		return newVert;
-	}
-	
-	/** Changes states labels on a graph to their numerical equivalents.
-	 * 
-	 * @param what graph to convert
-	 * @return result of conversion.
-	 */
-	public static LearnerGraph convertToNumerical(LearnerGraph what)
-	{
-		LearnerGraph result = new LearnerGraph(what.config);result.init = null;result.transitionMatrix.clear();
-		result.init = addToGraph(result, what, null);if (what.getName() != null) result.setName(what.getName());
-		return result;
-	}
-	
-	/** Inverts states' acceptance conditions. */
-	public void invertStates()
-	{
-		for(CmpVertex vertex:coregraph.transitionMatrix.keySet())
-			vertex.setAccept(!vertex.isAccept());
-	}
-	
-	/** Useful where we aim to check that the learnt machine is the same as 
-	 * original. To prevent erroneous mergers, negative information is supplied,
-	 * which is incorporated into the final machine. This way, even if the
-	 * original machine does not have reject-states, the outcome of merging
-	 * will have them. Transitions to those negative states are obviously only
-	 * added where there are no transitions in the original one, so if we take 
-	 * the original machine and add transitions from all states to reject states 
-	 * for undefined inputs (called <em>completeGraph()</em>), the outcome 
-	 * of learning will have a subset of transitions to reject-states.
-	 *<p>
-	 * Throws {@link IllegalArgumentException} if the initial state points to a reject-state. 
-	 * This makes sure that the outcome is never an empty graph.
-	 * 
-	 * @param what an automaton which states are to be removed.
-	 * @param config this method makes a copy of an automaton first, hence a configuration is needed.
-	 * @return an automaton reduced in the described way.
-	 */
-	public static LearnerGraph removeRejectStates(LearnerGraph what,Configuration config)
-	{
-		if (!what.init.isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
-		LearnerGraph result = what.copy(config);
-		
-		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:what.transitionMatrix.entrySet())
-			if (!entry.getKey().isAccept()) result.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
-			else
-			{
-				Map<String,CmpVertex> row = result.transitionMatrix.get(entry.getKey());
-				for(Entry<String,CmpVertex> target:entry.getValue().entrySet())
-					if (!target.getValue().isAccept()) row.remove(target.getKey());
-			}
-		
-		return result;
-	}
-	
-	/** Computes an alphabet of a given graph and adds transitions to a 
-	 * reject state from all states A and inputs a from which there is no B such that A-a->B
-	 * (A-a-#REJECT) gets added. Note: (1) such transitions are even added to reject vertices.
-	 * (2) if such a vertex already exists, an IllegalArgumentException is thown.
-	 * 
-	 * @param reject the name of the reject state, to be added to the graph. No transitions are added from this state.
-	 * @return true if any transitions have been added
-	 */   
-	public boolean completeGraph(VertexID reject)
-	{
-		if (coregraph.findVertex(reject) != null)
-			throw new IllegalArgumentException("reject vertex named "+reject+" already exists");
-		
-		CmpVertex rejectVertex = null;
-		
-		// first pass - computing an alphabet
-		Set<String> alphabet = coregraph.wmethod.computeAlphabet();
-		
-		// second pass - checking if any transitions need to be added and adding them.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-		{
-			Set<String> labelsToRejectState = new HashSet<String>();
-			labelsToRejectState.addAll(alphabet);labelsToRejectState.removeAll(entry.getValue().keySet());
-			if (!labelsToRejectState.isEmpty())
-			{
-				if (rejectVertex == null)
-				{
-					rejectVertex = AbstractTransitionMatrix.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
-				}
-				Map<String,CmpVertex> row = entry.getValue();
-				for(String rejLabel:labelsToRejectState)
-					row.put(rejLabel, rejectVertex);
-			}
-		}
-
-		if (rejectVertex != null)
-			coregraph.transitionMatrix.put(rejectVertex,coregraph.createNewRow());
-		
-		coregraph.learnerCache.invalidate();
-		return rejectVertex != null;
-	}
-
-	/** For each input where there is no transition from a state,
-	 * this function will add a transition to an inf-amber-coloured reject-state.
-	 */  
-	public LearnerGraph completeMatrix()
-	{
-		LearnerGraph result = coregraph.copy(coregraph.config);
-		VertexID rejectID = result.nextID(false);
-		result.transform.completeGraph(rejectID);
-		result.findVertex(rejectID).setColour(TransitionMatrixND.ltlColour);
-		result.findVertex(rejectID).setAccept(false);
-		return result;
-	}
-
 	/** Given a state and a W set, computes a map from those sequences to booleans representing
 	 * whether those sequences to true/false depending whether a specific can be followed from
 	 * the given state. 
@@ -714,7 +198,7 @@ public class Transform {
 				throw new IllegalArgumentException("non-singleton W");
 			Walphabet.add(wSeq.iterator().next());
 		}
-		Collection<String> alphabet = coregraph.wmethod.computeAlphabet();
+		Collection<String> alphabet = coregraph.pathroutines.computeAlphabet();
 		double fillFactor = getEffectiveFillRate(coregraph, wSet);//transitionsFromEveryState/alphabet.size();
 		result+=getVectors(coregraph, wSet);
 		double average = (1-fillFactor)*wSet.size()*coregraph.getStateNumber();
@@ -729,7 +213,7 @@ public class Transform {
 			
 			for(String label:newLabels)
 			{
-				LearnerGraph newGraph = coregraph.copy(coregraph.config);
+				LearnerGraph newGraph = new LearnerGraph(coregraph,coregraph.config);
 				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
 				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet);
@@ -788,13 +272,12 @@ public class Transform {
 	{
 		final Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		final Map<StatePair,CmpVertex> pairsToGraphStates = new HashMap<StatePair,CmpVertex>();
-		LearnerGraph result = new LearnerGraph(config);
+		LearnerGraph result = new LearnerGraph(config);result.initEmpty();
 		// Two sets are constructed so that I do not have to think about vertices which are shared between the two graphs regardless whether such a case is possible or not.
 		final Set<CmpVertex> encounteredGraph = new HashSet<CmpVertex>();
 		StatePair statePair = new StatePair(graph.init,from.init);
-		pairsToGraphStates.put(statePair, statePair.firstElem);
 		encounteredGraph.add(statePair.firstElem);
-		result.init = AbstractTransitionMatrix.cloneCmpVertex(graph.init, config);
+		result.init = AbstractLearnerGraph.cloneCmpVertex(graph.init, config);
 		result.transitionMatrix.put(result.init, result.createNewRow());
 		pairsToGraphStates.put(statePair, result.init);
 		boolean graphModified = false;
@@ -831,11 +314,10 @@ public class Transform {
 				CmpVertex graphState = labelstate.getValue();// the original one
 				CmpVertex maxState = maxTargets.get(label);
 
-				if (!maxTargets.containsKey(label))
+				if (maxState == null)
 				{// this is the case where a transition in a tentative graph is not matched by any in a maximal automaton
 					if (!maxIsPartial)
 						throw new IllegalArgumentException("In state pair "+statePair+" transition labelled by "+label+" is not matched in a maximal automaton");
-					maxState = null;
 				}
 				
 				StatePair nextPair = new StatePair(graphState,maxState);
@@ -853,7 +335,7 @@ public class Transform {
 					if (!encounteredGraph.contains(graphState))
 					{// since we did not see this pair before, the first encountered 
 					 // vertex (graphState) is now a representative of the pair nextPair
-						nextGraphVertex = AbstractTransitionMatrix.cloneCmpVertex(graphState, config);encounteredGraph.add(graphState);
+						nextGraphVertex = AbstractLearnerGraph.cloneCmpVertex(graphState, config);encounteredGraph.add(graphState);
 						pairsToGraphStates.put(nextPair,nextGraphVertex);
 						result.transitionMatrix.put(nextGraphVertex, result.createNewRow());
 						shouldDescend = nextGraphVertex.isAccept();
@@ -868,14 +350,14 @@ public class Transform {
 								throw new IllegalArgumentException("incompatible labelling: maximal automaton chops off some paths in a tentative automaton");
 							graphModified=true;
 						}
-						nextGraphVertex = AbstractTransitionMatrix.generateNewCmpVertex(result.nextID(accept), config);
+						nextGraphVertex = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(accept), config);
 						if (result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
 						assert !result.transitionMatrix.containsKey(nextGraphVertex) : "duplicate vertex "+nextGraphVertex;
-						nextGraphVertex.setAccept(accept);
-						nextGraphVertex.setHighlight(graphState.isHighlight());
-						nextGraphVertex.setColour(graphState.getColour());
+						DeterministicDirectedSparseGraph.copyVertexData(graphState, nextGraphVertex);nextGraphVertex.setAccept(accept);
 						result.transitionMatrix.put(nextGraphVertex,result.createNewRow());
-
+						
+						// TODO: to test copying of origstate & depth
+						
 						pairsToGraphStates.put(nextPair, nextGraphVertex);
 						if (!accept) shouldDescend = false;
 					}
@@ -901,7 +383,7 @@ public class Transform {
 					CmpVertex newVert = pairsToGraphStates.get(new StatePair(null,labelstate.getValue()));
 					if (newVert == null)
 					{
-						newVert = result.transform.copyVertexUnderDifferentName(labelstate.getValue());
+						newVert = result.copyVertexUnderDifferentName(labelstate.getValue());
 						pairsToGraphStates.put(new StatePair(null,labelstate.getValue()), newVert);
 					}
 					result.transitionMatrix.get(currentRepresentative).put(label, newVert);graphModified=true;

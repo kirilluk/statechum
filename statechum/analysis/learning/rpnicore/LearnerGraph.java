@@ -19,7 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.StringVertex;
@@ -40,7 +39,7 @@ import edu.uci.ics.jung.graph.Graph;
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
  */
-public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex> 
+public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCachedData> 
 {
 	/** Represents a slightly different view of this machine and used in W set generation. */
 	public abstract class FSMImplementation implements FSMAbstraction
@@ -81,7 +80,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 			return red;
 		}
 	
-		public final CmpVertex junkVertex = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID("JUNK"),config);
+		public final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("JUNK"),config);
 				
 		public Object getNextState(Object currentState, String input) 
 		{
@@ -108,47 +107,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	/** Stores all red-blue pairs; has to be backed by array for 
 	 * the optimal performance of the sort function. 
 	 */
-	protected List<PairScore> pairsAndScores;
-
-	/** Stores pairs of states which should either never be merged due to constraints which cannot 
-	 * be easily expressed with counter-examples such as non-determinism related to intersection of
-	 * domains of labels from them (those which can be expressed using labels should be added to the maximal
-	 * automaton). 
-	 */
-	protected Map<CmpVertex,Set<CmpVertex>> incompatibles;
-
-	/** Adds a supplied pair to the collection of incompatible elements. 
-	 *  It is assumed that the two states belong to the graph; one would perhaps also not want to make them equal.
-	 * @param A one of the vertices to add
-	 * @param B another vertex to add.
-	 */
-	public void addToIncompatibles(CmpVertex A, CmpVertex B)
-	{
-		assert !A.getID().equals(B.getID());
-		addToIncompatibles_internal(A, B);
-		addToIncompatibles_internal(B, A);
-	}
-
-	private void addToIncompatibles_internal(CmpVertex A, CmpVertex B)
-	{
-		Set<CmpVertex> incSet = incompatibles.get(A);
-		if (incSet == null)
-		{
-			incSet = new HashSet<CmpVertex>();incompatibles.put(A,incSet);
-		}
-		incSet.add(B);
-	}
-	
-	/** The state corresponding to the red and blue states after the merge of which this graph was built. */
-	protected CmpVertex stateLearnt = null;
-	
-	public CmpVertex getStateLearnt()
-	{
-		return stateLearnt;
-	}
-	
-	/** Used to switch on a variety of consistency checks. */
-	public static boolean testMode = false;
+	protected ArrayList<PairScore> pairsAndScores;
 
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
@@ -160,7 +119,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
-	final CachedData learnerCache = new CachedData(this);
+	
 	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
 
 	/** Constructs a StateChum graph from a Jung Graph
@@ -170,9 +129,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	 */
 	public LearnerGraph(Graph g,Configuration conf)
 	{
-		super(conf);
-		TransitionMatrixND matrixND=new TransitionMatrixND(g,conf);
-		loadFrom(matrixND);
+		this(new LearnerGraphND(g,conf),conf);
 	}
 	
 	/** Constructs a StateChum graph from the supplied graph. An IllegalArgumentException is thrown if a non-deterministic choice is detected.
@@ -180,64 +137,13 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	 * a deterministic one.
 	 *
 	 * @param matrixND the matrix to build graph from.
+	 * @param argConfig configuration to use
 	 */
-	public LearnerGraph(TransitionMatrixND matrixND)
+	@SuppressWarnings("unchecked") // unchecked conversions are fine here because copyGraphs works the same way regardless of argument types.
+	public LearnerGraph(AbstractLearnerGraph matrixND, Configuration argConfig)
 	{
-		super(matrixND.config);
-		loadFrom(matrixND);
-	}
-	
-	/** Loads the data in the graph from the supplied graph. An IllegalArgumentException is thrown if a non-deterministic choice is detected.
-	 * Use <em>buildDeterministicGraph</em> for a proper conversion of a non-deterministic structure to
-	 * a deterministic one.
-	 * 
-	 * @param matrixND the matrix to build graph from.
-	 */
-	private void loadFrom(TransitionMatrixND matrixND)
-	{
-		initEmpty();
-		setName(matrixND.getName());
-		
-		pairsAndScores = new ArrayList<PairScore>(pairArraySize);//graphVertices.size()*graphVertices.size());
-		incompatibles = new HashMap<CmpVertex,Set<CmpVertex>>();
-		
-		// now we need to turn potentially non-deterministic choices of target states to deterministic ones.
-		vertNegativeID = matrixND.vertNegativeID;vertPositiveID=matrixND.vertPositiveID;
-
-		Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
-		
-		// First, clone vertices
-		for(CmpVertex state:matrixND.transitionMatrix.keySet())
-		{
-			CmpVertex newState = cloneCmpVertex(state, config);oldToNew.put(state, newState);
-			transitionMatrix.put(newState, createNewRow());
-		}
-		init = oldToNew.get(matrixND.init);
-		
-		// Now clone edges.
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixND.transitionMatrix.entrySet())
-			transitionMatrix.put(oldToNew.get(entry.getKey()),convertRowToDet(entry.getValue(), oldToNew, entry.getKey()));
-	}
-
-	/** Given a deterministic row represented in a non-deterministic form, converts that row to a deterministic form.
-	 *  
-	 * @param map what to convert
-	 * @param oldToNew map used to convert vertices from those in the original map to those to be used in the result map. If null, no conversion is performed.
-	 * @param from the source state of the outgoing transitions - used in an error message
-	 * @return result of conversion 
-	 */
-	public Map<String,CmpVertex> convertRowToDet(Map<String,List<CmpVertex>> map, Map<CmpVertex,CmpVertex> oldToNew, CmpVertex from)
-	{
-		Map<String,CmpVertex> result = createNewRow();
-		for(Entry<String,List<CmpVertex>> rowEntry:map.entrySet())
-		{
-			if (rowEntry.getValue().size() != 1)
-				throw new IllegalArgumentException("non-deterministic or empty target state for transition from state "+from+" with label "+rowEntry.getKey());
-			CmpVertex target = rowEntry.getValue().iterator().next();if (oldToNew != null) target = oldToNew.get(target);
-			assert target != null;
-			result.put(rowEntry.getKey(),target);
-		}
-		return result;
+		super(argConfig);
+		AbstractLearnerGraph.copyGraphs(matrixND, this);
 	}
 
 	/** Sometimes, we might wish to use a pre-set value for the maxScore. 
@@ -245,7 +151,7 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	 */ 
 	public void setMaxScore(int score)
 	{
-		if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*wmethod.computeAlphabet().size();
+		if (learnerCache.maxScore < 0) learnerCache.maxScore = transitionMatrix.size()*pathroutines.computeAlphabet().size();
 		if (learnerCache.maxScore > score)
 			throw new IllegalArgumentException("cannot set the max score below the actual maximum");
 		learnerCache.maxScore=score;
@@ -259,15 +165,17 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 			
 	public CmpVertex getVertex(List<String> seq)
 	{
-		CmpVertex result = init;
-		Iterator<String> seqIt = seq.iterator();
-		while(seqIt.hasNext() && result != null)
-			result = transitionMatrix.get(result).get(seqIt.next());
-		
-		return result;
+		return getVertex(init,seq);
 	}
 	
-	public CmpVertex getVertex(CmpVertex from, List<String> seq){
+	/** Follows the supplied sequence of transitions from the supplied vertex and returns the vertex reached. 
+	 * 
+	 * @param from vertex to start from
+	 * @param seq sequence of labels to follow
+	 * @return vertex reached, null if the supplied sequence does not exist.
+	 */
+	public CmpVertex getVertex(CmpVertex from, List<String> seq)
+	{
 		CmpVertex result = from;
 		Iterator<String> seqIt = seq.iterator();
 		while(seqIt.hasNext() && result != null)
@@ -287,119 +195,12 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 		return counter;
 	}
 
-	/** Note: this clone is not necessarily deep: the transition matrix is 
-	 * cloned and so is the configuration, but states (vertices) are not 
-	 * if the configuration does not specify cloning; they are cloned 
-	 * otherwise.
-	 * 
-	 * @param conf the configuration to use in the process of copying. 
-	 */
-	public LearnerGraph copy(Configuration copyConfiguration)
-	{
-		LearnerGraph result = new LearnerGraph(copyConfiguration);
-		result.initEmpty();
-		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>();
-		result.vertNegativeID = vertNegativeID;result.vertPositiveID=vertPositiveID;
-
-		Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
-		
-		// First, clone vertices
-		for(CmpVertex state:transitionMatrix.keySet())
-		{
-			CmpVertex newState = cloneCmpVertex(state, copyConfiguration);oldToNew.put(state, newState);
-			result.transitionMatrix.put(newState, createNewRow());
-		}
-		result.init = oldToNew.get(init);
-		
-		// Now clone edges.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:transitionMatrix.entrySet())
-		{
-			Map<String,CmpVertex> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
-			for(Entry<String,CmpVertex> rowEntry:entry.getValue().entrySet())
-				row.put(rowEntry.getKey(),oldToNew.get(rowEntry.getValue()));
-		}
-		
-		for(Entry<CmpVertex,Set<CmpVertex>> entry:incompatibles.entrySet())
-			if (!result.incompatibles.containsKey(entry.getKey()))
-			{
-				for(CmpVertex vert:entry.getValue())
-					result.addToIncompatibles(entry.getKey(),vert);
-			}
-		return result;
-	}
-
-	/** Initialises this graph with a single-state PTA. */
-	@Override
-	public void initPTA()
-	{
-		super.initPTA();
-		learnerCache.invalidate();
-	}
-	
 	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
 	@Override
 	public void initEmpty()
 	{
 		super.initEmpty();
-		pairsAndScores = new ArrayList<PairScore>(pairArraySize);incompatibles=new HashMap<CmpVertex,Set<CmpVertex>>();
-		learnerCache.invalidate();
-	}
-
-	/** Used to determine which states to consider/ignore during linear.
-	 * Conceptually similar to <em>FilterPredicate</em> but for a different
-	 * purpose and an argument of a different type.
-	  */ 
-	public interface StatesToConsider
-	{
-		/** Returns true if the state is to be considered
-		 * 
-		 * @param vert state
-		 * @param graph the graph in which this state is contained.
-		 * @return whether state is to be considered
-		 */
-		public boolean stateToConsider(CmpVertex vert);
-	}
-	
-	/** Builds a map from vertices to number, for use with <em>vertexToInt</em>.
-	 * 
-	 * @param whatToConsider to reject interface determining vertices to reject.
-	 * null means all states are to be considered.
-	 * @param vertToIntMap from vertices to numbers (an inverse of the map returned).
-	 * @return map from vertex number to vertices 
-	 */
-	CmpVertex[] buildStateToIntegerMap(StatesToConsider whatToConsider, Map<CmpVertex,Integer> vertToIntMap)
-	{
-		int size=0;for(CmpVertex vert:transitionMatrix.keySet()) 
-			if (whatToConsider == null || whatToConsider.stateToConsider(vert)) size++;
-		CmpVertex [] intToVertexMap = new CmpVertex[size];
-		int num=0;
-		for(CmpVertex vert:transitionMatrix.keySet())
-			if (whatToConsider == null || whatToConsider.stateToConsider(vert))
-			{
-				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
-				vertToIntMap.put(vert, num++);// populate the forward map
-			}
-		assert num == size;
-		return intToVertexMap;
-	}
-	
-	/** This one is similar to the above but does not add a vertex to the graph - I need this behaviour when
-	 * concurrently processing graphs. 
-	 *  
-	 * @param prevState the state from which to start the new edge
-	 * @param accepted whether the vertex to add should be an accept one
-	 * @param input the label of the edge
-	 * @return the new vertex.
-	 */
-	CmpVertex addVertex(CmpVertex prevState, boolean accepted, String input)
-	{
-		assert Thread.holdsLock(syncObj);
-		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
-		assert !transitionMatrix.containsKey(newVertex);
-		newVertex.setAccept(accepted);
-		transitionMatrix.put(newVertex, createNewRow());
-		transitionMatrix.get(prevState).put(input,newVertex);
-		return newVertex;
+		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
 	}
 
 	/** Converts a transition into an FSM structure, by taking a copy.
@@ -447,6 +248,121 @@ public class LearnerGraph extends AbstractTransitionMatrix<CmpVertex>
 	@Override
 	public Map<String, CmpVertex> createNewRow() {
 		return new TreeMap<String,CmpVertex>();// using TreeMap makes everything predictable
+	}
+
+	@Override
+	void addTransition(Map<String, CmpVertex> row, String input, CmpVertex target) 
+	{
+		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
+			
+		row.put(input, target);
+	}
+
+	@Override
+	public LearnerGraphCachedData createCache() {
+		return new LearnerGraphCachedData(this);
+	}
+/*
+	@Override
+	public Class<CmpVertex> getClassOfTargetType() {
+		return CmpVertex.class;
+	}
+*/
+	@Override
+	Collection<CmpVertex> getTargets(final CmpVertex targ) 
+	{
+		return new Collection<CmpVertex>() {
+
+			public boolean add(@SuppressWarnings("unused") CmpVertex e) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public boolean addAll(@SuppressWarnings("unused") Collection<? extends CmpVertex> c) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public void clear() {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public boolean contains(Object o) {
+				return targ.equals(o);
+			}
+
+			public boolean containsAll(@SuppressWarnings("unused") Collection<?> c) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public boolean isEmpty() {
+				return false;
+			}
+
+			public Iterator<CmpVertex> iterator() {
+				return new Iterator<CmpVertex>()
+				{
+					boolean elementReturned = false;
+					public boolean hasNext() {
+						return !elementReturned;
+					}
+	
+					public CmpVertex next() {
+						assert hasNext();elementReturned = true;
+						return targ;
+					}
+	
+					public void remove() {
+						throw new UnsupportedOperationException("remove cannot be performed.");
+					}
+				};				
+			}
+
+			public boolean remove(@SuppressWarnings("unused") Object o) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public int size() {
+				return 1;
+			}
+
+			public Object[] toArray() {
+				throw new UnsupportedOperationException("should not be used");
+			}
+
+			public <T> T[] toArray(@SuppressWarnings("unused") T[] a) {
+				throw new UnsupportedOperationException("should not be used");
+			}
+		};
+	}
+
+	@Override
+	Map<CmpVertex, Map<String, CmpVertex>> createNewTransitionMatrix() {
+		return new TreeMap<CmpVertex, Map<String, CmpVertex>>();
+	}
+
+	@Override
+	void removeTransition(Map<String, CmpVertex> row, String input, @SuppressWarnings("unused") CmpVertex target) 
+	{
+		row.remove(input);
+	}
+
+	@Override
+	public AbstractLearnerGraph<CmpVertex, LearnerGraphCachedData> copy(Configuration conf) 
+	{
+		AbstractLearnerGraph<CmpVertex, LearnerGraphCachedData> result = newInstance(conf);AbstractLearnerGraph.copyGraphs(this, result);return result;
+	}
+
+	@Override
+	public AbstractLearnerGraph<CmpVertex, LearnerGraphCachedData> newInstance(Configuration conf) 
+	{
+		return new LearnerGraph(conf);
 	}
 }
 

@@ -526,10 +526,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	}
 
 	public void update(@SuppressWarnings("unused") final Observable s, Object arg){
-		if (arg instanceof LearnerGraph)
+		if (arg instanceof AbstractLearnerGraph)
 		{
-			LearnerGraph lg = (LearnerGraph)arg;
-			graphs.add( lg.paths.getGraph() );
+			graphs.add( ((AbstractLearnerGraph)arg).pathroutines.getGraph() );
 		}
 		else if (arg instanceof DirectedSparseGraph)
 			graphs.add( (DirectedSparseGraph) arg);
@@ -542,12 +541,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	public static class EdgeColour
 	{
-		final Map<String,Map<String,Color>> transitionColours;
+		final Map<String,Map<String,Map<String,Color>>> transitionColours;
 		final Map<String,String> extraLabels;
 		
 		public EdgeColour(Graph graph)
 		{
-			transitionColours = (Map<String,Map<String,Color>>)graph.getUserDatum(JUConstants.EDGE);
+			transitionColours = (Map<String,Map<String,Map<String,Color>>>)graph.getUserDatum(JUConstants.EDGE);
 			extraLabels = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
 		}
 		/** Given an edge and a label, determines if there is an annotation associated with that label.
@@ -563,9 +562,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			if (e instanceof DeterministicEdge)
 			{
 				DeterministicEdge edge = (DeterministicEdge)e;
-				String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString();
-	   			if (transitionColours != null && transitionColours.containsKey(source))
-					result = transitionColours.get(source).get(currentLabel);
+				String source = edge.getSource().getUserDatum(JUConstants.LABEL).toString(), target = edge.getDest().getUserDatum(JUConstants.LABEL).toString();
+	   			if (transitionColours != null && transitionColours.containsKey(source) && transitionColours.get(source).containsKey(currentLabel))
+					result = transitionColours.get(source).get(currentLabel).get(target);
 			}
 			return result;
 		}

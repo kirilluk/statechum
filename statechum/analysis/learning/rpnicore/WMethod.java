@@ -27,11 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.Assert;
 
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.Helper;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
 import statechum.model.testset.PrefixFreeCollection;
@@ -53,14 +55,6 @@ public class WMethod {
 
 	private Collection<List<String>> fullTestSet;
 	private Collection<List<String>> transitionCover, characterisationSet;
-	
-	public Set<String> computeAlphabet()
-	{
-		Set<String> result = new LinkedHashSet<String>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-			result.addAll(entry.getValue().keySet());
-		return result;
-	}
 	
 	public Collection<List<String>> getFullTestSet(int extraStates){
 		if (fullTestSet == null)
@@ -95,7 +89,7 @@ public class WMethod {
 	public Collection<List<String>> computeOldTestSet(int numberOfExtraStates)
 	{
 		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
-		List<List<String>> partialSet = computeStateCover();
+		List<List<String>> partialSet = coregraph.pathroutines.computeStateCover();
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
@@ -113,8 +107,8 @@ public class WMethod {
 
 	public Collection<List<String>> computeNewTestSet(int numberOfExtraStates)
 	{
-		Set<String> alphabet =  computeAlphabet();
-		List<List<String>> stateCover = computeStateCover();
+		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
+		List<List<String>> stateCover = coregraph.pathroutines.computeStateCover();
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
@@ -130,15 +124,6 @@ public class WMethod {
 		}
 		
 		return engine.getData();
-	}
-
-	/** Checks if the supplied FSM has unreachable states.
-	 * 
-	 * @return true if there are any unreachable states.
-	 */
-	public boolean checkUnreachableStates()
-	{
-		return computeStateCover().size() != coregraph.transitionMatrix.size();
 	}
 	
 	/** Checks if the supplied FSM has equivalent states. */
@@ -209,45 +194,6 @@ public class WMethod {
 			functionList.add(path);
 		}
 		return functionList;
-	}
-	
-	/** Computes a state cover (a collection of sequences to reach every state in this machine). */
-	public List<List<String>> computeStateCover()
-	{
-		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(computeShortPathsToAllStates().values());
-		return outcome;
-	}
-	
-	/** Computes a mapping from every state to a shortest path to that state. The term
-	 * "a shorest path" is supposed to mean that we are talking of one of the shortest pats.
-	 *  
-	 * @return map from states to paths reaching those states.
-	 */
-	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates()
-	{
-		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(coregraph.init, new LinkedList<String>());
-		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-		fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
-		while(!fringe.isEmpty())
-		{
-			CmpVertex currentState = fringe.remove();
-			LinkedList<String> currentPath = stateToPath.get(currentState);
-			Map<String,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
-			if(targets != null && !targets.isEmpty())
-				for(Entry<String,CmpVertex> labelstate:targets.entrySet())
-				{
-					CmpVertex target = labelstate.getValue();
-					if (!statesInFringe.contains(target))
-					{
-						LinkedList<String> newPath = (LinkedList<String>)currentPath.clone();newPath.add(labelstate.getKey());
-						stateToPath.put(target,newPath);
-						fringe.offer(target);
-						statesInFringe.add(target);
-					}
-				}
-		}
-		return stateToPath;
 	}
 	
 	public static class EquivalentStatesException extends Error 
@@ -840,19 +786,71 @@ public class WMethod {
 		}
 	}
 	
+	public enum VERTEX_COMPARISON_KIND { NONE, NAMES, DEEP }
+	
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states are ignored.
 	 * 
+	 * @param compareVertices if DEEP, compares attributes of every pair of states reached; NAMES means only names are compared.
 	 * @return DifferentFSMException if machines are different and null otherwise.
 	 */
-	public static DifferentFSMException checkM(LearnerGraph expected, CmpVertex stateExpected, LearnerGraph graph, CmpVertex stateGraph)
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
+		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expectedArg,CmpVertex stateExpectedArg,
+				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graphArg,CmpVertex stateGraphArg, VERTEX_COMPARISON_KIND compareVertices)
 	{
-		assert stateExpected != null && stateGraph != null;
+		assert stateExpectedArg != null && stateGraphArg != null;
+		LearnerGraph expected = null, graph = null;
+		/*
+		try {
+			expected = new LearnerGraph(expectedArg,expectedArg.config);
+		}
+		catch(IllegalArgumentException ex)
+		{// failed to directly convert to a deterministic graph.
+		}
+
+		try {
+			graph = new LearnerGraph(graphArg,graphArg.config);
+		}
+		catch(IllegalArgumentException ex)
+		{// failed to directly convert to a deterministic graph.
+		}
+*/
+		try {// This one potentially makes copies of states with different names.
+			if (expected == null) expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
+			if (graph == null) graph = graphArg.pathroutines.buildDeterministicGraph(stateGraphArg);
+		} catch (IncompatibleStatesException e) {
+			Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
+		}
+		CmpVertex stateGraph = graph.init, stateExpected = expected.init;
+		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 
 		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
 		currentExplorationBoundary.add(new StatePair(stateGraph,stateExpected));statesAddedToBoundary.add(new StatePair(stateGraph,stateExpected));
-		
+		switch(compareVertices)
+		{
+		case DEEP:
+			if (!DeterministicDirectedSparseGraph.deepEquals(stateGraph,stateExpected))
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different values of attributes");
+			if (stateGraph.getOrigState() == null)
+			{
+				if (stateExpected.getOrigState() != null)
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+			}
+			else
+				if (!stateGraph.getOrigState().equals(stateExpected.getOrigState()))
+					return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+			break;
+		case NAMES:	
+			if (!stateGraph.getOrigState().equals(stateExpected.getOrigState()))
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+			break;
+		case NONE:// nothing needs doing 
+			break;
+		}
+
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair statePair = currentExplorationBoundary.remove();
@@ -860,8 +858,9 @@ public class WMethod {
 			assert expected.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
 			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
 				return new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
-						
-			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem), expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
+			//System.out.println("considering pair "+statePair.getR()+","+statePair.getQ());// in reverse order
+			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem);
+			Map<String,CmpVertex> expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
 			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
 				return new DifferentFSMException("different number of transitions from states "+statePair);
 				
@@ -874,8 +873,32 @@ public class WMethod {
 				CmpVertex expectedState = expectedTargets.get(label);
 				
 				StatePair nextPair = new StatePair(tState,expectedState);
+				//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
 				if (!statesAddedToBoundary.contains(nextPair))
 				{
+					switch(compareVertices)
+					{
+					case DEEP:
+						//System.out.println("looking at "+expectedState+" ("+expectedState.getColour()+") and "+tState+" ("+tState.getColour()+") ");
+						if (!DeterministicDirectedSparseGraph.deepEquals(tState, expectedState))
+							return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different values of attributes");
+						if (tState.getOrigState() == null)
+						{
+							if (expectedState.getOrigState() != null)
+								return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+						}
+						else
+							if (!tState.getOrigState().equals(expectedState.getOrigState()))
+								return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+						break;
+					case NAMES:	
+						if (!tState.getOrigState().equals(expectedState.getOrigState()))
+							return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+						break;
+					case NONE:// nothing needs doing 
+						break;
+					}
+
 					currentExplorationBoundary.offer(nextPair);
 					statesAddedToBoundary.add(nextPair);
 				}
@@ -888,35 +911,35 @@ public class WMethod {
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states are ignored. 
 	 */
-	public static DifferentFSMException checkM(LearnerGraph expected, LearnerGraph graph)
+	public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
+		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expected,
+				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graph)
 	{
-		return checkM(expected,expected.init, graph, graph.init);
+		return checkM(expected,expected.init, graph, graph.init,VERTEX_COMPARISON_KIND.NONE);
 	}
 	
-	/** Verifies that vertices with the same name have the same colour in the two graphs
+	/** Verifies that vertices contain the same attributes in the two graphs
 	 * and that same sets of vertex pairs are declared incompatible,
 	 * in addition to checking for isomorphism of the graphs.
 	 * Used for consistency checking.
 	 * <p>
 	 * Important: unreachable states are not checked for.
 	 */
-	public static DifferentFSMException checkM_and_colours(LearnerGraph A, LearnerGraph B)
+		public static <TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
+		DifferentFSMException checkM_and_colours(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> A,
+				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> B, VERTEX_COMPARISON_KIND howToCompare)
+				
 	{
-		DifferentFSMException ex = WMethod.checkM(A, B);if (ex != null) return ex;
-		for(Entry<CmpVertex,LinkedList<String>> entry:A.wmethod.computeShortPathsToAllStates().entrySet())
-		{
-			CmpVertex Bstate = B.getVertex(entry.getValue());
-			CmpVertex Astate = entry.getKey();
-			if (Bstate.getColour() != Astate.getColour())
-				return new DifferentFSMException("states "+ Astate + " (" +
-						((Astate.getColour() == null)?"no color":Astate.getColour())+") and "+Bstate+" ("+
-						((Bstate.getColour() == null)?"no color":Bstate.getColour())+") have different colours");
-		}
+		DifferentFSMException ex = WMethod.checkM(A, A.init,B,B.init,howToCompare);if (ex != null) return ex;
 		if (!A.incompatibles.equals(B.incompatibles))
 			return new DifferentFSMException("sets of incompatible states differ");
 		return null;
 	}
-
+		
 	/** Checks if the two graphs have the same set of states. */
 	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
 	{

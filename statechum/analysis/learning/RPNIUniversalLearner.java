@@ -25,9 +25,9 @@ import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
-import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.spin.SpinUtil;
@@ -38,15 +38,15 @@ import java.util.*;
 
 import javax.swing.JOptionPane;
 
-public class RPNIUniversalLearner extends RPNILearner {
+public class RPNIUniversalLearner extends RPNILearner 
+{
 
 	private Collection<String> ltl;
-	private LabelRepresentation labelDetails;
 	
 	public RPNIUniversalLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) 
 	{
 		super(parent, evalCnf.config);
-		ltl = evalCnf.ltlSequences;labelDetails=evalCnf.labelDetails;
+		ltl = evalCnf.ltlSequences;
 		scoreComputer = new LearnerGraph(evalCnf.config);
 	}
 
@@ -56,7 +56,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
 	{// Given that we may have a graph with a single reject-state, we'd like to start by adding
 	 // reject-sequences first.
-		scoreComputer.initPTA();
+		scoreComputer.initPTA();		
 		scoreComputer.paths.augmentPTA(minus, false,false);
 		scoreComputer.paths.augmentPTA(plus, true,false);
 		return scoreComputer;
@@ -115,7 +115,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 	 * @param tempNew the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<String>> ComputeQuestions(PairScore pair, @SuppressWarnings("unused") LearnerGraph original, LearnerGraph tempNew)
 	{
 		return ComputeQuestions.computeQS(pair, scoreComputer,tempNew);
 	}
@@ -130,7 +130,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 	public LearnerGraph learnMachine()
 	{
 		final Configuration shallowCopy = scoreComputer.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph ptaHardFacts = scoreComputer.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		LearnerGraph ptaHardFacts = new LearnerGraph(scoreComputer,shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 		if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
 		if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
@@ -145,10 +145,9 @@ public class RPNIUniversalLearner extends RPNILearner {
 		
 		while (!possibleMerges.isEmpty()) 
 		{
-
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			
+
 			LearnerGraph temp = topLevelListener.MergeAndDeterminize(scoreComputer, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
@@ -186,6 +185,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 			while (questionIt.hasNext() && restartLearning == RestartLearningEnum.restartNONE) 
 			{
 				if (questionAnswered) question = questionIt.next();// only pick next question if we've got an answer to the previous one
+				assert question != null;// this clears subsequent warnings that question may be null :)
 				questionAnswered = false;
 				
 				boolean accepted = pair.getQ().isAccept();
@@ -193,12 +193,13 @@ public class RPNIUniversalLearner extends RPNILearner {
 				if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin())
 					answer = new Pair<Integer,String>(checkWithSPIN(question),null);
 				
+				CmpVertex tempVertex = temp.getVertex(question);
 				boolean answerFromSpin = false;
 				if(answer != null && answer.firstElem >= 0) 
 					answerFromSpin = true;
 				else{
 					//System.out.println("<question> "+question);
-					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, new Object[] { "LTL"});
+					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,new Object[] { "LTL"});
 				}
 				
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
@@ -206,7 +207,6 @@ public class RPNIUniversalLearner extends RPNILearner {
 					return null;
 				}
 				
-				CmpVertex tempVertex = temp.getVertex(question);
 
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) {
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
@@ -282,7 +282,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 					if (config.isSpeculativeQuestionAsking())
 						if (speculativeGraphUpdate(possibleMerges, ptaHardFacts))
 							return null;// this is the case when a user cancels the learning process when presented by "speculative" questions.
-					ptaSoftFacts = ptaHardFacts.copy(shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+					AbstractLearnerGraph.copyGraphs(ptaHardFacts,ptaSoftFacts);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				}
 				scoreComputer = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
 				if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
@@ -303,6 +303,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 				scoreComputer = temp;
 				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
+
 			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		}
 		
@@ -355,7 +356,7 @@ public class RPNIUniversalLearner extends RPNILearner {
 				{					
 					for(List<String> question:topLevelListener.ComputeQuestions(pair, newPTA, tempNew))
 					{
-						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, new Object [] {"Test"});
+						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");

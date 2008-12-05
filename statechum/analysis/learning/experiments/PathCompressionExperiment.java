@@ -1,23 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
-/*
- * INCOMPLETE
- */
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning.experiments;
 
@@ -68,7 +65,7 @@ public class PathCompressionExperiment {
 		protected void buildSets()
 		{
 			loadGraph();
-			int size = graph.paths.getGraph().getEdges().size()*4;// FIXME: this one ignores parallel edges
+			int size = graph.pathroutines.getGraph().getEdges().size()*4;// FIXME: this one ignores parallel edges
 	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),3);// the seed for Random should be the same for each file
 			rpg.generatePosNeg(size, experiment.getStageNumber());
 			pta = rpg.getAllSequences(percent);

@@ -33,7 +33,7 @@ import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import javax.xml.XMLConstants;
+import statechum.StatechumXML;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.w3c.dom.Document;
@@ -44,10 +44,9 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.analysis.learning.AbstractOracle;
 
 /** An instance of this class behaves like a learner including calls to its decorators, 
  * but instead of running an experiment all data is retrieved from the supplied
@@ -243,7 +242,7 @@ public class LearnerSimulator extends ProgressDecorator
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
 		{
-			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
 			result = factory.newDocumentBuilder().parse(new org.xml.sax.InputSource(reader));
 		}
@@ -284,39 +283,39 @@ public class LearnerSimulator extends ProgressDecorator
 	/** The element corresponding to the current method call. */
 	protected Element currentElement = null;
 
-	protected static final Map<String,ELEM_KINDS> stringToEnumMap;
+	protected static final Map<String,StatechumXML> stringToEnumMap;
 	
 	static {
-		stringToEnumMap = new TreeMap<String,ELEM_KINDS>();
-		for(ELEM_KINDS kind: ELEM_KINDS.values())
+		stringToEnumMap = new TreeMap<String,StatechumXML>();
+		for(StatechumXML kind: StatechumXML.values())
 			stringToEnumMap.put(kind.name(), kind);
 	}
 	
 	@Override
 	public LearnerGraph learnMachine()
 	{
-		currentElement = expectNextElement(ELEM_KINDS.ELEM_INIT.name());
+		currentElement = expectNextElement(StatechumXML.ELEM_INIT.name());
 		LearnerGraph graph = null, temp = null, result = null;
 		while(currentElement != null)
 		{
 			final String elemName = currentElement.getNodeName();
 			if (result != null) // we already know the final graph but there are more elements to come
 				throw new IllegalArgumentException("unexpected element "+elemName+" after the learner result is known");
-			ELEM_KINDS kind = stringToEnumMap.get(elemName);
+			StatechumXML kind = stringToEnumMap.get(elemName);
 			
-		 	if (elemName.equals(Transform.graphmlNodeNameNS) ||
-					elemName.equals(GD.ChangesRecorder.gdGD))
+		 	if (elemName.equals(StatechumXML.graphmlNodeNameNS.toString()) ||
+					elemName.equals(StatechumXML.gdGD.toString()))
 			{
-				String graphKind = currentElement.getAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name());
-				if (graphKind.equals(ELEM_KINDS.ATTR_LEARNINGOUTCOME.name()))
+				String graphKind = currentElement.getAttribute(StatechumXML.ATTR_GRAPHKIND.name());
+				if (graphKind.equals(StatechumXML.ATTR_LEARNINGOUTCOME.name()))
 				{
 					result = series.readGraph(currentElement);
-					kind = ELEM_KINDS.ATTR_GRAPHKIND;// means that this case was handled successfully.
+					kind = StatechumXML.ATTR_GRAPHKIND;// means that this case was handled successfully.
 				}
 				else
-					if (graphKind.equals(ELEM_KINDS.ATTR_WITHCONSTRAINTS.name()))
+					if (graphKind.equals(StatechumXML.ATTR_WITHCONSTRAINTS.name()))
 					{
-						kind = ELEM_KINDS.ATTR_WITHCONSTRAINTS;// means that this case was handled successfully.
+						kind = StatechumXML.ATTR_WITHCONSTRAINTS;// means that this case was handled successfully.
 					}
 					else
 						throw new IllegalArgumentException("unexpected kind of graph: "+graphKind);
@@ -329,8 +328,8 @@ public class LearnerSimulator extends ProgressDecorator
 				case ATTR_WITHCONSTRAINTS:
 					topLevelListener.AddConstraints(graph);break;
 				case ELEM_ANSWER:
-					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(ELEM_KINDS.ATTR_QUESTION.name())),-1);
-					Object outcome = topLevelListener.CheckWithEndUser(graph, question, null);
+					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
+					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null);
 					assert outcome == expectedReturnValue;// yes, this should be b
 					break;
 				case ELEM_PAIRS:
@@ -338,17 +337,17 @@ public class LearnerSimulator extends ProgressDecorator
 					break;
 				case ELEM_QUESTIONS:
 					checkSingles(currentElement, childrenQuestions);
-					topLevelListener.ComputeQuestions(readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())),graph,temp);
+					topLevelListener.ComputeQuestions(readPair(graph, getElement(StatechumXML.ELEM_PAIR.name())),graph,temp);
 					break;
 				case ELEM_MERGEANDDETERMINIZE:
-					if (currentElement.getElementsByTagName(ELEM_KINDS.ELEM_PAIR.name()).getLength() != 1)
-						throw new IllegalArgumentException("missing or duplicate pair");
+					if (StatechumXML.getChildWithTag(currentElement,StatechumXML.ELEM_PAIR.name()).getLength() != 1)
+						throw new IllegalArgumentException("missing or duplicate pair, found "+StatechumXML.getChildWithTag(currentElement,StatechumXML.ELEM_PAIR.name()).getLength()+" pairs");
 					
-					temp = topLevelListener.MergeAndDeterminize(graph, readPair(graph, getElement(ELEM_KINDS.ELEM_PAIR.name())));
+					temp = topLevelListener.MergeAndDeterminize(graph, readPair(graph, getElement(StatechumXML.ELEM_PAIR.name())));
 					break;
 				case ELEM_RESTART:
-					if (!currentElement.hasAttribute(ELEM_KINDS.ATTR_KIND.name())) throw new IllegalArgumentException("absent KIND attribute on RESTART");
-					String restartKind = currentElement.getAttribute(ELEM_KINDS.ATTR_KIND.name());
+					if (!currentElement.hasAttribute(StatechumXML.ATTR_KIND.name())) throw new IllegalArgumentException("absent KIND attribute on RESTART");
+					String restartKind = currentElement.getAttribute(StatechumXML.ATTR_KIND.name());
 					RestartLearningEnum mode = Enum.valueOf(RestartLearningEnum.class, restartKind);
 					topLevelListener.Restart(mode);
 					if (mode == RestartLearningEnum.restartNONE)
@@ -386,14 +385,15 @@ public class LearnerSimulator extends ProgressDecorator
 	 *  
 	 * @param g estimated graph, not loaded.
 	 * @param question question loaded from XML
+	 * @param responseForNoRestart ignored.
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, Object[] options) 
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, int responseForNoRestart, Object[] options) 
 	{
-		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(ELEM_KINDS.ATTR_FAILEDPOS.name()));
+		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(StatechumXML.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;
-		if (currentElement.hasAttribute(ELEM_KINDS.ATTR_LTL.name())) ltlValue = currentElement.getAttribute(ELEM_KINDS.ATTR_LTL.name());
+		if (currentElement.hasAttribute(StatechumXML.ATTR_LTL.name())) ltlValue = currentElement.getAttribute(StatechumXML.ATTR_LTL.name());
 		Pair<Integer,String> returnValue = new Pair<Integer,String>(failedPosition,ltlValue);expectedReturnValue=returnValue;
 		return returnValue;
 	}
@@ -413,7 +413,7 @@ public class LearnerSimulator extends ProgressDecorator
 			if (pair.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE)
 			{
 				Element elem = (Element) pair;
-				if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_PAIR.name()))
+				if (!elem.getNodeName().equals(StatechumXML.ELEM_PAIR.name()))
 						throw new IllegalArgumentException("unexpected node "+pair.getNodeName()+" among pairs");
 				
 				result.add(readPair(graph, elem));
@@ -431,7 +431,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 */
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp)
 	{
-		return readSequenceList(getElement(ELEM_KINDS.ELEM_SEQ.name()),ELEM_KINDS.ATTR_QUESTIONS.name());
+		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_QUESTIONS.name());
 	}
 
 	/** Extracts the child of the current element with the provided name. 
@@ -441,14 +441,14 @@ public class LearnerSimulator extends ProgressDecorator
 	 */
 	public Element getElement(String name)
 	{
-		return (Element)currentElement.getElementsByTagName(name).item(0);
+		return (Element)StatechumXML.getChildWithTag(currentElement,name).item(0);
 	}
 
 	final static Set<String> childrenQuestions;
 	
 	static
 	{
-		childrenQuestions = new TreeSet<String>();childrenQuestions.addAll(Arrays.asList(new String[]{ELEM_KINDS.ELEM_PAIR.name(),ELEM_KINDS.ELEM_SEQ.name()}));
+		childrenQuestions = new TreeSet<String>();childrenQuestions.addAll(Arrays.asList(new String[]{StatechumXML.ELEM_PAIR.name(),StatechumXML.ELEM_SEQ.name()}));
 	}
 	
 	/** Loads the current learner input parameters and initialises the internal data in the simulator.
@@ -456,7 +456,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 */
 	public LearnerEvaluationConfiguration readLearnerConstructionData()
 	{
-		Element evaluationData = expectNextElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name());
+		Element evaluationData = expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name());
 		LearnerEvaluationConfiguration cnf = readLearnerEvaluationConfiguration(evaluationData);
 		config = cnf.config;
 		series = new GraphSeries(config);
@@ -471,8 +471,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 */
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
-		Element graphNode = getElement(GD.ChangesRecorder.gdGD);
-		if (graphNode == null) graphNode = getElement(Transform.graphmlNodeNameNS);
+		Element graphNode = getElement(StatechumXML.gdGD.toString());
+		if (graphNode == null) graphNode = getElement(StatechumXML.graphmlNodeNameNS.toString());
 		if (graphNode == null) throw new IllegalArgumentException("failed to find a node with a graph");
 		return series.readGraph(graphNode);
 	}

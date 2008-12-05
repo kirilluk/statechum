@@ -70,6 +70,8 @@ public class GlobalConfiguration {
 	 */
 	protected static final Map<G_PROPERTIES, String> defaultValues = new TreeMap<G_PROPERTIES, String>();
 	
+	private static boolean assertionsEnabled = false;// this has to be executed above the static block which assigns a new value if appropriate.
+	
 	static
 	{
 		defaultValues.put(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -83,7 +85,6 @@ public class GlobalConfiguration {
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 	
-	private static boolean assertionsEnabled = false;
 	
 	public boolean isAssertEnabled()
 	{

@@ -38,9 +38,9 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -111,7 +111,7 @@ public class TestRecorderIntegration {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, 
+					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -127,8 +127,9 @@ public class TestRecorderIntegration {
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
 		//System.out.println(logStream.toString()+"============");
 		//System.out.println(logStream.toByteArray().length);
-		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,testConfig);
-		WMethod.checkM(learntMachineNoRejects, expected);
+		LearnerGraph learntMachineNoRejects = new LearnerGraph(testConfig);
+		AbstractPathRoutines.removeRejectStates(learntStructureA,learntMachineNoRejects);
+		Assert.assertNull(WMethod.checkM(learntMachineNoRejects, expected));
 		
 		switch(kind)
 		{
@@ -147,7 +148,7 @@ public class TestRecorderIntegration {
 				Assert.assertEquals(testSet, eval2.testSet);
 				Assert.assertEquals(expected.config, testConfig);
 				
-				new Test_LearnerComparator(simulator,simulator2,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(simulator,simulator2,true).learnMachine(buildSet(plus), buildSet(minus));
 				break;
 			}
 			
@@ -164,13 +165,13 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, 
+							List<String> question, @SuppressWarnings("unused") int responseForNoRestart, 
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 					}
 				};
-				new Test_LearnerComparator(learner2,simulator,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus), buildSet(minus));
 				break;
 			}
 
@@ -181,7 +182,7 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, 
+							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -192,13 +193,13 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, 
+							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
 					}
 				};
-				new Test_LearnerComparator(learnerA,learnerB,!useCompression).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus), buildSet(minus));
 				break;
 			}
 		}

@@ -31,6 +31,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.AugmentPTAData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.model.testset.PTASequenceEngine;
 
 /**
@@ -142,17 +143,21 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	/** Whether to check colouring of states - not for use with GD because
 	 * since GD does not preserve colours of existing states. 
 	 */
-	protected final boolean checkColours; 
-	
+	protected final boolean compareInDepth; 
+
 	protected void checkGraphEquality(LearnerGraph what, LearnerGraph with)
 	{
 		DifferentFSMException ex = null;
-		if (checkColours)
-			ex = WMethod.checkM_and_colours(what,with);
+		if (compareInDepth)
+		{
+			//if (!what.equals(with))
+			//	ex = new DifferentFSMException("machines differ");
+			ex = WMethod.checkM_and_colours(what,with,VERTEX_COMPARISON_KIND.DEEP);
+		}
 		else
 			ex = WMethod.checkM(what, with);
-		
 		//org.junit.Assert.assertTrue(WMethod.sameStateSet(what,with));
+
 		if (ex != null && failureCode == null) failureCode = ex;
 	}
 	
@@ -160,13 +165,12 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * 
 	 * @param what what to compare
 	 * @param with with what
-	 * @param checkCol whether to bother comparing colours of states - do not use if GD is used
-	 * since it does not preserve colours of existing states.
+	 * @param deep whether to compare not only the structure of graphs but also graph attributes
 	 */
-	public Test_LearnerComparator(Learner what, Learner with, boolean checkCol)
+	public Test_LearnerComparator(Learner what, Learner with, boolean deep)
 	{
-		super(what);checkColours = checkCol;
-		whatToCompareWith = with;
+		super(what);
+		whatToCompareWith = with;compareInDepth = deep;
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
 	
@@ -258,20 +262,21 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	/** Simulated check.
 	 * @param g estimated graph, not loaded from XML.
 	 * @param question question loaded from XML or computed by a learner.
+	 * @param responseForNoRestart ignored
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML or computed by the learner.
 	 */
-	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, Object[] options) 
+	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, Object[] options) 
 	{
 		Pair<Integer, String> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, options);
+			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, options);
 			question = argQuestion;cPair = result;
 		}
 		else
-			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, options);
+			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, options);
 
 		checkCall(KIND_OF_METHOD.M_CHECKWITHUSER);
 
@@ -321,17 +326,17 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking. 
-			
+
 		// Since accept/reject labelling is not stored in the XML file, we have to compare pairs discounting accept/reject
 			if (pairs.size() != pairsAndScores.size())
-				new IllegalArgumentException("different sizes of ChooseStatePairs collections of pairs, \n"+pairs+" v.s. \n"+pairsAndScores);
+				throw new IllegalArgumentException("different sizes of ChooseStatePairs collections of pairs, \n"+pairs+" v.s. \n"+pairsAndScores);
 			Iterator<PairScore> ps1 = pairs.iterator(), ps2=pairsAndScores.iterator();
 			while(ps1.hasNext())
 			{
 				PairScore p1 = ps1.next(),p2=ps2.next();
 				if (!p1.getQ().getID().equals(p2.getQ().getID()) || !p1.getR().getID().equals(p2.getR().getID()) ||
 						p1.getScore() != p2.getScore() || p1.getAnotherScore() != p2.getAnotherScore())
-					new IllegalArgumentException("different ChooseStatePairs pairs, "+p1+" v.s. "+p2);
+					throw new IllegalArgumentException("different ChooseStatePairs pairs, "+p1+" v.s. "+p2);
 			}
 			
 			pairs =null;// reset stored data
@@ -400,13 +405,13 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.MergeAndDeterminize(original, pair);
-			copyOfResult = result.copy(result.config);// since a tread which produced result may exit and modify the graph, we have to take a copy of it.
+			copyOfResult = new LearnerGraph(result,result.config);// since a tread which produced result may exit and modify the graph, we have to take a copy of it.
 			mPair = pair;mGraph = copyOfResult;
 		}
 		else
 		{
 			result = decoratedLearner.MergeAndDeterminize(original, pair);
-			copyOfResult = result.copy(result.config);
+			copyOfResult = new LearnerGraph(result,result.config);
 		}
 		checkCall(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
 
@@ -474,13 +479,13 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.init(plus, minus);
-			copyOfResult = result.copy(result.config);
+			copyOfResult = new LearnerGraph(result,result.config);
 			iGraph = copyOfResult;
 		}
 		else
 		{
 			result = decoratedLearner.init(plus, minus);
-			copyOfResult = result.copy(result.config);
+			copyOfResult = new LearnerGraph(result,result.config);
 		}
 		checkCall(KIND_OF_METHOD.M_INIT);
 
@@ -515,13 +520,13 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.AddConstraints(graph);
-			copyOfResult = result.copy(result.config);
+			copyOfResult = new LearnerGraph(result,result.config);
 			cGraph = copyOfResult;
 		}
 		else
 		{
 			result = decoratedLearner.AddConstraints(graph);
-			copyOfResult = result.copy(result.config);
+			copyOfResult = new LearnerGraph(result,result.config);
 		}
 		checkCall(KIND_OF_METHOD.M_ADDCONSTRAINTS);
 		

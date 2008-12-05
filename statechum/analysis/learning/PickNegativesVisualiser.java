@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -29,6 +29,7 @@ import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
+import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
 import statechum.*;
 import statechum.analysis.learning.util.*;
 
@@ -40,10 +41,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	
 	/** This one does the learning. */
 	RPNILearner innerLearner =  null;
-	
-	/** This is a decorator. */
-	Learner autoAnswersDecorator = null;
-	
+		
 	protected SplitFrame split = null;
 	
 	public PickNegativesVisualiser()
@@ -98,9 +96,11 @@ public class PickNegativesVisualiser extends Visualiser {
 		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ltlSequences will always be null.
 				
 				innerLearner.addObserver(PickNegativesVisualiser.this);
-				autoAnswersDecorator=new AutoAnswers(innerLearner);
+				Learner mainDecorator = new AutoAnswers(innerLearner);
+				if (conf.labelDetails != null)
+					mainDecorator = new SmtLearnerDecorator(mainDecorator,conf.labelDetails);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
-        		DirectedSparseGraph learnt = autoAnswersDecorator.learnMachine(sPlus, sMinus).paths.getGraph();
+        		DirectedSparseGraph learnt = mainDecorator.learnMachine(sPlus, sMinus).pathroutines.getGraph();
         		if(conf.config.isGenerateTextOutput())
         			OutputUtil.generateTextOutput(learnt);
         		if(conf.config.isGenerateDotOutput())

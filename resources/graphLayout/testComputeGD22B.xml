@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.6.0_10-rc2" class="java.beans.XMLDecoder"> 
+ <object class="java.util.TreeMap"> 
+  <void method="put"> 
+   <int>-69</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>301.19952392578125</double> 
+    </void> 
+    <void property="y"> 
+     <double>517.1063842773438</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-68</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>428.8719787597656</double> 
+    </void> 
+    <void property="y"> 
+     <double>385.062744140625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-67</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>272.91558837890625</double> 
+    </void> 
+    <void property="y"> 
+     <double>230.7351837158203</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-66</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>79.2431640625</double> 
+    </void> 
+    <void property="y"> 
+     <double>487.77880859375</double> 
+    </void> 
+   </object> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <float>1.1</float> 
+ <float>0.9090909</float> 
+</java> 

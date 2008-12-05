@@ -69,22 +69,23 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
 		statechum.analysis.learning.rpnicore.TestFSMParser.class,
 		statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
-		statechum.analysis.learning.rpnicore.TestTransitionMatrixND.class,
+		statechum.analysis.learning.rpnicore.TestLearnerGraphND.class,
 		statechum.analysis.learning.rpnicore.TestEquivalenceChecking.class,
 		statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
 		statechum.apps.TestQSMTool.class,
-		statechum.TestArrayOperations.class
+		statechum.TestArrayOperations.class,
+		statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
+		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
+		statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
+		statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class
 	})
 	public static class BasicTests {// all tests are included in the annotation.
 	}
 
 	@RunWith(Suite.class)
 	@Suite.SuiteClasses({
-		statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
 		statechum.analysis.learning.TestEVGraphGeneration.class,
 		statechum.analysis.learning.TestPathTracing.class,
-		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
-		statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
 		statechum.model.testset.TestPrefixRemovingCollection.class,
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
@@ -102,7 +103,9 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestLinearWithMultipleThreads.class,
 		statechum.analysis.learning.rpnicore.TestGD.class,
 		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
-		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class
+		statechum.analysis.learning.rpnicore.TestGD_MultipleCasesOfRenaming.class,
+		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
+		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class
 		})
 	public static class LinearTests {// all tests are included in the annotation.
 	}

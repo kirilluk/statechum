@@ -62,12 +62,14 @@ import org.w3c.dom.NodeList;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.AbstractTransitionMatrix;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
 
 public abstract class ProgressDecorator extends LearnerDecorator
 {
@@ -89,14 +91,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		patternBadChars = Pattern.compile("["+"\\"+seqStart+"\\"+seqSep+"\\"+seqEnd+seqNewLine+"]");
 	}
-	
-	public static enum ELEM_KINDS { ELEM_ANSWER, ELEM_QUESTIONS, ATTR_QUESTIONS, ELEM_PAIRS, ELEM_STATECHUM_TESTTRACE, 
-		ATTR_QUESTION, ATTR_TESTSET, ATTR_FAILEDPOS, ATTR_LTL, ELEM_PAIR, ELEM_SEQ, ATTR_SEQ, ATTR_Q, ATTR_R, ATTR_SCORE, ATTR_OTHERSCORE, ELEM_RESTART, ATTR_KIND, 
-		ELEM_EVALUATIONDATA,ATTR_GRAPHKIND, ELEM_INIT, ELEM_MERGEANDDETERMINIZE, ATTR_LEARNINGOUTCOME, 
-		ATTR_POSITIVE_SIZE, ATTR_POSITIVE_SEQUENCES, ATTR_NEGATIVE_SIZE, ATTR_NEGATIVE_SEQUENCES,
-		ELEM_LTL,ELEM_AUGMENTPTA, ATTR_ACCEPT, ATTR_COLOUR, ELEM_PROGRESSINDICATOR, ELEM_LABELDETAILS, ATTR_GRAPHNUMBER, ATTR_WITHCONSTRAINTS
-	}
-	
+		
 	/** Writes the supplied element into XML.
 	 * 
 	 * @param element to write
@@ -104,11 +99,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	public static Element writePair(PairScore element, Document doc)
 	{
-		Element pairElement = doc.createElement(ELEM_KINDS.ELEM_PAIR.name());
-		pairElement.setAttribute(ELEM_KINDS.ATTR_Q.name(), element.getQ().getID().toString());
-		pairElement.setAttribute(ELEM_KINDS.ATTR_R.name(), element.getR().getID().toString());
-		pairElement.setAttribute(ELEM_KINDS.ATTR_SCORE.name(), Integer.toString(element.getScore()));
-		pairElement.setAttribute(ELEM_KINDS.ATTR_OTHERSCORE.name(), Integer.toString(element.getAnotherScore()));
+		Element pairElement = doc.createElement(StatechumXML.ELEM_PAIR.name());
+		pairElement.setAttribute(StatechumXML.ATTR_Q.name(), element.getQ().getID().toString());
+		pairElement.setAttribute(StatechumXML.ATTR_R.name(), element.getR().getID().toString());
+		if (element.getScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_SCORE.name(), Integer.toString(element.getScore()));
+		if (element.getAnotherScore() != JUConstants.intUNKNOWN) pairElement.setAttribute(StatechumXML.ATTR_OTHERSCORE.name(), Integer.toString(element.getAnotherScore()));
 		return pairElement;
 	}
 	
@@ -119,20 +114,22 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * @param elem element to load from
 	 * @return loaded state pair.
 	 */
-	public static PairScore readPair(LearnerGraph graph, Element elem)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
+		PairScore readPair(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, Element elem)
 	{
-		if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_PAIR.name()))
+		if (!elem.getNodeName().equals(StatechumXML.ELEM_PAIR.name()))
 			throw new IllegalArgumentException("expected to load a pair but got "+elem.getNodeName());
-		if (!elem.hasAttribute(ELEM_KINDS.ATTR_Q.name()) || !elem.hasAttribute(ELEM_KINDS.ATTR_R.name()) ||
-				!elem.hasAttribute(ELEM_KINDS.ATTR_SCORE.name()) || !elem.hasAttribute(ELEM_KINDS.ATTR_OTHERSCORE.name()))
+		if (!elem.hasAttribute(StatechumXML.ATTR_Q.name()) || !elem.hasAttribute(StatechumXML.ATTR_R.name()) )
 				throw new IllegalArgumentException("missing attribute in a pair");
-		String q = elem.getAttribute(ELEM_KINDS.ATTR_Q.name()), r = elem.getAttribute(ELEM_KINDS.ATTR_R.name()),
-			score=elem.getAttribute(ELEM_KINDS.ATTR_SCORE.name()), otherscore = elem.getAttribute(ELEM_KINDS.ATTR_OTHERSCORE.name());
-		int scoreInt = -1, otherScoreInt = -1;
-		try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
-		try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }
-		return new PairScore(AbstractTransitionMatrix.generateNewCmpVertex(VertexID.parseID(q), graph.config),
-				AbstractTransitionMatrix.generateNewCmpVertex(VertexID.parseID(r), graph.config),
+		String q = elem.getAttribute(StatechumXML.ATTR_Q.name()), r = elem.getAttribute(StatechumXML.ATTR_R.name()),
+			score=elem.getAttribute(StatechumXML.ATTR_SCORE.name()), otherscore = elem.getAttribute(StatechumXML.ATTR_OTHERSCORE.name());
+		int scoreInt = JUConstants.intUNKNOWN, otherScoreInt = JUConstants.intUNKNOWN;
+		if (score != null && score.length() > 0) // TODO: to test this part
+			try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
+		if (otherscore != null && otherscore.length() > 0)
+			try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }
+		return new PairScore(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(q), graph.config),
+				AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(r), graph.config),
 				scoreInt,otherScoreInt);		
 	}
 	
@@ -256,14 +253,14 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	public static LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement)
 	{
-		if (!evaluationDataElement.getNodeName().equals(ELEM_KINDS.ELEM_EVALUATIONDATA.name()))
+		if (!evaluationDataElement.getNodeName().equals(StatechumXML.ELEM_EVALUATIONDATA.name()))
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
-		NodeList nodesGraph = evaluationDataElement.getElementsByTagName(Transform.graphmlNodeNameNS),
-		nodesSequences = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()),
-		nodesLtl = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LTL.name()),
-		nodesConfigurations = evaluationDataElement.getElementsByTagName(Configuration.configXMLTag),
-		graphNumberNodes = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name()),
-		nodesLabelDetails = evaluationDataElement.getElementsByTagName(ELEM_KINDS.ELEM_LABELDETAILS.name());
+		NodeList nodesGraph = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.graphmlNodeNameNS.toString()),
+		nodesSequences = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_SEQ.name()),
+		nodesLtl = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_LTL.name()),
+		nodesConfigurations = StatechumXML.getChildWithTag(evaluationDataElement,Configuration.configXMLTag),
+		graphNumberNodes = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_PROGRESSINDICATOR.name()),
+		nodesLabelDetails = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_LABELDETAILS.name());
 		if (nodesGraph.getLength() < 1) throw new IllegalArgumentException("missing graph");
 		if (nodesGraph.getLength() > 1) throw new IllegalArgumentException("duplicate graph");
 		if (nodesSequences.getLength() < 1) throw new IllegalArgumentException("missing test set");
@@ -275,7 +272,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (graphNumberNodes.getLength() > 1)
 			try
 			{
-					graphNumber = Integer.parseInt(((Element)graphNumberNodes.item(0)).getAttribute(ELEM_KINDS.ATTR_GRAPHNUMBER.name()));
+					graphNumber = Integer.parseInt(((Element)graphNumberNodes.item(0)).getAttribute(StatechumXML.ATTR_GRAPHNUMBER.name()));
 			}
 			catch(Exception e)
 			{// ignore - graphNumber is unchanged.
@@ -284,8 +281,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration();
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
-		result.graph = Transform.loadGraph((Element)nodesGraph.item(0), result.config);
-		result.testSet = readSequenceList((Element)nodesSequences.item(0),ELEM_KINDS.ATTR_TESTSET.name());
+		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
+		result.testSet = readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
 			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
 		if (nodesLabelDetails.getLength() > 0)
@@ -304,27 +301,27 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	public Element writeLearnerEvaluationConfiguration(LearnerEvaluationConfiguration cnf)
 	{
-		Element evaluationData = doc.createElement(ELEM_KINDS.ELEM_EVALUATIONDATA.name());
-		evaluationData.appendChild(cnf.graph.transform.createGraphMLNode(doc));
-		Element sequenceListElement = writeSequenceList(ELEM_KINDS.ATTR_TESTSET.name(), cnf.testSet);
-		evaluationData.appendChild(Transform.endl(doc));
-		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(Transform.endl(doc));
-		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(Transform.endl(doc));
+		Element evaluationData = doc.createElement(StatechumXML.ELEM_EVALUATIONDATA.name());
+		evaluationData.appendChild(cnf.graph.storage.createGraphMLNode(doc));
+		Element sequenceListElement = writeSequenceList(StatechumXML.ATTR_TESTSET.name(), cnf.testSet);
+		evaluationData.appendChild(AbstractPersistence.endl(doc));
+		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(AbstractPersistence.endl(doc));
+		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
 		if (cnf.ltlSequences != null)
 		{
-			Element ltl = doc.createElement(ELEM_KINDS.ELEM_LTL.name());
+			Element ltl = doc.createElement(StatechumXML.ELEM_LTL.name());
 			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ltlSequences);
 			ltl.setTextContent(ltlsequences.toString());
-			evaluationData.appendChild(ltl);evaluationData.appendChild(Transform.endl(doc));
+			evaluationData.appendChild(ltl);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}
 		if (cnf.labelDetails != null)
 		{
-			evaluationData.appendChild(cnf.labelDetails.storeToXML(doc));evaluationData.appendChild(Transform.endl(doc));
+			evaluationData.appendChild(cnf.labelDetails.storeToXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}
 		if (cnf.graphNumber >= 0)
 		{
-			Element progressIndicatorElement = doc.createElement(ELEM_KINDS.ELEM_PROGRESSINDICATOR.name());
-			progressIndicatorElement.setAttribute(ELEM_KINDS.ATTR_GRAPHNUMBER.name(), Integer.toString(cnf.graphNumber));
+			Element progressIndicatorElement = doc.createElement(StatechumXML.ELEM_PROGRESSINDICATOR.name());
+			progressIndicatorElement.setAttribute(StatechumXML.ATTR_GRAPHNUMBER.name(), Integer.toString(cnf.graphNumber));
 			evaluationData.appendChild(progressIndicatorElement);
 		}
 		return evaluationData;
@@ -338,8 +335,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */ 
 	protected Element writeSequenceList(final String name, Collection<List<String>> data)
 	{
-		Element sequenceListElement = doc.createElement(ELEM_KINDS.ELEM_SEQ.name());
-		sequenceListElement.setAttribute(ELEM_KINDS.ATTR_SEQ.name(), name.toString());
+		Element sequenceListElement = doc.createElement(StatechumXML.ELEM_SEQ.name());
+		sequenceListElement.setAttribute(StatechumXML.ATTR_SEQ.name(), name.toString());
 		StringWriter strWriter = new StringWriter();strWriter.append('\n');
 		for(List<String> seq:data)
 		{
@@ -360,11 +357,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	protected static List<List<String>> readSequenceList(Element elem, String expectedName)
 	{
 		List<List<String>> result = new LinkedList<List<String>>();
-		if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_SEQ.name()))
+		if (!elem.getNodeName().equals(StatechumXML.ELEM_SEQ.name()))
 			throw new IllegalArgumentException("expecting to load a list of sequences "+elem.getNodeName());
-		if (!elem.getAttribute(ELEM_KINDS.ATTR_SEQ.name()).equals(expectedName))
+		if (!elem.getAttribute(StatechumXML.ATTR_SEQ.name()).equals(expectedName))
 			throw new IllegalArgumentException("expecting to load a list with name "+expectedName+
-					" but found a list named "+elem.getAttribute(ELEM_KINDS.ATTR_SEQ.name()));
+					" but found a list named "+elem.getAttribute(StatechumXML.ATTR_SEQ.name()));
 		if (elem.getFirstChild() != null)
 		{
 			Reader reader = new StringReader(elem.getFirstChild().getTextContent());
@@ -464,12 +461,12 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	protected Element writeInitialData(InitialData initialData)
 	{
-		Element elemInit = doc.createElement(ELEM_KINDS.ELEM_INIT.name());
-		Element positive = writeSequenceList(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(ELEM_KINDS.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
-		Element negative = writeSequenceList(ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
-		elemInit.appendChild(initialData.graph.transform.createGraphMLNode(doc));elemInit.appendChild(Transform.endl(doc));
-		elemInit.appendChild(positive);elemInit.appendChild(Transform.endl(doc));
-		elemInit.appendChild(negative);elemInit.appendChild(Transform.endl(doc));
+		Element elemInit = doc.createElement(StatechumXML.ELEM_INIT.name());
+		Element positive = writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
+		Element negative = writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
+		elemInit.appendChild(initialData.graph.storage.createGraphMLNode(doc));elemInit.appendChild(AbstractPersistence.endl(doc));
+		elemInit.appendChild(positive);elemInit.appendChild(AbstractPersistence.endl(doc));
+		elemInit.appendChild(negative);elemInit.appendChild(AbstractPersistence.endl(doc));
 		return elemInit;
 	}
 	
@@ -483,7 +480,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	public InitialData readInitialData(Element elem)
 	{
-		if (!elem.getNodeName().equals(ELEM_KINDS.ELEM_INIT.name()))
+		if (!elem.getNodeName().equals(StatechumXML.ELEM_INIT.name()))
 			throw new IllegalArgumentException("expecting to load learner initial data "+elem.getNodeName());
 		NodeList children = elem.getChildNodes();
 		InitialData result = new InitialData();
@@ -491,33 +488,33 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			if (children.item(i).getNodeType() == Node.ELEMENT_NODE)
 			{
 				Element e = (Element)children.item(i);
-				if (e.getNodeName().equals(Transform.graphmlNodeNameNS))
+				if (e.getNodeName().equals(StatechumXML.graphmlNodeNameNS.toString()))
 				{
 					if (result.graph != null)
 						throw new IllegalArgumentException("duplicate graph element");
-					result.graph = Transform.loadGraph(e, config);
+					result.graph = new LearnerGraph(config);AbstractPersistence.loadGraph(e, result.graph);
 				}
 				else
-					if (e.getNodeName().equals(ELEM_KINDS.ELEM_SEQ.name()))
+					if (e.getNodeName().equals(StatechumXML.ELEM_SEQ.name()))
 					{
-						String sequenceName = e.getAttribute(ELEM_KINDS.ATTR_SEQ.name());
-						if (sequenceName.equals(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name()))
+						String sequenceName = e.getAttribute(StatechumXML.ATTR_SEQ.name());
+						if (sequenceName.equals(StatechumXML.ATTR_POSITIVE_SEQUENCES.name()))
 						{
 							if (result.plus != null)
 								throw new IllegalArgumentException("duplicate positive element");
-							result.plus = readSequenceList(e, ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name());
-							if (!e.hasAttribute(ELEM_KINDS.ATTR_POSITIVE_SIZE.name())) throw new IllegalArgumentException("missing positive size");
-							String size = e.getAttribute(ELEM_KINDS.ATTR_POSITIVE_SIZE.name());
+							result.plus = readSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name());
+							if (!e.hasAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name())) throw new IllegalArgumentException("missing positive size");
+							String size = e.getAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name());
 							try{ result.plusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("positive value is not an integer "+size, ex);}
 						}
 						else
-							if (sequenceName.equals(ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name()))
+							if (sequenceName.equals(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name()))
 							{
 								if (result.minus != null)
 									throw new IllegalArgumentException("duplicate negative element");
-								result.minus = readSequenceList(e, ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name());
-								if (!e.hasAttribute(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name())) throw new IllegalArgumentException("missing negative size");
-								String size = e.getAttribute(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name());
+								result.minus = readSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name());
+								if (!e.hasAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name())) throw new IllegalArgumentException("missing negative size");
+								String size = e.getAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name());
 								try{ result.minusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("negative value is not an integer "+size, ex);}
 							}
 							else throw new IllegalArgumentException("unexpected kind of sequences: "+sequenceName);
@@ -632,10 +629,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	protected Element writeAugmentPTA(AugmentPTAData data)
 	{
-		Element result = doc.createElement(ELEM_KINDS.ELEM_AUGMENTPTA.name());
-		result.setAttribute(ELEM_KINDS.ATTR_KIND.name(), data.kind.name());
-		if (data.colour != null) result.setAttribute(ELEM_KINDS.ATTR_COLOUR.name(), data.colour.name());
-		result.setAttribute(ELEM_KINDS.ATTR_ACCEPT.name(), Boolean.toString(data.accept));
+		Element result = doc.createElement(StatechumXML.ELEM_AUGMENTPTA.name());
+		result.setAttribute(StatechumXML.ATTR_KIND.name(), data.kind.name());
+		if (data.colour != null) result.setAttribute(StatechumXML.ATTR_COLOUR.name(), data.colour.name());
+		result.setAttribute(StatechumXML.ATTR_ACCEPT.name(), Boolean.toString(data.accept));
 		StringWriter writer = new StringWriter();
 		writeInputSequence(writer, data.sequence);result.setTextContent(writer.toString());
 		return result;
@@ -652,15 +649,15 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 */
 	protected AugmentPTAData readAugmentPTA(Element element)
 	{
-		if (!element.getNodeName().equals(ELEM_KINDS.ELEM_AUGMENTPTA.name()))
+		if (!element.getNodeName().equals(StatechumXML.ELEM_AUGMENTPTA.name()))
 			throw new IllegalArgumentException("cannot load augmentPTA data from "+element.getNodeName());
 		AugmentPTAData result = new AugmentPTAData();
-		if (!element.hasAttribute(ELEM_KINDS.ATTR_ACCEPT.name())) throw new IllegalArgumentException("missing accept");
-		if (!element.hasAttribute(ELEM_KINDS.ATTR_KIND.name())) throw new IllegalArgumentException("missing kind");
+		if (!element.hasAttribute(StatechumXML.ATTR_ACCEPT.name())) throw new IllegalArgumentException("missing accept");
+		if (!element.hasAttribute(StatechumXML.ATTR_KIND.name())) throw new IllegalArgumentException("missing kind");
 
-		String accept = element.getAttribute(ELEM_KINDS.ATTR_ACCEPT.name()),
-				colour = element.getAttribute(ELEM_KINDS.ATTR_COLOUR.name()),
-				kind = element.getAttribute(ELEM_KINDS.ATTR_KIND.name()),
+		String accept = element.getAttribute(StatechumXML.ATTR_ACCEPT.name()),
+				colour = element.getAttribute(StatechumXML.ATTR_COLOUR.name()),
+				kind = element.getAttribute(StatechumXML.ATTR_KIND.name()),
 				sequence = element.getTextContent();
 		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
 		StringReader reader = new StringReader(sequence);result.sequence = readInputSequence(reader, -1);

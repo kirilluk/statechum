@@ -236,7 +236,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 */ 
 	@Override 
 	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<String>> plus, @SuppressWarnings("unused") Collection<List<String>> minus) {
-		DirectedSparseGraph model = init(sPlus, sMinus).paths.getGraph();
+		DirectedSparseGraph model = init(sPlus, sMinus).pathroutines.getGraph();
 		
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
 		init.setUserDatum(JUConstants.COLOUR, JUConstants.RED, UserData.SHARED);
@@ -260,7 +260,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				while(questionIt.hasNext()){
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
-					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,new Object[0]);// zero means "yes", everything else is "no"
+					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,AbstractOracle.USER_CANCELLED,new Object[0]);// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
 					if(response.firstElem == AbstractOracle.USER_ACCEPTED){

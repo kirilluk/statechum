@@ -61,7 +61,7 @@ public class InfVertexHelper {
 	public static CmpVertex makeNewID(CmpVertex vert, LearnerGraph graph)
 	{
 		assert vert.getColour() == JUConstants.INF_AMBER;
-		CmpVertex newVertex = AbstractTransitionMatrix.generateNewCmpVertex(
+		CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(
 				new VertexID(getOrigVertexID(vert).getStringId()+replSeparator+graph.nextID(vert.isAccept()).getStringId()),graph.config);
 		newVertex.setAccept(vert.isAccept());newVertex.setHighlight(vert.isHighlight());newVertex.setColour(vert.getColour());
 		return newVertex;

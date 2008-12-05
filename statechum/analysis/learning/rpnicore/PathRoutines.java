@@ -26,12 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.ArrayOperations;
-import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -40,7 +39,6 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceSetAutomaton;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
@@ -57,11 +55,6 @@ public class PathRoutines {
 		coregraph = computeStateScores;
 	}
 
-	public Collection<List<String>> computePathsToRed(CmpVertex red)
-	{
-		return computePathsBetween(coregraph.init, red);
-	}
-	
 	/** Computes the ratio of edges in the graph from non-amber states 
 	 * to the total number of possible edges from non-amber states. 
 	 */
@@ -79,129 +72,7 @@ public class PathRoutines {
 		return (double)normalEdgeCount/( stateNumber * coregraph.learnerCache.getAlphabet().size());
 	}
 	
-	/** Computes all possible shortest paths from the supplied source state to the supplied target state.
-	 * If there are many paths of the same length, all of those paths are returned.
-	 * 
-	 * @param vertSource the source state
-	 * @param vertTarget the target state
-	 * @return sequences of inputs to follow all paths found.
-	 */	
-	Collection<List<String>> computePathsBetween(CmpVertex vertSource, CmpVertex vertTarget)
-	{
-		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
-		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
-		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();paths.setIdentity(); 
-		computePathsSBetween(vertSource, vertTarget,initSet,paths);
-		return engine.getData();
-	}
-	
-	/** Computes all possible shortest paths from the supplied source state to the 
-	 * supplied target state and returns a PTA corresponding to them. The easiest 
-	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
-	 * this also permits one to trace them in some automaton and junk irrelevant ones.
-	 * 
-	 * @param vertSource the source state
-	 * @param vertTarget the target state
-	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
-	 * or obtained using PTATestSequenceEngine-related operations.
-	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
-	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
-	 */	
-	public void computePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget,
-			PTASequenceEngine.SequenceSet pathsToVertSource,
-			PTASequenceEngine.SequenceSet result)
-	{
-		if (!computePathsSBetweenBoolean(vertSource, vertTarget, pathsToVertSource, result))
-			throw new IllegalArgumentException("path from state "+vertSource+" to state "+vertTarget+" was not found");
-	}
-	
-	/** Computes all possible shortest paths from the supplied source state to the 
-	 * supplied target state and returns a PTA corresponding to them. The easiest 
-	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
-	 * this also permits one to trace them in some automaton and junk irrelevant ones.
-	 * 
-	 * @param vertSource the source state
-	 * @param vertTarget the target state
-	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
-	 * or obtained using PTATestSequenceEngine-related operations.
-	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
-	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
-	 * @return false if a path cannot be found and true otherwise.
-	 */	
-	public boolean computePathsSBetweenBoolean(CmpVertex vertSource, CmpVertex vertTarget,
-			PTASequenceEngine.SequenceSet pathsToVertSource,
-			PTASequenceEngine.SequenceSet result)
-	{
-		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
-			throw new IllegalArgumentException("null arguments to computePathsSBetween");
-		if (LearnerGraph.testMode)
-			if (!coregraph.learnerCache.getFlowgraph().containsKey(vertSource) || !coregraph.learnerCache.getFlowgraph().containsKey(vertTarget))
-				throw new IllegalArgumentException("either source or target vertex is not in the graph");
-		
-		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
-		
-		// FIFO queue containing sequences of states labelling paths to states to be explored.
-		// Important, after processing of each wave, we add a null, in order to know when
-		// to stop when scanning to the end of the current wave when a path to the target state
-		// has been found.
-		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
-		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
-		if (vertSource == vertTarget)
-		{
-			result.unite(pathsToVertSource);
-			return true;// nothing to do, return paths to an initial state.
-		}
-		
-		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
-		currentExplorationPath.offer(null);currentExplorationState.offer(null);// mark the end of the first (singleton) wave.
-		CmpVertex currentVert = null;List<CmpVertex> currentPath = null;
-		boolean pathFound = false;
-		while(!currentExplorationPath.isEmpty())
-		{
-			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
-			if (currentVert == null)
-			{// we got to the end of a wave
-				if (pathFound)
-					break;// if we got to the end of a wave and the target vertex has been found on some paths in this wave, stop scanning.
-				else
-					if (currentExplorationPath.isEmpty())
-						break;// we are at the end of the last wave, stop looping.
-					else
-					{// mark the end of a wave.
-						currentExplorationPath.offer(null);currentExplorationState.offer(null);
-					}
-			}
-			else
-			{
-				visitedStates.add(currentVert);
-				for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
-				{
-					if (entry.getKey() == vertTarget)
-					{// found the vertex we are looking for
-						pathFound = true;
-						// now we need to go through all our states in a path and update pathsToVertSource
-						PTASequenceEngine.SequenceSet paths = pathsToVertSource;currentPath.add(vertTarget);CmpVertex curr = vertSource;
-						// process vertices
-						for(CmpVertex tgt:currentPath)
-						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
-							paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
-							curr = tgt;
-						}
-						result.unite( paths );// update the result.
-					}
-					else
-						if (!visitedStates.contains(entry.getKey()))
-						{
-							List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(entry.getKey());
-							currentExplorationPath.offer(newPath);currentExplorationState.offer(entry.getKey());
-						}
-				}
-			}
-		}
 
-		return pathFound;
-	}
-	
 	/** Computes some of the possible shortest paths from the supplied source state to the supplied target state 
 	 * and returns a sequence of possible sets inputs which can be followed. In other words, 
 	 * a choice of any input from each of the returned sets gives a possible path between
@@ -211,7 +82,7 @@ public class PathRoutines {
 	 * @param vertTarget the target state
 	 * @return sequences of inputs to follow all paths found. Null if a path is not found and an empty list if the target vertex is the same as the source one
 	 */	
-	List<Collection<String>> computePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget)
+	List<Collection<String>> COMPAT_computePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget)
 	{
 		List<Collection<String>> sequenceOfSets = null;
 
@@ -257,89 +128,6 @@ public class PathRoutines {
 
 
 	/** Computes all possible shortest paths from the supplied source state to the 
-	 * all states in the graph.<p> Returns a map from a state to the corresponding PTA. The easiest 
-	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
-	 * this also permits one to trace them in some automaton and junk irrelevant ones.
-	 * 
-	 * @param vertSource the source state
-	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
-	 * or obtained using PTATestSequenceEngine-related operations.
-	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
-	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
-	 * @return the map from states to PTAs of shortest paths to them. States which cannot be reached are not included in the map.
-	 */	
-	public Map<CmpVertex,PTASequenceEngine.SequenceSet> computePathsSBetween_All(CmpVertex vertSource, PTASequenceEngine engine,
-			PTASequenceEngine.SequenceSet pathsToVertSource)
-	{
-		if (vertSource == null || pathsToVertSource == null)
-			throw new IllegalArgumentException("null arguments to computePathsSBetween");
-		if (LearnerGraph.testMode)
-			if (!coregraph.learnerCache.getFlowgraph().containsKey(vertSource))
-				throw new IllegalArgumentException("either source or target vertex is not in the graph");
-		
-		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();visitedStates.add(vertSource);
-		
-		// FIFO queue containing sequences of states labelling paths to states to be explored.
-		// Important, after processing of each wave, we add a null, in order to know when
-		// to stop when scanning to the end of the current wave when a path to the target state
-		// has been found.
-		Queue<List<CmpVertex>> currentExplorationPath = new LinkedList<List<CmpVertex>>();
-		Queue<CmpVertex> currentExplorationState = new LinkedList<CmpVertex>();
-		
-		Map<CmpVertex,PTASequenceEngine.SequenceSet> stateToPathMap = new HashMap<CmpVertex,PTASequenceEngine.SequenceSet>();
-		Map<CmpVertex,Integer> stateToDepthMap = new HashMap<CmpVertex,Integer>();
-		
-		currentExplorationPath.add(new LinkedList<CmpVertex>());currentExplorationState.add(vertSource);
-		stateToPathMap.put(vertSource,pathsToVertSource);stateToDepthMap.put(vertSource,0);
-		
-		CmpVertex currentVert = null;List<CmpVertex> currentPath = null;
-		while(!currentExplorationPath.isEmpty())
-		{
-			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
-			visitedStates.add(currentVert);
-			for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
-			{
-				CmpVertex nextState = entry.getKey();
-				if (nextState.getColour() != JUConstants.AMBER)
-				{// Amber states are there only for state separation, not to be explored in question asking.
-
-					Integer existingDepth = stateToDepthMap.get(nextState);
-					int currentdepth = currentPath.size()+1;
-					int existingdepth = existingDepth == null? currentdepth:existingDepth.intValue();
-					assert existingdepth <= currentPath.size()+1;
-					if (existingdepth == currentdepth)
-					{// the path was found in the course of the current wave rather than earlier
-							
-						PTASequenceEngine.SequenceSet sequenceset = stateToPathMap.get(nextState);
-						if (sequenceset == null)
-						{// no path to the next state has yet been recorded hence create an empty collection
-							sequenceset = engine.new SequenceSet();stateToPathMap.put(nextState,sequenceset);stateToDepthMap.put(nextState,currentdepth);
-						}
-						// now we need to go through all our states in a path and update pathsToVertSource
-						PTASequenceEngine.SequenceSet paths = pathsToVertSource;CmpVertex curr = vertSource;
-						// process vertices
-						for(CmpVertex tgt:currentPath)
-						{// ideally, I'd update one at a time and merge results, but it seems the same (set union) if I did it by building a set of inputs and did a cross with it.
-							paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(tgt));
-							curr = tgt;
-						}
-						paths = paths.crossWithSet(coregraph.learnerCache.getFlowgraph().get(curr).get(nextState));
-						sequenceset.unite( paths );// update the collection of paths leading to the next state.
-					}
-				
-					if (!visitedStates.contains(nextState))
-					{
-						List<CmpVertex> newPath = new LinkedList<CmpVertex>();newPath.addAll(currentPath);newPath.add(nextState);
-						currentExplorationPath.offer(newPath);currentExplorationState.offer(nextState);
-					}
-				}		
-			}
-		}
-
-		return stateToPathMap;
-	}
-
-	/** Computes all possible shortest paths from the supplied source state to the 
 	 * supplied target state and returns a PTA corresponding to them. The easiest 
 	 * way to record the numerous computed paths is by using PTATestSequenceEngine-derived classes;
 	 * this also permits one to trace them in some automaton and junk irrelevant ones.
@@ -357,7 +145,7 @@ public class PathRoutines {
 	{
 		if (vertSource == null || vertTarget == null || pathsToVertSource == null)
 			throw new IllegalArgumentException("null arguments to computePathsSBetween");
-		if (LearnerGraph.testMode)
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			if (!coregraph.transitionMatrix.containsKey(vertSource) || !coregraph.transitionMatrix.containsKey(vertTarget))
 				throw new IllegalArgumentException("either source or target vertex is not in the graph");
 		
@@ -484,15 +272,17 @@ public class PathRoutines {
 		if (currentState == null)
 		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
 
-			synchronized (AbstractTransitionMatrix.syncObj) 
+			synchronized (AbstractLearnerGraph.syncObj) 
 			{
 				while(inputIt.hasNext())
 				{
 					prevState = coregraph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
+					prevState.setColour(newColour);prevState.setDepth(position++);
 					lastInput = inputIt.next();
 				}
 				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				coregraph.addVertex(prevState, accepted, lastInput).setColour(newColour);
+				CmpVertex newVertex = coregraph.addVertex(prevState, accepted, lastInput);
+				newVertex.setColour(newColour);newVertex.setDepth(position++);
 			}
 			
 		}
@@ -519,9 +309,11 @@ public class PathRoutines {
 				{
 					if (prevState != null)
 						// truncate the current path, as long as it is not empty
-						synchronized (AbstractTransitionMatrix.syncObj) 
+						synchronized (AbstractLearnerGraph.syncObj) 
 						{
-							coregraph.addVertex(prevState, accepted, lastInput).setColour(newColour);
+							coregraph.removeTransition(coregraph.transitionMatrix.get(prevState), lastInput, currentState);
+							CmpVertex newVertex = coregraph.addVertex(prevState, accepted, lastInput);
+							newVertex.setColour(newColour);newVertex.setDepth(position++);
 						}
 					else
 					{// for an empty path, set the current (i.e. initial state) to a reject-state and clear outgoing transitions.
@@ -564,9 +356,10 @@ public class PathRoutines {
 					{// this one will happily add lots of reject nodes along the same path, however this cannot
 					 // happen because due to the way addVertex is used by nodeEntered and leafEntered
 					 // accept == true everyone other than the last node in a path.
-						synchronized (AbstractTransitionMatrix.syncObj) 
+						synchronized (AbstractLearnerGraph.syncObj) 
 						{
 							ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());
+							ourVertex.setDepth(pathToInit.size());
 						}
 					}
 				}
@@ -608,99 +401,6 @@ public class PathRoutines {
 		return coregraph;
 	}
 
-	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
-	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (CmpVertex).
-	 * 
-	 * @return constructed graph.
-	 */
-	public DirectedSparseGraph getGraph()
-	{
-		return getGraph(coregraph.getNameNotNull());
-	}
-	
-	/** Builds a Jung graph corresponding to the state machine stored in transitionMatrix.
-	 * Note that all states in our transition diagram (transitionMatrix) have Jung vertices associated with them (DeterministicVertex).
-	 * The fact that we need to return a Jung graph implies that all nodes are always cloned;
-	 * this way we do not have to check if we've been asked to keep the original nodes and
-	 * keep them unless they were StringVertices.
-	 * 
-	 * @param the name to give to the graph to be built.
-	 * @return constructed graph.
-	 */
-	public DirectedSparseGraph getGraph(String name)
-	{
-		DirectedSparseGraph result = null;
-		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
-		synchronized (AbstractTransitionMatrix.syncObj) 
-		{
-			result = new DirectedSparseGraph();
-			if (name != null)
-				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
-			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
-			{
-				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = (DeterministicVertex)AbstractTransitionMatrix.cloneCmpVertex(source,cloneConfig);
-				if (coregraph.init == source)
-					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				result.addVertex(vert);
-				oldToNew.put(source,vert);
-			}
-			
-			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
-			{
-				DeterministicVertex source = oldToNew.get(entry.getKey());
-				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
-				{
-					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld.getID()) == targetOld : "was looking for vertex with name "+targetOld.getID()+", got "+coregraph.findVertex(targetOld.getID());
-					DeterministicVertex target = oldToNew.get(targetOld);
-					DeterministicEdge e = new DeterministicEdge(source,target);
-					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
-					result.addEdge(e);
-				}
-			}
-		}
-		return result;
-	}
-
-	/** Numerous methods using this class expect to be able to interpret the state 
-	 * machine as a flowgraph, this method builds one.
-	 */
-	public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
-	{
-		Map<CmpVertex,Map<CmpVertex,Set<String>>> result = new TreeMap<CmpVertex,Map<CmpVertex,Set<String>>>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
-		{
-			Map<CmpVertex,Set<String>> targetStateToEdgeLabels = result.get(entry.getKey());
-			if (targetStateToEdgeLabels == null)
-			{
-				targetStateToEdgeLabels = new TreeMap<CmpVertex,Set<String>>();
-				result.put(entry.getKey(), targetStateToEdgeLabels);
-			}
-			
-			for(Entry<String,CmpVertex> sv:entry.getValue().entrySet())
-			{
-				if (sv.getValue() == null)
-					throw new IllegalArgumentException("Target vertex "+sv.getValue()+" is not in the transition table, referred to from vertex "+entry.getKey());
-				Set<String> labels = targetStateToEdgeLabels.get(sv.getValue());
-				if (labels != null)
-					// there is an edge already with the same target state from the current vertice, update the label on it
-					labels.add(sv.getKey());
-				else
-				{// add a new edge
-					labels = new HashSet<String>();labels.add(sv.getKey());
-					targetStateToEdgeLabels.put(sv.getValue(), labels);
-				}
-			}
-		}
-		
-		return result;
-	}
-	
 	/** The original version of the routine which builds a Jung graph 
 	 * corresponding to the state machine stored in transitionMatrix.
 	 * This one does not support configuration and anything of its sort
@@ -713,12 +413,12 @@ public class PathRoutines {
 	public DirectedSparseGraph OrigGetGraph(String name)
 	{
 		DirectedSparseGraph result = null;
-		synchronized (AbstractTransitionMatrix.syncObj) 
+		synchronized (AbstractLearnerGraph.syncObj) 
 		{
 			result = new DirectedSparseGraph();
 			if (name != null)
 				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-			Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = getFlowgraph();
+			Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = coregraph.pathroutines.getFlowgraph();
 			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
 			// add states
 			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:flowgraph.entrySet())
@@ -760,7 +460,7 @@ public class PathRoutines {
 		for(Entry<CmpVertex,Map<String,CmpVertex>> v:coregraph.transitionMatrix.entrySet())
 			edgeCounter+=v.getValue().size();
 		
-		LearnerGraph fsm = new LearnerGraph(getGraph(), coregraph.config);
+		LearnerGraph fsm = new LearnerGraph(coregraph.pathroutines.getGraph(), coregraph.config);
 		
 		String wsetDetails = "";
 		try
@@ -770,12 +470,12 @@ public class PathRoutines {
 		catch (statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException e) {
 			wsetDetails = e.toString();
 		}
-		return "vert: "+coregraph.transitionMatrix.keySet().size()+" edges: "+edgeCounter+" alphabet: "+fsm.wmethod.computeAlphabet().size()+" unreachable: "+fsm.wmethod.checkUnreachableStates()+" "+wsetDetails;
+		return "vert: "+coregraph.transitionMatrix.keySet().size()+" edges: "+edgeCounter+" alphabet: "+fsm.pathroutines.computeAlphabet().size()+" unreachable: "+fsm.pathroutines.checkUnreachableStates()+" "+wsetDetails;
 	}
 
 	protected static void checkPTAConsistency(LearnerGraph original, CmpVertex blueState)
 	{
-		assert LearnerGraph.testMode : "this one should not run when not under test";
+		assert GlobalConfiguration.getConfiguration().isAssertEnabled() : "this one should not run when not under test";
 		Queue<CmpVertex> currentBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
 		Set<CmpVertex> ptaStates = new HashSet<CmpVertex>();
 		currentBoundary.add( blueState );
@@ -785,7 +485,7 @@ public class PathRoutines {
 			if (ptaStates.contains(current))
 				throw new IllegalArgumentException("PTA has multiple paths to "+current);
 			ptaStates.add(current);
-			if (LearnerGraph.testMode)
+			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 				if (!original.transitionMatrix.containsKey(current))
 					throw new IllegalArgumentException("the original machine does not contain transitions for state "+current);
 			
@@ -817,7 +517,7 @@ public class PathRoutines {
 	protected static void checkPTAIsTree(LearnerGraph mergeResult,LearnerGraph original, 
 			StatePair pair,Collection<CmpVertex> notRemoved)
 	{
-		assert LearnerGraph.testMode : "this one should not run when not under test";
+		assert GlobalConfiguration.getConfiguration().isAssertEnabled() : "this one should not run when not under test";
 	
 		// The first check: every state of a merged PTA contains only one incoming transition,
 		// assuming that only those labelled RED can have multiple incoming transitions. Given that
@@ -895,7 +595,7 @@ public class PathRoutines {
 				System.out.println(response);
 				
 				CmpVertex InterestingUnreachableVertex = unreachables.iterator().next();
-				List<String> seq = original.paths.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
+				List<String> seq = original.pathroutines.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
 				System.out.println(seq);// dumps a seq from a blue state to the first unreachable vertex (after merging) which was on the PTA in the original machine.
 				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 				if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)

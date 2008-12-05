@@ -57,9 +57,9 @@ public class QuestionAndRestartCounter extends DummyLearner
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, Object[] options) {
+			List<String> question, int responseForNoRestart, Object[] options) {
 		++questionCounter;
-		return super.CheckWithEndUser(graph, question, options);
+		return super.CheckWithEndUser(graph, question, responseForNoRestart, options);
 	}
 	
 	/* (non-Javadoc)

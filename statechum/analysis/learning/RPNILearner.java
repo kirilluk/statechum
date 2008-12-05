@@ -182,10 +182,24 @@ public abstract class RPNILearner extends Observable implements Learner {
 	{// this method is used to let observers know what is going on, the actual restarts are handled by the main learner routine.
 	}
 	
+	/** Where we expect a specific value in order to proceed without a restart, the answer is
+	 * highlighted in the user-displayed dialog box.
+	 * 
+	 * @param str string to augment
+	 * @return resulting value
+	 */
+	static String addAnnotationExpected(String str)
+	{
+		if (str.length() < 1)
+			return str;
+		
+		return "<html><font color=blue>"+str.charAt(0)+"</font>"+str.substring(1);
+	}
+	
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,List<String> question, final Object [] moreOptions)
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,final List<String> question, final int expectedForNoRestart, final Object [] moreOptions)
 	{
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
@@ -195,8 +209,11 @@ public abstract class RPNILearner extends Observable implements Learner {
 				public void run() {
 					final Object[] options = new Object[1+moreOptions.length];
 					//final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
+					if (expectedForNoRestart >= 0 && expectedForNoRestart < questionList.size())
+						questionList.add(expectedForNoRestart, addAnnotationExpected(questionList.get(expectedForNoRestart)));
 					final JList rejectElements = new JList(questionList.toArray());
-					options[0]="Accept";System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
+					options[0]="Accept";if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) options[0] = addAnnotationExpected((String)options[0]);
+					System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
 					jop = new JOptionPane(new Object[] {label,rejectElements},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);

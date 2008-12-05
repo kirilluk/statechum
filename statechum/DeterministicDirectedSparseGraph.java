@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -37,7 +36,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-public class DeterministicDirectedSparseGraph {
+final public class DeterministicDirectedSparseGraph {
 
 	final public static class VertexID implements Comparable<VertexID>, Serializable
 	{
@@ -46,17 +45,17 @@ public class DeterministicDirectedSparseGraph {
 		 */
 		private static final long serialVersionUID = -6367197525198958482L;
 
-		/** A kind of a state. INIT does not really have to be a special kind but it is convenient to 
-		 * be able to look at an ID and know exactly the sort of state one is looking at.
+		/** A kind of a state.
 		 * <ul>
-		 * <li>INIT was used to designate an initial state, not used any more.</li>
 		 * <li>NONE is for states which only have string IDs.</li>
 		 * <li>NEUTRAL is used if I wish to give uniform IDs to accept and reject states. 
 		 * This is useful if I would like not to consider all accept states before reject
 		 * states and such - this is useful to test how sensitive the learner is to such
-		 * an ordering.</li>
+		 * an ordering. Note that configuration has an option to add 1 to scores from non-reject state pairs
+		 * which largely does the same thing. </li>
 		 * <li>NEGATIVE means that this is a reject-state.</li>
 		 * <li>POSITIVE means that this is an accept-state.</li>
+		 * </ul>
 		 */
 		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONE }
 		
@@ -72,7 +71,7 @@ public class DeterministicDirectedSparseGraph {
 		
 		protected VertexID()
 		{// default values to ensure failure of operations
-			idString = null;kind = VertKind.NONE;idInteger=-1;cachedHash=0;
+			idString = null;kind = VertKind.NONE;idInteger=JUConstants.intUNKNOWN;cachedHash=0;
 		}
 		
 		/** Returns the kind of this ID. */
@@ -96,7 +95,7 @@ public class DeterministicDirectedSparseGraph {
 		public static VertexID parseID(String text)
 		{
 			VertKind tentativeKind = VertKind.NONE;
-			int id = -1;
+			int id = JUConstants.intUNKNOWN;
 			/*
 			if (text.equals(initID))
 			{// if this is an ID of an initial state
@@ -112,13 +111,13 @@ public class DeterministicDirectedSparseGraph {
 				
 				if (tentativeKind != VertKind.NONE)
 					try
-				{
-						id = Integer.parseInt(text.substring(1));
-				}
-				catch(NumberFormatException ex)
-				{// cannot parse, revert to text.
-					tentativeKind = VertKind.NONE;
-				}
+					{
+							id = Integer.parseInt(text.substring(1));
+					}
+					catch(NumberFormatException ex)
+					{// cannot parse, revert to text.
+						tentativeKind = VertKind.NONE;
+					}
 			}
 			
 			if (tentativeKind == VertKind.NONE)
@@ -267,8 +266,34 @@ public class DeterministicDirectedSparseGraph {
 		/** Sets the colour of this vertex. null removes the colour. */
 		void setColour(JUConstants colour);
 
-		//public static class IllegalBooleanException extends IllegalArgumentException {
+		/** Returns the name of a vertex in hard facts corresponding to this vertex. Since one
+		 * would wish to avoid introducing dependencies between graphs, this is a VertexID rather
+		 * than a <em>CmpVertex</em>.<p> 
+		 * Unknown if set to null. 
+		 */
+		VertexID getOrigState();
 		
+		/** Sets the name of a vertex in hard facts corresponding to this vertex. Can be null.
+		 * 
+		 * @param newState new name.
+		 */
+		void setOrigState(VertexID newState);
+		
+		/** Returns the distance from the root state in the state corresponding to this state in hard facts.
+		 * An inverse of this value is used as a priority when deciding on a state to represent an equivalence class
+		 * during state merging.
+		 * <p>A value of <em>JUConstants.intUNKNOWN</em> means "unknown".
+		 * 
+		 * @return distance from an original state corresponding to this state in hard facts and the root state (in hard facts).
+		 */
+		int getDepth();
+		
+		/** Sets a new depth value. 
+		 * 
+		 * @param depth value to set.
+		 */
+		void setDepth(int depth);
+			
 		/** This exception is thrown when vertex user data for a property is out of range. */ 
 		public static class IllegalUserDataException extends IllegalArgumentException {
 			/**
@@ -292,10 +317,10 @@ public class DeterministicDirectedSparseGraph {
 	 * The extension of the vertex where all operations are ID-based, for
 	 * performance.
 	 */
-	public static class DeterministicVertex extends DirectedSparseVertex implements Comparable<CmpVertex>, CmpVertex {
-		protected VertexID vertexID = null;
+	public final static class DeterministicVertex extends DirectedSparseVertex implements Comparable<CmpVertex>, CmpVertex {
+		private VertexID vertexID = null;
 
-		protected int hashCode = super.hashCode();
+		private int hashCode = super.hashCode();
 
 		public DeterministicVertex(VertexID thisVertexID) {
 			super();
@@ -306,11 +331,11 @@ public class DeterministicDirectedSparseGraph {
 		{
 			super();
 			addUserDatum(JUConstants.LABEL, 
-					new DeterministicDirectedSparseGraph.VertexID(name), UserData.SHARED);
+					DeterministicDirectedSparseGraph.VertexID.parseID(name), UserData.SHARED);
 		}
 		
 		/** Used to hold two objects and nothing else. */
-		public static class MiniPair
+		public static final class MiniPair
 		{
 			protected Object key,datum;
 			
@@ -330,39 +355,50 @@ public class DeterministicDirectedSparseGraph {
 					key = JUConstants.LABEL;
 				}
 				else
+				if (key == JUConstants.COLOUR || strKey.equalsIgnoreCase(JUConstants.COLOUR.name()))
 				{
-					if (key == JUConstants.COLOUR || strKey.equalsIgnoreCase(JUConstants.COLOUR.name()))
-					{
-						key = JUConstants.COLOUR;
-						if (datum == JUConstants.RED || strDatum.equalsIgnoreCase(JUConstants.RED.name()))
-							datum = JUConstants.RED;
+					key = JUConstants.COLOUR;
+					if (datum == JUConstants.RED || strDatum.equalsIgnoreCase(JUConstants.RED.name()))
+						datum = JUConstants.RED;
+					else
+						if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.name()))
+							datum = JUConstants.BLUE;
 						else
-							if (datum == JUConstants.BLUE || strDatum.equalsIgnoreCase(JUConstants.BLUE.name()))
-								datum = JUConstants.BLUE;
+							if (datum == JUConstants.AMBER || strDatum.equalsIgnoreCase(JUConstants.AMBER.name()))
+								datum = JUConstants.AMBER;
 							else
-								if (datum == JUConstants.AMBER || strDatum.equalsIgnoreCase(JUConstants.AMBER.name()))
-									datum = JUConstants.AMBER;
+								if (datum == JUConstants.GRAY || strDatum.equalsIgnoreCase(JUConstants.GRAY.name()))
+									datum = JUConstants.GRAY;
 								else
-									if (datum == JUConstants.GRAY || strDatum.equalsIgnoreCase(JUConstants.GRAY.name()))
-										datum = JUConstants.GRAY;
+									if (datum == JUConstants.INF_AMBER || strDatum.equalsIgnoreCase(JUConstants.INF_AMBER.name()))
+										datum = JUConstants.INF_AMBER;
 									else
-										if (datum == JUConstants.INF_AMBER || strDatum.equalsIgnoreCase(JUConstants.INF_AMBER.name()))
-											datum = JUConstants.INF_AMBER;
-										else
-											throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
-					}
-					else
-					if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.name()))
-					{
-						key = JUConstants.ACCEPTED;datum = getBoolean(datum);
-					}
-					else
-						if (key == JUConstants.HIGHLIGHT || strKey.equalsIgnoreCase(JUConstants.HIGHLIGHT.name()))
-						{
-							key = JUConstants.HIGHLIGHT;datum = getBoolean(datum);
-						}
+										throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
+				}
+				else
+				if (key == JUConstants.ACCEPTED || strKey.equalsIgnoreCase(JUConstants.ACCEPTED.name()))
+				{
+					key = JUConstants.ACCEPTED;datum = getBoolean(datum);
+				}
+				else
+				if (key == JUConstants.HIGHLIGHT || strKey.equalsIgnoreCase(JUConstants.HIGHLIGHT.name()))
+				{
+					key = JUConstants.HIGHLIGHT;datum = getBoolean(datum);
+				}
+				else
+				if (key == JUConstants.ORIGSTATE || strKey.equalsIgnoreCase(JUConstants.ORIGSTATE.name()))
+				{
+					key = JUConstants.ORIGSTATE;
+					if (datum instanceof String) datum = VertexID.parseID(strDatum);
+					else if (!(datum instanceof VertexID)) throw new DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException(strDatum);
 						
 				}
+				else
+				if (key == JUConstants.DEPTH || strKey.equalsIgnoreCase(JUConstants.DEPTH.name()))
+				{
+					key = JUConstants.DEPTH;datum = getInteger(datum);
+				}
+					
 			}
 		}
 		
@@ -377,6 +413,7 @@ public class DeterministicDirectedSparseGraph {
 				vertexID = (VertexID) p.getValue();
 				hashCode = p.getValue().hashCode();
 			}
+			
 			super.addUserDatum(p.getKey(), p.getValue(), copyAct);
 		}
 
@@ -392,6 +429,21 @@ public class DeterministicDirectedSparseGraph {
 				return new Boolean(false);
 			
 			throw new IllegalUserDataException(obj.toString());
+		}
+		
+		public static Integer getInteger(Object obj)
+		{
+			if (obj instanceof Integer)
+				return (Integer)obj;
+			
+			Integer result = null;
+			try
+			{ result = Integer.valueOf(obj.toString()); }
+			catch(NumberFormatException ex)
+			{
+				throw new IllegalUserDataException("invalid number "+obj.toString());
+			}
+			return result;
 		}
 		
 		/** Removes and re-adds the datum, in order to make use of the  
@@ -410,8 +462,6 @@ public class DeterministicDirectedSparseGraph {
 		@Override
 		public int hashCode() {
 			int labelHashCode = hashCode;
-			if (!isAccept())
-				labelHashCode = ~labelHashCode;
 			
 			return labelHashCode;
 		}
@@ -422,11 +472,12 @@ public class DeterministicDirectedSparseGraph {
 		 * @see edu.uci.ics.jung.graph.impl.AbstractSparseVertex#toString()
 		 */
 		@Override
-		public String toString() {
-			if (vertexID != null)
-				return vertexID.toString();
-
-			return super.toString();
+		public String toString() 
+		{
+			String origName = "";if (getOrigState() != null) origName=" <"+getOrigState()+">";
+			String strDepth="";if(getDepth()!=JUConstants.intUNKNOWN) strDepth=" depth="+getDepth();
+			String strColour="";if(getColour()!=null) strColour=" colour="+getColour();
+			return vertexID == null?"NULL":vertexID.toString()+origName+strDepth+strColour;
 		}
 
 		/** The ordering is based on names only ignoring whether this is an
@@ -457,8 +508,7 @@ public class DeterministicDirectedSparseGraph {
 				return false;
 			
 			final CmpVertex other = (CmpVertex) obj;
-			if (isAccept() != other.isAccept())
-				return false;
+
 			if (vertexID == null)
 				return other.getID() == null;
 			
@@ -506,11 +556,34 @@ public class DeterministicDirectedSparseGraph {
 				return false;
 			
 			return (Boolean)highlight;
-				
+		}
+
+		public int getDepth() {
+			Object depthObject = getUserDatum(JUConstants.DEPTH);
+			if (depthObject == null)
+				return JUConstants.intUNKNOWN;
+			return ((Integer)depthObject).intValue();
+		}
+
+		public VertexID getOrigState() {
+			return (VertexID)getUserDatum(JUConstants.ORIGSTATE);
+		}
+
+		public void setDepth(int argDepth)
+		{
+			removeUserDatum(JUConstants.DEPTH);
+			if (argDepth != JUConstants.intUNKNOWN)
+				addUserDatum(JUConstants.DEPTH, argDepth, UserData.SHARED);
+		}
+
+		public void setOrigState(VertexID newState) {
+			removeUserDatum(JUConstants.ORIGSTATE);
+			if (newState != null)
+				addUserDatum(JUConstants.ORIGSTATE, newState, UserData.SHARED);
 		}
 	}
 
-	public static class DeterministicEdge extends DirectedSparseEdge {
+	public final static class DeterministicEdge extends DirectedSparseEdge {
 
 		public DeterministicEdge(DeterministicVertex from, DeterministicVertex to) {
 			super(from, to);
@@ -584,7 +657,7 @@ public class DeterministicDirectedSparseGraph {
 	 * @return a copy of the vertex
 	 */
 	public static DeterministicVertex copyVertex(Map<VertexID,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
-	{
+	{// TODO: to test this one
 		if (!(orig instanceof DeterministicVertex))
 			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
 		DeterministicVertex origVertex = (DeterministicVertex)orig;
@@ -592,9 +665,9 @@ public class DeterministicDirectedSparseGraph {
 		DeterministicVertex newVertex = newVertices.get(vertID);
 		if (newVertex == null) { 
 			newVertex = new DeterministicVertex(vertID);
-			newVertex.addUserDatum(JUConstants.ACCEPTED, isAccept(origVertex), UserData.SHARED);
 			if (DeterministicDirectedSparseGraph.isInitial(origVertex))
 				newVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			DeterministicDirectedSparseGraph.copyVertexData(origVertex, newVertex);
 			newVertices.put(vertID,newVertex);g.addVertex(newVertex);
 		}
 		return newVertex;
@@ -812,5 +885,57 @@ public class DeterministicDirectedSparseGraph {
     	}
     	
     	return newNumbers;
+	}
+	
+	/** This equality operation compares all attributes except IDs. */
+	public static boolean deepEquals(CmpVertex thisVertex, CmpVertex vert) 
+	{
+		if (!thisVertex.equals(vert))// shallow equals
+			return false;
+		
+		return nonIDAttributesEquals(thisVertex, vert);
+	}
+	
+	/** This equality operation compares not only IDs but also all attributes. */
+	public static boolean nonIDAttributesEquals(CmpVertex thisVertex, CmpVertex vert) 
+	{
+		JUConstants colour = thisVertex.getColour();
+		if (colour == null)
+		{
+			if (vert.getColour() != null)
+				return false;
+		}
+		else
+			if (colour != vert.getColour())
+				return false;
+		
+		if (thisVertex.isAccept() != vert.isAccept()) return false;
+		if (thisVertex.isHighlight() != vert.isHighlight()) return false;
+		VertexID origVert = thisVertex.getOrigState();
+		if (origVert == null)
+		{
+			if (vert.getOrigState() != null)
+				return false;
+		}
+		else
+			if (!origVert.equals(vert.getOrigState()))
+				return false;
+		
+		if (thisVertex.getDepth() != vert.getDepth()) return false;
+		return true;
+	}
+
+	/** Copies all attributes from one vertex into another one.
+	 * 
+	 * @param from vertex to copy attributes from
+	 * @param to vertex to assign attribute values to.
+	 */
+	public static void copyVertexData(CmpVertex from, CmpVertex to)
+	{
+		to.setColour(from.getColour());
+		to.setAccept(from.isAccept());
+		to.setHighlight(from.isHighlight());
+		to.setOrigState(from.getOrigState());
+		to.setDepth(from.getDepth());
 	}
 }

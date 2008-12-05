@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Assert;
@@ -31,6 +32,8 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
@@ -59,7 +62,7 @@ public class TestPTAConstruction
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		config.setAllowedToCloneNonCmpVertex(true);
 		LearnerGraph l = new LearnerGraph(config);
-		actualC = l.paths.augmentPTA(plusStrings, true,false).paths.getGraph();
+		actualC = l.paths.augmentPTA(plusStrings, true,false).pathroutines.getGraph();
 		DeterministicDirectedSparseGraph.numberVertices(actualA);
 		String expectedPTA = "A-a->B--b->C-c->End1\nB--d->C2-c->End2";
 		checkM(expectedPTA,actualA, config);
@@ -155,7 +158,7 @@ public class TestPTAConstruction
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.scoreComputer.paths.getGraph();
+			actualC = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -171,7 +174,7 @@ public class TestPTAConstruction
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
 			l.init(engine,0,0);
-			actualD = l.scoreComputer.paths.getGraph();
+			actualD = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -187,7 +190,7 @@ public class TestPTAConstruction
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)
 				l.scoreComputer.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
-			actualE = l.scoreComputer.paths.getGraph();
+			actualE = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -203,7 +206,7 @@ public class TestPTAConstruction
 			l.scoreComputer.initPTA();
 			l.scoreComputer.paths.augmentPTA(minusStrings, false,true);
 			l.scoreComputer.paths.augmentPTA(plusStrings, true,true);
-			actualF = l.scoreComputer.paths.getGraph();
+			actualF = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -226,21 +229,25 @@ public class TestPTAConstruction
 		Assert.assertNull(eE);
 		if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNull(eF);
 		
-		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) ));
 		Assert.assertEquals(0, actualA.getEdges().size());
 
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualC.getEdges().size());
 
 		Assert.assertEquals(1, actualD.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0,((CmpVertex)(actualD.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualD.getEdges().size());
 
 		Assert.assertEquals(1, actualE.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualE.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0,((CmpVertex)(actualE.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualE.getEdges().size());
 
 		if (expectMaxAutomataToBeTheSameAsPTA)
 		{
 			Assert.assertEquals(1, actualF.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualF.getVertices().iterator().next()) )); 
+			Assert.assertEquals(0,((CmpVertex)(actualF.getVertices().iterator().next())).getDepth());
 			Assert.assertEquals(0, actualF.getEdges().size());
 		}
 	}
@@ -281,8 +288,9 @@ public class TestPTAConstruction
 				l.scoreComputer.paths.augmentPTA(sequence, false,maxAutomaton,null);
 			for(List<String> sequence:buildSet(new String[][] { }))
 				l.scoreComputer.paths.augmentPTA(sequence, true,maxAutomaton,null);
-			DirectedSparseGraph actualC = l.scoreComputer.paths.getGraph();
+			DirectedSparseGraph actualC = l.scoreComputer.pathroutines.getGraph();
 			Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+			Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 			Assert.assertEquals(0, actualC.getEdges().size());
 		}
 	}
@@ -299,8 +307,9 @@ public class TestPTAConstruction
 			l.scoreComputer.paths.augmentPTA(sequence, false,true,null);
 		for(List<String> sequence:buildSet(new String[][] { }))
 			l.scoreComputer.paths.augmentPTA(sequence, true,true,null);
-		DirectedSparseGraph actualC = l.scoreComputer.paths.getGraph();
+		DirectedSparseGraph actualC = l.scoreComputer.pathroutines.getGraph();
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualC.getEdges().size());
 	}
 	
@@ -342,7 +351,7 @@ public class TestPTAConstruction
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.scoreComputer.paths.getGraph();
+			actualC = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -358,7 +367,7 @@ public class TestPTAConstruction
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
 			l.init(engine,0,0);
-			actualD = l.scoreComputer.paths.getGraph();
+			actualD = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -374,7 +383,7 @@ public class TestPTAConstruction
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
 			for(List<String> seq:minusStrings)
 				l.scoreComputer.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
-			actualE = l.scoreComputer.paths.getGraph();
+			actualE = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -390,7 +399,7 @@ public class TestPTAConstruction
 			l.scoreComputer.initPTA();
 			l.scoreComputer.paths.augmentPTA(minusStrings, false,true);
 			l.scoreComputer.paths.augmentPTA(plusStrings, true,true);
-			actualF = l.scoreComputer.paths.getGraph();
+			actualF = l.scoreComputer.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -416,12 +425,24 @@ public class TestPTAConstruction
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setAllowedToCloneNonCmpVertex(true);
 		checkM(expectedPTA,actualA, config);
-		checkM(expectedPTA,actualC, config);
+		checkM(expectedPTA,actualC, config);checkDepthLabelling(actualC);
 		//Visualiser.updateFrame(actualE,TestFSMAlgo.buildGraph(expectedPTA,"expected graph"));Visualiser.waitForKey();
-		checkM(expectedPTA,actualD,config);
-		checkM(expectedPTA,actualE,config);
+		checkM(expectedPTA,actualD,config);checkDepthLabelling(actualD);
+		checkM(expectedPTA,actualE,config);checkDepthLabelling(actualE);
 		
 		if (expectMaxAutomataToBeTheSameAsPTA) checkM(expectedPTA,actualF,config);
+		checkDepthLabelling(actualF);
+	}
+	
+	private void checkDepthLabelling(LearnerGraph gr)
+	{
+		for(Entry<CmpVertex,LinkedList<String>> entry:gr.pathroutines.computeShortPathsToAllStates().entrySet())
+			Assert.assertEquals("state "+entry.getKey()+" with path "+entry.getValue(),entry.getValue().size(),entry.getKey().getDepth());
+	}
+	
+	private void checkDepthLabelling(DirectedSparseGraph g)
+	{
+		checkDepthLabelling(new LearnerGraph(g,Configuration.getDefaultConfiguration()));	
 	}
 	
 	/** Builds a maximal automaton from the supplied arguments. 
@@ -440,11 +461,15 @@ public class TestPTAConstruction
 		LearnerGraph graph = initialMax == null? 
 				new LearnerGraph(Configuration.getDefaultConfiguration().copy()):
 					new LearnerGraph(TestFSMAlgo.buildGraph(initialMax, "initial_max"),Configuration.getDefaultConfiguration().copy());
+		for(Entry<CmpVertex,LinkedList<String>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
+			entry.getKey().setDepth(entry.getValue().size());// add depth information to states.
+		
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		graph.paths.augmentPTA(plusStrings, true,true);
 		graph.paths.augmentPTA(minusStrings, false,true);
-		actualF = graph.paths.getGraph();
+		actualF = graph.pathroutines.getGraph();
 		checkM(expectedMAX,actualF,graph.config);
+		checkDepthLabelling(actualF);
 	}
 	
 	/** A trace goes through a reject-state. */
@@ -576,6 +601,7 @@ public class TestPTAConstruction
 		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{} });
 		
 		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max"),Configuration.getDefaultConfiguration().copy());
+		graph.findVertex(VertexID.parseID("A")).setDepth(0);
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		graph.paths.augmentPTA(minusStrings, false,true);
 
@@ -583,5 +609,6 @@ public class TestPTAConstruction
 		expected.getVertex(new LinkedList<String>()).setAccept(false);
 		DifferentFSMException result = WMethod.checkM(expected,graph);
 		Assert.assertNull(result);
+		checkDepthLabelling(graph);
 	}
 }

@@ -17,9 +17,6 @@
 
 package statechum;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.xml.XMLConstants;
@@ -31,12 +28,8 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.Configuration.IDMode;
-import statechum.Configuration.LEARNER;
-import statechum.Configuration.QuestionGeneratorKind;
-import statechum.Configuration.ScoreMode;
 import statechum.Helper.whatToRun;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.Test_AttributeMutator.MethodAndArgs;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
 public class TestConfiguration {
@@ -55,7 +48,6 @@ public class TestConfiguration {
 	public void beforeTest()
 	{
 		config = mainConfiguration.copy();
-		LearnerGraph.testMode=true;
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
@@ -106,7 +98,7 @@ public class TestConfiguration {
 	}
 
 	/** An obvious problem with Configuration is forgetting to include all 
-	 * the necessary variables in equals and hashcode methods. This one
+	 * the necessary variables in equals and hashCode methods. This one
 	 * checks that each change to instance variables affects the response from 
 	 * those methods. This is accomplished by collecting all fields, identifying
 	 * the corresponding setter methods and choosing two values for each
@@ -116,114 +108,44 @@ public class TestConfiguration {
 	 */ 
 	@Test
 	public void testConfigurationUsesAllItsVariables()
-	{
-		class MethodAndArgs {
-			public MethodAndArgs(Method m, Field f, Object a, Object b)
-			{
-				method=m;Arg=a;AlternativeArg=b;field = f;
-			}
-			Field field;
-			Method method;Object Arg, AlternativeArg;
-		}
-
-		List<MethodAndArgs> MethodsArgs=new LinkedList<MethodAndArgs>();
-		for(Field var:Configuration.class.getDeclaredFields())
+	{	
+		List<MethodAndArgs<Configuration>> MethodsArgs = Test_AttributeMutator.constructArgList(Configuration.class);
+		// Now check that hashCode and equals are affected by values of different fields.
+		for(MethodAndArgs<Configuration> currentMethod:MethodsArgs)
 		{
-			if (var.getType() != Configuration.class && 
-					var.getName() != "$VRc"// added by eclemma (coverage analysis)
-						&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())
-						)
+			Configuration 
+				configA = Configuration.getDefaultConfiguration().copy(),
+				configB = Configuration.getDefaultConfiguration().copy();
+			for(MethodAndArgs<Configuration> orig:MethodsArgs)
 			{
-				String varName = var.getName();
-				Method setter = Configuration.getMethod(Configuration.GETMETHOD_KIND.FIELD_SET, var);
-				Object valueA = null, valueB = null;
-				if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
-				{
-					valueA = new Boolean(true);valueB=new Boolean(false);
-				}
-				else
-					if (var.getType().equals(Double.class) || var.getType().equals(double.class))
-					{
-						valueA = new Double(0.4);valueB=new Double(0.5);// note that we have to choose values which fall within the allowed range of values
-					}
-					else
-					if (var.getType().equals(String.class))
-					{
-						valueA = varName+", value A";valueB=varName+", value B";
-					}
-					else
-						if (var.getType().equals(IDMode.class))
-						{
-							valueA = IDMode.POSITIVE_NEGATIVE;valueB=IDMode.POSITIVE_ONLY;
-						}
-						else
-							if (var.getType().equals(ScoreMode.class))
-							{
-								valueA = ScoreMode.KTAILS;valueB=ScoreMode.COMPATIBILITY;
-							}
-							else
-								if (var.getType().equals(QuestionGeneratorKind.class))
-								{
-										valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
-								}
-								else
-									if (var.getType().equals(LEARNER.class))
-									{
-											valueA = LEARNER.LEARNER_BLUEFRINGE_MAY2008;valueB=LEARNER.LEARNER_BLUEAMBER_MAY2008;
-									}
-									else
-									if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
-									{
-										valueA = varName.hashCode();valueB=setter.hashCode();// just some integers likely to be different from each other between different variables.
-									}
-									else
-										throw new IllegalArgumentException("A field "+var+" of Configuration has an unsupported type "+var.getType());
-				
-				MethodsArgs.add(new MethodAndArgs(setter,var,valueA,valueB));
+				orig.assignA(configA);
+				orig.assignA(configB);
 			}
-		}
-		
-		try {
-			// Now check that hashCode and equals are affected by values of different fields.
-			for(MethodAndArgs currentMethod:MethodsArgs)
+			Assert.assertEquals(configB, configA);
+			
+			// now test that we can serialise these
 			{
-				Configuration 
-					configA = Configuration.getDefaultConfiguration().copy(),
-					configB = Configuration.getDefaultConfiguration().copy();
-				for(MethodAndArgs orig:MethodsArgs)
-				{
-					orig.method.invoke(configA, new Object[]{orig.Arg});
-					orig.method.invoke(configB, new Object[]{orig.Arg});
-				}
-				Assert.assertEquals(configB, configA);
-				
-				// now test that we can serialise these
-				{
-					org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
-					Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
-					Assert.assertEquals(loadedB, loadedA);
-					Assert.assertEquals(loadedB, configA);
-				}
+				org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
+				Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
+				Assert.assertEquals(loadedB, loadedA);
+				Assert.assertEquals(loadedB, configA);
+			}
 
-				currentMethod.method.invoke(configB, new Object[]{currentMethod.AlternativeArg});
-				String errMsg = "configurations differ: field "+currentMethod.field+" is not in use for ";
-				Assert.assertFalse(errMsg+"equals",configB.equals(configA));
-				Assert.assertFalse(errMsg+"equals",configA.equals(configB));
-				
-				{
-					org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
-					Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
-					Assert.assertEquals(loadedA, configA);
-					Assert.assertFalse(errMsg+"equals",loadedB.equals(loadedA));
-					Assert.assertFalse(errMsg+"equals",loadedB.equals(configA));
-					Assert.assertFalse(errMsg+"equals",loadedA.equals(loadedB));
-				}
-				
-				Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
+			currentMethod.assignB(configB);
+			String errMsg = "configurations differ: field "+currentMethod.getField()+" is not in use for ";
+			Assert.assertFalse(errMsg+"equals",configB.equals(configA));
+			Assert.assertFalse(errMsg+"equals",configA.equals(configB));
+			
+			{
+				org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
+				Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
+				Assert.assertEquals(loadedA, configA);
+				Assert.assertFalse(errMsg+"equals",loadedB.equals(loadedA));
+				Assert.assertFalse(errMsg+"equals",loadedB.equals(configA));
+				Assert.assertFalse(errMsg+"equals",loadedA.equals(loadedB));
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail(e.getMessage());
+			
+			Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
 		}
 	}
 

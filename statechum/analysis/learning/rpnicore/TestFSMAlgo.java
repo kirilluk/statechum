@@ -37,6 +37,8 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -73,7 +75,6 @@ public class TestFSMAlgo {
 	public final void beforeTest()
 	{
 		config = mainConfiguration.copy();
-		LearnerGraph.testMode=true;
 
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
@@ -185,7 +186,7 @@ public class TestFSMAlgo {
 		Set<String> expected = new HashSet<String>();
 		expected.add("p");
 		DirectedSparseGraph g = buildGraph("A-p->A","testComputeFSMAlphabet1");
-		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));
 	}
 
@@ -194,7 +195,7 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3");
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b"}));
-		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
 	
@@ -204,7 +205,7 @@ public class TestFSMAlgo {
 	{
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
 		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3");
-		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
 
@@ -213,7 +214,7 @@ public class TestFSMAlgo {
 	public final void testComputeFSMAlphabet4() {
 		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4");
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
-		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
 
@@ -222,12 +223,11 @@ public class TestFSMAlgo {
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5");
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b","c"}));
-		Assert.assertEquals(expected, new LearnerGraph(g,config).wmethod.computeAlphabet());
+		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 
-		LearnerGraph clone = new LearnerGraph(g,config).copy(config);
-		Assert.assertFalse( clone.transform.completeGraph(
-				new VertexID("REJECT")));
+		LearnerGraph clone = new LearnerGraph(g,config);
+		Assert.assertFalse( clone.pathroutines.completeGraph(new VertexID("REJECT")));
 		Assert.assertFalse(DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));
 	}
 	
@@ -316,9 +316,10 @@ public class TestFSMAlgo {
 		Assert.assertNull(v);
 	}
 
+
 	private final boolean checkIncompatible(LearnerGraph gr,StatePair pair)
 	{
-		return !AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), gr.incompatibles);
+		return !AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), gr.incompatibles);
 	}
 	
 	/** Adding A, B as incompatible states. */
@@ -409,15 +410,69 @@ public class TestFSMAlgo {
 		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
 	}
 	
+	/** Removing B, A as incompatible states. */
+	@Test
+	public final void testRemoveFromIncompatibles1()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+	}
+	
+	/** Removing B, A as incompatible states twice. */
+	@Test
+	public final void testRemoveFromIncompatibles2()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+	}
+	
+	/** Removing B, A as incompatible states. */
+	@Test
+	public final void testRemoveFromIncompatibles3()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("S"));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("C"));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("C"))));
+		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("C"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("S"))));
+		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("S"),grf.findVertex("A"))));
+	}
+	
+	/** Tests that removing a vertex from a collection of incompatibles may also remove a row. */
+	@Test
+	public final void testRemoveFromIncompatibles4()
+	{
+		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		grf.addToIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
+		Assert.assertTrue(grf.incompatibles.isEmpty());
+	}
+	
 	/** Checking that copying a graph clones the array. */
 	@Test
 	public final void testIncompatibles5()
 	{
 		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
-		LearnerGraph graph2 = grf.copy(Configuration.getDefaultConfiguration());
+		LearnerGraph graph2 = new LearnerGraph(grf,Configuration.getDefaultConfiguration());
 		
 		grf.addToIncompatibles(grf.findVertex("B"),grf.findVertex("A"));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
@@ -445,6 +500,30 @@ public class TestFSMAlgo {
 		Assert.assertFalse(checkIncompatible(graph2,new StatePair(graph2.findVertex("B"),graph2.findVertex("A"))));
 		Assert.assertTrue(checkIncompatible(graph2,new StatePair(graph2.findVertex("A"),graph2.findVertex("C"))));
 		Assert.assertTrue(checkIncompatible(graph2,new StatePair(graph2.findVertex("C"),graph2.findVertex("A"))));
+	}
+	
+	/** Tests that construction of incompatibles from information in equivalence classes works. 
+	 * @throws IncompatibleStatesException */
+	@Test
+	public final void testConstuctionOfIncompatibles1() throws IncompatibleStatesException
+	{
+		LearnerGraphND gr = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA"),Configuration.getDefaultConfiguration());
+		gr.addToIncompatibles(gr.findVertex("F"), gr.findVertex("D"));
+		LearnerGraphND expected = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB"),Configuration.getDefaultConfiguration());
+		expected.addToIncompatibles(expected.findVertex("A"), expected.findVertex("C"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected,gr.pathroutines.buildDeterministicGraph(),VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
+	/** Tests that construction of incompatibles from information in equivalence classes works. 
+	 * @throws IncompatibleStatesException */
+	@Test
+	public final void testConstuctionOfIncompatibles2() throws IncompatibleStatesException
+	{
+		LearnerGraphND gr = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA"),Configuration.getDefaultConfiguration());
+		gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("H"));gr.addToIncompatibles(gr.findVertex("B"), gr.findVertex("D"));
+		LearnerGraphND expected = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB"),Configuration.getDefaultConfiguration());
+		expected.addToIncompatibles(expected.findVertex("A"), expected.findVertex("C"));expected.addToIncompatibles(gr.findVertex("A"), gr.findVertex("G"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected,gr.pathroutines.buildDeterministicGraph(),VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
@@ -786,7 +865,9 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,3}, -1	,config);
-		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"),new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), fsm.findVertex("S0")));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"),
+				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), 
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 	
 	@Test
@@ -799,7 +880,9 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0,3}, -1	,config);
-		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), fsm.findVertex("S0")));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
+				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), 
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 
 	@Test
@@ -812,7 +895,9 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1}, -1	,config);
-		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), fsm.findVertex("S0")));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
+				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), 
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 	
 	@Test
@@ -825,7 +910,9 @@ public class TestFSMAlgo {
 			{-1,-1,-1,-1}
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1	,config);
-		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), fsm.findVertex("S0")));
+		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
+				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), 
+				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 
 	@Test

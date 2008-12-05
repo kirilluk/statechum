@@ -58,7 +58,7 @@ public class SpinUtil {
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
-		generatePromela(temp.paths.getGraph());
+		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
 		List<List<String>>sortedCounters = sort(counters);
@@ -71,7 +71,7 @@ public class SpinUtil {
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
-		generatePromela(temp.paths.getGraph());
+		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
 		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
 		List<List<String>>sortedCounters = sort(counters);

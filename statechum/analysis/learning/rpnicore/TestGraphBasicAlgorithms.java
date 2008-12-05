@@ -92,8 +92,8 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 
 	static public PairScore constructPairScore(String a,String b, int score, Configuration config)
 	{
-		CmpVertex aV = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(a), config), 
-			bV = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(b),config);
+		CmpVertex aV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(a), config), 
+			bV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(b),config);
 		return new PairScore(aV,bV, score,score);
 	}
 
@@ -201,7 +201,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
 			try
 			{ 
-				s.paths.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths); 
+				s.pathroutines.computePathsSBetween(s.findVertex(FirstState), s.findVertex(SecondState),initSet,paths); 
 				Map<String,String> actual = engine.getDebugDataMapDepth(paths);
 				Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 			}
@@ -218,7 +218,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 			if (initSeq != null) initSet=initSet.cross(TestFSMAlgo.buildSet(initSeq));
 			try
 			{
-				Map<CmpVertex,PTASequenceEngine.SequenceSet> map = s.paths.computePathsSBetween_All(s.findVertex(FirstState), engine,initSet);
+				Map<CmpVertex,PTASequenceEngine.SequenceSet> map = s.pathroutines.computePathsSBetween_All(s.findVertex(FirstState), engine,initSet);
 				PTASequenceEngine.SequenceSet pathsToSecondState = map.get(s.findVertex(SecondState));
 				if (pathsToSecondState == null)
 					throw new IllegalArgumentException("path from state "+FirstState+" to state "+SecondState+" was not found");
@@ -573,7 +573,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("A")));
+			actual = new HashSet<List<String>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("A")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -586,7 +586,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		Set<List<String>> expected = buildSet(new String[][] {
 				new String[] {"a","b"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -602,7 +602,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 				new String[] {"c","b"},
 				new String[] {"c","d"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -616,7 +616,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 				new String[] {"p"},
 				new String[] {"q"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -634,7 +634,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 				new String[] {"c","d"},
 				new String[] {"p","q"}
 			}), 
-			actual = new HashSet<List<String>>();actual.addAll(s.paths.computePathsToRed(s.findVertex("C")));
+			actual = new HashSet<List<String>>();actual.addAll(s.pathroutines.computePathsToRed(s.findVertex("C")));
 			
 		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
 	}
@@ -712,7 +712,6 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		LearnerGraph.testMode = true;
 		Visualiser.disposeFrame();
 	}
 	

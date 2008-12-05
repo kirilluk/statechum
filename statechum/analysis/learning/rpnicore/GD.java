@@ -21,8 +21,10 @@ package statechum.analysis.learning.rpnicore;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -42,20 +44,26 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
+import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.DDRH_default;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
+import statechum.analysis.learning.observers.ProgressDecorator;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.DDRH_default;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
 
 /**
  * @author kirill
  *
  */
-public class GD {
+public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
+	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+{
 	/** Gives numbering to pairs to be considered in Linear and marks 
 	 * pairs to be ignored (those part of the state space of the combined
 	 * machine which are not member of the cross-product of states of 
@@ -86,7 +94,7 @@ public class GD {
 	 * this is the combined graph. It is easy to find out which states of this graph belong to 
 	 * the first or the second graph, see <em>stateToNumber</em> and <em>statesOfB</em>.
 	 */
-	LearnerGraph grCombined = null;
+	LearnerGraphND grCombined = null;
 	
 	/** Collection of states in the combined graph which belong to the first graph. */
 	Set<CmpVertex> statesOfA = null;
@@ -100,18 +108,26 @@ public class GD {
 	/** The initial state of B in the combined graph. */
 	CmpVertex combined_initB = null;
 
-	/** Used to compute the part of A which would remain after all transitions-to-remove have been removed. */
-	LearnerGraph copyOfA = null;
-	
 	/** Maps vertices of the right-hand side of key pairs in the combined graph to vertices of the B graph. */
 	Map<CmpVertex,CmpVertex> newBToOrig = null;
 	
+	/** The inverse of newBToOrig. */
+	Map<CmpVertex,CmpVertex> origToNewB = null;
+	
 	/** Forward matrix for exploration of <em>grCombined</em>. */
-	LearnerGraphND forward = null;
+	GDLearnerGraph forward = null;
 	
 	/** Inverse matrix for exploration of <em>grCombined</em>. */
-	LearnerGraphND inverse = null;
+	GDLearnerGraph inverse = null;
 
+	/** States which are not matched between the two graphs but have shared names between the two graphs
+	 * and thus have to be renamed.
+	 */
+	final Set<CmpVertex> duplicates = new TreeSet<CmpVertex>();
+	
+	/** Maps key states of A to the corresponding ones in the B part of grCombined. */
+	final Map<CmpVertex,CmpVertex> aTOb = new TreeMap<CmpVertex,CmpVertex>();// this is a replica of the key pair waves, needed for aTOb.get()
+	
 	/** Number of threads to use in a computation. */
 	int ThreadNumber = 0;
 	
@@ -122,12 +138,14 @@ public class GD {
 	 * @param threads the number of threads to use
 	 * @param doc XML document used to create nodes
 	 * @param observer this one receives the difference.
+	 * @param config configuration to use for computing a difference.
 	 * @return XML node with GD.
 	 */
-	public Element computeGDToXML(LearnerGraph a,LearnerGraph b, int threads, Document doc, PatchGraph observer)
+	public Element computeGDToXML(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
+			AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b, int threads, Document doc, PatchGraph observer, Configuration config)
 	{
 		ChangesRecorder patcher = new ChangesRecorder(observer);
-		computeGD(a, b, threads, patcher);
+		computeGD(a, b, threads, patcher,config);
 		return patcher.writeGD(doc);
 	}
 	
@@ -137,19 +155,56 @@ public class GD {
 	 * @param b second graph
 	 * @param threads the number of threads to use
 	 * @param patcher where to store changes.
+	 * @param config configuration to use for computing a difference.
 	 */
-	public void computeGD(LearnerGraph a,LearnerGraph b, int threads, PatchGraph patcher)
+	public void computeGD(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
+			AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b, int threads, PatchGraph patcher, Configuration config)
 	{
-		init(a, b, threads);
+		init(a, b, threads,config);
 		identifyKeyPairs();
-		makeSteps(patcher,null);
+		makeSteps(patcher);
 	}
 	
 	/** Describes primitive mutations which can be carried out on a graph. */
 	public interface PatchGraph
 	{
+		/** By default, graphs are generated such that the outcome of applying a patch retains all 
+		 * matched states of A and as many states of B (unmatched ones) as possible. This map
+		 * permits one to relabel the target graph so that all target states carry the IDs they
+		 * used to carry in B when the patch was constructed.
+		 *   
+		 * @param a ID of the vertex in the outcome of patching
+		 * @param b the actual ID of the vertex.
+		 */
+		public void addRelabelling(VertexID a,VertexID b);
+		
+		/** Adds a supplied vertex. Useful for adding vertices which are not connected anywhere or
+		 * updating attributes on those which do exist.
+		 * 
+		 * @param vertex what to add or update.
+		 */
+		public void addVertex(CmpVertex vertex);
+		
+		/** Adds a pair of incompatible states. See <em>AbstractLearnerGraph</em> for details.
+		 *  
+		 * @param a the first element of a pair to be added.
+		 * @param b the second element of a pair.
+		 */
+		public void addIncompatible(CmpVertex a, CmpVertex b);
+
+		/** Removes a pair of incompatible states from the collection of incompatible states. 
+		 * See <em>AbstractLearnerGraph</em> for details.
+		 *  
+		 * @param a the first element of a pair to be added.
+		 * @param b the second element of a pair.
+		 */
+		public void removeIncompatible(CmpVertex a, CmpVertex b);
+
 		/** Adds a transition between the specified states.
-		 * Throws if transition already exists.
+		 * Throws if transition already exists.<p>
+		 * Important: adding transitions using a vertex with different attributes will not
+		 * change attributes on an existing vertex, but adding a new vertex will use the attributes 
+		 * from the supplied vertex. Use <em>addVertex</em> to update attributes.
 		 * 
 		 * @param from source state
 		 * @param label label of a transition
@@ -172,29 +227,12 @@ public class GD {
 		public void setInitial(CmpVertex vertex);
 	}
 	
-	protected void printIncoming(String name)
-	{
-		CmpVertex vert = grCombined.findVertex(name);
-		System.out.println("incoming to "+vert+" are "+inverse.matrixForward.transitionMatrix.get(vert));
-	}
-	
-	/** Records vertices of A which would remain after we remove all transitions 
-	 * which are to be removed, subsequently add all new transitions 
-	 * and finally purge unconnected states. 
-	 */
-	Set<CmpVertex> retainedInA = null;
-	
-	/** Set of states to be added to A. */
-	Set<VertexID> newToA = null;
-	
 	/** Expands the set of key pairs and computes the outcome. 
 	 * 
 	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
 	 * to the second one. It can then be stored in XML if necessary.
-	 * @param allKeyPairs if not null, this collection will be filled 
-	 * with all of the key pairs for the graphs. Used for testing.
 	 */
-	protected void makeSteps(final PatchGraph graphToPatch, List<PairScore> allKeyPairs)
+	protected void makeSteps(final PatchGraph graphToPatch)
 	{
 		// Now we make steps. Data used:
 		//
@@ -204,7 +242,7 @@ public class GD {
 		//
 		// frontWave is the wavefront from which we are exploring grCombined in
 		// search of these candidates for key pairs.
-		final Map<CmpVertex,CmpVertex> aTOb = new TreeMap<CmpVertex,CmpVertex>();
+		aTOb.clear();
 		final Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		do
 		{
@@ -212,20 +250,20 @@ public class GD {
 			populateCurrentWave(forward.matrixForward);
 			if (!fallbackToInitialPair) populateCurrentWave(inverse.matrixForward);
 			sortWave(currentWave);
-			if (allKeyPairs != null) allKeyPairs.addAll(frontWave);
 			for(PairScore pair:frontWave) 
 			{
 				newToOrig.put(pair.getR(),pair.getQ());// since we now know 
 				// which state of A pair.getQ() of combined corresponds to, change the mapping.
 				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
-				assert AbstractTransitionMatrix.checkCompatible(pair.getQ(),pair.getR(),grCombined.incompatibles);
+				assert AbstractLearnerGraph.checkCompatible(pair.getQ(),pair.getR(),grCombined.incompatibles);
+
 				aTOb.put(pair.getQ(),pair.getR());
 			}
 			assert aTOb.size() == aTOb.values().size() : " duplicate right-hand side in key pairs";
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
-						AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles)) // we should not merge incompatible pairs
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 				}
@@ -244,60 +282,15 @@ public class GD {
 		// for clashes both with remaining states of A and states of B portion of grCombined.
 		// This is resolved below by ensuring that grCombined's B-vertex space does not intersect
 		// with that of the B graph by construction of grCombined.
-		final LearnerGraphMutator remover = new LearnerGraphMutator(copyOfA,grCombined.config,null);
-		newToA = new TreeSet<VertexID>();// the original states of B which have to be added to A
-		retainedInA = new TreeSet<CmpVertex>();// vertices participating in transitions which start from A's vertices and lead to vertices of B.
-		new DCollector()
-		{
-			@Override
-			CmpVertex getOrig(CmpVertex vertex) {
-				CmpVertex keyVertex = newToOrig.get(vertex);
-				if (keyVertex != null) return keyVertex;// an existing key pair
-				
-				// this is a state new to B
-				assert newBToOrig.get(vertex) != null;
-				newToA.add(newBToOrig.get(vertex).getID());// vertices from B which we'd like to add to A, as long as their names do not clash.
-				return vertex;
-			}
-
-			public void addTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
-				if (statesOfA.contains(from))
-					retainedInA.add(from);
-				if (statesOfA.contains(to))
-					retainedInA.add(to);
-			}
-
-			public void removeTransition(CmpVertex from, String label, CmpVertex to) {
-				remover.removeTransition(from, label, to);
-			}
-
-			public void setInitial(CmpVertex vertex) 
-			{
-				if (statesOfA.contains(vertex))
-					retainedInA.add(vertex);
-			}
-			
-		}.computeGD(aTOb);
 		
-		remover.removeDanglingStates();
-		final Set<VertexID> duplicates = new TreeSet<VertexID>();
+		final Set<CmpVertex> duplicatesAB = new TreeSet<CmpVertex>();
+		duplicatesAB.addAll(aTOb.keySet());duplicatesAB.retainAll(newBToOrig.values());// throws away all states not in B, such as states in A's key pairs which are not in B and hence cannot be duplicates
+		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) duplicatesAB.remove(newBToOrig.get(entry.getValue()));// throws all states of B which are B's key pairs - these are paired with A and hence cannot be conflicting.
+		// now we got duplicate states in terms of states of A and B, but duplicates are in terms of renamed states of B in grCombined, hence convert it.
+		duplicates.clear();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
 
-		// now iterate through states are source and target states - these may easily
-		// correspond to transitions from B which replace transitions in A. If all connecting
-		// vertices from A's vertex are removed, removeDanglingStates() would eliminate it
-		// even if we subsequently add transitions using it. Hence it is not enough
-		// to go through copyOfA.transitionMatrix.keySet(), we have to visit all states of A
-		// which participate in new transitions and/or initial state.
-		retainedInA.addAll(copyOfA.transitionMatrix.keySet()); // add states remaining in A
-		for(CmpVertex vertex:retainedInA) 
-			if (newToA.contains(vertex.getID()))
-			{
-				duplicates.add(vertex.getID());// we should not use this vertex
-			}
-		
-		for(CmpVertex vertex:statesOfB) assert !newToA.contains(vertex.getID());// verify that ids of states of B grCombined do not clash with IDs of states of B,
-			// here statesOfB are grCombined states and newToA are the original B states. 
-		
+		//System.out.println("duplicates, AB = "+duplicatesAB+" and in terms of grCombined: "+duplicates);
+
 		if (!duplicates.isEmpty())
 		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+duplicates+" are shared between A and B");
@@ -306,33 +299,52 @@ public class GD {
 		// Now actually record the changes.
 		new DCollector()
 		{
-
+			
 			@Override
-			/** Called for states of the B part of grCombined to get the corresponding vertices in the original graphs. */ 
+			/** Called for states of the B part of grCombined to get the corresponding vertices in the original graph. */ 
 			CmpVertex getOrig(CmpVertex vertex) {
 				CmpVertex keyVertex = newToOrig.get(vertex);
 				if (keyVertex != null) return keyVertex;
 				
-				CmpVertex result = newBToOrig.get(vertex);
-				if (duplicates.contains(result.getID()))
-					result = vertex;// duplicate vertices retain their new identifiers
-
-				return result;
+				if (duplicates.contains(vertex))
+					return vertex;// duplicate vertices retain their new identifiers
+				
+				return newBToOrig.get(vertex);
 			}
 
+			@Override
 			public void addTransition(CmpVertex from, String label, CmpVertex to) {
+				super.addTransition(from, label, to);
 				graphToPatch.addTransition(from, label, to);// propagate changes
 			}
 
+			@Override
 			public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+				super.removeTransition(from, label, to);
 				graphToPatch.removeTransition(from, label, to);
 			}
 
 			public void setInitial(CmpVertex vertex) {
 				graphToPatch.setInitial(vertex);
 			}
+
+			public void addIncompatible(CmpVertex a, CmpVertex b) {
+				graphToPatch.addIncompatible(a, b);
+			}
+
+			public void addVertex(CmpVertex vertex) {
+				graphToPatch.addVertex(vertex);
+			}
+
+			public void removeIncompatible(CmpVertex a, CmpVertex b) {
+				graphToPatch.removeIncompatible(a, b);
+			}
+
+			public void addRelabelling(VertexID a, VertexID b) {
+				graphToPatch.addRelabelling(a, b);
+			}
 			
-		}.computeGD(aTOb);
+		}.computeGD();
 	}
 
 	/** We need to do two things,
@@ -354,6 +366,16 @@ public class GD {
 	 */
 	protected abstract class DCollector implements PatchGraph
 	{
+		/** This one contains all states from B which 
+		 * have been matched but do not feature in any added or removed transition (states from B which were
+		 * not matched are trivial to add, this is done after we are through with the matched pairs).
+		 * This means they will not feature in the patch, but may have to be included because
+		 * attributes on these states may have changed or these states feature no outgoing/incoming transitions
+		 * and hence will be dropped from the original graph when we clean up the old states after patch
+		 * application.
+		 */
+		private final Set<CmpVertex> disconnectedStatesInKeyPairs = new TreeSet<CmpVertex>();
+		
 		/** Called when we need to map a vertex in the B-part of grCombined to 
 		 * an original vertex of B.
 		 * 
@@ -361,73 +383,192 @@ public class GD {
 		 */
 		abstract CmpVertex getOrig(CmpVertex vertex);
 		
-		public void computeGD(Map<CmpVertex,CmpVertex> aTOb)
+		public void computeGD()
 		{
-			// Pick all transitions which have been added/removed.
+			disconnectedStatesInKeyPairs.clear();disconnectedStatesInKeyPairs.addAll(aTOb.keySet());
+			final Set<CmpVertex> attributesDiffer = new TreeSet<CmpVertex>();
+			
+			// The initial state should be either combined_initB (which is the initial state of graph B)
+			// or a key state of graph A which corresponds to this state. This variable is updated in the loop below.
+			CmpVertex initialState = getOrig(combined_initB);
+			// Now we have to copy attributes from vertices of B to the their replicas in A
+			for(CmpVertex vertex:statesOfA)
+			{
+				if (aTOb.containsKey(vertex))
+				{// we are considering a key state
+					if (!DeterministicDirectedSparseGraph.nonIDAttributesEquals(aTOb.get(vertex), vertex))
+					{
+						attributesDiffer.add(vertex);
+						DeterministicDirectedSparseGraph.copyVertexData(aTOb.get(vertex), vertex);
+					}
+				}
+				else
+				{// we are considering a state of B which is not a key state, hence if there is a corresponding state in A, overwrite it.
+					if (origToNewB.containsKey(vertex))
+					{
+						DeterministicDirectedSparseGraph.copyVertexData(origToNewB.get(vertex), vertex);
+					}
+				}
+			}
+			
+			// Pick all transitions and incompatible pairs which have been added/removed from the matched states.
 			for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
 			{
-				for(Entry<String,CmpVertex> transitionA:grCombined.transitionMatrix.get(entry.getKey()).entrySet())
+				if (entry.getValue() == initialState)
+					initialState = getOrig(entry.getKey());// found a match for the initial state
+				
+				// check incompatibles
 				{
-					CmpVertex targetA = transitionA.getValue();
-					CmpVertex targetB = grCombined.transitionMatrix.get(entry.getValue()).get(transitionA.getKey());
-
-					if (targetB == null) // this transition does not exist in B
-						removeTransition(entry.getKey(), transitionA.getKey(),transitionA.getValue());
-					else
-						if (aTOb.get(targetA) != targetB) // it is not enough to check if both targetA and targetB are 
-							// key states, but the two have to be part of the same key state. 
-							// Otherwise, we risk making mistakes (see <em>testComputeGD6()</em> for an illustration).
-						{// In other words, transition leads to a state which is not key in either of the two machines or both are parts of different key states.
-							removeTransition(entry.getKey(), transitionA.getKey(),transitionA.getValue());
-							addTransition(entry.getKey(), transitionA.getKey(),getOrig(targetB));
-						}
+					Set<CmpVertex> targetsB = grCombined.incompatibles.get(entry.getValue());
+					Set<CmpVertex> newTargetsForB=new TreeSet<CmpVertex>();if (targetsB != null) newTargetsForB.addAll(targetsB);
+					if (grCombined.incompatibles.containsKey(entry.getKey()))
+						for(CmpVertex targetInA:grCombined.incompatibles.get(entry.getKey()))
+							if (aTOb.containsKey(targetInA))
+							{
+								if (targetsB == null || !targetsB.contains(aTOb.get(targetInA)))
+									removeIncompatible(entry.getKey(), targetInA);
+								else
+									newTargetsForB.remove(aTOb.get(targetInA));
+							} 	
+							// There is no "else" clause because if a target state is not a matched one, 
+					 		// such an incompatibles will be removed later on when we focus on unmatched states
+					for(CmpVertex newTarget:newTargetsForB)
+						addIncompatible(entry.getKey(), getOrig(newTarget));
 				}
 				
-				for(Entry<String,CmpVertex> transitionB:grCombined.transitionMatrix.get(entry.getValue()).entrySet())
+				// transitions from the A part.
+				for(Entry<String,List<CmpVertex>> transitionA:grCombined.transitionMatrix.get(entry.getKey()).entrySet())
 				{
-					CmpVertex targetA = grCombined.transitionMatrix.get(entry.getKey()).get(transitionB.getKey());
-					if (targetA == null) // a transition unique to B
-						addTransition(getOrig(entry.getValue()), transitionB.getKey(),getOrig(transitionB.getValue()));
-				}			
+					List<CmpVertex> targetsInB = grCombined.transitionMatrix.get(entry.getValue()).get(transitionA.getKey());
+					if (targetsInB == null) // this transition does not exist in B
+						for(CmpVertex targetA:grCombined.getTargets(transitionA.getValue()))
+							removeTransition(entry.getKey(), transitionA.getKey(),targetA);
+					else
+					{
+						Collection<CmpVertex> targetsA=grCombined.getTargets(transitionA.getValue()), targetsB=grCombined.getTargets(targetsInB);
+						Set<CmpVertex> newTargetsForB = new TreeSet<CmpVertex>();newTargetsForB.addAll(targetsB);
+						
+						// It is not enough to check if both targetA and targetB are 
+						// key states, but the two have to be part of the same key state. 
+						// Otherwise, we risk making mistakes (see <em>testComputeGD6()</em> for an illustration).
+						// Targets which are only in A should be removed, those only in B should be added and 
+						// those shared but not from the same key pair should be updated (add/remove).
+						for(CmpVertex targetA:targetsA)
+						{
+							CmpVertex targetB = aTOb.get(targetA);
+							if (targetB == null)
+								removeTransition(entry.getKey(), transitionA.getKey(),targetA);// target is not a key state
+							else
+							if (!targetsB.contains(targetB))
+							// Transition leads to a state which is not key in either of the two machines or both are parts of different key states.
+								removeTransition(entry.getKey(), transitionA.getKey(),targetA);
+							else
+								newTargetsForB.remove(targetB);
+						}
+						
+						for(CmpVertex targetB:newTargetsForB)
+							addTransition(entry.getKey(), transitionA.getKey(),getOrig(targetB));
+					}
+				}
+				
+				// transitions from the B part which were not covered above.
+				for(Entry<String,List<CmpVertex>> transitionB:grCombined.transitionMatrix.get(entry.getValue()).entrySet())
+				{
+					List<CmpVertex> targetsInA = grCombined.transitionMatrix.get(entry.getKey()).get(transitionB.getKey());
+					if (targetsInA == null) // a transition unique to B
+						for(CmpVertex targetB:grCombined.getTargets(transitionB.getValue()))
+							addTransition(getOrig(entry.getValue()), transitionB.getKey(),getOrig(targetB));
+				}
+				
 			}
 
 			// now we just need to go through states which are not key states
 			for(CmpVertex vertex:statesOfA)
 				if (!statesInKeyPairs.contains(vertex))
 				{
-					for(Entry<String,CmpVertex> target:grCombined.transitionMatrix.get(vertex).entrySet())
+					for(Entry<String,List<CmpVertex>> target:grCombined.transitionMatrix.get(vertex).entrySet())
 						// transition not matched because some states are not known hence remove it.
-							removeTransition(vertex, target.getKey(),target.getValue());
+						for(CmpVertex targetState:grCombined.getTargets(target.getValue()))
+							removeTransition(vertex, target.getKey(),targetState);
+
+					// incompatible pairs.
+					if (grCombined.incompatibles.containsKey(vertex))
+						for(CmpVertex vert:grCombined.incompatibles.get(vertex))
+							removeIncompatible(vertex, vert);
 				}
 		
 			for(CmpVertex vertex:statesOfB)
 				if (!statesInKeyPairs.contains(vertex))
 				{
 					CmpVertex origSource = getOrig(vertex);
-					for(Entry<String,CmpVertex> target:grCombined.transitionMatrix.get(vertex).entrySet())
+					Iterator<Entry<String,List<CmpVertex>>> targetStatesIterator = grCombined.transitionMatrix.get(vertex).entrySet().iterator();
+					if (!targetStatesIterator.hasNext())
+						addVertex(getOrig(vertex));// unmatched state with neither incoming nor outgoing transitions 
+					
+					while(targetStatesIterator.hasNext())
+					{
+						Entry<String,List<CmpVertex>> target = targetStatesIterator.next();
 						// transition not matched because some states are not known hence append it.
-							addTransition(origSource, target.getKey(),getOrig(target.getValue()));
+						for(CmpVertex targetState:grCombined.getTargets(target.getValue()))
+							addTransition(origSource, target.getKey(),getOrig(targetState));
+					}
+					
+					// incompatible pairs.
+					if (grCombined.incompatibles.containsKey(vertex))
+						for(CmpVertex vert:grCombined.incompatibles.get(vertex))
+							addIncompatible(origSource, getOrig(vert));
 				}
-		
-			// The initial state should be either combined_initB (which is the initial state of graph B)
-			// or a key state of graph A which corresponds to this state.
-			CmpVertex initialState = getOrig(combined_initB);
-			Iterator<Entry<CmpVertex,CmpVertex>> entryIter = aTOb.entrySet().iterator();
-			while(entryIter.hasNext())
-			{// a linear search through not very many states
-				Entry<CmpVertex,CmpVertex> pair = entryIter.next();
-				if (pair.getValue() == initialState)
-				{
-					initialState = getOrig(pair.getKey());break;// found a match
+
+			// Add relabelling: first, aTOb , then duplicates. If this is done in a different order
+			// we might relabel a vertex to the name already in use and relabel will choke.
+			for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
+			{
+				VertexID from = entry.getKey().getID(), to = newBToOrig.get(entry.getValue()).getID();
+				if (!from.equals(to)) addRelabelling(from,to);
+			}
+			for(CmpVertex vert:duplicates) 
+				addRelabelling(vert.getID(), newBToOrig.get(vert).getID());
+			
+			//StringBuffer inTermsOfB = new StringBuffer("disconnected: "+disconnectedStatesInKeyPairs+" key pairs: "+aTOb+", that is: ");
+			//for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) inTermsOfB.append(entry.getKey()).append("=").append(newBToOrig.get(entry.getValue())).append(", ");
+			//System.out.println(inTermsOfB);
+			
+			for(CmpVertex vertex:disconnectedStatesInKeyPairs) // matched states which will not feature in a patch unless we add them here.
+			{
+				if (
+						(!fallbackToInitialPair && grCombined.transitionMatrix.get(vertex).isEmpty() && inverse.matrixForward.transitionMatrix.get(vertex).isEmpty())  || // TODO: to test each of these
+						// check for attribute changes between matched states in graphs
+						attributesDiffer.contains(vertex))
+				{// if attributes have changed, we have to record new values but in relation to the old state,
+				 // thus we have to make a copy of that state and update the attributes.
+					CmpVertex updatedVertex = AbstractLearnerGraph.generateNewCmpVertex(vertex.getID(), grCombined.config);
+					DeterministicDirectedSparseGraph.copyVertexData(aTOb.get(vertex), updatedVertex);
+					addVertex(updatedVertex);
 				}
 			}
-
-			// if a match is found, it is appropriate to set the initial state to the corresponding state of A,
+			
+			// If a match is found in the loop through aTOb, it is appropriate to set the initial state to the corresponding state of A,
 			// if not, this means that initial state of B will be the new state, we hence add it and set as 
 			// initial. Many tests among TestGD_Multithreaded explore both possibilities.
 			//if (initialState != combined_initA) setInitial(initialState);// only set the initial state if it has changed.
 			setInitial(initialState);
 		}
+
+		/**
+		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
+		 */
+		public void addTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
+			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
+		}
+
+		/**
+		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
+		 */
+		public void removeTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
+			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
+		}
+		
+		
 	}
 	
 	
@@ -447,22 +588,30 @@ public class GD {
 	}
 	
 	/** Makes it possible to modify graphs by adding/removing transitions. */
-	public static class LearnerGraphMutator implements PatchGraph
+	public static class LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> implements PatchGraph
 	{
 		/** Graph to manipulate. */
-		private final LearnerGraph graph;
+		private final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
 		/** Configuration to use for cloning if necessary. */
 		private Configuration cloneConfig;
+		
+		/** States which should be included in the target graph, even if they have no 
+		 * outgoing or incoming transitions. One of such states is an initial state. 
+		 */
+		private final Set<CmpVertex> statesToInclude = new TreeSet<CmpVertex>();
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
 		
+		/** Relabelling of states, applied if necessary. */
+		private final Map<VertexID,VertexID> relabelling = new TreeMap<VertexID,VertexID>();
+		
 		/** Constructs an instance of the mutator
 		 * 
 		 * @param gr graph to modify
-		 * @param cloneConfig config to use
+		 * @param cloneConfig configuration to use
 		 */
-		public LearnerGraphMutator(LearnerGraph gr, Configuration config,PatchGraph nextInStack)
+		public LearnerGraphMutator(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr, Configuration config,PatchGraph nextInStack)
 		{
 			graph = gr;cloneConfig = config;next = nextInStack;
 		}
@@ -479,12 +628,16 @@ public class GD {
 			CmpVertex fromVert = graph.findVertex(vert.getID());
 			if (fromVert == null)
 			{// vertex with this ID is not already known
-				fromVert = AbstractTransitionMatrix.cloneCmpVertex(vert, cloneConfig);
+				fromVert = AbstractLearnerGraph.cloneCmpVertex(vert, cloneConfig);
 				graph.transitionMatrix.put(fromVert,graph.createNewRow());
 			}
 			else
-				if (!AbstractTransitionMatrix.checkCompatible(fromVert,vert, graph.incompatibles)) // it is known but with a different accept condition
-					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);
+				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert, graph.incompatibles)) // it is known but with a different accept condition
+					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);// incompatibles cannot 
+						// lead to this exception since this would mean that a state is not compatible with 
+						// itself - such a contradiction cannot be added to a set of incompatibles.
+				else
+					DeterministicDirectedSparseGraph.copyVertexData(vert, fromVert);// update attributes
 			
 			return fromVert;
 		}
@@ -503,13 +656,10 @@ public class GD {
 			if (next != null) next.addTransition(from, input, to);
 			
 			CmpVertex fromVert = addNewVertex(from);
-			Map<String,CmpVertex> entry = graph.transitionMatrix.get(fromVert);
+			Map<String,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			
-			if (entry.containsKey(input))
-				throw new IllegalArgumentException("duplicate transition from state "+from+" with input \""+input+"\" in graph "+graph);
-	
 			CmpVertex toVert = addNewVertex(to);
-			entry.put(input, toVert);
+			graph.addTransition(entry, input, toVert);
 			graph.updateIDWith(fromVert);graph.updateIDWith(toVert);
 		}
 	
@@ -524,14 +674,13 @@ public class GD {
 		public void removeTransition(CmpVertex from, String input,CmpVertex to)
 		{
 			if (next != null) next.removeTransition(from, input, to);
-			
-			Map<String,CmpVertex> entry = graph.transitionMatrix.get(from);
-			if (entry == null) throw new IllegalArgumentException("state "+from+" was not found in graph "+graph);
+			CmpVertex fromVert = addNewVertex(from), toVert = addNewVertex(to);
+			Map<String,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			if (!entry.containsKey(input))
-				throw new IllegalArgumentException("there is no transition from state "+from+" with input "+input+" in graph "+graph);
-			if (!entry.get(input).equals(to))
-				throw new IllegalArgumentException("there is no transition to state "+to+" from state "+from+" with input "+input+"in graph "+graph);
-			entry.remove(input);
+				throw new IllegalArgumentException("there is no transition from state "+fromVert+" with input "+input+" in graph "+graph);
+			if (!graph.getTargets(entry.get(input)).contains(toVert))
+				throw new IllegalArgumentException("there is no transition to state "+toVert+" from state "+fromVert+" with input "+input+" in graph "+graph);
+			graph.removeTransition(entry, input, toVert);
 		}
 	
 		/** Removes all states which have no outgoing transitions and no incoming transitions,
@@ -540,11 +689,13 @@ public class GD {
 		public void removeDanglingStates()
 		{
 			Set<CmpVertex> statesInGraph = new TreeSet<CmpVertex>();
-			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				if (entry.getValue().isEmpty()) statesInGraph.add(entry.getKey()); // add those with no outgoing
-			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
-				statesInGraph.removeAll(entry.getValue().values());// and remove those used as targets
+			for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+				for(TARGET_TYPE targets:entry.getValue().values())
+					statesInGraph.removeAll(graph.getTargets(targets));// and remove those used as targets
 			statesInGraph.remove(graph.init);// initial state should stay
+			statesInGraph.removeAll(statesToInclude);// as should those which have been explicitly added.
 			graph.transitionMatrix.keySet().removeAll(statesInGraph);
 		}
 
@@ -554,11 +705,86 @@ public class GD {
 			
 			graph.init = addNewVertex(vertex); // assuming that addNewVertex has been tested as a part of integration testing of addTransition :)
 		}
+
+		public void addVertex(CmpVertex vertex) {
+			statesToInclude.add(addNewVertex(vertex));
+		}
+
+		public void addIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.addIncompatible(a,b);
+			
+			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+			{
+				if (graph.findVertex(a.getID()) == null) throw new IllegalArgumentException("vertex "+a+" does not exist");
+				if (graph.findVertex(b.getID()) == null) throw new IllegalArgumentException("vertex "+b+" does not exist");
+			}
+				
+			graph.addToIncompatibles(a, b);
+		}
+
+		public void removeIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeIncompatible(a,b);
+			
+			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+			{
+				if (graph.findVertex(a.getID()) == null) throw new IllegalArgumentException("vertex "+a+" does not exist");
+				if (graph.findVertex(b.getID()) == null) throw new IllegalArgumentException("vertex "+b+" does not exist");
+			}
+
+			graph.removeFromIncompatibles(a, b);
+		}
+
+		public void addRelabelling(VertexID a, VertexID b) {
+			if (graph.findVertex(a) == null) throw new IllegalArgumentException("source vertex "+a+" does not exist");
+			relabelling.put(a,b);
+		}
+		
+		/** Relabels states in the graph as determined by the relabelling.
+		 *   
+		 * @param result where to store the outcome of relabelling. 
+		 */
+		public void relabel(final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result)
+		{
+			result.initEmpty();
+			result.setName(graph.getName());
+
+			Map<CmpVertex,CmpVertex> oldToNew = new HashMap<CmpVertex,CmpVertex>();
+			
+			// First, clone vertices
+			for(CmpVertex state:graph.transitionMatrix.keySet())
+			{
+				VertexID newID = relabelling.get(state.getID());
+				if (newID == null)
+					oldToNew.put(state, AbstractLearnerGraph.cloneCmpVertex(state, result.config)); // clone
+				else // copy under a different name
+				{
+					CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(newID, result.config);// rename
+					DeterministicDirectedSparseGraph.copyVertexData(state, newVertex);
+					oldToNew.put(state,newVertex);
+				}
+			}
+			
+			if (GlobalConfiguration.getConfiguration().isAssertEnabled()) 
+			{
+				Set<CmpVertex> encounteredNewVertices = new TreeSet<CmpVertex>();
+				for(Entry<CmpVertex,CmpVertex> entry:oldToNew.entrySet())
+				{
+					if (encounteredNewVertices.contains(entry.getValue()))
+						throw new IllegalArgumentException("duplicate vertex "+entry.getValue()+" after relabelling");
+				
+					encounteredNewVertices.add(entry.getValue());
+				}
+			}
+			
+			result.init = oldToNew.get(graph.init);
+			AbstractLearnerGraph.addAndRelabelGraphs(graph, oldToNew, result);
+			result.setIDNumbers();// have to do this because we used different IDs than those used in the outcome of patching
+		}
 	}
 
 	/** This class displays the requested changes.
 	 */
-	public static class ChangesDisplay implements PatchGraph
+	public static final class ChangesDisplay implements PatchGraph
 	{
 		private final StringBuffer result = new StringBuffer();
 		
@@ -570,9 +796,15 @@ public class GD {
 			next = nextInStack;
 		}
 		
+		/** Appends a newline to the result. */
+		private void appendEndl()
+		{
+			result.append('\n');
+		}
+		
 		protected void appendTransition(CmpVertex from, String label, CmpVertex to)
 		{
-			result.append(from);result.append(" - ");result.append(label);result.append(" -> ");result.append(to);result.append("\n");
+			result.append(from);result.append(" - ");result.append(label);result.append(" -> ");result.append(to);appendEndl();
 		}
 		public void addTransition(CmpVertex from, String label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
@@ -592,7 +824,27 @@ public class GD {
 		
 		public void setInitial(CmpVertex vertex) {
 			if (next != null) next.setInitial(vertex);
-			result.append("initial : ");result.append(vertex);result.append("\n");
+			result.append("initial : ");result.append(vertex);appendEndl();
+		}
+
+		public void addIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.addIncompatible(a,b);
+			result.append("added incompatibles: "+a+","+b);appendEndl();
+		}
+
+		public void addVertex(CmpVertex vertex) {
+			if (next != null) next.addVertex(vertex);
+			result.append("added vertex:"+vertex);appendEndl();
+		}
+
+		public void removeIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeIncompatible(a,b);
+			result.append("removed incompatibles: "+a+","+b);appendEndl();
+		}
+
+		public void addRelabelling(VertexID a, VertexID b) {
+			if (next != null) next.addRelabelling(a, b);
+			result.append("mapping: "+a+" - "+b);appendEndl();
 		}
 	}
 	
@@ -659,6 +911,22 @@ public class GD {
 		public void setInitial(CmpVertex vertex) {
 			if (next != null) next.setInitial(vertex);
 		}
+
+		public void addIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.addIncompatible(a, b);
+		}
+
+		public void addVertex(CmpVertex vertex) {
+			if (next != null) next.addVertex(vertex);
+		}
+
+		public void removeIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeIncompatible(a, b);			
+		}
+
+		public void addRelabelling(VertexID a, VertexID b) {
+			if (next != null) next.addRelabelling(a, b);
+		}
 	}
 	
 	/** This class records requested changes and is capable of returning a 
@@ -667,12 +935,14 @@ public class GD {
 	public static class ChangesRecorder implements PatchGraph
 	{
 		/** Vertices removed from A. */
-		private final LearnerGraph removed;
+		private final LearnerGraphND removed;
 
 		/** Vertices added by B. */
-		private final LearnerGraph added;
+		private final LearnerGraphND added;
 		
 		private final PatchGraph addedPatcher, removedPatcher;
+		
+		private final Map<VertexID,VertexID> relabelling = new TreeMap<VertexID,VertexID>(); 
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
@@ -681,18 +951,20 @@ public class GD {
 		{
 			next = nextInStack;
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			added = new LearnerGraph(config);removed = new LearnerGraph(config);
-			added.init = null;added.transitionMatrix.clear();// to make sure we can handle an assignment of a reject-state to an initial state
-			addedPatcher = new LearnerGraphMutator(added, config,null);removedPatcher = new LearnerGraphMutator(removed,config,null);
+			added = new LearnerGraphND(config);removed = new LearnerGraphND(config);removed.initEmpty();
+			added.init = null;added.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
+			addedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(added, config,null);
+			removedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(removed,config,null);
 		}
 		
 		/** Used for testing. */
-		protected ChangesRecorder(LearnerGraph r,LearnerGraph a,PatchGraph nextInStack)
+		protected ChangesRecorder(LearnerGraphND r,LearnerGraphND a,PatchGraph nextInStack)
 		{
 			next = nextInStack;
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			removed = r;added = a;
-			addedPatcher = new LearnerGraphMutator(added, config,null);removedPatcher = new LearnerGraphMutator(removed,config,null);
+			addedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(added, config,null);
+			removedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(removed,config,null);
 		}
 		
 		public void addTransition(CmpVertex from, String label, CmpVertex to) {
@@ -705,48 +977,62 @@ public class GD {
 			removedPatcher.addTransition(from, label, to);
 		}
 		
-		/** GD XML tags. */
-		public static final String gdGD = "GD", gdAdded="gdAdded", gdRemoved = "gdRemoved";
-		
 		/** Writes the recorded changes in a form of an XML tag. */
 		protected Element writeGD(Document doc)
 		{
 			if (added.init == null) throw new IllegalArgumentException("init state is was not defined");
-			Element gd = doc.createElement(gdGD), addedNode = doc.createElement(gdAdded), removedNode = doc.createElement(gdRemoved);
-			addedNode.appendChild(added.transform.createGraphMLNode(doc));removedNode.appendChild(removed.transform.createGraphMLNode(doc));
-			gd.appendChild(removedNode);gd.appendChild(addedNode);
+			Element gd = doc.createElement(StatechumXML.gdGD.toString()), addedNode = doc.createElement(StatechumXML.gdAdded.toString()), removedNode = doc.createElement(StatechumXML.gdRemoved.toString()), relabellingNode = doc.createElement(StatechumXML.gdRelabelling.toString());
+			addedNode.appendChild(added.storage.createGraphMLNode(doc));removedNode.appendChild(removed.storage.createGraphMLNode(doc));
+			for(Entry<VertexID,VertexID> entry:relabelling.entrySet())
+				relabellingNode.appendChild(ProgressDecorator.writePair(
+						new PairScore(AbstractLearnerGraph.generateNewCmpVertex(entry.getKey(),Configuration.getDefaultConfiguration()), 
+								AbstractLearnerGraph.generateNewCmpVertex(entry.getValue(),Configuration.getDefaultConfiguration()),JUConstants.intUNKNOWN, JUConstants.intUNKNOWN),doc));
+			gd.appendChild(removedNode);gd.appendChild(addedNode);gd.appendChild(relabellingNode);
 			return gd;
 		}
 
 		/** Given an element containing a number of elements, this one picks the one
 		 * with the right tag and returns its first element-child.
+		 * If <em>tolerateAbsentElements</em> is set, returns null if the element with the requested
+		 * name was not found; otherwise, an exception is thrown if an element is not found.
+		 * <p>
+		 * If <em>checksingleChild</em> is set, checks that there is only NODE child of the found node
+		 * and throws {@link IllegalArgumentException} if this is not so.
 		 * 
-		 * @param elem
+		 * @param elem element within which to look for a node with the supplied tag.
 		 * @param name the tag to look for.
-		 * @return
+		 * @param whether to throw an exception if an element was not found.
+		 * @return element found.
 		 */
-		static public Element getGraphElement(Element elem, String name)
+		static public Element getGraphElement(Element elem, String name,boolean tolerateAbsentElements, boolean checksingleChild)
 		{
-			if (!elem.getNodeName().equals(gdGD))
-				throw new IllegalArgumentException("unexpected element, expected "+gdGD+", got "+elem.getNodeName());
+			if (!elem.getNodeName().equals(StatechumXML.gdGD.toString()))
+				throw new IllegalArgumentException("unexpected element, expected "+StatechumXML.gdGD+", got "+elem.getNodeName());
 			
-			NodeList graphlist_List = elem.getElementsByTagName(name);
+			NodeList graphlist_List = StatechumXML.getChildWithTag(elem,name);
 			int i=0;
-			for(;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
+			while(i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE) ++i;
 			if (i == graphlist_List.getLength()) throw new IllegalArgumentException("no element "+name);
 			
 			NodeList graphs = graphlist_List.item(i).getChildNodes();
 			int gr=0;
-			for(;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
-			if (gr == graphs.getLength()) throw new IllegalArgumentException("no graph in the "+name+" entry");
+			while(gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE) ++gr;
+			if (gr == graphs.getLength())
+			{
+				if (tolerateAbsentElements)
+					return null;
+				throw new IllegalArgumentException("no nodes in the "+name+" entry");
+			}
 			
 			Element result = (Element)graphs.item(gr);
-			
-			for(++gr;gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE;++gr);
-			if (gr != graphs.getLength()) throw new IllegalArgumentException("more than one graph in the "+name+" entry");
-			for(++i;i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE;++i);
-			if (i != graphlist_List.getLength()) throw new IllegalArgumentException("duplicate holder "+name);
-			
+
+			if (checksingleChild)
+			{// check that there is only one node inside an element with name name.
+				++gr;while(gr<graphs.getLength() && graphs.item(gr).getNodeType() != Node.ELEMENT_NODE) ++gr;
+				if (gr != graphs.getLength()) throw new IllegalArgumentException("more than one node in the "+name+" entry");
+				++i;while(i< graphlist_List.getLength() && graphlist_List.item(i).getNodeType() != Node.ELEMENT_NODE) ++i;
+				if (i != graphlist_List.getLength()) throw new IllegalArgumentException("duplicate holder "+name);
+			}
 			return result;
 		}
 
@@ -757,17 +1043,36 @@ public class GD {
 		 * @param graph graph to transform
 		 * @param elem element containing the difference.
 		 */
-		static public void applyGD(LearnerGraph graph, Element elem)
+		static public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
+			void applyGD(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, Element elem)
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			LearnerGraphMutator graphPatcher = new LearnerGraphMutator(graph,config,null);
+			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE>(graph,config,null);
 			loadDiff(graphPatcher, elem);
 			graphPatcher.removeDanglingStates();
 		}
 				
-		/** Loads diff from XML. This is a part of GD because it only
+		/** Applies GD to the supplied graph. This is a part of GD because it only
 		 * handles GD and not general-purpose stuff which would be included in 
 		 * <em>Transform</em>. 
+		 * 
+		 * @param graph graph to transform
+		 * @param elem element containing the difference.
+		 */
+		static public <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
+			void applyGD_WithRelabelling(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, Element elem,
+					AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result)
+		{
+			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+			LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE> graphPatcher = new LearnerGraphMutator<TARGET_TYPE,CACHE_TYPE>(graph,config,null);
+			loadDiff(graphPatcher, elem);
+			graphPatcher.removeDanglingStates();
+			graphPatcher.relabel(result);
+		}
+				
+		/** Loads diff from XML. This is a part of GD because it only
+		 * handles GD and not general-purpose stuff which would be included in 
+		 * the likes of <em>Transform</em>. 
 		 * 
 		 * @param patcher graph to transform
 		 * @param elem element containing the difference.
@@ -775,22 +1080,74 @@ public class GD {
 		static public void loadDiff(PatchGraph graphPatcher, Element elem)
 		{
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-			LearnerGraph gr = Transform.loadGraph(getGraphElement(elem, gdRemoved),config);
-			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
-				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-					graphPatcher.removeTransition(entry.getKey(), transition.getKey(), transition.getValue());
-
-			gr = Transform.loadGraph(getGraphElement(elem, gdAdded),config);
-			for(Entry<CmpVertex,Map<String,CmpVertex>> entry:gr.transitionMatrix.entrySet())
-				for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-					graphPatcher.addTransition(entry.getKey(), transition.getKey(), transition.getValue());
+			LearnerGraphND gr = new LearnerGraphND(config);AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdRemoved.toString(),false,true),gr);
+			//System.out.println("removed: "+gr.transitionMatrix.keySet());
+			for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+				for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+					for(CmpVertex target:gr.getTargets(transition.getValue()))
+						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
+					
+			for(Entry<CmpVertex,Set<CmpVertex>> incompatibles:gr.incompatibles.entrySet())
+				for(CmpVertex target:incompatibles.getValue())
+					graphPatcher.removeIncompatible(incompatibles.getKey(), target);
+			
+			AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdAdded.toString(),false,true),gr);
+			//System.out.println("added: "+gr.transitionMatrix.keySet());
+			for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+			{
+				if (entry.getValue().isEmpty())
+					graphPatcher.addVertex(entry.getKey());
+				else
+					for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+						for(CmpVertex target:gr.getTargets(transition.getValue()))
+							graphPatcher.addTransition(entry.getKey(), transition.getKey(), target);
+			}
+			for(Entry<CmpVertex,Set<CmpVertex>> incompatibles:gr.incompatibles.entrySet())
+				for(CmpVertex target:incompatibles.getValue())
+					graphPatcher.addIncompatible(incompatibles.getKey(), target);
+			
+			NodeList relabellingElementList=  StatechumXML.getChildWithTag(elem,StatechumXML.gdRelabelling.toString());
+			if (relabellingElementList.getLength() > 0)
+			{// load the relabelling if present.
+				getGraphElement(elem, StatechumXML.gdRelabelling.toString(),true,false);// check that XML structure is consistent and there are pairs stored - will throw otherwise
+				Element relabellingElement = (Element)relabellingElementList.item(0); 
+				NodeList children = relabellingElement.getChildNodes();
+				for(int childNum=0;childNum<children.getLength();++childNum)
+					if (children.item(childNum).getNodeType() == Node.ELEMENT_NODE)
+					{
+						PairScore pair=ProgressDecorator.readPair(gr, (Element)children.item(childNum));
+						graphPatcher.addRelabelling(pair.getQ().getID(), pair.getR().getID());
+					}
+			}
 			graphPatcher.setInitial(gr.init);
 		}
 
 		public void setInitial(CmpVertex vertex) 
 		{
 			if (next != null) next.setInitial(vertex);
-			addedPatcher.setInitial(vertex);			
+			addedPatcher.setInitial(vertex);removedPatcher.setInitial(vertex);			
+		}
+
+		public void addIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.addIncompatible(a, b);
+			addedPatcher.addVertex(a);addedPatcher.addVertex(b);
+			addedPatcher.addIncompatible(a, b);
+		}
+
+		public void addRelabelling(VertexID a, VertexID b) {
+			if (next != null) next.addRelabelling(a, b);
+			relabelling.put(a,b);
+		}
+
+		public void addVertex(CmpVertex vertex) {
+			if (next != null) next.addVertex(vertex);
+			addedPatcher.addVertex(vertex);
+		}
+
+		public void removeIncompatible(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeIncompatible(a, b);
+			removedPatcher.addVertex(a);removedPatcher.addVertex(b);
+			removedPatcher.addIncompatible(a, b);
 		}
 	}
 	
@@ -801,23 +1158,27 @@ public class GD {
 	 * @param a the first graph
 	 * @param b the second graph
 	 * @param threads how many threads to use
-	 * @param testValueOfNewToOrig if not null, this one receives a value of newToOrig. Used for testing.
+	 * @param config configuration to use
 	 */ 
-	protected void init(LearnerGraph a,LearnerGraph b,int threads)
+	protected void init(
+			AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
+			AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
+			int threads, Configuration argConfig)
 	{
 		ThreadNumber = threads;
-		grCombined = a.copy(a.config);// I cannot simply do Transform.addToGraph here because patch has to be relative to graph A.
-		copyOfA = a.copy(a.config);
+		Configuration cloneConfig = argConfig.copy();cloneConfig.setLearnerCloneGraph(true);// we need to clone attributes here because after key pair identification, attributes from graph B will be copied into vertices of A, otherwise these attributes may not make it into the patch.
+		grCombined = new LearnerGraphND(a,cloneConfig);// I cannot simply do Transform.addToGraph here because patch has to be relative to graph A.
+		grCombined.config.setLearnerCloneGraph(false);//reset the clone attribute
 		grCombined.vertNegativeID=Math.max(grCombined.vertNegativeID, b.vertNegativeID);// we aim for new vertices in grCombined to have ids different from all vertices in B. 
 		grCombined.vertPositiveID=Math.max(grCombined.vertPositiveID, b.vertPositiveID);
 		combined_initA = grCombined.init;
-		Map<CmpVertex,CmpVertex> origToNewB = new TreeMap<CmpVertex,CmpVertex>();
+		origToNewB = new TreeMap<CmpVertex,CmpVertex>();
 		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
-		//Transform.addToGraph(grCombined, a, origToNewA);
+
 		// In the past, graph A could have textual vertices so when our new numerical IDs are converted to Strings for comparisons, IDs would overlap.
 		// The current graph loading approach via VertexID.parseID generates numerical vertex IDs. Moreover, assertion statements will check for this.
-		combined_initB = Transform.addToGraph(grCombined, b,origToNewB);
-		
+		combined_initB = AbstractPathRoutines.addToGraph(grCombined, b,origToNewB);
+		grCombined.pathroutines.checkConsistency(grCombined);
 		grCombined.learnerCache.invalidate();
 		statesOfB = new TreeSet<CmpVertex>();statesOfB.addAll(origToNewB.values());
 		assert statesOfA.size() == a.getStateNumber();
@@ -830,49 +1191,50 @@ public class GD {
 				statesOfA.size()*statesOfB.size() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 			fallbackToInitialPair = true;
 		
-		forward = new LearnerGraphND(grCombined,TransitionMatrixND.ignoreNone,false);
+		forward = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,false);
 		if (fallbackToInitialPair)
 		{
 			if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && // only warn if not forced.
 					Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
-				System.out.println("Cannot use Linear since the number of states in a cross-product is "+((double)statesOfA.size()*statesOfB.size()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
+				System.out.println("Cannot use Linear since the number of states in a cross-product is "+
+						((double)statesOfA.size()*statesOfB.size()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
 						" times over the limit");
 		}
 		else
 		{// normal processing
-			inverse = new LearnerGraphND(grCombined,TransitionMatrixND.ignoreNone,true);
-			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, LearnerGraphND.PAIR_INCOMPATIBLE);
+			inverse = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,true);
+			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, GDLearnerGraph.PAIR_INCOMPATIBLE);
 			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-				handlerList.add(new HandleRow<CmpVertex>()
+				handlerList.add(new HandleRow<List<CmpVertex>>()
 				{
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
 					}
 	
-					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
 					{
 						// Now iterate through states
 						for(CmpVertex stateB:statesOfB)
 						{
-							assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==LearnerGraphND.PAIR_INCOMPATIBLE:
+							assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==GDLearnerGraph.PAIR_INCOMPATIBLE:
 								"duplicate number "+forward.vertexToIntNR(stateB,entryA.getKey())+" for states "+
 								forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
 							pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
-								LearnerGraphND.PAIR_OK;// caching is likely to lower down my performance a lot here
+								GDLearnerGraph.PAIR_OK;// caching is likely to lower down my performance a lot here
 						}
 						
 						// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
 						// but this is not simple to do: I have to give numbers in the order in which triangular traversal visits states.
 					}
 				});
-			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
+			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
 				public boolean stateToConsider(CmpVertex vert) {
 					return statesOfA.contains(vert);
 				}
-			}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
-			final int numberOfPairs = LearnerGraphND.numberNonNegativeElements(pairScores);
+			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+			final int numberOfPairs = GDLearnerGraph.numberNonNegativeElements(pairScores);
 			assert numberOfPairs == statesOfA.size()*statesOfB.size();
 			
 			{
@@ -907,20 +1269,20 @@ public class GD {
 		// of the computation below.
 		if (fallbackToInitialPair)
 		{
-			if (AbstractTransitionMatrix.checkCompatible(combined_initA, combined_initB, grCombined.incompatibles))
+			if (AbstractLearnerGraph.checkCompatible(combined_initA, combined_initB, grCombined.incompatibles))
 				topPair = new PairScore(combined_initA,combined_initB,0,0);
 		}
 		else
 		{// normal processing
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-				handlerList.add(new HandleRow<CmpVertex>()
+				handlerList.add(new HandleRow<List<CmpVertex>>()
 				{
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.						
 					}
 	
-					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
 					{
 						double scoreHigh = -Double.MAX_VALUE,scoreLow = -Double.MAX_VALUE;
 						CmpVertex highState = null;
@@ -943,11 +1305,11 @@ public class GD {
 						currentWave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
 					}
 				});
-			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
+			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
 				public boolean stateToConsider(CmpVertex vert) {
 					return statesOfA.contains(vert);
 				}
-			}, LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
+			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 	
 			// now we find so many percent of top values.
 			int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
@@ -958,12 +1320,13 @@ public class GD {
 				topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
 			}
 			final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
+
 			// Key pairs added to the collection.
 			for(PairScore pair:currentWave)
-				if (pair.getScore() > 0 && pair.getScore() >= threshold && // top score good enough
+				if (pair.getScore() >= 0 && pair.getScore() >= threshold && // top score good enough
 						(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
 						!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
-						AbstractTransitionMatrix.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
 						)
 				{
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
@@ -996,10 +1359,9 @@ public class GD {
 	 * by the two machines and add pairs of target states to currentWave, as long as none
 	 * of these target states are contained in statesInKeyPairs.
 	 * 
-	 * @param matrixA the first (non-deterministic) matrix
-	 * @param matrixB the second (non-deterministic) matrix.
+	 * @param matrixND the (non-deterministic) matrix
 	 */
-	protected void populateCurrentWave(TransitionMatrixND matrixND) 
+	protected void populateCurrentWave(LearnerGraphND matrixND) 
 	{
 		for(PairScore pair:frontWave)
 		{
@@ -1032,18 +1394,20 @@ public class GD {
 	 *  and colouring of edges, used to indicate which transitions are to be removed
 	 *  and which are to be added.
 	 */
-	public DirectedSparseGraph showGD(final LearnerGraph a,final LearnerGraph b, int threads)
+	public DirectedSparseGraph showGD(final AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
+			final AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b, int threads)
 	{
 		Configuration gdConfig = a.config.copy();gdConfig.setGdFailOnDuplicateNames(false);
-		init(a.copy(gdConfig), b, threads);
+		init(a,b, threads,gdConfig);
 		identifyKeyPairs();
-		List<PairScore> allKeyPairs = new LinkedList<PairScore>(), initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
+		List<PairScore> initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
 		final Map<VertexID,CmpVertex> oldVerticesToNew = new TreeMap<VertexID,CmpVertex>();
 		for(CmpVertex v:a.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
 		for(CmpVertex v:b.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
-		final LearnerGraph outcome = new LearnerGraph(gdConfig);outcome.init = null;outcome.transitionMatrix.clear();
-		final LearnerGraphMutator mutator = new LearnerGraphMutator(outcome,gdConfig,null);
-		final Map<String,Map<String,Color>> transitionAnnotation = new TreeMap<String,Map<String,Color>>();
+		final LearnerGraphND outcome = new LearnerGraphND(gdConfig);outcome.initEmpty();
+		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
+			new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(outcome,gdConfig,null);
+		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = new TreeMap<String,Map<String,Map<String,Color>>>();
 		
 		makeSteps(new PatchGraph() {
 			boolean wasInitialised = false;
@@ -1056,40 +1420,40 @@ public class GD {
 					
 					// Here we rely that by the time we start getting calls to add/remove transitions,
 					// it is already known which states will remain and which will not.
-					Set<VertexID> idsOfStatesInA = new TreeSet<VertexID>();
-					for(CmpVertex v:a.transitionMatrix.keySet()) idsOfStatesInA.add(v.getID());// original IDs
-
-					Set<VertexID> retainedIDs = new HashSet<VertexID>();for(CmpVertex v:retainedInA) retainedIDs.add(v.getID());
-					for(VertexID vID:newToA) 
-						if (retainedIDs.contains(vID))
-							renameVertex(vID, "DUP_");
+					
+					// There are a few kinds of states, those from the A graph which remain,
+					// those which are removed and perhaps replaced by states from B with the same names
+					// those from B which correspond to some states of A, these are ignored.
+					// those from B which are new, these are added, as long as their names do not intersect 
+					// names of existing states in A, in which case such new states are given unique names.
+					for(CmpVertex vertex:statesOfA)
+						if (!statesOfB.contains(vertex))
+							renameVertex(vertex.getID(),"DEL_");
 						else
-							if (idsOfStatesInA.contains(vID))
-								renameVertex(vID, "KEPT_");
-							else
-								renameVertex(vID, "ADD_");
+							if (!aTOb.containsKey(vertex))
+								renameVertex(vertex.getID(),"KEPT_");
 					
-					for(CmpVertex v:retainedInA) idsOfStatesInA.remove(v.getID());// remove those which will remain
-					idsOfStatesInA.removeAll(newToA);// remove new vertices
-					
-					for(VertexID vID:idsOfStatesInA) 
-					{// There are a few kinds of states, those from the A graph which remain,
-					 // those which are removed and perhaps replaced by states from B with the same names
-					 // those from B which correspond to some states of A, these are ignored.
-					 // those from B which are new, these are added, as long as their names do not intersect 
-					 // names of existing states in A, in which case such new states are given unique names.
-						renameVertex(vID, "DEL_");
+					Set<CmpVertex> duplicatesInOrig = new HashSet<CmpVertex>(); 
+					for(CmpVertex vertex:duplicates)
+					{
+						renameVertex(vertex.getID(),"DUP_");
+						duplicatesInOrig.add(newBToOrig.get(vertex));
 					}
+					
+					for(CmpVertex vertex:statesOfB)
+						if (!statesOfA.contains(vertex))
+							renameVertex(vertex.getID(), "ADD_");
+					
 				}
 			}
 			
-			/** Adds a supplied prefix to vertex ID provided. */
+			/** Adds the supplied prefix to vertex ID provided. */
 			private void renameVertex(VertexID currID, String prefix)
 			{
 				VertexID newID = new VertexID(prefix+currID.toString());
 				if (a.findVertex(newID) != null || b.findVertex(newID) != null)
 					throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
-				oldVerticesToNew.put(currID,AbstractTransitionMatrix.generateNewCmpVertex(newID,a.config));
+				oldVerticesToNew.put(currID,AbstractLearnerGraph.generateNewCmpVertex(newID,a.config));
 			}
 			
 			/** Renames a vertex if it is a removed one. */
@@ -1109,17 +1473,30 @@ public class GD {
 			 * 
 			 * @param from source state
 			 * @param label transition label
+			 * @param to target state
 			 * @param color colour to put on that transition.
 			 */ 
-			private void addAnnotation(CmpVertex from, String label, Color color)
+			private void addAnnotation(CmpVertex from, String label, CmpVertex to,Color color)
 			{
 				String fromString = from.getID().toString();
-				Map<String,Color> lbl = transitionAnnotation.get(fromString);
+				Map<String,Map<String,Color>> lbl = transitionAnnotation.get(fromString);
 				if (lbl == null)
 				{
-					lbl = new TreeMap<String,Color>();transitionAnnotation.put(fromString, lbl);
+					lbl = new TreeMap<String,Map<String,Color>>();transitionAnnotation.put(fromString, lbl);
 				}
-				lbl.put(label, color);
+				Map<String,Color> targetColour = lbl.get(label);
+				if (targetColour == null)
+				{// this is the first annotation for the specific target state
+					targetColour = new TreeMap<String,Color>();lbl.put(label,targetColour);
+				}
+				else
+				{// not the first annotation, hence need to check what annotation there was earlier
+					Color currentColour = targetColour.get(to.getID().toString()),newColour = currentColour;
+					if (currentColour != color)
+						newColour = Color.YELLOW;
+					if (currentColour != newColour)
+						targetColour.put(to.getID().toString(),newColour);
+				}
 			}
 			
 			public void addTransition(CmpVertex from, String origLabel, CmpVertex to) 
@@ -1127,37 +1504,56 @@ public class GD {
 				String label = "ADD_"+origLabel;
 				CmpVertex fromVertex = getNewName(from);
 				mutator.addTransition(fromVertex, label, getNewName(to));
-				addAnnotation(fromVertex, label, Color.GREEN);
+				addAnnotation(fromVertex, label, to, Color.GREEN);
 			}
 
-			public void removeTransition(CmpVertex from, String origLabel, @SuppressWarnings("unused") CmpVertex to) 
+			public void removeTransition(CmpVertex from, String origLabel, CmpVertex to) 
 			{
+				String label = "REM_"+origLabel;
 				CmpVertex fromVertex = getNewName(from);
-				addAnnotation(fromVertex, origLabel, Color.RED);
+				addAnnotation(fromVertex, label, to, Color.RED);
 			}
 
 			public void setInitial(CmpVertex vertex) 
 			{
 				mutator.setInitial(getNewName(vertex));
 			}
-		},allKeyPairs);
-		
-		// We have all new and removed transitions properly labelled, now add the unchanged transitions.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:a.transitionMatrix.entrySet())
-		{
-			CmpVertex fromVertex = oldVerticesToNew.get(entry.getKey().getID());if (fromVertex == null) fromVertex = entry.getKey();
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-			{
-				CmpVertex toVertex = oldVerticesToNew.get(transition.getValue().getID());if (toVertex == null) toVertex = transition.getValue();
-				mutator.addTransition(fromVertex, transition.getKey(), toVertex);
+
+			public void addIncompatible(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
+				// does not do anything
 			}
+
+			public void addRelabelling(@SuppressWarnings("unused") VertexID astate, @SuppressWarnings("unused") VertexID bstate) {
+				// does not do anything
+			}
+
+			public void addVertex(CmpVertex vertex) {
+				mutator.addNewVertex(vertex);
+			}
+
+			public void removeIncompatible(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
+				// does not do anything
+			}
+		});
+		
+		// We have all new transitions added,
+		// new and and removed transitions properly labelled, now add the original transitions.
+		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:a.transitionMatrix.entrySet())
+		{
+			CmpVertex fromVertex = oldVerticesToNew.get(entry.getKey().getID());
+			for(Entry<String,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+				for(CmpVertex target:a.getTargets(transition.getValue()))
+				{
+					CmpVertex toVertex = oldVerticesToNew.get(target.getID());
+					mutator.addTransition(fromVertex, transition.getKey(), toVertex);
+				}
 		}
 		
 		Map<String,String> labelling = new TreeMap<String,String>();
-		for(PairScore pair:allKeyPairs) 
+		for(Entry<CmpVertex,CmpVertex> pair:aTOb.entrySet()) 
 		{
-			CmpVertex Q = oldVerticesToNew.get(pair.getQ().getID());
-			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getR()).getID());
+			CmpVertex Q = oldVerticesToNew.get(pair.getKey().getID());
+			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getValue()).getID());
 			labelling.put(Q.getID().toString(),R.getID().toString()); 
 		}
 		for(PairScore pair:initialKeyPairs) 
@@ -1166,7 +1562,7 @@ public class GD {
 			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getR()).getID());
 			labelling.put(Q.getID().toString(),R.getID().toString()+ " (K) "+pair.getScore()+","+pair.getAnotherScore()); 
 		}
-		DirectedSparseGraph gr = outcome.paths.getGraph();
+		DirectedSparseGraph gr = outcome.pathroutines.getGraph();
 		
 		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.CLONE);
 		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.CLONE);

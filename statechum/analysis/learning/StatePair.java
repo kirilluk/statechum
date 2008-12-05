@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -38,7 +37,10 @@ public class StatePair extends Pair<CmpVertex,CmpVertex> implements Comparable<S
 	
 	@Override
 	public String toString(){
-		return "[ "+((getQ() == null)?"NULL":getQ().getID().toString())+", "+((getR() == null)?"NULL":getR().getID().toString())+" ]";
+		String origFirst="",origSecond="";
+		if (firstElem.getOrigState() != null) origFirst="("+firstElem.getOrigState()+")";
+		if (secondElem.getOrigState() != null) origSecond="("+secondElem.getOrigState()+")";
+		return "[ "+((getQ() == null)?"NULL":getQ().getID().toString())+origFirst+", "+((getR() == null)?"NULL":getR().getID().toString())+origSecond+" ]";
 	}
 
 	public int compareTo(StatePair o) {

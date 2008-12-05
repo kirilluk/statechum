@@ -23,6 +23,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,8 +34,11 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
 /**
  * @author kirill
@@ -66,7 +70,9 @@ public class TestGD_ExistingGraphs {
 			for(int threadNo=1;threadNo<8;++threadNo)
 				for(double ratio:new double[]{0.5,0.68,0.9,-1})
 					result.add(new Object[]{new Integer(threadNo), ratio,
-							files[fileNum].getAbsolutePath(), files[(fileNum+1)%files.length].getAbsolutePath()});
+							files[fileNum].getAbsolutePath(), 
+							files[(fileNum+1)%files.length].getAbsolutePath()
+							});
 		
 		return result;
 	}
@@ -111,33 +117,45 @@ public class TestGD_ExistingGraphs {
 		return fileNameA+"-"+fileNameB+" ["+threadNumber+" threads] ";
 	}
 	
+	private void addColourAndIncompatiblesRandomly(LearnerGraph gr,Random amberRnd)
+	{
+		for(int i=0;i<gr.getStateNumber()/3;++i)
+		{
+			gr.pathroutines.pickRandomState(amberRnd).setColour(JUConstants.AMBER);
+			gr.pathroutines.pickRandomState(amberRnd).setColour(JUConstants.BLUE);
+		}
+		
+		for(int i=0;i<gr.getStateNumber()/3;++i)
+		{
+			CmpVertex a = gr.pathroutines.pickRandomState(amberRnd), b = gr.pathroutines.pickRandomState(amberRnd);
+			gr.addToIncompatibles(a, b);
+		}
+	}
+	
 	public final void runPatch(String fileA, String fileB)
 	{
 		try
 		{
-			LearnerGraph loadedA = Transform.loadGraph(fileA, config), loadedB = Transform.loadGraph(fileB, config); 
-			LearnerGraph grA = loadedA;//Transform.convertToNumerical(loadedA);Assert.assertEquals(testDetails(),loadedA.getStateNumber(),grA.getStateNumber());
-			LearnerGraph grB = loadedB;//Transform.convertToNumerical(loadedB);Assert.assertEquals(testDetails(),loadedB.getStateNumber(),grB.getStateNumber());
-			GD gd = new GD();
-			LearnerGraph loadedExpected = Transform.loadGraph(fileA, config);
-			LearnerGraph graph = loadedExpected;//Assert.assertEquals(testDetails(),loadedExpected.getStateNumber(),graph.getStateNumber());
+			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA);addColourAndIncompatiblesRandomly(grA, new Random(0));
+			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB);addColourAndIncompatiblesRandomly(grB, new Random(1));
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph);addColourAndIncompatiblesRandomly(graph, new Random(0));
+			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder patcher = new ChangesRecorder(null);
-			//Map<CmpVertex,CmpVertex> testValueOfNewToOrig = new TreeMap<CmpVertex,CmpVertex>();
-			gd.computeGD(grA, grB, threadNumber, patcher);
-	/*		gd.init(grA, grB, threadNumber);
-			gd.identifyKeyPairs();
-			List<PairScore> allKeyPairs = new LinkedList<PairScore>();
-			gd.makeSteps(patcher,allKeyPairs);*/
-			ChangesRecorder.applyGD(graph, patcher.writeGD(TestGD.createDoc()));//gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc()));
-			WMethod.checkM(graph, grB);
+			gd.computeGD(grA, grB, threadNumber, patcher,config);
+			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());
+			DifferentFSMException ex= WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP);
+			Assert.assertNull(testDetails()+ex,WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+			Assert.assertEquals(grB,outcome);
 		}
 		catch(IOException ex)
 		{
 			Helper.throwUnchecked("failed to load a file", ex);
 		}
 	}
-	
+
 	@Test
 	public final void testGD_AB()
 	{
@@ -155,12 +173,14 @@ public class TestGD_ExistingGraphs {
 	{
 		try
 		{
-			LearnerGraph grA = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
-			LearnerGraph grB = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
-			LearnerGraph graph = Transform.convertToNumerical(Transform.loadGraph(fileNameA, config));
-			GD gd = new GD();
-			ChangesRecorder.applyGD(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null));
-			WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileNameA,grA);
+			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileNameA,grB);
+			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileNameA,graph);
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			LearnerGraph outcome = new LearnerGraph(config);
+			ChangesRecorder.applyGD_WithRelabelling(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null,config),outcome);
+			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+			Assert.assertNull(testDetails(),WMethod.checkM_and_colours(grB,outcome,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 		}
 		catch(IOException ex)
 		{

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -29,7 +28,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.Test_AttributeMutator.GETMETHOD_KIND;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
 
 /** Represents a configuration for a learner. The purpose is a possibility of a 
  * global customisation of all objects used by a learner in the course of 
@@ -358,7 +358,8 @@ public class Configuration implements Cloneable
 		result = prime * result + (useSMT?  1231 : 1237);
 		result = prime * result + initialIDvalue;
 		result = prime * result + (useConstraints? 1231 : 1237);
-		
+		result = prime * result + (ignoreDepthInTheChoiceOfRepresentatives? 1231 : 1237);
+		result = prime * result + (ignoreVertexAttributesInLogReplay? 1231 : 1237);
 		return result;
 	}
 
@@ -458,6 +459,10 @@ public class Configuration implements Cloneable
 		if (initialIDvalue != other.initialIDvalue)
 			return false;
 		if (useConstraints != other.useConstraints)
+			return false;
+		if (ignoreDepthInTheChoiceOfRepresentatives != other.ignoreDepthInTheChoiceOfRepresentatives)
+			return false;
+		if (ignoreVertexAttributesInLogReplay != other.ignoreVertexAttributesInLogReplay)
 			return false;
 		
 		return true;
@@ -604,6 +609,39 @@ public class Configuration implements Cloneable
 
 	public void setGenerateDotOutput(boolean generateDot) {
 		generateDotOutput = generateDot;
+	}
+	
+	/** Depth information is used to identify which vertex from a collection of them 
+	 * to use as a representative of an equivalence class, however when using legacy logs,
+	 * we have to use the original (lexicographical) method to choose representatives.
+	 * This boolean chooses the specific method to use.
+	 */
+	protected boolean ignoreDepthInTheChoiceOfRepresentatives = false;
+	
+	public void setIgnoreDepthInTheChoiceOfRepresentatives(boolean value)
+	{
+		ignoreDepthInTheChoiceOfRepresentatives = value;
+	}
+	
+	public boolean isIgnoreDepthInTheChoiceOfRepresentatives()
+	{
+		return ignoreDepthInTheChoiceOfRepresentatives;
+	}
+	
+	/** One would usually expect to compare graphs in all the detail, including attributes of states. 
+	 * Old GD-compressed log files do not contain enough information to reconstruct such information,
+	 * so we'd like to perform a more shallow comparison. 
+	 */
+	protected boolean ignoreVertexAttributesInLogReplay = false;
+	
+	public void setIgnoreVertexAttributesInLogReplay(boolean newValue)
+	{
+		ignoreVertexAttributesInLogReplay = newValue;
+	}
+	
+	public boolean isIgnoreVertexAttributesInLogReplay()
+	{
+		return ignoreVertexAttributesInLogReplay;
 	}
 	
 	/** Considering all pairs of states, we need to determine those of 
@@ -879,46 +917,6 @@ public class Configuration implements Cloneable
 		useConstraints = newValue;
 	}
 	
-	/** Whether a method is get.../is ..., or set...  */
-	public enum GETMETHOD_KIND { FIELD_GET, FIELD_SET} 
-	
-	/** In order to serialise/deserialise data, we need access to fields and getter/setter methods.
-	 * This method takes a field and returns the corresponding method. Although supposedly
-	 * universal, this does not take bean properties into account, such as introspector,
-	 * transient designation and others. 
-	 * 
-	 * @param prefix
-	 * @param var
-	 * @return
-	 */
-	public static Method getMethod(GETMETHOD_KIND kind,java.lang.reflect.Field var)
-	{
-		String varName = var.getName();
-		 
-		String methodNameSuffix = (Character.toUpperCase(varName.charAt(0)))+varName.substring(1);
-		String methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"get":"set")+methodNameSuffix;
-		Method method = null;
-		try {
-			method = Configuration.class.getMethod(methodName, 
-					(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
-		} catch (SecurityException e) {
-			throwUnchecked("security exception on method "+kind+" for variable "+var.getName(), e);
-		} catch (NoSuchMethodException e) {
-			if (kind == GETMETHOD_KIND.FIELD_SET) throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
-
-			// ignore if looking for a getter - method is null indicates we'll try again.
-		}
-		
-		if (method == null) // not found, try another one.
-			try {
-				methodName = ((kind == GETMETHOD_KIND.FIELD_GET)?"is":"set")+methodNameSuffix;
-				method = Configuration.class.getMethod(methodName, 
-						(kind == GETMETHOD_KIND.FIELD_GET)?new Class[]{}:new Class[]{var.getType()});
-			} catch (Exception e) {
-				throwUnchecked("failed to extract method "+kind+" for variable "+var.getName(), e);
-			}		return method;
-	}
-	
 	public static final String configXMLTag = "configuration", configVarTag="var", configVarAttrName="name",configVarAttrValue="value";
 
 	/** Serialises configuration into XML
@@ -939,7 +937,7 @@ public class Configuration implements Cloneable
 					var.getName() != "$VRc"// added by eclemma (coverage analysis) 
 				&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
 			{
-				Method getter = Configuration.getMethod(GETMETHOD_KIND.FIELD_GET, var);
+				Method getter = Test_AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
 				try {
 					Object value = getter.invoke(this, new Object[]{});
@@ -951,7 +949,7 @@ public class Configuration implements Cloneable
 				} catch (Exception e) {
 					throwUnchecked("cannot extract a value of "+var.getName(), e);
 				}
-				config.appendChild(varData);config.appendChild(Transform.endl(doc));
+				config.appendChild(varData);config.appendChild(AbstractPersistence.endl(doc));
 			}
 		}
 		return config;
@@ -1004,7 +1002,7 @@ public class Configuration implements Cloneable
 		try
 		{
 			var = getClass().getDeclaredField(attrName);
-			Method setter = getMethod(GETMETHOD_KIND.FIELD_SET,var);
+			Method setter = Test_AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_SET,var);
 			Object value = null;String valueAsText = attrValue;
 			if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 			{

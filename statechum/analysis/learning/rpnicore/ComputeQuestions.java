@@ -62,7 +62,7 @@ public class ComputeQuestions {
 		 * @param stateLearnt the state in the merged graph corresponding to the red 
 		 * and blue states of the original graph.
 		 */
-		public void addQuestionsForState(AMEquivalenceClass state, LearnerGraph original, LearnerGraph learnt, 
+		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig,CmpVertex stateLearnt,MergeData data);
 	}
 	
@@ -85,27 +85,27 @@ public class ComputeQuestions {
 		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
 		
 		final SequenceSet identity = engine.new SequenceSet();identity.setIdentity();
-		for(AMEquivalenceClass eq:learnt.learnerCache.getMergedStates())
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:learnt.learnerCache.getMergedStates())
 			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, 
-					learnt.stateLearnt,new MergeData(){
+					learnt.learnerCache.stateLearnt,new MergeData(){
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
-					original.paths.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
+					original.pathroutines.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
 					return toBlue;
 				}
 
 				public SequenceSet getPathsToRed() 
 				{
 					SequenceSet toRed = engine.new SequenceSet();
-					original.paths.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
+					original.pathroutines.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
 					return toRed;
 				}
 
 				public SequenceSet getPathsToLearnt() 
 				{
 					SequenceSet toLearnt = engine.new SequenceSet();
-					learnt.paths.computePathsSBetween(learnt.init, learnt.stateLearnt, identity, toLearnt);
+					learnt.pathroutines.computePathsSBetween(learnt.init, learnt.learnerCache.stateLearnt, identity, toLearnt);
 					return toLearnt;
 				}
 
@@ -127,7 +127,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		public void addQuestionsForState(AMEquivalenceClass state, 
+		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
@@ -150,16 +150,16 @@ public class ComputeQuestions {
 				// not be returned.
 				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
 				
-				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
+				fanout = learnt.pathroutines.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
 			}
 						
-			SequenceSet pathsToCurrentState = fanout.get(state.mergedVertex);
+			SequenceSet pathsToCurrentState = fanout.get(state.getMergedVertex());
 			if (pathsToCurrentState != null)
 			{
-				assert state.mergedVertex.getColour() != JUConstants.AMBER;
+				assert state.getMergedVertex().getColour() != JUConstants.AMBER;
 				
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
-				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
+				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());
 				// Note that we do not care what the result of crossWithSet is - for those states which 
 				// do not exist in the underlying graph, reject vertices will be added by the engine and
 				// hence will be returned when we do a .getData() on the engine.
@@ -180,7 +180,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		public void addQuestionsForState(AMEquivalenceClass state, 
+		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig, CmpVertex stateLearnt,
 				MergeData data) 
@@ -189,7 +189,7 @@ public class ComputeQuestions {
 			{// Initialisation
 				SequenceSet pathsToRed = data.getPathsToLearnt();
 				SequenceSet pathsToMergedRed=engine.new SequenceSet();pathsToMergedRed.unite(pathsToRed);
-				original.paths.computePathsSBetweenBoolean(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
+				original.pathroutines.computePathsSBetweenBoolean(pairOrig.getR(), pairOrig.getQ(), pathsToRed, pathsToMergedRed);
 				
 				// Now we limit the number of elements in pathsToMerged to the value specified in the configuration.
 				// This will not affect the underlying graph, but it does not really matter since all
@@ -197,13 +197,13 @@ public class ComputeQuestions {
 				// not be returned.
 				pathsToMergedRed.limitTo(original.config.getQuestionPathUnionLimit());
 				
-				fanout = learnt.paths.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
+				fanout = learnt.pathroutines.computePathsSBetween_All(stateLearnt, engine, pathsToMergedRed);
 			}
 						
-			SequenceSet pathsToCurrentState = fanout.get(state.mergedVertex);
+			SequenceSet pathsToCurrentState = fanout.get(state.getMergedVertex());
 			if (pathsToCurrentState != null)
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
-				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());
+				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());
 				// Note that we do not care what the result of crossWithSet is - for those states which 
 				// do not exist in the underlying graph, reject vertices will be added by the engine and
 				// hence will be returned when we do a .getData() on the engine.
@@ -224,7 +224,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
-		public void addQuestionsForState(AMEquivalenceClass state, 
+		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, @SuppressWarnings("unused") CmpVertex stateLearnt,
 				@SuppressWarnings("unused") MergeData data) 
@@ -232,16 +232,16 @@ public class ComputeQuestions {
 			if (fanout == null)
 			{
 				SequenceSet pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
-				fanout = original.paths.computePathsSBetween_All(original.init, engine, pathsToInitState);
+				fanout = original.pathroutines.computePathsSBetween_All(original.init, engine, pathsToInitState);
 			}
 			
-			for(CmpVertex vert:state.vertices)
+			for(CmpVertex vert:state.getStates())
 			{
 				SequenceSet pathsToCurrentState = fanout.get(vert);
 				if (pathsToCurrentState != null)
 				{
 					pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
-					pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.mergedVertex).keySet());// attempt all possible continuation vertices
+					pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());// attempt all possible continuation vertices
 				}
 			}
 		}
@@ -313,7 +313,7 @@ public class ComputeQuestions {
 		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
-		merged.paths.computePathsSBetween(merged.init,mergedRed, initp, paths);
+		merged.pathroutines.computePathsSBetween(merged.init,mergedRed, initp, paths);
 		
 		Collection<String> inputsToMultWith = new LinkedList<String>();
 		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
@@ -343,7 +343,7 @@ public class ComputeQuestions {
 		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
-		List<Collection<String>> sequenceOfSets = merged.paths.computePathsSBetween(merged.init,mergedRed);
+		List<Collection<String>> sequenceOfSets = merged.paths.COMPAT_computePathsSBetween(merged.init,mergedRed);
 		if (sequenceOfSets == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		for(Collection<String> inputsToMultWith:sequenceOfSets)
@@ -383,7 +383,7 @@ public class ComputeQuestions {
 	{
 		List<List<String>> questions = null;
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
-			questions = computeQS_orig(new StatePair(merged.getStateLearnt(),merged.getStateLearnt()), original, merged);
+			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else
 		{
 			QuestionConstructor qConstructor=null;

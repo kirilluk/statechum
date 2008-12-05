@@ -22,7 +22,10 @@ import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
 
 import java.util.List;
 
-import javax.xml.XMLConstants;
+import statechum.DeterministicDirectedSparseGraph;
+import statechum.Helper;
+import statechum.JUConstants;
+import statechum.StatechumXML;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.junit.Assert;
@@ -33,9 +36,11 @@ import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.GD.LearnerGraphMutator;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 
@@ -53,21 +58,25 @@ public class TestGD {
 		 cloneConfig = Configuration.getDefaultConfiguration().copy();cloneConfig.setLearnerCloneGraph(false);		
 	}
 	
-	/** Tests that supplied states are not cloned when I ask them not to be cloned. */
+	/** Tests that supplied states are not cloned when I ask them not to be cloned. 
+	 * <em>grAnother</em> serves as a holder for vertices I'd like to add, it is not really used for any other purpose. 
+	 */
 	@Test
 	public final void testAddTransitions1()
 	{
 		LearnerGraph gr = new LearnerGraph(Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("\nB-d-#C","testAddTransitions0E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "c", grAnother.findVertex("C"));
 		Assert.assertEquals(3,gr.getStateNumber());// the first state is the default initial one.
 		Assert.assertSame(gr.findVertex("B"),grAnother.findVertex("B"));
 		Assert.assertEquals(gr.findVertex("B"),grAnother.findVertex("B"));
 		Assert.assertSame(gr.findVertex("C"),grAnother.findVertex("C"));
 		Assert.assertEquals(gr.findVertex("C"),grAnother.findVertex("C"));
-		WMethod.checkM(grAnother, expected);
+		
+		// Now check the transition matrix
+		Assert.assertEquals(gr.findVertex("C"),gr.transitionMatrix.get(gr.findVertex("B")).get("c"));
+		Assert.assertEquals(1,gr.countEdges());
 	}
 	
 	/** Tests that supplied states are not cloned when there is already a state with that ID. */
@@ -76,28 +85,182 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("B-a->D","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("\nB-d-#C","testAddTransitions0E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraph expected = new LearnerGraph(buildGraph("\nB-c-#C\nB-a->D","testAddTransitions0E"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "c", grAnother.findVertex("C"));
 		Assert.assertEquals(3,gr.getStateNumber());
 		Assert.assertNotSame(gr.findVertex("B"),grAnother.findVertex("B"));
 		Assert.assertEquals(gr.findVertex("B"),grAnother.findVertex("B"));
-		WMethod.checkM(grAnother, expected);
+
+		// Now check the transition matrix
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
-	/** Tests that supplied states are not cloned when there is already a state with that ID. */
+	/** Tests that supplied states are not cloned when there is already a state with that ID and cloned otherwise. */
 	@Test
 	public final void testAddTransitions3()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("\nB-d-#C","testAddTransitions0E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
-		patcher.addTransition(grAnother.findVertex("B"), "c", grAnother.findVertex("C"));
-		Assert.assertEquals(3,gr.getStateNumber());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-e->B\nT-a-#C\nB-c-#C\nB-e->Q\n","testAddTransitions0E"),Configuration.getDefaultConfiguration());
+		cloneConfig.setLearnerCloneGraph(true);expected.findVertex(VertexID.parseID("T")).setColour(JUConstants.BLUE);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		CmpVertex Q = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Q"), cloneConfig);
+		CmpVertex B = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("B"), cloneConfig);
+		patcher.addTransition(B, "c", grAnother.findVertex("C"));
+		patcher.addTransition(B, "e", Q);
+		CmpVertex newT = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), cloneConfig);
+		newT.setColour(JUConstants.BLUE);
+		patcher.addTransition(newT, "e", B);
+		Assert.assertEquals(4,gr.getStateNumber());
 		Assert.assertNotSame(gr.findVertex("C"),grAnother.findVertex("C"));
 		Assert.assertEquals(gr.findVertex("C"),grAnother.findVertex("C"));
-		WMethod.checkM(grAnother, expected);
+		Assert.assertNotSame(Q,gr.findVertex("Q"));
+		Assert.assertEquals(Q,gr.findVertex("Q"));
+		
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
+	/** Tests that states can be forcefully added and their attributes override those which already exist but the existing states remain. */
+	@Test
+	public final void testAddState1()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraph grAnother = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("\nT-a-#C","testAddTransitions0E"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		CmpVertex updatedC = grAnother.findVertex("C"), newD = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), cloneConfig);
+		updatedC.setDepth(4);newD.setDepth(3);
+		CmpVertex origC = gr.findVertex("C");
+		
+		// add the two states
+		patcher.addVertex(updatedC);
+		patcher.addVertex(newD);
+		
+		Assert.assertEquals(3,gr.getStateNumber());
+		Assert.assertSame(origC,gr.findVertex("C"));Assert.assertNotSame(updatedC,gr.findVertex("C"));Assert.assertSame(newD,gr.findVertex("D"));
+		Configuration clone = cloneConfig.copy();clone.setLearnerCloneGraph(true);
+		expected.findVertex("C").setDepth(4);
+		expected.transitionMatrix.put(AbstractLearnerGraph.cloneCmpVertex(newD, clone),expected.createNewRow());
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(expected.findVertex("D"),gr.findVertex("D")));
+	}
+
+	/** Tests that the addition to incompatibles states. */
+	@Test
+	public final void testAddIncompatibles1()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
+		expected.addToIncompatibles(expected.findVertex("T"), expected.findVertex("Q"));
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addIncompatible(gr.findVertex("T"), gr.findVertex("Q"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
+	/** Tests that the addition to incompatibles states. */
+	@Test
+	public final void testAddIncompatibles2()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
+		expected.addToIncompatibles(expected.findVertex("T"), expected.findVertex("Q"));
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addIncompatible(gr.findVertex("T"), gr.findVertex("C"));
+		patcher.addIncompatible(gr.findVertex("T"), gr.findVertex("Q"));
+		patcher.removeIncompatible(gr.findVertex("C"), gr.findVertex("T"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
+	/** Tests that non-existing vertices cannot be added or removed. */
+	@Test
+	public final void testAddIncompatibles2_fail()
+	{
+		final LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.addIncompatible(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"));
+		}},IllegalArgumentException.class,"does not exist");
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.addIncompatible(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig));
+		}},IllegalArgumentException.class,"does not exist");
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.removeIncompatible(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"));
+		}},IllegalArgumentException.class,"does not exist");
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.removeIncompatible(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig));
+		}},IllegalArgumentException.class,"does not exist");
+	}
+	
+	/** Tests the relabelling process. */
+	@Test
+	public final void testRelabelling1()
+	{
+		LearnerGraph gr = new LearnerGraph(Configuration.getDefaultConfiguration()), result = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.relabel(result);
+		Assert.assertEquals(expected,result);
+	}
+	
+	/** Tests the relabelling process. */
+	@Test
+	public final void testRelabelling2()
+	{
+		LearnerGraph gr = new LearnerGraph(Configuration.getDefaultConfiguration()), result = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration());
+		gr.initEmpty();expected.initEmpty();
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.relabel(result);
+		Assert.assertEquals(expected,result);
+	}
+	
+	/** Tests that non-existing vertices cannot be mentioned on the left-hand side of pairs to relabel. */
+	@Test
+	public final void testRelabelling_fail1()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addRelabelling(VertexID.parseID("Q"), VertexID.parseID("U"));
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.addRelabelling(VertexID.parseID("S"), VertexID.parseID("S"));
+		}},IllegalArgumentException.class,"does not exist");
+	}
+	
+	/** Duplicate vertex after relabelling. */
+	@Test
+	public final void testRelabelling_fail2()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addRelabelling(VertexID.parseID("T"), VertexID.parseID("Q"));
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			patcher.relabel(new LearnerGraph(Configuration.getDefaultConfiguration()));
+		}},IllegalArgumentException.class,"duplicate");
+	}
+	
+	/** Tests the relabelling process with an empty collection of pairs to relabel with. */
+	@Test
+	public final void testRelabelling3()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration()), result = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.relabel(result);
+		Assert.assertEquals(expected,result);
+	}
+	
+	/** Tests the relabelling process with a collection of pairs to relabel with. */
+	@Test
+	public final void testRelabelling4()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testRelabelling4a"), Configuration.getDefaultConfiguration()), result = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("A-a-#C\nB-a->B","testRelabelling4b"),Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addRelabelling(VertexID.parseID("T"), VertexID.parseID("A"));
+		patcher.addRelabelling(VertexID.parseID("Q"), VertexID.parseID("B"));
+		patcher.relabel(result);
+		Assert.assertEquals(expected,result);
 	}
 	
 	/** Tests that inconsistent acceptance conditions are detected. */
@@ -106,7 +269,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d->C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "c", grAnother.findVertex("C"));
 	}
 	
@@ -116,17 +279,27 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("C-d->A","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("C"), "c", grAnother.findVertex("A"));
 	}
 	
-	/** Tests that I cannot replace an existing transition. */
+	/** Tests that I cannot replace an existing transition. Deterministic case. */
 	@Test(expected=IllegalArgumentException.class)
-	public final void testAddTransitions6()
+	public final void testAddTransitions6a()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.addTransition(grAnother.findVertex("T"), "a", grAnother.findVertex("C"));
+	}
+	
+	/** Tests that I cannot replace an existing transition. Non-deterministic case. */
+	@Test(expected=IllegalArgumentException.class)
+	public final void testAddTransitions6b()
+	{
+		LearnerGraphND gr = new LearnerGraphND(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
+		LearnerGraphND grAnother = new LearnerGraphND(buildGraph("T-a-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> patcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("T"), "a", grAnother.findVertex("C"));
 	}
 	
@@ -135,51 +308,90 @@ public class TestGD {
 	public final void testAddTransitions7()
 	{
 		LearnerGraph gr = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitions0A"),Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("\nB-d-#C","testAddTransitions0E"),Configuration.getDefaultConfiguration());
+		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d->C","testAddTransitions7a"),Configuration.getDefaultConfiguration());
 		cloneConfig.setLearnerCloneGraph(true);
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "c", grAnother.findVertex("C"));
 		Assert.assertNotSame(gr.findVertex("B"),grAnother.findVertex("B"));
 		Assert.assertEquals(gr.findVertex("B"),grAnother.findVertex("B"));
 		Assert.assertNotSame(gr.findVertex("C"),grAnother.findVertex("C"));
 		Assert.assertEquals(gr.findVertex("C"),grAnother.findVertex("C"));
-		WMethod.checkM(grAnother, expected);
+
+		// Now check the transition matrix
+		Assert.assertEquals(gr.findVertex("C"),gr.transitionMatrix.get(gr.findVertex("B")).get("c"));
+		Assert.assertEquals(1,gr.countEdges());
 	}
-	
+
+	/** Test that I can add transitions in a non-deterministic case. */
 	@Test
-	public final void testAddTransitionsG1()
+	public final void testAddTransitions8()
+	{
+		LearnerGraphND gr = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D","testAddTransitions8a"),Configuration.getDefaultConfiguration());
+		LearnerGraphND grAnother = new LearnerGraphND(buildGraph("B-d->C\nB-d->D","testAddTransitions8b"),Configuration.getDefaultConfiguration());
+		grAnother.init.setColour(null);
+		LearnerGraphND expected = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D"+"\nB-d->C\nB-d->B\nB-d->D","testAddTransitions8"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> patcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr, cloneConfig,null);
+		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("C"));
+		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("B"));
+		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("D"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+
+	/** Test that I can add transitions in a non-deterministic case. */
+	@Test
+	public final void testAddTransitions9()
+	{
+		LearnerGraphND gr = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D","testAddTransitions9a"),Configuration.getDefaultConfiguration());
+		LearnerGraphND grAnother = new LearnerGraphND(buildGraph("B-d->C\nB-d->D\nF-a->E","testAddTransitions9b"),Configuration.getDefaultConfiguration());
+		grAnother.init.setColour(null);
+		LearnerGraphND expected = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D"+"\nB-a->F-d->C\nF-d->B\nF-d->E","testAddTransitions8"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> patcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr, cloneConfig,null);
+		patcher.addTransition(grAnother.findVertex("F"), "d", grAnother.findVertex("C"));
+		patcher.addTransition(grAnother.findVertex("F"), "d", grAnother.findVertex("B"));
+		patcher.addTransition(grAnother.findVertex("B"), "a", grAnother.findVertex("F"));
+		patcher.addTransition(grAnother.findVertex("F"), "d", grAnother.findVertex("E"));
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+
+	/** As in many other tests here, <em>grAnother</em> is a container for vertices I use, so that I do not have to do 
+	 * <em>AbstractLearnerGraph.generateNewCmpVertex</em>.
+	 */
+	@Test
+	public final void testAddTransitions_init1()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitionsG1A"),Configuration.getDefaultConfiguration());
+		grAnother.init.setColour(null);
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D"+"\nB-d-#C","testAddTransitionsG1E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("C"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 
 	/** Adding a transition from an initial state. */
 	@Test
-	public final void testAddTransitionsG2()
+	public final void testAddTransitions_init2()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#C","testAddTransitionsG2A"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D"+"\nA-d-#C","testAddTransitionsG2E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("A"), "d", grAnother.findVertex("C"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	/** Adding a transition to an initial state. */
 	@Test
-	public final void testAddTransitionsG3()
+	public final void testAddTransitions_init3()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d->A","testAddTransitionsG3A"),Configuration.getDefaultConfiguration());
+		grAnother.findVertex("A").setColour(JUConstants.AMBER);grAnother.init.setColour(null);
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D"+"\nB-d->A","testAddTransitionsG3E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		expected.findVertex("A").setColour(JUConstants.AMBER);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("A"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	@Test
@@ -187,7 +399,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b->T","testAddTransitions0B"), Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		gr.init = null;
 		patcher.setInitial(grB.findVertex("T"));Assert.assertSame(gr.findVertex("T"),gr.init);
 	}
@@ -197,7 +409,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("T-u-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		gr.init = null;
 		patcher.setInitial(grB.findVertex("C"));Assert.assertSame(gr.findVertex("C"),gr.init);
 	}
@@ -207,7 +419,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		gr.init = null;
 		patcher.setInitial(grB.findVertex("Q"));Assert.assertSame(gr.findVertex("Q"),gr.init);
 	}
@@ -217,7 +429,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		gr.init = null;
 		patcher.setInitial(grB.findVertex("T"));
 	}
@@ -228,9 +440,9 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B\nA-b-#D","testRemoveTransitions1E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("B"), "a", grAnother.findVertex("C"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	/** remove a transition from an initial state. */
@@ -240,9 +452,9 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C","testRemoveTransitions2E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("A"), "b", grAnother.findVertex("D"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	/** remove a transition from an initial state. */
@@ -252,9 +464,9 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->A","testAddTransitions3"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("B"), "b", grAnother.findVertex("A"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	/** remove a loop around an initial state. */
@@ -264,38 +476,28 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-u->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("A"), "u", grAnother.findVertex("A"));
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
-	/** Tests that a transition with a non-existing source state cannot be removed. */
+	/** Tests that a transition with a non-existing label cannot be removed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testRemoveTransitions5()
 	{
-		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-b->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
-		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
-		patcher.removeTransition(grAnother.findVertex("T"), "b", grAnother.findVertex("A"));
-	}
-
-	/** Tests that a transition with a non-existing label cannot be removed. */
-	@Test(expected=IllegalArgumentException.class)
-	public final void testRemoveTransitions6()
-	{
-		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-b->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
-		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-b->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		final LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("A"), "c", grAnother.findVertex("A"));
 	}
 
 	/** Tests that a transition with a non-existing target state cannot be removed. */
 	@Test(expected=IllegalArgumentException.class)
-	public final void testRemoveTransitions7()
+	public final void testRemoveTransitions6()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-b->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(grAnother.findVertex("A"), "b", grAnother.findVertex("T"));
 	}
 
@@ -305,9 +507,9 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeDanglingStates();
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 
 	
@@ -317,11 +519,11 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C","testRemoveDangling2E"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(gr.findVertex("B"), "b", gr.findVertex("T"));
 		patcher.removeTransition(gr.findVertex("A"), "b", gr.findVertex("D"));
 		patcher.removeDanglingStates();
-		WMethod.checkM(gr, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 
 	/** Tests that dangling states are compressed. */
@@ -329,7 +531,7 @@ public class TestGD {
 	public final void testRemoveDangling2b()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.removeTransition(gr.findVertex("B"), "b", gr.findVertex("T"));
 		patcher.removeTransition(gr.findVertex("A"), "a", gr.findVertex("B"));
 		patcher.removeTransition(gr.findVertex("B"), "a", gr.findVertex("C"));
@@ -340,16 +542,35 @@ public class TestGD {
 		Assert.assertSame(gr.init, gr.findVertex("A"));
 	}
 
-	/** Tests that a state with a transition leading to it is not compressed. */
+	/** Tests that states added explicitly are preserved. */
 	@Test
 	public final void testRemoveDangling3()
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
-		LearnerGraphMutator patcher = new LearnerGraphMutator(gr, cloneConfig,null);
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.removeTransition(gr.findVertex("B"), "b", gr.findVertex("T"));
+		patcher.removeTransition(gr.findVertex("A"), "a", gr.findVertex("B"));
+		patcher.removeTransition(gr.findVertex("B"), "a", gr.findVertex("C"));
+		patcher.removeTransition(gr.findVertex("A"), "b", gr.findVertex("D"));
+		patcher.addVertex(gr.findVertex("D"));
 		patcher.removeDanglingStates();
-		WMethod.checkM(gr, expected);
+		Assert.assertEquals(2, gr.getStateNumber());
+		Assert.assertNotNull(gr.findVertex("A"));// the initial state
+		Assert.assertSame(gr.init, gr.findVertex("A"));
+		Assert.assertNotNull(gr.findVertex("D"));
 	}
+	
+	/** Tests that a state with a transition leading to it is not compressed. */
+	@Test
+	public final void testRemoveDangling4()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nB-b->T","testRemoveDangling1"),Configuration.getDefaultConfiguration());
+		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.removeDanglingStates();
+		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
 	
 	protected static final Document createDoc()
 	{
@@ -357,7 +578,7 @@ public class TestGD {
 		Document doc = null;
 		try
 		{
-			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
 			doc = factory.newDocumentBuilder().newDocument();
 		}
@@ -370,123 +591,207 @@ public class TestGD {
 	}
 	
 	@Test
-	public final void testEmpty()
+	public final void testEmpty1()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			GD.ChangesRecorder.getGraphElement(createDoc().createElement("junk"),"whatever");
+			GD.ChangesRecorder.getGraphElement(createDoc().createElement("junk"),"whatever",false,true);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
 
 	@Test
-	public final void testNoElem()
+	public final void testEmpty2()
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			GD.ChangesRecorder.getGraphElement(createDoc().createElement(GD.ChangesRecorder.gdGD),"whatever");
+			GD.ChangesRecorder.getGraphElement(createDoc().createElement("junk"),"whatever",true,true);
+		}},IllegalArgumentException.class,"unexpected element");
+	}
+
+	@Test
+	public final void testNoElem1()
+	{
+		checkForCorrectException(new whatToRun() { public void run() {
+			GD.ChangesRecorder.getGraphElement(createDoc().createElement(StatechumXML.gdGD.toString()),"whatever",false,true);
+		}},IllegalArgumentException.class,"no element");
+	}
+
+	@Test
+	public final void testNoElem2()
+	{
+		checkForCorrectException(new whatToRun() { public void run() {
+			GD.ChangesRecorder.getGraphElement(createDoc().createElement(StatechumXML.gdGD.toString()),"whatever",true,true);
 		}},IllegalArgumentException.class,"no element");
 	}
 
 	private static final String graphholder = "graphholder";
 	
+	/** graph holder does not contain any children elements. */
 	@Test
 	public final void testElemNoGraph1()
 	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		top.appendChild(subElement);
+
 		checkForCorrectException(new whatToRun() { public void run() {
-			Document doc = createDoc();
-			Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
-			top.appendChild(subElement);
-			GD.ChangesRecorder.getGraphElement(top,graphholder);
-		}},IllegalArgumentException.class,"no graph");
+			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
+		}},IllegalArgumentException.class,"no nodes");
 	}
 
 	@Test
 	public final void testElemNoGraph2()
 	{
+		Document doc = createDoc();
+		Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		top.appendChild(subElement);
+		Assert.assertNull(GD.ChangesRecorder.getGraphElement(top,graphholder,true,true));
+	}
+
+	/** The only child of the graph holder is not a node (it is a chunk of text). */
+	@Test
+	public final void testElemNoGraph3()
+	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+
 		checkForCorrectException(new whatToRun() { public void run() {
-			Document doc = createDoc();
-			Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
-			top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
-			GD.ChangesRecorder.getGraphElement(top,graphholder);
-		}},IllegalArgumentException.class,"no graph");
+			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
+		}},IllegalArgumentException.class,"no nodes");
+	}
+
+	@Test
+	public final void testElemNoGraph4()
+	{
+		Document doc = createDoc();
+		Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		Assert.assertNull(GD.ChangesRecorder.getGraphElement(top,graphholder,true,true));
 	}
 
 	@Test
 	public final void testElemGraph()
 	{
 		Document doc = createDoc();
-		Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
+		Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
 		top.appendChild(doc.createTextNode("junk"));
 		subElement.appendChild(doc.createTextNode("junk"));
 		Element graphElem = doc.createElement("mygraph");
 		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
 		subElement.appendChild(graphElem);
-		Assert.assertSame(graphElem,GD.ChangesRecorder.getGraphElement(top,graphholder));
+		Assert.assertSame(graphElem,GD.ChangesRecorder.getGraphElement(top,graphholder,false,true));
 	}
 
 	@Test
-	public final void testElemDuplicateGraph()
+	public final void testElemDuplicateGraph1()
 	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		Element graphElem = doc.createElement("mygraph");
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(graphElem);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(doc.createElement("anotherelement"));
+		subElement.appendChild(doc.createTextNode("junk"));
+
 		checkForCorrectException(new whatToRun() { public void run() {
-			Document doc = createDoc();
-			Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
-			Element graphElem = doc.createElement("mygraph");
-			top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
-			subElement.appendChild(graphElem);subElement.appendChild(doc.createTextNode("junk"));
-			subElement.appendChild(doc.createElement("anotherelement"));
-			subElement.appendChild(doc.createTextNode("junk"));
-			GD.ChangesRecorder.getGraphElement(top,graphholder);
-		}},IllegalArgumentException.class,"more than one graph");
+			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
+		}},IllegalArgumentException.class,"more than one node");
+	}
+
+	@Test
+	public final void testElemDuplicateGraph2()
+	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		Element graphElem = doc.createElement("mygraph");
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(graphElem);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(doc.createElement("anotherelement"));
+		subElement.appendChild(doc.createTextNode("junk"));
+		
+		checkForCorrectException(new whatToRun() { public void run() {
+			GD.ChangesRecorder.getGraphElement(top,graphholder,true,true);
+		}},IllegalArgumentException.class,"more than one node");
 	}
 
 	@Test
 	public final void testElemJunkElementInGD()
 	{
 		Document doc = createDoc();
-		Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
+		Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
 		Element graphElem = doc.createElement("mygraph");
 		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
 		subElement.appendChild(graphElem);
 		top.appendChild(doc.createElement("smth"));
-		Assert.assertSame(graphElem,GD.ChangesRecorder.getGraphElement(top,graphholder));
+		Assert.assertSame(graphElem,GD.ChangesRecorder.getGraphElement(top,graphholder,false,true));
 	}
 	
 	@Test
-	public final void testElemDuplicateHolder()
+	public final void testElemDuplicateHolder1()
 	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		Element graphElem = doc.createElement("mygraph");
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(graphElem);
+		top.appendChild(doc.createElement(graphholder));
+
 		checkForCorrectException(new whatToRun() { public void run() {
-			Document doc = createDoc();
-			Element top = doc.createElement(GD.ChangesRecorder.gdGD),subElement=doc.createElement(graphholder);
-			Element graphElem = doc.createElement("mygraph");
-			top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
-			subElement.appendChild(graphElem);
-			top.appendChild(doc.createElement(graphholder));
-			GD.ChangesRecorder.getGraphElement(top,graphholder);
+			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
 		}},IllegalArgumentException.class,"duplicate holder");
+	}
+
+	@Test
+	public final void testElemDuplicateHolder2()
+	{
+		final Document doc = createDoc();
+		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		Element graphElem = doc.createElement("mygraph");
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(graphElem);
+		top.appendChild(doc.createElement(graphholder));
+
+		checkForCorrectException(new whatToRun() { public void run() {
+			GD.ChangesRecorder.getGraphElement(top,graphholder,true,true);
+		}},IllegalArgumentException.class,"duplicate holder");
+	}
+
+	/** Checks that if checking is off, duplicate elements are permitted. */
+	@Test
+	public final void testElemDuplicateHolder3()
+	{
+		Document doc = createDoc();
+		Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
+		Element graphElem = doc.createElement("mygraph");
+		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
+		subElement.appendChild(graphElem);
+		top.appendChild(doc.createElement(graphholder));
+		GD.ChangesRecorder.getGraphElement(top,graphholder,true,false);
 	}
 
 	@Test
 	public final void testWriteAndLoad1()
 	{
-		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
-		LearnerGraph removed = new LearnerGraph(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
-		LearnerGraph added = new LearnerGraph(buildGraph("A-d-#E\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND removed = new LearnerGraphND(buildGraph("A-d-#D\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND added = new LearnerGraphND(buildGraph("A-d-#E\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		ChangesRecorder patcher = new ChangesRecorder(removed,added,null);
 
 		ChangesRecorder.applyGD(graph, patcher.writeGD(createDoc()));
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#E\nA-c->A","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
-		WMethod.checkM(graph, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, graph, VERTEX_COMPARISON_KIND.DEEP));
 	}
 
 	@Test
 	public final void testWriteAndLoad2()
 	{
-		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
-		LearnerGraph removed = new LearnerGraph(buildGraph("A-d-#D\nA-a->B\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
-		LearnerGraph added = new LearnerGraph(buildGraph("A-d-#E\nB-a-#C\nB-c->B\nA-q->B","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A","testAddTransitions4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND removed = new LearnerGraphND(buildGraph("A-d-#D\nA-a->B\nB-a-#C","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND added = new LearnerGraphND(buildGraph("A-d-#E\nB-a-#C\nB-c->B\nA-q->B","testRemoveTransitions1"),Configuration.getDefaultConfiguration());
 		ChangesRecorder patcher = new ChangesRecorder(removed,added,null);
 
 		ChangesRecorder.applyGD(graph, patcher.writeGD(createDoc()));
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-q->B-a-#C\nA-d-#E\nA-c->A\nB-c->B","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
-		WMethod.checkM(graph, expected);
+		Assert.assertNull(WMethod.checkM_and_colours(expected, graph, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	@Test
@@ -499,8 +804,8 @@ public class TestGD {
 		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
 		patcher.setInitial(graph.findVertex("A"));
 		ChangesRecorder.applyGD(graph, patcher.writeGD(createDoc()));
-		LearnerGraph expected = new LearnerGraph(buildGraph("A-q->B-a-#C\nA-d-#E\nA-c->A\nB-c->B","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
-		WMethod.checkM(graph, expected);
+		LearnerGraph expected = new LearnerGraph(buildGraph("A-q->B-a-#C\nA-d-#D\nA-c->A\nB-c->B","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
+		WMethod.checkM_and_colours(expected, graph, VERTEX_COMPARISON_KIND.DEEP);
 	}
 	
 	/** Tests that initial state has to be assigned. */
@@ -517,6 +822,43 @@ public class TestGD {
 		IllegalArgumentException.class,"init state is was not defined");
 	}
 	
+	/** Test that a graph with incompatible states, relabelling and dangling states is handled correctly. */ 
+	@Test
+	public final void testWriteAndLoad5()
+	{
+		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nA-a->S-a->S","testWriteAndLoad5"),Configuration.getDefaultConfiguration());
+		graph.findVertex("B").setDepth(5);graph.findVertex("D").setColour(JUConstants.AMBER);
+		
+		graph.addToIncompatibles(graph.findVertex("A"), graph.findVertex("B"));
+		ChangesRecorder patcher = new ChangesRecorder(null);
+		patcher.addTransition(graph.findVertex("B"), "c", graph.findVertex("B"));
+		patcher.removeTransition(graph.findVertex("A"), "a", graph.findVertex("B"));
+		patcher.removeIncompatible(graph.findVertex("B"), graph.findVertex("A"));
+		patcher.addIncompatible(graph.findVertex("B"), graph.findVertex("S"));
+		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
+		patcher.setInitial(graph.findVertex("A"));
+		patcher.addRelabelling(VertexID.parseID("A"), VertexID.parseID("U"));
+		patcher.addRelabelling(VertexID.parseID("C"), VertexID.parseID("R"));
+		
+		CmpVertex danglingVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("TEST"), cloneConfig);
+		danglingVertex.setColour(JUConstants.BLUE);
+		patcher.addVertex(danglingVertex);
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> graphPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(graph,config,null);
+		ChangesRecorder.loadDiff(graphPatcher, patcher.writeGD(createDoc()));
+		graphPatcher.removeDanglingStates();
+		LearnerGraphND result = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		graphPatcher.relabel(result); 
+		
+		LearnerGraphND expected = new LearnerGraphND(buildGraph("U-q->B-a-#R\nU-d-#D\nU-c->U\nB-c->B\nU-a->S-a->S","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
+		expected.addToIncompatibles(expected.findVertex("S"), expected.findVertex("B"));
+		expected.transitionMatrix.put(danglingVertex,expected.createNewRow());
+		expected.findVertex("B").setDepth(5);expected.findVertex("D").setColour(JUConstants.AMBER);
+	
+		Assert.assertEquals(expected.getStateNumber(), graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM_and_colours(expected, result, VERTEX_COMPARISON_KIND.DEEP));
+	}
+
 	
 	protected final java.util.Map<CmpVertex,CmpVertex> newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();
 	
@@ -574,7 +916,7 @@ public class TestGD {
 		tmStarted = new Date().getTime();
 		ChangesRecorder.applyGD(graph, xml);
 		System.out.println("patch applied "+ (new Date().getTime()-tmStarted)/1000);
-		WMethod.checkM(graph, grB);Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 */
 }

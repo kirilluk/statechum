@@ -56,7 +56,7 @@ public class RandomPathGenerator {
 		
 		transitions.clear();inputsRejected.clear();
 		/** The alphabet of the graph. */
-		Set<String> alphabet = g.wmethod.computeAlphabet();
+		Set<String> alphabet = g.pathroutines.computeAlphabet();
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			ArrayList<Entry<String,CmpVertex>> row = new ArrayList<Entry<String,CmpVertex>>();row.addAll(entry.getValue().entrySet());
@@ -72,7 +72,7 @@ public class RandomPathGenerator {
 	
 	public static int diameter(LearnerGraph graph)
 	{// TODO: to rewrite using a flowgraph or not, given that this is only used once per experiment? 
-		DirectedSparseGraph g = graph.paths.getGraph();
+		DirectedSparseGraph g = graph.pathroutines.getGraph();
 		DijkstraDistance dd = new DijkstraDistance(g);
 		Collection<Double> distances = dd.getDistanceMap(DeterministicDirectedSparseGraph.findInitial(g)).values();
 		Double result =-1.;
@@ -193,7 +193,7 @@ public class RandomPathGenerator {
 			return ((StateName)name).percent <= filter;
 		}
 		
-	};
+	}
 	
 	class PercentIntervalFilter implements FilterPredicate
 	{
@@ -207,7 +207,7 @@ public class RandomPathGenerator {
 			return ((StateName)name).percent == filter;
 		}
 		
-	};
+	}
 	
 	/** Returns a PTA consisting of chunks number 0 .. upToChunk (inclusive).
 	 * 

@@ -17,7 +17,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -29,15 +28,16 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
  * This includes rebuilding max score and flow graph, as well as routines used for
  * going linear.
  */
-public class CachedData {
-	final LearnerGraph coregraph;
+public class CachedData<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
+{
+	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
 	
 	/** Associates this object to LinearGraph it is using for data to operate on. 
 	 * Important: the constructor should not access any data in computeStateScores 
 	 * because it is usually invoked during the construction phase of ComputeStateScores 
 	 * when no data is yet available.
 	 */
-	CachedData(LearnerGraph g)
+	CachedData(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> g)
 	{
 		coregraph =g;
 	}
@@ -50,7 +50,7 @@ public class CachedData {
 	
 	public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
 	{
-		if (flowgraph == null) flowgraph = coregraph.paths.getFlowgraph();
+		if (flowgraph == null) flowgraph = coregraph.pathroutines.getFlowgraph();
 		return flowgraph;
 	}
 	
@@ -70,10 +70,6 @@ public class CachedData {
 		return stateToNumber;
 	}
 
-	/** The maximal score which can be returned by score computation routines. 
-	 */
-	protected int maxScore = -1;
-
 	/** The alphabet of the graph. 
 	 */
 	private Set<String> alphabet = null;
@@ -81,32 +77,16 @@ public class CachedData {
 	public Set<String> getAlphabet()
 	{
 		if (alphabet == null)
-			alphabet = coregraph.wmethod.computeAlphabet();
+			alphabet = coregraph.pathroutines.computeAlphabet();
 		
 		assert alphabet != null;
 		return alphabet;
 	}
-	
-	/** After merging using mergeAndDeterminize_general,
-	 * this variable stores equivalence classes. Used by the pluggable
-	 * question generator.
-	 */ 
-	protected Collection<AMEquivalenceClass> mergedStates = null;
-	
-	public Collection<AMEquivalenceClass> getMergedStates()
-	{
-		return mergedStates;
-	}
-	
-	public void setMergedStates(Collection<AMEquivalenceClass> eqClasses)
-	{
-		mergedStates = eqClasses;
-	}
-	
+
 	public void invalidate()
 	{
-		flowgraph=null;maxScore=-1;stateToNumber = null;
+		flowgraph=null;stateToNumber = null;
 		alphabet=null;
-		mergedStates = null;
 	}
+
 }

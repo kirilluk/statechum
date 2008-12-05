@@ -19,11 +19,13 @@ package statechum.analysis.learning.rpnicore;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -31,12 +33,15 @@ import org.w3c.dom.Element;
 import cern.colt.Arrays;
 
 import statechum.GlobalConfiguration;
+import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.Smt;
 
 /** Transition labels may have complex behaviours associated with them and
  * SMT can be used to check
@@ -179,15 +184,17 @@ public class LabelRepresentation {
 	 * @param what text to convert
 	 * @param stateNumber state number
 	 * @param oldStateNumber previous state number
+	 * @return true if something was appended.
 	 */
-	protected static void addStringRepresentation(String what, int stateNumber, int oldStateNumber, StringBuffer result)
+	protected static boolean addStringRepresentation(String what, int stateNumber, int oldStateNumber, StringBuffer result)
 	{
+		boolean outcome = false;
 		if (what != null)
 		{
-			result.append(assertString);result.append(ENDL);
 			result.append(toCurrentMem(what,stateNumber,oldStateNumber));result.append(ENDL);
-			result.append(')');result.append(ENDL);
+			outcome = true;
 		}
+		return outcome;
 	}
 
 	/** Maps names of labels to their representation - a learner does not need to know the details, albeit
@@ -200,7 +207,7 @@ public class LabelRepresentation {
 	
 	public Element storeToXML(Document doc)
 	{
-		Element labelText = doc.createElement(ELEM_KINDS.ELEM_LABELDETAILS.name());
+		Element labelText = doc.createElement(StatechumXML.ELEM_LABELDETAILS.name());
 		StringWriter labelDetails = new StringWriter();ProgressDecorator.writeInputSequence(labelDetails, originalText);
 		labelText.setTextContent(labelDetails.toString());
 		return labelText;
@@ -279,7 +286,7 @@ public class LabelRepresentation {
 	 */
 	protected int currentNumber = 0;
 	
-	public static final String commentForNewSeq = ";; new sequence", commentForLabel = ";; label ", assertString="(assert ";
+	public static final String commentForNewSeq = ";; sequence", commentForLabel = ";; label ", commentForTransition = ";; transition ",assertString="(assert ";
 	public static final char ENDL = '\n';
 	
 	/** Given a path in a graph returns an expression which can be used to check whether that path can be followed. 
@@ -288,36 +295,135 @@ public class LabelRepresentation {
 	 * <p>
 	 * The supplied path cannot contain newlines.
 	 */
-	public String getConjunctionForPath(List<String> path)
+	public synchronized AbstractState getConjunctionForPath(List<String> path)
 	{
-		StringBuffer result = new StringBuffer();
-		result.append(commentForNewSeq);result.append(path);result.append(ENDL);
+		StringBuffer axiom = new StringBuffer(), varDeclaration = new StringBuffer();
+		axiom.append(commentForNewSeq);axiom.append(path);axiom.append(ENDL);
 
 		// Initial memory value.
 		Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
-
+		
+		// We always have to add variable declarations (even for empty paths) because
+		// they may be used in operations involving the abstract state we are returning here.
 		for(int i=0;i<=path.size();++i) 
 			if (init.pre != null)
 			{
-				result.append(toCurrentMem(init.pre, i+currentNumber, i+currentNumber));result.append(ENDL);
+				varDeclaration.append(toCurrentMem(init.pre, i+currentNumber, i+currentNumber));varDeclaration.append(ENDL);
 			}
-		
-		addStringRepresentation(init.post,currentNumber,currentNumber,result);
+
+		boolean pathNotEmpty = false;
+
 		// Now walk through the path generating constraints.
+		axiom.append("(and");axiom.append(ENDL);
+
+		pathNotEmpty |= addStringRepresentation(init.post,currentNumber,currentNumber,axiom);
+
+		int i=0;
+		Label lastLabel = null;
 		for(String lbl:path) 
 		{
 			Label currentLabel=labelMap.get(lbl);if (currentLabel == null) throw new IllegalArgumentException("unknown label "+lbl);
-			result.append(commentForLabel+currentLabel.getName());result.append(ENDL);
-			int previousNumber = currentNumber;++currentNumber;
-			addStringRepresentation(currentLabel.pre,previousNumber,previousNumber,result);
-			addStringRepresentation(currentLabel.post,currentNumber,previousNumber,result);
+			lastLabel = currentLabel;
+			axiom.append(commentForLabel+currentLabel.getName());axiom.append(ENDL);
+			int previousNumber = i+currentNumber;++i;
+			pathNotEmpty |= addStringRepresentation(currentLabel.pre,previousNumber,previousNumber,axiom);
+			pathNotEmpty |= addStringRepresentation(currentLabel.post,i+currentNumber,previousNumber,axiom);
 		}
-		return result.toString();
+		axiom.append(")");
+		int lastValueNumber=currentNumber+path.size();
+		currentNumber+=path.size()+1;
+		
+		axiom.append(ENDL);
+		return new AbstractState(lastValueNumber, varDeclaration.toString(), pathNotEmpty?axiom.toString():commentForNewSeq+path+ENDL+"true"+ENDL,lastLabel);
 	}
 	
+	public static String getAssertionFromAbstractState(AbstractState state)
+	{
+		return state.variableDeclarations+assertString+state.abstractState+")"+ENDL;
+	}
 	
-	/** Given PTA computes a path which can be used as a lemma in later computations. */
-	public String getLemma(LearnerGraph gr)
+	protected Map<VertexID,AbstractState> idToState = new TreeMap<VertexID,AbstractState>();
+
+	public static class AbstractState
+	{
+		/** Axiom so far. */
+		public final String abstractState;
+		
+		/** Variable declarations to support the axiom. */
+		public final String variableDeclarations;
+		
+		/** The number corresponding to this abstract state. */
+		public final int stateNumber;
+
+		/** The transition leading to this state, making it possible to compute a postcondition
+		 * for an arbitrarily-chosen abstract state number. 
+		 * This would be null for an initial state. 
+		 */
+		public final Label lastLabel;
+		
+		public AbstractState(int number, String varDecl, String axiom,Label arglastLabel)
+		{
+			stateNumber=number;variableDeclarations=varDecl;abstractState=axiom;lastLabel=arglastLabel;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((abstractState == null) ? 0 : abstractState.hashCode());
+			result = prime * result
+					+ ((lastLabel == null) ? 0 : lastLabel.hashCode());
+			result = prime * result + stateNumber;
+			result = prime
+					* result
+					+ ((variableDeclarations == null) ? 0
+							: variableDeclarations.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof AbstractState))
+				return false;
+			AbstractState other = (AbstractState) obj;
+			if (abstractState == null) {
+				if (other.abstractState != null)
+					return false;
+			} else if (!abstractState.equals(other.abstractState))
+				return false;
+			if (lastLabel == null) {
+				if (other.lastLabel != null)
+					return false;
+			} else if (!lastLabel.equals(other.lastLabel))
+				return false;
+			if (stateNumber != other.stateNumber)
+				return false;
+			if (variableDeclarations == null) {
+				if (other.variableDeclarations != null)
+					return false;
+			} else if (!variableDeclarations.equals(other.variableDeclarations))
+				return false;
+			return true;
+		}
+	}
+
+	/** Given PTA computes a path which can be used as an axiom in later computations. 
+	 * In addition to the construction of axioms, the method populates the map associating
+	 * vertex identifiers to abstract states which would be reached in the supplied graph
+	 * when those states are reached. 
+	 */
+	public String constructPathAxioms(LearnerGraph gr)
 	{
 		final Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
 		PTASequenceEngine engine = new PTASequenceEngine();
@@ -328,33 +434,15 @@ public class LabelRepresentation {
 				return ((CmpVertex)currentState).isAccept();
 			}});
 		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();
-		gr.paths.computePathsSBetween_All(gr.init, engine, pathsToAllStates);
-
-		class PathConditionForState
-		{
-			/** Lemma so far. */
-			public String pathCondition = null;
-			/** The number of the previous memory state. */
-			public final int stateNumber;
-			
-			public PathConditionForState(int number)
-			{
-				stateNumber=number;
-			}
-		}
+		gr.pathroutines.computePathsSBetween_All(gr.init, engine, pathsToAllStates);		
 		
 		final StringBuffer variableDeclarations = new StringBuffer(), lemmas = new StringBuffer();
-		PTAExploration<PathConditionForState> exploration = new PTAExploration<PathConditionForState>(engine) {
-			
-			/** The number reflecting the current state being processed. */
-			int currNumber = -1;
-			
+		PTAExploration<Integer> exploration = new PTAExploration<Integer>(engine) 
+		{
 			@Override
-			public PathConditionForState newUserObject() {
-				PathConditionForState result = new PathConditionForState(currNumber);
-				variableDeclarations.append(toCurrentMem(init.pre, currNumber,currNumber));variableDeclarations.append(ENDL);
-				--currNumber; 
-				return result;
+			public Integer newUserObject() 
+			{
+				return 0;
 			}
 
 			@Override
@@ -368,44 +456,47 @@ public class LabelRepresentation {
 			{
 				handleNode(currentNode, pathToInit);
 			}
-
+			
 			public void handleNode(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
 			{
-			// we need to add a lemma for a current element of a path 
-			// to the collection of lemmas on paths to this element.
-			
-				if (pathToInit.isEmpty())
-				{// generate a condition for an initial state.
-					currentNode.userObject.pathCondition =  (init.post == null?"":toCurrentMem(init.post,currentNode.userObject.stateNumber,currentNode.userObject.stateNumber));
-				}
-				else
+				// Now we generate path axioms using state IDs 
+				
+				if (!pathToInit.isEmpty())
 				{// a state which is a continuation of an existing path.
 					PTAExplorationNode prevNode = pathToInit.getFirst();
 					assert prevNode.shouldBeReturned() : "there should be no transitions after a reject state";
 					
 					Label currentLabel=labelMap.get(prevNode.getInput());if (currentLabel == null) throw new IllegalArgumentException("unknown label "+prevNode.getInput());
-					StringBuffer pathToPreLemma = new StringBuffer("(implies ");pathToPreLemma.append(prevNode.userObject.pathCondition);
+					Iterator<PTAExplorationNode> pathToInitIter = pathToInit.iterator();LinkedList<String> labelsFromInit = new LinkedList<String>();
+					pathToInitIter.next();// trash the last element
+					for(int i=0;i<pathToInit.size()-1;++i)
+						labelsFromInit.addFirst(pathToInitIter.next().getInput());
+					AbstractState prevState = getConjunctionForPath(labelsFromInit);
 
+					final int currentStateNumber = currentNumber;
+					variableDeclarations.append(prevState.variableDeclarations);
+					variableDeclarations.append(toCurrentMem(init.pre, currentStateNumber, currentStateNumber));variableDeclarations.append(ENDL);
+					
 					String textPre = "", textPost = "";
 					if (currentLabel.pre != null)
-						textPre = " "+toCurrentMem(currentLabel.pre,currentNode.userObject.stateNumber, currentNode.userObject.stateNumber);
+						textPre = " "+toCurrentMem(currentLabel.pre,prevState.stateNumber,prevState.stateNumber);
 					if (currentLabel.post != null)
-						textPost = " "+toCurrentMem(currentLabel.post,currentNode.userObject.stateNumber, prevNode.userObject.stateNumber);
-
+						textPost = " "+toCurrentMem(currentLabel.post,currentStateNumber, prevState.stateNumber);
+					++currentNumber;
+					
 					if (currentNode.shouldBeReturned())
 					{// a path to the current state exists
 						if (currentLabel.pre != null || currentLabel.post != null)
 						{
-							currentNode.userObject.pathCondition = prevNode.userObject.pathCondition+textPre+textPost;
-
 							// now we need to add a condition that p => pre next and post next
-							lemmas.append(commentForLabel+"from @"+(-prevNode.userObject.stateNumber)+"-"+currentLabel.getName()+"->@"+(-currentNode.userObject.stateNumber));lemmas.append(ENDL);
-							lemmas.append(assertString);lemmas.append("(implies (and ");lemmas.append(prevNode.userObject.pathCondition);
-							lemmas.append(")");lemmas.append(ENDL);lemmas.append(" (and ");lemmas.append(textPre);lemmas.append(textPost);lemmas.append("))");lemmas.append(ENDL);
+							lemmas.append(commentForTransition+prevNode.getState()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"->"+
+									currentNode.getState()+"("+currentStateNumber+")");lemmas.append(ENDL);
+							
+							lemmas.append(assertString);lemmas.append("(implies");lemmas.append(ENDL);lemmas.append(prevState.abstractState);
+							lemmas.append("\t(and");lemmas.append(textPre);lemmas.append(textPost);lemmas.append(")))");lemmas.append(ENDL);
 						}
 						else
 						{
-							currentNode.userObject.pathCondition = prevNode.userObject.pathCondition; // unchanged path condition.
 							if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 							{// if a precondition is empty, we cannot really generate a useful lemma, hence ignore this case but give a warning.
 								System.out.println("label "+currentLabel+" does not have a pre- or post-condition");
@@ -417,9 +508,11 @@ public class LabelRepresentation {
 						if (currentLabel.pre != null)
 						{
 							// now we need to add a condition that p => ¬pre next
-							lemmas.append(commentForLabel+"from @"+(-prevNode.userObject.stateNumber)+"-"+currentLabel.getName()+"-#@"+(-currentNode.userObject.stateNumber));lemmas.append(ENDL);
-							lemmas.append(assertString);lemmas.append("(implies (and ");lemmas.append(prevNode.userObject.pathCondition);
-							lemmas.append(")");lemmas.append(ENDL);lemmas.append(" (not ");lemmas.append(textPre);lemmas.append("))");lemmas.append(ENDL);
+							lemmas.append(commentForTransition+prevNode.getState()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"-#"+
+									currentNode.getState()+"("+currentStateNumber+")");lemmas.append(ENDL);
+									
+							lemmas.append(assertString);lemmas.append("(implies");lemmas.append(ENDL);lemmas.append(prevState.abstractState);
+							lemmas.append("\t(not");lemmas.append(textPre);lemmas.append(")))");lemmas.append(ENDL);
 						} 
 						else
 							if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
@@ -441,19 +534,198 @@ public class LabelRepresentation {
 		};
 		exploration.walkThroughAllPaths();
 		StringBuffer outcome = new StringBuffer(variableDeclarations);outcome.append(lemmas);
-		outcome.append(";; END OF LEMMAS");outcome.append(ENDL);
+		outcome.append(";; END OF PATH AXIOMS");outcome.append(ENDL);
 		return outcome.toString();
 	}
 
+	/** Given PTA constructs a map associating every vertex to the corresponding
+	 * abstract state.
+	 */
+	public void mapVerticesToAbstractStates(LearnerGraph gr)
+	{
+		final Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.init(gr.new NonExistingPaths() {
+			@Override
+			public boolean shouldBeReturned(Object currentState) {
+				assert currentState != junkVertex : "by construction of a tree, all paths should exist";
+				return ((CmpVertex)currentState).isAccept();
+			}});
+		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();
+		gr.pathroutines.computePathsSBetween_All(gr.init, engine, pathsToAllStates);		
+		
+		PTAExploration<Integer> exploration = new PTAExploration<Integer>(engine) 
+		{
+			
+			@Override
+			public Integer newUserObject() 
+			{
+				return 0;
+			}
+
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit)
+			{
+				handleNode(currentNode, pathToInit);
+			}
+			
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				handleNode(currentNode, pathToInit);
+			}
+			
+			public void handleNode(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				LinkedList<String> fullPath = new LinkedList<String>();
+				for(PTAExplorationNode node:pathToInit)	fullPath.addFirst(node.getInput());
+
+				updateMap(((CmpVertex)currentNode.getState()).getID(),fullPath);
+			}
+
+			@Override
+			public void nodeLeft(
+						@SuppressWarnings("unused") PTAExplorationNode currentNode,
+						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			{
+				// this is needed to implement an interface, but we only care if a leaf is entered.
+			}
+			
+		};
+		exploration.walkThroughAllPaths();
+	}
+
+	/** Given an id and a path, updates the corresponding map. */
+	final void updateMap(VertexID id, List<String> path)
+	{
+		assert !idToState.containsKey(id);
+		AbstractState currentAbstractState = getConjunctionForPath(path);
+		idToState.put(id,currentAbstractState);
+	}
+	
+	/** Given a path from an initial state, this method updates the map from identifiers to 
+	 * the corresponding abstract states. If <em>solver</em> is not null, this method also checks that 
+	 * all abstract states encountered are satisfiable.
+	 * 
+	 * @param pathFromInit path to follow.
+	 * @param isAccept whether the path should end at accept-state or reject-state.
+	 */
+	public void AugmentAbstractStates(Smt solver,List<String> pathFromInit, LearnerGraph graph, boolean isAccept)
+	{
+		CmpVertex vertex = graph.init;
+		List<String> currentPath = new LinkedList<String>();
+		if (!idToState.containsKey(vertex.getID())) 
+		{	
+			updateMap(vertex.getID(), currentPath);
+			if (solver != null)
+			{
+				if ( (isAccept || pathFromInit.size() > currentPath.size()) && !checkSatisfiability(solver, vertex.getID()))
+					throw new IllegalArgumentException("state "+vertex+" has an unsatisfiable abstract state");
+			}
+		}
+
+		for(String input:pathFromInit)
+		{
+			vertex = graph.transitionMatrix.get(vertex).get(input);
+			currentPath.add(input);
+			if (!idToState.containsKey(vertex.getID()))
+			{
+				updateMap(vertex.getID(), currentPath);
+				if (solver != null) 
+					if ( (isAccept || pathFromInit.size() > currentPath.size()) && !checkSatisfiability(solver, vertex.getID()))
+						throw new IllegalArgumentException("state "+vertex+" has an unsatisfiable abstract state");
+			}
+		}
+	}
+	
+	/** Checks if abstract states corresponding to the supplied vertices are compatible,
+	 * assuming that abstract states are themselves satisfiable. 
+	 */
+	public boolean abstractStatesCompatible(Smt solver,VertexID a, VertexID b)
+	{
+		AbstractState A=idToState.get(a),B=idToState.get(b);
+		if (A.lastLabel == null && B.lastLabel == null)
+			return true;// both states are initial states.
+		
+		if (B.lastLabel == null)
+		{
+			AbstractState C = A;A = B;B = C;//swap them
+		}
+		
+		solver.pushContext();
+
+		String text=A.variableDeclarations+B.variableDeclarations+
+			assertString+A.abstractState+')'+ENDL+
+			assertString+B.abstractState+')'+ENDL
+			+";; now check that the two states can be equal"+ENDL+
+			assertString+"(and"+ENDL+
+			toCurrentMem(B.lastLabel.post,A.stateNumber,B.stateNumber-1)+ENDL+
+			"))";
+		//System.err.println(text);
+		solver.loadData(text);
+		boolean outcome = solver.check();
+		solver.popContext();
+		return outcome;
+	}
+	
+	/** Checks that all states correspond to satisfiable abstract states.
+	 * @throws IllegalArgumentException if any state cannot be reached. 
+	 */
+	public void checkAllStatesExist(Smt solver) throws IllegalArgumentException
+	{
+		for(Entry<VertexID,AbstractState> entry:idToState.entrySet())
+			if (!checkSatisfiability(solver, entry.getKey()))
+					throw new IllegalArgumentException("state "+entry.getKey()+" has an unsatisfiable abstract state");
+	}
+
+	/** Checks if a path condition corresponding to an abstrast state is satisfiable.
+	 * @return false if a path leading to the supplied state is not satisfiable. 
+	 */
+	protected boolean checkSatisfiability(Smt solver, VertexID state)
+	{
+		solver.pushContext();
+		solver.loadData(LabelRepresentation.getAssertionFromAbstractState(idToState.get(state)));
+		boolean outcome = solver.check();
+		solver.popContext();return outcome;		
+	}
+	
+	/** Extracts an ID of a supplied vertex. */
+	public static VertexID getID(CmpVertex vertex)
+	{
+		if (vertex.getOrigState() != null) return vertex.getOrigState();
+		return vertex.getID();
+	}
+	
+	/** Similar to CheckWithEndUser, but works via SMT. 
+	 */
+	public int CheckWithEndUser(Smt solver,LearnerGraph graph,List<String> question)
+	{
+		int pos = -1;
+		List<String> partialPath = new LinkedList<String>();
+		for(String label:question)
+		{
+			++pos;
+			partialPath.add(label);
+			solver.pushContext();
+			solver.loadData(LabelRepresentation.getAssertionFromAbstractState(getConjunctionForPath(partialPath)));
+			boolean outcome = solver.check();
+			solver.popContext();if (!outcome) return pos;
+		}
+		return AbstractOracle.USER_ACCEPTED;
+	}
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
-	public int hashCode() {
+	public int hashCode() 
+	{
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((labelMap == null) ? 0 : labelMap.hashCode());
+		result = prime * result 
+				+ ((idToState == null)? 0 : idToState.hashCode());
 		return result;
 	}
 
@@ -461,7 +733,8 @@ public class LabelRepresentation {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(Object obj) 
+	{
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -471,6 +744,16 @@ public class LabelRepresentation {
 		LabelRepresentation other = (LabelRepresentation) obj;
 		if (!labelMap.equals(other.labelMap))
 			return false;
+		
+		if (idToState == null)
+		{
+			if (other.idToState != null)
+				return false;
+		}
+		else
+			if (!idToState.equals(other.idToState))
+				return false;
+
 		return true;
 	}
 }

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum
  * 
@@ -21,11 +20,13 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
 
-public class StringVertex implements CmpVertex {
+final public class StringVertex implements CmpVertex {
 	protected JUConstants colour = null;
 	protected boolean accept = true,highlight = false;
 	final protected VertexID vertexId;
-
+	private VertexID origState = null;
+	private int depth=JUConstants.intUNKNOWN;
+	
 	public StringVertex(String nameArg)
 	{
 		vertexId = new DeterministicDirectedSparseGraph.VertexID(nameArg);
@@ -86,8 +87,6 @@ public class StringVertex implements CmpVertex {
 	@Override
 	public int hashCode() {
 		int labelHashCode = vertexId == null?super.hashCode():vertexId.hashCode();
-		if (!isAccept())
-			labelHashCode = ~labelHashCode;
 		
 		return labelHashCode;
 	}
@@ -101,19 +100,35 @@ public class StringVertex implements CmpVertex {
 			return false;
 		
 		final CmpVertex other = (CmpVertex) obj;
-		if (isAccept() != other.isAccept())
-			return false;
 		
 		if (vertexId == null)
 			return other.getID() == null;
 		
 		return vertexId.equals(other.getID());
-		
 	}
 
 	@Override
 	public String toString()
 	{
-		return vertexId == null?"NULL":vertexId.toString();
+		String origName = "";if (getOrigState() != null) origName=" <"+getOrigState()+">";
+		String strDepth="";if(getDepth()!=JUConstants.intUNKNOWN) strDepth=" depth="+getDepth();
+		String strColour="";if(getColour()!=null) strColour=" colour="+getColour();
+		return vertexId == null?"NULL":vertexId.toString()+origName+strDepth+strColour;
+	}
+
+	public int getDepth() {
+		return depth;
+	}
+
+	public VertexID getOrigState() {
+		return origState;
+	}
+
+	public void setDepth(int argDepth) {
+		depth = argDepth;
+	}
+
+	public void setOrigState(VertexID newState) {
+		origState = newState;
 	}
 }

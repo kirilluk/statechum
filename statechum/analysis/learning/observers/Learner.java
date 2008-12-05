@@ -108,9 +108,12 @@ public interface Learner
 	public List<List<String>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
 	
 	/** Displays a tentative graph and asks user a supplied question. 
-	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
+	 * Options are to be shown as choices in addition to yes/element_not_accepted.
+	 * 
+	 *  @param expectedAccept if a response from a user is equals to this value, no restart will be needed. 
+	 *  	If set to USER_CANCELLED, this means that no value is provided.
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, Object [] options);
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,Object [] options);
 	
 	/** Indicates that a restart has taken place.
 	 * 

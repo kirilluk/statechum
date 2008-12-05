@@ -322,11 +322,13 @@ public class TestQSMTool {
 			QSMTool.cmdData));
 		Assert.assertNull(tool.learnerInitConfiguration.ltlSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
-		
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"decl_0"+ENDL+
-				LabelRepresentation.assertString+ENDL+"constraint_0"+ENDL+')'+ENDL
-				,
-				tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new String[]{})));
+		LabelRepresentation.AbstractState state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new String[]{}));
+		Assert.assertEquals("decl_0"+ENDL,state.variableDeclarations);
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+
+				"(and"+
+				""+ENDL+"constraint_0"+ENDL+
+				')'+ENDL,
+				state.abstractState);
 	}
 	
 	/** Loading of labels. Invalid data provided in label descriptions*/

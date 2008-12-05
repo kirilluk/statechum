@@ -70,7 +70,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
-				Pair<Integer,String> answer = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, new Object [] {"Test"});
+				Pair<Integer,String> answer = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, AbstractOracle.USER_CANCELLED,new Object [] {"Test"});
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 				{
 					System.out.println("CANCELLED");

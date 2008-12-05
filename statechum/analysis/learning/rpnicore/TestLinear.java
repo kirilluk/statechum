@@ -37,9 +37,9 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
 
 public class TestLinear {
 
@@ -84,59 +84,59 @@ public class TestLinear {
 	}
 	
 	LearnerGraph grLoadDistribution=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
-	LearnerGraphND grLoadDistributionND = new LearnerGraphND(grLoadDistribution,TransitionMatrixND.ignoreRejectStates, false);
+	GDLearnerGraph grLoadDistributionND = new GDLearnerGraph(grLoadDistribution,LearnerGraphND.ignoreRejectStates, false);
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_1()
 	{
-		LearnerGraphND.partitionWorkLoadTriangular(0,grLoadDistributionND.getStateNumber());
+		GDLearnerGraph.partitionWorkLoadTriangular(0,grLoadDistributionND.getStateNumber());
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_2a()
 	{
-		LearnerGraphND.partitionWorkLoadTriangular(-1,grLoadDistributionND.getStateNumber());
+		GDLearnerGraph.partitionWorkLoadTriangular(-1,grLoadDistributionND.getStateNumber());
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWorkLoadDistribution0_2b()
 	{
-		LearnerGraphND.partitionWorkLoadLinear(-1,grLoadDistributionND.getStateNumber());
+		GDLearnerGraph.partitionWorkLoadLinear(-1,grLoadDistributionND.getStateNumber());
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution1()
 	{
-		Assert.assertArrayEquals(new int[]{0,4},LearnerGraphND.partitionWorkLoadTriangular(1,grLoadDistributionND.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,4},LearnerGraphND.partitionWorkLoadLinear(1,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,4},GDLearnerGraph.partitionWorkLoadTriangular(1,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,4},GDLearnerGraph.partitionWorkLoadLinear(1,grLoadDistributionND.getStateNumber()));
 	}
 
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution2()
 	{
-		Assert.assertArrayEquals(new int[]{0,1,2,3,4},LearnerGraphND.partitionWorkLoadTriangular(4,grLoadDistributionND.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,1,2,3,4},LearnerGraphND.partitionWorkLoadLinear(4,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,3,4},GDLearnerGraph.partitionWorkLoadTriangular(4,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,3,4},GDLearnerGraph.partitionWorkLoadLinear(4,grLoadDistributionND.getStateNumber()));
 	}
 	
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution3()
 	{
-		Assert.assertArrayEquals(new int[]{0,2,4},LearnerGraphND.partitionWorkLoadTriangular(2,grLoadDistributionND.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,2,4},LearnerGraphND.partitionWorkLoadLinear(2,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,2,4},GDLearnerGraph.partitionWorkLoadTriangular(2,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,2,4},GDLearnerGraph.partitionWorkLoadLinear(2,grLoadDistributionND.getStateNumber()));
 	}
 	
 	/** Tests how well the workload is distributed. */
 	@Test
 	public final void testWorkLoadDistribution4()
 	{
-		Assert.assertArrayEquals(new int[]{0,2,3,4},LearnerGraphND.partitionWorkLoadTriangular(3,grLoadDistributionND.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,1,2,4},LearnerGraphND.partitionWorkLoadLinear(3,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,2,3,4},GDLearnerGraph.partitionWorkLoadTriangular(3,grLoadDistributionND.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,1,2,4},GDLearnerGraph.partitionWorkLoadLinear(3,grLoadDistributionND.getStateNumber()));
 	}
 	
 	/** Tests the workload distribution. */
@@ -145,10 +145,10 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C\nD-c->A","testAddToBuffer7"),Configuration.getDefaultConfiguration());
 		final int ThreadNumber=4;
-		for(int i=0;i< ThreadNumber;++i) Transform.addToGraph(gr, grLoadDistribution,null);
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		Assert.assertArrayEquals(new int[]{0,9,14,17,20},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,5,10,15,20},LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
+		for(int i=0;i< ThreadNumber;++i) AbstractPathRoutines.addToGraph(gr, grLoadDistribution,null);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		Assert.assertArrayEquals(new int[]{0,9,14,17,20},GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,5,10,15,20},GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
 	}
 	
 	/** Tests the workload distribution. */
@@ -156,11 +156,11 @@ public class TestLinear {
 	public final void testPerformRowTasks_A_1()
 	{
 		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());gr.init.setAccept(false);
-		StatesToConsider filter = TransitionMatrixND.ignoreRejectStates;
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
+		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		int ThreadNumber=4;
-		Assert.assertArrayEquals(new int[]{0,0,0,0,0},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
-		Assert.assertArrayEquals(new int[]{0,0,0,0,0},LearnerGraphND.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,0},GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,0},GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,ndGraph.getStateNumber()));
 
 		final Map<Integer,Integer> threadToRowNumber = new TreeMap<Integer,Integer>();  
 		
@@ -183,8 +183,8 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix, filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix, filter,
+				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
 		Assert.assertEquals(0, threadToRowNumber.size());
 		//Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 	}
@@ -194,10 +194,10 @@ public class TestLinear {
 	public final void testPerformRowTasks_A_2()
 	{
 		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());
-		StatesToConsider filter = TransitionMatrixND.ignoreRejectStates;
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
+		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		int ThreadNumber=4;
-		Assert.assertArrayEquals(new int[]{0,0,0,0,1},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		Assert.assertArrayEquals(new int[]{0,0,0,0,1},GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
 
 		final Map<Integer,Integer> threadToRowNumber = new TreeMap<Integer,Integer>();  
 		
@@ -220,8 +220,8 @@ public class TestLinear {
 				}
 				
 			});
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward.transitionMatrix,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber,ndGraph.matrixForward.transitionMatrix,filter,
+				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());
 		Assert.assertEquals(1, threadToRowNumber.values().iterator().next().intValue());
 		
@@ -232,8 +232,8 @@ public class TestLinear {
 	public final void testPerformRowTasks_A_3()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D\nA-c-#E\nB-b-#F\nB-c-#G","testPerformRowTasks_A_3"),Configuration.getDefaultConfiguration());
-		StatesToConsider filter = TransitionMatrixND.ignoreRejectStates;
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
+		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		int ThreadNumber=4;
 
 
@@ -258,38 +258,38 @@ public class TestLinear {
 				}
 				
 			});
-		Assert.assertArrayEquals(new int[]{0,0,1,1,2},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse.transitionMatrix,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixInverse.transitionMatrix.size()));
+		Assert.assertArrayEquals(new int[]{0,0,1,1,2},GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,ndGraph.getStateNumber()));
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixInverse.transitionMatrix,filter,
+				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixInverse.transitionMatrix.size()));
 		Assert.assertEquals(2, threadToRowNumber.size());
 		int counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
 		Assert.assertEquals(2, counterOfAllUsedRows);// 2 is the number of states which were not ignored
 		
 		threadToRowNumber.clear();
-		Assert.assertArrayEquals(new int[]{0,3,4,6,7},LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,gr.getStateNumber()));
-		LearnerGraphND.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix,filter,
-				LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
+		Assert.assertArrayEquals(new int[]{0,3,4,6,7},GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,gr.getStateNumber()));
+		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, ndGraph.matrixForward.transitionMatrix,filter,
+				GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber, ndGraph.matrixForward.transitionMatrix.size()));
 		Assert.assertEquals(1, threadToRowNumber.size());// only one thread gets to do anything because A and B are within its scope.
 		counterOfAllUsedRows=0;
 		for(Integer numberOfRows:threadToRowNumber.values()) counterOfAllUsedRows+=numberOfRows;
 		Assert.assertEquals(2, counterOfAllUsedRows);// 2 is the number of states which were not ignored
 	}
 	
-	public static final int PAIR_INCOMPATIBLE=LearnerGraphND.PAIR_INCOMPATIBLE, PAIR_OK=LearnerGraphND.PAIR_OK;
+	public static final int PAIR_INCOMPATIBLE=GDLearnerGraph.PAIR_INCOMPATIBLE, PAIR_OK=GDLearnerGraph.PAIR_OK;
 	
 	@Test
 	public final void testNumberNonNegativeElementsA()
 	{
 		int [] arrayA=new int[]{PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE};
-		Assert.assertEquals(0,LearnerGraphND.numberNonNegativeElements(arrayA));
+		Assert.assertEquals(0,GDLearnerGraph.numberNonNegativeElements(arrayA));
 		Assert.assertArrayEquals(new int[]{PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE,PAIR_INCOMPATIBLE},arrayA);
 	}
 	@Test
 	public final void testNumberNonNegativeElementsB()
 	{
 		int [] arrayB=new int[]{PAIR_INCOMPATIBLE,6,7,PAIR_INCOMPATIBLE,8};
-		Assert.assertEquals(0,LearnerGraphND.numberNonNegativeElements(arrayB));
+		Assert.assertEquals(0,GDLearnerGraph.numberNonNegativeElements(arrayB));
 		Assert.assertArrayEquals(new int[]{PAIR_INCOMPATIBLE,6,7,PAIR_INCOMPATIBLE,8},arrayB);
 	}
 
@@ -297,7 +297,7 @@ public class TestLinear {
 	public final void testNumberNonNegativeElementsC()
 	{
 		int [] arrayC=new int[]{PAIR_INCOMPATIBLE,PAIR_OK,PAIR_OK,PAIR_INCOMPATIBLE,PAIR_OK};
-		Assert.assertEquals(3,LearnerGraphND.numberNonNegativeElements(arrayC));
+		Assert.assertEquals(3,GDLearnerGraph.numberNonNegativeElements(arrayC));
 		Assert.assertArrayEquals(new int[]{PAIR_INCOMPATIBLE,0,1,PAIR_INCOMPATIBLE,2},arrayC);
 	}
 	
@@ -305,7 +305,7 @@ public class TestLinear {
 	public final void testNumberNonNegativeElementsD()
 	{
 		int [] arrayD=new int[]{PAIR_INCOMPATIBLE,6,PAIR_OK,PAIR_INCOMPATIBLE,8,PAIR_INCOMPATIBLE};
-		Assert.assertEquals(1,LearnerGraphND.numberNonNegativeElements(arrayD));
+		Assert.assertEquals(1,GDLearnerGraph.numberNonNegativeElements(arrayD));
 		Assert.assertArrayEquals(new int[]{PAIR_INCOMPATIBLE,6,0,PAIR_INCOMPATIBLE,8,PAIR_INCOMPATIBLE},arrayD);
 	}
 	
@@ -313,16 +313,16 @@ public class TestLinear {
 	public final void testIntersects()
 	{
 		BitVector A=new BitVector(100),B=new BitVector(100);
-		Assert.assertFalse(LearnerGraphND.intersects(A, B));
+		Assert.assertFalse(GDLearnerGraph.intersects(A, B));
 		A.set(10);
-		Assert.assertFalse(LearnerGraphND.intersects(A, B));
+		Assert.assertFalse(GDLearnerGraph.intersects(A, B));
 		B.set(10);
-		Assert.assertTrue(LearnerGraphND.intersects(A, B));
+		Assert.assertTrue(GDLearnerGraph.intersects(A, B));
 		A.clear(10);
 		A.set(71);A.set(72);B.set(72);
-		Assert.assertTrue(LearnerGraphND.intersects(A, B));
+		Assert.assertTrue(GDLearnerGraph.intersects(A, B));
 		A.clear(72);
-		Assert.assertFalse(LearnerGraphND.intersects(A, B));
+		Assert.assertFalse(GDLearnerGraph.intersects(A, B));
 	}
 	
 	/** A helper to call matches on both permutations of states to check if the result is the same.
@@ -333,17 +333,18 @@ public class TestLinear {
 	 * @param A name of the first state
 	 * @param B name of the second state
 	 */
-	private final void getMatcherValue(LearnerGraph gr,TransitionMatrixND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
+	private final void getMatcherValue(LearnerGraph gr,LearnerGraphND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.incompatibles),
+		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.incompatibles),
 				matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
+
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
+
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag);
-		
 		
 		// Now copy the matcher and do another computation, with A and B reversed.
 		DetermineDiagonalAndRightHandSide anotherMather = null;
@@ -352,8 +353,9 @@ public class TestLinear {
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(!AbstractTransitionMatrix.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+		anotherMather.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
+
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
 		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag);
 	}
@@ -362,8 +364,8 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing1()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
@@ -372,8 +374,8 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing2()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","A");
 		Assert.assertEquals(3,matcher.getRightHandSide());
 	}
@@ -383,16 +385,16 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","Q");
 		// A and Q have 3 outgoing transitions, 2 are matched.
 		// target pair B1-S has a score of 0, B-R has a score of -1.
 		Assert.assertEquals(2,matcher.getRightHandSide());
-		Assert.assertEquals(3,matcher.getDiagonal());
+		Assert.assertEquals(3*2,matcher.getDiagonal());
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"B","R");
 		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
-		Assert.assertEquals(1,matcher.getDiagonal());
+		Assert.assertEquals(1*2,matcher.getDiagonal());
 	}
 
 	/** Directly incompatible states. */
@@ -400,11 +402,11 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3b()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreNone, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default(); 
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreNone, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","B");
-		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide());
-		Assert.assertEquals(3,matcher.getDiagonal());
+		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide()*2);
+		Assert.assertEquals(3*2,matcher.getDiagonal());
 	}
 
 	@Test
@@ -413,13 +415,13 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
 		// the score for the first pair is -1, for another one it is 1, hence the outcome is zero
 		Assert.assertEquals(2,matcher.getRightHandSide());
-		Assert.assertEquals(3,matcher.getDiagonal());
+		Assert.assertEquals(3*2,matcher.getDiagonal());
 	}
 	
 	@Test
@@ -428,13 +430,13 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->Q-c->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
 		Assert.assertEquals(3,matcher.getRightHandSide());
-		Assert.assertEquals(3,matcher.getDiagonal());
+		Assert.assertEquals(3*2,matcher.getDiagonal());
 	}
 	@Test
 	public final void testCountMatchingOutgoing3e()
@@ -442,8 +444,8 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
 		Assert.assertEquals(1,matcher.getRightHandSide());
@@ -455,8 +457,8 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
@@ -467,8 +469,8 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing4a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		// 3 outgoing and 2 matching reject, but we count them as positives
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(2,matcher.getRightHandSide());
@@ -480,8 +482,8 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
@@ -490,8 +492,8 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing5a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"S","C");
@@ -504,8 +506,8 @@ public class TestLinear {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"S","C");
@@ -517,8 +519,8 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing6a()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","R");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
@@ -528,8 +530,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		gr.linear.moveRejectToHighlight();
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_highlight();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","R");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
@@ -544,11 +546,11 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing_nd1()
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F", "testCountMatchingOutgoing_nd1"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(8,matcher.getDiagonal());
+		Assert.assertEquals(8*2,matcher.getDiagonal());
 	}
 	
 	@Test
@@ -556,11 +558,11 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C", "testCountMatchingOutgoing_nd2a"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(9,matcher.getDiagonal());
+		Assert.assertEquals(9*2,matcher.getDiagonal());
 	}
 	
 	@Test
@@ -570,11 +572,11 @@ public class TestLinear {
 				+"N-c->C\n"
 				+"M-d->D"
 				, "testCountMatchingOutgoing_nd2b"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(10,matcher.getDiagonal());
+		Assert.assertEquals(10*2,matcher.getDiagonal());
 	}
 	
 	@Test
@@ -583,11 +585,11 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C\n"
 				+"N-a->C", "testCountMatchingOutgoing_nd3a"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(10,matcher.getRightHandSide());
-		Assert.assertEquals(11,matcher.getDiagonal());
+		Assert.assertEquals(11*2,matcher.getDiagonal());
 	}
 	
 	@Test
@@ -596,11 +598,11 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C<-f-U\n"
 				+"N-a->C\nS-r->D", "testCountMatchingOutgoing_nd3b"), Configuration.getDefaultConfiguration());
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,TransitionMatrixND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new LearnerGraphND.DDRH_default();
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
+		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(10,matcher.getRightHandSide());
-		Assert.assertEquals(13,matcher.getDiagonal());
+		Assert.assertEquals(13*2,matcher.getDiagonal());
 	}
 	
 	
@@ -620,7 +622,7 @@ public class TestLinear {
 		for(int i=-1;i<number;++i)
 		{
 			VertexID id = new VertexID(prefix+(i>=0?i:""));if (gr.findVertex(id) != null) throw new IllegalArgumentException("vertex already exists");
-			CmpVertex newVertex = AbstractTransitionMatrix.generateNewCmpVertex(id, gr.config);newVertex.setAccept(false);
+			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(id, gr.config);newVertex.setAccept(false);
 			gr.transitionMatrix.put(newVertex, gr.createNewRow());
 		}
 	}
@@ -632,7 +634,7 @@ public class TestLinear {
 		addRejectVertices(gr, "A0", -1);
 		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nA0-a->A","testAddRejectVertices_result"),Configuration.getDefaultConfiguration());
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("A0")) entry.getValue().clear();
-		WMethod.checkM(expectedResult, gr);
+		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -656,7 +658,7 @@ public class TestLinear {
 		addRejectVertices(gr, "QQ0", 4);
 		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A\nQQ01-a->A\nQQ02-a->A\nQQ03-a->A\n","testAddRejectVertices_result"),Configuration.getDefaultConfiguration());
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("QQ0")) entry.getValue().clear();
-		WMethod.checkM(expectedResult, gr);
+		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 	
 	@Test
@@ -674,7 +676,7 @@ public class TestLinear {
 		addRejectVertices(gr, "QQ0", 1);
 		LearnerGraph expectedResult = new LearnerGraph(buildGraph("A-a->B-a->C\nQQ0-a->A\nQQ00-a->A","testAddRejectVertices_result3"),Configuration.getDefaultConfiguration());
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:expectedResult.transitionMatrix.entrySet()) if (entry.getKey().getID().toString().contains("QQ0")) entry.getValue().clear();
-		WMethod.checkM(expectedResult, gr);
+		Assert.assertNull(WMethod.checkM(expectedResult, gr));
 	}
 
 	/** Tests that conversion between numerical state pairs and back works. */
@@ -682,8 +684,8 @@ public class TestLinear {
 	public final void testNumberToState_and_Back()
 	{
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R\nC-f-#T\nC-e->G-a-#K\nG-b->S-a-#U","TestFindIncompatibleStatesB"),Configuration.getDefaultConfiguration());
-		StatesToConsider filter = TransitionMatrixND.ignoreRejectStates;
-		LearnerGraphND ndGraph = new LearnerGraphND(gr,filter, false);
+		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		for(CmpVertex A:gr.transitionMatrix.keySet())
 			if (filter.stateToConsider(A))
 				for(CmpVertex B:gr.transitionMatrix.keySet())

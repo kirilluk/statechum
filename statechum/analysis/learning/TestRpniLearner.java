@@ -49,12 +49,14 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.model.testset.PTASequenceSet;
 
@@ -122,7 +124,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, 
+					List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -133,15 +135,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		//l.setGeneralisationThreshold(1);
 		//l.setCertaintyThreshold(5);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
-		LearnerGraph learntStructureA = l.learnMachine(buildSet(plus), buildSet(minus)).copy(expected.config);
+		LearnerGraph learntStructureA = new LearnerGraph(l.learnMachine(buildSet(plus), buildSet(minus)),expected.config);
 
 		// Now do the same with ptasets instead of real sets
 		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus));
-		LearnerGraph learntStructureB = l.learnMachine(plusPTA, minusPTA).copy(expected.config);
+		LearnerGraph learntStructureB = new LearnerGraph(l.learnMachine(plusPTA, minusPTA),expected.config);
 		//Visualiser.updateFrame(learntStructureA, expected);
-		WMethod.checkM(learntStructureA, learntStructureB);
-		LearnerGraph learntMachineNoRejects = Transform.removeRejectStates(learntStructureA,expected.config);
-		WMethod.checkM(learntMachineNoRejects, expected);
+		Assert.assertNull(WMethod.checkM(learntStructureA, learntStructureB));
+		LearnerGraph learntMachineNoRejects = new LearnerGraph(expected.config);
+		AbstractPathRoutines.removeRejectStates(learntStructureA,learntMachineNoRejects);
+		Assert.assertNull(WMethod.checkM(learntMachineNoRejects, expected));
 	}
 	
 	/**Machines learnt are not identical to reference machines because reference
@@ -155,7 +158,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				new String[][]{new String[]{"b","b","a"},new String[]{"b","a"},new String[]{"b"}}, 
 				new String[][]{new String[]{"a","b"},new String[]{"a","a"}});
 	}
-	
+
 	@Test
 	public void testLearner2a()
 	{
@@ -187,7 +190,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		});
 		
 	}
-			
+
 	DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm, String name)
@@ -230,19 +233,19 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		// Now check that ComputeStateScores properly does  mergeAndDeterminize 
 		// (on the test data we are dealing with in these tests, there are separate tests for mergeAndDeterminize)
 		LearnerGraph tempG = new LearnerGraph(temp,testConfig), tempBG = new LearnerGraph(tempB,testConfig);
-		Assert.assertEquals(false, tempG.wmethod.checkUnreachableStates());Assert.assertEquals(false, tempBG.wmethod.checkUnreachableStates());
-		WMethod.checkM(tempG, tempBG);
+		Assert.assertEquals(false, tempG.pathroutines.checkUnreachableStates());Assert.assertEquals(false, tempBG.pathroutines.checkUnreachableStates());
+		Assert.assertNull(WMethod.checkM(tempG, tempBG));
 		
 		
 		doneEdges = new HashSet<DirectedSparseEdge>();
 		int origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
-			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<Collection<CmpVertex>>());
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(new VertexID("B")),learner2.findVertex(new VertexID("A")));
-		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).paths.getGraph(learnerName));Visualiser.waitForKey();
+		//Visualiser.updateFrame(g, MergeStates.mergeAndDeterminize_general(learner2, pairNew2).pathroutines.getGraph(learnerName));Visualiser.waitForKey();
 		Collection<List<String>> 
 			// Since computeQS assumes that red names remain unchanged in the merged version, I have to use a specific merging procedure
 			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
@@ -668,17 +671,17 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		LearnerGraph 
 			mergeResultA = new LearnerGraph(Test_Orig_RPNIBlueFringeLearner.mergeAndDeterminize(g, pairOrig),testConfig), 
 			mergeResultB = new LearnerGraph(MergeStates.mergeAndDeterminize(g2, pairNew1,testConfig),testConfig),
-			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).paths.getGraph(),testConfig),
-			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).paths.getGraph(),testConfig),
+			mergeResultC = new LearnerGraph(MergeStates.mergeAndDeterminize(l, pairNew2).pathroutines.getGraph(),testConfig),
+			mergeResultD = new LearnerGraph(MergeStates.mergeAndDeterminize_general(l, pairNew2).pathroutines.getGraph(),testConfig),
 			expectedMachine = new LearnerGraph(TestFSMAlgo.buildGraph(expectedFSM, "expected machine"),testConfig);
 
 		TestEquivalenceChecking.checkM(machineToMerge, g2, testConfig);
 		
-		Assert.assertFalse("unreachable states - original",mergeResultA.wmethod.checkUnreachableStates());
-		Assert.assertFalse("unreachable states",mergeResultB.wmethod.checkUnreachableStates());
-		Assert.assertFalse("unreachable states",mergeResultC.wmethod.checkUnreachableStates());
-		Assert.assertFalse("unreachable states",mergeResultD.wmethod.checkUnreachableStates());
-		Assert.assertFalse("unreachable states",expectedMachine.wmethod.checkUnreachableStates());
+		Assert.assertFalse("unreachable states - original",mergeResultA.pathroutines.checkUnreachableStates());
+		Assert.assertFalse("unreachable states",mergeResultB.pathroutines.checkUnreachableStates());
+		Assert.assertFalse("unreachable states",mergeResultC.pathroutines.checkUnreachableStates());
+		Assert.assertFalse("unreachable states",mergeResultD.pathroutines.checkUnreachableStates());
+		Assert.assertFalse("unreachable states",expectedMachine.pathroutines.checkUnreachableStates());
 		
 		if (checkWithEquals)
 		{
@@ -688,11 +691,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		}
 		else
 		{
-			WMethod.checkM(mergeResultA, expectedMachine);
-			WMethod.checkM(mergeResultB, expectedMachine);
-			WMethod.checkM(mergeResultC, expectedMachine);
+			Assert.assertNull(WMethod.checkM(mergeResultA, expectedMachine));
+			Assert.assertNull(WMethod.checkM(mergeResultB, expectedMachine));
+			Assert.assertNull(WMethod.checkM(mergeResultC, expectedMachine));
 		}
-		WMethod.checkM(mergeResultD, expectedMachine);
+		Assert.assertNull(WMethod.checkM(mergeResultD, expectedMachine));
 	}
 
 	@Test
@@ -1018,7 +1021,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			expectedRedsAsSet.add(possibleReds);
 		}
 		Set<String> finalReds = new HashSet<String>();
-		DirectedSparseGraph grf = l.paths.getGraph();
+		DirectedSparseGraph grf = l.pathroutines.getGraph();
 		for(Vertex red:DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, grf))
 				finalReds.add(((VertexID)red.getUserDatum(JUConstants.LABEL)).toString());
 		Assert.assertTrue("expected red states, any of: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.contains(finalReds));
@@ -1190,7 +1193,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				"testPairCompatible1");
 	}
 	
-	private static void matchCollectionsOfVertices(Collection<Collection<CmpVertex>> what, String[][] expectedSrc)
+	private static void matchCollectionsOfVertices(Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> what, String[][] expectedSrc)
 	{
 		Set<Set<String>> expectedSets = new HashSet<Set<String>>();
 		for(String []seq:expectedSrc)
@@ -1199,10 +1202,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			whatToAdd.addAll(Arrays.asList(seq));expectedSets.add(whatToAdd);
 		}
 		
-		for(Collection<CmpVertex> coll:what) 
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:what) 
 		{
 			Set<String> oneOfTheSets = new HashSet<String>();
-			for(CmpVertex vert:coll) oneOfTheSets.add(vert.getID().toString());
+			for(CmpVertex vert:eqClass.getStates()) oneOfTheSets.add(vert.getID().toString());
 			Assert.assertTrue("received an unexpected set "+oneOfTheSets,expectedSets.contains(oneOfTheSets));expectedSets.remove(oneOfTheSets);
 		}
 		Assert.assertEquals(0, expectedSets.size());		
@@ -1212,18 +1215,18 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			String[][] expectedSrc,String [][]incompatibles)
 	{
 		DirectedSparseGraph g=TestFSMAlgo.buildGraph(machine, graphName);
-		//Visualiser.updateFrame(g, null);
 		LearnerGraph fsm = new LearnerGraph(g,config);
+
 		if (incompatibles != null)
 			for(String [] incompatibleRow:incompatibles)
 			{
 				assert incompatibleRow.length == 2;
 				fsm.addToIncompatibles(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]));
 			}
-		Collection<Collection<CmpVertex>> result = new LinkedList<Collection<CmpVertex>>();
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> result = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = -2;
-		//Visualiser.waitForKey();
 		score = fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex(new VertexID("A")),fsm.findVertex(new VertexID("B"))),result);
+		//Visualiser.updateFrame(g, result);Visualiser.waitForKey();
 		Assert.assertEquals(expectedScore, score);
 		if (score >=0)
 			matchCollectionsOfVertices(result, expectedSrc);
@@ -1345,8 +1348,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		);
 	}
 
+	/** Incompatible vertices do not mess up the merging here. */
 	@Test
-	public final void testPairCompatible_general_D_fail1()
+	public final void testPairCompatible_general_D_incompatible1()
 	{
 		testGeneralPairScoreComputation(testGeneralD_fsm,
 		"testPairCompatible5",
@@ -1357,12 +1361,64 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				new String[]{"B3","A5","BD3"}, new String[]{"B4","BD4"},
 				new String[]{"B5"}, new String[]{"BD5"},new String[]{"S"}}
 		,new String[][]{
+				new String[]{"B5","BD5"},new String[]{"B5","S"},new String[]{"A","BB2"}
+		}
+		);
+	}
+
+	/** Incompatible vertices cause merge to fail. */
+	@Test
+	public final void testPairCompatible_general_D_fail1()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
+		"testPairCompatible5",
+		-1, new String[][] {}
+		,new String[][]{
+				new String[]{"A","B"}
+		}
+		);
+	}
+
+	/** Incompatible vertices cause merge to fail. */
+	@Test
+	public final void testPairCompatible_general_D_fail2()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
+		"testPairCompatible5",
+		-1, new String[][] {}
+		,new String[][]{
 				new String[]{"BB2","BD2"}
 		}
 		);
 	}
 
-	
+	/** Incompatible vertices cause merge to fail. */
+	@Test
+	public final void testPairCompatible_general_D_fail3()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
+		"testPairCompatible5",
+		-1, new String[][] {}
+		,new String[][]{
+				new String[]{"B2","A3"}
+		}
+		);
+	}
+
+	/** Incompatible vertices cause merge to fail. */
+	@Test
+	public final void testPairCompatible_general_D_fail4()
+	{
+		testGeneralPairScoreComputation(testGeneralD_fsm,
+		"testPairCompatible5",
+		-1, new String[][] {}
+		,new String[][]{
+				new String[]{"B4","BD4"}
+		}
+		);
+	}
+
+
 	@Test
 	public final void testPairCompatible3()
 	{
@@ -1485,13 +1541,22 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				,null
 		);
 	}
-
+/*
+	@Test
+	public final void testPairCompatible8()
+	{
+		String fsm = "A-a->A\nB-a->C-a->D-a->E\nB-b->B1-b->B2\nC-c->C1-c->C2\nD-d->D1-d->D2";
+		testGeneralPairScoreComputation(fsm, "testPairCompatible8",4,
+				new String[][] {new String[]{"A","B","C","D","E"}}
+				,null
+		);
+	}
+*/
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class
 	{
-		LearnerGraph.testMode = true;
 		Visualiser.disposeFrame();
 	}
 	

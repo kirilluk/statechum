@@ -53,6 +53,7 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
@@ -92,7 +93,7 @@ public class TestWMethod {
 	public final void computeStateCover1() {
 		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1"),config).wmethod.computeStateCover());
+			actual.addAll(new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1"),config).pathroutines.computeStateCover());
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -103,7 +104,7 @@ public class TestWMethod {
 	public final void computeStateCover2() {
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"),config).wmethod.computeStateCover());
+			actual.addAll(new LearnerGraph(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"),config).pathroutines.computeStateCover());
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -114,7 +115,18 @@ public class TestWMethod {
 	public final void computeStateCover3() {
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"),config).wmethod.computeStateCover());
+			actual.addAll(new LearnerGraph(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"),config).pathroutines.computeStateCover());
+		Assert.assertTrue(expected.equals(actual));
+	}
+
+	/**
+	 * Test method for {@link statechum.analysis.learning.rpnicore.WMethod#getTransitionCover()}.
+	 */
+	@Test
+	public final void computeStateCover3_ND() {
+		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"a"}}),
+			actual = new HashSet<List<String>>();
+			actual.addAll(new LearnerGraphND(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S\nA-a->C","computeStateCover3_ND"),config).pathroutines.computeStateCover());
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -125,7 +137,7 @@ public class TestWMethod {
 	public final void computeStateCover4() {
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"),config).wmethod.computeStateCover());
+			actual.addAll(new LearnerGraph(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"),config).pathroutines.computeStateCover());
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -614,7 +626,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		}
 
 		try
@@ -631,7 +643,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		}
 
 		try
@@ -645,7 +657,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB()));
+			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		}
 	}	
 	
@@ -1025,19 +1037,19 @@ public class TestWMethod {
 	@Test
 	public final void testCheckUnreachable1()
 	{
-		assertFalse(new LearnerGraph(buildGraph("A-a->A", "testCheckUnreachable1"),config).wmethod.checkUnreachableStates());	
+		assertFalse(new LearnerGraph(buildGraph("A-a->A", "testCheckUnreachable1"),config).pathroutines.checkUnreachableStates());	
 	}
 	
 	@Test
 	public final void testCheckUnreachable2()
 	{
-		assertFalse(new LearnerGraph(buildGraph("A-a->A-c->C\nB-a->A\nC-b->B", "testCheckUnreachable2"),config).wmethod.checkUnreachableStates());	
+		assertFalse(new LearnerGraph(buildGraph("A-a->A-c->C\nB-a->A\nC-b->B", "testCheckUnreachable2"),config).pathroutines.checkUnreachableStates());	
 	}
 	
 	@Test
 	public final void testCheckUnreachable3()
 	{
-		assertTrue(new LearnerGraph(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"),config).wmethod.checkUnreachableStates());	
+		assertTrue(new LearnerGraph(buildGraph("A-a->A-c->C\nB-a->A", "testCheckUnreachable3"),config).pathroutines.checkUnreachableStates());	
 	}
 	
 	@Test
@@ -1056,7 +1068,7 @@ public class TestWMethod {
 	public final void testCheckGraphNumeric3()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-c->C","testCheckGraphNumeric"),config);
-		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph,null);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = AbstractPathRoutines.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(numericGraph.paths.getVertex(new LinkedList<String>()),newInit));
 		Assert.assertTrue(numericGraph.wmethod.checkGraphNumeric());
 	}
@@ -1065,7 +1077,7 @@ public class TestWMethod {
 	public final void testVertexToInt0()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c-#C","testVertexToInt0"),config);
-		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,TransitionMatrixND.ignoreRejectStates,false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(textGraph,LearnerGraphND.ignoreRejectStates,false);
 		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("A")));
 		Assert.assertTrue(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("B")));
 		Assert.assertFalse(ndGraph.getStatesToNumber().containsKey(textGraph.findVertex("C")));
@@ -1074,7 +1086,7 @@ public class TestWMethod {
 	public final void testVertexToInt1()
 	{
 		LearnerGraph textGraph = new LearnerGraph(config);
-		LearnerGraphND ndGraph = new LearnerGraphND(textGraph,TransitionMatrixND.ignoreRejectStates,false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(textGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = textGraph.paths.getVertex(Arrays.asList(new String[]{}));
 		Assert.assertEquals(0,textGraph.wmethod.vertexToInt(A,A));
 		Assert.assertEquals(0,ndGraph.vertexToIntNR(A,A));
@@ -1084,9 +1096,9 @@ public class TestWMethod {
 	public final void testVertexToInt2()
 	{
 		LearnerGraph textGraph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
-		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = Transform.addToGraph(numericGraph, textGraph,null);
+		LearnerGraph numericGraph = new LearnerGraph(config);CmpVertex newInit = AbstractPathRoutines.addToGraph(numericGraph, textGraph,null);
 		numericGraph = MergeStates.mergeAndDeterminize_general(numericGraph, new StatePair(newInit,numericGraph.paths.getVertex(new LinkedList<String>())));
-		LearnerGraphND numericNDGraph = new LearnerGraphND(numericGraph,TransitionMatrixND.ignoreRejectStates,false);
+		GDLearnerGraph numericNDGraph = new GDLearnerGraph(numericGraph,LearnerGraphND.ignoreRejectStates,false);
 		CmpVertex A = numericGraph.paths.getVertex(Arrays.asList(new String[]{})),
 			B = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b"})),
 			C = numericGraph.paths.getVertex(Arrays.asList(new String[]{"b","c"}));
@@ -1124,20 +1136,27 @@ public class TestWMethod {
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
-		LearnerGraph g=graph.copy(cloneConfig);
-		Assert.assertNull(WMethod.checkM_and_colours(graph,g));
-		Assert.assertNull(WMethod.checkM_and_colours(g,graph));
+		LearnerGraph g=new LearnerGraph(graph,cloneConfig);
+		Assert.assertNull(WMethod.checkM_and_colours(graph,g,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNull(WMethod.checkM_and_colours(g,graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
+	/** When vertices are being cloned, attributes are preserved. */
 	@Test
 	public final void testVerifySameMergeResults2()
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
+		VertexID vertid = VertexID.parseID("P78");
+		graph.findVertex("C").setOrigState(vertid);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
-		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);
-		Assert.assertNull(WMethod.checkM_and_colours(graph,g));
-		Assert.assertNull(WMethod.checkM_and_colours(g,graph));
+		LearnerGraph g=new LearnerGraph(graph,cloneConfig);
+		g.findVertex("B").setHighlight(true);
+		Assert.assertNotSame(vertid, g.findVertex("B").getOrigState());
+		Assert.assertNull(WMethod.checkM(graph,g));
+		Assert.assertNull(WMethod.checkM(g,graph));
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	@Test
@@ -1146,20 +1165,36 @@ public class TestWMethod {
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
-		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("B").setColour(JUConstants.RED);
-		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g));
-		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph));
+		LearnerGraph g=new LearnerGraph(graph,cloneConfig);
+		g.findVertex("B").setHighlight(true);g.findVertex("B").setColour(JUConstants.RED);
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
+	/** Graphs with different attributes on some of the states. */
 	@Test
 	public final void testVerifySameMergeResults4()
 	{
 		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
 		graph.findVertex("B").setColour(JUConstants.BLUE);graph.findVertex("C").setColour(JUConstants.RED);
 		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
-		LearnerGraph g=graph.copy(cloneConfig);g.findVertex("B").setHighlight(true);g.findVertex("D").setColour(JUConstants.RED);
-		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g));
-		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph));
+		LearnerGraph g=new LearnerGraph(graph,cloneConfig);
+		g.findVertex("B").setHighlight(true);g.findVertex("D").setColour(JUConstants.RED);
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+	}
+	
+	/** Graphs with different attributes on the initial states. */
+	@Test
+	public final void testVerifySameMergeResults5()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->D-b->B-c->C","testCheckGraphNumeric"),config);
+		graph.findVertex("A").setColour(JUConstants.BLUE);
+		Configuration cloneConfig = graph.config.copy();cloneConfig.setLearnerCloneGraph(true);cloneConfig.setLearnerUseStrings(true);
+		LearnerGraph g=new LearnerGraph(graph,cloneConfig);
+		g.findVertex("A").setColour(JUConstants.RED);
+		Assert.assertNotNull(WMethod.checkM_and_colours(graph,g,WMethod.VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNotNull(WMethod.checkM_and_colours(g,graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
 	@BeforeClass

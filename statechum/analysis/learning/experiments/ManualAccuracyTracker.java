@@ -45,7 +45,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		AccuracyTrackerDecorator atd = new AccuracyTrackerDecorator(l,targetMachine);
 		atd.init(sPlus, sMinus);
 		LearnerGraph learned = atd.learnMachine();
-		statechum.analysis.learning.util.OutputUtil.generateDotOutput(learned.paths.getGraph());
+		statechum.analysis.learning.util.OutputUtil.generateDotOutput(learned.pathroutines.getGraph());
 		System.out.println(atd.getResult());
 	}
 	

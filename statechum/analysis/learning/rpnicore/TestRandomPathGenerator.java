@@ -28,7 +28,6 @@ import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.ArrayOperations;
@@ -552,9 +551,4 @@ public class TestRandomPathGenerator {
 		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
 	}
 	
-	@BeforeClass
-	public static void setTestMode()
-	{
-		LearnerGraph.testMode = true;		
-	}
 }

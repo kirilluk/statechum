@@ -23,6 +23,8 @@ import java.io.StringWriter;
 
 import org.junit.Assert;
 
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+
 /** Contains universally-useful methods, all of them static.
  * 
  * @author kirill
@@ -60,7 +62,7 @@ public class Helper {
 
 	public interface whatToRun
 	{
-		public void run() throws NumberFormatException, java.io.IOException;
+		public void run() throws NumberFormatException, java.io.IOException, IncompatibleStatesException;
 	}
 }
 

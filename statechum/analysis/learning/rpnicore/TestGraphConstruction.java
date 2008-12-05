@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +38,6 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Visualiser;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
@@ -196,13 +196,34 @@ public final class TestGraphConstruction
 		assertEquals(expected,trans);
 	}
 
+	/** Given a deterministic row represented in a non-deterministic form, converts that row to a deterministic form.
+	 *  
+	 * @param map what to convert
+	 * @param oldToNew map used to convert vertices from those in the original map to those to be used in the result map. If null, no conversion is performed.
+	 * @param from the source state of the outgoing transitions - used in an error message
+	 * @return result of conversion 
+	 */
+	public static Map<String,CmpVertex> convertRowToDet(LearnerGraph graph,Map<String,List<CmpVertex>> map, Map<CmpVertex,CmpVertex> oldToNew, CmpVertex from)
+	{
+		Map<String,CmpVertex> result = graph.createNewRow();
+		for(Entry<String,List<CmpVertex>> rowEntry:map.entrySet())
+		{
+			if (rowEntry.getValue().size() != 1)
+				throw new IllegalArgumentException("non-deterministic or empty target state for transition from state "+from+" with label "+rowEntry.getKey());
+			CmpVertex target = rowEntry.getValue().iterator().next();if (oldToNew != null) target = oldToNew.get(target);
+			assert target != null;
+			result.put(rowEntry.getKey(),target);
+		}
+		return result;
+	}
+
 	/** Empty row. */
 	@Test
 	public final void testRowConversion0()
 	{
 		CmpVertex A = new StringVertex("A");
 		LearnerGraph graph = new LearnerGraph(confString);
-		Map<String,CmpVertex> actual=graph.convertRowToDet(Collections.EMPTY_MAP, null, A),
+		Map<String,CmpVertex> actual=convertRowToDet(graph,Collections.EMPTY_MAP, null, A),
 			expected = graph.createNewRow();
 		assertEquals(expected,actual);
 	}
@@ -213,7 +234,7 @@ public final class TestGraphConstruction
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B");
 		LearnerGraph graph = new LearnerGraph(confString);
-		Map<String,CmpVertex> actual=graph.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A),
+		Map<String,CmpVertex> actual=convertRowToDet(graph,createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A),
 			expected = graph.createNewRow();
 		expected.put("a", B);
 		assertEquals(expected,actual);
@@ -225,7 +246,7 @@ public final class TestGraphConstruction
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
 		LearnerGraph graph = new LearnerGraph(confString);
-		Map<String,CmpVertex> actual=graph.convertRowToDet(
+		Map<String,CmpVertex> actual=convertRowToDet(graph,
 						createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),B,
 								createLabelToStateMap(Arrays.asList(new String[] {"e"}),A,
 										createLabelToStateMap(Arrays.asList(new String[] {"c","d"}),C,null))), null, A),
@@ -242,7 +263,7 @@ public final class TestGraphConstruction
 			newA = new StringVertex("newA"),newB = new StringVertex("newB"), newC = new StringVertex("newC");
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();oldToNew.put(A,newA);oldToNew.put(B,newB);oldToNew.put(C,newC);
 		LearnerGraph graph = new LearnerGraph(confString);
-		Map<String,CmpVertex> actual=graph.convertRowToDet(
+		Map<String,CmpVertex> actual=convertRowToDet(graph,
 						createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),B,
 								createLabelToStateMap(Arrays.asList(new String[] {"e"}),A,
 										createLabelToStateMap(Arrays.asList(new String[] {"c","d"}),C,null))), oldToNew, A),
@@ -259,7 +280,7 @@ public final class TestGraphConstruction
 		final LearnerGraph graph = new LearnerGraph(confString);
 		
 		checkForCorrectException(new whatToRun() { public void run() {
-			graph.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),B,createLabelToStateMap(Arrays.asList(new String[] {"a"}),C,null)), null,A);
+			convertRowToDet(graph,createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),B,createLabelToStateMap(Arrays.asList(new String[] {"a"}),C,null)), null,A);
 		}},IllegalArgumentException.class,"non-deterministic");
 	}
 
@@ -272,19 +293,20 @@ public final class TestGraphConstruction
 		
 		checkForCorrectException(new whatToRun() { public void run() {
 			Map<String,List<CmpVertex>> nondetRow = new TreeMap<String,List<CmpVertex>>();nondetRow.put("a", new LinkedList<CmpVertex>());
-			graph.convertRowToDet(nondetRow, null,A);
+			convertRowToDet(graph,nondetRow, null,A);
 		}},IllegalArgumentException.class,"non-deterministic");
 	}
 
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction1a()
 	{
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B-b->C-c->A","testConstruction1"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
 		expected.init = expected.findVertex("A");
 		
 		assertEquals("A", graph.init.getID().toString());
@@ -292,15 +314,16 @@ public final class TestGraphConstruction
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
 	
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction1b()
 	{
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B-b->C-c->A","testConstruction1"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
 		expected.init = expected.findVertex("A");
 		
 		assertEquals("A", graph.init.getID().toString());
@@ -308,6 +331,7 @@ public final class TestGraphConstruction
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
 
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction2()
 	{
@@ -315,13 +339,13 @@ public final class TestGraphConstruction
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B-b->C-c->A-b->B-a-#D","testConstruction2"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
 		CmpVertex D = new StringVertex("D");D.setAccept(false);
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),
 				new StringVertex("B"),null), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b"}),
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),
 				new StringVertex("C"),createLabelToStateMap(Arrays.asList(new String[] {"a"}),D,null)), null, B));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"c"}),
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),
 				new StringVertex("A"),null), null, C));
-		expected.transitionMatrix.put(D, expected.convertRowToDet(createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, D));
+		expected.transitionMatrix.put(D, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, D));
 		expected.init = expected.findVertex("A");
 		
 		assertEquals("A", graph.init.getID().toString());
@@ -329,17 +353,18 @@ public final class TestGraphConstruction
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
 
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction3()
 	{
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B<-b--C-c->A-b->A-c->A\nB-d->B-p->C\nB-q->C\nB-r->C\n","testConstruction3"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),
 				new StringVertex("A"),createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null)), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),C,null)), null, B));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b"}),B,
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null)), null, C));
 		expected.init = expected.findVertex("A");
 		
@@ -348,6 +373,7 @@ public final class TestGraphConstruction
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
 
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction4()
 	{
@@ -355,13 +381,13 @@ public final class TestGraphConstruction
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B<-b--D-c->A-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction4"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C"),D = new StringVertex("D");
 		C.setAccept(false);
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),
 				new StringVertex("A"),createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null)), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),C,null)), null, B));
-		expected.transitionMatrix.put(D, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b"}),B, 
+		expected.transitionMatrix.put(D, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),B, 
 				createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null)), null, D));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
 		expected.init = expected.findVertex("A");
 		expected.findVertex("A").setAccept(true);
 		expected.findVertex("B").setAccept(true);
@@ -373,6 +399,7 @@ public final class TestGraphConstruction
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
 
+	/** Tests that deterministic graphs are correctly built. */
 	@Test
 	public final void testGraphConstruction5()
 	{
@@ -380,11 +407,11 @@ public final class TestGraphConstruction
 		LearnerGraph graph = new LearnerGraph(buildGraph("A--a-->B-b-#C\nA-b->A-c->A\nB-d->B-p-#C\nB-q-#C\nB-r-#C\n","testConstruction5"),config);
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
 		C.setAccept(false);
-		expected.transitionMatrix.put(A, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),A,
+		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),A,
 				createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null)), null, A));
-		expected.transitionMatrix.put(B, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
+		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),C,null)), null, B));
-		expected.transitionMatrix.put(C, expected.convertRowToDet(createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
+		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
 		expected.init = expected.findVertex("A");
 		
 		assertEquals("A", graph.init.getID().toString());
@@ -399,9 +426,9 @@ public final class TestGraphConstruction
 		LearnerGraph expected = new LearnerGraph(confString);expected.initEmpty();
 		LearnerGraph graph = new LearnerGraph(buildGraph("P-c->P<-b-Q_State<-a-P-b->P\nQ_State-a->Q_State","testConstruction6"),config);
 		CmpVertex P = new StringVertex("P"), Q_State = new StringVertex("Q_State");
-		expected.transitionMatrix.put(P, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),P,
+		expected.transitionMatrix.put(P, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b","c"}),P,
 				createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,null)), null, P));
-		expected.transitionMatrix.put(Q_State, expected.convertRowToDet(createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,
+		expected.transitionMatrix.put(Q_State, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,
 				createLabelToStateMap(Arrays.asList(new String[] {"b"}),P,null)), null, Q_State));
 		expected.init = expected.findVertex("P");
 		

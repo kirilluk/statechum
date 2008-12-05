@@ -61,6 +61,12 @@ public abstract class PTAExploration<USEROBJECT>
 			return inputFromThisNode;
 		}
 		
+		/** Returns the state corresponding to the underlying FSM. */
+		public Object getState()
+		{
+			return ptaNode.getState();
+		}
+		
 		public PTAExplorationNode(Node currNode)
 		{
 			ptaNode = currNode;userObject = newUserObject();

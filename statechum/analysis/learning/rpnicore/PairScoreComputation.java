@@ -17,7 +17,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,14 +34,16 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.LearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.DetermineDiagonalAndRightHandSide;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.HandleRow;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -85,7 +86,7 @@ public class PairScoreComputation {
 						{
 							coregraph.pairsAndScores.add(pair);
 							++numberOfCompatiblePairs;
-							if (LearnerGraph.testMode) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
+							if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
 						}
 					}
 					
@@ -109,7 +110,7 @@ public class PairScoreComputation {
 							if (pair.getScore() >= coregraph.config.getGeneralisationThreshold())
 							{
 								coregraph.pairsAndScores.add(pair);
-								if (LearnerGraph.testMode) PathRoutines.checkPTAConsistency(coregraph, oldBlue);
+								if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(coregraph, oldBlue);
 							}
 						}
 					}
@@ -142,7 +143,7 @@ public class PairScoreComputation {
 	
 	protected PairScore obtainPair(CmpVertex blue, CmpVertex red)
 	{
-		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.wmethod.computeAlphabet().size();
+		if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
 		int computedScore = -1, compatibilityScore =-1;StatePair pairToComputeFrom = new StatePair(blue,red);
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.COMPATIBILITY)
 		{
@@ -151,7 +152,7 @@ public class PairScoreComputation {
 		else		
 		if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.GENERAL)
 		{
-			LinkedList<Collection<CmpVertex>> collectionOfVerticesToMerge = new LinkedList<Collection<CmpVertex>>();
+			LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 			computedScore = computePairCompatibilityScore_general(pairToComputeFrom, collectionOfVerticesToMerge);compatibilityScore=computedScore;
 		}
 		else
@@ -166,7 +167,7 @@ public class PairScoreComputation {
 			if (computedScore <= coregraph.learnerCache.maxScore &&
 					coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
 					    computedScore = -1; 
-			if (LearnerGraph.testMode)
+			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 				assert computePairCompatibilityScore(pairToComputeFrom) <= computedScore;
 		}
 		
@@ -239,7 +240,7 @@ public class PairScoreComputation {
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
 
-			if (!AbstractTransitionMatrix.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.incompatibles))
+			if (!AbstractLearnerGraph.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.incompatibles))
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
@@ -319,7 +320,8 @@ public class PairScoreComputation {
 		}
 		
 		public int compareTo(StringVertexPair o) {
-			return firstElem.compareTo(o.firstElem);
+			//return firstElem.compareTo(o.firstElem);
+			return super.compareTo(o);
 		}
 		
 		@Override
@@ -335,209 +337,86 @@ public class PairScoreComputation {
 	 *  @param origPair the pair to compute a score of in this graph.
 	 *  @param mergedVertices collection of sets of merged vertices. Singleton sets reflect those which were not merged with any other.
 	 */ 
-	public int computePairCompatibilityScore_general(StatePair origPair,Collection<Collection<CmpVertex>> mergedVertices) 
+	public int computePairCompatibilityScore_general(StatePair origPair,Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices) 
 	{
-		
-		class EquivalenceClass implements Comparable<EquivalenceClass>
-		{
-			/** The list of outgoing transitions from this equivalence class. */ 
-			private TreeSet<StringVertexPair> outgoingTransitions = new TreeSet<StringVertexPair>(),
-				newOutgoingTransitions = null;
-			
-			/** When merging multiple equivalence classes, I need to change entries 
-			 * for all states belonging to those classes.
-			 * This set makes it possible to do this.
-			  */
-			private Set<CmpVertex> states = new TreeSet<CmpVertex>();
-			
-			/** The ID of this equivalence class - not really necessary but handy. */
-			int ClassNumber;
-			
-			public EquivalenceClass(int number)
-			{
-				ClassNumber=number;
-			}
-			
-			public int getNumber()
-			{
-				return ClassNumber;
-			}
-			
-			/** Returns transitions leaving states contained in this equivalence class. */ 
-			public TreeSet<StringVertexPair> getOutgoing()
-			{
-				return outgoingTransitions;
-			}
-			
-			/** Returns transitions leaving states contained in this equivalence class. */ 
-			public TreeSet<StringVertexPair> getNewOutgoing()
-			{
-				return newOutgoingTransitions;
-			}
-			
-			public Set<CmpVertex> getStates()
-			{
-				return states;
-			}
-			
-			/** Adds transitions from the supplied collection.
-			 * 
-			 * @param from transitions to add from.
-			 */
-			public void addFrom(CmpVertex vert,Collection<Entry<String,CmpVertex>> from)
-			{
-				states.add(vert);
-				for(Entry<String,CmpVertex> entry:from)
-					outgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
-			}
-			
-			/** Adds transitions from the supplied collection.
-			 * 
-			 * @param from transitions to add from.
-			 */
-			public void mergeWith(CmpVertex vert,Collection<Entry<String,CmpVertex>> from)
-			{
-				states.add(vert); 
-				newOutgoingTransitions = new TreeSet<StringVertexPair>();
-				for(Entry<String,CmpVertex> entry:from)
-					newOutgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
-			}
-			
-			/** Adds the contents of the supplied argument to outgoing 
-			 * transitions of this class.
-			 * 
-			 * @param to
-			 */
-			public void mergeWith(EquivalenceClass to)
-			{
-				newOutgoingTransitions = to.outgoingTransitions;states.addAll(to.states);
-			}
-
-			/** When equivalence classes are updated, I do not update "real" data, but just store the changes.
-			 * This is necessary to avoid scanning all pairs of old outgoing transitions, if there is a 1000
-			 * of them it takes a while. This method is invoked when such a scanning is finished to update the data.
-			 */
-			public void populate()
-			{
-				outgoingTransitions.addAll(newOutgoingTransitions);newOutgoingTransitions = null;
-			}
-			
-			public int compareTo(EquivalenceClass o) {
-				return ClassNumber - o.ClassNumber;
-			}
-
-			/* (non-Javadoc)
-			 * @see java.lang.Object#hashCode()
-			 */
-			@Override
-			public int hashCode() {
-				final int prime = 31;
-				int result = 1;
-				result = prime * result + ClassNumber;
-				return result;
-			}
-
-			/* (non-Javadoc)
-			 * @see java.lang.Object#equals(java.lang.Object)
-			 */
-			@Override
-			public boolean equals(Object obj) {
-				if (this == obj)
-					return true;
-				if (obj == null)
-					return false;
-				if (!(obj instanceof EquivalenceClass))
-					return false;
-				final EquivalenceClass other = (EquivalenceClass) obj;
-				if (ClassNumber != other.ClassNumber)
-					return false;
-				return true;
-			}
-			
-			@Override
-			public String toString()
-			{
-				return "[ "+ClassNumber+" -> "+outgoingTransitions+" ]";
-			}
-		}
-		
 		mergedVertices.clear();
 		int equivalenceClassNumber = 0;
-		Map<CmpVertex,EquivalenceClass> stateToEquivalenceClass = new TreeMap<CmpVertex,EquivalenceClass>();
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = 0;// compatibility score between states in the pair
-		
-		//System.out.println(coregraph.getStateNumber());
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue containing pairs to be explored
 		currentExplorationBoundary.add(origPair);
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair currentPair = currentExplorationBoundary.remove();
-			if (!AbstractTransitionMatrix.checkCompatible(currentPair.firstElem,currentPair.secondElem,coregraph.incompatibles))
+
+
+			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
+			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
+			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = null;
+			
+			try
 			{
-				score = -1;
-				break;// incompatibility
-			}
-			EquivalenceClass firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
-			EquivalenceClass secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
-			EquivalenceClass equivalenceClass = null;
-			if (firstClass == null)
-			{
-				if (secondClass == null)
-				{// a new pair has been discovered, populate from the current transition matrix.
-					equivalenceClass = new EquivalenceClass(equivalenceClassNumber++);
-					assert coregraph.transitionMatrix.containsKey(currentPair.firstElem) : " state "+currentPair.firstElem+" is not in the graph";
-					assert coregraph.transitionMatrix.containsKey(currentPair.secondElem) : " state "+currentPair.firstElem+" is not in the graph";
-					equivalenceClass.addFrom(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
-					equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
-					stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
-					stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
-				}
-				else
-				{// first is null, second is not, record first as a member of the equivalence class the second one belongs to.
-					equivalenceClass = secondClass;
-					equivalenceClass.mergeWith(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
-					stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
-				}
-			}
-			else
-			{
-				if (secondClass == null)
-				{// second is null, first is not, record second as a member of the equivalence class the first one belongs to.
-					equivalenceClass = firstClass;
-					equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
-					stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
-				}
-				else
-					if (firstClass.ClassNumber != secondClass.ClassNumber)
-					{
-						// if the two are the same, we've seen this pair before - ignore this case
-						// neither are null, hence it looks like we have to merge the two equivalent classes - doing this via inplace update
-						// Tested by testPairCompatible_general_C()
-						equivalenceClass = firstClass;
-						equivalenceClass.mergeWith(secondClass);// merge equivalence classes
-						// I cannot keep secondClass in the table because a number of states point to it.
-						// Subsequently, I may wish to merge the first class with another one, but there is
-						// nothing to suggest that the secondClass which I just merged in, has to be merged into
-						// that "another one". For this reason, I keep a collection of all states in each 
-						// equivalence class and remap stateToEquivalenceClass when equivalence classes are merged.
-						
-						for(CmpVertex vert:secondClass.getStates())
-							stateToEquivalenceClass.put(vert,equivalenceClass);
-						if (LearnerGraph.testMode)
-							for(Entry<CmpVertex,EquivalenceClass> entry:stateToEquivalenceClass.entrySet())
-								assert entry.getValue().ClassNumber != secondClass.ClassNumber;
+				if (firstClass == null)
+				{
+					if (secondClass == null)
+					{// a new pair has been discovered, populate from the current transition matrix.
+						equivalenceClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(equivalenceClassNumber++,coregraph);
+						assert coregraph.transitionMatrix.containsKey(currentPair.firstElem) : " state "+currentPair.firstElem+" is not in the graph";
+						assert coregraph.transitionMatrix.containsKey(currentPair.secondElem) : " state "+currentPair.firstElem+" is not in the graph";
+						equivalenceClass.addFrom(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
+						equivalenceClass.mergeWith(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
+						stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
+						stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
 					}
+					else
+					{// first is null, second is not, record first as a member of the equivalence class the second one belongs to.
+						equivalenceClass = secondClass;
+						equivalenceClass.mergeWith(currentPair.firstElem,coregraph.transitionMatrix.get(currentPair.firstElem).entrySet());
+						stateToEquivalenceClass.put(currentPair.firstElem,equivalenceClass);
+					}
+				}
+				else
+				{
+					if (secondClass == null)
+					{// second is null, first is not, record second as a member of the equivalence class the first one belongs to.
+						equivalenceClass = firstClass;
+						equivalenceClass.mergeWith(currentPair.secondElem,coregraph.transitionMatrix.get(currentPair.secondElem).entrySet());
+						stateToEquivalenceClass.put(currentPair.secondElem,equivalenceClass);
+					}
+					else
+						if (firstClass.getNumber() != secondClass.getNumber())
+						{
+							// if the two are the same, we've seen this pair before - ignore this case
+							// neither are null, hence it looks like we have to merge the two equivalent classes - doing this via inplace update
+							// Tested by testPairCompatible_general_C()
+							equivalenceClass = firstClass;
+							equivalenceClass.mergeWith(secondClass);// merge equivalence classes
+							// I cannot keep secondClass in the table because a number of states point to it.
+							// Subsequently, I may wish to merge the first class with another one, but there is
+							// nothing to suggest that the secondClass which I just merged in, has to be merged into
+							// that "another one". For this reason, I keep a collection of all states in each 
+							// equivalence class and remap stateToEquivalenceClass when equivalence classes are merged.
+							
+							for(CmpVertex vert:secondClass.getStates())
+								stateToEquivalenceClass.put(vert,equivalenceClass);
+							if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+								for(Entry<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:stateToEquivalenceClass.entrySet())
+									assert entry.getValue().getNumber() != secondClass.getNumber();
+						}
+				}
+			} catch (IncompatibleStatesException e) {
+				score = -1;break;// encountered incompatible states
 			}
 
-			
+			//if (equivalenceClass != null)
+			//	System.out.println("considering: "+equivalenceClass+ "("+equivalenceClass.getNumber()+") current: "+equivalenceClass.getOutgoing()+", new : "+equivalenceClass.getNewOutgoing());
 			// We reconsider every equivalence class which has changed which is the case if equivalenceClass != null. 
 			// Note there may be still pairs from the past which may have originally 
 			// belonged to the two classes which got subsequently merged. These pairs 
 			// will remain on the exploration stack and will be ignored below.
 			if (equivalenceClass != null)
 			{
-				//if (coregraph.getStateNumber() == 1268) System.out.println(equivalenceClass.getNumber()+" ,"+equivalenceClass.getStates().size());
 				// Now we have a single equivalence class in the form of a list of <label,next vertex> entries, explore all matching transitions,
 				// which correspond to sequences where the first element is the same (we are using sorted sets).
 				Iterator<StringVertexPair> firstTransitionIter = equivalenceClass.getOutgoing().iterator();
@@ -545,15 +424,23 @@ public class PairScoreComputation {
 				while(firstTransitionIter.hasNext())
 				{
 					StringVertexPair firstTransition=firstTransitionIter.next();
-					EquivalenceClass fClass = stateToEquivalenceClass.get (firstTransition.secondElem);
+					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> fClass = stateToEquivalenceClass.get (firstTransition.secondElem);
 
-					Iterator<StringVertexPair> secondTransitionIter = equivalenceClass.getNewOutgoing().tailSet(firstTransition).iterator();
+					// For each input, we need to consider every pair of next states; the loop below explores a triangle.
+					// In a way, we merge all appropriate equivalence classes, pairwise. Might be better to do this
+					// in one go. 
+					// The idea of tailSet is to pick all input/target state pairs for the input we considering and inputs
+					// lexicographically higher; once we got to the end of the collection of inputs,
+					// !firstTransition.firstElem.equals(secondTransition.firstElem) line will stop the iteration.
+					StringVertexPair firstInput = new StringVertexPair(firstTransition.firstElem,null);
+					Iterator<StringVertexPair> secondTransitionIter = equivalenceClass.getNewOutgoing().tailSet(firstInput).iterator();
 					while (secondTransitionIter.hasNext())
 					{
 						StringVertexPair secondTransition = secondTransitionIter.next();
 						if (!firstTransition.firstElem.equals(secondTransition.firstElem))
 							break;// go to the end of the sequence of outgoing transitions with the same label.
-						EquivalenceClass sClass = stateToEquivalenceClass.get(secondTransition.secondElem);
+						//System.out.println("transition " + firstTransition.firstElem+" to "+new StatePair(firstTransition.secondElem,secondTransition.secondElem));
+						AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> sClass = stateToEquivalenceClass.get(secondTransition.secondElem);
 						if (fClass == null || sClass == null || !fClass.equals(sClass))
 						{// this is the case when a pair of states will have to be merged.
 							StatePair nextPair = new StatePair(firstTransition.secondElem,secondTransition.secondElem);
@@ -566,28 +453,25 @@ public class PairScoreComputation {
 			}
 		}
 		
-		assert stateToEquivalenceClass.size() > 0;
-		//System.out.println(stateToEquivalenceClass);
+		assert score < 0 || stateToEquivalenceClass.size() > 0;
+
 		if (score >=0)
 		{// merge successful - collect vertices from the equivalence classes
-			int equivalenceClasses = 0;
-			Map<Integer,Collection<CmpVertex>> classToVertices = new TreeMap<Integer,Collection<CmpVertex>>();
-			for(Entry<CmpVertex,EquivalenceClass> entry:stateToEquivalenceClass.entrySet())
-			{
-				int eqClass = entry.getValue().getNumber();Collection<CmpVertex> merged = classToVertices.get(eqClass);
-				if (merged == null)
-				{
-					equivalenceClasses++;
-					merged = new LinkedList<CmpVertex>();classToVertices.put(eqClass, merged);
-				}
-				merged.add(entry.getKey());
-			}
-			mergedVertices.addAll(classToVertices.values());
+			mergedVertices.clear();Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedCollection = new TreeSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();mergedCollection.addAll(stateToEquivalenceClass.values());
+			mergedVertices.addAll(mergedCollection);
 			Collection<CmpVertex> verticesNotMerged = new HashSet<CmpVertex>();verticesNotMerged.addAll(coregraph.transitionMatrix.keySet());
 			verticesNotMerged.removeAll(stateToEquivalenceClass.keySet());
-			equivalenceClasses+=verticesNotMerged.size();score=coregraph.transitionMatrix.size()-equivalenceClasses;
 			for(CmpVertex vert:verticesNotMerged)
-				mergedVertices.add(Arrays.asList(new CmpVertex[]{vert}));
+			{
+				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(equivalenceClassNumber++,coregraph);
+				try {
+					eqClass.addFrom(vert, coregraph.transitionMatrix.get(vert).entrySet());
+				} catch (IncompatibleStatesException e) {
+					assert false;// this should never happen because we are adding single states which cannot be incompatible to anything.
+				}
+				mergedVertices.add(eqClass);
+			}
+			score=coregraph.transitionMatrix.size()-mergedVertices.size();
 		}
 
 		return score;
@@ -600,7 +484,7 @@ public class PairScoreComputation {
 	 */
 	public int computeStateScore(StatePair pair)
 	{
-		if (!AbstractTransitionMatrix.checkCompatible(pair.getR(),pair.getQ(),coregraph.incompatibles))
+		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.incompatibles))
 			return -1;
 
 		int score = 0;
@@ -632,7 +516,7 @@ public class PairScoreComputation {
 					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
 					if (nextBlueState != null)
 					{// both states can make a transition
-						if (!AbstractTransitionMatrix.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.incompatibles))
+						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.incompatibles))
 							return -1;// incompatible states
 						
 						if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
@@ -657,14 +541,14 @@ public class PairScoreComputation {
 		
 		if (foundKTail)
 		{// If we are operating in a k-tails mode, report a very high number if we found a k-tail.
-			if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.wmethod.computeAlphabet().size();
+			if (coregraph.learnerCache.maxScore < 0) coregraph.learnerCache.maxScore = coregraph.transitionMatrix.size()*coregraph.pathroutines.computeAlphabet().size();
 			score = coregraph.learnerCache.maxScore+1;
 		}
 		return score;
 	}
 
 	/** Computes a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by LearnerGraphND's filter are ignored.
+	 * States which are filtered out by GDLearnerGraph's filter are ignored.
 	 * The outcome is not sorted - this internal routine is used by 
 	 * chooseStatePairs_filtered and chooseStatePairs.
 	 * 
@@ -677,8 +561,8 @@ public class PairScoreComputation {
 	public void chooseStatePairs_internal(double threshold, double scale, int ThreadNumber, 
 			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, StatesToConsider filter)
 	{
-		LearnerGraphND ndGraph = new LearnerGraphND(coregraph, filter, false);
-		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=LearnerGraphND.PAIR_OK;
+		GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
+		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=GDLearnerGraph.PAIR_OK;
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
 		solver.solve();
@@ -694,11 +578,11 @@ public class PairScoreComputation {
 				if (value > threshold) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*value), 0));
 			}
 			else // PAIR_INCOMPATIBLE
-				if (threshold < LearnerGraphND.PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*LearnerGraphND.PAIR_INCOMPATIBLE), 0));
+				if (threshold < GDLearnerGraph.PAIR_INCOMPATIBLE) coregraph.pairsAndScores.add(ndGraph.getPairScore(i, (int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE), 0));
 		}
 	}
 	/** Returns a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by LearnerGraphND's filter are ignored.
+	 * States which are filtered out by GDLearnerGraph's filter are ignored.
 	 * 
 	 * @param threshold the threshold to use, prior to scaling.
 	 * @param scale We are using floating-point numbers here but compatibility scores are integers, hence we scale them before truncating into integers.
@@ -715,7 +599,7 @@ public class PairScoreComputation {
 	}
 
 	/** Returns a stack of states with scores over a given threshold, using Linear. 
-	 * States which are filtered out by LearnerGraphND's filter are initially ignored and subsequently 
+	 * States which are filtered out by GDLearnerGraph's filter are initially ignored and subsequently 
 	 * added. 
 	 * 
 	 * @param threshold the threshold to use, prior to scaling.
@@ -754,7 +638,9 @@ public class PairScoreComputation {
 									!filter.stateToConsider(stateB.getKey()))
 							{
 								int score = 0;
-								if (!AbstractTransitionMatrix.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.incompatibles)) score=LearnerGraphND.PAIR_INCOMPATIBLE;
+
+								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.incompatibles)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
+
 								if (score>threshold)
 									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
 
@@ -764,8 +650,8 @@ public class PairScoreComputation {
 					}
 				});
 			}
-			LearnerGraphND.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,TransitionMatrixND.ignoreNone,
-					LearnerGraphND.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
+			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
+					GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
 		}

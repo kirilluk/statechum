@@ -28,6 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Helper;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
 
 import static statechum.Helper.checkForCorrectException;
@@ -37,7 +39,8 @@ import static statechum.Helper.whatToRun;
  * @author kirill
  *
  */
-public class TestLTL_to_ba {
+public class TestLTL_to_ba 
+{
 	@Before
 	public final void beforeTest()
 	{
@@ -527,9 +530,13 @@ public class TestLTL_to_ba {
 	{
 		ba.parse(text);
 		LearnerGraph result = null;
-		synchronized(AbstractTransitionMatrix.syncObj)
+		synchronized(AbstractLearnerGraph.syncObj)
 		{
-			result = ba.matrixFromLTL.buildDeterministicGraph();
+			try {
+				result = ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("could not build deterministic graph", e);
+			}
 		}
 		return result;
 	}
@@ -605,8 +612,8 @@ public class TestLTL_to_ba {
 		"fi;\n"+
 		"state_b: if :: (a) -> goto state_b fi;"+
 		"}\n";
-		checkForCorrectException(new whatToRun() { public void run() {
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
+		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
 		}},IllegalArgumentException.class,"absent initial state");
 	}
 	
@@ -798,9 +805,9 @@ public class TestLTL_to_ba {
 		"accept_G: if\n"+
 		":: (a) -> goto accept_B\n"+
 		"fi;}\n";
-		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
-		}},IllegalArgumentException.class,"inconsistent labelling");
+		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException { 
+			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
+		}},IncompatibleStatesException.class,"cannot add state");
 	}
 	
 	/** Inconsistent accept/reject labelling between states A (initial) and B. */
@@ -834,9 +841,9 @@ public class TestLTL_to_ba {
 		"accept_G: if\n"+
 		":: (a) -> goto reject_B\n"+
 		"fi;}\n";
-		checkForCorrectException(new whatToRun() { public void run() { 
-			ba.parse(text);ba.matrixFromLTL.buildDeterministicGraph();
-		}},IllegalArgumentException.class,"inconsistent labelling");
+		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException { 
+			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
+		}},IncompatibleStatesException.class,"cannot add state");
 	}
 	
 	/** A very simple automaton. */
@@ -869,35 +876,39 @@ public class TestLTL_to_ba {
 		}},IllegalArgumentException.class,"syntax");
 	}
 	
-	/** This one is an integration test of ltl2ba. Second test : empty automaton. */
+	/** This one is an integration test of ltl2ba. Second test : empty automaton. 
+	 * @throws IncompatibleStatesException */
 	@Test
-	public final void testLTL_integration_empty()
+	public final void testLTL_integration_empty() throws IncompatibleStatesException
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
 		ba.runLTL2BA("false");
-		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.buildDeterministicGraph()));
+		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}
 	
-	/** This one is an integration test of ltl2ba. Third test : a bigger automaton. */
+	/** This one is an integration test of ltl2ba. Third test : a bigger automaton. 
+	 * @throws IncompatibleStatesException */
 	@Test
-	public final void testLTL_integration_bigger()
+	public final void testLTL_integration_bigger() throws IncompatibleStatesException
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.buildDeterministicGraph()));
+		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}
 	
-	/** This one is an integration test of ltl2ba. Third test : completing a bigger automaton. */
+	/** This one is an integration test of ltl2ba. Third test : completing a bigger automaton. 
+	 * @throws IncompatibleStatesException */
 	@Test
-	public final void testLTL_integration_bigger2()
+	public final void testLTL_integration_bigger2() throws IncompatibleStatesException
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
-		LearnerGraph result = ba.matrixFromLTL.buildDeterministicGraph().transform.completeMatrix();
+		LearnerGraph result = new LearnerGraph(ba.matrixFromLTL.config);
+		AbstractPathRoutines.completeMatrix(ba.matrixFromLTL.pathroutines.buildDeterministicGraph(),result);
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph(
 				"I-close->1\nI-edit->I1\nI-save->I1\nI-load->I1\n"+
 				"1-load->I1-close->1\n"+
@@ -925,7 +936,8 @@ public class TestLTL_to_ba {
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
 		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
-		ba.automatonLoadedFromLTL = Transform.removeRejectStates(ba.automatonLoadedFromLTL, ba.automatonLoadedFromLTL.config);
+		LearnerGraph result = new LearnerGraph(ba.automatonLoadedFromLTL.config);
+		AbstractPathRoutines.removeRejectStates(ba.automatonLoadedFromLTL, result);ba.automatonLoadedFromLTL=result;
 		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
 	}
 	
@@ -937,7 +949,8 @@ public class TestLTL_to_ba {
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
 		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
-		ba.automatonLoadedFromLTL = Transform.removeRejectStates(ba.automatonLoadedFromLTL, ba.automatonLoadedFromLTL.config);
+		LearnerGraph result = new LearnerGraph(ba.automatonLoadedFromLTL.config);
+		AbstractPathRoutines.removeRejectStates(ba.automatonLoadedFromLTL, result);ba.automatonLoadedFromLTL=result;
 		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
 		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));
 		Assert.assertNull(WMethod.checkM(ba.augmentGraph(whatToAugment),expectedFromASEExample));

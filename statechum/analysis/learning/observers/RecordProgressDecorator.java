@@ -26,7 +26,7 @@ import java.util.Stack;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.xml.XMLConstants;
+import statechum.StatechumXML;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
@@ -41,8 +41,8 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
 import statechum.model.testset.PTASequenceEngine;
 
 /** Stores some arguments and results of calls to learner's methods 
@@ -72,7 +72,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try
 		{
-			factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
+			factory.setFeature(javax.xml.XMLConstants.FEATURE_SECURE_PROCESSING, true);factory.setXIncludeAware(false);
 			factory.setExpandEntityReferences(false);factory.setValidating(false);// we do not have a schema to validate against-this does not seem necessary for the simple data format we are considering here.
 			doc = factory.newDocumentBuilder().newDocument();
 			if (writeZip)
@@ -82,7 +82,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 			else
 			{// only create a top-level element if writing pure XML.
 				outputStream=outStream;
-				topElement = doc.createElement(ELEM_KINDS.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(Transform.endl(doc));
+				topElement = doc.createElement(StatechumXML.ELEM_STATECHUM_TESTTRACE.name());doc.appendChild(topElement);topElement.appendChild(AbstractPersistence.endl(doc));
 			}
 			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
 			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
@@ -100,7 +100,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	protected void writeResult(LearnerGraph graph)
 	{
 		Element finalGraphXMLNode = series.writeGraph(graph);
-		finalGraphXMLNode.setAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name(),ELEM_KINDS.ATTR_LEARNINGOUTCOME.name());
+		finalGraphXMLNode.setAttribute(StatechumXML.ATTR_GRAPHKIND.name(),StatechumXML.ATTR_LEARNINGOUTCOME.name());
 		writeElement(finalGraphXMLNode);
 	}
 	
@@ -177,7 +177,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		}
 		else
 		{
-			topElement.appendChild(elem);topElement.appendChild(Transform.endl(doc));// just add children.
+			topElement.appendChild(elem);topElement.appendChild(AbstractPersistence.endl(doc));// just add children.
 		}
 	}
 	
@@ -200,24 +200,24 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 	
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, Object[] options) 
+			List<String> question, int responseForNoRestart, Object[] options) 
 	{
-		Element questionElement = doc.createElement(ELEM_KINDS.ELEM_ANSWER.name());
-		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, options);
+		Element questionElement = doc.createElement(StatechumXML.ELEM_ANSWER.name());
+		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, options);
 		StringWriter strWriter = new StringWriter();writeInputSequence(strWriter,question);
-		questionElement.setAttribute(ELEM_KINDS.ATTR_QUESTION.name(),strWriter.toString());
-		questionElement.setAttribute(ELEM_KINDS.ATTR_FAILEDPOS.name(), result.firstElem.toString());
-		if (result.secondElem != null) questionElement.setAttribute(ELEM_KINDS.ATTR_LTL.name(), result.secondElem);
+		questionElement.setAttribute(StatechumXML.ATTR_QUESTION.name(),strWriter.toString());
+		questionElement.setAttribute(StatechumXML.ATTR_FAILEDPOS.name(), result.firstElem.toString());
+		if (result.secondElem != null) questionElement.setAttribute(StatechumXML.ATTR_LTL.name(), result.secondElem);
 		writeElement(questionElement);
 		return result;
 	}
 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
 		Stack<PairScore> result = decoratedLearner.ChooseStatePairs(graph);
-		Element pairsElement = doc.createElement(ELEM_KINDS.ELEM_PAIRS.name());
+		Element pairsElement = doc.createElement(StatechumXML.ELEM_PAIRS.name());
 		for(PairScore p:result)
 		{
-			pairsElement.appendChild(writePair(p,doc));pairsElement.appendChild(Transform.endl(doc));
+			pairsElement.appendChild(writePair(p,doc));pairsElement.appendChild(AbstractPersistence.endl(doc));
 		}
 		writeElement(pairsElement);
 		return result;
@@ -226,8 +226,8 @@ public class RecordProgressDecorator extends ProgressDecorator
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		List<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
-		Element questions = doc.createElement(ELEM_KINDS.ELEM_QUESTIONS.name());
-		Element questionList = writeSequenceList(ELEM_KINDS.ATTR_QUESTIONS.name(), result);
+		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
+		Element questionList = writeSequenceList(StatechumXML.ATTR_QUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
 		writeElement(questions);
 		return result;
@@ -243,7 +243,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	{
 		LearnerGraph result = decoratedLearner.MergeAndDeterminize(original, pair);
 		Element mergedGraph = series.writeGraph(result);
-		Element mergeNode = doc.createElement(ELEM_KINDS.ELEM_MERGEANDDETERMINIZE.name());
+		Element mergeNode = doc.createElement(StatechumXML.ELEM_MERGEANDDETERMINIZE.name());
 		mergeNode.appendChild(mergedGraph);mergeNode.appendChild(writePair(new PairScore(pair.getQ(),pair.getR(),0,0),doc));
 		writeElement(mergeNode);
 		return result;
@@ -283,8 +283,8 @@ public class RecordProgressDecorator extends ProgressDecorator
 	public void Restart(RestartLearningEnum mode) 
 	{
 		decoratedLearner.Restart(mode);
-		Element restartElement = doc.createElement(ELEM_KINDS.ELEM_RESTART.name());
-		restartElement.setAttribute(ELEM_KINDS.ATTR_KIND.name(),mode.toString());
+		Element restartElement = doc.createElement(StatechumXML.ELEM_RESTART.name());
+		restartElement.setAttribute(StatechumXML.ATTR_KIND.name(),mode.toString());
 		writeElement(restartElement);
 		if (mode != RestartLearningEnum.restartNONE) series.reset();
 	}
@@ -301,7 +301,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		LearnerGraph result = decoratedLearner.AddConstraints(graph);
 
 		Element ptaWithConstraintsGraphXMLNode = series.writeGraph(result);
-		ptaWithConstraintsGraphXMLNode.setAttribute(ELEM_KINDS.ATTR_GRAPHKIND.name(),ELEM_KINDS.ATTR_WITHCONSTRAINTS.name());
+		ptaWithConstraintsGraphXMLNode.setAttribute(StatechumXML.ATTR_GRAPHKIND.name(),StatechumXML.ATTR_WITHCONSTRAINTS.name());
 		writeElement(ptaWithConstraintsGraphXMLNode);
 		
 		return result;

@@ -44,8 +44,8 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Pair;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
 
 public class ExperimentRunner 
 {
@@ -418,7 +418,8 @@ public class ExperimentRunner
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
 			try
 			{
-				graph = Transform.loadGraph(new FileReader(inputFileName),cnf);
+				graph = new LearnerGraph(cnf);
+				AbstractPersistence.loadGraph(new FileReader(inputFileName),graph);
 			}
 			catch(Exception ex)
 			{

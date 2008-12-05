@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.rpnicore.LearnerGraphND.DDRH_default;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.DDRH_default;
 
 public class Linear {
 	final LearnerGraph coregraph;
@@ -51,11 +51,11 @@ public class Linear {
 	public static double getSimilarity(LearnerGraph reference, LearnerGraph learnt, boolean forceAccept, int ThreadNumber)
 	{
 		Configuration copyConfig = reference.config.copy();copyConfig.setLearnerCloneGraph(true);
-		LearnerGraph copy = reference.copy(copyConfig);
-		CmpVertex grInit = Transform.addToGraph(copy, learnt, null);
+		LearnerGraph copy = new LearnerGraph(reference,copyConfig);
+		CmpVertex grInit = AbstractPathRoutines.addToGraph(copy, learnt, null);
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
-		LearnerGraphND ndGraph = new LearnerGraphND(copy,TransitionMatrixND.ignoreNone,false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(copy,LearnerGraphND.ignoreNone,false);
 		assert ndGraph.getStatesToNumber().containsKey(copy.init);
 		assert ndGraph.getStatesToNumber().containsKey(grInit);
 		return ndGraph.computeStateCompatibility(ThreadNumber,DDRH_default.class)[ndGraph.vertexToIntNR(copy.init, grInit)]; 
@@ -65,13 +65,15 @@ public class Linear {
 	public static GD.ChangesCounter getSimilarityGD(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
 	{
 		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
-		GD gd = new GD();
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		// I need to remove reject-states because the learnt machine ends up collecting a huge
 		// number of negative edges implicit in the original one but since we're learning
 		// inherently incomplete systems, it is not clear how to compare
-		LearnerGraph reducedReference = Transform.removeRejectStates(reference, reference.config), 
-			reducedLearnt = Transform.removeRejectStates(learnt, reference.config);
-		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter);
+		LearnerGraph reducedReference = new LearnerGraph(reference.config);
+		AbstractPathRoutines.removeRejectStates(reference, reducedReference);
+		LearnerGraph reducedLearnt = new LearnerGraph(reference.config);
+		AbstractPathRoutines.removeRejectStates(learnt,reducedLearnt);
+		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter,reference.config);
 		return counter;
 	}
 	
@@ -79,13 +81,15 @@ public class Linear {
 	public static String getSimilarityGD_details(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
 	{
 		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
-		GD gd = new GD();
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		// I need to remove reject-states because the learnt machine ends up collecting a huge
 		// number of negative edges implicit in the original one but since we're learning
 		// inherently incomplete systems, it is not clear how to compare
-		LearnerGraph reducedReference = Transform.removeRejectStates(reference, reference.config), 
-			reducedLearnt = Transform.removeRejectStates(learnt, reference.config);
-		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter);
+		LearnerGraph reducedReference = new LearnerGraph(reference.config);
+		AbstractPathRoutines.removeRejectStates(reference, reducedReference);
+		LearnerGraph reducedLearnt = new LearnerGraph(reference.config);
+		AbstractPathRoutines.removeRejectStates(learnt,reducedLearnt);
+		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter,reference.config);
 		return reducedReference.countEdges()+"+"+counter.getAdded()+"-"+counter.getRemoved()+"="+reducedLearnt.countEdges();
 		//return Double.toString(counter.getCompressionRate());
 	}

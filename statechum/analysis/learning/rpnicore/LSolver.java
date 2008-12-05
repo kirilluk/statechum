@@ -185,7 +185,7 @@ public class LSolver
 		j_Ap=null;j_Ai=null;j_Ax=null;j_b=null;
 	}
 	
-	public enum LibraryLoadResult { SUCCESS, FAILURE, NOT_ATTEMPTED };
+	public enum LibraryLoadResult { SUCCESS, FAILURE, NOT_ATTEMPTED }
 	private static LibraryLoadResult libraryLoaded = LibraryLoadResult.NOT_ATTEMPTED;
 	
 	/** Solves the system of equations, placing the solution in the x array. For details, refer to UMFPACK manual. */

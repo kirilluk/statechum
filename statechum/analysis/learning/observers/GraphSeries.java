@@ -24,12 +24,17 @@ import org.w3c.dom.Node;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.StatechumXML;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
 /** Rather often, one would want to be able to load and store a sequence of 
  * graphs, so that only differences between graphs are stored. This 
@@ -88,14 +93,15 @@ public class GraphSeries {
 		if (node.getNodeType() != Node.ELEMENT_NODE)
 			throw new IllegalArgumentException("loadGraph was passed a non-element");
 		Element element = (Element)node;
-		if (element.getNodeName().equals(Transform.graphmlNodeNameNS))
+		if (element.getNodeName().equals(StatechumXML.graphmlNodeNameNS.toString()))
 		{
-			graph=Transform.loadGraph(element, config);
+			graph=new LearnerGraph(config);AbstractPersistence.loadGraph(element, graph);
 		}
-		else if (element.getNodeName().equals(GD.ChangesRecorder.gdGD))
+		else if (element.getNodeName().equals(StatechumXML.gdGD.toString()))
 		{
-			graph = graph != null?graph.copy(config):new LearnerGraph(config);
-			ChangesRecorder.applyGD(graph, element);
+			LearnerGraph newGraph = new LearnerGraph(config);
+			ChangesRecorder.applyGD_WithRelabelling(graph != null?new LearnerGraph(graph,config):new LearnerGraph(config), element,newGraph);
+			graph = newGraph;
 		}
 		else throw new IllegalArgumentException("expected either graph or GD, got "+element.getNodeName());
 		
@@ -118,15 +124,20 @@ public class GraphSeries {
 		Element result = null;
 		if (graph == null || !config.getCompressLogs())
 		{
-			graph = newGraph.copy(config);// use the config passed in during construction
+			graph = new LearnerGraph(newGraph,config);// use the config passed in during construction
 			// we need to keep a copy in case the original changes between now and when we get the 
 			// next graph to compress.
-			result = graph.transform.createGraphMLNode(doc);
+			result = graph.storage.createGraphMLNode(doc);
 		}
 		else
 		{
-			result = new GD().computeGDToXML(graph, newGraph, threadsNumber, doc, null);
-			GD.ChangesRecorder.applyGD(graph, result);// this ensures that state IDs are consistent with what we'll end up with when a series of graphs is sequentially reconstructed.
+			result = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>().computeGDToXML(graph, newGraph, threadsNumber, doc, null,config);
+			LearnerGraph whatShouldBeIdenticalToNewGraph = new LearnerGraph(config);
+			GD.ChangesRecorder.applyGD_WithRelabelling(graph, result,whatShouldBeIdenticalToNewGraph);
+			// Note: if we simply do GD.ChangesRecorder.applyGD(graph,result) when loading graphs, this does not relabel vertices. 
+			// For this reason, we have to do applyGD during saving in order to ensure that state IDs are consistent with 
+			// what we'll end up with when a series of graphs is sequentially reconstructed, 
+			// because we have to account for new IDs introduced for duplicate vertices.
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled()) 
 			{
 				// Cannot compare colours here because patches are structural, 
@@ -134,8 +145,18 @@ public class GraphSeries {
 				// than changed to new ones.
 				DifferentFSMException ex = WMethod.checkM(newGraph, graph);
 				if (ex != null) throw ex;
-				assert graph.wmethod.checkUnreachableStates() == false; 
+				ex = WMethod.checkM(newGraph, whatShouldBeIdenticalToNewGraph);
+				if (ex != null) throw ex;
+				ex = WMethod.checkM_and_colours(newGraph, whatShouldBeIdenticalToNewGraph,VERTEX_COMPARISON_KIND.DEEP);
+				if (ex != null) throw ex;
+				assert graph.pathroutines.checkUnreachableStates() == false; 
+				assert whatShouldBeIdenticalToNewGraph.pathroutines.checkUnreachableStates() == false; 
 			}
+			graph = new LearnerGraph(newGraph,config);AbstractLearnerGraph.copyGraphs(newGraph, graph);
+
+			// we have to make a copy of newGraph so that it will not suffer from the subsequent applyGD_WithRelabelling.
+			// Although whatShouldBeIdenticalToNewGraph has the same structure as newGraph and state attributes, node numbers
+			// can be different; in order to preserve them, we copy IDs too.
 			++graphNumber;
 		}
 		return result;

@@ -19,10 +19,13 @@ package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 
 import junit.framework.Assert;
 
@@ -71,8 +74,6 @@ public class TestGraphConstructionWithDifferentConf {
 	@Before
 	public void beforeTest()
 	{
-		
-		LearnerGraph.testMode = true;		
 		config = mainConfiguration.copy();
 		config.setAllowedToCloneNonCmpVertex(true);
 		differentA = new LearnerGraph(buildGraph("Q-a->A-b->B", "testFSMStructureEquals2"),config);
@@ -123,7 +124,7 @@ public class TestGraphConstructionWithDifferentConf {
 		equalityTestingHelper(a,a,b,differentB);
 	}
 	
-	/** Tests that state colour does not affect a comparison. */
+	/** Tests that state colour affects a comparison. */
 	@Test
 	public final void testFSMStructureEquals2d()
 	{
@@ -131,7 +132,36 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "testFSMStructureEquals2d"),config);
 		a.findVertex("B").setColour(JUConstants.RED);
 		a.findVertex("A").setHighlight(true);
-		equalityTestingHelper(a,b,differentA,differentB);
+		equalityTestingHelper(a,a,b,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2e()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		a.addToIncompatibles(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")));
+		b.addToIncompatibles(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")));
+		c.addToIncompatibles(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")));
+		equalityTestingHelper(a,b,c,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2f()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		a.addToIncompatibles(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")));
+		a.addToIncompatibles(a.findVertex(VertexID.parseID("C")), a.findVertex(VertexID.parseID("A")));
+		b.addToIncompatibles(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")));
+		b.addToIncompatibles(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")));
+		c.addToIncompatibles(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")));
+		c.addToIncompatibles(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")));
+		equalityTestingHelper(a,b,c,differentB);
 	}
 	
 	@Test
@@ -170,7 +200,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone1"),config);
-		LearnerGraph bClone = b.copy(b.config);
+		LearnerGraph bClone = new LearnerGraph(b,b.config);
 		equalityTestingHelper(a,bClone,differentA, differentB);
 		equalityTestingHelper(b,bClone,differentA, differentB);
 		bClone.initPTA();
@@ -183,7 +213,7 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone2"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureClone2"),config);
-		LearnerGraph bClone = b.copy(b.config);
+		LearnerGraph bClone = new LearnerGraph(b,b.config);
 		b.initPTA();
 		equalityTestingHelper(a,bClone,b,differentB);
 	}
@@ -287,7 +317,7 @@ public class TestGraphConstructionWithDifferentConf {
 	public void testGraphConstructionFail6() 
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
-			new LearnerGraph(new DirectedSparseGraph(),config);// now getGraphData should choke.			
+			new LearnerGraph(new DirectedSparseGraph(),config);			
 		}},IllegalArgumentException.class,"missing initial");
 	}
 
@@ -305,7 +335,13 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testGraphConstruction_nondet_1a()
 	{
-		new TransitionMatrixND(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
+		List<CmpVertex> targets_a = new LinkedList<CmpVertex>();targets_a.add(graph.findVertex("B"));
+		List<CmpVertex> targets_b = new LinkedList<CmpVertex>();targets_b.add(graph.findVertex("C"));targets_b.add(graph.findVertex("D"));
+		Assert.assertTrue(targets_a.equals(graph.transitionMatrix.get(graph.findVertex("A")).get("a")));
+		Assert.assertTrue(targets_b.equals(graph.transitionMatrix.get(graph.findVertex("B")).get("b")));
+		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("C")).isEmpty());
+		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("D")).isEmpty());
 	}
 
 	/** Non-determinism is bad for a deterministic graph. */
@@ -314,6 +350,6 @@ public class TestGraphConstructionWithDifferentConf {
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
 			new LearnerGraph(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
-		}},IllegalArgumentException.class,"non-deterministic");
+		}},IllegalArgumentException.class,"non-determinism");
 	}
 }

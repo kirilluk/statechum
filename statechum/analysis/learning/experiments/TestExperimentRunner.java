@@ -1,20 +1,21 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
 package statechum.analysis.learning.experiments;
 
 import java.io.BufferedReader;
@@ -81,12 +82,12 @@ public class TestExperimentRunner {
 		try
 		{
 			LearnerGraph emptyGraph = new LearnerGraph(config);String emptyGraphName = "testAbstractExperiment_graph0.xml"; // an empty graph 
-			graphs.put(emptyGraphName,emptyGraph);emptyGraph.transform.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
+			graphs.put(emptyGraphName,emptyGraph);emptyGraph.storage.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
 			Writer fileListWriter = new FileWriter(fileList);fileListWriter.write(new File(testGraphsDir,emptyGraphName).getAbsolutePath()+"\n");
 			for(DirectedSparseGraph gr:JungGraphs)
 			{
 				LearnerGraph graph = new LearnerGraph(gr,config);String graphName = (String)gr.getUserDatum(JUConstants.TITLE);
-				graphs.put(graphName,graph);graph.transform.writeGraphML(new File(testGraphsDir,graphName).getAbsolutePath());
+				graphs.put(graphName,graph);graph.storage.writeGraphML(new File(testGraphsDir,graphName).getAbsolutePath());
 				fileListWriter.write(new File(testGraphsDir,graphName).getAbsolutePath()+"\n");
 			}
 			fileListWriter.close();
@@ -110,7 +111,7 @@ public class TestExperimentRunner {
 			{// this is the special diagnostic graph
 				LearnerGraph emptyGraph = new LearnerGraph(config);String emptyGraphName = "testAbstractExperiment_graph0.xml"; // an empty graph 
 				try {
-					emptyGraph.transform.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
+					emptyGraph.storage.writeGraphML(new File(testGraphsDir,emptyGraphName).getAbsolutePath());
 				} catch (IOException e) {
 					// if we cannot write a new version of the graph, we shall keep aborting and hence the test will fail.
 				}
@@ -131,7 +132,7 @@ public class TestExperimentRunner {
 		
 		@Override
 		protected void runTheExperiment() {
-			result = result + graph.countEdges() + ExperimentRunner.FS + graph.wmethod.computeAlphabet().size()*percent;
+			result = result + graph.countEdges() + ExperimentRunner.FS + graph.pathroutines.computeAlphabet().size()*percent;
 		}
 	}
 	
@@ -158,7 +159,7 @@ public class TestExperimentRunner {
 			for(int stage:new int[]{30,45,90,99})
 				result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
 						ExperimentRunner.FS+gr.getValue().countEdges()+
-						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			for(int stage:new int[]{30,45,90,99})
 				result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
@@ -387,7 +388,7 @@ public class TestExperimentRunner {
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
 						ExperimentRunner.FS+gr.getValue().countEdges()+
-						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
@@ -411,7 +412,7 @@ public class TestExperimentRunner {
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
 						ExperimentRunner.FS+gr.getValue().countEdges()+
-						ExperimentRunner.FS+gr.getValue().wmethod.computeAlphabet().size()*stage);
+						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
@@ -540,7 +541,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_recovery1() throws NumberFormatException, IOException
 	{
 		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		recoveryGraph.transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		recoveryGraph.storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 
 		getNonOverwriteExperiment().robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());
 		checkCSV(multiExpResult);
@@ -554,7 +555,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_recovery2() throws NumberFormatException, IOException
 	{
 		final String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		recoveryGraph.transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		recoveryGraph.storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		final ExperimentRunner experiment = getNonOverwriteExperiment();experiment.restarts=1;
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
@@ -570,7 +571,7 @@ public class TestExperimentRunner {
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
 		// The following graph has two equivalent states, B and C
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		for(int i=0;i < multiExpResult.length;++i)
 			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
 		checkForCorrectException(new whatToRun() {
@@ -587,7 +588,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_B() throws NumberFormatException, IOException
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
@@ -602,7 +603,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_C() throws NumberFormatException, IOException
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).transform.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());

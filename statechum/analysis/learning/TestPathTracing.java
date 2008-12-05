@@ -70,7 +70,6 @@ public class TestPathTracing {
 	public void beforeTest()
 	{
 		config = mainConfiguration.copy();
-		LearnerGraph.testMode=true;
 	}
 
 	/** The configuration to use when running tests. */

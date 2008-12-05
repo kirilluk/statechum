@@ -73,7 +73,7 @@ public class IterativeEvaluatorExperiment {
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, 
+						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);
@@ -104,9 +104,6 @@ public class IterativeEvaluatorExperiment {
 	public static void main(String []args)
 	{
 		try {
-			LearnerGraph.testMode=true;
-			//Experiment consistencyExperiment = new Experiment();consistencyExperiment.setOutputDir("consistency_");consistencyExperiment.runExperiment(args);// Consistency check
-			LearnerGraph.testMode=false;
 			ExperimentRunner experiment = new ExperimentRunner();
 			
 			for(Configuration.QuestionGeneratorKind qk:new Configuration.QuestionGeneratorKind[]{

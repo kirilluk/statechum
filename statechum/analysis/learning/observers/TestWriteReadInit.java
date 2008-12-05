@@ -29,11 +29,10 @@ import org.junit.Test;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
-import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
+import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.InitialData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.Transform;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.breakNumericalValue;
@@ -104,7 +103,7 @@ public class TestWriteReadInit {
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		InitialData data=loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+		InitialData data=loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		Assert.assertEquals(plus.size(),data.plusSize);Assert.assertEquals(minus.size(), data.minusSize);
 		Assert.assertEquals(plus,data.plus);Assert.assertEquals(minus,data.minus);Assert.assertEquals(graph,data.graph);
 	}
@@ -115,11 +114,11 @@ public class TestWriteReadInit {
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				xmlData
-				.replace("<"+ELEM_KINDS.ATTR_POSITIVE_SIZE.name(), "<"+ELEM_KINDS.ATTR_POSITIVE_SIZE.name()+" AA=\"34\" ")
-				.replace("<"+ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), "<"+ELEM_KINDS.ATTR_NEGATIVE_SIZE.name()+" AB=\"TT\" ")
+				.replace("<"+StatechumXML.ATTR_POSITIVE_SIZE.name(), "<"+StatechumXML.ATTR_POSITIVE_SIZE.name()+" AA=\"34\" ")
+				.replace("<"+StatechumXML.ATTR_NEGATIVE_SIZE.name(), "<"+StatechumXML.ATTR_NEGATIVE_SIZE.name()+" AB=\"TT\" ")
 				.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		InitialData data=loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+		InitialData data=loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		loader.config = Configuration.getDefaultConfiguration();
 		Assert.assertEquals(plus.size(),data.plusSize);Assert.assertEquals(minus.size(), data.minusSize);
 		Assert.assertEquals(plus,data.plus);Assert.assertEquals(minus,data.minus);Assert.assertEquals(graph,data.graph);
@@ -129,7 +128,7 @@ public class TestWriteReadInit {
 	@Test
 	public final void testLoadInit_fail1()
 	{
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,ELEM_KINDS.ELEM_INIT).getBytes()),false);
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_INIT).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.readInitialData(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
@@ -143,7 +142,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element positiveToRemove = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(0);
+		Element positiveToRemove = (Element)StatechumXML.getChildWithTag(initElement,StatechumXML.ELEM_SEQ.name()).item(0);
 		initElement.removeChild(positiveToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
@@ -151,7 +150,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing positive");
 	}
 	
@@ -162,14 +161,14 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		initElement.appendChild(dumper.writeSequenceList(ELEM_KINDS.ATTR_POSITIVE_SEQUENCES.name(), justSomething));
+		initElement.appendChild(dumper.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate positive");
 	}
 	
@@ -180,7 +179,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element negativeToRemove = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(1);// the second one
+		Element negativeToRemove = (Element)initElement.getElementsByTagName(StatechumXML.ELEM_SEQ.name()).item(1);// the second one
 		initElement.removeChild(negativeToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
@@ -188,7 +187,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing negative");
 	}
 	
@@ -199,14 +198,14 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		initElement.appendChild(dumper.writeSequenceList(ELEM_KINDS.ATTR_NEGATIVE_SEQUENCES.name(), justSomething));
+		initElement.appendChild(dumper.writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate negative");
 	}
 	
@@ -217,7 +216,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element graphToRemove = (Element)initElement.getElementsByTagName(Transform.graphmlNodeNameNS).item(0);
+		Element graphToRemove = (Element)StatechumXML.getChildWithTag(initElement,StatechumXML.graphmlNodeNameNS.toString()).item(0);
 		initElement.removeChild(graphToRemove);
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
@@ -225,7 +224,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing graph");
 	}
 	
@@ -237,14 +236,14 @@ public class TestWriteReadInit {
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
 		initElement.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
-			.transform.createGraphMLNode(dumper.doc));
+			.storage.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate graph");
 	}
 	
@@ -253,10 +252,10 @@ public class TestWriteReadInit {
 	public final void testLoadInit_fail8()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
-				removeTagFromString(xmlData,ELEM_KINDS.ATTR_POSITIVE_SIZE).getBytes()),false);
+				removeTagFromString(xmlData,StatechumXML.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing positive size");
 	}
 	
@@ -265,10 +264,10 @@ public class TestWriteReadInit {
 	public final void testLoadInit_fail9()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_POSITIVE_SIZE).getBytes()),false);
+				breakNumericalValue(xmlData, StatechumXML.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"positive value is not");
 	}
 	
@@ -277,10 +276,10 @@ public class TestWriteReadInit {
 	public final void testLoadInit_fail10()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData
-				.replace(ELEM_KINDS.ATTR_NEGATIVE_SIZE.name(), "JUNKTAG").getBytes()),false);
+				.replace(StatechumXML.ATTR_NEGATIVE_SIZE.name(), "JUNKTAG").getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing negative size");
 	}
 	
@@ -289,10 +288,10 @@ public class TestWriteReadInit {
 	public final void testLoadInit_fail11()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
-				breakNumericalValue(xmlData, ELEM_KINDS.ATTR_NEGATIVE_SIZE).getBytes()),false);
+				breakNumericalValue(xmlData, StatechumXML.ATTR_NEGATIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"negative value is not");
 	}
 	
@@ -310,7 +309,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"unexpected");
 	}
 	
@@ -321,15 +320,15 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		Element testSequences = (Element)initElement.getElementsByTagName(ELEM_KINDS.ELEM_SEQ.name()).item(0);
-		testSequences.removeAttribute(ELEM_KINDS.ATTR_SEQ.name());testSequences.setAttribute(ELEM_KINDS.ATTR_SEQ.name(), "junk");
+		Element testSequences = (Element)StatechumXML.getChildWithTag(initElement,StatechumXML.ELEM_SEQ.name()).item(0);
+		testSequences.removeAttribute(StatechumXML.ATTR_SEQ.name());testSequences.setAttribute(StatechumXML.ATTR_SEQ.name(), "junk");
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
 		checkForCorrectException(new whatToRun() { public void run() {
-			loader.readInitialData(loader.expectNextElement(ELEM_KINDS.ELEM_INIT.name()));
+			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"unexpected kind of sequences");
 	}
 }

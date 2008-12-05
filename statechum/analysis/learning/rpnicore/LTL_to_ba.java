@@ -30,10 +30,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 /** This one runs LTL2BA and parses its output.
  * <p>
@@ -120,7 +122,7 @@ public class LTL_to_ba {
 		baError = "ltl2ba",baSimpleComment="\\s*/\\*.*\\*/\\n*";
 	
 	private final Configuration config;
-	protected TransitionMatrixND matrixFromLTL = null;
+	protected LearnerGraphND matrixFromLTL = null;
 	
 	/** Constructs class which will use LTL to augment the supplied graph.
 	 * 
@@ -130,7 +132,7 @@ public class LTL_to_ba {
 	public LTL_to_ba(Configuration cnf)
 	{
 		config = cnf;
-		matrixFromLTL = new TransitionMatrixND(config);
+		matrixFromLTL = new LearnerGraphND(config);
 	}
 		
 	private static final int lexSTART =8;
@@ -181,7 +183,7 @@ public class LTL_to_ba {
 					throwException("failed to lex");
 	
 				int i=1;
-				for(;i<lexer.groupCount()+1 && lexer.group(i) == null;++i);
+				while(i<lexer.groupCount()+1 && lexer.group(i) == null) ++i;
 				if (i == lexer.groupCount()+1)
 					throwException("failed to lex (group number is out of boundary)");
 		
@@ -217,8 +219,8 @@ public class LTL_to_ba {
 
 		if (vert == null)
 		{// add new vertex
-			vert = AbstractTransitionMatrix.generateNewCmpVertex(new VertexID(name), config);
-			vert.setAccept(name.startsWith("accept_"));vert.setColour(TransitionMatrixND.ltlColour);
+			vert = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(name), config);
+			vert.setAccept(name.startsWith("accept_"));vert.setColour(LearnerGraphND.ltlColour);
 			matrixFromLTL.transitionMatrix.put(vert,matrixFromLTL.createNewRow());
 			verticesUsed.put(name, vert);
 		}
@@ -527,19 +529,25 @@ public class LTL_to_ba {
 	 * @param graph in order to correctly interpret symbols used by ltl2ba 
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
 	 * This information is extracted from the supplied graph.
+	 * @throws IncompatibleStatesException 
 	 */
 	public void ltlToBA(Collection<String> ltl, LearnerGraph graph)
 	{
 		if (graph != null)
-			alphabet = graph.wmethod.computeAlphabet();
+			alphabet = graph.pathroutines.computeAlphabet();
 		runLTL2BA(concatenateLTL(ltl).toString());
 		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");
 		
-		synchronized(AbstractTransitionMatrix.syncObj)
+		synchronized(AbstractLearnerGraph.syncObj)
 		{
-			automatonLoadedFromLTL = matrixFromLTL.buildDeterministicGraph().transform.completeMatrix();
+			automatonLoadedFromLTL = new LearnerGraph(config);
+			try {
+				AbstractPathRoutines.completeMatrix(matrixFromLTL.pathroutines.buildDeterministicGraph(),automatonLoadedFromLTL);
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("invalid graph returned by ltl2ba", e);
+			}
 		}
 	}
 		
@@ -551,11 +559,15 @@ public class LTL_to_ba {
 	 */
 	public LearnerGraph augmentGraph(LearnerGraph what)
 	{
-		TransitionMatrixND automaton = TransitionMatrixND.UniteTransitionMatrices(new TransitionMatrixND(automatonLoadedFromLTL),what);
+		LearnerGraphND automaton = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(automatonLoadedFromLTL,automatonLoadedFromLTL.config),what);
 		LearnerGraph result = null;
-		synchronized(AbstractTransitionMatrix.syncObj)
+		synchronized(AbstractLearnerGraph.syncObj)
 		{
-			result = automaton.buildDeterministicGraph();
+			try {
+				result = automaton.pathroutines.buildDeterministicGraph();
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("invalid graph returned by ltl2ba", e);
+			}
 		}
 		return result;
 	}

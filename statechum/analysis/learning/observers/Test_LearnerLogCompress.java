@@ -49,11 +49,11 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 
 import statechum.Configuration;
+import statechum.StatechumXML;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser.graphAction;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -108,7 +108,7 @@ public class Test_LearnerLogCompress implements Runnable
 		ZipEntry entry = inputZip.getNextEntry();
 		while(entry != null)
 		{
-			if (entry.getName().contains(ELEM_KINDS.ELEM_MERGEANDDETERMINIZE.name()))
+			if (entry.getName().contains(StatechumXML.ELEM_MERGEANDDETERMINIZE.name()))
 			{
 				++graphNumber;if ((graphNumber % modValueGraphCounter) == 0) updateProgressBar(true, -1, "found: "+graphNumber+" graphs");
 				if (computationAborted) throw new ComputationAbortedException();
@@ -226,7 +226,7 @@ public class Test_LearnerLogCompress implements Runnable
 					LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(sourceFile),true);
 					LearnerEvaluationConfiguration evaluationData = simulator.readLearnerConstructionData();
 					evaluationData.config.setGdFailOnDuplicateNames(false);evaluationData.graphNumber=graphsInFile;
-					final org.w3c.dom.Element nextElement = simulator.expectNextElement(ELEM_KINDS.ELEM_INIT.name());
+					final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 					final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 					simulator.setNextElement(nextElement);
 					Configuration recorderConfig = evaluationData.config.copy();recorderConfig.setCompressLogs(true);recorderConfig.setGdMaxNumberOfStatesInCrossProduct(0);

@@ -16,7 +16,7 @@ import org.w3c.dom.Element;
 
 
 import statechum.Configuration;
-import statechum.analysis.learning.observers.ProgressDecorator.ELEM_KINDS;
+import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
@@ -202,7 +202,7 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{},
 				new String[]{"more data"}
-		}), actual = ProgressDecorator.readSequenceList(loader.expectNextElement(ELEM_KINDS.ELEM_SEQ.name()),"someData");
+		}), actual = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData");
 		Assert.assertTrue(actual.equals(expected));
 	}
 
@@ -235,8 +235,8 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{},
 				new String[]{"the second set of data"}
-		}),actual = ProgressDecorator.readSequenceList(loader.expectNextElement(ELEM_KINDS.ELEM_SEQ.name()),"someData"),
-		actual2 = ProgressDecorator.readSequenceList(loader.expectNextElement(ELEM_KINDS.ELEM_SEQ.name()),"moreData");
+		}),actual = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData"),
+		actual2 = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"moreData");
 		Assert.assertTrue(actual.equals(expected));
 		Assert.assertTrue(actual2.equals(expected2));
 	}
@@ -244,7 +244,7 @@ public class TestRecordProgressDecorator {
 	/** Invalid XML file. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteSequences_fail1() {
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceFirst(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceFirst(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -257,7 +257,7 @@ public class TestRecordProgressDecorator {
 	/** Expected tag not found */
 	@Test
 	public final void testWriteSequences_fail2() {
-		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
 			loader.expectNextElement("U");
 		}},IllegalArgumentException.class,"encountered");
@@ -282,7 +282,7 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testWriteSequences_fail3() {
 		checkForCorrectException(new whatToRun() { public void run() {
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(ELEM_KINDS.ELEM_SEQ.name(), "TT").getBytes()),false);
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
 			ProgressDecorator.readSequenceList(loader.expectNextElement("TT"),"someData");
 		}},IllegalArgumentException.class,"expecting to load a list of sequences");
 	}
@@ -303,7 +303,7 @@ public class TestRecordProgressDecorator {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		checkForCorrectException(new whatToRun() { public void run() {
-			ProgressDecorator.readSequenceList(loader.expectNextElement(ELEM_KINDS.ELEM_SEQ.name()),"AsomeData");
+			ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
 		}},IllegalArgumentException.class,"expecting to load a list with name ");
 	}
 
@@ -329,7 +329,7 @@ public class TestRecordProgressDecorator {
 	 * @param tag what to replace
 	 * @return modified XML
 	 */
-	public static String removeTagFromString(String str,ELEM_KINDS tag)
+	public static String removeTagFromString(String str,StatechumXML tag)
 	{
 		return removeTagFromString(str, tag.name());
 	}
@@ -340,7 +340,7 @@ public class TestRecordProgressDecorator {
 	 * @param tag tag to modify
 	 * @return modified XML
 	 */
-	public static String addExtraAttribute(String str,ELEM_KINDS tag)
+	public static String addExtraAttribute(String str,StatechumXML tag)
 	{
 		return str.replace("<"+tag.name(), "<"+tag.name()+" AA=\"45\" ");
 	}
@@ -352,7 +352,7 @@ public class TestRecordProgressDecorator {
 	 * @param tag what to replace
 	 * @return modified XML
 	 */
-	public static String breakNumericalValue(String str, ELEM_KINDS tag)
+	public static String breakNumericalValue(String str, StatechumXML tag)
 	{
 		return str.replace(tag.name()+"=\"", tag.name()+"=\""+junkTag);
 	}

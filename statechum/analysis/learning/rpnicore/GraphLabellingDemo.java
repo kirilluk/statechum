@@ -17,6 +17,8 @@
  */
 package statechum.analysis.learning.rpnicore;
 
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+
 import java.awt.Color;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -30,7 +32,6 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.Visualiser;
@@ -55,7 +56,7 @@ public class GraphLabellingDemo
 			transitionsUsedInC.put(v.toString(),new TreeMap<String,Color>());
 		Map<String,String> vertexExtraLabel = new TreeMap<String,String>();
 		Collection<List<String>> wSet = WMethod.computeWSet_reducedmemory(graph);
-		for(Entry<CmpVertex,LinkedList<String>> entry:graph.wmethod.computeShortPathsToAllStates().entrySet())
+		for(Entry<CmpVertex,LinkedList<String>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
 			CmpVertex v = graph.init;
 			for(String input:entry.getValue())
@@ -66,7 +67,7 @@ public class GraphLabellingDemo
 		
 		for(CmpVertex vert:graph.transitionMatrix.keySet())
 		{
-			int counter = 0;;
+			int counter = 0;
 			for(List<String> seq:wSet)
 				if (graph.paths.tracePath(seq,vert) == AbstractOracle.USER_ACCEPTED) ++counter;
 			
@@ -74,12 +75,20 @@ public class GraphLabellingDemo
 		}
 		//System.out.println(transitionsUsedInC+"\n###################\n"+vertexExtraLabel);
 		
-		DirectedSparseGraph gr = graph.paths.getGraph();
+		DirectedSparseGraph gr = graph.pathroutines.getGraph();
 		gr.addUserDatum(JUConstants.VERTEX, vertexExtraLabel, UserData.CLONE);
 		gr.addUserDatum(JUConstants.EDGE, transitionsUsedInC, UserData.CLONE);
 		
 		GD gd = new GD();
 		int counter = 0;
+
+		DirectedSparseGraph aGraph = gd.showGD(
+				new LearnerGraph(TestFSMAlgo.buildGraph(TestGD_Multithreaded.A6, "labellingDemo_A_"+counter),config),
+				TestGD_Multithreaded.convertToNumerical(new LearnerGraph(buildGraph(TestGD_Multithreaded.A6,"testComputeGD5a"),config)),
+				ExperimentRunner.getCpuNumber());
+			++counter;
+			Visualiser.updateFrame(gr, aGraph);
+/*
 		for(Pair<String,String> pair:new Pair[] {
 				new Pair<String,String>("A-a->B-a->C\nB-b->D","A-a->C-c->E-c->D-c->F"),
 				new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T"),
@@ -93,6 +102,7 @@ public class GraphLabellingDemo
 			++counter;
 			Visualiser.updateFrame(gr, dGraph);
 		}
+		*/
 		//Visualiser.updateFrame(graph2, graph3);
 	}
 }

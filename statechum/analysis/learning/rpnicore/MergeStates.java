@@ -17,8 +17,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,11 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
@@ -70,7 +68,7 @@ public class MergeStates {
 	{
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
-		Collection<Collection<CmpVertex>> mergedVertices = new LinkedList<Collection<CmpVertex>>();
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
 	}
 	
@@ -84,82 +82,81 @@ public class MergeStates {
 	 * relating original and merged states.
 	 */
 	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
-			Collection<Collection<CmpVertex>> mergedVertices)
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
-		LearnerGraph result = new LearnerGraph(original.config);
-		result.initEmpty();
-		result.transitionMatrix = new TreeMap<CmpVertex,Map<String,CmpVertex>>(); 
-
+		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
+/*		result.initEmpty();
+		result.transitionMatrix = result.createNewTransitionMatrix();
+*/
 		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
-		{
+		{/*
 			try {
 				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
-				original.transform.writeGraphML(failName);
+				original.storage.writeGraphML(failName);
 			} catch (IOException e) {
 				System.out.println("failed to write error file");
 				e.printStackTrace();
 			}
+			*/	
 			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
 		}
-		Collection<AMEquivalenceClass> mergedStates = new LinkedList<AMEquivalenceClass>();
+		
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
+		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,AMEquivalenceClass> origToNew = new HashMap<CmpVertex,AMEquivalenceClass>();
-		for(Collection<CmpVertex> eqClass:mergedVertices)
+		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
-			AMEquivalenceClass equivalenceClass = new AMEquivalenceClass(eqClass);
-			equivalenceClass.mergedVertex=AbstractTransitionMatrix.cloneCmpVertex(equivalenceClass.mergedVertex, cloneConfig);equivalenceClass.computeMergedColour();
-			mergedStates.add(equivalenceClass);
-			
-			for(CmpVertex v:eqClass)
-				origToNew.put(v, equivalenceClass);
+			eqClass.constructMergedVertex(configHolder,false,true);
+			for(CmpVertex v:eqClass.getStates())
+				origToNew.put(v, eqClass);
 		}
-		result.init = origToNew.get(original.init).mergedVertex;
+		result.init = origToNew.get(original.init).getMergedVertex();
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
-		result.stateLearnt=origToNew.get(pair.getR()).mergedVertex;
-		Queue<AMEquivalenceClass> currentExplorationBoundary = new LinkedList<AMEquivalenceClass>();// FIFO queue containing vertices to be explored
+		Queue<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
 		currentExplorationBoundary.add(origToNew.get(original.init));
-		Set<AMEquivalenceClass> visitedEqClasses = new HashSet<AMEquivalenceClass>();
+		Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> visitedEqClasses = new HashSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.
-			AMEquivalenceClass current = currentExplorationBoundary.remove();
-			Map<String,CmpVertex> row = result.transitionMatrix.get(current.mergedVertex);
+			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> current = currentExplorationBoundary.remove();
+			Map<String,CmpVertex> row = result.transitionMatrix.get(current.getMergedVertex());
 			if (row == null)
 			{
-				row = result.createNewRow();result.transitionMatrix.put(current.mergedVertex, row);
+				row = result.createNewRow();result.transitionMatrix.put(current.getMergedVertex(), row);
 			}
 
-			for(CmpVertex equivalentVertex:current.vertices)
+			for(CmpVertex equivalentVertex:current.getStates())
 				for(Entry<String,CmpVertex> entry:original.transitionMatrix.get(equivalentVertex).entrySet())
 				{
-					AMEquivalenceClass nextClass = origToNew.get(entry.getValue());
+					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> nextClass = origToNew.get(entry.getValue());
 					if (!visitedEqClasses.contains(nextClass))
 					{// have not yet visited this class
 						currentExplorationBoundary.offer(nextClass);
 						visitedEqClasses.add(nextClass);
 					}
-					if (LearnerGraph.testMode && row.containsKey(entry.getKey()))
-						assert row.get(entry.getKey()) == nextClass.mergedVertex;
-					row.put(entry.getKey(), nextClass.mergedVertex);
+					if (GlobalConfiguration.getConfiguration().isAssertEnabled() && row.containsKey(entry.getKey()))
+						assert row.get(entry.getKey()) == nextClass.getMergedVertex();
+					row.put(entry.getKey(), nextClass.getMergedVertex());
 				}	
 		}
-		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedStates);
+		AMEquivalenceClass.populateCompatible(result, mergedVertices);
+		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);
+		result.learnerCache.stateLearnt=origToNew.get(pair.getR()).getMergedVertex();
 		return result;
 	}
 	
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)
 	{
-		if (LearnerGraph.testMode) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) { PathRoutines.checkPTAConsistency(original, pair.getQ());PathRoutines.checkPTAIsTree(original,null,null,null); }
 		assert original.transitionMatrix.containsKey(pair.firstElem);
 		assert original.transitionMatrix.containsKey(pair.secondElem);
 		Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
-		LearnerGraph result;
 		Configuration shallowCopy = original.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		result = original.copy(shallowCopy);
+		LearnerGraph result = new LearnerGraph(original,shallowCopy);
 		assert result.transitionMatrix.containsKey(pair.firstElem);
 		assert result.transitionMatrix.containsKey(pair.secondElem);
-		if (LearnerGraph.testMode) PathRoutines.checkPTAConsistency(result, pair.getQ());
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAConsistency(result, pair.getQ());
 		
 		if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 			throw new IllegalArgumentException("elements of the pair are incompatible");
@@ -225,7 +222,7 @@ public class MergeStates {
 			}
 		}
 		
-		if (LearnerGraph.testMode) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
 		
 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
 			for(CmpVertex target:entry.getValue().values())

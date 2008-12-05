@@ -105,7 +105,8 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
 		statechum.analysis.learning.rpnicore.TestGD_MultipleCasesOfRenaming.class,
 		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
-		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class
+		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class,
+		statechum.apps.TestVisualDemo.class
 		})
 	public static class LinearTests {// all tests are included in the annotation.
 	}

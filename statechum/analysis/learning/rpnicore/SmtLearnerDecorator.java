@@ -96,6 +96,7 @@ public class SmtLearnerDecorator extends DummyLearner {
 	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 	{
 		LearnerGraph result= decoratedLearner.init(plus, minus);
+		lbl.idToState.clear();
 		lbl.mapVerticesToAbstractStates(result);return result;
 	}
 
@@ -103,6 +104,7 @@ public class SmtLearnerDecorator extends DummyLearner {
 	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
 	{
 		LearnerGraph result= decoratedLearner.init(engine, plusSize, minusSize);
+		lbl.idToState.clear();
 		lbl.mapVerticesToAbstractStates(result);return result;
 	}
 }

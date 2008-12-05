@@ -29,6 +29,7 @@ import statechum.analysis.learning.observers.AutoAnswers;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.profileStringExtractor.SplitFrame;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
 import statechum.*;
 import statechum.analysis.learning.util.*;
@@ -100,12 +101,15 @@ public class PickNegativesVisualiser extends Visualiser {
 				if (conf.labelDetails != null)
 					mainDecorator = new SmtLearnerDecorator(mainDecorator,conf.labelDetails);
 	        	if (whomToNotify != null) whomToNotify.threadStarted();
-        		DirectedSparseGraph learnt = mainDecorator.learnMachine(sPlus, sMinus).pathroutines.getGraph();
-        		if(conf.config.isGenerateTextOutput())
-        			OutputUtil.generateTextOutput(learnt);
-        		if(conf.config.isGenerateDotOutput())
-        			OutputUtil.generateDotOutput(learnt);
-        		
+	        	LearnerGraph graph = mainDecorator.learnMachine(sPlus, sMinus);
+	        	if (graph != null)
+	        	{
+		        	DirectedSparseGraph learnt = graph.pathroutines.getGraph();
+	        		if(conf.config.isGenerateTextOutput())
+	        			OutputUtil.generateTextOutput(learnt);
+	        		if(conf.config.isGenerateDotOutput())
+	        			OutputUtil.generateDotOutput(learnt);
+	        	}        		
 			}
 		},"RPNI learner thread");
 	   	learnerThread.start();

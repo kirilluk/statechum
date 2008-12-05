@@ -1387,6 +1387,16 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 	}
 
+	/** Adds the supplied prefix to vertex ID provided. */
+	static void renameVertex(VertexID currID, String prefix,Map<VertexID,VertexID> oldVerticesToNew)
+	{
+		VertexID currentVertex = oldVerticesToNew.get(currID);
+		VertexID newID = new VertexID(prefix+(currentVertex==null?"":currentVertex.toString()));
+		if (oldVerticesToNew.containsKey(newID) || oldVerticesToNew.containsKey(newID))
+			throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
+		oldVerticesToNew.put(currID,newID);
+	}
+
 	/** This one is similar to applyGD but computes a union of the remove and added parts,
 	 *  very useful if I wish to visualise the difference between two graphs.
 	 *  <p>
@@ -1400,83 +1410,22 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		Configuration gdConfig = a.config.copy();gdConfig.setGdFailOnDuplicateNames(false);
 		init(a,b, threads,gdConfig);
 		identifyKeyPairs();
-		List<PairScore> initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
-		final Map<VertexID,CmpVertex> oldVerticesToNew = new TreeMap<VertexID,CmpVertex>();
-		for(CmpVertex v:a.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
-		for(CmpVertex v:b.transitionMatrix.keySet()) oldVerticesToNew.put(v.getID(),v);
-		final LearnerGraphND outcome = new LearnerGraphND(gdConfig);outcome.initEmpty();
+		final List<PairScore> initialKeyPairs = new LinkedList<PairScore>();initialKeyPairs.addAll(frontWave);
+		final Map<VertexID,VertexID> oldVerticesToNew = new TreeMap<VertexID,VertexID>();
+		final LearnerGraphND outcome = new LearnerGraphND(a,gdConfig);
 		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
 			new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(outcome,gdConfig,null);
 		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = new TreeMap<String,Map<String,Map<String,Color>>>();
 		
 		makeSteps(new PatchGraph() {
-			boolean wasInitialised = false;
-			
-			private void init()
-			{
-				if (!wasInitialised)
-				{
-					wasInitialised = true;
-					
-					// Here we rely that by the time we start getting calls to add/remove transitions,
-					// it is already known which states will remain and which will not.
-					
-					// There are a few kinds of states, those from the A graph which remain,
-					// those which are removed and perhaps replaced by states from B with the same names
-					// those from B which correspond to some states of A, these are ignored.
-					// those from B which are new, these are added, as long as their names do not intersect 
-					// names of existing states in A, in which case such new states are given unique names.
-					for(CmpVertex vertex:statesOfA)
-						if (!statesOfB.contains(vertex))
-							renameVertex(vertex.getID(),"DEL_");
-						else
-							if (!aTOb.containsKey(vertex))
-								renameVertex(vertex.getID(),"KEPT_");
-					
-					Set<CmpVertex> duplicatesInOrig = new HashSet<CmpVertex>(); 
-					for(CmpVertex vertex:duplicates)
-					{
-						renameVertex(vertex.getID(),"DUP_");
-						duplicatesInOrig.add(newBToOrig.get(vertex));
-					}
-					
-					for(CmpVertex vertex:statesOfB)
-						if (!statesOfA.contains(vertex))
-							renameVertex(vertex.getID(), "ADD_");
-					
-				}
-			}
-			
-			/** Adds the supplied prefix to vertex ID provided. */
-			private void renameVertex(VertexID currID, String prefix)
-			{
-				VertexID newID = new VertexID(prefix+currID.toString());
-				if (a.findVertex(newID) != null || b.findVertex(newID) != null)
-					throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
-				oldVerticesToNew.put(currID,AbstractLearnerGraph.generateNewCmpVertex(newID,a.config));
-			}
-			
-			/** Renames a vertex if it is a removed one. */
-			private CmpVertex getNewName(CmpVertex vertex)
-			{
-				init();
-				
-				CmpVertex result = oldVerticesToNew.get(vertex.getID());
-				if (result == null) 
-				{
-					oldVerticesToNew.put(vertex.getID(),vertex);result = vertex;
-				}
-				return result;
-			}
-	
-			/** Annotates the supplied transition with a specific colour. 
+			/** Annotates the supplied transition with a specific label and colour. 
 			 * 
 			 * @param from source state
 			 * @param label transition label
 			 * @param to target state
 			 * @param color colour to put on that transition.
 			 */ 
-			private void addAnnotation(CmpVertex from, String label, CmpVertex to,Color color)
+			private void addTransitionAnnotation(CmpVertex from, String label, CmpVertex to,Color colour)
 			{
 				String fromString = from.getID().toString();
 				Map<String,Map<String,Color>> lbl = transitionAnnotation.get(fromString);
@@ -1484,47 +1433,48 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				{
 					lbl = new TreeMap<String,Map<String,Color>>();transitionAnnotation.put(fromString, lbl);
 				}
-				Map<String,Color> targetColour = lbl.get(label);
-				if (targetColour == null)
+				Map<String,Color> targetToColour = lbl.get(label);
+				if (targetToColour == null)
 				{// this is the first annotation for the specific target state
-					targetColour = new TreeMap<String,Color>();lbl.put(label,targetColour);
+					targetToColour = new TreeMap<String,Color>();lbl.put(label,targetToColour);
 				}
-				else
+				
+				Color currentColour = targetToColour.get(to.getID().toString()),newColour = colour;
+				if (currentColour != null)
 				{// not the first annotation, hence need to check what annotation there was earlier
-					Color currentColour = targetColour.get(to.getID().toString()),newColour = currentColour;
-					if (currentColour != color)
+					if (currentColour != colour)
 						newColour = Color.YELLOW;
-					if (currentColour != newColour)
-						targetColour.put(to.getID().toString(),newColour);
 				}
+				if (currentColour != newColour)
+					targetToColour.put(to.getID().toString(),newColour);
 			}
 			
 			public void addTransition(CmpVertex from, String origLabel, CmpVertex to) 
 			{
 				String label = "ADD_"+origLabel;
-				CmpVertex fromVertex = getNewName(from);
-				mutator.addTransition(fromVertex, label, getNewName(to));
-				addAnnotation(fromVertex, label, to, Color.GREEN);
+				mutator.addTransition(from, label, to);
+				addTransitionAnnotation(from, label, to, Color.GREEN);
 			}
 
 			public void removeTransition(CmpVertex from, String origLabel, CmpVertex to) 
 			{
 				String label = "REM_"+origLabel;
-				CmpVertex fromVertex = getNewName(from);
-				addAnnotation(fromVertex, label, to, Color.RED);
+				mutator.removeTransition(from, origLabel, to);// remove the original transition
+				mutator.addTransition(from, label, to);// and add the renamed one
+				addTransitionAnnotation(from, label, to, Color.RED);
 			}
 
 			public void setInitial(CmpVertex vertex) 
 			{
-				mutator.setInitial(getNewName(vertex));
+				mutator.setInitial(vertex);
 			}
 
 			public void addIncompatible(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
 				// does not do anything
 			}
 
-			public void addRelabelling(@SuppressWarnings("unused") VertexID astate, @SuppressWarnings("unused") VertexID bstate) {
-				// does not do anything
+			public void addRelabelling(VertexID astate, VertexID bstate) {
+				renameVertex(astate, "["+bstate+"] ",oldVerticesToNew);
 			}
 
 			public void addVertex(CmpVertex vertex) {
@@ -1535,33 +1485,55 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				// does not do anything
 			}
 		});
+
+		// There are a few kinds of states, those from the A graph which remain,
+		// those which are removed and perhaps replaced by states from B with the same names
+		// those from B which correspond to some states of A, these are ignored.
+		// those from B which are new, these are added, as long as their names do not intersect 
+		// names of existing states in A, in which case such new states are given unique names.
+
+		final Set<CmpVertex> duplicatesAB = new TreeSet<CmpVertex>(), stateOfBOrig = new TreeSet<CmpVertex>();stateOfBOrig.addAll(newBToOrig.values());
 		
-		// We have all new transitions added,
-		// new and and removed transitions properly labelled, now add the original transitions.
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:a.transitionMatrix.entrySet())
+		duplicatesAB.addAll(aTOb.keySet());duplicatesAB.retainAll(newBToOrig.values());// throws away all states not in B, such as states in A's key pairs which are not in B and hence cannot be duplicates
+		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) 
 		{
-			CmpVertex fromVertex = oldVerticesToNew.get(entry.getKey().getID());
-			for(Entry<String,TARGET_A_TYPE> transition:entry.getValue().entrySet())
-				for(CmpVertex target:a.getTargets(transition.getValue()))
-				{
-					CmpVertex toVertex = oldVerticesToNew.get(target.getID());
-					mutator.addTransition(fromVertex, transition.getKey(), toVertex);
-				}
+			duplicatesAB.remove(newBToOrig.get(entry.getValue()));// throws all states of B which are B's key pairs - these are paired with A and hence cannot be conflicting.
+			stateOfBOrig.remove(newBToOrig.get(entry.getValue()));// states of B which participate in key pairs do not correspond to vertices of A which will be kept.
+		}
+
+		for(CmpVertex vertex:statesOfA)
+			if (!aTOb.containsKey(vertex))
+			{
+				if (!stateOfBOrig.contains(vertex))
+					renameVertex(vertex.getID(),"DEL",oldVerticesToNew);
+				else
+					// this vertex has one of the same name in B, hence it will be reused unless it is a key vertex.
+					renameVertex(vertex.getID(),"KEPT",oldVerticesToNew);
+			}
+		
+		for(CmpVertex vertex:duplicates)
+			renameVertex(vertex.getID(),"DUP",oldVerticesToNew);
+		
+		for(CmpVertex vertex:stateOfBOrig)
+			if (!statesOfA.contains(vertex))
+				renameVertex(vertex.getID(), "ADD",oldVerticesToNew);
+		Map<CmpVertex,PairScore> initialKeyA = new TreeMap<CmpVertex,PairScore>();
+		for(PairScore pair:initialKeyPairs) initialKeyA.put(pair.getQ(),pair);
+		
+		for(Entry<CmpVertex,CmpVertex> pair:aTOb.entrySet()) 
+		{
+			if (initialKeyA.containsKey(pair.getKey()))
+			{
+				PairScore pairscore = initialKeyA.get(pair.getKey());
+				renameVertex(pair.getKey().getID(),"(K "+pairscore.getScore()+","+pairscore.getAnotherScore()+"="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
+			}
+			else
+				renameVertex(pair.getKey().getID(),"(P="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
 		}
 		
 		Map<String,String> labelling = new TreeMap<String,String>();
-		for(Entry<CmpVertex,CmpVertex> pair:aTOb.entrySet()) 
-		{
-			CmpVertex Q = oldVerticesToNew.get(pair.getKey().getID());
-			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getValue()).getID());
-			labelling.put(Q.getID().toString(),R.getID().toString()); 
-		}
-		for(PairScore pair:initialKeyPairs) 
-		{
-			CmpVertex Q = oldVerticesToNew.get(pair.getQ().getID());
-			CmpVertex R = oldVerticesToNew.get(newBToOrig.get(pair.getR()).getID());
-			labelling.put(Q.getID().toString(),R.getID().toString()+ " (K) "+pair.getScore()+","+pair.getAnotherScore()); 
-		}
+		for(Entry<VertexID,VertexID> entry:oldVerticesToNew.entrySet())
+			labelling.put(entry.getKey().toString(),entry.getValue().toString());
 		DirectedSparseGraph gr = outcome.pathroutines.getGraph();
 		
 		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.CLONE);

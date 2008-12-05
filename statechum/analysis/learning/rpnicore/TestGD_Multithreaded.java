@@ -296,7 +296,7 @@ public class TestGD_Multithreaded {
 	}
 	
 	/** Trying to confuse key pair identification algorithm with large plateau (i.e. lots of similar states). */ 
-	static final String 
+	public static final String 
 	A6=
 		"A-a->B-a->C-a->D-a->A\n"+
 		"A-b->E\nB-b->F\nC-b->G\nD-b->H\n"+
@@ -304,7 +304,7 @@ public class TestGD_Multithreaded {
 		"E-a->I\nF-a->J\nG-a->K\nH-a->L\n"+
 		"I-a->J-a->K-a->L-a->I\n";
 
-	static final String B6=
+	public static final String B6=
 		"A@-a->B@-a->C@-a->A@\n"+
 		"A@-b->E@\nB@-b->F@\nC@-b->G@\n"+
 		"E@-b->F@-b->G@-b->E@\n"+

@@ -118,7 +118,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	}
 	
 
-	final String questionPrefix="<html><font color=green>";
+	final String questionPrefix="";
 	
 	protected List<String> getShortenedQuestion(List<String> question){
 		List<String> questionList = new LinkedList<String>();
@@ -199,7 +199,8 @@ public abstract class RPNILearner extends Observable implements Learner {
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,final List<String> question, final int expectedForNoRestart, final Object [] moreOptions)
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
+			final int lengthInHardFacts, final Object [] moreOptions)
 	{
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
@@ -208,14 +209,33 @@ public abstract class RPNILearner extends Observable implements Learner {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					final Object[] options = new Object[1+moreOptions.length];
-					//final JList nonrejectElements = new JList(new String[] { "<html><font color=gray>a","<html><font color=gray>b"});
-					if (expectedForNoRestart >= 0 && expectedForNoRestart < questionList.size())
-						questionList.add(expectedForNoRestart, addAnnotationExpected(questionList.get(expectedForNoRestart)));
-					final JList rejectElements = new JList(questionList.toArray());
+					JList nonrejectElements = null;
+					Iterator<String> inputIter = questionList.iterator();
+					int inputCounter=0;
+					if (lengthInHardFacts >= 0)
+					{
+						assert lengthInHardFacts < questionList.size();
+						List<String> nonrejects = new ArrayList<String>(lengthInHardFacts+1);
+						for(;inputCounter<lengthInHardFacts;++inputCounter) nonrejects.add("<html><font color=gray>"+inputIter.next());
+						nonrejectElements = new JList(nonrejects.toArray());
+					}
+					final int RejectsStartFrom = inputCounter;
+					List<String> rejects = new ArrayList<String>(questionList.size());
+					assert expectedForNoRestart < 0 || expectedForNoRestart >= lengthInHardFacts: "expectedForNoRestart = "+expectedForNoRestart+" and lengthInHardFacts = "+lengthInHardFacts;
+					for(;inputCounter<questionList.size();++inputCounter)
+					{
+						String inputText = "<html><font color=green>"+inputIter.next();
+						if (inputCounter == expectedForNoRestart)
+							rejects.add(addAnnotationExpected(inputText));
+						else
+							rejects.add(inputText);
+					}
+					final JList rejectElements = new JList(rejects.toArray());
+					
 					options[0]="Accept";if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) options[0] = addAnnotationExpected((String)options[0]);
 					System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
-					jop = new JOptionPane(new Object[] {label,rejectElements},
+					jop = new JOptionPane((nonrejectElements == null? new Object[] {label,rejectElements}:new Object[] {label,nonrejectElements,rejectElements}),
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
 					dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
@@ -262,7 +282,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 							if (dialog.isVisible() && e.getSource() == rejectElements &&
 									!e.getValueIsAdjusting() && !rejectElements.isSelectionEmpty())
 							{
-								answer.getAndSet( rejectElements.getLeadSelectionIndex() );
+								answer.getAndSet( RejectsStartFrom+rejectElements.getLeadSelectionIndex() );
 								synchronized(answer)
 								{
 									answer.notifyAll();

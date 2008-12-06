@@ -122,8 +122,8 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 
 	}
 
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, Object[] options) {
-		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, options);
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) {
+		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
 	}
 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {

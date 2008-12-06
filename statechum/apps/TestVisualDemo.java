@@ -19,13 +19,22 @@
 package statechum.apps;
 
 import java.awt.Color;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Pair;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
+import statechum.analysis.learning.rpnicore.GD;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -65,6 +74,7 @@ public class TestVisualDemo {
 				"F={ADD_s={T=java.awt.Color[r=0,g=255,b=0]}}, "+
 				"T={ADD_d={T=java.awt.Color[r=0,g=255,b=0]}, REM_d={S=java.awt.Color[r=255,g=0,b=0]}}}",pair.secondElem);
 	}
+	
 	@Test
 	public final void testVisual3()
 	{
@@ -75,6 +85,7 @@ public class TestVisualDemo {
 				"E={ADD_c={D=java.awt.Color[r=0,g=255,b=0]}}, "+
 				"F={ADD_s={P1005=java.awt.Color[r=0,g=255,b=0]}}}",pair.secondElem);
 	}
+	
 	@Test
 	public final void testVisual4()
 	{
@@ -85,5 +96,31 @@ public class TestVisualDemo {
 				"F={REM_a={J=java.awt.Color[r=255,g=0,b=0]}, REM_b={G=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"I={ADD_a={K=java.awt.Color[r=0,g=255,b=0]}, REM_a={J=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"J={REM_a={K=java.awt.Color[r=255,g=0,b=0]}}}",pair.secondElem);
+	}
+	
+	/** Disconnected states. */
+	@Test
+	public final void testVisual5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
+		String name = "testVisual5";
+		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nS-a-#T";
+		LearnerGraphND grA = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->E-s->E\nA-a->F-v->F\nU-a-#V\n"+common,name+"A"),config);
+		LearnerGraphND grB = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B"),config);
+		LearnerGraphND grA_reduced = new LearnerGraphND(config), grB_reduced = new LearnerGraphND(config);
+		AbstractPathRoutines.removeRejectStates(grA, grA_reduced);
+		AbstractPathRoutines.removeRejectStates(grB, grB_reduced);
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
+			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		DirectedSparseGraph graph = gd.showGD(grA_reduced,grB_reduced,	ExperimentRunner.getCpuNumber());
+		//Visualiser.updateFrame(gr, null);Visualiser.waitForKey();
+		Assert.assertEquals("{A=(K 5,0=A), B=(K 13,1=B), C=(K 13,1=C), D=(K 13,1=D), E=DEL, F=DEL, G=ADD, H=ADD, S=KEPT, U=DEL}",((Map<String,String>)graph.getUserDatum(JUConstants.VERTEX)).toString());
+		Assert.assertEquals("{A={ADD_a={G=java.awt.Color[r=0,g=255,b=0], H=java.awt.Color[r=0,g=255,b=0]}, REM_a={E=java.awt.Color[r=255,g=0,b=0], F=java.awt.Color[r=255,g=0,b=0]}}, "+
+				"E={REM_s={E=java.awt.Color[r=255,g=0,b=0]}}, "+
+				"F={REM_v={F=java.awt.Color[r=255,g=0,b=0]}}, "+
+				"G={ADD_u={G=java.awt.Color[r=0,g=255,b=0]}}, "+
+				"H={ADD_t={H=java.awt.Color[r=0,g=255,b=0]}}}",
+				((Map<String,Map<String,Map<String,Color>>>)graph.getUserDatum(JUConstants.EDGE)).toString());
 	}
 }

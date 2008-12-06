@@ -262,21 +262,22 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	/** Simulated check.
 	 * @param g estimated graph, not loaded from XML.
 	 * @param question question loaded from XML or computed by a learner.
-	 * @param responseForNoRestart ignored
+	 * @param responseForNoRestart ignored.
+	 * @param lengthInHardFacts ignored.
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML or computed by the learner.
 	 */
-	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, Object[] options) 
+	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
 	{
 		Pair<Integer, String> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, options);
+			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, lengthInHardFacts, options);
 			question = argQuestion;cPair = result;
 		}
 		else
-			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, options);
+			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, lengthInHardFacts, options);
 
 		checkCall(KIND_OF_METHOD.M_CHECKWITHUSER);
 

@@ -81,6 +81,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
+						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);

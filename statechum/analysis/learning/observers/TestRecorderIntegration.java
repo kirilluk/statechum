@@ -112,6 +112,7 @@ public class TestRecorderIntegration {
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -166,6 +167,7 @@ public class TestRecorderIntegration {
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart, 
+							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -183,6 +185,7 @@ public class TestRecorderIntegration {
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
@@ -194,6 +197,7 @@ public class TestRecorderIntegration {
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePath(question),null);

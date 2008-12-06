@@ -29,15 +29,20 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 
 public class Transform 
 {
@@ -399,4 +404,95 @@ public class Transform
 		return graphModified?result:null;
 	}
 
+	public static class TraversalStatistics
+	{
+		public final int Nx,Tx,matched;
+		
+		public TraversalStatistics(int argNX,int argTX,int argMatched)
+		{
+			Nx=argNX;Tx=argTX;matched=argMatched;
+		}
+	}
+	
+	/** Counts the number of transitions in common between the two graphs.
+	 * The small graph should be contained in the large one. 
+	 */
+	public static TraversalStatistics countSharedTransitions(LearnerGraph big, LearnerGraph small)
+	{
+		CmpVertex stateBig = big.init, stateSmall = small.init;
+		LearnerGraph transitionCounter = new LearnerGraph(big,big.config);
+		Set<CmpVertex> loopsInBig = new TreeSet<CmpVertex>();// contains states with self-loops of big which are not self-loops of B 
+		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
+		int matchedTransitionCounter = 0;
+		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
+		currentExplorationBoundary.add(new StatePair(stateBig,stateSmall));statesAddedToBoundary.add(new StatePair(stateBig,stateSmall));
+
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			StatePair statePair = currentExplorationBoundary.remove();
+			assert big.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
+			assert small.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
+			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
+				throw new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
+
+			Map<String,CmpVertex> targetsBig = big.transitionMatrix.get(statePair.firstElem);
+			Map<String,CmpVertex> targetsSmall = small.transitionMatrix.get(statePair.secondElem);
+					
+			for(Entry<String,CmpVertex> labelstate:targetsSmall.entrySet())
+			{
+				String label = labelstate.getKey();
+				if (!targetsBig.containsKey(label))
+					throw new IllegalArgumentException("small graph is not contained in the large one, from "+statePair+
+							" unmatched transition "+label+" to (nothing_in_big,"+labelstate.getValue()+")");
+				++matchedTransitionCounter;
+				transitionCounter.transitionMatrix.get(statePair.firstElem).remove(label);
+				CmpVertex nextSmall = labelstate.getValue();
+				CmpVertex nextBig = targetsBig.get(label);
+				if (nextBig.equals(statePair.firstElem) &&
+						!nextSmall.equals(statePair.secondElem))
+					loopsInBig.add(nextBig);
+				
+				StatePair nextPair = new StatePair(nextBig,nextSmall);
+
+				if (!statesAddedToBoundary.contains(nextPair))
+				{
+					currentExplorationBoundary.offer(nextPair);
+					statesAddedToBoundary.add(nextPair);
+				}
+			}
+		}
+		
+		return new TraversalStatistics(transitionCounter.countEdges(),loopsInBig.size(),matchedTransitionCounter);
+	}
+	
+	public static double QuanteKoschkeDifference(LearnerGraph A, LearnerGraph B)
+	{
+		LearnerGraph automaton = null;
+		try {
+			automaton = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(A,A.config),B).pathroutines.buildDeterministicGraph();
+		} catch (IncompatibleStatesException e) {
+			Helper.throwUnchecked("failed to build a deterministic version of a union", e);
+		}
+		//Visualiser.updateFrame(A, B);
+		boolean minimal = false;
+		while(!minimal)
+			try
+			{
+				minimal = false;
+				//Visualiser.updateFrame(automaton, null);
+				WMethod.computeWSet_reducedmemory(automaton);
+				minimal = true;
+			}
+			catch(EquivalentStatesException ex)
+			{
+				System.out.println("merging "+ex.getA()+" and "+ex.getB());
+				automaton = MergeStates.mergeAndDeterminize_general(automaton, new StatePair(ex.getA(),ex.getB()));
+			}
+		//Visualiser.updateFrame(automaton, null);
+		TraversalStatistics UA= countSharedTransitions(automaton, A), UB = countSharedTransitions(automaton, B);
+		double DuA = ((double)UA.Nx+UA.Tx)/(UA.matched+automaton.countEdges()),
+			DuB = ((double)UB.Nx+UB.Tx)/(UB.matched+automaton.countEdges());
+		
+		return (DuA+DuB)/2;
+	}
 }

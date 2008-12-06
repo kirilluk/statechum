@@ -329,7 +329,7 @@ public class LearnerSimulator extends ProgressDecorator
 					topLevelListener.AddConstraints(graph);break;
 				case ELEM_ANSWER:
 					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
-					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null);
+					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, AbstractOracle.USER_CANCELLED, null);
 					assert outcome == expectedReturnValue;// yes, this should be b
 					break;
 				case ELEM_PAIRS:
@@ -386,10 +386,11 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param g estimated graph, not loaded.
 	 * @param question question loaded from XML
 	 * @param responseForNoRestart ignored.
+	 * @param lengthInHardFacts ignored.
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, int responseForNoRestart, Object[] options) 
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, int responseForNoRestart, @SuppressWarnings("unused") int lengthInHardFacts, Object[] options) 
 	{
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(StatechumXML.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;

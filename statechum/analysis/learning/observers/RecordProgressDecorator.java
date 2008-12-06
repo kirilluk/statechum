@@ -200,10 +200,10 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 	
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, int responseForNoRestart, Object[] options) 
+			List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
 	{
 		Element questionElement = doc.createElement(StatechumXML.ELEM_ANSWER.name());
-		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, options);
+		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
 		StringWriter strWriter = new StringWriter();writeInputSequence(strWriter,question);
 		questionElement.setAttribute(StatechumXML.ATTR_QUESTION.name(),strWriter.toString());
 		questionElement.setAttribute(StatechumXML.ATTR_FAILEDPOS.name(), result.firstElem.toString());

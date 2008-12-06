@@ -95,6 +95,7 @@ public class TestAutoAnswers {
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Assert.fail("all answers should have been provided by AutoAnswers, but got "+question);
@@ -139,6 +140,7 @@ public class TestAutoAnswers {
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Pair<Integer,String> result = semiUser.ans.getAnswer(question);
@@ -179,6 +181,7 @@ public class TestAutoAnswers {
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
 					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Assert.fail("all answers should have been provided by AutoAnswers");

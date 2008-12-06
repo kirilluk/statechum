@@ -112,8 +112,11 @@ public interface Learner
 	 * 
 	 *  @param expectedAccept if a response from a user is equals to this value, no restart will be needed. 
 	 *  	If set to USER_CANCELLED, this means that no value is provided.
+	 *  @param lengthInHardFacts how much of the question exists in hard facts - a non-negative answer under (or equal to) 
+	 *  this number will cause the IncompatibleStateLabelling to be thrown by AugmentPTA.
+	 *  AbstractOracle.USER_CANCELLED means that this value is not set.
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,Object [] options);
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,int lengthInHardFacts,Object [] options);
 	
 	/** Indicates that a restart has taken place.
 	 * 

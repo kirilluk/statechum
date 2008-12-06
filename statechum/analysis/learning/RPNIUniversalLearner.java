@@ -199,7 +199,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					answerFromSpin = true;
 				else{
 					//System.out.println("<question> "+question);
-					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,new Object[] { "LTL"});
+					answer = topLevelListener.CheckWithEndUser(scoreComputer, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePath(question), new Object[] { "LTL"});
 				}
 				
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
@@ -356,7 +356,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				{					
 					for(List<String> question:topLevelListener.ComputeQuestions(pair, newPTA, tempNew))
 					{
-						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,new Object [] {"Test"});
+						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(scoreComputer,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,newPTA.paths.tracePath(question),new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");

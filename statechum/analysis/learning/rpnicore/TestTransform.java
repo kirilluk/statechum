@@ -46,6 +46,7 @@ import edu.uci.ics.jung.exceptions.FatalException;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -56,6 +57,8 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.observers.TestWriteReadPair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
@@ -1300,6 +1303,7 @@ public class TestTransform {
 		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
 		Assert.assertNull(result);
 	}
+	
 	@Test
 	public final void testAugmentFromMax8_b()
 	{
@@ -1309,4 +1313,206 @@ public class TestTransform {
 		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config, true);
 		Assert.assertNull(result);
 	}
+	
+	@Test
+	public final void testCountMatchedTransitions1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","testCountMatchedTransitions1small"),config);
+		
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(4,Transform.countSharedTransitions(big, small).matched);
+	}
+	
+	@Test
+	public final void testCountMatchedTransitions2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big"),config);
+		LearnerGraph small = new LearnerGraph(config);
+		
+		Assert.assertEquals(4,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	@Test
+	public final void testCountMatchedTransitions3()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A\nB-b->B","testCountMatchedTransitions3big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","testCountMatchedTransitions3small"),config);
+		
+		Assert.assertEquals(1,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(4,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	@Test
+	public final void testCountMatchedTransitions4()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","testCountMatchedTransitions4small"),config);
+		
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	@Test
+	public final void testCountMatchedTransitions5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-c->D-b->E-b->F","testCountMatchedTransitions5small"),config);
+		
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(5,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	/** Tests identification of self-loops. */
+	@Test
+	public final void testCountMatchedTransitions6()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","testCountMatchedTransitions4big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A","testCountMatchedTransitions5small"),config);
+		
+		Assert.assertEquals(1,Transform.countSharedTransitions(big, small).Tx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	/** Tests identification of self-loops. */
+	@Test
+	public final void testCountMatchedTransitions7()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B-c->B","testCountMatchedTransitions7big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->B-a->C-c->D","testCountMatchedTransitions7small"),config);
+		
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).Tx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(3,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	/** Tests identification of self-loops. */
+	@Test
+	public final void testCountMatchedTransitions8()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B-c->B-a->A","testCountMatchedTransitions8big"),config);
+		LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->B-a->C-c->D-c->E-a->F-b->G","testCountMatchedTransitions8small"),config);
+		
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).Tx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(6,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	@Test
+	public final void testCountMatchedTransitions_fail1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail1big"),config);
+		final LearnerGraph small = new LearnerGraph(config);small.init.setAccept(false);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			Transform.countSharedTransitions(big, small);
+		}},DifferentFSMException.class,"have a different acceptance");
+	}
+
+	@Test
+	public final void testCountMatchedTransitions_fail2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big"),config);
+		final LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a-#C","testCountMatchedTransitions_fail2small"),config);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			Transform.countSharedTransitions(big, small);
+		}},DifferentFSMException.class,"have a different acceptance");
+	}
+	
+	@Test
+	public final void testCountMatchedTransitions_fail3()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail3big"),config);
+		final LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-b->C","testCountMatchedTransitions_fail3small"),config);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			Transform.countSharedTransitions(big, small);
+		}},IllegalArgumentException.class,"not contained");
+	}
+	
+	@Test
+	public final void testCountMatchedTransitions_fail4()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
+		final LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D\nB-c->D-c->D","testCountMatchedTransitions_fail4small"),config);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			Transform.countSharedTransitions(big, small);
+		}},IllegalArgumentException.class,"small graph is not contained in the large one, from [ C, D ] unmatched transition c to (nothing_in_big,D)");
+	}
+	
+	@Test
+	public final void testCountMatchedTransitions_fail5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph big = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
+		final LearnerGraph small = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->A\nB-c->D-b->E-b->F","testCountMatchedTransitions_fail5small"),config);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			Transform.countSharedTransitions(big, small);
+		}},IllegalArgumentException.class,"small graph is not contained in the large one, from [ A, B ] unmatched transition c to (nothing_in_big,D)");
+	}
+	
+	@Test
+	public final void testQuanteKoschke1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		Assert.assertEquals(0.24,
+			Transform.QuanteKoschkeDifference(
+				new LearnerGraph(TestFSMAlgo.buildGraph("A-create->B-push->B","testQuanteKoschke1a"),config),
+				new LearnerGraph(TestFSMAlgo.buildGraph("A-create->B-pop->D","testQuanteKoschke1b"),config)),
+			0.01
+			);
+	}
+	
+	/** Unmatched loops. */
+	@Test
+	public final void testQuanteKoschke2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph grA=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->D-a->A\nA-b->B\nD-e->D\nB-f->B", "testQuanteKoschke2A"),config);
+		LearnerGraph grB=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->C-a->E-a->C\nA-b->C-q->C\nE-p->E", "testQuanteKoschke2B"),config);
+		Assert.assertEquals(0.22,
+			Transform.QuanteKoschkeDifference(grA,grB),
+			0.01
+			);
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		gd.computeGD(grA, grB, 1, counter,config);
+		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.countEdges()+grB.countEdges());
+		//System.out.println("removed: "+counter.getRemoved()+" out of "+grA.countEdges()+", added: "+counter.getAdded()+" to produce "+grB.countEdges()+"; our difference: "+our);
+		Assert.assertEquals(0.5, ourDifference,0.01);
+	}
+	
+	/** Matched loops. */
+	@Test
+	public final void testQuanteKoschke3()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph grA=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->D-a->A\nA-b->B\nD-e->D\nB-f->B", "testQuanteKoschke2A"),config);
+		LearnerGraph grB=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->C-a->E-a->A\nA-b->C-q->C\nE-p->E", "testQuanteKoschke3B"),config);
+		Assert.assertEquals(0.23,
+			Transform.QuanteKoschkeDifference(grA,grB),
+			0.01
+			);
+		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		gd.computeGD(grA, grB, 1, counter,config);
+		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.countEdges()+grB.countEdges());
+		//System.out.println("removed: "+counter.getRemoved()+" out of "+grA.countEdges()+", added: "+counter.getAdded()+" to produce "+grB.countEdges()+"; our difference: "+our);
+		Assert.assertEquals(0.33, ourDifference,0.01);
+	}
+	
 }

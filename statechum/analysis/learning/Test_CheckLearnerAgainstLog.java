@@ -74,7 +74,8 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						List<String> question,	@SuppressWarnings("unused") int answerForNoRestart, 
+						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
 					return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
@@ -182,6 +183,7 @@ public class Test_CheckLearnerAgainstLog
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
@@ -213,6 +215,7 @@ public class Test_CheckLearnerAgainstLog
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 						{
 							return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);

@@ -3,6 +3,7 @@ package statechum.analysis.learning.util;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -61,18 +62,21 @@ public class OutputUtil {
 	protected static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
-		
+		ArrayList<DirectedSparseVertex> vertexList = new ArrayList<DirectedSparseVertex>();
+		for(DirectedSparseVertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+			vertexList.add(v);
+		}
 		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
 			if(!v.toString().equals("Init"))
-				graphout.write("\n"+v.toString()+"[label=\"\"]");
+				graphout.write("\n"+vertexList.indexOf(v)+"[label=\"\" shape=\"circle\"]");
 		}
 		
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
 			Vertex dest = e.getDest();
 			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
 				continue;
-			String from = e.getSource().toString();
-			String to = e.getDest().toString();
+			String from = String.valueOf(vertexList.indexOf(e.getSource()));
+			String to = String.valueOf(vertexList.indexOf(e.getDest()));
 			if(e.containsUserDatumKey(JUConstants.LABEL)){
         		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
         		Iterator<String> labelIt = labels.iterator();

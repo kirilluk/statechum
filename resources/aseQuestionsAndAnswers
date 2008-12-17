@@ -1,0 +1,32 @@
+<temp> [load, save]
+<USER> [load, edit, edit, edit] <yes>
+<USER> [load, edit, edit, close, exit] <yes>
+<USER> [load, edit, edit, save, load] <ltl> !([]((load) -> X((close) V (!load))))
+<temp> [load, save]
+<USER> [load, edit, save, edit, exit] <yes>
+<USER> [load, edit, edit, save, close, load, exit] <yes>
+<temp> [load, edit, save, save]
+<USER> [load, edit, exit] <yes>
+<USER> [load, close, load, exit] <yes>
+<USER> [load, edit, close, close] <ltl> !([]((close)-> X((load) V !((save) || (edit) || (close)))))
+<temp> [load, save]
+<USER> [load, edit, edit, exit] <yes>
+<temp> [load, edit, close, close]
+<temp> [load, edit, close, edit]
+<temp> [load, edit, close, save]
+<USER> [edit] <ltl> !((load) V !((save) || (edit) || (close)))
+<temp> [load, save]
+<temp> [load, edit, close, close]
+<temp> [load, edit, close, edit]
+<temp> [load, edit, close, save]
+<USER> [exit] <yes>
+<USER> [load, exit] <yes>
+<temp> [load, exit, save]
+<USER> [load, exit, exit] <ltl> !((exit) -> [](exit))
+<temp> [load, save]
+<temp> [load, edit, close, close]
+<temp> [load, edit, close, edit]
+<temp> [load, edit, close, save]
+<temp> [load, exit, save]
+<temp> [load, exit, close]
+<temp> [load, exit, load]

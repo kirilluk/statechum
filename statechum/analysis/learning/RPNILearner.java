@@ -193,7 +193,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 		if (str.length() < 1)
 			return str;
 		
-		return "<html><font color=blue>"+str.charAt(0)+"</font>"+str.substring(1);
+		return "<html>"+str+" <font color=blue>&nbsp;&larr;";
 	}
 	
 	/** Displays a tentative graph and asks user a supplied question. 
@@ -224,11 +224,12 @@ public abstract class RPNILearner extends Observable implements Learner {
 					assert expectedForNoRestart < 0 || expectedForNoRestart >= lengthInHardFacts: "expectedForNoRestart = "+expectedForNoRestart+" and lengthInHardFacts = "+lengthInHardFacts;
 					for(;inputCounter<questionList.size();++inputCounter)
 					{
-						String inputText = "<html><font color=green>"+inputIter.next();
+						String textToAdd = null;
 						if (inputCounter == expectedForNoRestart)
-							rejects.add(addAnnotationExpected(inputText));
+							textToAdd = addAnnotationExpected(inputIter.next());
 						else
-							rejects.add(inputText);
+							textToAdd = inputIter.next();
+						rejects.add("<html><font color=green>"+textToAdd);
 					}
 					final JList rejectElements = new JList(rejects.toArray());
 					

@@ -45,7 +45,8 @@ public class SpinUtil {
 
 	static String defines;
 
-	static String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"promelaMachine";
+	static String tempDir = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP);
+	//static String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"promelaMachine";
 	
 	static StringWriter sw;
 
@@ -153,7 +154,7 @@ public class SpinUtil {
 	private static SpinResult checkLTL(String ltl){
 		addLtl(ltl);
 		generateDefines(functionMap);
-		File promelaMachine  = new File(fileRef);
+		File promelaMachine  = new File(tempDir+File.separator+"promelaMachine");
 		OutputUtil.write(defines.concat(sw.toString()), promelaMachine);
 		return runSpin('s');
 	}
@@ -171,46 +172,60 @@ public class SpinUtil {
 	private static SpinResult runSpin(char safetyLiveness) {
 		SpinResult sr = new SpinResult();
 		List<String[]> cmdArray = new ArrayList<String[]>();
-		cmdArray.add(0, (String[]) Arrays.asList("rm", "*.trail").toArray());
-		cmdArray.add(1, (String[]) Arrays
+		for(File f:new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)).listFiles(new FileFilter(){
+			public boolean accept(File pathName) {
+				return pathName.canRead() && pathName.isFile() &&
+				pathName.getAbsolutePath().endsWith(".trail");
+			}}))
+			f.delete();
+
+		int counter = 0;
+		//cmdArray.add(0, (String[]) Arrays.asList("rm", "*.trail").toArray());
+		cmdArray.add(counter++, (String[]) Arrays
 				.asList("spin", "-Z", "promelaMachine").toArray());
-		cmdArray.add(2, (String[]) Arrays.asList("spin", "-a", "-X",
+		cmdArray.add(counter++, (String[]) Arrays.asList("spin", "-a", "-X",
 				"promelaMachine").toArray());
 		if( safetyLiveness == 's'){ //compile pan for checking safety properties
-			cmdArray.add(3, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+			cmdArray.add(counter++, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 				"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE",  "-DSAFETY", "-DNXT", "-DBFS", "-DREACH",
 				//"-DNOREDUCE", 
 				"-DNOFAIR", "pan.c").toArray());
-			cmdArray.add(4, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
+			cmdArray.add(counter++, (String[]) Arrays.asList(tempDir+File.separator+"pan", "-v", "-X",
 				"-m10000", "-w19", "-A", "-e", "-c0").toArray()); //"-i"
 		}
 		else{ //compile pan for checking liveness properties
-			cmdArray.add(3, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
+			cmdArray.add(counter++, (String[]) Arrays.asList("gcc", "-w", "-o", "pan",
 					"-D_POSIX_SOURCE", "-DMEMLIM=128", "-DXUSAFE", "-DNXT",
 					//"-DNOREDUCE", 
 					"-DNOFAIR", "pan.c").toArray());
-			cmdArray.add(4, (String[]) Arrays.asList(new File(fileRef).getParentFile().getAbsolutePath()+System.getProperty("file.separator")+"pan", "-v", "-X",
+			cmdArray.add(counter++, (String[]) Arrays.asList(tempDir+File.separator+"pan", "-v", "-X",
 					"-m10000", "-w19", "-a", "-c1").toArray());
 		}
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < counter; i++) {
 			try {
 				String line;
 				ProcessBuilder pb = new ProcessBuilder(cmdArray.get(i));
-				pb.directory(new File(fileRef).getParentFile());
+				pb.directory(new File(tempDir));
 				Process proc = pb.start();
 				InputStreamReader tempReader = new InputStreamReader(
 	                new BufferedInputStream(proc.getInputStream()));
 	            BufferedReader reader = new BufferedReader(tempReader); 
-	            
+	            boolean foundNoError = false;
 	            while ((line = reader.readLine()) != null) {
 	            	if(line.contains("errors: 0")){
-	            		sr.setCounters(new ArrayList<List<String>>());
-	            		sr.setPass(true);
-	            		return sr;
+	            		foundNoError = true;
 	            	}
 	            	//System.out.println(line);
 					
 				}
+	            
+	            if (foundNoError)
+	            {
+            		sr.setCounters(new ArrayList<List<String>>());
+            		sr.setPass(true);
+            		return sr;
+	            }
+	            	
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}
@@ -226,7 +241,7 @@ public class SpinUtil {
 	private static List<List<String>> getCounterExamples(){
 		Set<List<String>> counterExamples = new HashSet<List<String>>();
 		String[] filelist;
-		File f = new File(fileRef).getParentFile();		
+		File f = new File(tempDir);		
 		SpinUtil sp = new SpinUtil();
 		filelist = f.list(sp.new TrailFileFilter());
 		for(int i=0; i< filelist.length; i++){
@@ -384,7 +399,7 @@ public class SpinUtil {
 		try {
 			String line;
 			ProcessBuilder pb = new ProcessBuilder(trace);
-			pb.directory(new File(fileRef).getParentFile());
+			pb.directory(new File(tempDir));
 			
 			Process proc = pb.start();
 			BufferedReader input = new BufferedReader(new InputStreamReader(

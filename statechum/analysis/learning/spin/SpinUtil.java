@@ -53,32 +53,31 @@ public class SpinUtil {
 
 	static Map<Integer, String> inverseFunctionMap;
 	
-	public static Collection<List<String>> check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
+	public static SpinResult check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
-		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
-		List<List<String>>sortedCounters = sort(counters);
-		removeInvalidPrefixCounters(sortedCounters, current);
-		return sortedCounters;
+		SpinResult sr = checkLTL(concatenatedLTL(ltl));
+		sr.ensureCountersConsistent(current);
+		return sr;
 	}
 	
-	public static Collection<List<String>> check(LearnerGraph temp, Collection<String> ltl) {
+	public static SpinResult check(LearnerGraph temp, Collection<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
 		sw = new StringWriter();
 		defines = new String();
 		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
-		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
-		List<List<String>>sortedCounters = sort(counters);
-		return sortedCounters;
+		SpinResult sr = checkLTL(concatenatedLTL(ltl));
+		//List<List<String>>sortedCounters = sort(counters);
+		return sr;
 	}
 	
-	private static void removeInvalidPrefixCounters(Collection<List<String>> counters, LearnerGraph current){
+	static void removeInvalidPrefixCounters(List<List<String>> counters, LearnerGraph current){
 		Iterator<List<String>> counterIt = counters.iterator();
 		Collection<List<String>> toBeRemoved = new HashSet<List<String>>();
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
@@ -103,7 +102,7 @@ public class SpinUtil {
 		counters.removeAll(toBeRemoved);
 	}
 	
-	private static List<List<String>> sort(Set<List<String>> counters){
+	public static List<List<String>> sort(Set<List<String>> counters){
 		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
 		counterList.addAll(counters);
 		Collections.sort(counterList, new Comparator<List<String>>() {
@@ -140,16 +139,18 @@ public class SpinUtil {
 		defines = new String();
 		generatePromela(question);
 		createInverseMap();
-		Set<List<String>> counters = checkLTL(concatenatedLTL(ltl));
-		if(counters.size()==0)
+		SpinResult sr = checkLTL(concatenatedLTL(ltl));
+		if(sr.isPass())
 			return -1;
-		
-		return counters.iterator().next().size();
+		else if(sr.getCounters().size()>=1)
+			return sr.getCounters().iterator().next().size();
+		else
+			return 0;
 	}
 	
 	
 	
-	private static Set<List<String>> checkLTL(String ltl){
+	private static SpinResult checkLTL(String ltl){
 		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(fileRef);
@@ -167,7 +168,8 @@ public class SpinUtil {
 	/*
 	 * returns a set of counter examples
 	 */
-	private static Set<List<String>> runSpin(char safetyLiveness) {
+	private static SpinResult runSpin(char safetyLiveness) {
+		SpinResult sr = new SpinResult();
 		List<String[]> cmdArray = new ArrayList<String[]>();
 		cmdArray.add(0, (String[]) Arrays.asList("rm", "*.trail").toArray());
 		cmdArray.add(1, (String[]) Arrays
@@ -201,8 +203,11 @@ public class SpinUtil {
 	            BufferedReader reader = new BufferedReader(tempReader); 
 	            
 	            while ((line = reader.readLine()) != null) {
-	            	if(line.contains("errors: 0"))
-	            		return new HashSet<List<String>>();
+	            	if(line.contains("errors: 0")){
+	            		sr.setCounters(new ArrayList<List<String>>());
+	            		sr.setPass(true);
+	            		return sr;
+	            	}
 	            	//System.out.println(line);
 					
 				}
@@ -211,10 +216,14 @@ public class SpinUtil {
 			}
 			
 		}
-		return getCounterExamples();
+		sr.setPass(false);
+		sr.setCounters(getCounterExamples());
+		return sr;
 	}
+	
+	
 
-	private static Set<List<String>> getCounterExamples(){
+	private static List<List<String>> getCounterExamples(){
 		Set<List<String>> counterExamples = new HashSet<List<String>>();
 		String[] filelist;
 		File f = new File(fileRef).getParentFile();		
@@ -225,7 +234,7 @@ public class SpinUtil {
 			if(!counterExample.isEmpty())
 				counterExamples.add(counterExample);
 		}
-		return counterExamples;
+		return sort(counterExamples);
 	}
 	
 	public class TrailFileFilter implements FilenameFilter 

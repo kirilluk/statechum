@@ -30,6 +30,7 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -134,15 +135,15 @@ public class RPNIUniversalLearner extends RPNILearner
 		LearnerGraph ptaSoftFacts = scoreComputer;
 		if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
 		if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
-			Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, ltl);
-			if(counters.size()>0)
-				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, counters));
+			SpinResult sr = SpinUtil.check(ptaHardFacts, ltl);
+			if(!sr.isPass())
+				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, sr.getCounters()));
 		}
 		setChanged();scoreComputer.setName(learntGraphName+"_init");
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
 		JUConstants colourToAugmentWith = scoreComputer.config.getUseAmber()? JUConstants.AMBER:null;
-		
+		updateGraph(scoreComputer);
 		while (!possibleMerges.isEmpty()) 
 		{
 			iterations++;
@@ -160,7 +161,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			updateGraph(temp);
 			if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
 
-				Collection<List<String>> counterExamples = SpinUtil.check(temp, scoreComputer, ltl);
+				Collection<List<String>> counterExamples = SpinUtil.check(temp, scoreComputer, ltl).getCounters();
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext()){
 					List<String> counterExample = counterExampleIt.next();
@@ -253,7 +254,7 @@ public class RPNIUniversalLearner extends RPNILearner
 						{
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <ltl> "+newLtl);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ltl);tmpLtl.add(newLtl);
-							Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl);
+							Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
 							if (counters.size()>0)
 							{
 								if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user

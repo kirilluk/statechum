@@ -19,6 +19,7 @@
 package statechum.analysis.learning.experiments;
 
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
@@ -70,11 +71,11 @@ public class IncrementalAccuracyAndQuestionsExperiment
 		@Override
 		public void runTheExperiment()
 		{
-			int size = 4*graph.getStateNumber();
+			int size = 2*graph.countEdges();
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
-			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  
+			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  */
 			RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null))
 			{
 				@Override
@@ -180,15 +181,15 @@ public class IncrementalAccuracyAndQuestionsExperiment
 			for(String name:learnerNames)
 			{
 				String ending = ".csv";
-				/*
+				
 				experiment.postProcessIntoR(name,2,true, 3, new File(experiment.getOutputDir(),name+"-precision"+ending));
 				experiment.postProcessIntoR(name,2,true, 4, new File(experiment.getOutputDir(),name+"-recall"+ending));
 				experiment.postProcessIntoR(name,2,true, 5, new File(experiment.getOutputDir(),name+"-questionNumber"+ending));
 				experiment.postProcessIntoR(name,2,true, 15, new File(experiment.getOutputDir(),name+"-linear"+ending));
 				experiment.postProcessIntoR(name,2,true, 16, new File(experiment.getOutputDir(),name+"-linearP"+ending));
 				experiment.postProcessIntoR(name,2,true, 20, new File(experiment.getOutputDir(),name+"-completeness"+ending));
-				experiment.postProcessIntoR(name,2,true, 21, new File(experiment.getOutputDir(),name+"-restarts"+ending));
-				*/
+				//experiment.postProcessIntoR(name,2,true, 21, new File(experiment.getOutputDir(),name+"-restarts"+ending));
+				
 			}
 		} catch (Exception e1) {
 			e1.printStackTrace();

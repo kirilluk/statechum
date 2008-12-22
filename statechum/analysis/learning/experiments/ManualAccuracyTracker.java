@@ -64,7 +64,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		
 		RandomPathGenerator rpg = new RandomPathGenerator(targetMachine, new Random(100),5);// the seed for Random should be the same for each file
 		rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);
-		for(int i=2;i<10;i++){
+		for(int i=0;i<10;i++){
 			final PTASequenceEngine samples = rpg.getAllSequences(i);
 			
 			PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();

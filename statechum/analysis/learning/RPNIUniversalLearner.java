@@ -30,6 +30,7 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.model.testset.PTASequenceEngine;
@@ -48,6 +49,8 @@ public class RPNIUniversalLearner extends RPNILearner
 	{
 		super(parent, evalCnf.config);
 		ltl = evalCnf.ltlSequences;
+		if(ltl == null)
+			ltl = new HashSet<String>();
 		scoreComputer = new LearnerGraph(evalCnf.config);
 	}
 
@@ -134,7 +137,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		LearnerGraph ptaHardFacts = new LearnerGraph(scoreComputer,shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = scoreComputer;
 		if (config.isUseConstraints()) scoreComputer = topLevelListener.AddConstraints(scoreComputer);
-		if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
+		if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin() && !ltl.isEmpty()){
 			SpinResult sr = SpinUtil.check(ptaHardFacts, ltl);
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ltl, sr.getCounters()));
@@ -159,7 +162,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			//Visualiser.updateFrame(scoreComputer.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			updateGraph(temp);
-			if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin()){
+			if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin() && !ltl.isEmpty()){
 
 				Collection<List<String>> counterExamples = SpinUtil.check(temp, scoreComputer, ltl).getCounters();
 				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
@@ -191,7 +194,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
-				if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin())
+				if (scoreComputer.config.getUseLTL() && scoreComputer.config.getUseSpin() && !ltl.isEmpty())
 					answer = new Pair<Integer,String>(checkWithSPIN(question),null);
 				
 				CmpVertex tempVertex = temp.getVertex(question);

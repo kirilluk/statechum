@@ -726,7 +726,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		{
 			Vertex v = labelIt.next();
 			try{
-				Object label = v.getUserDatum(JUConstants.LABEL).toString();
+				String label = null;
+				Object labelObj = v.getUserDatum(JUConstants.LABEL);
+				if(labelObj!=null)
+					label = labelObj.toString();
 				if (label != null)
 				{
 					String extraLabel = paintChooser.getPickedLabel(v);

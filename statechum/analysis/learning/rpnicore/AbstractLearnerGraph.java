@@ -107,6 +107,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		
 		for(String label:labels)
 		{
+			if(label==null)
+				continue;
 			List<CmpVertex> targets = result.get(label);
 			if (targets == null) 
 			{

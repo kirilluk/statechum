@@ -51,8 +51,9 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
         Vertex targetVertex =
                  mLabeller.getVertex(targetId);
 
-        String direction = (String) attributeMap.remove("directed");
-        boolean directed = Boolean.parseBoolean(direction);
+        //String direction = (String) attributeMap.remove("directed");
+        //boolean directed = Boolean.parseBoolean(direction);
+        boolean directed = true;
         Edge e;
         if(!(sourceVertex.getSuccessors().contains(targetVertex))){
 	        if (directed)
@@ -67,13 +68,15 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 	            e.setUserDatum(key, value, UserData.SHARED);
 	        }
 	        HashSet labels = new HashSet();
-	        labels.add(attributeMap.get("EDGE"));
+	        if(attributeMap.get("EDGE")!=null)
+	        	labels.add(attributeMap.get("EDGE"));
 	        e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
         }
         else{
         	e = Test_Orig_RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
         	HashSet labels = (HashSet)e.getUserDatum(JUConstants.LABEL);
-        	labels.add(attributeMap.get("EDGE"));
+        	if(attributeMap.get("EDGE")!=null)
+        		labels.add(attributeMap.get("EDGE"));
         }
 
         return e;
@@ -108,7 +111,10 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             vertex.setUserDatum(p.getKey(), p.getValue(), UserData.SHARED);
         }
 			
-       String label = attributeMap.get("VERTEX").toString();
+       //String label = attributeMap.get("VERTEX").toString();
+        String label = idString;
+        if(label.contains("q0"))
+        	label = AbstractPersistence.Initial.concat(label);
         if(label.startsWith(AbstractPersistence.Initial))
         {
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);

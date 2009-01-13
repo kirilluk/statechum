@@ -84,7 +84,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	
 	/** The front wave. */
 	List<PairScore> currentWave = null;
-	
+
 	/** A collection of states which have already been used in key pairs and hence cannot 
 	 * be used in any other key pairs.
 	 */
@@ -114,6 +114,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	/** The inverse of newBToOrig. */
 	Map<CmpVertex,CmpVertex> origToNewB = null;
 	
+	public Map<CmpVertex, CmpVertex> getOrigToNewB() {
+		return origToNewB;
+	}
+
 	/** Forward matrix for exploration of <em>grCombined</em>. */
 	GDLearnerGraph forward = null;
 	
@@ -1151,6 +1155,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 	}
 	
+	public List<PairScore> getAllScores(){
+		return allScores;
+	}
+	
 	protected boolean fallbackToInitialPair = false;
 	
 	/** Builds the data structures subsequently used in traversal.
@@ -1255,6 +1263,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 	}
 	
+	List<PairScore> allScores = new ArrayList<PairScore>();
+	
 	/** Goes through the result of linear and identifies candidates for key state pairs.
 	 * @return true if everything is ok, false if no perfect set of candidates was found.
 	 */
@@ -1302,6 +1312,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 								if (score > scoreLow) scoreLow = score;
 						}
 						assert highState != null;
+						
 						currentWave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
 					}
 				});
@@ -1381,6 +1392,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 									score = scoresForward[scorePosition] + scoresInverse[scorePosition];
 								}
 								currentWave.add(new PairScore(targetStateA,targetStateB,(int)(multiplier*score),0));
+								
 							}
 				}
 			}

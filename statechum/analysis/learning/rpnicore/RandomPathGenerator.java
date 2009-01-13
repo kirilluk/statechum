@@ -408,6 +408,7 @@ public class RandomPathGenerator {
 			{
 				boolean notPrefix = verifyNoPrefixOf(path, allSequences, rnd) &&
 					verifyNoPrefixOf(path, extraSequences, rnd);
+				notPrefix = true;
 				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength)+
 						" "+(notPrefix?"done":"ATTEMPT FAILED"));
 				if (notPrefix)

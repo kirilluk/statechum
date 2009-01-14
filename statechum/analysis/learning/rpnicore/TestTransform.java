@@ -673,7 +673,7 @@ public class TestTransform {
 	}
 	
 	@Test
-	public final void testGraphMLwriter_loadnode1() throws IOException
+	public final void testGraphMLwriter_loadnode1()
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -686,7 +686,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
@@ -694,7 +694,7 @@ public class TestTransform {
 	}
 	
 	@Test
-	public final void testGraphMLwriter_loadnode2() throws IOException
+	public final void testGraphMLwriter_loadnode2()
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
@@ -709,7 +709,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
@@ -718,7 +718,7 @@ public class TestTransform {
 	
 	/** No graph element. */
 	@Test
-	public final void testGraphMLwriter_loadnode_fail1a() throws IOException
+	public final void testGraphMLwriter_loadnode_fail1a()
 	{
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		Document doc = null;
@@ -730,7 +730,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final Document document = doc;
 		checkForCorrectException(new whatToRun() { public void run() {
@@ -740,7 +740,7 @@ public class TestTransform {
 
 	/** No graph element. */
 	@Test
-	public final void testGraphMLwriter_loadnode_fail2a() throws IOException
+	public final void testGraphMLwriter_loadnode_fail2a()
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -753,7 +753,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
 		checkForCorrectException(new whatToRun() { public void run() {
@@ -763,7 +763,7 @@ public class TestTransform {
 	
 	/** No graph element. */
 	@Test
-	public final void testGraphMLwriter_loadnode_fail2b() throws IOException
+	public final void testGraphMLwriter_loadnode_fail2b()
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -776,7 +776,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
 		
@@ -787,7 +787,7 @@ public class TestTransform {
 	
 	/** Duplicate graph elements. */
 	@Test
-	public final void testGraphMLwriter_loadnode_fail2c() throws IOException
+	public final void testGraphMLwriter_loadnode_fail2c()
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -800,7 +800,7 @@ public class TestTransform {
 		}
 		catch(ParserConfigurationException ex)
 		{
-			IOException parserEx = new IOException("configuration exception: "+ex);parserEx.initCause(ex);throw parserEx;
+			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.appendChild(doc.createElement("graph"));
 		
@@ -821,18 +821,7 @@ public class TestTransform {
 		LearnerGraph loaded = loadLearnerGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
-		Assert.assertNull(WMethod.checkM(gr,loaded));
-		for(Entry<CmpVertex,LinkedList<String>> entry:gr.pathroutines.computeShortPathsToAllStates().entrySet())
-		{
-			CmpVertex v=entry.getKey(),other = loaded.paths.getVertex(entry.getValue());
-			Assert.assertEquals(v.isAccept(),other.isAccept());
-			Assert.assertEquals(v.isHighlight(),other.isHighlight());
-			if (v.getColour() == null) 
-				Assert.assertNull(other.getColour());
-			else
-				Assert.assertEquals(v.getColour(), other.getColour());
-		}
-
+		Assert.assertNull(WMethod.checkM(gr,gr.init,loaded,loaded.init,VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertTrue(ids_are_valid(loaded));
 		Assert.assertEquals(gr.incompatibles,loaded.incompatibles);
 	}
@@ -1005,6 +994,61 @@ public class TestTransform {
 		checkLoading(fsm);
 	}
 	
+	/** Tests that a graph with no VERTEX nodes will be loaded (the initial state is q0). 
+	 * @throws IOException */
+	@Test
+	public final void testGraphMLwriter_loadnode_noVERTEX() throws IOException
+	{
+		String text = graphML_header+"<node id=\""+AbstractPersistence.InitialQ0+"\"/>\n"+
+		"<node id=\"B\"/>\n"+ 
+		"<node id=\"C\" "+JUConstants.DEPTH.name()+"=\""+5+"\" />\n"+
+		"<edge EDGE=\"a\" directed=\"true\" source=\""+AbstractPersistence.InitialQ0+"\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
+		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
+		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
+		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
+		graphML_end;
+		final String FSMq0 = AbstractPersistence.InitialQ0+"-a->B-a->C-b->B-c->B";
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(FSMq0,"testGraphMLwriter_loadnode_noVERTEX"),Configuration.getDefaultConfiguration());
+		fsm.findVertex("C").setDepth(5);
+		LearnerGraph loaded = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+		AbstractPersistence.loadGraph(new StringReader(text), loaded);
+
+		Assert.assertTrue(!fsm.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
+		Assert.assertNull(WMethod.checkM(fsm,fsm.init,loaded,loaded.init,VERTEX_COMPARISON_KIND.DEEP));
+		for(Entry<CmpVertex,LinkedList<String>> entry:fsm.pathroutines.computeShortPathsToAllStates().entrySet())
+		{
+			CmpVertex v=entry.getKey(),other = loaded.paths.getVertex(entry.getValue());
+			Assert.assertEquals(v.isAccept(),other.isAccept());
+			Assert.assertEquals(v.isHighlight(),other.isHighlight());
+			if (v.getColour() == null) 
+				Assert.assertNull(other.getColour());
+			else
+				Assert.assertEquals(v.getColour(), other.getColour());
+		}
+
+		Assert.assertTrue(ids_are_valid(loaded));
+	}
+
+	/** Tests that a graph with multiple initial states (q0 and Initial) will fail to load  
+	 * @throws IOException */
+	@Test
+	public final void testGraphMLwriter_loadnode_noVERTEX_fail1()
+	{
+		final String text = graphML_header+"<node id=\""+AbstractPersistence.InitialQ0+"\"/>\n"+
+		"<node VERTEX=\"Initial B\" id=\"B\" />\n"+ 
+		"<node VERTEX=\"C\" id=\"C\"/>\n"+
+		"<edge EDGE=\"a\" directed=\"true\" source=\""+AbstractPersistence.InitialQ0+"\" target=\"B\"/>\n"+// since I'm using TreeMap, transitions should be alphabetically ordered.
+		"<edge EDGE=\"a\" directed=\"true\" source=\"B\" target=\"C\"/>\n"+
+		"<edge EDGE=\"c\" directed=\"true\" source=\"B\" target=\"B\"/>\n"+
+		"<edge EDGE=\"b\" directed=\"true\" source=\"C\" target=\"B\"/>\n"+
+		graphML_end;
+		final LearnerGraph loaded = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+		
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			AbstractPersistence.loadGraph(new StringReader(text), loaded);}}, 
+		IllegalArgumentException.class, "vertices B and q0 are both");
+	}
+
 	@Test
 	public final void testGraphMLWriter_fail_on_load_boolean() throws IOException
 	{

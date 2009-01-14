@@ -110,19 +110,28 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
             MiniPair p=new MiniPair(key,value);
             vertex.setUserDatum(p.getKey(), p.getValue(), UserData.SHARED);
         }
-			
-       //String label = attributeMap.get("VERTEX").toString();
-        String label = idString;
-        if(label.contains("q0"))
-        	label = AbstractPersistence.Initial.concat(label);
+		
+        String label = null;
+        
+        Object vertexid = attributeMap.get("VERTEX");
+        if (vertexid != null)
+        	label = vertexid.toString();
+        else
+        	label = idString;
+        
         if(label.startsWith(AbstractPersistence.Initial))
         {
         	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
         	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
         	label = label.replaceAll(AbstractPersistence.Initial+" *", "");
         }
-        
-       	vertex.setUserDatum(JUConstants.LABEL, VertexID.parseID(label), UserData.SHARED);
+        else if (label.startsWith(AbstractPersistence.InitialQ0) && vertexid == null)
+        {
+        	vertex.addUserDatum("startOrTerminal", "start", UserData.SHARED);
+        	vertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+        }
+
+        vertex.setUserDatum(JUConstants.LABEL, VertexID.parseID(label), UserData.SHARED);
        	if (!vertex.containsUserDatumKey(JUConstants.ACCEPTED))
        		vertex.setUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
         

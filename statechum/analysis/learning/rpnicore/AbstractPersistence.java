@@ -69,7 +69,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	}
 
 	/** a marker for an initial state in a graphML file. */
-	public static final String Initial = "Initial";
+	public static final String Initial = "Initial", InitialQ0="q0";
 	
 	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
 	protected String transformNodeName(CmpVertex node)

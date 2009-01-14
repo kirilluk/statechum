@@ -802,24 +802,10 @@ public class WMethod {
 	{
 		assert stateExpectedArg != null && stateGraphArg != null;
 		LearnerGraph expected = null, graph = null;
-		/*
-		try {
-			expected = new LearnerGraph(expectedArg,expectedArg.config);
-		}
-		catch(IllegalArgumentException ex)
-		{// failed to directly convert to a deterministic graph.
-		}
 
-		try {
-			graph = new LearnerGraph(graphArg,graphArg.config);
-		}
-		catch(IllegalArgumentException ex)
-		{// failed to directly convert to a deterministic graph.
-		}
-*/
 		try {// This one potentially makes copies of states with different names.
-			if (expected == null) expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
-			if (graph == null) graph = graphArg.pathroutines.buildDeterministicGraph(stateGraphArg);
+			expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
+			graph = graphArg.pathroutines.buildDeterministicGraph(stateGraphArg);
 		} catch (IncompatibleStatesException e) {
 			Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
 		}

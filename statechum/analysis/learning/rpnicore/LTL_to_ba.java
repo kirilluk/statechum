@@ -71,6 +71,31 @@ accept_S3 :
 	fi;
 }
 </pre>
+ *
+ * Another example is below (note that "if" statements can be replaced with "skip"
+ * !(((edit) R (!save)) && G(save -> X((edit) R (!save))))
+<pre>
+never {
+T0_init :
+	if
+	:: (!edit) || (save) -> goto T0_S1
+	:: (save) -> goto accept_all
+	:: (1) -> goto T1_S2
+	fi;
+T0_S1 :
+	if
+	:: (!edit) -> goto T0_S1
+	:: (save) -> goto accept_all
+	fi;
+T1_S2 :
+	if
+	:: (1) -> goto T1_S2
+	:: (save) -> goto T0_S1
+	fi;
+accept_all :
+	skip
+}
+</pre>
  * This automatically excludes a few words from appearing
  * as event labels.
  * 
@@ -146,6 +171,7 @@ public class LTL_to_ba {
 	private static final int lexTRANSITION = 1;
 	private static final int lexTRANSITIONLABEL =2;
 	private static final int lexTRANSITIONTARGET =3;
+	private static final int lexSKIP = 12;
 
 	protected static class Lexer 
 	{
@@ -241,12 +267,13 @@ public class LTL_to_ba {
 		Lexer lexer = new Lexer(
 			"(\\s*::\\s*([^\\-]+)\\s+\\->\\s*goto\\s+(\\w+)\\s+)|"+// if conditional
 				"(\\s*(\\w+)\\s*:\\s)"+"|"+// state name
-				"(\\s*if\\s*)"+"|"+ // if opening statement.
-				"(\\s*fi\\s*;\\s*)"+"|"+ // if closing statement.
-				"("+baStart+"\\s*\\{\\s*)"+"|"+ // start
-				"(\\s*false\\s*;\\s+)"+"|"+ // false statement
-				"("+baSimpleComment+")"+"|"+ // comment
-				"(\\s*\\}\\s*)" // end of the claim
+				"(\\s*if\\s*)"+"|"+ // if opening statement, 6
+				"(\\s*fi\\s*;\\s*)"+"|"+ // if closing statement, 7
+				"("+baStart+"\\s*\\{\\s*)"+"|"+ // start, 8
+				"(\\s*false\\s*;\\s+)"+"|"+ // false statement, 9
+				"("+baSimpleComment+")"+"|"+ // comment, 10
+				"(\\s*\\}\\s*)"+"|"+ // end of the claim, 11
+				"(\\s*skip\\s*)" // skip statement, 12
 				,whatToParse+"\n");
 		int currentMatch = lexer.getMatchType();
 		if (currentMatch == lexSTATE && baError.equals(lexer.group(lexSTATELABEL)))
@@ -294,27 +321,21 @@ public class LTL_to_ba {
 				case lexFALSE:
 					state = lexSTATE;// expect next if
 					break;
+				case lexSKIP:
+					addTransitionsBetweenStates(currentState,"1",currentState);
+					state = lexSTATE;
+					break;
 				case lexIF:
 					state = lexTRANSITION;break;
 				default:
-					lexer.throwException("expected if or a false"+currentMatch);
+					lexer.throwException("expected if, skip or false"+currentMatch);
 				}
 				break;
 			case lexTRANSITION:
 				switch(currentMatch)
 				{
 				case lexTRANSITION:
-					Map<String,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
-					CmpVertex target = addState(lexer.group(lexTRANSITIONTARGET));
-					for(String currLabel:interpretString(lexer.group(lexTRANSITIONLABEL)))
-					{
-						List<CmpVertex> targetList = row.get(currLabel);
-						if (targetList == null)
-						{
-							targetList = new LinkedList<CmpVertex>();row.put(currLabel, targetList);
-						}
-						targetList.add(target);
-					}
+					addTransitionsBetweenStates(currentState,lexer.group(lexTRANSITIONLABEL),addState(lexer.group(lexTRANSITIONTARGET)));
 					break;
 				case lexFI:
 						state = lexSTATE;break;
@@ -330,6 +351,27 @@ public class LTL_to_ba {
 		}
 		
 		matrixFromLTL.findInitialState(initStateName);
+	}
+	
+	/** Takes a SPIN transition label and a target state and adds transitions from the given state to the target state,
+	 * interpreting the expression on the label.
+	 * 
+	 * @param currentState the current state
+	 * @param transitionLabel the SPIN label
+	 * @param targetState target state
+	 */
+	protected void addTransitionsBetweenStates(CmpVertex currentState, String transitionLabel, CmpVertex targetState)
+	{
+		Map<String,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
+		for(String currLabel:interpretString(transitionLabel))
+		{
+			List<CmpVertex> targetList = row.get(currLabel);
+			if (targetList == null)
+			{
+				targetList = new LinkedList<CmpVertex>();row.put(currLabel, targetList);
+			}
+			targetList.add(targetState);
+		}
 	}
 	
 	/** Alphabet of a graph we'd like to augment with LTL. */

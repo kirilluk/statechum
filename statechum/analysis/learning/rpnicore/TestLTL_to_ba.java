@@ -151,8 +151,9 @@ public class TestLTL_to_ba
 		}},IllegalArgumentException.class,"expected if");
 	}
 	
+	/** No expression what a state should behave like. */
 	@Test
-	public final void testLTL_ba_fail6()
+	public final void testLTL_ba_fail6a()
 	{
 		final String text="never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
 		"some_state : \n"+
@@ -163,6 +164,38 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"expected if");
+	}
+	
+	/** Invalid description of a state. */
+	@Test
+	public final void testLTL_ba_fail6b()
+	{
+		final String text="never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
+		"some_state : \n"+
+		"if\n"+
+		"fi;\n"+
+		"more_state:\njunk\n"+"text:"
+		;
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.parse(text);
+		}},IllegalArgumentException.class,"failed to lex starting from \"junk");
+	}
+	
+	/** skip command followed with a semicolon - this might be a correct promela expression but we parse a 
+	 * restricted subset of it.
+	 */
+	@Test
+	public final void testLTL_ba_fail6c()
+	{
+		final String text="never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
+		"some_state : \n"+
+		"if\n"+
+		"fi;\n"+
+		"more_state:\nskip;\n"+"text:"
+		;
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.parse(text);
+		}},IllegalArgumentException.class,"failed to lex starting from \";");
 	}
 	
 	@Test
@@ -576,7 +609,7 @@ public class TestLTL_to_ba
 		"if :: (a) -> goto accept_init \n"+
 		":: (b) -> goto state_b\n"+
 		"fi;\n"+
-		"state_b: false; "+
+		"state_b: false;\n"+
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "testLTL_ba_graph0"),config);
 		expected.findVertex("B").setAccept(false);
@@ -597,6 +630,22 @@ public class TestLTL_to_ba
 		"state_unreachable: false;\n"+
 		"}\n";
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->B", "testLTL_ba_graph0"),config);
+		expected.findVertex("B").setAccept(false);
+		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
+	}
+	
+	/** Very simple graph with a skip (accepting all inputs) state */
+	@Test
+	public final void testLTL_ba_graph0d()
+	{
+		final String text=LTL_to_ba.baStart+"{\n"+
+		"accept_init:\n"+
+		"if :: (a) -> goto accept_init \n"+
+		":: (b) -> goto state_b\n"+
+		"fi;\n"+
+		"state_b: skip\n"+
+		"}\n";
+		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->B-b->B-c->B", "testLTL_ba_graph0"),config);
 		expected.findVertex("B").setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
@@ -731,6 +780,7 @@ public class TestLTL_to_ba
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
+	/** construction of deterministic graphs from non-deterministic ones. */
 	@Test
 	public final void testLTL_ba_nd2()
 	{

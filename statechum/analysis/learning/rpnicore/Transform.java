@@ -35,11 +35,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
@@ -356,8 +356,7 @@ public class Transform
 							graphModified=true;
 						}
 						nextGraphVertex = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(accept), config);
-						if (result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
-						assert !result.transitionMatrix.containsKey(nextGraphVertex) : "duplicate vertex "+nextGraphVertex;
+						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && result.findVertex(nextGraphVertex.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphVertex.getID()+" in graph "+result);
 						DeterministicDirectedSparseGraph.copyVertexData(graphState, nextGraphVertex);nextGraphVertex.setAccept(accept);
 						result.transitionMatrix.put(nextGraphVertex,result.createNewRow());
 						
@@ -396,7 +395,7 @@ public class Transform
 			}
 		}
 		
-		if (checkWasModified)
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && checkWasModified)
 		{// if graphModified is true the graph should not have been modified and vice-versa
 			DifferentFSMException ex = WMethod.checkM(graph, result);
 			assert graphModified == (ex != null);

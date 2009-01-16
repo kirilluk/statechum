@@ -375,7 +375,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		CmpVertex newVert = AbstractLearnerGraph.generateNewCmpVertex(nextID(what.isAccept()), config);
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled() && findVertex(newVert.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+newVert.getID()+" in graph "+toString());
-		assert !transitionMatrix.containsKey(newVert) : "duplicate vertex "+newVert;
 		DeterministicDirectedSparseGraph.copyVertexData(what, newVert);
 		transitionMatrix.put(newVert,createNewRow());
 		return newVert;

@@ -138,13 +138,13 @@ public class TestGraphConstructionWithDifferentConf {
 	/** Tests that different collections of incompatible states affect the comparison. */
 	@Test
 	public final void testFSMStructureEquals2e()
-	{
+	{// TODO: to update this to reflect different values of compatibility condition
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToIncompatibles(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")));
-		b.addToIncompatibles(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")));
-		c.addToIncompatibles(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")));
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
@@ -155,12 +155,12 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToIncompatibles(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")));
-		a.addToIncompatibles(a.findVertex(VertexID.parseID("C")), a.findVertex(VertexID.parseID("A")));
-		b.addToIncompatibles(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")));
-		b.addToIncompatibles(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")));
-		c.addToIncompatibles(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")));
-		c.addToIncompatibles(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")));
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("C")), a.findVertex(VertexID.parseID("A")),JUConstants.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")),JUConstants.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	

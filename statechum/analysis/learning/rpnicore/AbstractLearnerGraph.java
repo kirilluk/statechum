@@ -20,13 +20,13 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
@@ -456,7 +456,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
 	public void initEmpty()
 	{
-		transitionMatrix.clear();init=null;incompatibles.clear();
+		transitionMatrix.clear();init=null;pairCompatibility.clear();
 		learnerCache.invalidate();
 		vertNegativeID = config.getInitialIDvalue();vertPositiveID = config.getInitialIDvalue();
 	}
@@ -556,13 +556,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			}
 		}
 		
-		for(Entry<CmpVertex,Set<CmpVertex>> entry:from.incompatibles.entrySet())
+		for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> entry:from.pairCompatibility.entrySet())
 		{
 			CmpVertex incompatibleVertex = oldToNew.get(entry.getKey());// TODO: to test that this part works.
-			assert !result.incompatibles.containsKey(incompatibleVertex);
-			Set<CmpVertex> incSet = result.createNewIncompatiblesRow(incompatibleVertex);
-			for(CmpVertex vert:entry.getValue())
-				incSet.add(oldToNew.get(vert));
+			assert !result.pairCompatibility.containsKey(incompatibleVertex);
+			Map<CmpVertex,JUConstants> incMap = result.createNewCompatibilityRow(incompatibleVertex);
+			for(Entry<CmpVertex,JUConstants> mapping:entry.getValue().entrySet())
+				incMap.put(oldToNew.get(mapping.getKey()),mapping.getValue());
 		}
 		
 		result.learnerCache.invalidate();
@@ -607,9 +607,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 					result = prime * result + vertex.hashCode();
 			}
 		}
-		for(Entry<CmpVertex,Set<CmpVertex>> entry:incompatibles.entrySet())
-			result = prime * result + entry.getValue().hashCode();
-
+		for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> entry:pairCompatibility.entrySet())
+			for(Entry<CmpVertex,JUConstants> pair:entry.getValue().entrySet())
+			{
+				result = prime * result + entry.getKey().hashCode();
+				result = prime * result + pair.getKey().hashCode();
+				result = prime * result + pair.getValue().hashCode();
+			}
 		return result;
 	}
 
@@ -651,7 +655,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 
 		if (!transitionMatrix.keySet().equals(other.transitionMatrix.keySet()))
 			return false;
-		if (!incompatibles.keySet().equals(other.incompatibles.keySet()))
+		if (!pairCompatibility.keySet().equals(other.pairCompatibility.keySet()))
 			return false;
 		
 		final Set<CmpVertex> targetThis = new TreeSet<CmpVertex>(), targetOther = new TreeSet<CmpVertex>(); 
@@ -673,10 +677,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			}
 		}
 		
-		for(Entry<CmpVertex,Set<CmpVertex>> entry:incompatibles.entrySet())
-			if (!entry.getValue().equals(other.incompatibles.get(entry.getKey())))
-				return false;
-
+		for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> entry:pairCompatibility.entrySet())
+		{
+			Map<CmpVertex,JUConstants> otherMap = (Map<CmpVertex,JUConstants>)other.pairCompatibility.get(entry.getKey());
+			for(Entry<CmpVertex,JUConstants> pair:entry.getValue().entrySet())
+				if (!pair.getValue().equals(otherMap.get(pair.getKey())))
+					return false;
+		}
 		return true;
 	}
 
@@ -686,37 +693,40 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param pair what to check. It is assumed that the two states belong to the graph.
 	 * @return false if a pair is incompatible, true otherwise.
 	 */
-	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, Map<CmpVertex,Set<CmpVertex>> incompatibles)
+	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, Map<CmpVertex,Map<CmpVertex,JUConstants>> compatibility)
 	{
 		if (Q.isAccept() != R.isAccept())
 			return false;
 
-		Set<CmpVertex> incSet = incompatibles.get(Q);
-		return incSet == null || !incSet.contains(R);
+		Map<CmpVertex,JUConstants> incSet = compatibility.get(Q);
+		return incSet == null || incSet.get(R) != JUConstants.INCOMPATIBLE;
 	}
 	
 	
-	/** Stores pairs of states which should either never be merged due to constraints which cannot 
-	 * be easily expressed with counter-examples such as non-determinism related to intersection of
+	/** Stores pairs of states which satisfy a relation of interest.
+	 * For instance, these could be mandatory merge constraints or a record that
+	 * a specific pair should either never be merged (such as due to constraints which cannot 
+	 * be easily expressed with counter-examples - non-determinism related to intersection of
 	 * domains of labels from them (those which can be expressed using labels should be added to the maximal
-	 * automaton). 
+	 * automaton)). 
 	 */
-	final protected Map<CmpVertex,Set<CmpVertex>> incompatibles = new HashMap<CmpVertex,Set<CmpVertex>>();
+	final protected Map<CmpVertex,Map<CmpVertex,JUConstants>> pairCompatibility = new TreeMap<CmpVertex,Map<CmpVertex,JUConstants>>();
 
-	/** Adds a supplied pair to the collection of incompatible elements. 
+	/** Adds a supplied pair to the relation with the supplied value
 	 *  It is assumed that the two states belong to the graph; the two states should not be the same.
 	 *  
 	 * @param A one of the vertices to add
 	 * @param B another vertex to add.
+	 * @param what the value to use
 	 */
-	public void addToIncompatibles(CmpVertex A, CmpVertex B)
+	public void addToCompatibility(CmpVertex A, CmpVertex B,JUConstants what)
 	{
 		assert !A.getID().equals(B.getID());
-		addToIncompatibles_internal(A, B);
-		addToIncompatibles_internal(B, A);
+		addToIncompatibles_internal(A, B, what);
+		addToIncompatibles_internal(B, A, what);
 	}
 
-	/** Removes a supplied pair from the collection of incompatible elements. 
+	/** Removes a supplied pair from the binary relation.
 	 *  It is assumed that the two states belong to the graph; the two states should not be the same.
 	 *  If a pair is not found, it is ignored.
 	 *  
@@ -731,24 +741,25 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		
 	}	
 	
-	protected Set<CmpVertex> createNewIncompatiblesRow(CmpVertex A)
+	protected Map<CmpVertex,JUConstants> createNewCompatibilityRow(CmpVertex A)
 	{
-		Set<CmpVertex> incSet = new HashSet<CmpVertex>();incompatibles.put(A,incSet);return incSet;
+		Map<CmpVertex,JUConstants> incSet = new HashMap<CmpVertex,JUConstants>();
+		pairCompatibility.put(A,incSet);return incSet;
 	}
 	
-	private void addToIncompatibles_internal(CmpVertex A, CmpVertex B)
+	private void addToIncompatibles_internal(CmpVertex A, CmpVertex B, JUConstants what)
 	{
-		Set<CmpVertex> incSet = incompatibles.get(A);
-		if (incSet == null) incSet = createNewIncompatiblesRow(A);
-		incSet.add(B);
+		Map<CmpVertex,JUConstants> incSet = pairCompatibility.get(A);
+		if (incSet == null) incSet = createNewCompatibilityRow(A);
+		incSet.put(B,what);
 	}
 
 	private void removeFromIncompatibles_internal(CmpVertex A, CmpVertex B)
 	{
-		Set<CmpVertex> remSet = incompatibles.get(A);
-		if (remSet != null)	
+		Map<CmpVertex,JUConstants> remMap = pairCompatibility.get(A);
+		if (remMap != null)	
 		{
-			remSet.remove(B);if (remSet.isEmpty()) incompatibles.remove(A);
+			remMap.remove(B);if (remMap.isEmpty()) pairCompatibility.remove(A);
 		}
 	}
 }

@@ -32,12 +32,20 @@ public enum JUConstants {
 	NONE("none"),// used to denote absence of any colour rather than null in AMEquivalenceClass 
 	RED("red"),BLUE("blue"),AMBER("amber"),GRAY("gray"),INF_AMBER("inf_amber"),
 	JUNKVERTEX("junk"),// used for testing that searching for a property that does not exist returns a null vertex.
-	EDGE("edge"),VERTEX("vertex") // used for labelling vertices
+	EDGE("edge"),VERTEX("vertex"), // used for labelling vertices
+	
+	INCOMPATIBLE("incompatible"), // used to designate a pair of states as incompatible
+	MERGED("merged") // used to designate a pair of states as those which have been 
+		// merged before, hence we might wish to merge them without asking user any questions 
+	 	// as long as the pair of states is compatible. Such as merger will have to be sandwiched
+		// between checkers and the bottom of the stack where autoanswers and user answers lie.
 	;
 	private String stringRepresentation;
 	
 	public static final int intUNKNOWN = -1;
-	
+	public static final int intSTATEPAIR_INCOMPATIBLE = -20; // the integer representation of INCOMPATIBLE, used for storage
+	public static final int intSTATEPAIR_MERGED = -21;// the integer representation of MERGED, used for storage
+
 	JUConstants(String textualName)
 	{
 		stringRepresentation = textualName;

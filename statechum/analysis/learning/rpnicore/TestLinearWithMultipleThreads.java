@@ -103,7 +103,7 @@ public class TestLinearWithMultipleThreads {
 				Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
 
 				int currentStatePair = ndGraph.vertexToIntNR(stateB.getKey(),entryA.getKey());
-				ddrhInstance.compute(!AbstractLearnerGraph.checkCompatible(entryA.getKey(),stateB.getKey(),gr.incompatibles),entryA.getValue(),stateB.getValue());
+				ddrhInstance.compute(!AbstractLearnerGraph.checkCompatible(entryA.getKey(),stateB.getKey(),gr.pairCompatibility),entryA.getValue(),stateB.getValue());
 				result.setQuick(currentStatePair, ddrhInstance.getRightHandSide());
 				
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.

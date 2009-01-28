@@ -335,12 +335,12 @@ public class TestLinear {
 	 */
 	private final void getMatcherValue(LearnerGraph gr,LearnerGraphND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.incompatibles),
+		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.pairCompatibility),
 				matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
 
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.pairCompatibility),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
@@ -353,7 +353,7 @@ public class TestLinear {
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.incompatibles),
+		anotherMather.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.pairCompatibility),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);

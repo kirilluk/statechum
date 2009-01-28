@@ -125,10 +125,15 @@ public class TestGD_ExistingGraphs {
 			gr.pathroutines.pickRandomState(amberRnd).setColour(JUConstants.BLUE);
 		}
 		
-		for(int i=0;i<gr.getStateNumber()/3;++i)
+		for(int i=0;i<gr.getStateNumber()/6;++i)
 		{
 			CmpVertex a = gr.pathroutines.pickRandomState(amberRnd), b = gr.pathroutines.pickRandomState(amberRnd);
-			gr.addToIncompatibles(a, b);
+			gr.addToCompatibility(a, b, JUConstants.INCOMPATIBLE);
+		}
+		for(int i=0;i<gr.getStateNumber()/6;++i)
+		{
+			CmpVertex a = gr.pathroutines.pickRandomState(amberRnd), b = gr.pathroutines.pickRandomState(amberRnd);
+			gr.addToCompatibility(a, b, JUConstants.MERGED);
 		}
 	}
 	

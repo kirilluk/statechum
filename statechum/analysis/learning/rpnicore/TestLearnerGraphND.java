@@ -39,6 +39,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
@@ -163,7 +164,7 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph_fail1()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
-		graph.addToIncompatibles(graph.findVertex("B"), graph.findVertex("C"));
+		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
@@ -184,7 +185,7 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph_fail3()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
-		graph.addToIncompatibles(graph.findVertex("A"),graph.findVertex("E"));
+		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");

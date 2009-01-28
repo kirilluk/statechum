@@ -240,7 +240,7 @@ public class PairScoreComputation {
 			// to consider those which branch. mergedVertices is only updated when we find a blue vertex which 
 			// can accept input a red node cannot accept. 
 
-			if (!AbstractLearnerGraph.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.incompatibles))
+			if (!AbstractLearnerGraph.checkCompatible(currentPair.getQ(),currentPair.getR(),coregraph.pairCompatibility))
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
@@ -484,7 +484,7 @@ public class PairScoreComputation {
 	 */
 	public int computeStateScore(StatePair pair)
 	{
-		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.incompatibles))
+		if (!AbstractLearnerGraph.checkCompatible(pair.getR(),pair.getQ(),coregraph.pairCompatibility))
 			return -1;
 
 		int score = 0;
@@ -516,7 +516,7 @@ public class PairScoreComputation {
 					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
 					if (nextBlueState != null)
 					{// both states can make a transition
-						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.incompatibles))
+						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,coregraph.pairCompatibility))
 							return -1;// incompatible states
 						
 						if (coregraph.config.getLearnerScoreMode() == Configuration.ScoreMode.KTAILS &&
@@ -639,7 +639,7 @@ public class PairScoreComputation {
 							{
 								int score = 0;
 
-								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.incompatibles)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
+								if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
 
 								if (score>threshold)
 									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));

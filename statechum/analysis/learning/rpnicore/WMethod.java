@@ -921,7 +921,7 @@ public class WMethod {
 				
 	{
 		DifferentFSMException ex = WMethod.checkM(A, A.init,B,B.init,howToCompare);if (ex != null) return ex;
-		if (!A.incompatibles.equals(B.incompatibles))
+		if (!A.pairCompatibility.equals(B.pairCompatibility))
 			return new DifferentFSMException("sets of incompatible states differ");
 		return null;
 	}

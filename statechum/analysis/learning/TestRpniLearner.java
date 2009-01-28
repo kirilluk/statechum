@@ -1222,7 +1222,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			for(String [] incompatibleRow:incompatibles)
 			{
 				assert incompatibleRow.length == 2;
-				fsm.addToIncompatibles(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]));
+				fsm.addToCompatibility(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]),JUConstants.INCOMPATIBLE);
 			}
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> result = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = -2;

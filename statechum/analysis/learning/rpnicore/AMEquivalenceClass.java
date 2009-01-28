@@ -144,7 +144,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				(accept != vert.isAccept() || incompatibleStates.contains(vert)))
 			 throw new IncompatibleStatesException("cannot add state "+vert+" to "+states);
 		accept = vert.isAccept();
-		Set<CmpVertex> incomp = coregraph.incompatibles.get(vert);if (incomp != null) incompatibleStates.addAll(incomp);
+		Map<CmpVertex,JUConstants> compatibility = coregraph.pairCompatibility.get(vert);
+		if (compatibility != null) 
+			for(Entry<CmpVertex,JUConstants> entry:compatibility.entrySet())
+				if (entry.getValue() == JUConstants.INCOMPATIBLE) incompatibleStates.add(entry.getKey());// TODO: to test this
 		updateColour(vert.getColour());
 
 		states.add(vert);updateRep(vert);return true;		
@@ -406,7 +409,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
 				if (classes != null)
 					for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> incompClass:classes)
-						graph.addToIncompatibles(eqClass.getMergedVertex(), incompClass.getMergedVertex());
+						graph.addToCompatibility(eqClass.getMergedVertex(), incompClass.getMergedVertex(),JUConstants.INCOMPATIBLE);
 			}
 		
 	}

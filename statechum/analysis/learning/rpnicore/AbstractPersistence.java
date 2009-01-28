@@ -104,6 +104,44 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		return doc.createTextNode("\n");		
 	}
 	
+	
+	/** Converts state compatibility value to an equivalent integer. 
+	 * 
+	 * @param compat value to convert
+	 * @return resulting value
+	 */
+	public static int compatibilityToInt(JUConstants compat)
+	{// TODO: to test this
+		int result = JUConstants.intUNKNOWN;
+		switch(compat)
+		{
+		case INCOMPATIBLE: result = JUConstants.intSTATEPAIR_INCOMPATIBLE;break;
+		case MERGED: result = JUConstants.intSTATEPAIR_MERGED;break;
+		default:
+			throw new IllegalArgumentException(compat+" is not a valid compatibility constant");
+		}
+		return result;
+	}
+	
+	
+	/** Converts state compatibility integer value to an equivalent JUConstants one. 
+	 * 
+	 * @param compat value to convert
+	 * @return resulting value
+	 */
+	public static JUConstants compatibilityToJUConstants(int compat)
+	{// TODO: to test this
+		JUConstants result = null;
+		switch(compat)
+		{
+		case JUConstants.intSTATEPAIR_INCOMPATIBLE: result = JUConstants.INCOMPATIBLE;break;
+		case JUConstants.intSTATEPAIR_MERGED: result = JUConstants.MERGED;break;
+		default:
+			throw new IllegalArgumentException(compat+" is not a valid compatibility value");
+		}
+		return result;
+	}
+	
 	public Element createGraphMLNode(Document doc)
 	{
 		Element graphElement = doc.createElementNS(StatechumXML.graphlmURI.toString(),StatechumXML.graphmlNodeNameNS.toString());
@@ -124,21 +162,22 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
 				graphTop.appendChild(endl(doc));
 			}
-		if (!coregraph.incompatibles.isEmpty())
+		
+		if (!coregraph.pairCompatibility.isEmpty())
 		{
-			Element incompatibleData = doc.createElementNS(StatechumXML.graphmlNS.toString(),graphmlData);incompatibleData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
+			Element compatibilityData = doc.createElementNS(StatechumXML.graphmlNS.toString(),graphmlData);compatibilityData.setAttribute(graphmlDataKey, graphmlDataIncompatible);
 			Set<CmpVertex> encounteredNodes = new HashSet<CmpVertex>();
-			for(Entry<CmpVertex,Set<CmpVertex>> entry:coregraph.incompatibles.entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> entry:coregraph.pairCompatibility.entrySet())
 			{
 				encounteredNodes.add(entry.getKey());
-				for(CmpVertex vert:entry.getValue())
-					if (!encounteredNodes.contains(vert))
+				for(Entry<CmpVertex,JUConstants> vert:entry.getValue().entrySet())
+					if (!encounteredNodes.contains(vert.getKey()))
 					{
-						incompatibleData.appendChild(ProgressDecorator.writePair(new PairScore(entry.getKey(),vert,JUConstants.intUNKNOWN,JUConstants.intUNKNOWN), doc));incompatibleData.appendChild(endl(doc));
+						compatibilityData.appendChild(ProgressDecorator.writePair(new PairScore(entry.getKey(),vert.getKey(),compatibilityToInt(vert.getValue()),JUConstants.intUNKNOWN), doc));compatibilityData.appendChild(endl(doc));
 					}
 			}
 			
-			graphTop.appendChild(incompatibleData);graphTop.appendChild(endl(doc));
+			graphTop.appendChild(compatibilityData);graphTop.appendChild(endl(doc));
 		}
 		return graphElement;
 	}
@@ -269,7 +308,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 									throw new IllegalArgumentException("Unknown state "+pair.firstElem);
 								if (b == null)
 									throw new IllegalArgumentException("Unknown state "+pair.secondElem);
-								result.addToIncompatibles(pair.getQ(), pair.getR());
+								result.addToCompatibility(pair.getQ(), pair.getR(), compatibilityToJUConstants(pair.getScore()));
 							}
 						
 					}

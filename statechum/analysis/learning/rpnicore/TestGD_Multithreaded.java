@@ -877,11 +877,11 @@ public class TestGD_Multithreaded {
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
 		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
-		grA.addToIncompatibles(grA.findVertex("D"), grA.findVertex("S"));
+		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
 		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
-		grB.addToIncompatibles(grB.findVertex("B"), grB.findVertex("T"));
+		grB.addToCompatibility(grB.findVertex("B"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
 		
 		LearnerGraphND result = checkDiffBetweenND(grA, grB, 3,0,config);
 /*
@@ -889,7 +889,7 @@ public class TestGD_Multithreaded {
 		gd.computeGD(grA, grB, threadNumber, disp,config);System.out.println(disp.toString());*/
 		Assert.assertEquals(JUConstants.GRAY,result.findVertex("B").getColour());
 		Assert.assertEquals(origID,result.findVertex("B").getOrigState());
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("T")).contains(result.findVertex("B")));
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("T")).get(result.findVertex("B")) == JUConstants.INCOMPATIBLE);
 	}
 
 	/** A non-deterministic graph with a slightly different graph where not all states match exactly and
@@ -906,20 +906,20 @@ public class TestGD_Multithreaded {
 		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		
-		grA.addToIncompatibles(grA.findVertex("D"), grA.findVertex("S"));
-		grA.addToIncompatibles(grA.findVertex("U"), grA.findVertex("S"));
-		grA.addToIncompatibles(grA.findVertex("U"), grA.findVertex("R"));
+		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
+		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
+		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("R"),JUConstants.INCOMPATIBLE);
 		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
-		grB.addToIncompatibles(grB.findVertex("D"), grB.findVertex("T"));
-		grB.addToIncompatibles(grB.findVertex("U"), grB.findVertex("T"));
+		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
+		grB.addToCompatibility(grB.findVertex("U"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
 	
 		LearnerGraphND result = checkDiffBetweenND(grA, grB, 5,0,config);
 		Assert.assertEquals(JUConstants.GRAY,result.findVertex("B").getColour());
 		Assert.assertEquals(origID,result.findVertex("B").getOrigState());
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("T")).contains(result.findVertex("D")));
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("U")).contains(result.findVertex("T")));
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("T")).get(result.findVertex("D")) == JUConstants.INCOMPATIBLE);
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("U")).get(result.findVertex("T")) == JUConstants.INCOMPATIBLE);
 	}
 
 	/** A non-deterministic graph with a slightly different graph where not all states match exactly and
@@ -934,22 +934,22 @@ public class TestGD_Multithreaded {
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nU-a->U-b->R";
 		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
-		grA.addToIncompatibles(grA.findVertex("D"), grA.findVertex("S"));
-		grA.addToIncompatibles(grA.findVertex("U"), grA.findVertex("S"));
-		grA.addToIncompatibles(grA.findVertex("U"), grA.findVertex("R"));
+		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
+		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
+		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("R"),JUConstants.INCOMPATIBLE);
 		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
-		grB.addToIncompatibles(grB.findVertex("D"), grB.findVertex("T"));
-		grB.addToIncompatibles(grB.findVertex("U"), grB.findVertex("T"));
-		grB.addToIncompatibles(grB.findVertex("U"), grB.findVertex("R"));
+		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
+		grB.addToCompatibility(grB.findVertex("U"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
+		grB.addToCompatibility(grB.findVertex("U"), grB.findVertex("R"),JUConstants.INCOMPATIBLE);
 	
 		LearnerGraphND result = checkDiffBetweenND(grA, grB, 5,0,config);
 		Assert.assertEquals(JUConstants.GRAY,result.findVertex("B").getColour());
 		Assert.assertEquals(origID,result.findVertex("B").getOrigState());
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("T")).contains(result.findVertex("D")));
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("U")).contains(result.findVertex("T")));
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("U")).contains(result.findVertex("R")));
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("T")).get(result.findVertex("D")) == JUConstants.INCOMPATIBLE);
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("U")).get(result.findVertex("T")) == JUConstants.INCOMPATIBLE);
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("U")).get(result.findVertex("R")) == JUConstants.INCOMPATIBLE);
 	}
 
 	/** A non-deterministic graph with a slightly different graph where not all states match exactly and
@@ -964,21 +964,21 @@ public class TestGD_Multithreaded {
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nU-a->U-b->R";
 		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
-		grA.addToIncompatibles(grA.findVertex("D"), grA.findVertex("S"));
-		grA.addToIncompatibles(grA.findVertex("U"), grA.findVertex("S"));
+		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
+		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.INCOMPATIBLE);
 		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
-		grB.addToIncompatibles(grB.findVertex("D"), grB.findVertex("T"));
-		grB.addToIncompatibles(grB.findVertex("U"), grB.findVertex("T"));
-		grB.addToIncompatibles(grB.findVertex("U"), grB.findVertex("R"));
+		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
+		grB.addToCompatibility(grB.findVertex("U"), grB.findVertex("T"),JUConstants.INCOMPATIBLE);
+		grB.addToCompatibility(grB.findVertex("U"), grB.findVertex("R"),JUConstants.INCOMPATIBLE);
 	
 		LearnerGraphND result = checkDiffBetweenND(grA, grB, 5,0,config);
 		Assert.assertEquals(JUConstants.GRAY,result.findVertex("B").getColour());
 		Assert.assertEquals(origID,result.findVertex("B").getOrigState());
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("T")).contains(result.findVertex("D")));
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("U")).contains(result.findVertex("T")));
-		Assert.assertTrue(result.incompatibles.get(result.findVertex("U")).contains(result.findVertex("R")));
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("T")).get(result.findVertex("D")) == JUConstants.INCOMPATIBLE);
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("U")).get(result.findVertex("T")) == JUConstants.INCOMPATIBLE);
+		Assert.assertTrue(result.pairCompatibility.get(result.findVertex("U")).get(result.findVertex("R")) == JUConstants.INCOMPATIBLE);
 	}
 
 	/*

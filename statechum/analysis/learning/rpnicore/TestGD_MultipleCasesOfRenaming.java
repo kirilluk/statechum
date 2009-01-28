@@ -196,7 +196,7 @@ public class TestGD_MultipleCasesOfRenaming {
 		{
 			CmpVertex a=grA.findVertex(pair[0]),b=grA.findVertex(pair[1]);
 			Assert.assertNotNull(a);Assert.assertNotNull(b);
-			grA.addToIncompatibles(a,b);
+			grA.addToCompatibility(a,b,JUConstants.INCOMPATIBLE);
 		}
 		
 		// add incompatibles for B
@@ -211,7 +211,7 @@ public class TestGD_MultipleCasesOfRenaming {
 			CmpVertex a=grB.findVertex(pair[0]),b=grB.findVertex(pair[1]);
 			Assert.assertNotNull("cannot find vertex "+pair[0]+" in grB",a);Assert.assertNotNull("cannot find vertex "+pair[1]+" in grB",b);
 			if (!a.getID().equals(b.getID()))
-				grB.addToIncompatibles(a,b);
+				grB.addToCompatibility(a,b,JUConstants.INCOMPATIBLE);
 		}
 
 		String [] expectedDuplicates = (stateC.equals("C"))? new String[]{ stateC,"A" }:new String[]{"A"};

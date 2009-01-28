@@ -661,7 +661,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C");
 		C.setAccept(false);
-		Map<CmpVertex,Set<CmpVertex>> incompatibles = new TreeMap<CmpVertex,Set<CmpVertex>>();
+		Map<CmpVertex,Map<CmpVertex,JUConstants>> incompatibles = new TreeMap<CmpVertex,Map<CmpVertex,JUConstants>>();
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, incompatibles));
@@ -680,14 +680,14 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C");
 		assert !C.isAccept();
 		
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, B, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(C, C, gr.incompatibles));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(C, C, gr.pairCompatibility));
 
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, C, gr.incompatibles));
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.incompatibles));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, C, gr.pairCompatibility));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.pairCompatibility));
 	}
 
 	/** Testing whether checking for incompatible vertices works correctly. */
@@ -698,22 +698,24 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		assert !C.isAccept();
 		
-		gr.addToIncompatibles(A, B);
+		gr.addToCompatibility(A, B,JUConstants.INCOMPATIBLE);
 		
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, B, gr.incompatibles));
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(B, A, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, D, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, A, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, D, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, B, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, B, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(C, C, gr.incompatibles));
-		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, D, gr.incompatibles));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, B, gr.pairCompatibility));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(B, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, D, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, D, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(C, C, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, D, gr.pairCompatibility));
 
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, C, gr.incompatibles));
-		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.incompatibles));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, C, gr.pairCompatibility));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.pairCompatibility));
 	}
+	
+	// TODO: to add more tests with compatibility information
 	
 	/** Checking whether vertices can be merged correctly.
 	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
@@ -851,7 +853,9 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertTrue(eqClass.getNewOutgoing().isEmpty());
 	}
 	
-	/** Checking whether incompatible vertices are correctly handled. This tests checks for adding of incompatible accept/reject vertices.
+	/** Checking whether incompatible vertices are correctly handled. 
+	 * This tests checks for adding of incompatible accept/reject vertices.
+	 * 
 	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
 	 */
 	@Test
@@ -932,7 +936,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToIncompatibles(A, D);
+		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -953,7 +957,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToIncompatibles(A, D);
+		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -974,13 +978,31 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToIncompatibles(A, D);
+		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
 		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
 			eqClassA.addFrom(D,gr.transitionMatrix.get(D).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
+	}
+
+	/** Checks that a pair of vertices recorded as something else other than incompatible will not
+	 * cause a failure of an equivalence class merge.
+	 * 
+	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
+	 */
+	@Test
+	public final void testEqClassHandlingOfIncompatibleVertices_nofail9a() throws IncompatibleStatesException
+	{
+		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
+		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
+		
+		gr.addToCompatibility(A, D, JUConstants.MERGED);
+		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
+		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
+		
+		eqClassA.addFrom(D,gr.transitionMatrix.get(D).entrySet());// should be no exception
 	}
 
 	/** Checking whether incompatible vertices are correctly handled. This tests checks for adding of vertices
@@ -993,7 +1015,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToIncompatibles(A, D);
+		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
@@ -1012,7 +1034,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		
-		gr.addToIncompatibles(E, D);
+		gr.addToCompatibility(E, D, JUConstants.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -1143,21 +1165,24 @@ public class TestEqualityComparisonAndHashCode {
 	/** Check that duplicate names are correctly detected, part 1. */
 	public final void testConstructionOfRepresentative3()
 	{
-		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("test"));
+		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("origVertex"));
+		vert.setOrigState(VertexID.parseID("test"));
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, false);
-		Assert.assertEquals(vert.getOrigState(),eqClass.getMergedVertex().getOrigState());
+		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(eqClass.getMergedVertex(),vert));
 		Assert.assertFalse(eqClass.getMergedVertex().getID().equals(vert.getID()));
 	}
 	
 	/** Check that duplicate names are correctly detected, part 2. */
 	public final void testConstructionOfRepresentative4()
 	{
-		CmpVertex vert = new StringVertex("B");vert.setOrigState(VertexID.parseID("test"));
+		CmpVertex vert = new StringVertex("B");vert.setColour(JUConstants.AMBER);vert.setOrigState(VertexID.parseID("test"));
 		AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = 
 			buildClass(new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString),new CmpVertex[]{vert});
 		eqClass.constructMergedVertex(testGraphString, true, true);
+		// no point comparing all attributes here since origState will be set to a different value than that of vert
+		Assert.assertEquals(JUConstants.AMBER, eqClass.getMergedVertex().getOrigState());
 		Assert.assertEquals(vert.getID(),eqClass.getMergedVertex().getOrigState());
 		Assert.assertFalse(eqClass.getMergedVertex().getID().equals(vert.getID()));
 	}
@@ -2071,6 +2096,44 @@ public class TestEqualityComparisonAndHashCode {
 		equalityTestingHelper(testGraphString,testGraphSame,differentA,differentB);
 	}
 
+	/** Tests the recorded state compatibility is taken into account. */ 
+	@Test
+	public final void testFSMStructureEquals5()
+	{
+		String graph = "A-a->B-a->C";
+		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
+			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
+
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
+		equalityTestingHelper(a,a,b,differentA);
+		
+		a.removeFromIncompatibles(a.findVertex("A"), a.findVertex("C"));
+		equalityTestingHelper(a,b,differentA,differentB);
+		
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.INCOMPATIBLE);
+		equalityTestingHelper(a,b,differentA,differentB);
+	}
+
+	/** Tests the recorded state compatibility is taken into account. */ 
+	@Test
+	public final void testFSMStructureEquals6()
+	{
+		String graph = "A-a->B-a->C";
+		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
+			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
+
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.MERGED);
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.MERGED);
+		equalityTestingHelper(a,b,differentA,differentB);
+
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
+		equalityTestingHelper(a,a,b,differentA);
+
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.INCOMPATIBLE);
+		equalityTestingHelper(a,b,differentA,differentB);
+	}
+
 	@Test
 	public final void testCopyGraph0()
 	{
@@ -2222,7 +2285,7 @@ public class TestEqualityComparisonAndHashCode {
 		{
 			StringVertex vertexA = new StringVertex("P"), vertexB = new StringVertex("P");
 			for(MethodAndArgs<StringVertex> orig:MethodsArgs)
-			{
+			{// resets vertexA and vertexB to the original values
 				orig.assignA(vertexA);
 				orig.assignA(vertexB);
 			}
@@ -2231,7 +2294,7 @@ public class TestEqualityComparisonAndHashCode {
 			Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vertexA,vertexA));
 			Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vertexB,vertexB));
 			
-			currentMethod.assignB(vertexB);
+			currentMethod.assignB(vertexB);// mutates B's attribute
 			String errMsg = "StringVertices differ: field "+currentMethod.getField()+" is/not in use for ";
 			Assert.assertTrue(errMsg+"equals",vertexB.equals(vertexA));
 			Assert.assertTrue(errMsg+"equals",vertexA.equals(vertexB));

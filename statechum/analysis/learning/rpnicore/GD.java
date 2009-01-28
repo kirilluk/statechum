@@ -189,20 +189,21 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 */
 		public void addVertex(CmpVertex vertex);
 		
-		/** Adds a pair of incompatible states. See <em>AbstractLearnerGraph</em> for details.
+		/** Adds a pair of compatible or incompatible states. See <em>AbstractLearnerGraph</em> for details.
 		 *  
 		 * @param a the first element of a pair to be added.
 		 * @param b the second element of a pair.
+		 * @param value the relation between <em>a</em> and <em>b</em>.
 		 */
-		public void addIncompatible(CmpVertex a, CmpVertex b);
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value);
 
-		/** Removes a pair of incompatible states from the collection of incompatible states. 
+		/** Removes a pair of compatible or incompatible states from the collection of incompatible states. 
 		 * See <em>AbstractLearnerGraph</em> for details.
 		 *  
 		 * @param a the first element of a pair to be added.
 		 * @param b the second element of a pair.
 		 */
-		public void removeIncompatible(CmpVertex a, CmpVertex b);
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b);
 
 		/** Adds a transition between the specified states.
 		 * Throws if transition already exists.<p>
@@ -259,7 +260,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				newToOrig.put(pair.getR(),pair.getQ());// since we now know 
 				// which state of A pair.getQ() of combined corresponds to, change the mapping.
 				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
-				assert AbstractLearnerGraph.checkCompatible(pair.getQ(),pair.getR(),grCombined.incompatibles);
+				assert AbstractLearnerGraph.checkCompatible(pair.getQ(),pair.getR(),grCombined.pairCompatibility);
 
 				aTOb.put(pair.getQ(),pair.getR());
 			}
@@ -267,7 +268,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
-						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles)) // we should not merge incompatible pairs
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
 				}
@@ -332,16 +333,16 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				graphToPatch.setInitial(vertex);
 			}
 
-			public void addIncompatible(CmpVertex a, CmpVertex b) {
-				graphToPatch.addIncompatible(a, b);
+			public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value) {
+				graphToPatch.addToCompatibility(a, b,value);
 			}
 
 			public void addVertex(CmpVertex vertex) {
 				graphToPatch.addVertex(vertex);
 			}
 
-			public void removeIncompatible(CmpVertex a, CmpVertex b) {
-				graphToPatch.removeIncompatible(a, b);
+			public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+				graphToPatch.removeFromCompatibility(a, b);
 			}
 
 			public void addRelabelling(VertexID a, VertexID b) {
@@ -423,21 +424,22 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				
 				// check incompatibles
 				{
-					Set<CmpVertex> targetsB = grCombined.incompatibles.get(entry.getValue());
-					Set<CmpVertex> newTargetsForB=new TreeSet<CmpVertex>();if (targetsB != null) newTargetsForB.addAll(targetsB);
-					if (grCombined.incompatibles.containsKey(entry.getKey()))
-						for(CmpVertex targetInA:grCombined.incompatibles.get(entry.getKey()))
-							if (aTOb.containsKey(targetInA))
+					Map<CmpVertex,JUConstants> targetsB = grCombined.pairCompatibility.get(entry.getValue());
+					Map<CmpVertex,JUConstants> newTargetsForB=new TreeMap<CmpVertex,JUConstants>();if (targetsB != null) newTargetsForB.putAll(targetsB);
+					if (grCombined.pairCompatibility.containsKey(entry.getKey()))
+						for(Entry<CmpVertex,JUConstants> targetInA:grCombined.pairCompatibility.get(entry.getKey()).entrySet())
+							if (aTOb.containsKey(targetInA.getKey()))
 							{
-								if (targetsB == null || !targetsB.contains(aTOb.get(targetInA)))
-									removeIncompatible(entry.getKey(), targetInA);
+								if (targetsB == null || !targetsB.containsKey(aTOb.get(targetInA.getKey())) ||
+										targetsB.get(aTOb.get(targetInA.getKey())) != targetInA.getValue())
+									removeFromCompatibility(entry.getKey(), targetInA.getKey());
 								else
-									newTargetsForB.remove(aTOb.get(targetInA));
+									newTargetsForB.remove(aTOb.get(targetInA.getKey()));
 							} 	
 							// There is no "else" clause because if a target state is not a matched one, 
 					 		// such an incompatibles will be removed later on when we focus on unmatched states
-					for(CmpVertex newTarget:newTargetsForB)
-						addIncompatible(entry.getKey(), getOrig(newTarget));
+					for(Entry<CmpVertex,JUConstants> newTarget:newTargetsForB.entrySet())
+						addToCompatibility(entry.getKey(), getOrig(newTarget.getKey()),newTarget.getValue());
 				}
 				
 				// transitions from the A part.
@@ -496,9 +498,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 							removeTransition(vertex, target.getKey(),targetState);
 
 					// incompatible pairs.
-					if (grCombined.incompatibles.containsKey(vertex))
-						for(CmpVertex vert:grCombined.incompatibles.get(vertex))
-							removeIncompatible(vertex, vert);
+					if (grCombined.pairCompatibility.containsKey(vertex))
+						for(CmpVertex vert:grCombined.pairCompatibility.get(vertex).keySet())
+							removeFromCompatibility(vertex, vert);
 				}
 		
 			for(CmpVertex vertex:statesOfB)
@@ -518,9 +520,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					}
 					
 					// incompatible pairs.
-					if (grCombined.incompatibles.containsKey(vertex))
-						for(CmpVertex vert:grCombined.incompatibles.get(vertex))
-							addIncompatible(origSource, getOrig(vert));
+					if (grCombined.pairCompatibility.containsKey(vertex))
+						for(Entry<CmpVertex,JUConstants> vertEntry:grCombined.pairCompatibility.get(vertex).entrySet())
+							addToCompatibility(origSource, getOrig(vertEntry.getKey()),vertEntry.getValue());
 				}
 
 			// Add relabelling: first, aTOb , then duplicates. If this is done in a different order
@@ -636,7 +638,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				graph.transitionMatrix.put(fromVert,graph.createNewRow());
 			}
 			else
-				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert, graph.incompatibles)) // it is known but with a different accept condition
+				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert, graph.pairCompatibility)) // it is known but with a different accept condition
 					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);// incompatibles cannot 
 						// lead to this exception since this would mean that a state is not compatible with 
 						// itself - such a contradiction cannot be added to a set of incompatibles.
@@ -714,8 +716,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			statesToInclude.add(addNewVertex(vertex));
 		}
 
-		public void addIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.addIncompatible(a,b);
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value) {
+			if (next != null) next.addToCompatibility(a,b,value);
 			
 			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 			{
@@ -723,11 +725,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				if (graph.findVertex(b.getID()) == null) throw new IllegalArgumentException("vertex "+b+" does not exist");
 			}
 				
-			graph.addToIncompatibles(a, b);
+			graph.addToCompatibility(a, b,value);
 		}
 
-		public void removeIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.removeIncompatible(a,b);
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeFromCompatibility(a,b);
 			
 			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
 			{
@@ -831,9 +833,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.append("initial : ");result.append(vertex);appendEndl();
 		}
 
-		public void addIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.addIncompatible(a,b);
-			result.append("added incompatibles: "+a+","+b);appendEndl();
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value) {
+			if (next != null) next.addToCompatibility(a,b,value);
+			result.append("added incompatibles: "+a+","+b+" with value "+value);appendEndl();
 		}
 
 		public void addVertex(CmpVertex vertex) {
@@ -841,8 +843,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.append("added vertex:"+vertex);appendEndl();
 		}
 
-		public void removeIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.removeIncompatible(a,b);
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeFromCompatibility(a,b);
 			result.append("removed incompatibles: "+a+","+b);appendEndl();
 		}
 
@@ -916,16 +918,16 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (next != null) next.setInitial(vertex);
 		}
 
-		public void addIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.addIncompatible(a, b);
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value) {
+			if (next != null) next.addToCompatibility(a, b, value);
 		}
 
 		public void addVertex(CmpVertex vertex) {
 			if (next != null) next.addVertex(vertex);
 		}
 
-		public void removeIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.removeIncompatible(a, b);			
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeFromCompatibility(a, b);			
 		}
 
 		public void addRelabelling(VertexID a, VertexID b) {
@@ -1091,9 +1093,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					for(CmpVertex target:gr.getTargets(transition.getValue()))
 						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
 					
-			for(Entry<CmpVertex,Set<CmpVertex>> incompatibles:gr.incompatibles.entrySet())
-				for(CmpVertex target:incompatibles.getValue())
-					graphPatcher.removeIncompatible(incompatibles.getKey(), target);
+			for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> incompatibles:gr.pairCompatibility.entrySet())
+				for(CmpVertex target:incompatibles.getValue().keySet())
+					graphPatcher.removeFromCompatibility(incompatibles.getKey(), target);
 			
 			AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdAdded.toString(),false,true),gr);
 			//System.out.println("added: "+gr.transitionMatrix.keySet());
@@ -1106,9 +1108,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						for(CmpVertex target:gr.getTargets(transition.getValue()))
 							graphPatcher.addTransition(entry.getKey(), transition.getKey(), target);
 			}
-			for(Entry<CmpVertex,Set<CmpVertex>> incompatibles:gr.incompatibles.entrySet())
-				for(CmpVertex target:incompatibles.getValue())
-					graphPatcher.addIncompatible(incompatibles.getKey(), target);
+			for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> incompatibles:gr.pairCompatibility.entrySet())
+				for(Entry<CmpVertex,JUConstants> targetEntry:incompatibles.getValue().entrySet())
+					graphPatcher.addToCompatibility(incompatibles.getKey(), targetEntry.getKey(), targetEntry.getValue());
 			
 			NodeList relabellingElementList=  StatechumXML.getChildWithTag(elem,StatechumXML.gdRelabelling.toString());
 			if (relabellingElementList.getLength() > 0)
@@ -1132,10 +1134,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			addedPatcher.setInitial(vertex);removedPatcher.setInitial(vertex);			
 		}
 
-		public void addIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.addIncompatible(a, b);
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants value) {
+			if (next != null) next.addToCompatibility(a, b, value);
 			addedPatcher.addVertex(a);addedPatcher.addVertex(b);
-			addedPatcher.addIncompatible(a, b);
+			addedPatcher.addToCompatibility(a, b, value);
 		}
 
 		public void addRelabelling(VertexID a, VertexID b) {
@@ -1148,10 +1150,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			addedPatcher.addVertex(vertex);
 		}
 
-		public void removeIncompatible(CmpVertex a, CmpVertex b) {
-			if (next != null) next.removeIncompatible(a, b);
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeFromCompatibility(a, b);
 			removedPatcher.addVertex(a);removedPatcher.addVertex(b);
-			removedPatcher.addIncompatible(a, b);
+			removedPatcher.addToCompatibility(a, b, JUConstants.INCOMPATIBLE);
 		}
 	}
 	
@@ -1279,7 +1281,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// of the computation below.
 		if (fallbackToInitialPair)
 		{
-			if (AbstractLearnerGraph.checkCompatible(combined_initA, combined_initB, grCombined.incompatibles))
+			if (AbstractLearnerGraph.checkCompatible(combined_initA, combined_initB, grCombined.pairCompatibility))
 				topPair = new PairScore(combined_initA,combined_initB,0,0);
 		}
 		else
@@ -1337,7 +1339,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				if (pair.getScore() >= 0 && pair.getScore() >= threshold && // top score good enough
 						(pair.getAnotherScore() <= 0 || pair.getAnotherScore() <= pair.getScore()*grCombined.config.getGdLowToHighRatio()) && // and high-low ratio is ok
 						!statesInKeyPairs.contains(pair.secondElem) && // and the target state has not already been used in another key pair
-						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.incompatibles) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
+						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility) // make sure we do not consider an incompatible pair as a key pair, regardless of the score 
 						)
 				{
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
@@ -1481,7 +1483,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				mutator.setInitial(vertex);
 			}
 
-			public void addIncompatible(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
+			public void addToCompatibility(@SuppressWarnings("unused") CmpVertex astate, 
+					@SuppressWarnings("unused") CmpVertex bstate, @SuppressWarnings("unused") JUConstants value) {
 				// does not do anything
 			}
 
@@ -1493,7 +1496,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				mutator.addNewVertex(vertex);
 			}
 
-			public void removeIncompatible(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
+			public void removeFromCompatibility(@SuppressWarnings("unused") CmpVertex astate, @SuppressWarnings("unused") CmpVertex bstate) {
 				// does not do anything
 			}
 		});

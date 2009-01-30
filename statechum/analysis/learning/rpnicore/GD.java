@@ -374,10 +374,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		/** This one contains all states from B which 
 		 * have been matched but do not feature in any added or removed transition (states from B which were
 		 * not matched are trivial to add, this is done after we are through with the matched pairs).
-		 * This means they will not feature in the patch, but may have to be included because
-		 * attributes on these states may have changed or these states feature no outgoing/incoming transitions
+		 * This means they will not feature in the patch we shall construct, but may have to be included because
+		 * <ul>
+		 * <li>attributes on these states may have changed or</li> 
+		 * <li>these states feature no outgoing/incoming transitions
 		 * and hence will be dropped from the original graph when we clean up the old states after patch
-		 * application.
+		 * application.</li>
+		 * </ul>
 		 */
 		private final Set<CmpVertex> disconnectedStatesInKeyPairs = new TreeSet<CmpVertex>();
 		

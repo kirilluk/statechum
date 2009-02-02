@@ -327,11 +327,35 @@ public class TestTransform {
 	/** Tests that graph relabelling works correctly. */
 	@Test
 	public final void testStateRelabelling1()
-	{// TODO: to update with different values of compatibility condition
+	{
 		LearnerGraphND A = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
 			expected = new LearnerGraphND(TestFSMAlgo.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
-		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.INCOMPATIBLE);A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.INCOMPATIBLE);
-		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.INCOMPATIBLE);expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.INCOMPATIBLE);
+		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
+		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
+		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
+		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
+		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
+		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
+		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("T");
+		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
+	}
+	
+	/** Tests that graph relabelling works correctly, this one with some compatible and incompatible states. */
+	@Test
+	public final void testStateRelabelling2()
+	{
+		LearnerGraphND A = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
+			expected = new LearnerGraphND(TestFSMAlgo.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
+		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.MERGED);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("A"),JUConstants.MERGED);
+		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.MERGED);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("T"),JUConstants.MERGED);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
 		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
@@ -637,8 +661,43 @@ public class TestTransform {
 	}
 	
 	@Test
+	public final void testRelationToInt()
+	{
+		Assert.assertEquals(AbstractPersistence.compatibilityToInt(JUConstants.INCOMPATIBLE),JUConstants.intSTATEPAIR_INCOMPATIBLE);
+		Assert.assertEquals(AbstractPersistence.compatibilityToInt(JUConstants.MERGED),JUConstants.intSTATEPAIR_MERGED);
+	}
+	
+	@Test
+	public final void testRelationToInt_fail()
+	{
+		for(JUConstants constant:JUConstants.values())
+			if (constant != JUConstants.INCOMPATIBLE && constant != JUConstants.MERGED)
+			{
+				final JUConstants value = constant;
+				Helper.checkForCorrectException(new whatToRun() { public void run() {
+					AbstractPersistence.compatibilityToInt(value);
+				}}, IllegalArgumentException.class,"not a valid");
+			}
+	}
+	
+	@Test
+	public final void testIntToRelation()
+	{
+		Assert.assertEquals(AbstractPersistence.compatibilityToJUConstants(JUConstants.intSTATEPAIR_INCOMPATIBLE), JUConstants.INCOMPATIBLE);
+		Assert.assertEquals(AbstractPersistence.compatibilityToJUConstants(JUConstants.intSTATEPAIR_MERGED), JUConstants.MERGED);
+	}
+	
+	@Test
+	public final void testIntToRelation_fail()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			AbstractPersistence.compatibilityToJUConstants(JUConstants.intUNKNOWN);
+		}}, IllegalArgumentException.class,"not a valid");
+	}
+	
+	@Test
 	public final void testGraphMLwriter_incompatible1() throws IOException
-	{// TODO: to update re different values of compatibility
+	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.INCOMPATIBLE);
@@ -657,6 +716,33 @@ public class TestTransform {
 				"<"+AbstractPersistence.graphmlData+" "+AbstractPersistence.graphmlDataKey+"=\""+AbstractPersistence.graphmlDataIncompatible+"\">"+
 				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
 				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
+				"</"+AbstractPersistence.graphmlData+">"+
+				graphML_end),
+				removeWhiteSpace(writer.toString()));
+	}
+	
+	/** Similar to the one above but with different values of compatibility. */
+	@Test
+	public final void testGraphMLwriter_incompatible2() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.MERGED);
+		StringWriter writer = new StringWriter();
+		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
+		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
+
+		fsm.storage.writeGraphML(writer);
+		Assert.assertEquals(removeWhiteSpace(graphml_beginning+
+				" "+JUConstants.ACCEPTED.name()+"=\"false\""+
+				" "+JUConstants.COLOUR.name()+"=\""+JUConstants.BLUE.name()+"\""+
+				" "+JUConstants.DEPTH.name()+"=\""+5+"\""+
+				" "+JUConstants.HIGHLIGHT.name()+"=\"true\""+
+				" "+JUConstants.ORIGSTATE.name()+"=\""+"P4500"+"\""+
+				graphml_nodes_edges+
+				"<"+AbstractPersistence.graphmlData+" "+AbstractPersistence.graphmlDataKey+"=\""+AbstractPersistence.graphmlDataIncompatible+"\">"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.intSTATEPAIR_MERGED,JUConstants.intUNKNOWN))+"\n"+
 				"</"+AbstractPersistence.graphmlData+">"+
 				graphML_end),
 				removeWhiteSpace(writer.toString()));

@@ -111,7 +111,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	 * @return resulting value
 	 */
 	public static int compatibilityToInt(JUConstants compat)
-	{// TODO: to test this
+	{
 		int result = JUConstants.intUNKNOWN;
 		switch(compat)
 		{
@@ -130,7 +130,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	 * @return resulting value
 	 */
 	public static JUConstants compatibilityToJUConstants(int compat)
-	{// TODO: to test this
+	{
 		JUConstants result = null;
 		switch(compat)
 		{
@@ -308,7 +308,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 									throw new IllegalArgumentException("Unknown state "+pair.firstElem);
 								if (b == null)
 									throw new IllegalArgumentException("Unknown state "+pair.secondElem);
-								result.addToCompatibility(pair.getQ(), pair.getR(), compatibilityToJUConstants(pair.getScore()));
+								result.addToCompatibility(a, b, compatibilityToJUConstants(pair.getScore()));
 							}
 						
 					}

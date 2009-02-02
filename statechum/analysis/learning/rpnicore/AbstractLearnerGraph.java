@@ -532,7 +532,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	}
 
 	/** Copies a transition matrix and incompatible sets between graphs, relabelling states as specified.
-	 * The relabelling map has to be total; it is not checked for duplicate target states.
+	 * The relabelling map has to be total; it is not checked for duplicate target states. If any target
+	 * states have the same IDs as those of existing states, new transitions lead to existing states.
 	 * 
 	 * @param from graph to copy
 	 * @param relabel map relabelling states
@@ -548,17 +549,22 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		// Clone edges.
 		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{
-			Map<String,TARGET_B_TYPE> row = result.createNewRow();result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
+			Map<String,TARGET_B_TYPE> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
+			if (row == null)
+			{// new state rather than a duplicate one
+				row = result.createNewRow();result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
+			}
+			
 			for(Entry<String,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
 			{
 				for(CmpVertex vertex:from.getTargets(rowEntry.getValue()))
-					result.addTransition(row, rowEntry.getKey(), oldToNew.get(vertex));
+					result.addTransition(row, rowEntry.getKey(), oldToNew.get(vertex));// note that at this point a row corresponding target state may not yet exist; it will be added when we finish going through the states.
 			}
 		}
 		
 		for(Entry<CmpVertex,Map<CmpVertex,JUConstants>> entry:from.pairCompatibility.entrySet())
 		{
-			CmpVertex incompatibleVertex = oldToNew.get(entry.getKey());// TODO: to test that this part works.
+			CmpVertex incompatibleVertex = oldToNew.get(entry.getKey());
 			assert !result.pairCompatibility.containsKey(incompatibleVertex);
 			Map<CmpVertex,JUConstants> incMap = result.createNewCompatibilityRow(incompatibleVertex);
 			for(Entry<CmpVertex,JUConstants> mapping:entry.getValue().entrySet())

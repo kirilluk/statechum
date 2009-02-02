@@ -174,22 +174,26 @@ public class TestGD {
 	
 	/** Tests that non-existing vertices cannot be added or removed. */
 	@Test
-	public final void testAddIncompatibles2_fail()
+	public final void testAddIncompatibles3()
 	{
 		final LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			patcher.addToCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"),JUConstants.INCOMPATIBLE);
-		}},IllegalArgumentException.class,"does not exist");
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			patcher.addToCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),JUConstants.INCOMPATIBLE);
-		}},IllegalArgumentException.class,"does not exist");
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			patcher.removeFromCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"));
-		}},IllegalArgumentException.class,"does not exist");
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			patcher.removeFromCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig));
-		}},IllegalArgumentException.class,"does not exist");
+		patcher.addToCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"),JUConstants.INCOMPATIBLE);
+		Assert.assertNotNull(gr.findVertex(VertexID.parseID("S")));
+		patcher.addToCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), cloneConfig),JUConstants.INCOMPATIBLE);
+		Assert.assertNotNull(gr.findVertex(VertexID.parseID("U")));
+	}
+	
+	/** Tests that non-existing vertices cannot be added or removed. */
+	@Test
+	public final void testAddIncompatibles4()
+	{
+		final LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
+		patcher.removeFromCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"));
+		Assert.assertNotNull(gr.findVertex(VertexID.parseID("S")));
+		patcher.removeFromCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), cloneConfig));
+		Assert.assertNotNull(gr.findVertex(VertexID.parseID("U")));
 	}
 	
 	/** Tests the relabelling process. */

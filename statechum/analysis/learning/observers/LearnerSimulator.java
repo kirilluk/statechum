@@ -176,7 +176,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * calling <em>getNextElement()</em>. 
 	 */
 	public void setNextElement(Element elem)
-	{// TODO: to test this in conjunction with getNextElement
+	{
 		nextElement = elem;
 	}
 	

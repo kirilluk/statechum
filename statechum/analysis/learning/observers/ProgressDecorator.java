@@ -110,7 +110,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	/** Loads a pair from the supplied XML element.
 	 * 
 	 * @param graph the graph which elements to load 
-	 * TODO: I need to match string IDs to those of the graph but series used to mangle names of vertices, now this should not happen often.
+	 * Ideally, I need to match string IDs loaded to those of the graph but this is not done because 
+	 * (1) graphseries used to mangle names of vertices, now this should not happen often.
+	 * (2) this method is expected to be general - purpose hence we do not expect a matching graph to be present. 
 	 * @param elem element to load from
 	 * @return loaded state pair.
 	 */
@@ -124,7 +126,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		String q = elem.getAttribute(StatechumXML.ATTR_Q.name()), r = elem.getAttribute(StatechumXML.ATTR_R.name()),
 			score=elem.getAttribute(StatechumXML.ATTR_SCORE.name()), otherscore = elem.getAttribute(StatechumXML.ATTR_OTHERSCORE.name());
 		int scoreInt = JUConstants.intUNKNOWN, otherScoreInt = JUConstants.intUNKNOWN;
-		if (score != null && score.length() > 0) // TODO: to test this part
+		if (score != null && score.length() > 0)
 			try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
 		if (otherscore != null && otherscore.length() > 0)
 			try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }

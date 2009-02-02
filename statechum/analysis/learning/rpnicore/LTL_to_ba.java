@@ -147,7 +147,12 @@ public class LTL_to_ba {
 		baError = "ltl2ba",baSimpleComment="\\s*/\\*.*\\*/\\n*";
 	
 	private final Configuration config;
-	protected LearnerGraphND matrixFromLTL = null;
+	protected final LearnerGraphND matrixFromLTL;
+	
+	public LearnerGraphND getLTLgraph()
+	{
+		return matrixFromLTL;
+	}
 	
 	/** Constructs class which will use LTL to augment the supplied graph.
 	 * 
@@ -463,7 +468,7 @@ public class LTL_to_ba {
 		Set<String> currentValue = new TreeSet<String>();// the outcome of the left-hand side.
 		switch(currentMatch)
 		{
-		case exprOpen: // embedded expression
+		case exprOpen: // expression in braces
 			performOperation(currentValue, OPERATION.ASSIGN, interpretExpression());
 			return currentValue;
 		case exprNEG:
@@ -494,7 +499,7 @@ public class LTL_to_ba {
 			left.clear();left.addAll(right);
 			break;
 		case NEG:
-			left.addAll(alphabet);left.removeAll(right);
+			left.clear();left.addAll(alphabet);left.removeAll(right);
 			break;
 		case AND:
 			left.retainAll(right);break;
@@ -561,9 +566,6 @@ public class LTL_to_ba {
 		parse(converterOutput.toString());
 	}
 
-	/** A deterministic automaton corresponding to LTL formulas. */
-	protected LearnerGraph automatonLoadedFromLTL = null;
-	
 	/** Takes a collection of LTL formulae and builds the corresponding FSM,
 	 * assuming the properties are all safety ones.
 	 * 
@@ -581,36 +583,6 @@ public class LTL_to_ba {
 		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");
-		
-		synchronized(AbstractLearnerGraph.syncObj)
-		{
-			automatonLoadedFromLTL = new LearnerGraph(config);
-			try {
-				AbstractPathRoutines.completeMatrix(matrixFromLTL.pathroutines.buildDeterministicGraph(),automatonLoadedFromLTL);
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("invalid graph returned by ltl2ba", e);
-			}
-		}
 	}
-		
-	/** Augments the supplied graph with the one obtained from LTL. The two graphs are expected 
-	 * to have identical alphabets, otherwise LTL graph will be invalid.
-	 * 
-	 * @param what
-	 * @return
-	 */
-	public LearnerGraph augmentGraph(LearnerGraph what)
-	{
-		LearnerGraphND automaton = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(automatonLoadedFromLTL,automatonLoadedFromLTL.config),what);
-		LearnerGraph result = null;
-		synchronized(AbstractLearnerGraph.syncObj)
-		{
-			try {
-				result = automaton.pathroutines.buildDeterministicGraph();
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("invalid graph returned by ltl2ba", e);
-			}
-		}
-		return result;
-	}
+	
 }

@@ -241,6 +241,55 @@ public class TestRecordProgressDecorator {
 		Assert.assertTrue(actual2.equals(expected2));
 	}
 
+	/** Tests that during processing of an XML file I can step back. */
+	@Test
+	public final void testWriteSequences4() {
+		List<List<String>> data = TestFSMAlgo.buildList(new String[][]{
+				new String[]{ "a","this is a test","3"},
+				new String[]{},
+				new String[]{},
+				new String[]{"more data"}
+		}),data2 = TestFSMAlgo.buildList(new String[][]{
+				new String[]{},
+				new String[]{},
+				new String[]{},
+				new String[]{"the second set of data"}
+		});
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
+		dumper.topElement.appendChild(dumper.writeSequenceList("moreData", data2));
+		dumper.close();
+		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
+		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
+				new String[]{ "a","this is a test","3"},
+				new String[]{},
+				new String[]{},
+				new String[]{"more data"}
+		}), expected2 = TestFSMAlgo.buildList(new String[][]{
+				new String[]{},
+				new String[]{},
+				new String[]{},
+				new String[]{"the second set of data"}
+		});
+		Element someDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
+		List<List<String>> actual = ProgressDecorator.readSequenceList(someDataElement,"someData");
+		Assert.assertTrue(actual.equals(expected));
+
+		loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
+		loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
+		// after a few attempts at setting the existing element back, we continue with the one to follow.
+		
+		Element moreDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
+		List<List<String>> actual2 = ProgressDecorator.readSequenceList(moreDataElement,"moreData");
+		Assert.assertTrue(actual2.equals(expected2));
+		
+		// now we force the old element to be re-discovered
+		loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
+		actual = ProgressDecorator.readSequenceList(someDataElement,"someData");
+		Assert.assertTrue(actual.equals(expected));
+	}
+
 	/** Invalid XML file. */
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteSequences_fail1() {
@@ -289,7 +338,7 @@ public class TestRecordProgressDecorator {
 
 	/** The name given to the collection of sequences does not match. */
 	@Test
-	public final void testWriteSequences4() {
+	public final void testWriteSequences_fail4() {
 		List<List<String>> data = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},

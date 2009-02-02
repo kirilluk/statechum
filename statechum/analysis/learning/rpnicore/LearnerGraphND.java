@@ -247,7 +247,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	 * @param initStateName name of the initial state.
 	 */
 	public void findInitialState(String initStateName)
-	{// TODO: to unit-test this one
+	{
 		CmpVertex initVertex = null;
 		for(CmpVertex vert:transitionMatrix.keySet())
 			if (vert.getID().toString().contains(initStateName))
@@ -265,50 +265,30 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	/** Puts together transitions from a different matrices and returns the result of addition, which
 	 * is most likely non-deterministic.
 	 */
-	protected static LearnerGraphND UniteTransitionMatrices(
-			LearnerGraphND matrixToAdd, LearnerGraph origGraph)
+	protected static 
+	<TARGET_A_TYPE,TARGET_B_TYPE,
+	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+	LearnerGraphND UniteTransitionMatrices(
+			AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> matrixToAdd, 
+			AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> origGraph)
 	{
-		CmpVertex init = matrixToAdd.init;
-		LearnerGraph grIds = new LearnerGraph(origGraph.config);
-		grIds.vertNegativeID = origGraph.vertNegativeID;grIds.vertPositiveID=origGraph.vertPositiveID;
+		LearnerGraphND matrixResult = new LearnerGraphND(origGraph,origGraph.config);
 		
 		// given that all text identifiers go before (or after) numerical ones, we're not
 		// going to hit a state clash if we simply generate state names
 		// based on the existing IDs of origGraph. 
 		Map<CmpVertex,CmpVertex> firstToSecond = new TreeMap<CmpVertex,CmpVertex>();
-		firstToSecond.put(init, origGraph.init);
+		firstToSecond.put(matrixToAdd.init, matrixResult.init);
 		for(CmpVertex firstVertex:matrixToAdd.transitionMatrix.keySet())
-			if (firstVertex != init)
-			{
-				CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(grIds.nextID(firstVertex.isAccept()), origGraph.config);
+			if (firstVertex != matrixToAdd.init)
+			{// new vertices are generated using the new matrix, hence min/max vertex IDs remain valid.
+				CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(matrixResult.nextID(firstVertex.isAccept()), origGraph.config);
 				DeterministicDirectedSparseGraph.copyVertexData(firstVertex, vert);
 				firstToSecond.put(firstVertex, vert);
 			}
 
-		LearnerGraphND matrixResult = new LearnerGraphND(origGraph,origGraph.config);
-		
-		// Add the transitions.
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixToAdd.transitionMatrix.entrySet())
-		{
-			CmpVertex entryKey = firstToSecond.get(entry.getKey());
-			Map<String,List<CmpVertex>> row = matrixResult.transitionMatrix.get(entryKey);
-			if (row == null)
-			{
-				row = new TreeMap<String,List<CmpVertex>>();matrixResult.transitionMatrix.put(entryKey, row);
-			}
-			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
-			{
-				List<CmpVertex> targets = row.get(transition.getKey());
-				if (targets == null)
-				{
-					targets = new LinkedList<CmpVertex>();row.put(transition.getKey(), targets);
-				}
-				for(CmpVertex v:transition.getValue())
-					targets.add(firstToSecond.get(v));
-			}
-		}
-		
-		matrixResult.setIDNumbers();
+		AbstractLearnerGraph.addAndRelabelGraphs(matrixToAdd, firstToSecond, matrixResult);
 		return matrixResult;
 	}
 
@@ -324,7 +304,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		{
 			targets = new LinkedList<CmpVertex>();row.put(input, targets);
 		}
-		else if (targets.contains(target)) throw new IllegalArgumentException("duplicate transition with input "+input+" to "+target);// TODO: to check this is useful
+		else if (targets.contains(target)) throw new IllegalArgumentException("duplicate transition with input "+input+" to "+target);
 		targets.add(target);
 	}
 

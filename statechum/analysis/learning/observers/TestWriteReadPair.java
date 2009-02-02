@@ -131,7 +131,7 @@ public class TestWriteReadPair {
 
 	/** Reading a pair: missing attribute means the intUnknown value will be read. */
 	@Test
-	public final void testWritePair_fail4()
+	public final void testWritePair_missing_score()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,StatechumXML.ATTR_SCORE).getBytes()),false);
@@ -142,7 +142,7 @@ public class TestWriteReadPair {
 
 	/** Reading a pair: missing attribute means the intUnknown value will be read. */
 	@Test
-	public final void testWritePair_fail5()
+	public final void testWritePair_missing_otherscore()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,StatechumXML.ATTR_OTHERSCORE).getBytes()),false);

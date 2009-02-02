@@ -136,7 +136,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * 
 	 * @param from transitions to add from.
 	 * @return false if the new state is not compatible with any state in this equivalence class
-	 * @throws IncompatibleStatesException if the state to be added is incompatible with any state in the equvalence class.
+	 * @throws IncompatibleStatesException if the state to be added is incompatible with any state in the equivalence class.
 	 */
 	private boolean addState(CmpVertex vert) throws IncompatibleStatesException
 	{
@@ -147,7 +147,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		Map<CmpVertex,JUConstants> compatibility = coregraph.pairCompatibility.get(vert);
 		if (compatibility != null) 
 			for(Entry<CmpVertex,JUConstants> entry:compatibility.entrySet())
-				if (entry.getValue() == JUConstants.INCOMPATIBLE) incompatibleStates.add(entry.getKey());// TODO: to test this
+				if (entry.getValue() == JUConstants.INCOMPATIBLE) incompatibleStates.add(entry.getKey());
 		updateColour(vert.getColour());
 
 		states.add(vert);updateRep(vert);return true;		

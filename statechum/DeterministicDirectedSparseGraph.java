@@ -138,7 +138,6 @@ final public class DeterministicDirectedSparseGraph {
 		 * represented by Strings and/or integer, 
 		 * the two need need to be converted to a common form.
 		 */
-		@SuppressWarnings("incomplete-switch") // NONE action is impossible by construction.
 		public String getStringId()
 		{
 			String result = null;
@@ -152,6 +151,8 @@ final public class DeterministicDirectedSparseGraph {
 				result = "P"+idInteger;break;
 			case NEUTRAL:
 				result = "V"+idInteger;break;
+			case NONE:
+				result = idString;
 			}
 			
 			return result;
@@ -657,7 +658,7 @@ final public class DeterministicDirectedSparseGraph {
 	 * @return a copy of the vertex
 	 */
 	public static DeterministicVertex copyVertex(Map<VertexID,DeterministicVertex> newVertices, DirectedSparseGraph g,Vertex orig)
-	{// TODO: to test this one
+	{
 		if (!(orig instanceof DeterministicVertex))
 			throw new IllegalArgumentException("cannot copy a graph which is not known to be built out of deterministic elements");
 		DeterministicVertex origVertex = (DeterministicVertex)orig;

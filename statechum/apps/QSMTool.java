@@ -44,6 +44,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 public class QSMTool 
 {
@@ -63,7 +64,11 @@ public class QSMTool
 		{
 			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);
 			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);ba.ltlToBA(tool.learnerInitConfiguration.ltlSequences, l.init(tool.sPlus, tool.sMinus));
-			Visualiser.updateFrame(ba.augmentGraph(new LearnerGraph(tool.learnerInitConfiguration.config)), null);
+			try {
+				Visualiser.updateFrame(ba.getLTLgraph().pathroutines.buildDeterministicGraph(), null);
+			} catch (IncompatibleStatesException e) {
+				e.printStackTrace();
+			}
 		}
 		else
 			tool.runExperiment();

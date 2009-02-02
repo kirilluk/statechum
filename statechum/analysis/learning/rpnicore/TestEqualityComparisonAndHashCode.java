@@ -715,7 +715,36 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.pairCompatibility));
 	}
 	
-	// TODO: to add more tests with compatibility information
+	/** Testing whether checking for incompatible vertices works correctly, both with 
+	 * compatible and with incompatible vertices. */
+	@Test
+	public final void testIncompatChecking4()
+	{
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E", "testIncompatChecking4"),Configuration.getDefaultConfiguration());
+		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D"),E=gr.findVertex("E");
+		assert !C.isAccept();
+		
+		gr.addToCompatibility(A, E,JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, B,JUConstants.MERGED);
+		
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, D, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, D, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, B, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(C, C, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(D, D, gr.pairCompatibility));
+		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(E, E, gr.pairCompatibility));
+
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, C, gr.pairCompatibility));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(C, A, gr.pairCompatibility));
+
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, E, gr.pairCompatibility));
+		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(E, A, gr.pairCompatibility));
+	}
 	
 	/** Checking whether vertices can be merged correctly.
 	 * @throws IncompatibleStatesException if this test unexpectedly fails.  
@@ -1777,6 +1806,29 @@ public class TestEqualityComparisonAndHashCode {
 		conf.setLearnerUseStrings(true);conf.setLearnerCloneGraph(false);
 		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
 		Assert.assertSame(vA, AbstractLearnerGraph.cloneCmpVertex(vA, conf));
+	}
+	
+	@Test
+	public final void testCopyVertex()
+	{
+		DirectedSparseGraph graphB = TestFSMAlgo.buildGraph("A-a->B-b->C","testCopyVertex");
+		Map<VertexID,DeterministicVertex> vertexMap = new TreeMap<VertexID,DeterministicVertex>();
+
+		DeterministicVertex vertD = new DeterministicVertex("D");
+		DeterministicVertex copyOfD = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphB, vertD);
+		Assert.assertNotSame(vertD,copyOfD);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(vertD, copyOfD));
+		Assert.assertEquals(1,vertexMap.size());
+		DeterministicVertex anotherCopyOfD = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphB, vertD);
+		Assert.assertSame(copyOfD,anotherCopyOfD);
+		
+		DirectedSparseGraph graphC = new DirectedSparseGraph();
+		DeterministicVertex initial = new DeterministicVertex("init");
+		initial.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		DeterministicVertex copyOfInitial = DeterministicDirectedSparseGraph.copyVertex(vertexMap, graphC, initial);
+		Assert.assertNotSame(initial,copyOfInitial);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(initial, copyOfInitial));
+		Assert.assertEquals(2,vertexMap.size());
+		LearnerGraph gr = new LearnerGraph(graphC,config);Assert.assertEquals(1,gr.getStateNumber());
+		Assert.assertEquals("init",gr.init.getID().getStringId());
 	}
 	
 	private static void testColourHelper(CmpVertex vert)

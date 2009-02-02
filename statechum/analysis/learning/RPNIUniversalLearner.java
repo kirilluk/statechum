@@ -107,9 +107,9 @@ public class RPNIUniversalLearner extends RPNILearner
 			constraints = new LTL_to_ba(config);
 			constraints.ltlToBA(ltl, pta);
 		}
-		LearnerGraph result = constraints.augmentGraph(pta);
+		//LearnerGraph result = constraints.augmentGraph(pta);
 		//Visualiser.updateFrame(result, null);
-		return result;
+		return null;
 	}
 	
 	/** Given a pair of graphs, computes the set of questions to validate the merge which 

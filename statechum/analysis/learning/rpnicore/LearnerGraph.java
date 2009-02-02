@@ -61,7 +61,9 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		{
 			if (currentState == null)
 				return true;// always return reject-nodes
-			return ((CmpVertex)currentState).isAccept();// TODO: This line will ever return false because X-m testing is never used on graphs with explicit reject states 
+			return ((CmpVertex)currentState).isAccept();// Note that this line will ever return false 
+				// when FSMImplementation-derivative is used for test generation because X-m testing 
+				// is never used on graphs with explicit reject states. 
 		}
 
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */

@@ -110,6 +110,10 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
 		}
 		
+		PairCompatibility<Vertex> compat = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
+		if (compat != null)
+			PairCompatibility.copyTo(compat, pairCompatibility, origToCmp);
+		
 		setIDNumbers();
 	}
 

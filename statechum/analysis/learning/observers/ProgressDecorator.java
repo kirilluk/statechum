@@ -110,9 +110,15 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	/** Loads a pair from the supplied XML element.
 	 * 
 	 * @param graph the graph which elements to load 
-	 * Ideally, I need to match string IDs loaded to those of the graph but this is not done because 
-	 * (1) graphseries used to mangle names of vertices, now this should not happen often.
-	 * (2) this method is expected to be general - purpose hence we do not expect a matching graph to be present. 
+	 * Ideally, I need to match string IDs loaded to those of the graph but this is not done because
+	 * <ul> 
+	 * <li>graphseries used to mangle names of vertices, now this should not happen often (and if I use
+	 * relabelling when loading graphs, this would never happen).</li>
+	 * <li>this method is expected to be general - purpose hence we do not expect a matching graph to be present.</li>
+	 * <li>matching was only needed when loading a compatibility table from a graph - graph loader now does 
+	 * the matching after reading pairs.</li>
+	 * </ul>
+	 * 
 	 * @param elem element to load from
 	 * @return loaded state pair.
 	 */

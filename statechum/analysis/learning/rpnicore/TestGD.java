@@ -152,9 +152,9 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
-		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("Q"), JUConstants.INCOMPATIBLE);
+		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("Q"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
@@ -164,10 +164,10 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
-		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("C"), JUConstants.INCOMPATIBLE);
-		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("Q"), JUConstants.INCOMPATIBLE);
+		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("Q"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		patcher.removeFromCompatibility(gr.findVertex("C"), gr.findVertex("T"));
 		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -178,9 +178,9 @@ public class TestGD {
 	{
 		final LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		patcher.addToCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"),JUConstants.INCOMPATIBLE);
+		patcher.addToCompatibility(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), cloneConfig),gr.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNotNull(gr.findVertex(VertexID.parseID("S")));
-		patcher.addToCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), cloneConfig),JUConstants.INCOMPATIBLE);
+		patcher.addToCompatibility(gr.findVertex("T"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), cloneConfig),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNotNull(gr.findVertex(VertexID.parseID("U")));
 	}
 	
@@ -833,12 +833,12 @@ public class TestGD {
 		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nA-a->S-a->S","testWriteAndLoad5"),Configuration.getDefaultConfiguration());
 		graph.findVertex("B").setDepth(5);graph.findVertex("D").setColour(JUConstants.AMBER);
 		
-		graph.addToCompatibility(graph.findVertex("A"), graph.findVertex("B"),JUConstants.INCOMPATIBLE);
+		graph.addToCompatibility(graph.findVertex("A"), graph.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		ChangesRecorder patcher = new ChangesRecorder(null);
 		patcher.addTransition(graph.findVertex("B"), "c", graph.findVertex("B"));
 		patcher.removeTransition(graph.findVertex("A"), "a", graph.findVertex("B"));
 		patcher.removeFromCompatibility(graph.findVertex("B"), graph.findVertex("A"));
-		patcher.addToCompatibility(graph.findVertex("B"), graph.findVertex("S"),JUConstants.INCOMPATIBLE);
+		patcher.addToCompatibility(graph.findVertex("B"), graph.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
 		patcher.setInitial(graph.findVertex("A"));
 		patcher.addRelabelling(VertexID.parseID("A"), VertexID.parseID("U"));
@@ -855,7 +855,7 @@ public class TestGD {
 		graphPatcher.relabel(result); 
 		
 		LearnerGraphND expected = new LearnerGraphND(buildGraph("U-q->B-a-#R\nU-d-#D\nU-c->U\nB-c->B\nU-a->S-a->S","testWriteAndLoad1"),Configuration.getDefaultConfiguration());
-		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("B"),JUConstants.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		expected.transitionMatrix.put(danglingVertex,expected.createNewRow());
 		expected.findVertex("B").setDepth(5);expected.findVertex("D").setColour(JUConstants.AMBER);
 	

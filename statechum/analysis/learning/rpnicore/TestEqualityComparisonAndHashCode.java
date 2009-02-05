@@ -57,6 +57,7 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.StringVertexPair;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -661,7 +662,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=new DeterministicVertex("C");
 		C.setAccept(false);
-		Map<CmpVertex,Map<CmpVertex,JUConstants>> incompatibles = new TreeMap<CmpVertex,Map<CmpVertex,JUConstants>>();
+		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<CmpVertex>();
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, incompatibles));
@@ -698,7 +699,7 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D");
 		assert !C.isAccept();
 		
-		gr.addToCompatibility(A, B,JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, B,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		
 		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(A, B, gr.pairCompatibility));
 		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(B, A, gr.pairCompatibility));
@@ -724,8 +725,8 @@ public class TestEqualityComparisonAndHashCode {
 		CmpVertex A = gr.findVertex("A"),B=gr.findVertex("B"),C=gr.findVertex("C"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		assert !C.isAccept();
 		
-		gr.addToCompatibility(A, E,JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(A, B,JUConstants.MERGED);
+		gr.addToCompatibility(A, E,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(A, B,JUConstants.PAIRCOMPATIBILITY.MERGED);
 		
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, gr.pairCompatibility));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, gr.pairCompatibility));
@@ -965,7 +966,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -986,7 +987,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -1007,7 +1008,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
@@ -1027,7 +1028,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToCompatibility(A, D, JUConstants.MERGED);
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.MERGED);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
@@ -1044,7 +1045,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D");
 		
-		gr.addToCompatibility(A, D, JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(A, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
@@ -1063,7 +1064,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-b-#C\nB-a->D-a->E-a-#F", "testEqClassHandlingOfIncompatibleVertices1"),Configuration.getDefaultConfiguration());
 		final CmpVertex A=gr.findVertex("A"),D=gr.findVertex("D"),E=gr.findVertex("E");
 		
-		gr.addToCompatibility(E, D, JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(E, D, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
@@ -2156,14 +2157,14 @@ public class TestEqualityComparisonAndHashCode {
 		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
 			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
 
-		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,a,b,differentA);
 		
 		a.removeFromIncompatibles(a.findVertex("A"), a.findVertex("C"));
 		equalityTestingHelper(a,b,differentA,differentB);
 		
-		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
-		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,b,differentA,differentB);
 	}
 
@@ -2175,14 +2176,14 @@ public class TestEqualityComparisonAndHashCode {
 		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
 			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
 
-		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.MERGED);
-		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.MERGED);
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
 		equalityTestingHelper(a,b,differentA,differentB);
 
-		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,a,b,differentA);
 
-		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,b,differentA,differentB);
 	}
 

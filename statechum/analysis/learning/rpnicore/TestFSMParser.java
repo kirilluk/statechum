@@ -1,6 +1,6 @@
 /* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
- * This file is part of StateChum
+ * This file is part of StateChum.
  * 
  * StateChum is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,18 +14,19 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
- */ 
+ */
 
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
+
+import statechum.JUConstants;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 
 /** Tests the low-level parser for graphs. High-level functionality is tested
  * using <em>TestGraphConstruction</em>
@@ -34,117 +35,6 @@ import org.junit.Test;
  *
  */
 public class TestFSMParser {
-	/** Used to receive state transitions extracted from textual FSM representation. */
-	interface TransitionReceiver
-	{
-		public void accept(String from, String to, String label);
-		public void reject(String from, String to, String label);
-	}
-	
-	protected static class fsmParser {
-		public static final int LABEL=0;
-		public static final int LARROW=1;
-		public static final int RARROW=2;
-		public static final int LARROWREJ=3;
-		public static final int RARROWREJ=4;
-		public static final int DASH =5;
-		public static final int NEWL =6;
-		
-		private final String text;
-		private final Matcher lexer;
-
-		public fsmParser(String whatToParse)
-		{
-			text = "\n"+whatToParse;
-			lexer = Pattern.compile("([^\n #\\055<>]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *\n *)").matcher(text);
-		}
-		
-		protected boolean isFinished()
-		{
-			return lexer.regionStart() == lexer.regionEnd();
-		}
-		
-		private String lastMatch = null;
-		
-		protected void throwException(String errMsg)
-		{
-			throw new IllegalArgumentException(errMsg+" starting from "+text.substring(lexer.regionStart()));
-		}
-		
-		protected int getMatchType()
-		{
-			if (!lexer.lookingAt())
-				throwException("failed to lex");
-			
-			int i=1;
-			for(;i<lexer.groupCount()+1 && lexer.group(i) == null;++i);
-			if (i == lexer.groupCount()+1)
-				throwException("failed to lex (group number is out of boundary)");
-
-			lastMatch = lexer.group(i);
-			lexer.region(lexer.end(i),lexer.regionEnd());
-			return i-1;// to bring it to 0..max from 1..max+1
-		}
-		
-		protected String getMatch()
-		{
-			return lastMatch;
-		}
-		
-		public void parse(TransitionReceiver receiver)
-		{
-			String currentState = null;
-			do {					
-				int left = getMatchType();
-				if (left == NEWL)
-				{
-					while(left == NEWL && !isFinished())
-						left = getMatchType();
-					if (left == NEWL && isFinished())
-						break;// finished parsing
-					if (left != fsmParser.LABEL)
-						throwException("state name expected");// there should be a state name after a newline
-					currentState = getMatch();
-					left=getMatchType();
-				}
-				
-				if (left != fsmParser.LARROW && left != fsmParser.LARROWREJ && left != fsmParser.DASH)
-					throwException("a left arrow or a dash expected here");
-				
-				if (getMatchType() != fsmParser.LABEL)
-					throwException("label expected");
-				String label = getMatch();
-				int right = getMatchType();
-				if (left == fsmParser.LARROW || left == fsmParser.LARROWREJ)
-				{
-					if (right != fsmParser.DASH)
-						throwException("a dash was expected here");
-				}
-				else
-				if (right != fsmParser.RARROW && right != fsmParser.RARROWREJ)
-					throwException("a right-arrow was expected here");
-				
-				if (getMatchType() != fsmParser.LABEL)
-					throwException("state name expected");
-				String anotherState = getMatch();
-				
-				if (left == fsmParser.LARROW)
-					receiver.accept(anotherState, currentState, label);
-				else
-					if (left == fsmParser.LARROWREJ)
-						receiver.reject(anotherState, currentState, label);
-				else
-					if (right == fsmParser.RARROW)
-						receiver.accept(currentState, anotherState, label);
-					else
-						receiver.reject(currentState, anotherState, label);
-
-				currentState = anotherState;
-			} while(!isFinished());
-			
-		}
-	}
-	
 	protected static class bufferMatcher implements TransitionReceiver {
 		final String [] elements;
 		final String text;
@@ -171,11 +61,19 @@ public class TestFSMParser {
 			assertEquals("wrong tag","REJECT",elements[i++]);
 		}
 		
+		public void pairCompatibility(String stateA, JUConstants.PAIRCOMPATIBILITY compat, String stateB)
+		{
+			assertEquals("wrong A string "+stateA,elements[i++],stateA);
+			assertEquals("wrong compatibility tag",elements[i++],compat.name());
+			assertEquals("wrong B string "+stateB,elements[i++],stateB);
+			++i;// ignore the last one
+		}
+		
 		public void match()
 		{
 			try
 			{
-				fsmParser p = new fsmParser(text);
+				FsmParser p = new FsmParser(text);
 				p.parse(this);
 			}
 			catch(IllegalArgumentException e)
@@ -201,20 +99,39 @@ public class TestFSMParser {
 
 	@Test
 	public void testFsmParse2() {
+		new bufferMatcher(" A-b->C1<-d0-P----a->C | A- b ->B-a->U",
+			new String [] {
+				"A", "C1", "b",	 "ACCEPT",
+				"P", "C1", "d0", "ACCEPT",
+				"P", "C", "a",	 "ACCEPT",
+				"A", "B", "b",	 "ACCEPT",
+				"B", "U", "a",	 "ACCEPT",
+			}).match();
+	}
+
+	@Test
+	public void testFsmParse3() {
 		new bufferMatcher(" \n \n",
 			new String [] {
 			}).match();
 	}
 
 	@Test
-	public void testFsmParse3() {
+	public void testFsmParse4() {
+		new bufferMatcher(" \n | | \n",
+			new String [] {
+			}).match();
+	}
+
+	@Test
+	public void testFsmParse5() {
 		new bufferMatcher("",
 			new String [] {
 			}).match();
 	}
 
 	@Test
-	public void testFsmParse4() {
+	public void testFsmParse6() {
 		new bufferMatcher(" A_string-b->C1<-d0-P----a->C\n A- b ->B-a->U",
 			new String [] {
 				"A_string", "C1", "b", "ACCEPT",
@@ -226,7 +143,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse5() {
+	public void testFsmParse7() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate",
 			new String [] {
 				"A", "C.1", "b",	 "ACCEPT",
@@ -238,7 +155,7 @@ public class TestFSMParser {
 	}
 		
 	@Test
-	public void testFsmParse6() {
+	public void testFsmParse8() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate-c->B-a->C",
 			new String [] {
 				"A", "C.1", "b",	 "ACCEPT",
@@ -252,7 +169,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse7() {
+	public void testFsmParse9() {
 		new bufferMatcher(" A-b-#C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate-c->B-a->C",
 			new String [] {
 				"A", "C.1", "b",	 "REJECT",
@@ -266,7 +183,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse8() {
+	public void testFsmParse10() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g -#B-a-#Qst.ate-c->B-a->C",
 			new String [] {
 				"A", "C.1", "b",	 "ACCEPT",
@@ -280,7 +197,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse9() {
+	public void testFsmParse11() {
 		new bufferMatcher(" A_string-b-#C1#-d0-P----a->C\n A- b ->B-a->U",
 			new String [] {
 				"A_string", "C1", "b", "REJECT",
@@ -292,7 +209,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse10() {
+	public void testFsmParse12() {
 		new bufferMatcher(" A_string-b-#C1#-d0-P----a-#C\n A- b -#B-a-#U",
 			new String [] {
 				"A_string", "C1", "b", "REJECT",
@@ -304,7 +221,7 @@ public class TestFSMParser {
 	}
 
 	@Test
-	public void testFsmParse11() {
+	public void testFsmParse13() {
 		new bufferMatcher("P-c->P<-b-Q_State<-a-P",
 			new String [] {
 				"P", "P", "c", "ACCEPT",
@@ -313,10 +230,39 @@ public class TestFSMParser {
 			}).match();
 	}
 		
+	@Test
+	public void testFsmParse_compatibility1() {
+		new bufferMatcher(" A-b->C1<-d0-P----a->C | A- b ->B-a->U | A== MERGED == B = INCOMPATIBLE == C",
+			new String [] {
+				"A", "C1", "b",	 "ACCEPT",
+				"P", "C1", "d0", "ACCEPT",
+				"P", "C", "a",	 "ACCEPT",
+				"A", "B", "b",	 "ACCEPT",
+				"B", "U", "a",	 "ACCEPT",
+				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
+				"B", JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.name(), "C",""
+			}).match();
+	}
+
+	@Test
+	public void testFsmParse_compatibility2() {
+		new bufferMatcher(" A-b->C1<-d0-P----a->C | A== MERGED == B | A- b ->B-a->U | A== MERGED == B = INCOMPATIBLE == C",
+			new String [] {
+				"A", "C1", "b",	 "ACCEPT",
+				"P", "C1", "d0", "ACCEPT",
+				"P", "C", "a",	 "ACCEPT",
+				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
+				"A", "B", "b",	 "ACCEPT",
+				"B", "U", "a",	 "ACCEPT",
+				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
+				"B", JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.name(), "C",""
+			}).match();
+	}
+
 	protected static void checkEx(final String whatToParse, String exceptionSubString)
 	{
 		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
-			new fsmParser(whatToParse).parse(new TransitionReceiver()
+			new FsmParser(whatToParse).parse(new TransitionReceiver()
 			{
 				public void accept(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
@@ -327,6 +273,11 @@ public class TestFSMParser {
 				public void reject(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
 						@SuppressWarnings("unused")	String label) 
+				{
+					// do nothing at all
+				}
+				public void pairCompatibility(@SuppressWarnings("unused") String stateA, 
+						@SuppressWarnings("unused") PAIRCOMPATIBILITY pairRelation, @SuppressWarnings("unused") String stateB) 
 				{
 					// do nothing at all
 				}
@@ -490,4 +441,60 @@ public class TestFSMParser {
 	{
 		checkEx("A <- b - C - b ->","lex");
 	}
+
+	@Test 
+	public void testFsmParseFail_compat1()
+	{
+		checkEx("A = b","lex");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat2()
+	{
+		checkEx("A = MERGED ==","lex");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat3()
+	{
+		checkEx("A = INCOMPATIBLE == B ==","lex");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat4()
+	{
+		checkEx("A - b ==B","right");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat5()
+	{
+		checkEx("A = b --B","equiv on the left");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat6()
+	{
+		checkEx("A <- b ==B","dash was");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat7()
+	{
+		checkEx("A = b ->B","equiv on the left");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat8()
+	{
+		checkEx("A = b -#B","equiv on the left");
+	}
+
+	@Test 
+	public void testFsmParseFail_compat9()
+	{
+		checkEx("A = b ==B","No enum");
+	}
+
+
 }

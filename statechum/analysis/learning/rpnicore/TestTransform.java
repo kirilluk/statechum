@@ -320,7 +320,7 @@ public class TestTransform {
 		whatToG.put(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("B"),config),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), config));
 		LearnerGraphND actual = new LearnerGraphND(config);actual.initEmpty();
 		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);
-		Assert.assertTrue(actual.pairCompatibility.isEmpty());
+		Assert.assertTrue(actual.pairCompatibility.compatibility.isEmpty());
 		Assert.assertTrue(actual.transitionMatrix.isEmpty());
 	}
 	
@@ -330,10 +330,10 @@ public class TestTransform {
 	{
 		LearnerGraphND A = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
 			expected = new LearnerGraphND(TestFSMAlgo.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
-		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.INCOMPATIBLE);
-		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.INCOMPATIBLE);
-		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.INCOMPATIBLE);
-		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
 		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
@@ -350,12 +350,12 @@ public class TestTransform {
 	{
 		LearnerGraphND A = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
 			expected = new LearnerGraphND(TestFSMAlgo.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
-		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.INCOMPATIBLE);
-		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.MERGED);
-		A.addToCompatibility(A.findVertex("D"), A.findVertex("A"),JUConstants.MERGED);
-		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.INCOMPATIBLE);
-		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.MERGED);
-		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("T"),JUConstants.MERGED);
+		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		A.addToCompatibility(A.findVertex("D"), A.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
 		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
@@ -392,7 +392,7 @@ public class TestTransform {
 		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
-		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.isEmpty());
+		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.compatibility.isEmpty());
 		LearnerGraph addedPartOfFsm = fsm.pathroutines.buildDeterministicGraph(newA);
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
@@ -430,7 +430,7 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 		
-		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.isEmpty());
+		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.compatibility.isEmpty());
 		LearnerGraph addedPartOfFsm = fsm.pathroutines.buildDeterministicGraph(newA);
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
 		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
@@ -468,7 +468,7 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.isEmpty());
+		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.compatibility.isEmpty());
 		LearnerGraph addedPartOfFsm = fsm.pathroutines.buildDeterministicGraph(newA);
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
 		
@@ -550,12 +550,12 @@ public class TestTransform {
 	{
 		LearnerGraphND fsm = new LearnerGraphND(TestFSMAlgo.buildGraph(relabelFSM_ND, "testRelabel1"),Configuration.getDefaultConfiguration());
 		CmpVertex oldA = fsm.findVertex(VertexID.parseID("A")), oldB = fsm.findVertex(VertexID.parseID("B")), oldC= fsm.findVertex(VertexID.parseID("C"));
-		fsm.addToCompatibility(oldB,oldC,JUConstants.INCOMPATIBLE);
+		fsm.addToCompatibility(oldB,oldC,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphND fsmSrc = new LearnerGraphND(TestFSMAlgo.buildGraph(relabelFSM_ND, "testRelabel1"),Configuration.getDefaultConfiguration());
-		fsmSrc.addToCompatibility(fsmSrc.findVertex(VertexID.parseID("B")), fsmSrc.findVertex(VertexID.parseID("C")),JUConstants.INCOMPATIBLE);
+		fsmSrc.addToCompatibility(fsmSrc.findVertex(VertexID.parseID("B")), fsmSrc.findVertex(VertexID.parseID("C")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphND fsmToAdd = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B-a-#Q", "testAddToGraph1"),Configuration.getDefaultConfiguration());
 		CmpVertex newB=fsmToAdd.findVertex(VertexID.parseID("B")), newA=fsmToAdd.findVertex(VertexID.parseID("A"));
-		fsmToAdd.addToCompatibility(newB,newA,JUConstants.INCOMPATIBLE);
+		fsmToAdd.addToCompatibility(newB,newA,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		
 		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
@@ -573,7 +573,7 @@ public class TestTransform {
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(oldA, oldB, fsm.pairCompatibility));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(oldToNew.get(newA), oldB, fsm.pairCompatibility));
 		Assert.assertFalse(AbstractLearnerGraph.checkCompatible(oldC, oldB, fsm.pairCompatibility));
-		Assert.assertEquals(4,fsm.pairCompatibility.size());
+		Assert.assertEquals(4,fsm.pairCompatibility.compatibility.size());
 	}
 	
 	/** The standard beginning of our graphML files. */
@@ -661,37 +661,18 @@ public class TestTransform {
 	}
 	
 	@Test
-	public final void testRelationToInt()
-	{
-		Assert.assertEquals(AbstractPersistence.compatibilityToInt(JUConstants.INCOMPATIBLE),JUConstants.intSTATEPAIR_INCOMPATIBLE);
-		Assert.assertEquals(AbstractPersistence.compatibilityToInt(JUConstants.MERGED),JUConstants.intSTATEPAIR_MERGED);
-	}
-	
-	@Test
-	public final void testRelationToInt_fail()
-	{
-		for(JUConstants constant:JUConstants.values())
-			if (constant != JUConstants.INCOMPATIBLE && constant != JUConstants.MERGED)
-			{
-				final JUConstants value = constant;
-				Helper.checkForCorrectException(new whatToRun() { public void run() {
-					AbstractPersistence.compatibilityToInt(value);
-				}}, IllegalArgumentException.class,"not a valid");
-			}
-	}
-	
-	@Test
 	public final void testIntToRelation()
 	{
-		Assert.assertEquals(AbstractPersistence.compatibilityToJUConstants(JUConstants.intSTATEPAIR_INCOMPATIBLE), JUConstants.INCOMPATIBLE);
-		Assert.assertEquals(AbstractPersistence.compatibilityToJUConstants(JUConstants.intSTATEPAIR_MERGED), JUConstants.MERGED);
+		Assert.assertEquals(JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger()), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		Assert.assertEquals(JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(JUConstants.PAIRCOMPATIBILITY.MERGED.getInteger()), JUConstants.PAIRCOMPATIBILITY.MERGED);
+		Assert.assertEquals(JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(JUConstants.PAIRCOMPATIBILITY.THEN.getInteger()), JUConstants.PAIRCOMPATIBILITY.THEN);
 	}
 	
 	@Test
 	public final void testIntToRelation_fail()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			AbstractPersistence.compatibilityToJUConstants(JUConstants.intUNKNOWN);
+			JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(JUConstants.intUNKNOWN);
 		}}, IllegalArgumentException.class,"not a valid");
 	}
 	
@@ -699,8 +680,8 @@ public class TestTransform {
 	public final void testGraphMLwriter_incompatible1() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		StringWriter writer = new StringWriter();
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
@@ -714,8 +695,8 @@ public class TestTransform {
 				" "+JUConstants.ORIGSTATE.name()+"=\""+"P4500"+"\""+
 				graphml_nodes_edges+
 				"<"+AbstractPersistence.graphmlData+" "+AbstractPersistence.graphmlDataKey+"=\""+AbstractPersistence.graphmlDataIncompatible+"\">"+
-				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
-				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),JUConstants.intUNKNOWN))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),JUConstants.intUNKNOWN))+"\n"+
 				"</"+AbstractPersistence.graphmlData+">"+
 				graphML_end),
 				removeWhiteSpace(writer.toString()));
@@ -726,8 +707,8 @@ public class TestTransform {
 	public final void testGraphMLwriter_incompatible2() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph(relabelFSM, "testRelabel1"),Configuration.getDefaultConfiguration());
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.MERGED);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		StringWriter writer = new StringWriter();
 		fsm.findVertex("B").setColour(JUConstants.BLUE);fsm.findVertex("B").setHighlight(true);fsm.findVertex("B").setAccept(false);
 		fsm.findVertex("B").setOrigState(new VertexID("P4500"));fsm.findVertex("B").setDepth(5);
@@ -741,8 +722,8 @@ public class TestTransform {
 				" "+JUConstants.ORIGSTATE.name()+"=\""+"P4500"+"\""+
 				graphml_nodes_edges+
 				"<"+AbstractPersistence.graphmlData+" "+AbstractPersistence.graphmlDataKey+"=\""+AbstractPersistence.graphmlDataIncompatible+"\">"+
-				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.intSTATEPAIR_INCOMPATIBLE,JUConstants.intUNKNOWN))+"\n"+
-				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.intSTATEPAIR_MERGED,JUConstants.intUNKNOWN))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("A"),fsm.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),JUConstants.intUNKNOWN))+"\n"+
+				TestWriteReadPair.pairToXML(new PairScore(fsm.findVertex("B"),fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED.getInteger(),JUConstants.intUNKNOWN))+"\n"+
 				"</"+AbstractPersistence.graphmlData+">"+
 				graphML_end),
 				removeWhiteSpace(writer.toString()));
@@ -1054,7 +1035,7 @@ public class TestTransform {
 	public final void testGraphMLWriter_incompatible1() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		checkLoading(fsm);
 	}
 	
@@ -1063,8 +1044,8 @@ public class TestTransform {
 	public final void testGraphMLWriter_incompatible2() throws IOException
 	{
 		LearnerGraph fsm = new LearnerGraph(TestFSMAlgo.buildGraph("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3","testCheckEquivalentStates1"),Configuration.getDefaultConfiguration());
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("B"), fsm.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		checkLoading(fsm);
 	}
 	
@@ -1076,7 +1057,7 @@ public class TestTransform {
 		for(CmpVertex vert:fsm.transitionMatrix.keySet())
 			for(CmpVertex vert2:fsm.transitionMatrix.keySet())
 				if (vert != vert2)
-					fsm.addToCompatibility(vert,vert2,JUConstants.INCOMPATIBLE);
+					fsm.addToCompatibility(vert,vert2,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		checkLoading(fsm);
 	}
 	
@@ -1191,8 +1172,8 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1209,8 +1190,8 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1237,8 +1218,8 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
@@ -1266,15 +1247,15 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
-	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.intSTATEPAIR_INCOMPATIBLE,
+	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
     				StatechumXML.ATTR_SCORE.name()+"=\"6")),Configuration.getDefaultConfiguration());
 	    	}},IllegalArgumentException.class,"6 is not a valid compatibility");
 		}		
@@ -1286,15 +1267,15 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
 	    	checkForCorrectException(new whatToRun() { public void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
-	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.intSTATEPAIR_INCOMPATIBLE,
+	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
     				StatechumXML.ATTR_SCORE.name()+"=\"AA")),Configuration.getDefaultConfiguration());
 	    	}},IllegalArgumentException.class,"failed to read a score in a pair");
 		}		
@@ -1305,8 +1286,8 @@ public class TestTransform {
 	{
 		final LearnerGraph gr = new LearnerGraph(TestFSMAlgo.buildGraph(TestRpniLearner.largeGraph1_invalid5, "testMerge_fail1"),Configuration.getDefaultConfiguration());
 		final StringWriter writer = new StringWriter();
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.INCOMPATIBLE);
-		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.

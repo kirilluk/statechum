@@ -27,6 +27,7 @@ public enum JUConstants {
 	ORIGSTATE("origstate"),// (VertexID) the name of a vertex in hard facts which corresponds to this vertex
 	DEPTH("depth"),// (int) how far the original state (ORIGSTATE) was from the root state
 	
+	PAIR_COMPATIBILITY("compatibility"),// compatibility between states in a graph, an attribute of a graph (similar to a title). 
 	STATS("STATS"),
 	COLOUR("colour"),
 	NONE("none"),// used to denote absence of any colour rather than null in AMEquivalenceClass 
@@ -34,17 +35,51 @@ public enum JUConstants {
 	JUNKVERTEX("junk"),// used for testing that searching for a property that does not exist returns a null vertex.
 	EDGE("edge"),VERTEX("vertex"), // used for labelling vertices
 	
-	INCOMPATIBLE("incompatible"), // used to designate a pair of states as incompatible
-	MERGED("merged") // used to designate a pair of states as those which have been 
-		// merged before, hence we might wish to merge them without asking user any questions 
-	 	// as long as the pair of states is compatible. Such as merger will have to be sandwiched
-		// between checkers and the bottom of the stack where autoanswers and user answers lie.
 	;
 	private String stringRepresentation;
 	
+	public enum PAIRCOMPATIBILITY
+	{
+		INCOMPATIBLE(-20), // used to designate a pair of states as incompatible
+		MERGED(-21), // used to designate a pair of states as those which have been 
+			// merged before, hence we might wish to merge them without asking user any questions 
+		 	// as long as the pair of states is compatible. Such as merger will have to be sandwiched
+			// between checkers and the bottom of the stack where autoanswers and user answers lie.
+		THEN(-22); // used in the if-then FSM constraints. If a "match" state of an "if" machine is entered, then
+			// the "then" machine is unrolled starting from the corresponding state.
+
+		private int pairConstant;
+		
+		public int getInteger()
+		{
+			return pairConstant;
+		}
+
+		PAIRCOMPATIBILITY(int value)
+		{
+			pairConstant = value;
+		}
+		
+		/** Converts state compatibility integer value to an equivalent JUConstants one. 
+		 * 
+		 * @param compat value to convert
+		 * @return resulting value
+		 */
+		public static PAIRCOMPATIBILITY compatibilityToJUConstants(int compat)
+		{
+			PAIRCOMPATIBILITY result = null;
+			if (compat == PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger()) result = PAIRCOMPATIBILITY.INCOMPATIBLE;
+			else
+			if (compat == PAIRCOMPATIBILITY.MERGED.getInteger()) result = PAIRCOMPATIBILITY.MERGED;
+			else
+			if (compat == PAIRCOMPATIBILITY.THEN.getInteger()) result = PAIRCOMPATIBILITY.THEN;
+			else
+				throw new IllegalArgumentException(compat+" is not a valid compatibility value");
+			return result;
+		}
+	};
+	
 	public static final int intUNKNOWN = -1;
-	public static final int intSTATEPAIR_INCOMPATIBLE = -20; // the integer representation of INCOMPATIBLE, used for storage
-	public static final int intSTATEPAIR_MERGED = -21;// the integer representation of MERGED, used for storage
 
 	JUConstants(String textualName)
 	{

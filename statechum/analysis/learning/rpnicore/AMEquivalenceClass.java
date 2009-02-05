@@ -144,10 +144,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				(accept != vert.isAccept() || incompatibleStates.contains(vert)))
 			 throw new IncompatibleStatesException("cannot add state "+vert+" to "+states);
 		accept = vert.isAccept();
-		Map<CmpVertex,JUConstants> compatibility = coregraph.pairCompatibility.get(vert);
+		Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = coregraph.pairCompatibility.compatibility.get(vert);
 		if (compatibility != null) 
-			for(Entry<CmpVertex,JUConstants> entry:compatibility.entrySet())
-				if (entry.getValue() == JUConstants.INCOMPATIBLE) incompatibleStates.add(entry.getKey());
+			for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
+				if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE) incompatibleStates.add(entry.getKey());
 		updateColour(vert.getColour());
 
 		states.add(vert);updateRep(vert);return true;		
@@ -409,7 +409,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				List<AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE>> classes = vertexToEqClassesContainingIt.get(vertex);
 				if (classes != null)
 					for(AMEquivalenceClass<TARGET_IN_TYPE,CACHE_IN_TYPE> incompClass:classes)
-						graph.addToCompatibility(eqClass.getMergedVertex(), incompClass.getMergedVertex(),JUConstants.INCOMPATIBLE);
+						graph.addToCompatibility(eqClass.getMergedVertex(), incompClass.getMergedVertex(),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 			}
 		
 	}

@@ -1134,7 +1134,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 * 
 	 * @param fsm the graph to operate
 	 * @param expectedComputeScore the expected score
-	 * @param pairCompatibility the expected pair compatibility score
+	 * @param compatibility the expected pair compatibility score
 	 * @param k1 k-tails score for k=1
 	 * @param k2 k-tails score for k=2
 	 * @param k3 k-tails score for k=3
@@ -1222,7 +1222,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			for(String [] incompatibleRow:incompatibles)
 			{
 				assert incompatibleRow.length == 2;
-				fsm.addToCompatibility(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]),JUConstants.INCOMPATIBLE);
+				fsm.addToCompatibility(fsm.findVertex(incompatibleRow[0]), fsm.findVertex(incompatibleRow[1]),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 			}
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> result = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		int score = -2;

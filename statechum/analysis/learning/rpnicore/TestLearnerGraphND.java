@@ -136,7 +136,7 @@ public class TestLearnerGraphND {
 		
 		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B", "testbuildDeterministicGraph1_b"),conf);
 		LearnerGraph g = graph.pathroutines.buildDeterministicGraph();
-		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
+		Assert.assertTrue(expected.equals(g));
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
@@ -164,7 +164,7 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph_fail1()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
-		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.INCOMPATIBLE);
+		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
@@ -185,7 +185,7 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph_fail3()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
-		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.INCOMPATIBLE);
+		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");

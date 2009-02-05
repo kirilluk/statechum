@@ -137,56 +137,96 @@ public class TestGraphConstructionWithDifferentConf {
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
 	@Test
-	public final void testFSMStructureEquals2e()
+	public final void testFSMStructureEquals2e1()
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
 	@Test
-	public final void testFSMStructureEquals2f()
+	public final void testFSMStructureEquals2e2()
 	{
-		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.MERGED);
-		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.MERGED);
-		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
 	@Test
-	public final void testFSMStructureEquals2g()
+	public final void testFSMStructureEquals2f1()
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.MERGED);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
 	/** Tests that different collections of incompatible states affect the comparison. */
 	@Test
-	public final void testFSMStructureEquals2h()
+	public final void testFSMStructureEquals2f2()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		equalityTestingHelper(a,b,c,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2g1()
 	{
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
 		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
-		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		a.addToCompatibility(a.findVertex(VertexID.parseID("C")), a.findVertex(VertexID.parseID("A")),JUConstants.INCOMPATIBLE);
-		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		b.addToCompatibility(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")),JUConstants.INCOMPATIBLE);
-		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
-		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.MERGED);
+		equalityTestingHelper(a,b,c,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2g2()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
+		equalityTestingHelper(a,b,c,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2h1()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B", "testFSMStructureEquals2e"),config);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("A")), a.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		a.addToCompatibility(a.findVertex(VertexID.parseID("C")), a.findVertex(VertexID.parseID("A")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("A")), b.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		b.addToCompatibility(b.findVertex(VertexID.parseID("C")), b.findVertex(VertexID.parseID("A")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("A")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		c.addToCompatibility(c.findVertex(VertexID.parseID("C")), c.findVertex(VertexID.parseID("B")),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		equalityTestingHelper(a,b,c,differentB);
+	}
+	
+	/** Tests that different collections of incompatible states affect the comparison. */
+	@Test
+	public final void testFSMStructureEquals2h2()
+	{
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = A | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = A | B = INCOMPATIBLE = A", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	

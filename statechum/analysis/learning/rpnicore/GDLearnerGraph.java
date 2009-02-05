@@ -35,10 +35,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import statechum.Configuration;
-import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import cern.colt.bitvector.BitVector;
 import cern.colt.list.DoubleArrayList;
@@ -57,7 +57,7 @@ public class GDLearnerGraph
 
 	final StatesToConsider filter;
 	
-	final Map<CmpVertex,Map<CmpVertex,JUConstants>> pairCompatibility;
+	final PairCompatibility<CmpVertex> pairCompatibility;
 	
 	/** Associates this object to LinearGraph it is using for data to operate on. 
 	 * Important: the constructor should not access any data in computeStateScores 

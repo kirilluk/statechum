@@ -32,6 +32,7 @@ import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
@@ -70,9 +71,29 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		abstract public boolean shouldBeReturned(Object elem);
 	}
 	
+	/** Represents the view on a transition matrix where each time a transition out of 
+	 * our graph is taken, we keep track of paths taken.
+	 * 
+	 */
 	class NonExistingPaths implements FSMAbstraction
 	{
 		private final CmpVertex red = init;
+		
+		/** Counter used to uniquely identify non-existing states. */ 
+		private int idCounter = 0;
+		
+		/** This one records non-existing transitions as well as some existing ones, 
+		 * those leaving states with at least one non-existing transition.
+		 */
+		private final Map<CmpVertex,Map<String,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix();
+		
+		public final Set<CmpVertex> nonExistingVertices = new HashSet<CmpVertex>();
+		
+		/** Returns a transition matrix of new paths. */
+		public Map<CmpVertex,Map<String,CmpVertex>> getNonExistingTransitionMatrix()
+		{
+			return NonExistingTransitions;
+		}
 		
 		public NonExistingPaths()
 		{// nothing to initialise here
@@ -82,27 +103,46 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			return red;
 		}
 	
-		public final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("JUNK"),config);
-				
 		public Object getNextState(Object currentState, String input) 
 		{
 			CmpVertex result = null;
-			Map<String,CmpVertex> row = transitionMatrix.get(currentState);
-			if (row != null)
+			Map<String,CmpVertex> transitions = NonExistingTransitions.get(currentState);
+			if (transitions == null)
+			{// the current state is not one of the non-existing/semi-non-existing ones
+				Map<String,CmpVertex> row = transitionMatrix.get(currentState);
+				assert row != null;// a transition matrix is always total (unless current state is non-existing but then we'll not get here in this case). 
 				result = row.get(input);
-			if (result == null)
-				result = junkVertex;
-
+				if (result == null)
+				{// add the current state to the matrix of non-existing states
+					result = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,idCounter++), config);
+					nonExistingVertices.add(result);
+					transitions = createNewRow();transitions.putAll(row);transitions.put(input, result);
+					NonExistingTransitions.put(result, createNewRow());
+					NonExistingTransitions.put((CmpVertex)currentState, transitions);
+				}
+			}
+			else
+			{// a transition from a non-existing state
+				result = transitions.get(input);
+				if (result == null)
+				{
+					result = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,idCounter++), config);
+					transitions.put(input, result);NonExistingTransitions.put(result, createNewRow());
+					nonExistingVertices.add(result);
+				}
+			}
+			
 			return result;
 		}
 	
-		public boolean isAccept(@SuppressWarnings("unused")	Object currentState) 
+		public boolean isAccept(@SuppressWarnings("unused")	Object currentState)
 		{
 			return true;
 		}
 
-		public boolean shouldBeReturned(Object elem) {
-			return elem == junkVertex;
+		public boolean shouldBeReturned(Object elem) 
+		{
+			return nonExistingVertices.contains(elem);
 		}
 	}
 	

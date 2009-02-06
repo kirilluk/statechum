@@ -430,7 +430,7 @@ public class LabelRepresentation {
 		engine.init(gr.new NonExistingPaths() {
 			@Override
 			public boolean shouldBeReturned(Object currentState) {
-				assert currentState != junkVertex : "by construction of a tree, all paths should exist";
+				assert !nonExistingVertices.contains(currentState) : "by construction of a tree, all paths should exist";
 				return ((CmpVertex)currentState).isAccept();
 			}});
 		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();
@@ -548,7 +548,7 @@ public class LabelRepresentation {
 		engine.init(gr.new NonExistingPaths() {
 			@Override
 			public boolean shouldBeReturned(Object currentState) {
-				assert currentState != junkVertex : "by construction of a tree, all paths should exist";
+				assert !nonExistingVertices.contains(currentState) : "by construction of a tree, all paths should exist";
 				return ((CmpVertex)currentState).isAccept();
 			}});
 		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();

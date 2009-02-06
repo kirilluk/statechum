@@ -41,7 +41,7 @@ final public class DeterministicDirectedSparseGraph {
 	final public static class VertexID implements Comparable<VertexID>, Serializable
 	{
 		/**
-		 * 
+		 * ID for serialization
 		 */
 		private static final long serialVersionUID = -6367197525198958482L;
 
@@ -55,9 +55,11 @@ final public class DeterministicDirectedSparseGraph {
 		 * which largely does the same thing. </li>
 		 * <li>NEGATIVE means that this is a reject-state.</li>
 		 * <li>POSITIVE means that this is an accept-state.</li>
+		 * <li>NONEXISTING means that this is a state introduced in order to record paths from questions which
+		 * do not exist in a tentative automaton.
 		 * </ul>
 		 */
-		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONE }
+		public enum VertKind { NEUTRAL, NEGATIVE, POSITIVE, NONEXISTING, NONE }
 		
 		/** Textual representation of this ID, definite value if kind == VertKind.NONE
 		 * and a cached version of a numerical ID if not.
@@ -108,6 +110,8 @@ final public class DeterministicDirectedSparseGraph {
 					tentativeKind = VertKind.POSITIVE;
 				else if (text.charAt(0) == 'N')
 					tentativeKind = VertKind.NEGATIVE;
+				else if (text.charAt(0) == '+')
+					tentativeKind = VertKind.NONEXISTING;
 				
 				if (tentativeKind != VertKind.NONE)
 					try
@@ -151,6 +155,8 @@ final public class DeterministicDirectedSparseGraph {
 				result = "P"+idInteger;break;
 			case NEUTRAL:
 				result = "V"+idInteger;break;
+			case NONEXISTING:
+				result = "+"+idInteger;break;
 			case NONE:
 				result = idString;
 			}
@@ -209,7 +215,7 @@ final public class DeterministicDirectedSparseGraph {
 			
 			int kindDifference = kind.compareTo(o.kind);
 			if (kindDifference != 0) // we should never compare textual representation of numbers to the actual numbers, because 
-				// it is easy to get into a nontransitive situation where init>P39>N1017>Init (Statechum verision 338)
+				// it is easy to get into a nontransitive situation where Init>P39>N1017>Init (Statechum version 338)
 				return kindDifference;
 
 			int lenDifference = idString.length() - o.idString.length();

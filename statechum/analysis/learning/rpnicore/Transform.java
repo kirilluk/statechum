@@ -37,10 +37,13 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 
@@ -55,7 +58,7 @@ public class Transform
 	 */
 	Transform(LearnerGraph g)
 	{
-		coregraph =g;
+		coregraph = g;
 	}
 	
 	public static int HammingDistance(List<Boolean> A, List<Boolean> B)
@@ -332,9 +335,9 @@ public class Transform
 				// (this corresponds to a construction of a cross-product of states).
 				// A state of a tentative state can be unpaired if the maximal automaton is partial, 
 				// i.e. it contains a number of counter-examples rather than all possible sequences. This is another
-				// thing to check for in this method - if taking on LTL-derived graph this should be deemed an error.
+				// thing to check for in this method - if taking of an LTL-derived graph this should be deemed an error.
 				boolean shouldDescend = true;
-				CmpVertex nextGraphVertex = pairsToGraphStates.get(nextPair);
+				CmpVertex nextGraphVertex = pairsToGraphStates.get(nextPair);// get a state representing the next pair of states
 				if (nextGraphVertex == null)
 				{// not seen this pair already hence might have to clone.
 					if (!encounteredGraph.contains(graphState))
@@ -347,10 +350,10 @@ public class Transform
 					}
 					else
 					{// graphState already paired with one of the states in maximal automaton hence clone the state
-						boolean accept = graphState.isAccept() && (maxState == null || maxState.isAccept());
+						boolean accept = graphState.isAccept() && (maxState == null || maxState.isAccept());// do not descend if the next state is reject or the next state in a maximal automaton is reject
 						
 						if (graphState.isAccept() != accept)
-						{ 
+						{// tentative automaton reaches an accept state but the maximal automaton gets into reject-state 
 							if (!override)
 								throw new IllegalArgumentException("incompatible labelling: maximal automaton chops off some paths in a tentative automaton");
 							graphModified=true;
@@ -360,19 +363,15 @@ public class Transform
 						DeterministicDirectedSparseGraph.copyVertexData(graphState, nextGraphVertex);nextGraphVertex.setAccept(accept);
 						result.transitionMatrix.put(nextGraphVertex,result.createNewRow());
 						
-						// TODO: to test copying of origstate & depth
-						
 						pairsToGraphStates.put(nextPair, nextGraphVertex);
 						if (!accept) shouldDescend = false;
 					}
 				}
-				else
+				else // already seen the next pair hence no need to descend
 					shouldDescend = false;
 				
 				result.transitionMatrix.get(currentRepresentative).put(label,nextGraphVertex);
 
-				// Now proceed if we did not encounter this pair;
-				// if not unrolling loops, we proceed if neither of the two states were met.
 				if (shouldDescend)
 				// need to explore all transitions from the new state pair.
 					currentExplorationBoundary.offer(nextPair);
@@ -403,6 +402,212 @@ public class Transform
 		return graphModified?result:null;
 	}
 
+	/** We explore a cross-product of a 
+	 * <ul>
+	 * <li>union of a tentative automaton with one of the "then automata" and </li>
+	 * <li>property automaton.</li>
+	 * </ul>
+	 * Although there could be numerous instances of "then" parts, exploration
+	 * will not discover anything new if the three states of graphState, thenState and propertyState 
+	 * have been visited before. This is why there is no record of which exactly instance is being
+	 * explored.
+	 */
+	public static class ExplorationElement
+	{
+		/** How far from the last existing state in a tentative automaton we've gone. */
+		public final int depth;
+		public final CmpVertex graphState, thenState, propertyState;
+
+		public ExplorationElement(CmpVertex graphS, CmpVertex thenS, CmpVertex propertyS, int currDepth)
+		{
+			graphState = graphS;thenState = thenS;propertyState = propertyS;depth = currDepth;
+		}
+		
+		/**
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((graphState == null) ? 0 : graphState.hashCode());
+			result = prime * result
+					+ ((propertyState == null) ? 0 : propertyState.hashCode());
+			result = prime * result
+					+ ((thenState == null) ? 0 : thenState.hashCode());
+			return result;
+		}
+
+		/**
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof ExplorationElement))
+				return false;
+			ExplorationElement other = (ExplorationElement) obj;
+			if (graphState == null) {
+				if (other.graphState != null)
+					return false;
+			} else if (!graphState.equals(other.graphState))
+				return false;
+			if (propertyState == null) {
+				if (other.propertyState != null)
+					return false;
+			} else if (!propertyState.equals(other.propertyState))
+				return false;
+			if (thenState == null) {
+				if (other.thenState != null)
+					return false;
+			} else if (!thenState.equals(other.thenState))
+				return false;
+			return true;
+		}
+	}
+	
+	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
+	 * property answers the supplied questions.
+	 * 
+	 * @param graph graph to consider and perhaps modify
+	 * @param questionPaths PTA with questions, ignored if null, otherwise answered questions are marked.
+	 * @param property property automaton to consider.
+	 * @param howManyToAdd how many waves of transitions to add to the graph. 
+	 * This means that paths of at most <em>howMayToAdd</em> transitions will be added. 
+	 * If this value if not positive, the graph remains unchanged.
+	 */
+	public static void augmentFromFSMProperty(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph property,  
+			int howManyToAdd)
+	{
+		for(CmpVertex state:graph.transitionMatrix.keySet())
+			if (state.getID().getKind() == VertKind.NONEXISTING)
+				throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
+		
+		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
+		final Set<ExplorationElement> visited = new HashSet<ExplorationElement>();
+		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,property.init,0);
+		currentExplorationBoundary.add(explorationElement);
+		
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			explorationElement = currentExplorationBoundary.remove();
+			assert explorationElement.graphState == null || graph.transitionMatrix.containsKey(explorationElement.graphState) : "state "+explorationElement.graphState+" is not known to the tentative automaton";
+			assert explorationElement.propertyState == null || property.transitionMatrix.containsKey(explorationElement.propertyState) : "state "+explorationElement.propertyState+" is not known to the property graph";
+			if (explorationElement.thenState != null && explorationElement.graphState != null &&
+					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
+				throw new IllegalArgumentException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
+						
+			// There are eight combinations of null/non-null values of the current states in total,
+			// 	graph	THEN 	property|	consider labels	| 	meaning
+			// 	.		.		.		|	graph & THEN	|	proceed with matching of a graph and then to a property automaton
+			//	.		.		null	|	graph & THEN	|	proceed with matching of a graph and then to a property automaton,
+			//							|					|	expecting the property automaton to be all-accept.
+			//	.		null	.		|	graph			|	proceed with matching to a property automaton
+			//	.		null	null	|	-				|	ignore
+			// 	null	.		.		|	THEN			|	ignore - no point matching to a property automaton
+			//	null	.		null	|	THEN			|	ignore - no point extending
+			//	null	null	.		|	-				|	ignore
+			//	null	null	null	|	-				|	ignore
+
+			if (explorationElement.graphState != null && explorationElement.thenState == null && explorationElement.propertyState == null)
+				continue;// strictly speaking, this is an optimisation: without this check I'll explore all states of a tentative graph, doing nothing for all of them 
+			
+			if (explorationElement.propertyState != null)
+			{
+				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = property.pairCompatibility.compatibility.get(explorationElement.propertyState);
+				if (compatibility != null)
+					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
+						if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
+						{// we hit a match-state, add next states
+							ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,entry.getKey(),explorationElement.propertyState, explorationElement.depth);
+							if (!visited.contains(nextExplorationElement))
+							{// not seen this triple already
+								visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+							}
+						}
+			}
+			
+			Map<String,CmpVertex> graphTargets = null;
+			if (explorationElement.graphState != null)
+			{
+				if (questionPaths == null)
+					graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
+				else
+				{
+					graphTargets = questionPaths.getNonExistingTransitionMatrix().get(explorationElement.graphState);
+					if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
+						graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
+					questionPaths.nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
+				}
+			}
+
+			Map<String,CmpVertex> propertyTargets = explorationElement.propertyState == null?null:property.transitionMatrix.get(explorationElement.propertyState),
+				thenTargets = explorationElement.thenState == null?null:property.transitionMatrix.get(explorationElement.thenState);
+				
+			if (graphTargets != null)
+			{
+				// exploring the graph
+				for(Entry<String,CmpVertex> labelstate:graphTargets.entrySet())
+				{
+					String label = labelstate.getKey();
+					CmpVertex nextGraphState = labelstate.getValue();
+					final CmpVertex nextPropertyState = propertyTargets == null?null:propertyTargets.get(label);
+					final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
+					int depth = explorationElement.depth;
+					
+					if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
+					{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
+						nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
+						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
+						DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);nextGraphState.setAccept(nextThenState.isAccept());
+						graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
+						++depth;// we made one more transition
+					}
+
+					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth);
+					if (!visited.contains(nextExplorationElement))
+					{// not seen this triple already
+						visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+					}
+				}
+			
+				if (thenTargets != null) // Exploring the added "THEN" graph
+					for(Entry<String,CmpVertex> labelstate:thenTargets.entrySet())
+					{
+						String label = labelstate.getKey();
+						CmpVertex nextGraphState = labelstate.getValue();
+						final CmpVertex nextPropertyState = labelstate.getValue();
+						final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
+						
+						int depth = explorationElement.depth;
+						
+						if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
+						{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
+							nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
+							if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
+							DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);nextGraphState.setAccept(nextThenState.isAccept());
+							graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
+							++depth;// we made one more transition
+						}
+	
+						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth);
+						if (!visited.contains(nextExplorationElement))
+						{// not seen this triple already (note that matched states added in the labelstate:graphTargets.entrySet() loop 
+						 // will be ignored here, including the state which have just been added above).
+							visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+						}
+					}
+			}
+			
+			// There is no point iterating through transitions possible for a property graph which are not matched
+			// in a tentative automaton - those transitions are ignored.
+		}
+	}
+	
 	public static class TraversalStatistics
 	{
 		public final int Nx,Tx,matched;

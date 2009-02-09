@@ -73,7 +73,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	
 	/** Represents the view on a transition matrix where each time a transition out of 
 	 * our graph is taken, we keep track of paths taken.
-	 * 
+	 * This makes it possible, for instance, add all those paths to a graph simply by doing
+	 * <pre>
+	 * NonExistingPaths newpaths = new graph.NonExistingPaths();
+	 * // use pnewaths to generate new paths   
+	 * graph.transitionMatrix.putAll(newpaths.getNonExistingTransitionMatrix());
+	 * </pre>
 	 */
 	class NonExistingPaths implements FSMAbstraction
 	{

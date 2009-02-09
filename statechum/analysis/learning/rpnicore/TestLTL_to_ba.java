@@ -31,6 +31,7 @@ import statechum.Configuration;
 import statechum.Helper;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
+import statechum.apps.QSMTool;
 
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
@@ -59,45 +60,58 @@ public class TestLTL_to_ba
 	protected LearnerGraph expectedFromASEExample = null;
 	
 	@Test
-	public final void testLtlConcat1()
+	public final void testLtlConcat1a()
 	{
 		Assert.assertEquals("",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{})).toString());
 	}
 	
 	@Test
+	public final void testLtlConcat1b()
+	{
+		Assert.assertEquals("",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdIFTHENAUTOMATON+" junk","junk"})).toString());
+	}
+	
+	@Test
+	public final void testLtlConcat1c()
+	{
+		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{"  */ ",QSMTool.cmdIFTHENAUTOMATON+"  */ "}));
+	}
+	
+	@Test
 	public final void testLtlConcat2()
 	{
-		Assert.assertEquals("a",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{" a ","","  "})).toString());
+		Assert.assertEquals("a",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  "})).toString());
 	}
 	
 	@Test
 	public final void testLtlConcat3()
 	{
-		Assert.assertEquals("a || b",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{" a ","","  ","  b "," "})).toString());
+		Assert.assertEquals("a || b",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  ",QSMTool.cmdLTL+"  b ",QSMTool.cmdLTL+" "})).toString());
 	}
 	
 	@Test
 	public final void testLtlConcat4()
 	{
-		Assert.assertEquals("a || test || c",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{" a ","","  ","  test ","c "})).toString());
+		Assert.assertEquals("a || test || c",LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{
+				QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+"",QSMTool.cmdLTL+"  ",QSMTool.cmdLTL+"  test ",QSMTool.cmdLTL+" c "})).toString());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail1()
 	{
-		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{"  */ "}));
+		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+"  */ "}));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail2()
 	{
-		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{"  /* "}));
+		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+"  /* "}));
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail3()
 	{
-		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{"a "," ","b", " this is /* blah ) blah blah"}));
+		LTL_to_ba.concatenateLTL(Arrays.asList(new String[]{QSMTool.cmdLTL+" a ",QSMTool.cmdLTL+" ",QSMTool.cmdLTL+" b", QSMTool.cmdLTL+" this is /* blah ) blah blah"}));
 	}
 	
 
@@ -1013,7 +1027,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close","open"}));
 		checkForCorrectException(new whatToRun() { public void run() {
-			ba.ltlToBA(Arrays.asList(new String[]{"([](close-><>open))"}),null);
+			ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([](close-><>open))"}),null);
 		}},IllegalArgumentException.class,"not all states are accept");
 	}
 
@@ -1059,7 +1073,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1073,7 +1087,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1089,7 +1103,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(TestFSMAlgo.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{"([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment);
 
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba), expected  = automatonLoadedFromLTL(ba);
 		Assert.assertNull(WMethod.checkM(uniteAndDeterminise(new LearnerGraph(Configuration.getDefaultConfiguration()),automatonLoadedFromLTL),expected));

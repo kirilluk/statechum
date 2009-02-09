@@ -205,9 +205,17 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		{ 
 			if (accept != to.accept)
 				throw new IncompatibleStatesException("incompatible equivalence classes");
-			Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(incompatibleStates);incomps.retainAll(to.states);
-			if (!incomps.isEmpty())
-				throw new IncompatibleStatesException("incompatible equivalence classes");
+			{// TODO: to test this case
+				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(incompatibleStates);incomps.retainAll(to.states);
+				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
+					throw new IncompatibleStatesException("incompatible equivalence classes");
+			}
+			
+			{// TODO: to test this case
+				Set<CmpVertex> incomps = new TreeSet<CmpVertex>();incomps.addAll(to.incompatibleStates);incomps.retainAll(states);
+				if (!incomps.isEmpty()) // we check that none of the states we add are incompatible with this state
+					throw new IncompatibleStatesException("incompatible equivalence classes");
+			}
 		}
 		accept = to.accept;incompatibleStates.addAll(to.incompatibleStates);
 

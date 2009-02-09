@@ -19,9 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.observers;
 
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.Stack;
 
 import statechum.JUConstants;
@@ -29,9 +27,7 @@ import statechum.Pair;
 
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.*;
-import statechum.apps.CompareGraphs;
 import statechum.model.testset.PTASequenceEngine;
 
 public class ClusteringTrackerDecorator extends LearnerDecorator
@@ -104,7 +100,7 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 	}
 
 
-	public LearnerGraph AddConstraints(LearnerGraph graph) {
-		return decoratedLearner.AddConstraints(graph);
+	public boolean AddConstraints(LearnerGraph graph,LearnerGraph outcome) {
+		return decoratedLearner.AddConstraints(graph,outcome);
 	}
 }

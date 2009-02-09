@@ -97,8 +97,8 @@ public class DummyLearner extends LearnerDecorator
 		return decoratedLearner.learnMachine(engine,plusSize,minusSize);
 	}
 
-	public LearnerGraph AddConstraints(LearnerGraph graph) 
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) 
 	{
-		return decoratedLearner.AddConstraints(graph);
+		return decoratedLearner.AddConstraints(graph,outcome);
 	}
 }

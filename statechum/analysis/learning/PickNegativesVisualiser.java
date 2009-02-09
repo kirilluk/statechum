@@ -87,14 +87,14 @@ public class PickNegativesVisualiser extends Visualiser {
 		{
 			public void run()
 			{
-				if (conf.ltlSequences != null)
+				if (conf.ifthenSequences != null)
 					innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);
 				else
 					if (split != null) {
 						innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, conf.config);
 		        	}
 		        	else
-		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ltlSequences will always be null.
+		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ifthenSequences will always be null.
 				
 				innerLearner.addObserver(PickNegativesVisualiser.this);
 				Learner mainDecorator = new AutoAnswers(innerLearner);
@@ -145,7 +145,7 @@ public class PickNegativesVisualiser extends Visualiser {
 					if(negatives!=null)
 						sMinus.add(negatives);
 					if(negLTL!=null)
-						conf.ltlSequences.add(negLTL);
+						conf.ifthenSequences.add(negLTL);
 
 					startLearner(this);
 					synchronized (this) {
@@ -175,7 +175,7 @@ public class PickNegativesVisualiser extends Visualiser {
 		final Set edges = viewer.getPickedState().getPickedEdges();
 		if(edges.size() != 1)
 			return;
-		if(conf.ltlSequences != null){
+		if(conf.ifthenSequences != null){
 			String newLTL = JOptionPane.showInputDialog("New LTL formula:");
 			innerLearner.terminateUserDialogueFrame();
 			new Thread(new LearnerRestarter(newLTL),"learner restarter").start();

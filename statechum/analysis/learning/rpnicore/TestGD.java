@@ -146,24 +146,24 @@ public class TestGD {
 		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(expected.findVertex("D"),gr.findVertex("D")));
 	}
 
-	/** Tests that the addition to incompatibles states. */
+	/** Tests that the addition to pairs of incompatibles states works. */
 	@Test
 	public final void testAddIncompatibles1()
 	{
-		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q\nT-longpath->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q\nT-longpath->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
 		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("Q"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNull(WMethod.checkM_and_colours(expected, gr, VERTEX_COMPARISON_KIND.DEEP));
 	}
 	
-	/** Tests that the addition to incompatibles states. */
+	/** Tests that the addition to pairs of incompatibles states works. */
 	@Test
 	public final void testAddIncompatibles2()
 	{
-		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
-		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
+		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q\nT-longpath->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
+		LearnerGraph expected = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q\nT-longpath->Q","testAddIncompatibles1b"),Configuration.getDefaultConfiguration());
 		expected.addToCompatibility(expected.findVertex("T"), expected.findVertex("Q"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addToCompatibility(gr.findVertex("T"), gr.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);

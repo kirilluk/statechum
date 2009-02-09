@@ -360,6 +360,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (useConstraints? 1231 : 1237);
 		result = prime * result + (ignoreDepthInTheChoiceOfRepresentatives? 1231 : 1237);
 		result = prime * result + (ignoreVertexAttributesInLogReplay? 1231 : 1237);
+		result = prime * result + howManyStatesToAddFromIFTHEN;
 		return result;
 	}
 
@@ -463,6 +464,8 @@ public class Configuration implements Cloneable
 		if (ignoreDepthInTheChoiceOfRepresentatives != other.ignoreDepthInTheChoiceOfRepresentatives)
 			return false;
 		if (ignoreVertexAttributesInLogReplay != other.ignoreVertexAttributesInLogReplay)
+			return false;
+		if (howManyStatesToAddFromIFTHEN != other.howManyStatesToAddFromIFTHEN)
 			return false;
 		
 		return true;
@@ -865,13 +868,30 @@ public class Configuration implements Cloneable
 		useSpin = newValue;
 	}
 	
+	/** When learning, we might wish to add transitions from a property automaton.
+	 * This corresponds to adding waves of transitions where the first wave starts from
+	 * state of a tentative automaton, the second wave from the newly-added states and so on.
+	 * This parameter determines the number of waves to add.
+	 */
+	protected int howManyStatesToAddFromIFTHEN = 0;
+	
+	public int getHowManyStatesToAddFromIFTHEN()
+	{
+		return howManyStatesToAddFromIFTHEN;
+	}
+	
+	public void setHowManyStatesToAddFromIFTHEN(int value)
+	{
+		howManyStatesToAddFromIFTHEN = value;
+	}
+	
 	/** Types of compatibility learners implemented - these are supposed to be set
 	 * when traces are recorded for compatibility testing with learners used in May 2008 and 
 	 * December 2007.
 	 */
 	public enum LEARNER { LEARNER_BLUEFRINGE_MAY2008, LEARNER_BLUEAMBER_MAY2008, LEARNER_BLUEFRINGE_DEC2007 }
 	
-	/** Selects the kind of learner to use. A learner typically has a lot of customization
+	/** Selects the kind of learner to use. A learner typically has a lot of customisation
 	 * options which are set by a configuration.
 	 * <p><em>null</em> value here means we are not doing compatibility testing.
 	 */

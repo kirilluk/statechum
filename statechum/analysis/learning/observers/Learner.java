@@ -31,7 +31,20 @@ import statechum.model.testset.PTASequenceEngine;
 
 public interface Learner 
 {
-	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT }
+	/** The process of learning can accumulate tentative data such as counter-examples from a model-checker
+	 * which have not been explicitly confirmed by a user a true traces. Such data can be useful
+	 * to rule out erroneous mergers but cannot be ultimately trusted. For this reason, when we
+	 * roll back, it is possible to decide whether to retain such data or not. If traces offered
+	 * by a user contradict such a tentative information, we have to discard all of it and restart
+	 * with only user input. This is called <em>restartHARD</em>. When we do not discard anything,
+	 * we do a <em>restartSOFT</em>. Finally, on occasion it may turn out to be impossible to merge
+	 * a pair of states but no sensible counter-example may exist. This is the case when a counter-
+	 * example is not prefix-closed; in the absence of explicit information from a user, this is not
+	 * possible to determine. If such counter-examples are added to a collection of traces, they become
+	 * just such semi-trusted tentative data; an alternative is to mark the pair of state to be 
+	 * unmergeable and pick a different pair. This is called <em>restartRECOMPUTEPAIRS</em>.  
+	 */
+	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT,restartRECOMPUTEPAIRS }
 	
 	/** Learns the machine. When different learning events occur, the learner
 	 * calls its listeners (which are the decorators); these listeners are given
@@ -138,9 +151,13 @@ public interface Learner
 	
 	/** Given a PTA, this method adds constraints to it, this could be reject states determined
 	 * by Soot or an automaton obtained from LTL.
-	 * 
-	 * @param graph PTA to augment
-	 * @return result of augmentation.
+	 * <p>
+	 * @param graph PTA to augment, this one is untouched by transformations. The reason for this is that
+	 * one would usually only find out that augmentation went wrong in the process of doing it, hence
+	 * the only way to revert back (and not merge the pair leading to the graph to augment) is to
+	 * keep the result of augmentation separate from the source. 
+	 * @param resultHolder the graph to store the result of augmentation.
+	 * @return whether the construction was successful
 	 */ 
-	public LearnerGraph AddConstraints(LearnerGraph graph);
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder);
 }

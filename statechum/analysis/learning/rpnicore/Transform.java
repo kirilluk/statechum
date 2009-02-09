@@ -40,12 +40,14 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
+import statechum.apps.QSMTool;
 
 public class Transform 
 {
@@ -475,13 +477,13 @@ public class Transform
 	 * 
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions, ignored if null, otherwise answered questions are marked.
-	 * @param property property automaton to consider.
+	 * @param ifthenGraph property automaton to consider.
 	 * @param howManyToAdd how many waves of transitions to add to the graph. 
 	 * This means that paths of at most <em>howMayToAdd</em> transitions will be added. 
 	 * If this value if not positive, the graph remains unchanged.
 	 */
-	public static void augmentFromFSMProperty(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph property,  
-			int howManyToAdd)
+	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph ifthenGraph,  
+			int howManyToAdd) throws IncompatibleStatesException
 	{
 		for(CmpVertex state:graph.transitionMatrix.keySet())
 			if (state.getID().getKind() == VertKind.NONEXISTING)
@@ -489,17 +491,17 @@ public class Transform
 		
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Set<ExplorationElement> visited = new HashSet<ExplorationElement>();
-		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,property.init,0);
+		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,ifthenGraph.init,0);
 		currentExplorationBoundary.add(explorationElement);
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			explorationElement = currentExplorationBoundary.remove();
 			assert explorationElement.graphState == null || graph.transitionMatrix.containsKey(explorationElement.graphState) : "state "+explorationElement.graphState+" is not known to the tentative automaton";
-			assert explorationElement.propertyState == null || property.transitionMatrix.containsKey(explorationElement.propertyState) : "state "+explorationElement.propertyState+" is not known to the property graph";
+			assert explorationElement.propertyState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.propertyState) : "state "+explorationElement.propertyState+" is not known to the property graph";
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
-				throw new IllegalArgumentException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
+				throw new IncompatibleStatesException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
 						
 			// There are eight combinations of null/non-null values of the current states in total,
 			// 	graph	THEN 	property|	consider labels	| 	meaning
@@ -518,7 +520,7 @@ public class Transform
 			
 			if (explorationElement.propertyState != null)
 			{
-				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = property.pairCompatibility.compatibility.get(explorationElement.propertyState);
+				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.propertyState);
 				if (compatibility != null)
 					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
 						if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
@@ -545,8 +547,8 @@ public class Transform
 				}
 			}
 
-			Map<String,CmpVertex> propertyTargets = explorationElement.propertyState == null?null:property.transitionMatrix.get(explorationElement.propertyState),
-				thenTargets = explorationElement.thenState == null?null:property.transitionMatrix.get(explorationElement.thenState);
+			Map<String,CmpVertex> propertyTargets = explorationElement.propertyState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.propertyState),
+				thenTargets = explorationElement.thenState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.thenState);
 				
 			if (graphTargets != null)
 			{
@@ -561,6 +563,9 @@ public class Transform
 					
 					if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
 					{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
+						if (!explorationElement.graphState.isAccept())
+							throw new IncompatibleStatesException("cannot extend a reject state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
+						
 						nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
 						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
 						DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);nextGraphState.setAccept(nextThenState.isAccept());
@@ -587,6 +592,9 @@ public class Transform
 						
 						if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
 						{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
+							if (!explorationElement.graphState.isAccept())
+								throw new IncompatibleStatesException("cannot extend a reject state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
+
 							nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
 							if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
 							DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);nextGraphState.setAccept(nextThenState.isAccept());
@@ -605,9 +613,81 @@ public class Transform
 			
 			// There is no point iterating through transitions possible for a property graph which are not matched
 			// in a tentative automaton - those transitions are ignored.
-		}
+		}// while(!currentExplorationBoundary.isEmpty())
 	}
 	
+	/** Given a deterministic version of a maximal automaton, this method converts it to an if-then
+	 * automaton which can be used to augment graphs or to answer questions.
+	 * States are not cloned.
+	 * 
+	 * @param ltl what to convert
+	 * @return the result of conversion
+	 */
+	public static LearnerGraph ltlToIfThenAutomaton(LearnerGraph ltl)
+	{
+		LearnerGraph result = new LearnerGraph(ltl,ltl.config);
+		
+		Map<Set<String>,CmpVertex> rejectInputsToRejectGraph = new HashMap<Set<String>,CmpVertex>();
+		
+		// first pass - computing an alphabet
+		Set<String> alphabet = result.learnerCache.getAlphabet();
+		Map<CmpVertex,Map<String,CmpVertex>> extraRows = ltl.createNewTransitionMatrix();
+		// second pass - checking if any transitions need to be added and adding them.
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
+		{
+			Set<String> labelsRejected = new TreeSet<String>();
+			labelsRejected.addAll(alphabet);labelsRejected.removeAll(entry.getValue().keySet());
+			if (!labelsRejected.isEmpty())
+			{
+				CmpVertex thenGraph = rejectInputsToRejectGraph.get(labelsRejected);
+				if (thenGraph == null)
+				{// create a THEN graph which rejects all transitions with inputs rejected from entry.getKey() state.
+					thenGraph = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(true), result.config);
+					Map<String,CmpVertex> row = result.createNewRow();
+					extraRows.put(thenGraph, row);
+					for(String rejectInput:labelsRejected)
+					{
+						CmpVertex rejectState = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(false), result.config);
+						rejectState.setAccept(false);
+						extraRows.put(rejectState, result.createNewRow());
+						row.put(rejectInput,rejectState);
+					}
+					rejectInputsToRejectGraph.put(labelsRejected,thenGraph);
+				}
+				result.addToCompatibility(entry.getKey(), thenGraph, PAIRCOMPATIBILITY.THEN);
+			}
+		}
+		result.transitionMatrix.putAll(extraRows);
+		return result;
+	}
+	
+	public static Collection<LearnerGraph> buildIfThenAutomata(Collection<String> ltl, LearnerGraph graph, Configuration config)
+	{
+		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
+		LTL_to_ba converter = new LTL_to_ba(config);
+		converter.ltlToBA(ltl, graph);
+		try {
+			LearnerGraph ltlAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
+			ltlAutomaton.setName("LTL");
+			ifthenAutomata.add(ltlAutomaton);
+		} catch (IncompatibleStatesException e) {
+			Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
+		}
+		
+		for(String property:ltl)
+			if (property.startsWith(QSMTool.cmdIFTHENAUTOMATON))
+			{
+				String automatonAndName = property.substring(0, QSMTool.cmdIFTHENAUTOMATON.length()+1).trim();
+				int endOfName = automatonAndName.indexOf(' ');
+				if (endOfName < 1)
+					throw new IllegalArgumentException("missing automata name from"+automatonAndName);
+				LearnerGraph propertyAutomaton = new LearnerGraph(
+						TestFSMAlgo.buildGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim()),config);
+				ifthenAutomata.add(propertyAutomaton);
+			}
+		return ifthenAutomata;
+	}
+
 	public static class TraversalStatistics
 	{
 		public final int Nx,Tx,matched;

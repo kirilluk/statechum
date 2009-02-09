@@ -173,6 +173,10 @@ public class TestFSMAlgo {
 					pairCompatibility = new PairCompatibility<Vertex>();
 					g.addUserDatum(JUConstants.PAIR_COMPATIBILITY, pairCompatibility, UserData.SHARED);
 				}
+				if (!existingVertices.containsKey(stateA))
+					throw new IllegalArgumentException("unknown vertex "+stateA);
+				if (!existingVertices.containsKey(stateB))
+					throw new IllegalArgumentException("unknown vertex "+stateB);
 				pairCompatibility.addToCompatibility(existingVertices.get(stateA), existingVertices.get(stateB), pairRelation);
 				
 			}

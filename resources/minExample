@@ -1,0 +1,9 @@
+showltl
+
+#+ a b c d
+#ltl [](a->Xb)
+
+
++ load edit save close
+
+ltl !!([]((close)-> X((load) V !((save) || (edit) || (close)))))

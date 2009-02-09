@@ -28,11 +28,8 @@ import java.util.Stack;
 
 import statechum.JUConstants;
 import statechum.Pair;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.oracles.RPNIBlueFringeSootLearner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -41,13 +38,13 @@ public class MachineOracleDecorator extends LearnerDecorator {
 	LearnerGraph target = null;
 	int restarts=0;int questions=0;
 	
-	public MachineOracleDecorator(Learner learner, LearnerGraph target) {
+	public MachineOracleDecorator(Learner learner, LearnerGraph argTarget) {
 		super(learner);
-		this.target=target;
+		this.target=argTarget;
 	}
 
-	public LearnerGraph AddConstraints(LearnerGraph graph) {
-		return decoratedLearner.AddConstraints(graph);
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) {
+		return decoratedLearner.AddConstraints(graph,outcome);
 	}
 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
@@ -55,12 +52,13 @@ public class MachineOracleDecorator extends LearnerDecorator {
 			decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, int expectedAccept, int lengthInHardFacts,
-			Object[] options) {
+	public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph graph,
+			List<String> question, @SuppressWarnings("unused") int expectedAccept, 
+			@SuppressWarnings("unused") int lengthInHardFacts,
+			@SuppressWarnings("unused") Object[] options) {
 		questions++;
 		int answer = target.paths.tracePath(question);
-		return new Pair(answer,null);
+		return new Pair<Integer, String>(answer,null);
 	}
 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {

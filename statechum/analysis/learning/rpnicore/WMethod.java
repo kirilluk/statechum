@@ -30,6 +30,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.Helper;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -788,50 +789,153 @@ public class WMethod {
 	
 	public enum VERTEX_COMPARISON_KIND { NONE, NAMES, DEEP }
 	
+	private static class CollectionOfPairs
+	{
+		public final LearnerGraph first,second;
+		
+		public CollectionOfPairs(LearnerGraph f,LearnerGraph s)
+		{
+			first=f;second=s;
+		}
+		
+		public final Map<CmpVertex,Set<CmpVertex>> pairs = new TreeMap<CmpVertex,Set<CmpVertex>>();
+		
+		/** Adds the supplied pairs to the collection and returns true if the pair was not yet in the collection
+		 * and false otherwise.
+		 * @param pairAB
+		 * @return false if the pair is already in the collection.
+		 */
+		public boolean addAndCheck(StatePair pairAB)
+		{
+			Set<CmpVertex> row = pairs.get(pairAB.firstElem);
+			if (row == null)
+			{
+				row = new TreeSet<CmpVertex>();pairs.put(pairAB.firstElem,row);
+			}
+			boolean result = row.contains(pairAB.secondElem);// if we've just created a row, the outcome will be false, same if the value does not exist.
+			if (!result)
+				row.add(pairAB.secondElem);
+			return !result;
+		}
+		
+		/** Given a state in the first graph (expected), this method takes set of states related to it and for each of them
+		 * takes states associated with them on the right-hand side of <em>StatePair</em> 
+		 * @param state
+		 * @return
+		 */
+		public Map<PAIRCOMPATIBILITY,Set<CmpVertex>> statesAssociatedToThoseRelatedTo(CmpVertex state)
+		{
+			Map<PAIRCOMPATIBILITY,Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY,Set<CmpVertex>>();
+			Map<CmpVertex,PAIRCOMPATIBILITY> map = first.pairCompatibility.compatibility.get(state);
+			if (map != null)
+				for(Entry<CmpVertex,PAIRCOMPATIBILITY> entry:map.entrySet())
+				{
+					Set<CmpVertex> row = result.get(entry.getValue());
+					if (row == null)
+					{
+						row = new TreeSet<CmpVertex>();result.put(entry.getValue(), row);
+					}
+					Set<CmpVertex> rightHand = pairs.get(entry.getKey());
+					String errorDescrPart1 = "state "+ state+" is mapped with "+entry.getValue().name()+" to "+entry.getKey()+" of the graph ";
+					if (rightHand == null)
+						throw new DifferentFSMException(errorDescrPart1 + "which does not have a corresponding state in the expected graph");
+					row.addAll(rightHand);
+				}
+			
+			return result;
+		}
+		
+		/** Given a state in the second graph (actual), returns a map relating PAIRCOMPATIBILITY to
+		 * its associated states. 
+		 */
+		public Map<PAIRCOMPATIBILITY,Set<CmpVertex>> statesAssociatedTo(CmpVertex state)
+		{
+			Map<PAIRCOMPATIBILITY,Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY,Set<CmpVertex>>();
+			Map<CmpVertex,PAIRCOMPATIBILITY> map = second.pairCompatibility.compatibility.get(state);
+			if (map != null)
+				for(Entry<CmpVertex,PAIRCOMPATIBILITY> entry:map.entrySet())
+				{
+					Set<CmpVertex> row = result.get(entry.getValue());
+					if (row == null)
+					{
+						row = new TreeSet<CmpVertex>();result.put(entry.getValue(), row);
+					}
+					row.add(entry.getKey());
+				}
+			return result;
+		}
+		
+		/** Iterates through states in the collection and checks the associations of the vertices
+		 * are preserved by the <em>pairs</em> relation.
+		 */
+		public void checkPairsAssociatedCorrectly()
+		{
+			for(Entry<CmpVertex,Set<CmpVertex>> entry:pairs.entrySet())
+			{
+				Map<PAIRCOMPATIBILITY,Set<CmpVertex>> firstMap = statesAssociatedToThoseRelatedTo(entry.getKey());
+				for(CmpVertex secondVertex:entry.getValue())
+				{
+					Map<PAIRCOMPATIBILITY,Set<CmpVertex>> secondMap = statesAssociatedTo(secondVertex);
+					if (!firstMap.equals(secondMap))
+						throw new DifferentFSMException("state pair "+entry.getKey()+" and "+secondVertex+" have incompatible associations");
+				}
+			}
+		}
+	}
+	
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
-	 * Unreachable states are ignored.
+	 * Unreachable states  are ignored.
+	 * Compatibility labelling other than INCOMPATIBLE is only checked for deterministic graphs.
 	 * 
 	 * @param compareVertices if DEEP, compares attributes of every pair of states reached; NAMES means only names are compared.
 	 * @return DifferentFSMException if machines are different and null otherwise.
 	 */
+	@SuppressWarnings("null")
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> 
 		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expectedArg,CmpVertex stateExpectedArg,
-				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graphArg,CmpVertex stateGraphArg, VERTEX_COMPARISON_KIND compareVertices)
+				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> actualArg,CmpVertex stateActualArg, VERTEX_COMPARISON_KIND compareVertices)
 	{
-		assert stateExpectedArg != null && stateGraphArg != null;
-		LearnerGraph expected = null, graph = null;
+		assert stateExpectedArg != null && stateActualArg != null;
+		LearnerGraph expected = null, actual = null;
+		CmpVertex stateActual = null, stateExpected = null;
 
-		try {// This one potentially makes copies of states with different names.
-			expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
-			graph = graphArg.pathroutines.buildDeterministicGraph(stateGraphArg);
-		} catch (IncompatibleStatesException e) {
-			Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
+		if (expectedArg instanceof LearnerGraph && actualArg instanceof LearnerGraph)
+		{// deterministic case
+			expected = (LearnerGraph)expectedArg;actual = (LearnerGraph)actualArg;stateActual = stateActualArg;stateExpected = stateExpectedArg;
 		}
-		CmpVertex stateGraph = graph.init, stateExpected = expected.init;
+		else
+		{// non-deterministic case
+			try {// This one potentially makes copies of states with different names.
+				expected = expectedArg.pathroutines.buildDeterministicGraph(stateExpectedArg);
+				actual = actualArg.pathroutines.buildDeterministicGraph(stateActualArg);
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
+			}
+			stateActual = actual.init;stateExpected = expected.init;
+		}
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
-
-		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
-		currentExplorationBoundary.add(new StatePair(stateGraph,stateExpected));statesAddedToBoundary.add(new StatePair(stateGraph,stateExpected));
+		CollectionOfPairs statesAddedToBoundary = new CollectionOfPairs(expected,actual);
+		currentExplorationBoundary.add(new StatePair(stateExpected,stateActual));statesAddedToBoundary.addAndCheck(new StatePair(stateExpected,stateActual));
 		switch(compareVertices)
 		{
 		case DEEP:
-			if (!DeterministicDirectedSparseGraph.deepEquals(stateGraph,stateExpected))
-				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different values of attributes");
-			if (stateGraph.getOrigState() == null)
+			if (!DeterministicDirectedSparseGraph.deepEquals(stateExpected,stateActual))
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different values of attributes");
+			if (stateActual.getOrigState() == null)
 			{
 				if (stateExpected.getOrigState() != null)
-				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
 			}
 			else
-				if (!stateGraph.getOrigState().equals(stateExpected.getOrigState()))
-					return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+				if (!stateActual.getOrigState().equals(stateExpected.getOrigState()))
+					return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
 			break;
 		case NAMES:	
-			if (!stateGraph.getOrigState().equals(stateExpected.getOrigState()))
-				return new DifferentFSMException("vertices "+stateExpected+" and "+stateGraph+" have different names");
+			if (!stateActual.getOrigState().equals(stateExpected.getOrigState()))
+				return new DifferentFSMException("vertices "+stateExpected+" and "+stateActual+" have different names");
 			break;
 		case NONE:// nothing needs doing 
 			break;
@@ -840,57 +944,58 @@ public class WMethod {
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			StatePair statePair = currentExplorationBoundary.remove();
-			assert graph.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the first graph";
-			assert expected.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
+			assert expected.transitionMatrix.containsKey(statePair.firstElem) : "state "+statePair.firstElem+" is not known to the expected graph";
+			assert actual.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the actual graph";
 			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
 				return new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
-			//System.out.println("considering pair "+statePair.getR()+","+statePair.getQ());// in reverse order
-			Map<String,CmpVertex> targets = graph.transitionMatrix.get(statePair.firstElem);
-			Map<String,CmpVertex> expectedTargets = expected.transitionMatrix.get(statePair.secondElem);
-			if (expectedTargets.size() != targets.size())// each of them is equal to the keyset size from determinism
+
+			Map<String,CmpVertex> expectedTargets = expected.transitionMatrix.get(statePair.firstElem);
+			Map<String,CmpVertex> actualTargets = actual.transitionMatrix.get(statePair.secondElem);
+			if (expectedTargets.size() != actualTargets.size())// each of them is equal to the keyset size from determinism
 				return new DifferentFSMException("different number of transitions from states "+statePair);
 				
-			for(Entry<String,CmpVertex> labelstate:targets.entrySet())
+			for(Entry<String,CmpVertex> labelToActualState:actualTargets.entrySet())
 			{
-				String label = labelstate.getKey();
+				String label = labelToActualState.getKey();
 				if (!expectedTargets.containsKey(label))
-					return new DifferentFSMException("no transition with expected label "+label+" from a state corresponding to "+statePair.secondElem);
-				CmpVertex tState = labelstate.getValue();// the original one
-				CmpVertex expectedState = expectedTargets.get(label);
+					return new DifferentFSMException("no transition with expected label \""+label+"\" from a state \""+statePair.secondElem+"\" corresponding to \""+statePair.firstElem+"\"");
+				CmpVertex nextExpectedState = expectedTargets.get(label);
+				CmpVertex nextActualState = labelToActualState.getValue();// the original one
 				
-				StatePair nextPair = new StatePair(tState,expectedState);
+				StatePair nextPair = new StatePair(nextExpectedState,nextActualState);
 				//System.out.println("outgoing: "+statePair.getR()+","+statePair.getQ()+"-"+label+"->"+nextPair.getR()+","+nextPair.getQ());// elements of the pairs are in reverse order
-				if (!statesAddedToBoundary.contains(nextPair))
+				if (statesAddedToBoundary.addAndCheck(nextPair))
 				{
 					switch(compareVertices)
 					{
 					case DEEP:
 						//System.out.println("looking at "+expectedState+" ("+expectedState.getColour()+") and "+tState+" ("+tState.getColour()+") ");
-						if (!DeterministicDirectedSparseGraph.deepEquals(tState, expectedState))
-							return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different values of attributes");
-						if (tState.getOrigState() == null)
+						if (!DeterministicDirectedSparseGraph.deepEquals(nextExpectedState,nextActualState))
+							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different values of attributes");
+						if (nextActualState.getOrigState() == null)
 						{
-							if (expectedState.getOrigState() != null)
-								return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+							if (nextExpectedState.getOrigState() != null)
+								return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
 						}
 						else
-							if (!tState.getOrigState().equals(expectedState.getOrigState()))
-								return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+							if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
+								return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
 						break;
 					case NAMES:	
-						if (!tState.getOrigState().equals(expectedState.getOrigState()))
-							return new DifferentFSMException("vertices "+expectedState+" and "+tState+" have different names");
+						if (!nextActualState.getOrigState().equals(nextExpectedState.getOrigState()))
+							return new DifferentFSMException("vertices "+nextExpectedState+" and "+nextActualState+" have different names");
 						break;
 					case NONE:// nothing needs doing 
 						break;
 					}
 
 					currentExplorationBoundary.offer(nextPair);
-					statesAddedToBoundary.add(nextPair);
 				}
 			}
 		}
-		
+
+		// now iterate through the maps of incompatible states and make updates.
+		statesAddedToBoundary.checkPairsAssociatedCorrectly();
 		return null;
 	}
 
@@ -907,11 +1012,11 @@ public class WMethod {
 	}
 	
 	/** Verifies that vertices contain the same attributes in the two graphs
-	 * and that same sets of vertex pairs are declared incompatible,
 	 * in addition to checking for isomorphism of the graphs.
 	 * Used for consistency checking.
 	 * <p>
-	 * Important: unreachable states are not checked for.
+	 * Important: Unreachable states  are ignored.
+	 * Compatibility labelling other than INCOMPATIBLE is only checked for deterministic graphs.
 	 */
 		public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
@@ -921,11 +1026,10 @@ public class WMethod {
 				
 	{
 		DifferentFSMException ex = WMethod.checkM(A, A.init,B,B.init,howToCompare);if (ex != null) return ex;
-		if (!A.pairCompatibility.equals(B.pairCompatibility))
-			return new DifferentFSMException("sets of incompatible states differ");
 		return null;
 	}
 		
+				
 	/** Checks if the two graphs have the same set of states. */
 	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
 	{

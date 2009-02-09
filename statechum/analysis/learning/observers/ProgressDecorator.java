@@ -171,7 +171,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public LearnerGraph graph = null;
 		public Collection<List<String>> testSet = null;
 		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
-		public Collection<String> ltlSequences = null;
+		public Collection<String> ifthenSequences = null;
 		public LabelRepresentation labelDetails = null;
 		
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
@@ -184,7 +184,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, 
 				Collection<String> ltl, LabelRepresentation lblDetails)
 		{
-			graph = gr;testSet = tests;config = cnf;ltlSequences = ltl;labelDetails=lblDetails;
+			graph = gr;testSet = tests;config = cnf;ifthenSequences = ltl;labelDetails=lblDetails;
 			
 		}
 
@@ -199,7 +199,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 					+ ((config == null) ? 0 : config.hashCode());
 			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
 			result = prime * result
-					+ ((ltlSequences == null) ? 0 : ltlSequences.hashCode());
+					+ ((ifthenSequences == null) ? 0 : ifthenSequences.hashCode());
 			result = prime * result
 				+ ((testSet == null) ? 0 : testSet.hashCode());
 			result = prime * result
@@ -229,10 +229,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 					return false;
 			} else if (!graph.equals(other.graph))
 				return false;
-			if (ltlSequences == null) {
-				if (other.ltlSequences != null)
+			if (ifthenSequences == null) {
+				if (other.ifthenSequences != null)
 					return false;
-			} else if (!ltlSequences.equals(other.ltlSequences))
+			} else if (!ifthenSequences.equals(other.ifthenSequences))
 				return false;
 
 			if (testSet == null) {
@@ -265,7 +265,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
 		NodeList nodesGraph = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.graphmlNodeNameNS.toString()),
 		nodesSequences = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_SEQ.name()),
-		nodesLtl = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_LTL.name()),
+		nodesLtl = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_CONSTRAINTS.name()),
 		nodesConfigurations = StatechumXML.getChildWithTag(evaluationDataElement,Configuration.configXMLTag),
 		graphNumberNodes = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_PROGRESSINDICATOR.name()),
 		nodesLabelDetails = StatechumXML.getChildWithTag(evaluationDataElement,StatechumXML.ELEM_LABELDETAILS.name());
@@ -292,7 +292,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
 		result.testSet = readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
-			result.ltlSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
+			result.ifthenSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
 		if (nodesLabelDetails.getLength() > 0)
 		{
 			result.labelDetails = new LabelRepresentation();
@@ -315,10 +315,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
-		if (cnf.ltlSequences != null)
+		if (cnf.ifthenSequences != null)
 		{
-			Element ltl = doc.createElement(StatechumXML.ELEM_LTL.name());
-			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ltlSequences);
+			Element ltl = doc.createElement(StatechumXML.ELEM_CONSTRAINTS.name());
+			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ifthenSequences);
 			ltl.setTextContent(ltlsequences.toString());
 			evaluationData.appendChild(ltl);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}

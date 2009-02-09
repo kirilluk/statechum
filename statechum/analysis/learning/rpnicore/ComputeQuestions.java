@@ -29,9 +29,12 @@ import java.util.Map.Entry;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
@@ -79,7 +82,7 @@ public class ComputeQuestions {
 		public SequenceSet getPathsToLearnt();
 	}
 	
-	public static List<List<String>> computeQS_general(final StatePair pairToMerge, 
+	public static PTASequenceEngine computeQS_general(final StatePair pairToMerge, 
 			final LearnerGraph original, final LearnerGraph learnt,final QuestionConstructor qConstructor)
 	{
 		final PTASequenceEngine engine = qConstructor.constructEngine(original, learnt);
@@ -111,7 +114,7 @@ public class ComputeQuestions {
 
 			});
 		
-		return engine.getData();
+		return engine;
 	}
 	
 	/** Replicates QSM question generator using the new question generation framework. */
@@ -378,8 +381,13 @@ public class ComputeQuestions {
 	
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
+	 * 
+	 * @param pair pair of state to be merged
+	 * @param original automaton before the above pair has been merged.
+	 * @param merged automaton after the merge
+	 * @param properties IF-THEN automata used to answer questions.
 	 */
-	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, Collection<LearnerGraph> properties)
 	{
 		List<List<String>> questions = null;
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
@@ -394,8 +402,17 @@ public class ComputeQuestions {
 				case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
 				case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
 			}
-			questions = computeQS_general(pair, original, merged, qConstructor);
+			PTASequenceEngine engine = computeQS_general(pair, original, merged, qConstructor);
+			if (properties != null)
+				for(LearnerGraph if_then:properties)
+					try {
+						// this marks visited questions ...
+						Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), if_then, -1);
+					} catch (IncompatibleStatesException e) { Helper.throwUnchecked("failure doing merge on the original graph", e); }
+			questions = engine.getData();// ... and this one will return only those which were not answered by property automata
 		}
-		return ArrayOperations.sort(questions);
+		return ArrayOperations.sort(questions);// this appears important to ensure termination without using amber states
+			// because in an unsorted collection long paths may appear first and they will hence be added to PTA and we'll
+			// proceed to merge them.
 	}
 }

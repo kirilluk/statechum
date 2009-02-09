@@ -252,7 +252,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			questionsB = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize(learner2, pairNew2)),
 			questionsC = ComputeQuestions.computeQS_orig(pairNew2, learner2,MergeStates.mergeAndDeterminize_general(learner2, pairNew2)),
 			questionsD = ComputeQuestions.computeQS_general(pairNew2, learner2, MergeStates.mergeAndDeterminize_general(learner2, pairNew2), 
-					new ComputeQuestions.QSMQuestionGenerator());
+					new ComputeQuestions.QSMQuestionGenerator()).getData();
 		Assert.assertTrue("these states should be compatible - correct test data",origScore >= 0);
 		Assert.assertEquals(expectedScore, origScore);
 		Assert.assertEquals(expectedScore, newScoreA);

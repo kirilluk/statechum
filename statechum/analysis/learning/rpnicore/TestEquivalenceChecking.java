@@ -90,23 +90,40 @@ public class TestEquivalenceChecking {
 	}
 	
 	/** Verifies the equivalence of a supplied graph to the supplied machine. */
-	public static void checkM(String fsm,DirectedSparseGraph g,Configuration conf)
+	public static void checkM_ND(String fsm,DirectedSparseGraph g,Configuration conf)
 	{
 		final LearnerGraphND graph = new LearnerGraphND(g,conf);
 		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		final LearnerGraphND expected = new LearnerGraphND(expectedGraph,conf);
-		DifferentFSMException result = WMethod.checkM(expected,graph);
-		Assert.assertNull(result==null?"":result.toString(),result);
+		DifferentFSMException 
+			ex1 = WMethod.checkM(expected,graph),
+			ex2 = WMethod.checkM(graph,expected);
+		if (ex1 != null)
+			Assert.assertNotNull(ex2);
+		else
+			Assert.assertNull(ex2);
+		Assert.assertNull(ex1==null?"":ex1.toString(),ex1);
 	}
 
 	/** Verifies the equivalence of a supplied graph to the supplied machine, 
-	 * the special version for testing the above method. */
-	public static void checkM_test(String fsm,DirectedSparseGraph g,Configuration conf)
+	 * the special version for testing the above method. 
+	 */
+	public static void checkM(String fsm,DirectedSparseGraph g,Configuration conf)
 	{
 		final LearnerGraph graph = new LearnerGraph(g,conf);
 		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		final LearnerGraph expected = new LearnerGraph(expectedGraph,conf);
-		throw WMethod.checkM(graph,expected);
+		DifferentFSMException 
+			ex1 = WMethod.checkM(expected,graph),
+			ex2 = WMethod.checkM(graph,expected);
+		
+		if (ex1 != null)
+			Assert.assertNotNull(ex2);
+		else
+			Assert.assertNull(ex2);
+
+		if (ex1 != null)
+			throw ex1;
 	}
 
 	@Test
@@ -146,7 +163,7 @@ public class TestEquivalenceChecking {
 			"A-d-#REJ\nB-c-#REJ2";
 		String expected = "A-a->B-b->C-b-#F#-d-A-b-#R\nB-a-#R\nU#-c-B\n"+
 			"A-d-#F\nB-c-#R";
-		checkM(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), config);
+		checkM_ND(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheck4"), config);
 	}
 
 	@Test
@@ -248,37 +265,37 @@ public class TestEquivalenceChecking {
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD1()
 	{
-		checkM_test("B-a->C-b->B",buildGraph("A-a->B-b->C", "testCheckMD1"), config);		
+		checkM("B-a->C-b->B",buildGraph("A-a->B-b->C", "testCheckMD1"), config);		
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD2() // different reject states
 	{
-		checkM_test("B-a->C-b-#D",buildGraph("A-a->B-b->C", "testCheckMD2"), config);
+		checkM("B-a->C-b-#D",buildGraph("A-a->B-b->C", "testCheckMD2"), config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD3() // missing transition
 	{
-		checkM_test("B-a->C-b->D",buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3"), config);
+		checkM("B-a->C-b->D",buildGraph("A-a->B-b->C\nA-b->B", "testCheckMD3"), config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD4() // extra transition
 	{
-		checkM_test("B-a->C-b->D\nB-b->C",buildGraph("A-a->B-b->C", "testCheckMD4"), config);
+		checkM("B-a->C-b->D\nB-b->C",buildGraph("A-a->B-b->C", "testCheckMD4"), config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD5() // missing transition
 	{
-		checkM_test("B-a->C-b->D",buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5"), config);
+		checkM("B-a->C-b->D",buildGraph("A-a->B-b->C\nB-c->B", "testCheckMD5"), config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
 	public void testCheckMD6() // extra transition
 	{
-		checkM_test("B-a->C-b->D\nC-c->C",buildGraph("A-a->B-b->C", "testCheckMD6"), config);
+		checkM("B-a->C-b->D\nC-c->C",buildGraph("A-a->B-b->C", "testCheckMD6"), config);
 	}
 
 	@Test(expected = DifferentFSMException.class)
@@ -286,8 +303,112 @@ public class TestEquivalenceChecking {
 	{
 		String another  = "A-a->B-b->C\nC-b-#REJ\nA-d-#REJ";
 		String expected = "A-a->B-b->C-d-#F#-b-A";
-		checkM_test(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), config);
+		checkM(expected,buildGraph(another.replace('A', 'Q').replace('B', 'G').replace('C', 'A'), "testCheckMD7"), config);
 	}
 
+	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
+	@Test
+	public void testPair1()
+	{
+		checkM("A-a->B-a->C-a->D-a->A",buildGraph("A-a->B-a->A", "testPair1"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair2()
+	{
+		checkM("A-a->B-a->C | A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C", "testPair2"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs, first with simple graphs and no pairs. */
+	@Test
+	public void testPair3()
+	{
+		checkM("A-a->B-a->C | A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C| A=INCOMPATIBLE=B", "testPair3"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair4()
+	{
+		checkM("A-a->B-a->C | A=INCOMPATIBLE=B",buildGraph("A-a->B-a->C| A=THEN=B", "testPair4"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test
+	public void testPair5()
+	{
+		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = INCOMPATIBLE = B3", "testPair5"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair6()
+	{
+		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A2 = THEN = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = INCOMPATIBLE = B3", "testPair6"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair7a()
+	{
+		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair6"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair7b()
+	{
+		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3", "testPair6"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair7c()
+	{
+		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair6"), config);
+	}
+	
+	@Test
+	public void testPair8()
+	{
+		checkM("P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P",
+				buildGraph("Q-a->B-a->B | B = INCOMPATIBLE = Q", "testPair6"), config);
+	}
+	
+	@Test
+	public void testPair9()
+	{
+		checkM("R-b->P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P | P = THEN = R",
+				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair6"), config);
+	}
+	
+	@Test(expected = DifferentFSMException.class)
+	public void testPair10()
+	{
+		checkM("R-b->P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P | P = INCOMPATIBLE = R",
+				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair6"), config);
+	}
+	
 
 }

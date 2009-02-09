@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import static statechum.Helper.checkForCorrectException;
@@ -436,4 +437,16 @@ public final class TestGraphConstruction
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);
 	}
+
+	/** Tests that references to unknown vertices cause an exception because we do not know whether
+	 * that vertex should be accept or reject.
+	 */
+	@Test 
+	public void testGraphConstruction_fail()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			buildGraph("A = THEN ==B","testGraphConstruction_fail");
+		}},IllegalArgumentException.class,"unknown vertex");
+	}
+
 }

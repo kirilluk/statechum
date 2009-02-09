@@ -296,12 +296,13 @@ public class RecordProgressDecorator extends ProgressDecorator
 		writeElement(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));
 	}
 
-	public LearnerGraph AddConstraints(LearnerGraph graph) 
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) 
 	{
-		LearnerGraph result = decoratedLearner.AddConstraints(graph);
+		boolean result = decoratedLearner.AddConstraints(graph,outcome);
 
-		Element ptaWithConstraintsGraphXMLNode = series.writeGraph(result);
+		Element ptaWithConstraintsGraphXMLNode = series.writeGraph(outcome);
 		ptaWithConstraintsGraphXMLNode.setAttribute(StatechumXML.ATTR_GRAPHKIND.name(),StatechumXML.ATTR_WITHCONSTRAINTS.name());
+		ptaWithConstraintsGraphXMLNode.setAttribute(StatechumXML.ATTR_CONSTRAINTSADDED.name(),Boolean.toString(result));
 		writeElement(ptaWithConstraintsGraphXMLNode);
 		
 		return result;

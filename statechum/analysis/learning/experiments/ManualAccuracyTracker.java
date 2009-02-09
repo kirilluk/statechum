@@ -79,7 +79,7 @@ public class ManualAccuracyTracker extends QSMTool {
 			sMinus = new HashSet<List<String>>();
 			sPlus.addAll(samples.getData(posPredicate));
 			sMinus.addAll(samples.getData(negPredicate));
-			RPNILearner l = new RPNIUniversalLearner(null, new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ltlSequences,null));
+			RPNILearner l = new RPNIUniversalLearner(null, new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null));
 			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
 			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
 			Learner autoAns = new AutoAnswers(atd);

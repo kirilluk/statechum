@@ -52,6 +52,11 @@ public class PTASequenceEngine
 	protected int negativeNodeID = -1;
 	protected PTASequenceEngine.Node rejectNode = new Node();
 
+	public FSMAbstraction getFSM()
+	{
+		return fsm;
+	}
+	
 	/** Represents elements of the PTA. */
 	public class Node  
 	{

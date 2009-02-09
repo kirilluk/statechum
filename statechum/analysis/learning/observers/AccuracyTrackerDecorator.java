@@ -166,7 +166,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 
 
-	public LearnerGraph AddConstraints(LearnerGraph graph) {
-		return decoratedLearner.AddConstraints(graph);
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) {
+		return decoratedLearner.AddConstraints(graph,outcome);
 	}
 }

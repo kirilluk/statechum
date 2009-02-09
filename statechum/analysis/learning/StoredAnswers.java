@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import statechum.Pair;
+import statechum.apps.QSMTool;
 
 
 public class StoredAnswers implements AbstractOracle
@@ -41,9 +42,11 @@ public class StoredAnswers implements AbstractOracle
 
 	public synchronized void setAnswers(Reader src) throws IOException
 	{
-		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8;
+		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, 
+			GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8, 
+			GROUP_IFTHEN = 9,GROUP_IFTHEN_CONSTRAINT = 10;
 
-		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+") *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<ltl> +(.*)))");
+		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+") *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|(<"+QSMTool.cmdLTL+"> +(.*))|(<"+QSMTool.cmdIFTHENAUTOMATON+"> +(.*)))");
 		final Pattern usefulData = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+").*");
 		BufferedReader reader = new BufferedReader(src);//new FileReader(src));
 		String line = reader.readLine();
@@ -60,7 +63,8 @@ public class StoredAnswers implements AbstractOracle
 				if (lexer.group(GROUP_YES) != null)
 				{
 					if (lexer.group(GROUP_NO) != null || lexer.group(GROUP_NO_NUM) != null || 
-							lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null)
+							lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null 
+							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
 						throwEx(line);
 					
 					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
@@ -68,17 +72,29 @@ public class StoredAnswers implements AbstractOracle
 				else
 					if (lexer.group(GROUP_NO) != null)
 					{
-						if (lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null)
-						throwEx(line);
+						if (lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null 
+								|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
+							throwEx(line);
 
 						answers.put(text, new Pair<Integer,String>(Integer.parseInt(lexer.group(GROUP_NO_NUM)),null));				
 					}
 					else
-					{
-						if (lexer.group(GROUP_LTL) == null || lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0)
-							throwEx(line);
-						answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
-					}
+						if (lexer.group(GROUP_LTL) != null)
+						{
+							if (lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0 
+									|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
+								throwEx(line);
+							answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
+						}
+						else
+							if (lexer.group(GROUP_IFTHEN) != null)
+							{
+								if (lexer.group(GROUP_IFTHEN_CONSTRAINT) == null || lexer.group(GROUP_IFTHEN_CONSTRAINT).length() == 0)
+									throwEx(line);
+								answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_IFTHEN,lexer.group(GROUP_IFTHEN_CONSTRAINT)));				
+							}
+							else
+								throwEx(line);
 			}			
 			line = reader.readLine();
 		}

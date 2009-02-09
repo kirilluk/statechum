@@ -63,7 +63,7 @@ public class QSMTool
 		if (tool.showLTL)
 		{
 			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);
-			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);ba.ltlToBA(tool.learnerInitConfiguration.ltlSequences, l.init(tool.sPlus, tool.sMinus));
+			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus));
 			try {
 				Visualiser.updateFrame(ba.getLTLgraph().pathroutines.buildDeterministicGraph(), null);
 			} catch (IncompatibleStatesException e) {
@@ -111,7 +111,7 @@ public class QSMTool
 	public void runExperiment()
 	{
 		setSimpleConfiguration(learnerInitConfiguration.config, active, k);
-		if(learnerInitConfiguration.ltlSequences!=null && !learnerInitConfiguration.ltlSequences.isEmpty())
+		if(learnerInitConfiguration.ifthenSequences!=null && !learnerInitConfiguration.ifthenSequences.isEmpty())
 			learnerInitConfiguration.config.setUseLTL(true);
 
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
@@ -154,10 +154,10 @@ public class QSMTool
 			sPlus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
 		else if (isCmdWithArgs(fileString,cmdNegative))
 			sMinus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
-		else if (isCmdWithArgs(fileString,cmdLTL))
+		else if (isCmdWithArgs(fileString,cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON))
 		{
-			if (learnerInitConfiguration.ltlSequences == null) learnerInitConfiguration.ltlSequences=new TreeSet<String>();
-			learnerInitConfiguration.ltlSequences.add(fileString.substring(cmdLTL.length()+1));
+			if (learnerInitConfiguration.ifthenSequences == null) learnerInitConfiguration.ifthenSequences=new TreeSet<String>();
+			learnerInitConfiguration.ifthenSequences.add(fileString);
 		}
 		else if (isCmdWithArgs(fileString,cmdK))
 		{
@@ -202,6 +202,7 @@ public class QSMTool
 
 	public static final String 
 		cmdLTL = "ltl", 
+		cmdIFTHENAUTOMATON = "ifthenFSM",
 		cmdK = "k", 
 		cmdPositive="+", 
 		cmdNegative="-", 

@@ -28,6 +28,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.StoredAnswers;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.apps.QSMTool;
 
 /**
  * @author kirill
@@ -101,8 +102,11 @@ public class AutoAnswers extends DummyLearner {
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED)
 					System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
 				else
-						if (answer.firstElem == AbstractOracle.USER_LTL && answer.secondElem != null)
-							System.out.println(howAnswerWasObtained+" "+question.toString()+ " <ltl> "+answer.secondElem);
+					if (answer.firstElem == AbstractOracle.USER_LTL && answer.secondElem != null)
+						System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdLTL+"> "+answer.secondElem);
+					else
+						if (answer.firstElem == AbstractOracle.USER_IFTHEN && answer.secondElem != null)
+							System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdIFTHENAUTOMATON+"> "+answer.secondElem);
 		}
 		return answer;
 	}

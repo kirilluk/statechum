@@ -59,7 +59,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 					try
 					{
 						learningOutcome=runLearner(whatToCompareWith);
-						checkCall(KIND_OF_METHOD.M_FINISHED);
+						syncOnCallOf(KIND_OF_METHOD.M_FINISHED);
 					}
 					catch(IllegalArgumentException ex)
 					{
@@ -80,7 +80,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			try
 			{
 				result = runLearner(decoratedLearner);
-				checkCall(KIND_OF_METHOD.M_FINISHED);
+				syncOnCallOf(KIND_OF_METHOD.M_FINISHED);
 			}
 			catch(IllegalArgumentException ex)
 			{
@@ -188,7 +188,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @return true if the assignment happened, because <em>expected</em> was null,
 	 * i.e. this is the first thread.
 	 */
-	synchronized void checkCall(KIND_OF_METHOD method)
+	synchronized void syncOnCallOf(KIND_OF_METHOD method)
 	{
 		try 
 		{
@@ -239,7 +239,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 
-		checkCall(KIND_OF_METHOD.M_AUGMENT);
+		syncOnCallOf(KIND_OF_METHOD.M_AUGMENT);
 
 		if (Thread.currentThread() != secondThread)
 		{
@@ -248,7 +248,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			augmentData=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 
@@ -279,7 +279,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, lengthInHardFacts, options);
 
-		checkCall(KIND_OF_METHOD.M_CHECKWITHUSER);
+		syncOnCallOf(KIND_OF_METHOD.M_CHECKWITHUSER);
 
 		if (Thread.currentThread() != secondThread)
 		{// checking.
@@ -290,7 +290,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			cPair =null;question=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 
@@ -323,7 +323,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			pairsAndScores.addAll(result);
 		}
 		
-		checkCall(KIND_OF_METHOD.M_CHOOSEPAIRS);
+		syncOnCallOf(KIND_OF_METHOD.M_CHOOSEPAIRS);
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking. 
@@ -343,7 +343,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			pairs =null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 
@@ -372,7 +372,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			result = decoratedLearner.ComputeQuestions(pair, original, temp);
 
-		checkCall(KIND_OF_METHOD.M_QUESTIONS);
+		syncOnCallOf(KIND_OF_METHOD.M_QUESTIONS);
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking, ignoring scores and accept-conditions.
@@ -383,7 +383,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			qPair =null;questions=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 
@@ -414,7 +414,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			result = decoratedLearner.MergeAndDeterminize(original, pair);
 			copyOfResult = new LearnerGraph(result,result.config);
 		}
-		checkCall(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
+		syncOnCallOf(KIND_OF_METHOD.M_MERGEANDDETERMINIZE);
 
 		if (Thread.currentThread() != secondThread)
 		{// checking, considering that acceptance conditions are not stored in XML.
@@ -425,7 +425,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			mPair =null;mGraph=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 		
@@ -448,7 +448,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		else
 			decoratedLearner.Restart(mode);
 
-		checkCall(KIND_OF_METHOD.M_RESTART);
+		syncOnCallOf(KIND_OF_METHOD.M_RESTART);
 
 		if (Thread.currentThread() != secondThread)
 		{// checking.
@@ -457,7 +457,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			rMode=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 	}
@@ -488,7 +488,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			result = decoratedLearner.init(plus, minus);
 			copyOfResult = new LearnerGraph(result,result.config);
 		}
-		checkCall(KIND_OF_METHOD.M_INIT);
+		syncOnCallOf(KIND_OF_METHOD.M_INIT);
 
 		if (Thread.currentThread() != secondThread)
 		{// second thread, checking.
@@ -497,7 +497,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 			iGraph=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 
@@ -513,32 +513,41 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 
 	protected LearnerGraph cGraph = null;
-
-	public LearnerGraph AddConstraints(LearnerGraph graph) 
+	protected Boolean cResult = null;
+	
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) 
 	{
-		LearnerGraph result = null, copyOfResult = null;
+		LearnerGraph copyOfOutcome = null;
+		boolean result = false;
+		
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.AddConstraints(graph);
-			copyOfResult = new LearnerGraph(result,result.config);
-			cGraph = copyOfResult;
+			result = whatToCompareWith.AddConstraints(graph,outcome);
+			copyOfOutcome = new LearnerGraph(outcome,outcome.config);
+			cGraph = copyOfOutcome;cResult = result;
 		}
 		else
 		{
-			result = decoratedLearner.AddConstraints(graph);
-			copyOfResult = new LearnerGraph(result,result.config);
+			result = decoratedLearner.AddConstraints(graph,outcome);
+			copyOfOutcome = new LearnerGraph(outcome,outcome.config);
 		}
-		checkCall(KIND_OF_METHOD.M_ADDCONSTRAINTS);
+		syncOnCallOf(KIND_OF_METHOD.M_ADDCONSTRAINTS);
 		
 		if (Thread.currentThread() != secondThread)
 		{// second thread, checking.
-			checkGraphEquality(cGraph, copyOfResult);
-
-			cGraph=null;// reset stored data
+			
+			if (!cResult.equals(new Boolean(result)))
+				failureCode = new IllegalArgumentException("different success value of AddConstraints");
+			else
+			{
+				if (result)
+					checkGraphEquality(cGraph, copyOfOutcome);
+			}
+			cGraph=null;cResult=null;// reset stored data
 		}
 
-		checkCall(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
 		// from the first checkCall and overwriting the stored value before the other 
 		// thread had a chance to use it in a comparison.
 

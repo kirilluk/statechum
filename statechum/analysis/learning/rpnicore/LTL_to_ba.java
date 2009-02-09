@@ -35,6 +35,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.apps.QSMTool;
 
 /** This one runs LTL2BA and parses its output.
  * <p>
@@ -128,16 +129,17 @@ public class LTL_to_ba {
 		StringBuffer ltlCombined = new StringBuffer();
 		boolean first = true;
 		for(String str:ltl)
-		{
-			String formula = str.trim();
-			if (ltlForbiddenWords.matcher(formula).find())
-				throw new IllegalArgumentException("expression "+formula+" contains a forbidden word");
-			if (formula.length() > 0)
+			if (str.startsWith(QSMTool.cmdLTL))
 			{
-				if (!first) ltlCombined.append(" || ");else first=false;
-				ltlCombined.append(formula);
+				String formula = str.substring(QSMTool.cmdLTL.length()).trim();
+				if (ltlForbiddenWords.matcher(formula).find())
+					throw new IllegalArgumentException("expression "+formula+" contains a forbidden word");
+				if (formula.length() > 0)
+				{
+					if (!first) ltlCombined.append(" || ");else first=false;
+					ltlCombined.append(formula);
+				}
 			}
-		}
 		return ltlCombined;
 	}
 	

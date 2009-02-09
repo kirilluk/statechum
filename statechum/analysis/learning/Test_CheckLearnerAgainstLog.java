@@ -205,10 +205,10 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 				{
-					scoreComputer.initPTA_1();		
-					scoreComputer.paths.augmentPTA(minus, false,false);
-					scoreComputer.paths.augmentPTA(plus, true,false);
-					return scoreComputer;
+					tentativeAutomaton.initPTA_1();		
+					tentativeAutomaton.paths.augmentPTA(minus, false,false);
+					tentativeAutomaton.paths.augmentPTA(plus, true,false);
+					return tentativeAutomaton;
 				}
 
 				@Override
@@ -237,6 +237,11 @@ public class Test_CheckLearnerAgainstLog
 		// of the first graph starting with a19 transition and just loop a19 around B.
 		// This way, states B and D are preserved and the outcome of reconstruction is  B-a19->B-a5->D
 		// which is bisimular to the expected graph but state names are different.
+		//
+		// It is worth noting that since the above was written GD has been modified to generate
+		// an identical graph by relabelling states. If this one is utilised, the outcomes
+		// of learning should be identical.
+		
 		new Test_LearnerComparator(learner2,simulator,!evalData.config.isIgnoreVertexAttributesInLogReplay()).learnMachine(initial.plus, initial.minus);
 		if (logFileName.contains(Configuration.LEARNER.LEARNER_BLUEFRINGE_DEC2007.name()))
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_NORM;// reset this one if needed.

@@ -44,27 +44,27 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
-		LearnerGraph newPTA = scoreComputer;// no need to clone - this is the job of mergeAndDeterminize anyway
+		LearnerGraph newPTA = tentativeAutomaton;// no need to clone - this is the job of mergeAndDeterminize anyway
 		setChanged();
-		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		int iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = topLevelListener.MergeAndDeterminize(scoreComputer, pair);
+			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
 			setChanged();
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();
 			if(shouldAskQuestions(score))
 			{
-				questions = topLevelListener.ComputeQuestions(pair, scoreComputer, temp);
+				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);
 			} 
 			boolean restartLearning = false;
 			Iterator<List<String>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
-				Pair<Integer,String> answer = CheckWithEndUser(scoreComputer,question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,newPTA.paths.tracePath(question), new Object [] {"Test"});
+				Pair<Integer,String> answer = CheckWithEndUser(tentativeAutomaton,question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,newPTA.paths.tracePath(question), new Object [] {"Test"});
 				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
 					String to = question.get(answer.firstElem);
@@ -84,9 +84,9 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			
 			if (restartLearning)
 			{
-				scoreComputer = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
+				tentativeAutomaton = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
 				
-				scoreComputer.clearColours();
+				tentativeAutomaton.clearColours();
 				setChanged();
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
@@ -100,13 +100,13 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			}
 			else
 			{
-				// At this point, scoreComputer may have been modified because it may point to 
+				// At this point, tentativeAutomaton may have been modified because it may point to 
 				// the original PTA which will be modified as a result of new sequences being added to it.
 				// temp is different too, hence there is no way for me to compute compatibility score here.
 				// This is hence computed inside the obtainPair method.
 				
 				// keep going with the existing model
-				scoreComputer = temp;
+				tentativeAutomaton = temp;
 				// now update the statistics
 				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null)
@@ -118,10 +118,10 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = topLevelListener.ChooseStatePairs(scoreComputer);
+			possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		}
-		//DirectedSparseGraph result = scoreComputer.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(scoreComputer);
-		return scoreComputer;
+		//DirectedSparseGraph result = tentativeAutomaton.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
+		updateGraph(tentativeAutomaton);
+		return tentativeAutomaton;
 	}
 }

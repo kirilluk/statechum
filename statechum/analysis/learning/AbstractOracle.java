@@ -25,16 +25,22 @@ import statechum.Pair;
 public interface AbstractOracle {
 	/** Used in an interface to indicate that a user wishes to abort the leaning process. */
 	public static final int USER_CANCELLED = -2;
+	
 	/** Means that the path is a possible one - invalid paths are indicated with
 	 *  non-negative integers reflecting the position in the question of the first 
 	 *  input which is not possible. This way, a response of zero means that the 
 	 *  first input is not possible from the initial state of the model being learnt. 
-	 */   
+	 */
 	public static final int USER_ACCEPTED = -3;
+	
 	/** Means that a user wishes to provide an LTL expression to answer this and more questions. 
 	 *TODO: change the type to an Object so that one could offer LearnerGraphs to be merged into the model being learnt (reflecting the paper on a "more expressive teacher in L*")
 	 */
 	public static final int USER_LTL = -4;
+	
+	/** Means that a user offered an if-then automaton. */
+	public static final int USER_IFTHEN = -5;
+	
 	/** Default value for a dialog box. */
 	public static final int USER_WAITINGFORSELECTION = -1;
 

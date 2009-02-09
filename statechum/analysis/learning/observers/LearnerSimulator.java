@@ -44,6 +44,7 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.analysis.learning.AbstractOracle;
@@ -326,7 +327,7 @@ public class LearnerSimulator extends ProgressDecorator
 				switch(kind)
 				{
 				case ATTR_WITHCONSTRAINTS:
-					topLevelListener.AddConstraints(graph);break;
+					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config));break;
 				case ELEM_ANSWER:
 					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
 					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, AbstractOracle.USER_CANCELLED, null);
@@ -509,9 +510,10 @@ public class LearnerSimulator extends ProgressDecorator
 	/** Since it is a simulator, only the return value is loaded from XML and whatever is 
 	 * passed in is estimated.
 	 */
-	public LearnerGraph AddConstraints(@SuppressWarnings("unused") LearnerGraph graph) 
+	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, LearnerGraph outcome) 
 	{
-		return series.readGraph(currentElement);
+		AbstractLearnerGraph.copyGraphs(series.readGraph(currentElement),outcome);
+		return Boolean.parseBoolean(currentElement.getAttribute(StatechumXML.ATTR_CONSTRAINTSADDED.name()));
 	}
 	
 	/** Since the learner does not know that the answer should be, we cannot 

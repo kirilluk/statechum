@@ -99,7 +99,7 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
-		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(ltl,cnf.ifthenSequences);
 		Assert.assertEquals(labels,cnf.labelDetails);
 	}
 	
@@ -119,7 +119,7 @@ public class TestWriteReadLearnerEvaluation {
 		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
-		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(ltl,cnf.ifthenSequences);
 		Assert.assertEquals(labels,cnf.labelDetails);
 	}
 	
@@ -139,7 +139,7 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
-		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(ltl,cnf.ifthenSequences);
 		Assert.assertEquals(labels,cnf.labelDetails);
 	}	
 
@@ -152,7 +152,7 @@ public class TestWriteReadLearnerEvaluation {
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 			Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-			Element configToRemove = (Element)StatechumXML.getChildWithTag(learnerConfig,StatechumXML.ELEM_LTL.name()).item(0);
+			Element configToRemove = (Element)StatechumXML.getChildWithTag(learnerConfig,StatechumXML.ELEM_CONSTRAINTS.name()).item(0);
 			org.w3c.dom.Node crlf = configToRemove.getNextSibling();
 			learnerConfig.removeChild(configToRemove);learnerConfig.removeChild(crlf);
 			
@@ -172,7 +172,7 @@ public class TestWriteReadLearnerEvaluation {
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(labels,cnf.labelDetails);
-		Assert.assertNull(cnf.ltlSequences);
+		Assert.assertNull(cnf.ifthenSequences);
 	}
 	
 	/** Missing part with labels. */
@@ -203,7 +203,7 @@ public class TestWriteReadLearnerEvaluation {
 		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
-		Assert.assertEquals(ltl,cnf.ltlSequences);
+		Assert.assertEquals(ltl,cnf.ifthenSequences);
 		Assert.assertNull(cnf.labelDetails);
 	}
 

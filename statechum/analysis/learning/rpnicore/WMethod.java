@@ -18,7 +18,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.fail;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -886,6 +886,16 @@ public class WMethod {
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states  are ignored.
 	 * Compatibility labelling other than INCOMPATIBLE is only checked for deterministic graphs.
+	 * <p>
+	 * Note that its not possible to convert pairs to bi-directional transitions and match
+	 * the resulting transition diagrams (see testPair7). All "A" transitions of the diagram have
+	 * the same language and same for the "B"s, which is why
+	 * if there are bi-directional transitions from/to all of "A" and all of "B", then the languages
+	 * are the same regardless of the number of those transitions or the states actually connected. 
+	 * When these bi-directional transitions are interpreted as associations between states,
+	 * the outcome of merging will depend on the specific associations which are present, hence
+	 * conversion of associations to transitions for the purpose of checking for language equivalence
+	 * cannot be done.
 	 * 
 	 * @param compareVertices if DEEP, compares attributes of every pair of states reached; NAMES means only names are compared.
 	 * @return DifferentFSMException if machines are different and null otherwise.

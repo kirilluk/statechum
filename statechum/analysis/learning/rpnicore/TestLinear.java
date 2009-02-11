@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -363,7 +363,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing1()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
@@ -373,7 +373,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing2()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","A");
@@ -384,7 +384,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing3a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","Q");
@@ -401,7 +401,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing3b()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreNone, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
 		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","B");
@@ -413,7 +413,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3c()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
@@ -428,7 +428,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3d()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->Q-c->S", "testCountMatchingOutgoing3d"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->Q-c->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
@@ -442,7 +442,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3e()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
@@ -455,7 +455,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing3f()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3d"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
@@ -468,7 +468,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing4a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		// 3 outgoing and 2 matching reject, but we count them as positives
@@ -480,7 +480,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing4b()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
@@ -491,7 +491,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing5a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","C");
@@ -504,7 +504,7 @@ public class TestLinear {
 	public final void testCountMatchingOutgoing5b()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
@@ -518,7 +518,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing6a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","R");
@@ -528,7 +528,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing6b()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
@@ -545,7 +545,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing_nd1()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F", "testCountMatchingOutgoing_nd1"), Configuration.getDefaultConfiguration());
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F", "testCountMatchingOutgoing_nd1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
 		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
@@ -556,7 +556,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing_nd2a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C", "testCountMatchingOutgoing_nd2a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
@@ -568,7 +568,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing_nd2b()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C\n"
 				+"M-d->D"
 				, "testCountMatchingOutgoing_nd2b"), Configuration.getDefaultConfiguration());
@@ -582,7 +582,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing_nd3a()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C\n"
 				+"N-a->C", "testCountMatchingOutgoing_nd3a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
@@ -595,7 +595,7 @@ public class TestLinear {
 	@Test
 	public final void testCountMatchingOutgoing_nd3b()
 	{
-		LearnerGraph gr=new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C<-f-U\n"
 				+"N-a->C\nS-r->D", "testCountMatchingOutgoing_nd3b"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);

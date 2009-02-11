@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,7 +55,7 @@ public class TestLearnerGraphND {
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"a","b","c"}));
 		
-		expectedFromASEExample = new LearnerGraph(TestFSMAlgo.buildGraph(
+		expectedFromASEExample = new LearnerGraph(FsmParser.buildGraph(
 				"I-close->1\nI-edit->I1\nI-save->I1\nI-load->I1\n"+
 				"1-load->I1-close->1\n"+
 				"I1-edit->I1-save->I1-load->I1\n","testLTL_bigger"),config);
@@ -106,8 +106,8 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph1a() throws IncompatibleStatesException
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),config);
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B", "testbuildDeterministicGraph1_b"),config);
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),config);
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B", "testbuildDeterministicGraph1_b"),config);
 		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
 	}
 	
@@ -117,9 +117,9 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph1b() throws IncompatibleStatesException
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),config);
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),config);
 		graph.findVertex(VertexID.parseID("C")).setDepth(3);
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->C", "testbuildDeterministicGraph1_b"),config);
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->C", "testbuildDeterministicGraph1_b"),config);
 		expected.findVertex(VertexID.parseID("C")).setDepth(3);
 		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
 	}
@@ -131,10 +131,10 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph1c() throws IncompatibleStatesException
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setIgnoreDepthInTheChoiceOfRepresentatives(true);
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),conf);
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D", "testbuildDeterministicGraph1_a"),conf);
 		graph.findVertex(VertexID.parseID("C")).setDepth(3);
 		
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B", "testbuildDeterministicGraph1_b"),conf);
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B", "testbuildDeterministicGraph1_b"),conf);
 		LearnerGraph g = graph.pathroutines.buildDeterministicGraph();
 		Assert.assertTrue(expected.equals(g));
 	}
@@ -144,8 +144,8 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph2() throws IncompatibleStatesException
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a-#B\nA-a-#C\nA-a-#D", "testbuildDeterministicGraph1_a"),config);
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a-#B", "testbuildDeterministicGraph1_b"),config);
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a-#B\nA-a-#C\nA-a-#D", "testbuildDeterministicGraph1_a"),config);
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a-#B", "testbuildDeterministicGraph1_b"),config);
 		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
 	}
 	
@@ -154,8 +154,8 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph3() throws IncompatibleStatesException
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C\nA-c->C", "testbuildDeterministicGraph2_b"),config);
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C\nA-c->C", "testbuildDeterministicGraph2_b"),config);
 		Assert.assertTrue(expected.equals(graph.pathroutines.buildDeterministicGraph()));
 	}
 	
@@ -163,7 +163,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph_fail1()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
 		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
@@ -174,7 +174,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph_fail2()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
@@ -184,7 +184,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph_fail3()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
 		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
@@ -203,7 +203,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph_detTodet()
 	{
-		DirectedSparseGraph jungGraph = TestFSMAlgo.buildGraph("A-a->B-a->D-a->A-c->C-a->E-a->A\nA-b->B-f->B","testbuildDeterministicGraph_detTodet");
+		DirectedSparseGraph jungGraph = FsmParser.buildGraph("A-a->B-a->D-a->A-c->C-a->E-a->A\nA-b->B-f->B","testbuildDeterministicGraph_detTodet");
 		final LearnerGraphND graph = new LearnerGraphND(jungGraph,Configuration.getDefaultConfiguration());
 		Assert.assertNull(WMethod.checkM(new LearnerGraph(jungGraph,Configuration.getDefaultConfiguration()), graph));
 	}
@@ -214,15 +214,15 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraphComplex()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
-		Assert.assertNull(WMethod.checkM(new LearnerGraph(TestFSMAlgo.buildGraph(complexgraphD,"testbuildDeterministicGraphComplexD"),Configuration.getDefaultConfiguration()),graph));
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph(complexgraphD,"testbuildDeterministicGraphComplexD"),Configuration.getDefaultConfiguration()),graph));
 	}
 
 	/** The supplied state does not exist. */
 	@Test
 	public final void testBuildDeterministicGraph_missingState1()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("junk"), graph.config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph(junkVertex);
@@ -247,11 +247,11 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testLTL_add1() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
-		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B", "testLTL_add1"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(FsmParser.buildGraph("A-c->B-b->B", "testLTL_add1"),config);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B\n"
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B\n"
 				, "testLTL_complete2"),config);
 		Assert.assertNull(WMethod.checkM(result,expected));
 	}
@@ -261,11 +261,11 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testLTL_add2() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
-		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init", "testLTL_ba_graph3"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(FsmParser.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
 				, "testLTL_complete2"),config);
 		Assert.assertNull(WMethod.checkM(result,expected));
 	}
@@ -275,11 +275,11 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testLTL_add3() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-b->S", "testLTL_ba_graph3"),config);
-		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init-b->S", "testLTL_ba_graph3"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(FsmParser.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"+
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"+
 				"A-b->S"
 				, "testLTL_complete2"),config);
 		Assert.assertNull(WMethod.checkM(result,expected));
@@ -290,11 +290,11 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testLTL_add4() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-d->S", "testLTL_ba_graph3"),config);
-		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init-d->S", "testLTL_ba_graph3"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(FsmParser.buildGraph("A-c->B-b->B-a->A-d->E-d->F", "testLTL_add1"),config);
 		
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B-a->A-d->E-d->F\n"
 				, "testLTL_complete2"),config);
 		Assert.assertNull(WMethod.checkM(result,expected));
 	}
@@ -305,8 +305,8 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testLTL_add5() throws IncompatibleStatesException
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("P-a->Q-a->S-a->U\nP-b->R-a->T", "testLTL_add5_A"),config);
-		LearnerGraph graphToAdd = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B-a->B-b-#C", "testLTL_add5_B"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("P-a->Q-a->S-a->U\nP-b->R-a->T", "testLTL_add5_A"),config);
+		LearnerGraph graphToAdd = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B-a->B-b-#C", "testLTL_add5_B"),config);
 
 		LearnerGraph result = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(graph,graph.config),graphToAdd).pathroutines.buildDeterministicGraph();
 		Assert.assertNull(WMethod.checkM(graphToAdd,result));
@@ -316,7 +316,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testConvertToND1()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -344,7 +344,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testConvertToND4()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C","testConvertToND4"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C","testConvertToND4"),Configuration.getDefaultConfiguration());
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -353,7 +353,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testConvertToND5()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C","testConvertToND5"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C","testConvertToND5"),Configuration.getDefaultConfiguration());
 		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(new VertexID("S"), graph.config), graph.createNewRow());
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
@@ -364,7 +364,7 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testConvertToND6()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-a->V-a->U","testConvertToND6"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-a->V-a->U","testConvertToND6"),Configuration.getDefaultConfiguration());
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertNull(WMethod.checkM(graph, graph.findVertex("U"), actual, actual.findVertex("U"),WMethod.VERTEX_COMPARISON_KIND.NONE));
@@ -396,8 +396,8 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testBuildInverse1()
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
-		LearnerGraphND expected = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
+		LearnerGraphND expected = new LearnerGraphND(FsmParser.buildGraph("A-a->A","testConvertToND2"),Configuration.getDefaultConfiguration());
 
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
 		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);
@@ -434,9 +434,9 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testBuildInverse4()
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C",
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C",
 				"testConvertToND4"),Configuration.getDefaultConfiguration());
-		LearnerGraphND expected = new LearnerGraphND(TestFSMAlgo.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A",
+		LearnerGraphND expected = new LearnerGraphND(FsmParser.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A",
 			"testConvertToND4"),Configuration.getDefaultConfiguration());
 		expected.findVertex("D").setAccept(false);
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
@@ -448,11 +448,11 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testBuildInverse5()
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C",
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C",
 			"testConvertToND5"),Configuration.getDefaultConfiguration());
 		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(new VertexID("S"), graph.config), graph.createNewRow());
 		
-		LearnerGraphND expected = new LearnerGraphND(TestFSMAlgo.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A",
+		LearnerGraphND expected = new LearnerGraphND(FsmParser.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A",
 			"testConvertToND5"),Configuration.getDefaultConfiguration());
 		expected.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(new VertexID("S"), graph.config), graph.createNewRow());
 		
@@ -465,9 +465,9 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testBuildInverse6()
 	{
-		LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U",
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B-a->C\nA<-c-B-b-#D\nB-d->A-c->C\nU-b->V-a->U",
 			"testConvertToND6"),Configuration.getDefaultConfiguration());
-		LearnerGraphND expected = new LearnerGraphND(TestFSMAlgo.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A\nU-a->V-b->U",
+		LearnerGraphND expected = new LearnerGraphND(FsmParser.buildGraph("A-c->B\nA-d->B\nC-c->A\nC-a->B\nD-b->B-a->A\nU-a->V-b->U",
 			"testConvertToND6"),Configuration.getDefaultConfiguration());
 
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();

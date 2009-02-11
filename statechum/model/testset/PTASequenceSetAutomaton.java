@@ -55,4 +55,8 @@ public class PTASequenceSetAutomaton implements FSMAbstraction {
 			@SuppressWarnings("unused")	Object elem) {
 		return true;
 	}
+
+	public void setAccept(@SuppressWarnings("unused") Object currentState, @SuppressWarnings("unused") boolean value) {
+		throw new UnsupportedOperationException("this method should not be called");
+	}
 }

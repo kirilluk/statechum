@@ -18,13 +18,30 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.uci.ics.jung.graph.Vertex;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
+
+import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 
 
-class FsmParser {
+public class FsmParser 
+{
 	public static final int LABEL=0;
 	public static final int LARROW=1;
 	public static final int RARROW=2;
@@ -146,5 +163,100 @@ class FsmParser {
 			currentState = anotherState;
 		} while(!isFinished());
 		
+	}
+
+
+	/** Given a textual representation of an fsm, builds a corresponding Jung graph
+	 * 
+	 * @param fsm the textual representation of an FSM
+	 * @param name graph name, to be displayed as the caption of the Jung window.
+	 * @return Jung graph for it
+	 * @throws IllegalArgumentException if fsm cannot be parsed.
+	 */
+	public final static DirectedSparseGraph buildGraph(String fsm,String name)
+	{
+		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
+		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
+		
+		final DirectedSparseGraph g = new DirectedSparseGraph();
+		g.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
+
+		new FsmParser(fsm).parse(new TransitionReceiver()
+		{
+			public void put(String from, String to, String label, boolean accept) {
+				DeterministicVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
+				
+				if (fromVertex == null)
+				{
+					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(from);
+					if (existingVertices.isEmpty())
+						fromVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+					fromVertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
+					existingVertices.put(from, fromVertex);
+					g.addVertex(fromVertex);
+				}
+				else
+					if (!Boolean.valueOf(fromVertex.getUserDatum(JUConstants.ACCEPTED).toString()))
+						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+from);
+
+				if (from.equals(to))
+				{
+					if (!accept) throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
+					toVertex = fromVertex;
+				}
+				else
+					if (toVertex == null)
+					{
+						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(to);
+						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
+						toVertex.addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
+						existingVertices.put(to, toVertex);
+						g.addVertex(toVertex);
+					}
+					else
+						if (DeterministicDirectedSparseGraph.isAccept(toVertex) != accept)
+							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
+				
+				StatePair pair = new StatePair(fromVertex,toVertex);
+				DeterministicEdge edge = existingEdges.get(pair);
+				if (edge == null)
+				{
+					edge = new DeterministicDirectedSparseGraph.DeterministicEdge(fromVertex,toVertex);
+					edge.addUserDatum(JUConstants.LABEL, new HashSet<String>(), UserData.CLONE);
+					g.addEdge(edge);existingEdges.put(pair,edge);
+				}
+				
+				Set<String> labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
+				labels.add(label);
+			}
+
+			public void accept(String from, String to, String label) {
+				put(from,to,label,true);
+			}
+			public void reject(String from, String to, String label) {
+				put(from,to,label,false);
+			}
+
+			public void pairCompatibility(String stateA, PAIRCOMPATIBILITY pairRelation, String stateB) {
+				PairCompatibility<Vertex> pairCompatibility = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
+				if (pairCompatibility == null)
+				{
+					pairCompatibility = new PairCompatibility<Vertex>();
+					g.addUserDatum(JUConstants.PAIR_COMPATIBILITY, pairCompatibility, UserData.SHARED);
+				}
+				if (!existingVertices.containsKey(stateA))
+					throw new IllegalArgumentException("unknown vertex "+stateA);
+				if (!existingVertices.containsKey(stateB))
+					throw new IllegalArgumentException("unknown vertex "+stateB);
+				pairCompatibility.addToCompatibility(existingVertices.get(stateA), existingVertices.get(stateB), pairRelation);
+				
+			}
+		});
+
+		if (GlobalConfiguration.getConfiguration().isGraphTransformationDebug(g))
+		{
+			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
+		}
+		return g;
 	}
 }

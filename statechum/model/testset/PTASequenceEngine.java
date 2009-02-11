@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.ArrayOperations;
 import statechum.Pair;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 public class PTASequenceEngine 
 {
@@ -139,7 +140,7 @@ public class PTASequenceEngine
 	 */
 	public interface FSMAbstraction 
 	{
-		/** The next-state function, returning a map from inputs to next states.
+		/** The next-state function.
 		 * Important: this function is only used to get new state which has not 
 		 * yet been visited; for states which we've seen earlier, PTATestSequenceEngine will
 		 * store the appropriate entries in its map.
@@ -149,6 +150,10 @@ public class PTASequenceEngine
 		public Object getInitState();
 		/** returns true if the given state is an accept-state. */
 		public boolean isAccept(Object currentState);
+		/** If this abstraction is used to extend FSM, such as when getNextState performs an extension,
+		 * this method can be used to set accept/reject conditions on vertices.
+		 */
+		public void setAccept(Object currentState, boolean value);
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
 		public boolean shouldBeReturned(Object elem);
 	}
@@ -238,13 +243,30 @@ public class PTASequenceEngine
 				for(String input:inputs)
 				{
 					Node newNode = followToNextNode(node, input);
-					if (newNode.isAccept())
+					if (newNode.isAccept()) // successfully extended
 						result.ptaNodes.add(newNode);
 				}
 			}
 			return result;
 		}
-		
+
+		public SequenceSet crossWithMap(Map<String, CmpVertex> map) {
+			SequenceSet result = new SequenceSet();
+			for(PTASequenceEngine.Node node:ptaNodes)
+			{
+				for(Entry<String,CmpVertex> entry:map.entrySet())
+				{
+					Node newNode = followToNextNode(node, entry.getKey());
+					if (newNode.isAccept()) // successfully extended
+					{
+						result.ptaNodes.add(newNode);
+						fsm.setAccept(newNode.fsmState,entry.getValue().isAccept());
+					}
+				}
+			}
+			return result;
+		}
+
 		public SequenceSet cross(Collection<List<String>> inputSequences)
 		{
 			SequenceSet result = new SequenceSet();

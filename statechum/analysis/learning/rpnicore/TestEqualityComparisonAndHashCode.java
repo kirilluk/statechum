@@ -21,7 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import static statechum.DeterministicDirectedSparseGraph.deepEquals;
 
 import java.util.ArrayList;
@@ -1812,7 +1812,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyVertex()
 	{
-		DirectedSparseGraph graphB = TestFSMAlgo.buildGraph("A-a->B-b->C","testCopyVertex");
+		DirectedSparseGraph graphB = FsmParser.buildGraph("A-a->B-b->C","testCopyVertex");
 		Map<VertexID,DeterministicVertex> vertexMap = new TreeMap<VertexID,DeterministicVertex>();
 
 		DeterministicVertex vertD = new DeterministicVertex("D");
@@ -2006,7 +2006,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void updateDiagramND_remove3()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("A")),"a",graph.findVertex("C"));
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));
@@ -2064,7 +2064,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testAccessToTargetStates1()
 	{
-		final LearnerGraphND graph = new LearnerGraphND(TestFSMAlgo.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
+		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));targets.add(graph.findVertex("C"));
 		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.init).get("a")));
@@ -2075,7 +2075,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testAccessToTargetStates2()
 	{
-		final LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2"),config);
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2"),config);
 		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.init).get("a"));
 		Assert.assertFalse(targets.isEmpty());Assert.assertEquals(1,targets.size());
 		Assert.assertTrue(targets.contains(graph.findVertex("B")));
@@ -2154,8 +2154,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testFSMStructureEquals5()
 	{
 		String graph = "A-a->B-a->C";
-		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
-			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
+		LearnerGraph a=new LearnerGraph(FsmParser.buildGraph(graph,"testFSMStructureEquals5a"),config),
+			b=new LearnerGraph(FsmParser.buildGraph(graph,"testFSMStructureEquals5b"),config);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		equalityTestingHelper(a,a,b,differentA);
@@ -2173,8 +2173,8 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testFSMStructureEquals6()
 	{
 		String graph = "A-a->B-a->C";
-		LearnerGraph a=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5a"),config),
-			b=new LearnerGraph(TestFSMAlgo.buildGraph(graph,"testFSMStructureEquals5b"),config);
+		LearnerGraph a=new LearnerGraph(FsmParser.buildGraph(graph,"testFSMStructureEquals5a"),config),
+			b=new LearnerGraph(FsmParser.buildGraph(graph,"testFSMStructureEquals5b"),config);
 
 		a.addToCompatibility(a.findVertex("A"), a.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
 		b.addToCompatibility(b.findVertex("A"), b.findVertex("C"), JUConstants.PAIRCOMPATIBILITY.MERGED);
@@ -2201,7 +2201,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph1()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-a->S1", "testCopyGraph");
+		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1", "testCopyGraph");
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gC = new LearnerGraph(copy,config);
 		
@@ -2212,7 +2212,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph2()
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2");
+		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2");
 		DirectedSparseGraph copy=DeterministicDirectedSparseGraph.copy(g);
 		LearnerGraph gS = new LearnerGraph(g,config),gCopy = new LearnerGraph(copy,config);
 		
@@ -2231,7 +2231,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testCopyGraph3() // this one tests that clone works
 	{
-		DirectedSparseGraph g=TestFSMAlgo.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2");
+		DirectedSparseGraph g=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2");
 		LearnerGraph orig = new LearnerGraph(g,config);
 		LearnerGraph copy = new LearnerGraph(orig,config);
 		LearnerGraph gS = new LearnerGraph(orig.pathroutines.getGraph(),config),

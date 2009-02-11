@@ -18,7 +18,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;

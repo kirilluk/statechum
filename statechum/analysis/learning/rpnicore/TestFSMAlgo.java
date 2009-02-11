@@ -30,20 +30,15 @@ import org.junit.BeforeClass;
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.GlobalConfiguration;
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,12 +48,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static statechum.Helper.whatToRun;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 public class TestFSMAlgo {
 
@@ -93,101 +90,6 @@ public class TestFSMAlgo {
 
 	/** The configuration to use when running tests. */
 	Configuration config = null, mainConfiguration = null;
-
-
-	/** Given a textual representation of an fsm, builds a corresponding Jung graph
-	 * 
-	 * @param fsm the textual representation of an FSM
-	 * @param name graph name, to be displayed as the caption of the Jung window.
-	 * @return Jung graph for it
-	 * @throws IllegalArgumentException if fsm cannot be parsed.
-	 */
-	public final static DirectedSparseGraph buildGraph(String fsm,String name)
-	{
-		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
-		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
-		
-		final DirectedSparseGraph g = new DirectedSparseGraph();
-		g.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-
-		new FsmParser(fsm).parse(new TransitionReceiver()
-		{
-			public void put(String from, String to, String label, boolean accept) {
-				DeterministicVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
-				
-				if (fromVertex == null)
-				{
-					fromVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(from);
-					if (existingVertices.isEmpty())
-						fromVertex.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-					fromVertex.addUserDatum(JUConstants.ACCEPTED, true, UserData.SHARED);
-					existingVertices.put(from, fromVertex);
-					g.addVertex(fromVertex);
-				}
-				else
-					if (!Boolean.valueOf(fromVertex.getUserDatum(JUConstants.ACCEPTED).toString()))
-						throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+from);
-
-				if (from.equals(to))
-				{
-					if (!accept) throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
-					toVertex = fromVertex;
-				}
-				else
-					if (toVertex == null)
-					{
-						toVertex = new DeterministicDirectedSparseGraph.DeterministicVertex(to);
-						toVertex.removeUserDatum(JUConstants.ACCEPTED); // in case we've got a reject loop in the same state
-						toVertex.addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
-						existingVertices.put(to, toVertex);
-						g.addVertex(toVertex);
-					}
-					else
-						if (DeterministicDirectedSparseGraph.isAccept(toVertex) != accept)
-							throw new IllegalArgumentException("conflicting acceptance assignment on vertex "+to);
-				
-				StatePair pair = new StatePair(fromVertex,toVertex);
-				DeterministicEdge edge = existingEdges.get(pair);
-				if (edge == null)
-				{
-					edge = new DeterministicDirectedSparseGraph.DeterministicEdge(fromVertex,toVertex);
-					edge.addUserDatum(JUConstants.LABEL, new HashSet<String>(), UserData.CLONE);
-					g.addEdge(edge);existingEdges.put(pair,edge);
-				}
-				
-				Set<String> labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
-				labels.add(label);
-			}
-
-			public void accept(String from, String to, String label) {
-				put(from,to,label,true);
-			}
-			public void reject(String from, String to, String label) {
-				put(from,to,label,false);
-			}
-
-			public void pairCompatibility(String stateA, PAIRCOMPATIBILITY pairRelation, String stateB) {
-				PairCompatibility<Vertex> pairCompatibility = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
-				if (pairCompatibility == null)
-				{
-					pairCompatibility = new PairCompatibility<Vertex>();
-					g.addUserDatum(JUConstants.PAIR_COMPATIBILITY, pairCompatibility, UserData.SHARED);
-				}
-				if (!existingVertices.containsKey(stateA))
-					throw new IllegalArgumentException("unknown vertex "+stateA);
-				if (!existingVertices.containsKey(stateB))
-					throw new IllegalArgumentException("unknown vertex "+stateB);
-				pairCompatibility.addToCompatibility(existingVertices.get(stateA), existingVertices.get(stateB), pairRelation);
-				
-			}
-		});
-
-		if (GlobalConfiguration.getConfiguration().isGraphTransformationDebug(g))
-		{
-			Visualiser.updateFrame(g, null);System.out.println("******** PROCESSING "+name+" **********\n");
-		}
-		return g;
-	}
 
 	@Test
 	public final void completeComputeAlphabet0()
@@ -968,6 +870,48 @@ public class TestFSMAlgo {
 		boolean values[] = new boolean[size];
 		for(int i=0;i<size;++i) { Assert.assertFalse(values[data[i]]);values[data[i]]=true; }
 		//System.out.println(Arrays.toString(data));
+	}
+
+	@Test
+	public final void computeShortPathsToAllStates1()
+	{
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
+		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
+		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
+		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{"a"}));
+		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("A")));
+	}
+	
+	@Test
+	public final void computeShortPathsToAllStates2()
+	{
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
+		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
+		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
+		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{"a"}));
+		expected.put(graph.findVertex("D"), Arrays.asList(new String[]{"a","b"}));
+		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("A")));
+	}
+	
+	@Test
+	public final void computeShortPathsToAllStates3()
+	{
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
+		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{}));
+		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("B")));
+	}
+	
+	@Test
+	public final void computeShortPathsToAllStates4()
+	{
+		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
+		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{}));
+		expected.put(graph.findVertex("D"), Arrays.asList(new String[]{"b"}));
+		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("C")));
 	}
 	
 	@BeforeClass

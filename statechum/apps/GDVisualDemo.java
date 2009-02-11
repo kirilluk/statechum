@@ -17,7 +17,7 @@
  */
 package statechum.apps;
 
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.List;
 

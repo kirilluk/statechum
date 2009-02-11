@@ -574,13 +574,14 @@ public class LTL_to_ba {
 	 * @param graph in order to correctly interpret symbols used by ltl2ba 
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
 	 * This information is extracted from the supplied graph.
+	 * @param invert if the ltl expression is to be inverted before passing it to ltl2ba.
 	 * @throws IncompatibleStatesException 
 	 */
-	public void ltlToBA(Collection<String> ltl, LearnerGraph graph)
+	public void ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert)
 	{
 		if (graph != null)
 			alphabet = graph.pathroutines.computeAlphabet();
-		runLTL2BA(concatenateLTL(ltl).toString());
+		runLTL2BA( (invert?"!":"")+"("+concatenateLTL(ltl).toString()+")");
 		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");

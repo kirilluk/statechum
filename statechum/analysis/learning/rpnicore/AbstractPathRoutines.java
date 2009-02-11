@@ -717,10 +717,20 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates()
 	{
-		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(coregraph.init, new LinkedList<String>());
+		return computeShortPathsToAllStates(coregraph.init);
+	}
+	
+	/** Computes a mapping from every state to a shortest path to that state. The term
+	 * "a shortest path" is supposed to mean that we are talking of one of the shortest pats.
+	 * @param from the vertex to start from
+	 * @return map from states to paths reaching those states.
+	 */
+	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates(CmpVertex from)
+	{
+		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(from, new LinkedList<String>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-		fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
+		fringe.add(from);statesInFringe.add(from);
 		while(!fringe.isEmpty())
 		{
 			CmpVertex currentState = fringe.remove();

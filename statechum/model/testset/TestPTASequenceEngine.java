@@ -36,6 +36,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine.Node;
@@ -58,9 +59,9 @@ public class TestPTASequenceEngine
 	public final void setUp()
 	{
 		config = mainConfiguration.copy();config.setAllowedToCloneNonCmpVertex(true);
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E", "TestPTATestSequenceEngine"),config);
 		en = new PTA_FSMStructure(fsm);		
-		engine_testLimitToGraph = new PTA_FSMStructure(new LearnerGraph(TestFSMAlgo.buildGraph(
+		engine_testLimitToGraph = new PTA_FSMStructure(new LearnerGraph(FsmParser.buildGraph(
 				"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine"),config));
 	}
 	
@@ -561,7 +562,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet3_5() // a more complex composition
 	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-b-#C\nA-d->M-a->N\nB-b->D-c->E", "test_sequenceSet3_5"),config);
 		en = new PTA_FSMStructure(fsm);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		SequenceSet temp2 = seq.crossWithSet(Arrays.asList(new String[] {"b","a","d"}))
@@ -592,7 +593,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet3_6() // a more complex composition
 	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
 		en = new PTA_FSMStructure(fsm);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		Map<String,String> actual = getDebugDataMap(en,seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))
@@ -617,7 +618,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned1"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned1"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -646,7 +647,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy()
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-b->B\nA-d->A\nB-c->D-a->D", "test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B\nA-d->A\nB-c->D-a->D", "test_sequenceSet_testing_shouldBeReturned_filter_is_a_copy"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -696,7 +697,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1b()
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-b->B\nA-d->A", "test_sequenceSet_testing_shouldBeReturned1b"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B\nA-d->A", "test_sequenceSet_testing_shouldBeReturned1b"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -731,7 +732,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1c()
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C", "test_sequenceSet_testing_shouldBeReturned1c"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C", "test_sequenceSet_testing_shouldBeReturned1c"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -765,7 +766,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1d()
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -798,7 +799,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned1e()
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B\nA-d->C-d->C\nB-c->D-c->D-a->D-b->D", "test_sequenceSet_testing_shouldBeReturned1d"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -830,7 +831,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned2() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned2"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -856,7 +857,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_sequenceSet_testing_shouldBeReturned3() // a test for shouldBeReturned
 	{
-		final LearnerGraph machine = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned3"),config);
+		final LearnerGraph machine = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet_testing_shouldBeReturned3"),config);
 		en = new PTA_FSMStructure(machine) {
 			{ 
 				init(machine.new FSMImplementation(){
@@ -1396,7 +1397,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize0()
 	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
 		en = new PTA_FSMStructure(fsm);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		vertifyPTA(en, 1, new String[][] {
@@ -1411,7 +1412,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize1()
 	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
 		en = new PTA_FSMStructure(fsm);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.crossWithSequence(Arrays.asList(new String[] {"b","a"}));
@@ -1427,7 +1428,7 @@ public class TestPTASequenceEngine
 	@Test
 	public final void test_stringCollectionSize2()
 	{
-		fsm = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
+		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B", "test_sequenceSet3_6"),config);
 		en = new PTA_FSMStructure(fsm);		
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.crossWithSet(Arrays.asList(new String[] {"b","a"}))

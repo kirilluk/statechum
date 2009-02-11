@@ -1,4 +1,4 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum.
  * 
@@ -39,8 +39,8 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -98,7 +98,7 @@ public class TestRecorderIntegration {
 		testConfig.setGdFailOnDuplicateNames(false);
 		if (forceGDfallback) testConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 		testConfig.setCompressLogs(useCompression);
-		final DirectedSparseGraph g = TestFSMAlgo.buildGraph(fsmString, name);
+		final DirectedSparseGraph g = FsmParser.buildGraph(fsmString, name);
 		final LearnerGraph expected = new LearnerGraph(g,testConfig);
 		
 		// now sanity checking on the plus and minus sets

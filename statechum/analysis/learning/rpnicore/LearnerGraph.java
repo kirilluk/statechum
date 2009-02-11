@@ -69,6 +69,15 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
 		abstract public boolean shouldBeReturned(Object elem);
+
+		/** This method should not be called.
+		 * 
+		 * @see statechum.model.testset.PTASequenceEngine.FSMAbstraction#setAccept(java.lang.Object, boolean)
+		 */
+		public void setAccept(@SuppressWarnings("unused") Object currentState, @SuppressWarnings("unused") boolean value) 
+		{
+			throw new UnsupportedOperationException("this method should not be called");
+		}
 	}
 	
 	/** Represents the view on a transition matrix where each time a transition out of 
@@ -91,8 +100,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		 * those leaving states with at least one non-existing transition.
 		 */
 		private final Map<CmpVertex,Map<String,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix();
-		
+	
+		/** When checking which questions have been answered by IF-THEN automata, we need to record
+		 * which newly-added nodes have been explored by THEN automata. The set below records it.
+		*/
 		public final Set<CmpVertex> nonExistingVertices = new HashSet<CmpVertex>();
+		
 		
 		/** Returns a transition matrix of new paths. */
 		public Map<CmpVertex,Map<String,CmpVertex>> getNonExistingTransitionMatrix()
@@ -148,6 +161,13 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public boolean shouldBeReturned(Object elem) 
 		{
 			return nonExistingVertices.contains(elem);
+		}
+
+		public void setAccept(Object currentState, boolean value) 
+		{
+			CmpVertex vert = (CmpVertex)currentState;
+			if (vert.getID().getKind() == VertKind.NONEXISTING)
+				vert.setAccept(value);// update the acceptance condition on new vertices only 
 		}
 	}
 	

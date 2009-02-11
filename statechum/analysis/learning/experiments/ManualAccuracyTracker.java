@@ -54,7 +54,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		
 		String target = "q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedirectory->q9-listfiles->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16";
 		
-		LearnerGraph targetMachine = new LearnerGraph(TestFSMAlgo.buildGraph(target, "Target"), learnerInitConfiguration.config);
+		LearnerGraph targetMachine = new LearnerGraph(FsmParser.buildGraph(target, "Target"), learnerInitConfiguration.config);
 		
 		
 		int sampleSize = (targetMachine.countEdges()*2);

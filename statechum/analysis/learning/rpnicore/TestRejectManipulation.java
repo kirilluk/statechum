@@ -31,7 +31,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 public class TestRejectManipulation {
@@ -176,9 +176,9 @@ public class TestRejectManipulation {
 	@Test
 	public final void testLTL_complete2()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("init-a->init-c->B-b->B", "testLTL_ba_graph3"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init-c->B-b->B", "testLTL_ba_graph3"),config);
 		LearnerGraph result = new LearnerGraph(graph.config);AbstractPathRoutines.completeMatrix(graph,result);
-		LearnerGraph expected = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-c->B-b->B\n"+
+		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B\n"+
 				"A-b-#R1\n"+"B-a-#R2\n"+"B-c-#R3"
 				, "testLTL_complete2"),config);
 		Assert.assertNull(WMethod.checkM(result,expected));

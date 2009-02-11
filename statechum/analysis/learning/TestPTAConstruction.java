@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
 package statechum.analysis.learning;
 
@@ -35,8 +35,8 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.model.testset.PTASequenceEngine;
@@ -426,7 +426,7 @@ public class TestPTAConstruction
 		config.setAllowedToCloneNonCmpVertex(true);
 		checkM(expectedPTA,actualA, config);
 		checkM(expectedPTA,actualC, config);checkDepthLabelling(actualC);
-		//Visualiser.updateFrame(actualE,TestFSMAlgo.buildGraph(expectedPTA,"expected graph"));Visualiser.waitForKey();
+		//Visualiser.updateFrame(actualE,FsmParser.buildGraph(expectedPTA,"expected graph"));Visualiser.waitForKey();
 		checkM(expectedPTA,actualD,config);checkDepthLabelling(actualD);
 		checkM(expectedPTA,actualE,config);checkDepthLabelling(actualE);
 		
@@ -460,7 +460,7 @@ public class TestPTAConstruction
 		
 		LearnerGraph graph = initialMax == null? 
 				new LearnerGraph(Configuration.getDefaultConfiguration().copy()):
-					new LearnerGraph(TestFSMAlgo.buildGraph(initialMax, "initial_max"),Configuration.getDefaultConfiguration().copy());
+					new LearnerGraph(FsmParser.buildGraph(initialMax, "initial_max"),Configuration.getDefaultConfiguration().copy());
 		for(Entry<CmpVertex,LinkedList<String>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 			entry.getKey().setDepth(entry.getValue().size());// add depth information to states.
 		
@@ -600,7 +600,7 @@ public class TestPTAConstruction
 	{
 		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{} });
 		
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max"),Configuration.getDefaultConfiguration().copy());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max"),Configuration.getDefaultConfiguration().copy());
 		graph.findVertex(VertexID.parseID("A")).setDepth(0);
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		graph.paths.augmentPTA(minusStrings, false,true);

@@ -247,7 +247,7 @@ public class TestSmtLabelRepresentation {
 			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
 			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
 			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
+			lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
 					Configuration.getDefaultConfiguration().copy()));
 		}}, IllegalArgumentException.class,"missing initial");
 	}
@@ -330,7 +330,7 @@ public class TestSmtLabelRepresentation {
 			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
 			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
 			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a1->B-a2->C-a3-#D\nB-b->E", "createLemmas1"),
+			lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a1->B-a2->C-a3-#D\nB-b->E", "createLemmas1"),
 					Configuration.getDefaultConfiguration().copy()));
 		}}, IllegalArgumentException.class,"unknown label a1");
 	}
@@ -436,7 +436,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
 		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
 		//	System.out.println(entry.getKey()+" "+entry.getValue().abstractState);
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
+		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
 				Configuration.getDefaultConfiguration().copy()));
 		String expected = "";
 		for(int i=0;i<=11;++i)
@@ -501,7 +501,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
+		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
 				Configuration.getDefaultConfiguration().copy()));
 
 		String expected = "";
@@ -552,7 +552,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
 		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
+		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
 				Configuration.getDefaultConfiguration().copy()));
 		String expected = "";
 		for(int i=0;i<=11;++i)
@@ -620,7 +620,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
 		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondC_N");
 		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondC_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
+		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
 				Configuration.getDefaultConfiguration().copy()));
 		String expected = "";
 		for(int i=0;i<=15;++i)
@@ -703,7 +703,7 @@ public class TestSmtLabelRepresentation {
 		
 		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondC_N");
 		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondC_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
+		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
 				Configuration.getDefaultConfiguration().copy()));
 		String expected = "";
 		for(int i=0;i<=15;++i)
@@ -761,7 +761,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateIDToStateMap1()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),config);
 		LabelRepresentation lblsMap = new LabelRepresentation();
 		lblsMap.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
 		lblsMap.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
@@ -934,7 +934,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
 		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		lbls.mapVerticesToAbstractStates(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
+		lbls.mapVerticesToAbstractStates(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
 				config));
 		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
 		//	System.out.println(entry.getKey()+" "+entry.getValue().abstractState);
@@ -1049,7 +1049,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
 		lbls.mapVerticesToAbstractStates(graph);
 		
 		Smt.loadLibrary();
@@ -1068,7 +1068,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2"), config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2"), config);
 		lbls.mapVerticesToAbstractStates(graph);
 		
 		Smt.loadLibrary();
@@ -1089,7 +1089,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
 		lbls.mapVerticesToAbstractStates(graph);
 		
 		Smt.loadLibrary();
@@ -1114,7 +1114,7 @@ public class TestSmtLabelRepresentation {
 		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
 		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-add->B","testUpdateScore"), config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B","testUpdateScore"), config);
 		lbls.mapVerticesToAbstractStates(graph);
 		
 		Smt.loadLibrary();

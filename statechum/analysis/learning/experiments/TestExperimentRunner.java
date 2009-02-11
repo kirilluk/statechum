@@ -45,8 +45,8 @@ import statechum.JUConstants;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerFailed;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
@@ -58,11 +58,11 @@ public class TestExperimentRunner {
 	protected final Configuration config = Configuration.getDefaultConfiguration();
 	
 	protected final DirectedSparseGraph JungGraphs[] = new DirectedSparseGraph[]{
-			TestFSMAlgo.buildGraph("A-a->A-b-#B", "testAbstractExperiment_graph1.xml"),
-			TestFSMAlgo.buildGraph("A-a->A-b->B-b->C-a->A", "testAbstractExperiment_graph2.xml"),
-			TestFSMAlgo.buildGraph("A-a->A-b->B-b->C-a->A-c->A", "testAbstractExperiment_graph3.xml"),
-			TestFSMAlgo.buildGraph("A-a->A-b->B-b->C-a->A\nC-b->C", "testAbstractExperiment_graph4.xml"),
-			TestFSMAlgo.buildGraph("A-a->A-b->B-c->B", "testAbstractExperiment_graph5.xml")
+			FsmParser.buildGraph("A-a->A-b-#B", "testAbstractExperiment_graph1.xml"),
+			FsmParser.buildGraph("A-a->A-b->B-b->C-a->A", "testAbstractExperiment_graph2.xml"),
+			FsmParser.buildGraph("A-a->A-b->B-b->C-a->A-c->A", "testAbstractExperiment_graph3.xml"),
+			FsmParser.buildGraph("A-a->A-b->B-b->C-a->A\nC-b->C", "testAbstractExperiment_graph4.xml"),
+			FsmParser.buildGraph("A-a->A-b->B-c->B", "testAbstractExperiment_graph5.xml")
 	};
 	protected Map<String,LearnerGraph> graphs = new TreeMap<String,LearnerGraph>();
 	
@@ -532,7 +532,7 @@ public class TestExperimentRunner {
 	/** The machine which indicates to the learner that it should kill the JVM, but before this
 	 * it has to write the correct data into the file. Upon a restart, we can expect the file to be processed
 	 * successfully. */
-	public static final LearnerGraph recoveryGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a->D-a->E-a->F-b->F","TestAbstractExperiment"), Configuration.getDefaultConfiguration());
+	public static final LearnerGraph recoveryGraph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-a->E-a->F-b->F","TestAbstractExperiment"), Configuration.getDefaultConfiguration());
 	
 	/** One file contains a machine which indicates to the learner that it should kill the JVM, but before this
 	 * it has to write the correct data into the file. Upon a restart, we can expect the file to be processed
@@ -571,7 +571,7 @@ public class TestExperimentRunner {
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
 		// The following graph has two equivalent states, B and C
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		for(int i=0;i < multiExpResult.length;++i)
 			multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),""+i});
 		checkForCorrectException(new whatToRun() {
@@ -588,7 +588,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_B() throws NumberFormatException, IOException
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
@@ -603,7 +603,7 @@ public class TestExperimentRunner {
 	public final void testAllGraphsMultiStageMultiEvaluator_fail4_C() throws NumberFormatException, IOException
 	{
 		String fileToBreak = graphs.entrySet().iterator().next().getKey();
-		new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
+		new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->C", "testAllGraphsMultiStageMultiEvaluator_fail4"),config).storage.writeGraphML(new File(testGraphsDir,fileToBreak).getAbsolutePath());
 		checkForCorrectException(new whatToRun() {
 			public void run() throws NumberFormatException, IOException {
 				multiExp.robustRunExperiment(testGraphsDir.getAbsolutePath(),testOutputDir.getAbsolutePath());

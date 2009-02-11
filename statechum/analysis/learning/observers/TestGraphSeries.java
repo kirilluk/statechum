@@ -1,20 +1,21 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */ 
 
-This file is part of StateChum.
-
-statechum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/
 package statechum.analysis.learning.observers;
 
 import java.io.ByteArrayInputStream;
@@ -31,8 +32,8 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
@@ -57,15 +58,15 @@ public class TestGraphSeries {
 	{
 		renumberConfig = Configuration.getDefaultConfiguration().copy();
 /*
-		graphA = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->C", "TestGraphSeries1"),renumberConfig);
-		graphB = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C", "TestGraphSeries2"),renumberConfig);
-		graphC = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->D-b->D-a->C", "TestGraphSeries3"),renumberConfig);
-		graphD = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->C-a-#D", "TestGraphSeries4"),renumberConfig);
+		graphA = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-a->C", "TestGraphSeries1"),renumberConfig);
+		graphB = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C", "TestGraphSeries2"),renumberConfig);
+		graphC = new LearnerGraph(FsmParser.buildGraph("A-a->D-b->D-a->C", "TestGraphSeries3"),renumberConfig);
+		graphD = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D", "TestGraphSeries4"),renumberConfig);
 		*/
-		graphA = new LearnerGraph(TestFSMAlgo.buildGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1"),renumberConfig);
-		graphB = new LearnerGraph(TestFSMAlgo.buildGraph("A2-a->B2-a->C2", "B_TestGraphSeries2"),renumberConfig);
-		graphC = new LearnerGraph(TestFSMAlgo.buildGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3"),renumberConfig);
-		graphD = new LearnerGraph(TestFSMAlgo.buildGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4"),renumberConfig);
+		graphA = new LearnerGraph(FsmParser.buildGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1"),renumberConfig);
+		graphB = new LearnerGraph(FsmParser.buildGraph("A2-a->B2-a->C2", "B_TestGraphSeries2"),renumberConfig);
+		graphC = new LearnerGraph(FsmParser.buildGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3"),renumberConfig);
+		graphD = new LearnerGraph(FsmParser.buildGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4"),renumberConfig);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output, 1,renumberConfig,false);
 		GraphSeries series = dumper.series;

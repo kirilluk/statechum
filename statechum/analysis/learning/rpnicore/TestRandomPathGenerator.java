@@ -45,7 +45,7 @@ public class TestRandomPathGenerator {
 	public void InitConfig()
 	{
 		config = Configuration.getDefaultConfiguration().copy();
-		simpleGraph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
+		simpleGraph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
 	}
 	
 	@Test
@@ -60,14 +60,14 @@ public class TestRandomPathGenerator {
 	public void test_diameter1()
 	{
 		Assert.assertEquals(0, RandomPathGenerator.diameter(
-				new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A","test_diameter1"),config)));
+				new LearnerGraph(FsmParser.buildGraph("A-a->A","test_diameter1"),config)));
 	}
 
 	@Test
 	public void test_diameter2()
 	{
 		Assert.assertEquals(3, RandomPathGenerator.diameter(
-				new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter1"),config)));
+				new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter1"),config)));
 	}
 
 	/** One of the test graphs. Should not contain reject states since these methods assume that all states are accepts. */
@@ -168,7 +168,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk7()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
 		generateSeq(4,3,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -182,7 +182,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk8a()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
 		generateSeq(4,4, 7,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -199,7 +199,7 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk8b()
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
 		generateSeq(4,3, 5,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
@@ -279,7 +279,7 @@ public class TestRandomPathGenerator {
 	public RandomPathGenerator generatePosNegTestHelper(String automaton, String automatonName,
 			final int chunkNumber,final int posOrNegPerChunk)
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph(automaton,automatonName),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(automaton,automatonName),config);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -357,7 +357,7 @@ public class TestRandomPathGenerator {
 
 	public RandomPathGenerator generateRandomPosNegHelper(String automaton, String automatonName,final int chunkNumber,int posOrNegPerChunk)
 	{
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph(automaton,automatonName),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(automaton,automatonName),config);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -448,7 +448,7 @@ public class TestRandomPathGenerator {
 	{
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
@@ -502,7 +502,7 @@ public class TestRandomPathGenerator {
 	{
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
-		LearnerGraph graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
 		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);

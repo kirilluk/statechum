@@ -1,4 +1,4 @@
-/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  * 
  * This file is part of StateChum.
  * 
@@ -32,6 +32,7 @@ import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
@@ -63,7 +64,7 @@ public class TestWriteReadLearnerEvaluation {
 		anotherconfig = Configuration.getDefaultConfiguration().copy();
 		Assert.assertFalse(config.equals(anotherconfig));
 		
-		graph = new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation"),config);
+		graph = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation"),config);
 		testData = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -242,7 +243,7 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-		learnerConfig.appendChild(new LearnerGraph(TestFSMAlgo.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
+		learnerConfig.appendChild(new LearnerGraph(FsmParser.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
 		.storage.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		

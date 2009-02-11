@@ -162,7 +162,7 @@ public class ComputeQuestions {
 				assert state.getMergedVertex().getColour() != JUConstants.AMBER;
 				
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
-				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());
+				pathsToCurrentState.crossWithMap(learnt.transitionMatrix.get(state.getMergedVertex()));
 				// Note that we do not care what the result of crossWithSet is - for those states which 
 				// do not exist in the underlying graph, reject vertices will be added by the engine and
 				// hence will be returned when we do a .getData() on the engine.
@@ -206,7 +206,7 @@ public class ComputeQuestions {
 			SequenceSet pathsToCurrentState = fanout.get(state.getMergedVertex());
 			if (pathsToCurrentState != null)
 				// if a path from the merged red state to the current one can be found, update the set of questions. 
-				pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());
+				pathsToCurrentState.crossWithMap(learnt.transitionMatrix.get(state.getMergedVertex()));
 				// Note that we do not care what the result of crossWithSet is - for those states which 
 				// do not exist in the underlying graph, reject vertices will be added by the engine and
 				// hence will be returned when we do a .getData() on the engine.
@@ -244,7 +244,7 @@ public class ComputeQuestions {
 				if (pathsToCurrentState != null)
 				{
 					pathsToCurrentState.limitTo(original.config.getQuestionPathUnionLimit());
-					pathsToCurrentState.crossWithSet(learnt.transitionMatrix.get(state.getMergedVertex()).keySet());// attempt all possible continuation vertices
+					pathsToCurrentState.crossWithMap(learnt.transitionMatrix.get(state.getMergedVertex()));// attempt all possible continuation vertices
 				}
 			}
 		}

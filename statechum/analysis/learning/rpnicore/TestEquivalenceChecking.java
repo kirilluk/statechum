@@ -31,9 +31,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 public class TestEquivalenceChecking {
 	public TestEquivalenceChecking()
@@ -113,6 +114,7 @@ public class TestEquivalenceChecking {
 		final LearnerGraph graph = new LearnerGraph(g,conf);
 		final DirectedSparseGraph expectedGraph = buildGraph(fsm,"expected graph");
 		final LearnerGraph expected = new LearnerGraph(expectedGraph,conf);
+		
 		DifferentFSMException 
 			ex1 = WMethod.checkM(expected,graph),
 			ex2 = WMethod.checkM(graph,expected);
@@ -364,18 +366,29 @@ public class TestEquivalenceChecking {
 				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
 					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
 					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
-					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair6"), config);
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair7a"), config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
 	@Test(expected = DifferentFSMException.class)
-	public void testPair7b()
+	public void testPair7b1()
+	{
+		checkM("A-a->A | B-b->B | A=INCOMPATIBLE=B",
+				buildGraph("A1-a->A2-a->A3 | B1-b->B1 | B2-b->B2 | A3-a->A3 | B3-b->B3 "+
+					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
+					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3", "testPair7b"), config);
+	}
+	
+	/** Tests the correctness of handling of the association of pairs. */
+	@Test(expected = DifferentFSMException.class)
+	public void testPair7b2()
 	{
 		checkM("A-a->A-c->B-b->B | A=INCOMPATIBLE=B",
 				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
 					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
 					" | A1=INCOMPATIBLE = B2 | A2 = INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
-					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3", "testPair6"), config);
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3", "testPair7b"), config);
 	}
 	
 	/** Tests the correctness of handling of the association of pairs. */
@@ -386,28 +399,28 @@ public class TestEquivalenceChecking {
 				buildGraph("A1-a->A2-a->A3 | A1-c->B1-b->B1 | A2-c->B2-b->B2 | A3-a->A3-c->B3-b->B3 "+
 					" | A1=INCOMPATIBLE = B1 | A2 = INCOMPATIBLE = B1 | A3 = INCOMPATIBLE = B1"+
 					" | A1=INCOMPATIBLE = B2 | A3 = INCOMPATIBLE = B2"+
-					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair6"), config);
+					" | A1=INCOMPATIBLE = B3 | A2 = INCOMPATIBLE = B3 | A3 = THEN = B3", "testPair7c"), config);
 	}
 	
 	@Test
 	public void testPair8()
 	{
 		checkM("P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P",
-				buildGraph("Q-a->B-a->B | B = INCOMPATIBLE = Q", "testPair6"), config);
+				buildGraph("Q-a->B-a->B | B = INCOMPATIBLE = Q", "testPair8"), config);
 	}
 	
 	@Test
 	public void testPair9()
 	{
 		checkM("R-b->P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P | P = THEN = R",
-				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair6"), config);
+				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair9"), config);
 	}
 	
 	@Test(expected = DifferentFSMException.class)
 	public void testPair10()
 	{
 		checkM("R-b->P-a->A-a->C-a->C | A=INCOMPATIBLE=P | C=INCOMPATIBLE=P | P = INCOMPATIBLE = R",
-				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair6"), config);
+				buildGraph("S-b->Q-a->B-a->B | B = INCOMPATIBLE = Q | S = THEN = Q", "testPair10"), config);
 	}
 	
 

@@ -83,7 +83,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testAuto0()
 	{
-		//Visualiser.updateFrame(new LearnerGraph(TestFSMAlgo.buildGraph("A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n"+
+		//Visualiser.updateFrame(new LearnerGraph(FsmParser.buildGraph("A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n"+
 		//"B-e->A\nC-e->A\nD-e->A\nE-e->A\nF-e->A\nG-e->A\n","testAutoAnswers0"),Configuration.getDefaultConfiguration()),null);
 		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
 		testConfig.setGdFailOnDuplicateNames(false);

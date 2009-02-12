@@ -20,15 +20,20 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.Helper.checkForCorrectException;
 
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Test;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.Helper;
@@ -40,6 +45,7 @@ import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
@@ -697,6 +703,16 @@ final public class TestAugmentUsingIFTHEN
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-s->B | A-b->C-c->D", "testPerformAugment11b"),config), graph);
 	}
 	
+	/** Infinitely matching property. */
+	@Test
+	public final void testPerformAugment14() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-a->B", "testPerformAugment14a"),config);
+		Transform.augmentFromIfThenAutomaton(graph, null, new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C | P-a->Q-b->P-c->S | C==THEN==P", "testPerformAugment14"), config), 400);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-a->B | C-c->D", "testPerformAugment14b"),config), graph);
+	}
+
 	/** Tests how properties can answer questions. 
 	 * @throws IncompatibleStatesException */
 	@Test
@@ -710,14 +726,99 @@ final public class TestAugmentUsingIFTHEN
 				"A4-c->A4_U1-c->A4_U2-f-#A4_U3 |"+
 				"A5-c->A5_U1-c->A5_U2"
 				, "testBuildPTAofQuestions1"),config);
+		//Visualiser.updateFrame(graph, null);
 		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
 		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
-		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "expected"),config),merged);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "testQuestionAnswering2b"),config),merged);
 		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
-		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph("A-s->B | P-c->Q-d-#R | S-c->S1-c->S2-e->S3 | S==THEN==A==THEN==P", "testPerformAugment11"), config), 4);
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph("A-s->B | P-c->Q-d-#R | S-c->S1-c->S2-e->S3 | S==THEN==A==THEN==P", "testPerformAugment11"), config), 0);
 		List<List<String>> questionList = questions.getData();
 		Assert.assertEquals(1,questionList.size());
 		Assert.assertEquals(Arrays.asList(new String[]{"c","c","f"}), questionList.iterator().next());
+	}
+
+	private final static String ifthen_sc = "I-s->A-c->B | P-d-#R | P-c->T1-e->T2 | P-a->T | P==THEN==B",
+		ifthen_s = "I-s->B | P-c->Q-d-#R | P-a->T | P-b->T1 | P==THEN==B",
+		graphWithAppendixAfterMerging = "A-s->A1 | "+
+		"A1-a->B1-b->A2-a->B2-b->A3-a->B3-b->A4-a->B4-b->A5 |"+
+		"A2-c->A2_U1-c->A2_U2-e->A2_U3 |"+
+		"A3-c->A3_U1-c->A3_U2 | A3_U1-d-#A3_U4 |"+
+		"A4-c->A4_U1-c->A4_U2-f-#A4_U3 |"+
+		"A5-c->A5_U1-c->A5_U2";
+	
+	/** Tests that the question part is matched to the IF part only if it matches the THEN part.
+	 * @throws IncompatibleStatesException */
+	@Test
+	public final void testQuestionAnswering2() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging"),config);
+		//Visualiser.updateFrame(graph, null);
+		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
+		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-s->A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "testQuestionAnswering2b"),config),merged);
+		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"), config), 0);
+		List<List<String>> questionList = questions.getData();
+		Assert.assertEquals(3,questionList.size());
+		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","d"},new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}});
+		Set<List<String>> actual = new LinkedHashSet<List<String>>();actual.addAll(questionList);
+		Assert.assertEquals(expected,actual);
+	}
+	
+	/** Tests that the question part is matched to the IF part only if it matches the THEN part.
+	 * @throws IncompatibleStatesException */
+	@Test
+	public final void testQuestionAnswering3() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		DirectedSparseGraph origGraph = FsmParser.buildGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging");
+		LearnerGraph graph = new LearnerGraph(origGraph,config);
+		//Visualiser.updateFrame(graph, null);
+		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
+		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-s->A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "testQuestionAnswering2b"),config),merged);
+		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"), config), 0);
+		compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
+
+		List<List<String>> questionList = questions.getData();
+		Assert.assertEquals(2,questionList.size());
+		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}});
+		Set<List<String>> actual = new LinkedHashSet<List<String>>();actual.addAll(questionList);
+		Assert.assertEquals(expected,actual);
+	
+		// now do the same again - should not change anything. 
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"), config), 0);
+		compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
+		questionList = questions.getData();
+		Assert.assertEquals(2,questionList.size());
+		actual = new LinkedHashSet<List<String>>();actual.addAll(questionList);
+		Assert.assertEquals(expected,actual);
+	}
+	
+	/** Tests that the question part is matched to the IF part only if it matches the THEN part.
+	 * @throws IncompatibleStatesException */
+	@Test
+	public final void testQuestionAnswering4() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		DirectedSparseGraph origGraph = FsmParser.buildGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging");
+		LearnerGraph graph = new LearnerGraph(origGraph,config);
+		//Visualiser.updateFrame(graph, null);
+		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
+		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-s->A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "testQuestionAnswering2b"),config),merged);
+		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"), config), 0);
+		Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"), config), 0);
+		
+		compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
+		List<List<String>> questionList = questions.getData();
+		Assert.assertEquals(2,questionList.size());
+		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}});
+		Set<List<String>> actual = new LinkedHashSet<List<String>>();actual.addAll(questionList);
+		Assert.assertEquals(expected,actual);
 	}
 	
 	@Test
@@ -725,16 +826,25 @@ final public class TestAugmentUsingIFTHEN
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | ", "testConversionOfAssociationsToTransitions1a"), config);
+		DirectedSparseGraph graphAfterConversion = PathRoutines.convertPairAssociationsToTransitions(graph, config);
 		graph.pairCompatibility.compatibility.clear();
+		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
 		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | ",
-				"testConversionOfAssociationsToTransitions1b"),config), PathRoutines.convertPairAssociationsToTransitions(graph, config),VERTEX_COMPARISON_KIND.DEEP);
+				"testConversionOfAssociationsToTransitions1b"),config),obtainedGraph ,VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
+		Assert.assertTrue(
+				((Map<String,Map<String,Map<String,Color>>>)graphAfterConversion.getUserDatum(JUConstants.EDGE)).isEmpty());
 	}
+	
 	@Test
 	public final void testConversionOfAssociationsToTransitions2()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | A==THEN==P | B=INCOMPATIBLE=Q=MERGED=R", "testConversionOfAssociationsToTransitions2a"), config);
+		DirectedSparseGraph graphAfterConversion = PathRoutines.convertPairAssociationsToTransitions(graph, config);
 		graph.pairCompatibility.compatibility.clear();
+		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
+		System.out.println( (Map<String,Map<String,Map<String,Color>>>)graphAfterConversion.getUserDatum(JUConstants.EDGE));
 		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | "+
 				"A-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->P | "+
 				"P-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->A | "+
@@ -744,6 +854,15 @@ final public class TestAugmentUsingIFTHEN
 				
 				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->R | "+
 				"R-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->Q | ", 
-				"testConversionOfAssociationsToTransitions2b"),config), PathRoutines.convertPairAssociationsToTransitions(graph, config),VERTEX_COMPARISON_KIND.DEEP);
+				"testConversionOfAssociationsToTransitions2b"),config), obtainedGraph,VERTEX_COMPARISON_KIND.DEEP);
+
+		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
+		Assert.assertEquals("{A={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={P=java.awt.Color[r=255,g=255,b=0]}}, " +
+				"B={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}, " +
+				"P={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={A=java.awt.Color[r=255,g=255,b=0]}}, " +
+				"Q={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={B=java.awt.Color[r=255,g=255,b=0]}, "+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={R=java.awt.Color[r=255,g=255,b=0]}}, " +
+				"R={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}}",
+				((Map<String,Map<String,Map<String,Color>>>)graphAfterConversion.getUserDatum(JUConstants.EDGE)).toString());
+
 	}
 }

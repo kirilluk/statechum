@@ -533,6 +533,9 @@ public class Transform
 	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph ifthenGraph,  
 			int howManyToAdd) throws AugmentFromIfThenAutomatonException
 	{
+		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
+			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
+		
 		for(CmpVertex state:graph.transitionMatrix.keySet())
 			if (state.getID().getKind() == VertKind.NONEXISTING)
 				throw new IllegalArgumentException("a graph cannot contain non-existing vertices");

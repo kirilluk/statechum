@@ -356,7 +356,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
 	protected static class XMLModalGraphMouse extends DefaultModalGraphMouse
 	{
-		/** Restores parameters which are not recorderd in the view/layout transforms, from the supplied XML stream
+		/** Restores parameters which are not recorded in the view/layout transforms, from the supplied XML stream
 	     * 
 	     * @param decode XML decoder to use
 	     */
@@ -366,7 +366,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			((ScalingGraphMousePlugin)scalingPlugin).setOut( (Float)decoder.readObject());
 		}
 
-		/** Stores parameters which are not recorderd in the view/layout transforms, to the supplied XML stream
+		/** Stores parameters which are not recorded in the view/layout transforms, to the supplied XML stream
 	     * 
 	     * @param encoder XML encoder to use
 	     */

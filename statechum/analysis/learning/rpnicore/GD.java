@@ -1586,8 +1586,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			labelling.put(entry.getKey().toString(),entry.getValue().toString());
 		DirectedSparseGraph gr = outcome.pathroutines.getGraph();
 		
-		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.CLONE);
-		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.CLONE);
+		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.SHARED);
+		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
 		return gr;
 	}
 }	

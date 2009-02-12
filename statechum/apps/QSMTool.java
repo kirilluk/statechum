@@ -70,9 +70,7 @@ public class QSMTool
 			{
 				try 
 				{
-					LearnerGraphND ltlAutomaton = PathRoutines.convertPairAssociationsToTransitions(Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph()), tool.learnerInitConfiguration.config);
-					ltlAutomaton.setName("LTL");
-					Visualiser.updateFrame(ltlAutomaton, null);
+					Visualiser.updateFrame(PathRoutines.convertPairAssociationsToTransitions(Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph()), tool.learnerInitConfiguration.config), null);
 				} catch (IncompatibleStatesException e) {
 					e.printStackTrace();
 				}

@@ -17,6 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.awt.Color;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -733,12 +735,47 @@ public class PathRoutines {
 	 * @return
 	 */
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>
-		LearnerGraphND convertPairAssociationsToTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
+		DirectedSparseGraph convertPairAssociationsToTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
 	{
 		Set<String> alphabet = graph.pathroutines.computeAlphabet();
+		
 		Configuration noClone = config.copy();noClone.setLearnerCloneGraph(false);
 		LearnerGraphND result = new LearnerGraphND(graph,config);
 		Set<CmpVertex> rowsProcessed = new HashSet<CmpVertex>();
+		
+		class TransitionAnnotationClass extends TreeMap<String,Map<String,Map<String,Color>>>
+		{
+			/**
+			 * ID for serialisation
+			 */
+			private static final long serialVersionUID = 7920446745767201260L;
+
+			public void putAssociation(CmpVertex stateA, CmpVertex stateB, String label, Color color)
+			{
+				putAssociation_internal(stateA, stateB, label, color);
+				putAssociation_internal(stateB, stateA, label, color);
+			}
+			
+			private void putAssociation_internal(CmpVertex stateFrom, CmpVertex stateTo, String label,Color color)
+			{
+				String fromString = stateFrom.getID().toString();
+				Map<String,Map<String,Color>> lbl = get(fromString);
+				if (lbl == null)
+				{
+					lbl = new TreeMap<String,Map<String,Color>>();put(fromString, lbl);
+				}
+				Map<String,Color> targetToColour = lbl.get(label);
+				if (targetToColour == null)
+				{// this is the first annotation for the specific target state
+					targetToColour = new TreeMap<String,Color>();lbl.put(label,targetToColour);
+				}
+				
+				targetToColour.put(stateTo.getID().toString(),color);
+			}
+		}
+
+		TransitionAnnotationClass transitionAnnotation = new TransitionAnnotationClass();
+		
 		for(Entry<CmpVertex,Map<CmpVertex,PAIRCOMPATIBILITY>> entry:result.pairCompatibility.compatibility.entrySet())
 		{
 			rowsProcessed.add(entry.getKey());
@@ -751,8 +788,13 @@ public class PathRoutines {
 
 					result.addTransition(result.transitionMatrix.get(entry.getKey()), label, associations.getKey());
 					result.addTransition(result.transitionMatrix.get(associations.getKey()), label, entry.getKey());
+					transitionAnnotation.putAssociation(entry.getKey(), associations.getKey(), label, Color.YELLOW);
 				}
 		}
-		return result;
+		
+		DirectedSparseGraph gr = result.pathroutines.getGraph();
+		
+		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
+		return gr;
 	}
 }

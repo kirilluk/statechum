@@ -3,3 +3,8 @@
 <USER> [load, edit, edit, save, load] <yes>
 <USER> [load, load, load] <yes>
 <USER> [load, load, close, save] <no> at position 3, element save
+<USER> [edit] <no> at position 0, element edit
+<USER> [load, load, edit, close, close] <no> at position 4, element close
+<USER> [load, load, edit, close, edit] <no> at position 4, element edit
+<USER> [load, load, edit, close, save] <no> at position 4, element save
+<USER> [load, load, edit, edit, save] <yes>

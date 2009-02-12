@@ -1,9 +1,25 @@
-showltl
++ load edit edit save edit exit
++ load edit save close load exit
++ load edit close exit
 
-#+ a b c d
-#ltl [](a->Xb)
+- close
+- load edit save load
+- load close save
+
+#showltl
+
+#ltl !((load) V (!close))
+#ltl !([]((close)-> X((load) V !((save) || (edit) || (close)))))
+#ltl !([]((load) -> X((close) V (!load))))
+ltl !((edit) V (!save) && [](save -> X((edit) V (!save))))
+#ltl !((load) V !(edit)))
+#ltl !((exit) -> [](exit))
+
+ifthenFSM closeProps I-load->A | A-edit->A-save->A-load->A-close->I | R-close->P-edit-#R1 | P-save-#R2 | P-load->A1 | P-close-#R4 | A==THEN==R
+ifthenFSM exitProps A-edit->A-save->A-load->A-close->A | R-exit->P-edit-#R1 | P-save-#R2 | P-load-#R3 | P-exit-#R4 | P-close-#R5 | A==THEN==R
+#ifthenFSM editProps A-edit->B-edit->B | P-edit->| P-load->A1 | P-exit->A2 | A==THEN==P
 
 
-+ load edit save close
-
-ltl !!([]((close)-> X((load) V !((save) || (edit) || (close)))))
+config useSpin false
+config useConstraints true
+config howManyStatesToAddFromIFTHEN 1

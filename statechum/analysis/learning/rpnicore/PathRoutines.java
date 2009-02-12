@@ -30,11 +30,13 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.ArrayOperations;
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.model.testset.PTAExploration;
@@ -713,5 +715,44 @@ public class PathRoutines {
 		if (pos >= 0)
 				seq = path.subList(0, pos+1);// up to a rejected position plus one
 		return seq;
+	}
+	/** When adding transitions corresponding to state associations in order to check for graph
+	 * equivalence (for testing only), this prefix is used. 
+	 */
+	public static final String associationPrefix = "_";//PAIRASSOCIATION_"; 
+	
+	/** Associations between states are like normal transitions (but should not be considered 
+	 * in a number of cases such as augmentation, state merging and GD). In order to check
+	 * equivalence of graphs for testing, it seems reasonable to replace all such associations with real
+	 * transitions and run the usual procedure of checking.
+	 * <p>
+	 * This method performs such a conversion.
+	 * 
+	 * @param graph graph
+	 * @param config
+	 * @return
+	 */
+	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>
+		LearnerGraphND convertPairAssociationsToTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
+	{
+		Set<String> alphabet = graph.pathroutines.computeAlphabet();
+		Configuration noClone = config.copy();noClone.setLearnerCloneGraph(false);
+		LearnerGraphND result = new LearnerGraphND(graph,config);
+		Set<CmpVertex> rowsProcessed = new HashSet<CmpVertex>();
+		for(Entry<CmpVertex,Map<CmpVertex,PAIRCOMPATIBILITY>> entry:result.pairCompatibility.compatibility.entrySet())
+		{
+			rowsProcessed.add(entry.getKey());
+			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
+				if (!rowsProcessed.contains(associations.getKey()))
+				{
+					String label =associationPrefix+associations.getValue().name();
+					if (alphabet.contains(label))
+						throw new IllegalArgumentException("cannot use label "+label);
+
+					result.addTransition(result.transitionMatrix.get(entry.getKey()), label, associations.getKey());
+					result.addTransition(result.transitionMatrix.get(associations.getKey()), label, entry.getKey());
+				}
+		}
+		return result;
 	}
 }

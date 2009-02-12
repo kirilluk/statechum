@@ -1,0 +1,5 @@
+<USER> [load, load] <yes>
+<USER> [load, edit, edit, edit] <yes>
+<USER> [load, edit, edit, save, load] <yes>
+<USER> [load, load, load] <yes>
+<USER> [load, load, close, save] <no> at position 3, element save

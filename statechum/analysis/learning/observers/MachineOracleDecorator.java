@@ -43,8 +43,8 @@ public class MachineOracleDecorator extends LearnerDecorator {
 		this.target=argTarget;
 	}
 
-	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) {
-		return decoratedLearner.AddConstraints(graph,outcome);
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) {
+		return decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
 	}
 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,

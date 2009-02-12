@@ -32,13 +32,17 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
+import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.Helper.whatToRun;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
+import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.apps.QSMTool;
@@ -328,6 +332,32 @@ final public class TestAugmentUsingIFTHEN
 		Assert.assertFalse(graphIter.hasNext());
 	}
 	
+	/** No LTL but some automata. */
+	@Test
+	public final void testbuildIfThenAutomata3()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+
+		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
+				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B | P-a->P == THEN == A",
+				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
+			}), new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1"), config),config);
+		Iterator<LearnerGraph> graphIter = automata.iterator();
+
+		LearnerGraph next = null;
+		
+		next=graphIter.next();Assert.assertEquals("graphA", next.getName());
+		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN", next.findVertex("P"));
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a->B | P-a->P == THEN == A-transition_to_THEN->P","1"),config),next);
+		
+		next=graphIter.next();Assert.assertEquals("graphB", next.getName());
+		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_P", next.findVertex("P"));
+		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_S", next.findVertex("S"));
+		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_T", next.findVertex("T"));
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph(ifthenA+"| A-transition_to_THEN_P->P | A-transition_to_THEN_S->S | A-transition_to_THEN_T->T","2"),config),next);
+		Assert.assertFalse(graphIter.hasNext());
+	}
+
 	/** An automaton without a name. */
 	@Test
 	public final void testbuildIfThenAutomata_fail()
@@ -345,7 +375,7 @@ final public class TestAugmentUsingIFTHEN
 	@Test
 	public final void testBuildPTAofQuestions1()
 	{
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);config.setQuestionGenerator(QuestionGeneratorKind.CONVENTIONAL_IMPROVED);
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(
 				"A1-a->B1-b->A2-a->B2-b->A3-a->B3-b->A4-a->B4-b->A5 |"+
 				"A2-c->A2_U1-c->A2_U2-e->A2_U3 |"+
@@ -356,16 +386,9 @@ final public class TestAugmentUsingIFTHEN
 		StatePair pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
 		LearnerGraph merged = MergeStates.mergeAndDeterminize_general(graph, pair);
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A1-a->B1-b->A1-c->C-d-#R4|C-c->CC|CC-f-#R3|CC-e->D", "expected"),config),merged);
-		PTASequenceEngine questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
-		LearnerGraph updatedGraphExpected = new LearnerGraph(graph,config),updatedGraphActual = new LearnerGraph(graph,config);
-		updatedGraphActual.learnerCache.invalidate();
-		
-		// for the putAll below to work, I have to ensure that if a state of the original graph is cloned
-		// in NonExistingPaths and points to some of the existing states, the references added by
-		// putAll should refer the vertices from updatedGraphActual rather than those from graph.
-		// This is best accomplished by not cloning vertices when making copies of grahps.
-		updatedGraphActual.transitionMatrix.putAll(((NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix());
-		updatedGraphActual.learnerCache.invalidate();
+		PTASequenceEngine questions = ComputeQuestions.getQuestionPta(pair, graph, merged, null);
+		LearnerGraph updatedGraphExpected = new LearnerGraph(graph,config),
+			updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, graph, merged);
 
 		for(List<String> path:questions.getData())
 			updatedGraphExpected.paths.augmentPTA(path,merged.paths.getVertex(path).isAccept(),false,null);
@@ -538,7 +561,7 @@ final public class TestAugmentUsingIFTHEN
 		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C", "testPerformAugment_fail1a"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			Transform.augmentFromIfThenAutomaton(graph, null, new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b-#N | B=THEN=T", "testPerformAugment_fail1"), config), 2);
-		}},IncompatibleStatesException.class,"cannot merge a tentative state");
+		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
 	/** Contradiction between a new state and a graph after unrolling the property a few times. */
@@ -549,7 +572,7 @@ final public class TestAugmentUsingIFTHEN
 		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-b->E", "testPerformAugment_fail1a"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			Transform.augmentFromIfThenAutomaton(graph, null, new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b-#N | B=THEN=T", "testPerformAugment_fail1"), config), 2);
-		}},IncompatibleStatesException.class,"cannot merge a tentative state");
+		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
 	/** Contradiction between states added by THEN graphs, first when everything is ok. 
@@ -605,7 +628,7 @@ final public class TestAugmentUsingIFTHEN
 		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B", "testPerformAugment_fail1a"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			Transform.augmentFromIfThenAutomaton(graph, null, new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-c->T1-c->T2-b-#T3 | R-c->R1-c->R2-b->R3 | R=THEN=B=THEN=T", "testPerformAugment_fail1"), config), 3);
-		}},IncompatibleStatesException.class,"cannot merge a tentative state");
+		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
 	/** Incompatibility between an existing state and a new one. */
@@ -616,20 +639,32 @@ final public class TestAugmentUsingIFTHEN
 		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b-#C", "testPerformAugment_fail4a"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
 			Transform.augmentFromIfThenAutomaton(graph, null, new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b->N | B=THEN=T", "testPerformAugment_fail4"), config), 2);
-		}},IncompatibleStatesException.class,"cannot merge a tentative state");
+		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
-	/** Reject-states cannot be extended even if they match a property. */
+	/** Reject-states cannot be extended even if they match a property. 
+	 * @throws AugmentFromIfThenAutomatonException */
+	@Test
+	public final void testPerformAugment_reject1() throws AugmentFromIfThenAutomatonException
+	{
+		final Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a-#B", "testPerformAugment_reject1a"),config);
+		LearnerGraph ifthen = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b->N | B=THEN=T", "testPerformAugment_fail4"), config);
+		ifthen.findVertex("T").setAccept(false);
+		Transform.augmentFromIfThenAutomaton(graph, null, ifthen, 2);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a-#B", "testPerformAugment_reject1b"),config), graph);
+	}
+	
+	/** Another example of a contradiction between a tentative graph and the property. */
 	@Test
 	public final void testPerformAugment_fail5()
 	{
 		final Configuration config = Configuration.getDefaultConfiguration();
-		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a-#B", "testPerformAugment_fail4a"),config);
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b-#C", "testPerformAugment_fail5a"),config);
 		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
-			LearnerGraph ifthen = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b->N | B=THEN=T", "testPerformAugment_fail4"), config);
-			ifthen.findVertex("T").setAccept(false);
+			LearnerGraph ifthen = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->B |  T-b->N-s->R | B=THEN=T", "testPerformAugment_fail5"), config);
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthen, 2);
-		}},IncompatibleStatesException.class,"cannot extend a reject state");
+		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative");
 	}
 	
 	/** Dummy property. */
@@ -683,5 +718,32 @@ final public class TestAugmentUsingIFTHEN
 		List<List<String>> questionList = questions.getData();
 		Assert.assertEquals(1,questionList.size());
 		Assert.assertEquals(Arrays.asList(new String[]{"c","c","f"}), questionList.iterator().next());
+	}
+	
+	@Test
+	public final void testConversionOfAssociationsToTransitions1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | ", "testConversionOfAssociationsToTransitions1a"), config);
+		graph.pairCompatibility.compatibility.clear();
+		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | ",
+				"testConversionOfAssociationsToTransitions1b"),config), PathRoutines.convertPairAssociationsToTransitions(graph, config),VERTEX_COMPARISON_KIND.DEEP);
+	}
+	@Test
+	public final void testConversionOfAssociationsToTransitions2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | A==THEN==P | B=INCOMPATIBLE=Q=MERGED=R", "testConversionOfAssociationsToTransitions2a"), config);
+		graph.pairCompatibility.compatibility.clear();
+		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B | P-b->Q-c->R | "+
+				"A-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->P | "+
+				"P-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->A | "+
+				
+				"B-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->Q | "+
+				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->B | "+
+				
+				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->R | "+
+				"R-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->Q | ", 
+				"testConversionOfAssociationsToTransitions2b"),config), PathRoutines.convertPairAssociationsToTransitions(graph, config),VERTEX_COMPARISON_KIND.DEEP);
 	}
 }

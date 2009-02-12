@@ -847,7 +847,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
-	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, @SuppressWarnings("unused") LearnerGraph outcome) 
+	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, @SuppressWarnings("unused") LearnerGraph outcome, @SuppressWarnings("unused") StringBuffer counterExampleHolder) 
 	{
 		throw new UnsupportedOperationException("does not use constraints");
 	}

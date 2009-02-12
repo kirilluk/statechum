@@ -327,7 +327,7 @@ public class LearnerSimulator extends ProgressDecorator
 				switch(kind)
 				{
 				case ATTR_WITHCONSTRAINTS:
-					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config));break;
+					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config),null);break;
 				case ELEM_ANSWER:
 					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
 					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, AbstractOracle.USER_CANCELLED, null);
@@ -510,7 +510,7 @@ public class LearnerSimulator extends ProgressDecorator
 	/** Since it is a simulator, only the return value is loaded from XML and whatever is 
 	 * passed in is estimated.
 	 */
-	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, LearnerGraph outcome) 
+	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, LearnerGraph outcome, @SuppressWarnings("unused") StringBuffer counterExampleHolder) 
 	{
 		AbstractLearnerGraph.copyGraphs(series.readGraph(currentElement),outcome);
 		return Boolean.parseBoolean(currentElement.getAttribute(StatechumXML.ATTR_CONSTRAINTSADDED.name()));

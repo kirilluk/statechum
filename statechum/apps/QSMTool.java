@@ -43,6 +43,9 @@ import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.PathRoutines;
+import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 public class QSMTool 
@@ -62,12 +65,20 @@ public class QSMTool
 		if (tool.showLTL)
 		{
 			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);
-			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus),true);
-			try {
-				Visualiser.updateFrame(ba.getLTLgraph().pathroutines.buildDeterministicGraph(), null);
-			} catch (IncompatibleStatesException e) {
-				e.printStackTrace();
+			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);
+			if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus),true))
+			{
+				try 
+				{
+					LearnerGraphND ltlAutomaton = PathRoutines.convertPairAssociationsToTransitions(Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph()), tool.learnerInitConfiguration.config);
+					ltlAutomaton.setName("LTL");
+					Visualiser.updateFrame(ltlAutomaton, null);
+				} catch (IncompatibleStatesException e) {
+					e.printStackTrace();
+				}
 			}
+			else
+				throw new IllegalArgumentException("no LTL constraint defined");
 		}
 		else
 			tool.runExperiment();

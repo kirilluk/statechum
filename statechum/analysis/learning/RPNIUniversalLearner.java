@@ -31,7 +31,7 @@ import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
 import statechum.analysis.learning.rpnicore.Transform;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.apps.QSMTool;
@@ -104,7 +104,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	
 	
 	
-	public boolean AddConstraints(LearnerGraph pta, LearnerGraph outcome)
+	public boolean AddConstraints(LearnerGraph pta, LearnerGraph outcome, StringBuffer counterExampleHolder)
 	{
 		if (ifthenAutomata == null) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, pta, config);
 		boolean result = true;
@@ -112,9 +112,9 @@ public class RPNIUniversalLearner extends RPNILearner
 		for(LearnerGraph ifthenGraph:ifthenAutomata)
 			try {
 				Transform.augmentFromIfThenAutomaton(outcome, null, ifthenGraph, config.getHowManyStatesToAddFromIFTHEN());
-			} catch (IncompatibleStatesException e) {
+			} catch (AugmentFromIfThenAutomatonException e) {
 				// merge failed because the constraints disallowed it, hence return a failure
-				result = false;
+				result = false;e.getFailureLocation(counterExampleHolder);
 			}
 		return result;
 	}
@@ -144,18 +144,21 @@ public class RPNIUniversalLearner extends RPNILearner
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph ptaHardFacts = new LearnerGraph(tentativeAutomaton,shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		LearnerGraph ptaSoftFacts = tentativeAutomaton;
+		setChanged();tentativeAutomaton.setName(learntGraphName+"_init");
+
 		if (config.isUseConstraints()) 
 		{
 			LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
-			if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton))
-				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, new LinkedList<List<String>>()));
+			StringBuffer counterExampleHolder = new StringBuffer();
+			if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
+				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
+			tentativeAutomaton = updatedTentativeAutomaton;
 		}
 		if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 			SpinResult sr = SpinUtil.check(ptaHardFacts, ifthenAutomataAsText);
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, sr.getCounters()));
 		}
-		setChanged();tentativeAutomaton.setName(learntGraphName+"_init");
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
 		JUConstants colourToAugmentWith = tentativeAutomaton.config.getUseAmber()? JUConstants.AMBER:null;
@@ -174,7 +177,7 @@ public class RPNIUniversalLearner extends RPNILearner
 
 			//Visualiser.updateFrame(tentativeAutomaton.paths.getGraph(learntGraphName+"_"+iterations)
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
-			updateGraph(temp);
+			//updateGraph(temp);
 			if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 
 				Collection<List<String>> counterExamples = SpinUtil.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
@@ -189,26 +192,35 @@ public class RPNIUniversalLearner extends RPNILearner
 				if(counterExamples.size()>0)
 					restartLearning = RestartLearningEnum.restartSOFT;
 			}
+			int questionsBeforeConstraints = -1;
+			if (config.isUseConstraints() && shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE)
+			{
+				questionsBeforeConstraints = ComputeQuestions.computeQS(pair, tentativeAutomaton,temp, null).size();
+			}
 			
 			if (config.isUseConstraints()) 
 			{
 				LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
-				if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton))
+				StringBuffer counterExampleHolder = new StringBuffer();
+				if (!topLevelListener.AddConstraints(temp,updatedTentativeAutomaton,counterExampleHolder))
 				{
 					tentativeAutomaton.addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
 					restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
+					System.out.println("<info> pair "+pair+" contradicts constraints, hence recorded as incompatible");
 				}
-				else
-					tentativeAutomaton = updatedTentativeAutomaton;// record the result of augmentation
+				// since we still need the outcome of merging to ask questions, 
+				// we delay actually performing augmentation until the time we are 
+				// finished with questions.
 			}
 
 			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) 
 			{
 				temp.setName(learntGraphName+"_"+iterations);
-				updateGraph(temp);
+				//LearnerGraph updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, tentativeAutomaton, temp);
+				//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual);
 				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 			}
-			
+			//System.out.println("<info> questions, before constraints : "+questionsBeforeConstraints+", after: "+questions.size());
 			Iterator<List<String>> questionIt = questions.iterator();
 			boolean questionAnswered = true;
 			List<String> question = null;
@@ -305,9 +317,10 @@ public class RPNIUniversalLearner extends RPNILearner
 							if (config.isUseConstraints()) 
 							{
 								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
-								if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton))
+								StringBuffer counterExampleHolder = new StringBuffer();
+								if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
 								{
-									String errorMessage = getHardFactsContradictionErrorMessage(ifthenAutomataAsText, new LinkedList<List<String>>());
+									String errorMessage = getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString());
 									
 									if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
 										throw new IllegalArgumentException(errorMessage);
@@ -341,17 +354,11 @@ public class RPNIUniversalLearner extends RPNILearner
 					AbstractLearnerGraph.copyGraphs(ptaHardFacts,ptaSoftFacts);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				}
 				tentativeAutomaton = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
-				if (config.isUseConstraints()) 
-				{
-					LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
-					if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton))
-						throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, new LinkedList<List<String>>()));
-				}
 				tentativeAutomaton.clearColoursButAmber();// this one will clear all colours if amber mode is not set.
 
 				setChanged();
-				topLevelListener.Restart(restartLearning);
-			} else 
+			} 
+			else 
 			if (restartLearning == RestartLearningEnum.restartNONE)
 			{
 				// At this point, tentativeAutomaton may have been modified because
@@ -364,10 +371,20 @@ public class RPNIUniversalLearner extends RPNILearner
 
 				// keep going with the existing model
 				tentativeAutomaton = temp;
-				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			// if restartLearning == RestartLearningEnum.restartRECOMPUTEPAIRS, we do nothing, i.e. attempt to get state pairs again.
-			
+
+			if (restartLearning != RestartLearningEnum.restartRECOMPUTEPAIRS && config.isUseConstraints()) 
+			{
+				LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
+				StringBuffer counterExampleHolder = new StringBuffer();
+				if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
+					throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
+				tentativeAutomaton = updatedTentativeAutomaton;
+			}
+
+			topLevelListener.Restart(restartLearning);
+			//System.out.println("<info> restart: "+restartLearning);
 			possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		}
 		
@@ -378,12 +395,18 @@ public class RPNIUniversalLearner extends RPNILearner
 
 	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, Collection<List<String>> counters)
 	{
-		String errString = "LTL formula or IFTHEN automata contradict hard facts\n";
+		StringBuffer errString = new StringBuffer();
 		Iterator<List<String>> counterIt = counters.iterator();
 		while(counterIt.hasNext()){
-			errString.concat(counterIt.next()+"\n");
+			errString.append(counterIt.next());errString.append('\n');
 		}
-		for(String elem:tmpLtl) errString+=elem+"\n";
+		for(String elem:tmpLtl) errString.append(elem+"\n");
+		return getHardFactsContradictionErrorMessage(tmpLtl,errString.toString());
+	}
+	
+	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, String counterExample)
+	{
+		String errString = "LTL formula or IFTHEN automata "+tmpLtl+" contradict hard facts\n"+counterExample;
 		return errString;
 	}
 	

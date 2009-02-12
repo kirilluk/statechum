@@ -419,10 +419,18 @@ public class Transform
 		/** How far from the last existing state in a tentative automaton we've gone. */
 		public final int depth;
 		public final CmpVertex graphState, thenState, propertyState;
-
-		public ExplorationElement(CmpVertex graphS, CmpVertex thenS, CmpVertex propertyS, int currDepth)
+		public final ExplorationElement previousElement;
+		
+		/** Either a string or a PAIRCOMPATIBILITY enum. */
+		public final Object inputToThisState;
+		
+		
+		public ExplorationElement(CmpVertex graphS, CmpVertex thenS, CmpVertex propertyS, int currDepth, Object input, ExplorationElement previous)
 		{
 			graphState = graphS;thenState = thenS;propertyState = propertyS;depth = currDepth;
+			previousElement =previous;
+			assert input == null || input instanceof PAIRCOMPATIBILITY || input instanceof String;
+			inputToThisState = input;
 		}
 		
 		/**
@@ -479,6 +487,38 @@ public class Transform
 			return "( graph: "+graphState+", THEN: "+thenState+" property: "+propertyState+ ", depth: "+depth+" )";
 		}
 	}
+
+	public static class AugmentFromIfThenAutomatonException extends IncompatibleStatesException
+	{
+		private final ExplorationElement failureLocation;
+		public AugmentFromIfThenAutomatonException(String string, ExplorationElement location) 
+		{
+			super(string);failureLocation = location;
+		}
+
+		/**
+		 * Serial ID
+		 */
+		private static final long serialVersionUID = 2564748761684882509L;
+		
+		/** Fills a buffer with most of a counter-example, leading to the last state where something happened,
+		 * the input which caused a failure is in the text of the error message. */
+		public void getFailureLocation(StringBuffer buffer)
+		{
+			if (buffer == null)
+				return;
+			
+			ExplorationElement currentElement = failureLocation;
+			buffer.append(getMessage());
+			while(currentElement != null)
+			{
+				buffer.insert(0,currentElement.toString()+'\n');
+				if (currentElement.inputToThisState != null) buffer.insert(0,"-"+currentElement.inputToThisState+"->");
+				currentElement=currentElement.previousElement;
+			}
+		}
+		
+	}
 	
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
 	 * property answers the supplied questions.
@@ -491,7 +531,7 @@ public class Transform
 	 * If this value if not positive, the graph remains unchanged.
 	 */
 	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph ifthenGraph,  
-			int howManyToAdd) throws IncompatibleStatesException
+			int howManyToAdd) throws AugmentFromIfThenAutomatonException
 	{
 		for(CmpVertex state:graph.transitionMatrix.keySet())
 			if (state.getID().getKind() == VertKind.NONEXISTING)
@@ -500,7 +540,7 @@ public class Transform
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Set<ExplorationElement> visited = new HashSet<ExplorationElement>();
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
-		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,ifthenGraph.init,0);
+		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,ifthenGraph.init,0,null,null);
 		currentExplorationBoundary.add(explorationElement);
 		
 		while(!currentExplorationBoundary.isEmpty())
@@ -510,7 +550,8 @@ public class Transform
 			assert explorationElement.propertyState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.propertyState) : "state "+explorationElement.propertyState+" is not known to the property graph";
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
-				throw new IncompatibleStatesException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
+				throw new AugmentFromIfThenAutomatonException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState,
+						explorationElement);
 						
 			// There are eight combinations of null/non-null values of the current states in total,
 			// 	graph	THEN 	property|	consider labels	| 	meaning
@@ -534,19 +575,23 @@ public class Transform
 				continue;// strictly speaking, this is an optimisation: without this check I'll explore all states of a tentative graph, doing nothing for all of them 
 			
 			if (explorationElement.propertyState != null)
-			{
-				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.propertyState);
-				if (compatibility != null)
-					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
-						if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
-						{// we hit a match-state, add next states
-							ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,entry.getKey(),explorationElement.propertyState, explorationElement.depth);
-							if (!visited.contains(nextExplorationElement))
-							{// not seen this triple already
-								//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
-								visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+			{// Consider match states, but only if the current state (in either a graph or THEN) is an accept-state
+				if ( (explorationElement.graphState == null ||  explorationElement.graphState.isAccept()) &&
+					 (explorationElement.thenState == null || explorationElement.thenState.isAccept()) )
+				{
+					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.propertyState);
+					if (compatibility != null)
+						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
+							if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
+							{// we hit a match-state, add next states
+								ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,entry.getKey(),explorationElement.propertyState, explorationElement.depth,JUConstants.PAIRCOMPATIBILITY.THEN, explorationElement);
+								if (!visited.contains(nextExplorationElement))
+								{// not seen this triple already
+									//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
+									visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+								}
 							}
-						}
+				}
 			}
 			
 			Map<String,CmpVertex> graphTargets = null;
@@ -555,7 +600,7 @@ public class Transform
 				graphTargets = nonexistingMatrix.get(explorationElement.graphState);
 				if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 					graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
-				if (questionPaths != null)
+				if (questionPaths != null && explorationElement.graphState.getID().getKind() == VertKind.NONEXISTING)
 					questionPaths.nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
 			}
 
@@ -575,9 +620,6 @@ public class Transform
 					
 					if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
 					{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
-						if (!explorationElement.graphState.isAccept())
-							throw new IncompatibleStatesException("cannot extend a reject state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
-						
 						nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
 						newStates.add(nextGraphState);
 						if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
@@ -587,9 +629,10 @@ public class Transform
 					if (newStates.contains(nextGraphState))
 						++depth;// we made one more transition out the graph
 
-					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth);
-					if (!visited.contains(nextExplorationElement))
-					{// not seen this triple already
+					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth, label,explorationElement);
+					if (!visited.contains(nextExplorationElement) &&
+						(nextExplorationElement.graphState == null || nextExplorationElement.thenState != null || nextExplorationElement.graphState.getID().getKind() != VertKind.NONEXISTING))
+					{// not seen this triple already and if we are traversing question vertices then we should be extending using the THEN part.
 						//System.out.println("G: "+explorationElement+"-"+label+"->"+nextExplorationElement);
 						visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
 					}
@@ -607,9 +650,6 @@ public class Transform
 						
 						if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
 						{// the graph cannot make a transition but THEN machine can, hence we add a new transition to the graph
-							if (!explorationElement.graphState.isAccept())
-								throw new IncompatibleStatesException("cannot extend a reject state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState);
-
 							nextGraphState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(nextThenState.isAccept()), graph.config);
 							newStates.add(nextGraphState);
 							if (GlobalConfiguration.getConfiguration().isAssertEnabled() && graph.findVertex(nextGraphState.getID()) != null) throw new IllegalArgumentException("duplicate vertex with ID "+nextGraphState.getID()+" in graph "+graph);
@@ -619,8 +659,10 @@ public class Transform
 						if (newStates.contains(nextGraphState))
 							++depth;// we made one more transition out the graph
 	
-						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth);
-						if (!visited.contains(nextExplorationElement))
+						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth,label,explorationElement);
+
+						if (!visited.contains(nextExplorationElement) &&
+							(nextExplorationElement.graphState == null || nextExplorationElement.thenState != null || nextExplorationElement.graphState.getID().getKind() != VertKind.NONEXISTING))
 						{// not seen this triple already (note that matched states added in the labelstate:graphTargets.entrySet() loop 
 						 // will be ignored here, including the state which have just been added above).
 							//System.out.println("T: "+explorationElement+"-"+label+"->"+nextExplorationElement);
@@ -685,14 +727,14 @@ public class Transform
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
 		LTL_to_ba converter = new LTL_to_ba(config);
-		converter.ltlToBA(ltl, graph, true);
-		try {
-			LearnerGraph ltlAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
-			ltlAutomaton.setName("LTL");
-			ifthenAutomata.add(ltlAutomaton);
-		} catch (IncompatibleStatesException e) {
-			Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
-		}
+		if (converter.ltlToBA(ltl, graph, true))
+			try {
+				LearnerGraph ltlAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
+				ltlAutomaton.setName("LTL");
+				ifthenAutomata.add(ltlAutomaton);
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("failed to construct an if-then automaton from ltl", e);
+			}
 		
 		for(String property:ltl)
 			if (property.startsWith(QSMTool.cmdIFTHENAUTOMATON))

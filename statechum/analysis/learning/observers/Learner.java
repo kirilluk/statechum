@@ -157,7 +157,8 @@ public interface Learner
 	 * the only way to revert back (and not merge the pair leading to the graph to augment) is to
 	 * keep the result of augmentation separate from the source. 
 	 * @param resultHolder the graph to store the result of augmentation.
-	 * @return whether the construction was successful
+	 * @param counterExampleHolder where the counter-example will be stored upon failure.
+	 * @return null if the construction was successful,
 	 */ 
-	public boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder);
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder, StringBuffer counterExampleHolder);
 }

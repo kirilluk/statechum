@@ -515,7 +515,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	protected LearnerGraph cGraph = null;
 	protected Boolean cResult = null;
 	
-	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome) 
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) 
 	{
 		LearnerGraph copyOfOutcome = null;
 		boolean result = false;
@@ -523,13 +523,13 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.AddConstraints(graph,outcome);
+			result = whatToCompareWith.AddConstraints(graph,outcome,counterExampleHolder);
 			copyOfOutcome = new LearnerGraph(outcome,outcome.config);
 			cGraph = copyOfOutcome;cResult = result;
 		}
 		else
 		{
-			result = decoratedLearner.AddConstraints(graph,outcome);
+			result = decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
 			copyOfOutcome = new LearnerGraph(outcome,outcome.config);
 		}
 		syncOnCallOf(KIND_OF_METHOD.M_ADDCONSTRAINTS);

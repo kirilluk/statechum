@@ -379,6 +379,32 @@ public class ComputeQuestions {
 		return engine.getData(PTASequenceEngine.truePred);
 	}
 	
+	public static PTASequenceEngine getQuestionPta(final StatePair pair, LearnerGraph original, LearnerGraph merged, Collection<LearnerGraph> properties)
+	{
+		QuestionConstructor qConstructor=null;
+		switch(original.config.getQuestionGenerator())
+		{
+			case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
+			case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
+			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
+			case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
+		}
+		PTASequenceEngine engine = computeQS_general(pair, original, merged, qConstructor);
+		if (properties != null)
+			for(LearnerGraph if_then:properties)
+				try {
+					// this marks visited questions ...
+					Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), if_then, -1);
+				} catch (IncompatibleStatesException e) { 
+					Helper.throwUnchecked("failure doing merge on the original graph", e);
+					// An exception "cannot merge a tentative state" at this point means that
+					// a merged graph had a valid path (absent from the original graph) which
+					// contradicts the property automata, hence we should not even have gotten
+					// as far as trying to compute questions.
+				}
+		return engine;
+	}
+	
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 * 
@@ -393,26 +419,24 @@ public class ComputeQuestions {
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
 			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else
-		{
-			QuestionConstructor qConstructor=null;
-			switch(original.config.getQuestionGenerator())
-			{
-				case CONVENTIONAL: qConstructor=new QSMQuestionGenerator();break;
-				case CONVENTIONAL_IMPROVED:qConstructor=new QSMQuestionGeneratorImproved();break; 
-				case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
-				case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
-			}
-			PTASequenceEngine engine = computeQS_general(pair, original, merged, qConstructor);
-			if (properties != null)
-				for(LearnerGraph if_then:properties)
-					try {
-						// this marks visited questions ...
-						Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), if_then, -1);
-					} catch (IncompatibleStatesException e) { Helper.throwUnchecked("failure doing merge on the original graph", e); }
-			questions = engine.getData();// ... and this one will return only those which were not answered by property automata
-		}
+			questions = getQuestionPta(pair,original,merged,properties).getData();// ... and this one will return only those which were not answered by property automata
+
 		return ArrayOperations.sort(questions);// this appears important to ensure termination without using amber states
 			// because in an unsorted collection long paths may appear first and they will hence be added to PTA and we'll
 			// proceed to merge them.
+	}
+	
+	public static LearnerGraph constructGraphWithQuestions(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	{
+		PTASequenceEngine questionsPTA = getQuestionPta(pair,original,merged,null);
+		Configuration config = original.config.copy();config.setLearnerCloneGraph(false);
+		LearnerGraph updatedGraph = new LearnerGraph(original,config);
+	
+		// for the putAll below to work, I have to ensure that if a state of the original graph is cloned
+		// in NonExistingPaths and points to some of the existing states, the references added by
+		// putAll should refer the vertices from updatedGraphActual rather than those from graph.
+		// This is best accomplished by not cloning vertices when making copies of grahps.
+		updatedGraph.transitionMatrix.putAll(((NonExistingPaths)questionsPTA.getFSM()).getNonExistingTransitionMatrix());
+		updatedGraph.learnerCache.invalidate();return updatedGraph;
 	}
 }

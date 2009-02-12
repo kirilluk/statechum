@@ -575,16 +575,23 @@ public class LTL_to_ba {
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
 	 * This information is extracted from the supplied graph.
 	 * @param invert if the ltl expression is to be inverted before passing it to ltl2ba.
+	 * @return false if there is no LTL to extract.
 	 * @throws IncompatibleStatesException 
 	 */
-	public void ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert)
+	public boolean ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert)
 	{
 		if (graph != null)
 			alphabet = graph.pathroutines.computeAlphabet();
-		runLTL2BA( (invert?"!":"")+"("+concatenateLTL(ltl).toString()+")");
+		String ltlString = concatenateLTL(ltl).toString();
+		if (ltlString.length() == 0)
+			return false;
+		
+		runLTL2BA( (invert?"!":"")+"("+ltlString+")");
 		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");
+		
+		return true;
 	}
 	
 }

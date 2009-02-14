@@ -383,6 +383,11 @@ public class LTL_to_ba {
 	/** Alphabet of a graph we'd like to augment with LTL. */
 	protected Set<String> alphabet = null;
 	
+	void setAlphabet(Set<String> alph)
+	{
+		alphabet = alph;
+	}
+	
 	enum OPERATION { AND,OR,NEG,ASSIGN }
 	
 	public static final int exprOpen = 1;
@@ -401,13 +406,58 @@ public class LTL_to_ba {
 		lexExpr = new Lexer("(\\s*\\(\\s*)|(\\s*\\)\\s*)|(\\s*&&\\s*)|(\\s*\\|\\|\\s*)|(\\s*!\\s*)|(\\s*(\\w+)\\s*)",data);
 	}
 	
-	protected Set<String> interpretString(String data)
+	/** Given a composite transition label, this method converts it into a corresponding set of labels. */
+	Set<String> interpretString(String data)
 	{
 		buildExprLexer(data+")");
 		Set<String> result = interpretExpression();
 		if (lexExpr.getMatchType() >=0)
 			throw new IllegalArgumentException("extra tokens at the end of expression");
 		return result;
+	}
+	
+	/** Performs a lexical analysis and extracts the alphabet. */
+	Set<String> computeAlphabet(String data)
+	{
+		buildExprLexer(data+")");
+		Set<String> result = computeAlphabet();
+		if (lexExpr.getMatchType() >=0)
+			throw new IllegalArgumentException("extra tokens at the end of expression");
+
+		return result;
+	}
+	
+	private Set<String> computeAlphabet()
+	{
+		int currentMatch = lexExpr.getMatchType();
+		if (currentMatch < 0 || currentMatch == exprClose)
+			throw new IllegalArgumentException("unexpected end of expression");
+		
+		Set<String> currentValue = new TreeSet<String>();// the alphabet constructed so far.
+
+		while(currentMatch >= 0 && currentMatch != exprClose)
+		{
+			switch(currentMatch)
+			{
+			case exprOpen: // embedded expression
+				currentValue.addAll(computeAlphabet());
+				break;
+			case exprAND:
+				break;
+			case exprOR:
+				break;
+			case exprNEG:
+				break;
+			case exprWord:
+				currentValue.add(lexExpr.group(exprWordText));
+				break;
+			default:
+				throw new IllegalArgumentException("invalid token "+currentMatch+", looking at "+lexExpr.getMatch());
+			}
+			currentMatch = lexExpr.getMatchType();
+		}
+
+		return currentValue;
 	}
 	
 	/** Given an expression with brackets, && and ||, this one interprets it as a set of labels. */

@@ -316,10 +316,10 @@ final public class TestAugmentUsingIFTHEN
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdLTL+" "+ltlFormulaB,
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1"), config),config);
+			}), new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1"), config),config);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
-		LearnerGraph topGraph = graphIter.next(), expectedTop = new LearnerGraph(FsmParser.buildGraph("I-c->A / A-a->A-b->A-c->A / P2#-b-P-a-#P1 / I = THEN = P / " +
+		LearnerGraph topGraph = graphIter.next(), expectedTop = new LearnerGraph(FsmParser.buildGraph("I-c->A / I-d->A / A-a->A-b->A-c->A-d->A / P2#-b-P-a-#P1 / I = THEN = P / " +
 				"I - transition_to_THEN ->P","!("+ltlFormulaA+"||"+ltlFormulaB+")"),config);
 		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.init), "transition_to_THEN", topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
 		LearnerGraph next = null;
@@ -346,7 +346,7 @@ final public class TestAugmentUsingIFTHEN
 		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1"), config),config);
+			}), new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1"), config),config);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph next = null;

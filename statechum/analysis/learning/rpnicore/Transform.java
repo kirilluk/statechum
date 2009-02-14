@@ -813,7 +813,7 @@ public class Transform
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph propertyAutomaton = new LearnerGraph(
-						FsmParser.buildGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim()),config);
+						FsmParser.buildGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim()),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
 				ifthenAutomata.add(propertyAutomaton);
 			}
@@ -865,6 +865,27 @@ public class Transform
 			throw new IllegalArgumentException("no THEN states");
 		if (allStates.size() != ifthen.getStateNumber())
 			throw new IllegalArgumentException("unreachable states in graph");
+	}
+	
+	/** Given a graph where each label is a composite expression, this method expands those labels.
+	 * 
+	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
+	 * @return a state machine where each transition transition label belongs to the alphabet.
+	 */
+	public LearnerGraph interpretLabelsOnGraph(Set<String> alphabet)
+	{
+		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
+		LearnerGraph result = new LearnerGraph(coregraph,config);
+		LTL_to_ba ba = new LTL_to_ba(config);ba.setAlphabet(alphabet);
+		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{// here we are replacing existing rows without creating new states.
+		 // This is why associations (such as THENs) remain valid.
+			Map<String,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
+			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
+				for(String label:ba.interpretString(transition.getKey()))
+					result.addTransition(row, label, transition.getValue());
+		}
+		return result;
 	}
 	
 	public static class TraversalStatistics

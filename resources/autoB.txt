@@ -1,0 +1,51 @@
+<USER> [load, load] <yes>
+<USER> [load, edit, edit, edit] <yes>
+<USER> [load, edit, edit, save, load] <yes>
+<USER> [load, load, load] <yes>
+<USER> [load, load, close, save] <no> at position 3, element save
+<USER> [load, load, edit, edit, save] <yes>
+<USER> [load, load, edit, save, load] <yes>
+<USER> [load, edit, edit, edit, save, exit] <yes>
+<USER> [load, load, edit, save, edit, exit, close] <no> at position 6, element close
+<USER> [load, edit, edit, edit, edit] <yes>
+<USER> [load, edit, edit, edit, save, edit] <yes>
+<USER> [load, edit, edit, edit, save, close, save] <no> at position 6, element save
+<USER> [load, edit, edit, edit, save, load, save] <no> at position 6, element save
+<USER> [load, load, close, close] <no> at position 3, element close
+<USER> [load, load, edit, edit, edit, exit] <yes>
+<USER> [load, load, edit, edit, save, close, exit] <yes>
+<USER> [load, load, edit, edit, save, edit, exit] <yes>
+<USER> [load, load, edit, edit, save, load, exit] <yes>
+<USER> [load, edit, edit, save, close, save] <no> at position 5, element save
+<USER> [load, load, load, load] <yes>
+<USER> [load, load, load, close, close] <no> at position 4, element close
+<USER> [load, load, load, edit, edit] <yes>
+<USER> [load, load, load, edit, save] <yes>
+<USER> [load, load, load, close, load, load] <yes>
+<USER> [load, load, load, close, load, close, save] <no> at position 6, element save
+<USER> [load, load, load, close, load, edit, edit] <yes>
+<USER> [load, load, load, close, load, edit, save, close] <yes>
+<USER> [load, load, load, close, load, edit, save, load] <yes>
+<USER> [load, load, edit, save, close, exit] <yes>
+<USER> [load, load, close, load, save] <no> at position 4, element save
+<USER> [load, load, close, load, close, save] <no> at position 5, element save
+<USER> [load, load, close, load, load, save] <no> at position 5, element save
+<USER> [load, load, close, load, edit, exit, close] <no> at position 6, element close
+<USER> [load, load, close, load, edit, save, save] <no> at position 6, element save
+<USER> [load, load, load, edit, edit, save, save] <no> at position 6, element save
+<USER> [load, load, load, edit, save, close, save] <no> at position 6, element save
+<USER> [load, load, load, edit, save, load, save] <no> at position 6, element save
+<USER> [load, load, close, load, edit, edit, exit, close] <no> at position 7, element close
+<USER> [load, load, close, load, edit, save, close, save] <no> at position 7, element save
+<USER> [load, load, close, load, edit, save, load, save] <no> at position 7, element save
+<USER> [load, load, load, edit, edit, edit, exit, close] <no> at position 7, element close
+<USER> [load, load, load, edit, edit, save, close, save] <no> at position 7, element save
+<USER> [load, load, load, edit, edit, save, load, save] <no> at position 7, element save
+<USER> [load, load, load, edit, save, edit, exit, close] <no> at position 7, element close
+<USER> [load, load, load, edit, edit, save, edit, exit, close] <no> at position 8, element close
+<USER> [load, close, close] <no> at position 2, element close
+<USER> [load, close, load, close] <yes>
+<USER> [load, close, load, load] <yes>
+<USER> [load, close, load, edit, edit] <yes>
+<USER> [load, close, load, edit, save] <yes>
+

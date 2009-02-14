@@ -398,6 +398,7 @@ public class TestLTL_to_ba
 	public final void testExpr1()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("a"));
+		checkOutcome(new String[]{"a"},ba.computeAlphabet("a"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -405,12 +406,15 @@ public class TestLTL_to_ba
 	public final void testExpr2()
 	{
 		checkOutcome(new String[]{"a","b","c"},ba.interpretString("1"));
+		checkOutcome(new String[]{"1"},ba.computeAlphabet("1"));
 	}
+	
 	/** Tests parser of expressions. */
 	@Test
 	public final void testExpr3()
 	{
 		checkOutcome(new String[]{},ba.interpretString("!1"));
+		checkOutcome(new String[]{"1"},ba.computeAlphabet("!1"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -418,6 +422,7 @@ public class TestLTL_to_ba
 	public final void testExpr4()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("a && a"));
+		checkOutcome(new String[]{"a"},ba.computeAlphabet("a && a"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -425,6 +430,7 @@ public class TestLTL_to_ba
 	public final void testExpr5()
 	{
 		checkOutcome(new String[]{},ba.interpretString("a && b"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a && b"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -432,6 +438,7 @@ public class TestLTL_to_ba
 	public final void testExpr6()
 	{
 		checkOutcome(new String[]{"a","b"},ba.interpretString("a || b"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a || b"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -439,6 +446,7 @@ public class TestLTL_to_ba
 	public final void testExpr7()
 	{
 		checkOutcome(new String[]{"c"},ba.interpretString("a && b || c"));
+		checkOutcome(new String[]{"a","b","c"},ba.computeAlphabet("a && b || c"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -446,6 +454,7 @@ public class TestLTL_to_ba
 	public final void testExpr8()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("(a)"));
+		checkOutcome(new String[]{"a"},ba.computeAlphabet("(a)"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -453,6 +462,7 @@ public class TestLTL_to_ba
 	public final void testExpr9()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("((a))"));
+		checkOutcome(new String[]{"a"},ba.computeAlphabet("((a))"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -460,6 +470,7 @@ public class TestLTL_to_ba
 	public final void testExpr10()
 	{
 		checkOutcome(new String[]{"a","b"},ba.interpretString("((a) || b)"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("((a) || b)"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -467,6 +478,7 @@ public class TestLTL_to_ba
 	public final void testExpr11()
 	{
 		checkOutcome(new String[]{"a","b"},ba.interpretString("((a || (b)))"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("((a || (b)))"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -475,6 +487,10 @@ public class TestLTL_to_ba
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("");
+		}},IllegalArgumentException.class,"unexpected end");
+		
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.computeAlphabet("");
 		}},IllegalArgumentException.class,"unexpected end");
 	}
 	
@@ -485,6 +501,10 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("()");
 		}},IllegalArgumentException.class,"unexpected end");
+
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.computeAlphabet("()");
+		}},IllegalArgumentException.class,"unexpected end");
 	}
 	
 	/** Tests parser of expressions. */
@@ -494,6 +514,10 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("b && (!())");
 		}},IllegalArgumentException.class,"unexpected end");
+		
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.computeAlphabet("b && (!())");
+		}},IllegalArgumentException.class,"unexpected end");
 	}
 	
 	/** Tests parser of expressions. */
@@ -501,6 +525,7 @@ public class TestLTL_to_ba
 	public final void testExpr13()
 	{
 		checkOutcome(new String[]{"c","b"},ba.interpretString("((!a || (b)))"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("((!a || (b)))"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -508,6 +533,7 @@ public class TestLTL_to_ba
 	public final void testExpr14()
 	{
 		checkOutcome(new String[]{"c"},ba.interpretString("!((a || (b)))"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("!((a || (b)))"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -515,6 +541,7 @@ public class TestLTL_to_ba
 	public final void testExpr15()
 	{
 		checkOutcome(new String[]{"c"},ba.interpretString("((1 || (b)) && c)"));
+		checkOutcome(new String[]{"1","b","c"},ba.computeAlphabet("((1 || (b)) && c)"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -522,6 +549,7 @@ public class TestLTL_to_ba
 	public final void testExpr16()
 	{
 		checkOutcome(new String[]{},ba.interpretString("(!(1 || (b)) && c)"));
+		checkOutcome(new String[]{"1","b","c"},ba.computeAlphabet("(!(1 || (b)) && c)"));
 	}
 
 	/** Tests parser of expressions. */
@@ -529,6 +557,7 @@ public class TestLTL_to_ba
 	public final void testExpr17()
 	{
 		checkOutcome(new String[]{"c"},ba.interpretString("(!(a || (b)) && c)"));
+		checkOutcome(new String[]{"c","a","b"},ba.computeAlphabet("(!(a || (b)) && c)"));
 	}
 	
 	
@@ -537,6 +566,7 @@ public class TestLTL_to_ba
 	public final void testExpr18()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("a && !!!b"));
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a && !!!b"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -544,6 +574,7 @@ public class TestLTL_to_ba
 	public final void testExpr19()
 	{
 		checkOutcome(new String[]{"a"},ba.interpretString("a && !!(!b && !((b && 1)))"));
+		checkOutcome(new String[]{"a","b","1"},ba.computeAlphabet("a && !!(!b && !((b && 1)))"));
 	}
 	
 	
@@ -554,6 +585,10 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a | b");
 		}},IllegalArgumentException.class,"failed to lex ");
+		
+		checkForCorrectException(new whatToRun() { public void run() {
+			ba.computeAlphabet("a | b");
+		}},IllegalArgumentException.class,"failed to lex ");
 	}
 	
 	/** Tests parser of expressions. */
@@ -563,6 +598,8 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || || b");
 		}},IllegalArgumentException.class,"expected word ");
+		
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a || || b"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -572,6 +609,8 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || && b");
 		}},IllegalArgumentException.class,"expected word ");
+
+		checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a || && b"));
 	}
 	
 	/** Tests parser of expressions. */
@@ -581,6 +620,8 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || b c ");
 		}},IllegalArgumentException.class,"expected binary operation ");
+
+		checkOutcome(new String[]{"a","b","c"},ba.computeAlphabet("a || b c "));
 	}
 	
 	/** Tests parser of expressions. */
@@ -590,6 +631,8 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || b (c) ");
 		}},IllegalArgumentException.class,"expected binary operation ");
+
+		checkOutcome(new String[]{"a","b","c"},ba.computeAlphabet("a || b (c) "));
 	}
 	
 	/** Tests parser of expressions. */
@@ -599,6 +642,8 @@ public class TestLTL_to_ba
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || b !(c) ");
 		}},IllegalArgumentException.class,"expected binary operation ");
+
+		checkOutcome(new String[]{"a","b","c"},ba.computeAlphabet("a || b !(c) "));
 	}
 	
 	/** Tests parser of expressions. */
@@ -607,6 +652,10 @@ public class TestLTL_to_ba
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
 			ba.interpretString("a || b)");
+		}},IllegalArgumentException.class,"extra tokens at the end ");
+
+		checkForCorrectException(new whatToRun() { public void run() {
+			checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a || b)"));
 		}},IllegalArgumentException.class,"extra tokens at the end ");
 	}
 	

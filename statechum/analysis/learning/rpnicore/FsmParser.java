@@ -57,7 +57,7 @@ public class FsmParser
 	public FsmParser(String whatToParse)
 	{
 		text = "\n"+whatToParse;
-		lexer = Pattern.compile("([^\n #\\055<>/=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n/] *)").matcher(text);
+		lexer = Pattern.compile("([^\n#\\055<>/=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n/] *)").matcher(text);
 	}
 	
 	protected boolean isFinished()
@@ -82,7 +82,7 @@ public class FsmParser
 		if (i == lexer.groupCount()+1)
 			throwException("failed to lex (group number is out of boundary)");
 
-		lastMatch = lexer.group(i);
+		lastMatch = lexer.group(i).trim();
 		lexer.region(lexer.end(i),lexer.regionEnd());
 		return i-1;// to bring it to 0..max from 1..max+1
 	}

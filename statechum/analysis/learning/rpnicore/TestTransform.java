@@ -1470,7 +1470,7 @@ public class TestTransform {
 			Transform.countSharedTransitions(big, small);
 		}},IllegalArgumentException.class,"small graph is not contained in the large one, from [ A, B ] unmatched transition c to (nothing_in_big,D)");
 	}
-	
+
 	@Test
 	public final void testQuanteKoschke1()
 	{
@@ -1523,4 +1523,98 @@ public class TestTransform {
 		Assert.assertEquals(0.33, ourDifference,0.01);
 	}
 	
+	@Test
+	public final void testInterpretLabelsOnGraph0()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(config);
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph1()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph2()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a || c->B-a->A\nB-c->C-b->C","testInterpretLabelsOnGraph2a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-c->B-a->A\nB-c->C-b->C","testInterpretLabelsOnGraph2b"),config);
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph3()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-c && a->C","testInterpretLabelsOnGraph3a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C","testInterpretLabelsOnGraph3b"),config);
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph4()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-1->C","testInterpretLabelsOnGraph3a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-a->C-c->C","testInterpretLabelsOnGraph3b"),config);
+		Set<String> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove("1");
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(alphabet);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph5()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-(1 && (a || b))->C","testInterpretLabelsOnGraph3a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-a->C-b->C","testInterpretLabelsOnGraph3b"),config);
+		Set<String> alphabet = graph.pathroutines.computeAlphabet();alphabet.remove("1");alphabet.add("b");
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(alphabet);
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph6()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("I-load->A / A- !exit && !close ->A-close->I / R-close->P-edit || save || close-#R1 / P-load->A1 / A==THEN==R","testInterpretLabelsOnGraph6a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("I-load->A / A-edit->A-save->A-load->A-close->I / R-close->P-edit-#R1 / P-save-#R2 / P-load->A1 / P-close-#R4 / A==THEN==R","testInterpretLabelsOnGraph6b"),config);
+		Set<String> alphabet = new TreeSet<String>();alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close","exit"}));
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(alphabet);
+		expected.addTransition(expected.transitionMatrix.get(expected.findVertex(VertexID.parseID("A"))), "to_R",expected.findVertex(VertexID.parseID("R")));
+		outcome.addTransition(outcome.transitionMatrix.get(outcome.findVertex(VertexID.parseID("A"))), "to_R",outcome.findVertex(VertexID.parseID("R")));
+		//Visualiser.updateFrame(PathRoutines.convertPairAssociationsToTransitions(expected,config), PathRoutines.convertPairAssociationsToTransitions(outcome,config));
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
+	
+	@Test
+	public final void testInterpretLabelsOnGraph7()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-!exit->A / R-exit->P-1-#R1 / A==THEN==R","testInterpretLabelsOnGraph7a"),config);
+		final LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-edit->A-save->A-load->A-close->A / R-exit->P-edit-#R1 / P-save-#R2 / P-load-#R3 / P-exit-#R4 / P-close-#R5 / A==THEN==R","testInterpretLabelsOnGraph7b"),config);
+		Set<String> alphabet = new TreeSet<String>();alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close","exit"}));
+		final LearnerGraph outcome = graph.transform.interpretLabelsOnGraph(alphabet);
+		expected.addTransition(expected.transitionMatrix.get(expected.findVertex(VertexID.parseID("A"))), "to_R",expected.findVertex(VertexID.parseID("R")));
+		outcome.addTransition(outcome.transitionMatrix.get(outcome.findVertex(VertexID.parseID("A"))), "to_R",outcome.findVertex(VertexID.parseID("R")));
+		DifferentFSMException ex= WMethod.checkM_and_colours(expected, outcome, VERTEX_COMPARISON_KIND.NONE);
+		Assert.assertNull(ex==null?"":ex.toString(),ex);
+	}
 }

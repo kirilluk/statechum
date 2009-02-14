@@ -57,7 +57,7 @@ public class FsmParser
 	public FsmParser(String whatToParse)
 	{
 		text = "\n"+whatToParse;
-		lexer = Pattern.compile("([^\n #\\055<>\\|=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n\\|] *)").matcher(text);
+		lexer = Pattern.compile("([^\n #\\055<>/=]+)|( *<\\055+ *)|( *\\055+> *)|( *#\\055+ *)|( *\\055+# *)|( *\\055+ *)|( *=+ *)|( *[\n/] *)").matcher(text);
 	}
 	
 	protected boolean isFinished()

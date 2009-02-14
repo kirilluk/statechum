@@ -41,6 +41,7 @@ public class AllTests {
 		statechum.analysis.learning.TestRpniLearner.class,
 		statechum.analysis.learning.rpnicore.TestLTL_to_ba.class,
 		statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.class,
+		statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
 		statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
 		statechum.analysis.learning.TestLoadAnswers.class,
 		statechum.analysis.learning.experiments.TestExperimentRunner.class,

@@ -48,6 +48,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.apps.QSMTool;
+import statechum.model.testset.PTASequenceEngine;
 
 public class Transform 
 {
@@ -520,11 +521,59 @@ public class Transform
 		
 	}
 	
+	/** Similar to AugmentPTA on a non-existing matrix but expects the path corresponding to the question to already exist.
+	 * Whenever a user confirms a question, this method is used to add this question to a tentative automaton,  
+	 * thus making sure that
+	 * <ul>
+	 * <li>when we re-generate a collection of questions from a PTA of questions, this question will not be asked again and</li>
+	 * <li><em>augmentFromIfThenAutomaton</em> will know that this path exists and hence will augment the automaton
+	 * based on the path, potentially answering more questions. Such an augmentation will not introduce a contradiction
+	 * because the decision whether to augment is based on existence of specific paths, thus an addition of them will
+	 * not stop IF conditions from matching - this is a very important condition relying on linear constraints, i.e. 
+	 * the IF part matches if there is a path to a match state; THENs cannot make existing paths disappear. 
+	 * The only potential source of contradictions is the THEN parts (potentially
+	 * recursively built). If a THEN part contradicts a tentative automaton, it will do so when all questions are answered.
+	 * The contradiction with a different THEN part is possible but given the additive nature of IF conditions, it will
+	 * also be present when all questions are answered.
+	 * </ul>
+	 * Each state entered can be of either of the two kinds, a real state from the graph's transition
+	 * matrix or a non-existing state where we explore a PTA of questions. A collection of such non-existing vertices
+	 * is constructed when PTA of questions is built and we remove nodes from it when they are encountered as a part
+	 * of unrolling the THEN parts in the <em>augmentFromIfThenAutomaton</em> method below and when marking paths
+	 * as answered by a user below.
+	 */
+	public boolean AugmentNonExistingMatrixWith(List<String> question, boolean accept)
+	{
+		PTASequenceEngine engine = coregraph.learnerCache.getQuestionsPTA();
+		if (engine == null)
+			throw new IllegalArgumentException("questions PTA has not been computed yet"); 
+
+		NonExistingPaths nonExisting = (NonExistingPaths) engine.getFSM();
+		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
+		CmpVertex currentState = coregraph.init;
+		nonExisting.nonExistingVertices.remove(currentState);
+		for(String label:question)
+		{
+			Map<String,CmpVertex> graphTargets = nonexistingMatrix.get(currentState);
+			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
+				graphTargets = coregraph.transitionMatrix.get(currentState);
+			currentState = graphTargets.get(label);
+			assert currentState != null;
+			nonExisting.nonExistingVertices.remove(currentState);
+		}
+		return currentState.isAccept() == accept;
+	}
+	
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
 	 * property answers the supplied questions.
-	 * 
+	 * <p>
+	 * Each state entered can be of either of the two kinds, a real state from the graph's transition
+	 * matrix or a non-existing state where we explore a PTA of questions. A collection of such non-existing vertices
+	 * is constructed when PTA of questions is built and we remove nodes from it when they are encountered as a part
+	 * of unrolling the THEN parts.
 	 * @param graph graph to consider and perhaps modify
-	 * @param questionPaths PTA with questions, ignored if null, otherwise answered questions are marked.
+	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
+	 * This PTA is ignored if null, otherwise answered questions are marked.
 	 * @param ifthenGraph property automaton to consider.
 	 * @param howManyToAdd how many waves of transitions to add to the graph. 
 	 * This means that paths of at most <em>howMayToAdd</em> transitions will be added. 
@@ -539,6 +588,7 @@ public class Transform
 		for(CmpVertex state:graph.transitionMatrix.keySet())
 			if (state.getID().getKind() == VertKind.NONEXISTING)
 				throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
+		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.nonExistingVertices;
 		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Set<ExplorationElement> visited = new HashSet<ExplorationElement>();
@@ -603,8 +653,8 @@ public class Transform
 				graphTargets = nonexistingMatrix.get(explorationElement.graphState);
 				if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 					graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
-				if (questionPaths != null && explorationElement.graphState.getID().getKind() == VertKind.NONEXISTING)
-					questionPaths.nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
+				if (explorationElement.graphState.getID().getKind() == VertKind.NONEXISTING)
+					nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
 			}
 
 			Map<String,CmpVertex> propertyTargets = explorationElement.propertyState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.propertyState),
@@ -634,7 +684,15 @@ public class Transform
 
 					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth, label,explorationElement);
 					if (!visited.contains(nextExplorationElement) &&
-						(nextExplorationElement.graphState == null || nextExplorationElement.thenState != null || nextExplorationElement.graphState.getID().getKind() != VertKind.NONEXISTING))
+							// An IF part can match a part of a question but unless we know we can get there 
+							// (either by a user confirming that part by answering a question or by THEN parts),
+							// we should not perform such a match. For this reason,
+							// we'd like not to keep exploring when the aim is to match question PTA with our IF part 
+							// in the absence of an active THEN part to extend, when
+							// a graph can make a transition into a questions PTA or it is already
+							// in the questions PTA and the current transition leads to an element which was not previously explored.
+						!(nextExplorationElement.graphState != null && nextExplorationElement.thenState == null 
+								&& nonExistingVertices.contains(nextExplorationElement.graphState)))
 					{// not seen this triple already and if we are traversing question vertices then we should be extending using the THEN part.
 						//System.out.println("G: "+explorationElement+"-"+label+"->"+nextExplorationElement);
 						visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
@@ -665,7 +723,15 @@ public class Transform
 						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth,label,explorationElement);
 
 						if (!visited.contains(nextExplorationElement) &&
-							(nextExplorationElement.graphState == null || nextExplorationElement.thenState != null || nextExplorationElement.graphState.getID().getKind() != VertKind.NONEXISTING))
+								// An IF part can match a part of a question but unless we know we can get there 
+								// (either by a user confirming that part by answering a question or by THEN parts),
+								// we should not perform such a match. For this reason,
+								// we'd like not to keep exploring when the aim is to match question PTA with our IF part 
+								// in the absence of an active THEN part to extend, when
+								// a graph can make a transition into a questions PTA or it is already
+								// in the questions PTA and the current transition leads to an element which was not previously explored.
+							!(nextExplorationElement.graphState != null && nextExplorationElement.thenState == null 
+									&& nonExistingVertices.contains(nextExplorationElement.graphState)))
 						{// not seen this triple already (note that matched states added in the labelstate:graphTargets.entrySet() loop 
 						 // will be ignored here, including the state which have just been added above).
 							//System.out.println("T: "+explorationElement+"-"+label+"->"+nextExplorationElement);
@@ -678,7 +744,7 @@ public class Transform
 			// in a tentative automaton - those transitions are ignored.
 		}// while(!currentExplorationBoundary.isEmpty())
 		
-		graph.learnerCache.invalidate();
+		if (howManyToAdd>0) graph.learnerCache.invalidate();
 	}
 	
 	/** Given a deterministic version of a maximal automaton, this method converts it to an if-then

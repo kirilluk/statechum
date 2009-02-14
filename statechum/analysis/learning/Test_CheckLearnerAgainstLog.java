@@ -32,6 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.JUConstants;
 import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -188,6 +189,13 @@ public class Test_CheckLearnerAgainstLog
 					{
 						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
 					}
+				
+				@Override
+				public void AugumentPTA_and_QuestionPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
+						List<String> sequence, boolean accepted, JUConstants newColour)
+				{
+					topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
+				}
 			};
 		    
 		}

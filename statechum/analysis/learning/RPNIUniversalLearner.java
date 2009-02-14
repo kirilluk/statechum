@@ -102,8 +102,6 @@ public class RPNIUniversalLearner extends RPNILearner
 	 */
 	protected Collection<LearnerGraph> ifthenAutomata = null;
 	
-	
-	
 	public boolean AddConstraints(LearnerGraph pta, LearnerGraph outcome, StringBuffer counterExampleHolder)
 	{
 		if (ifthenAutomata == null) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, pta, config);
@@ -137,6 +135,15 @@ public class RPNIUniversalLearner extends RPNILearner
 		pta.paths.augmentPTA(sequence, accepted, false, newColour);
 	}
 
+	public void AugumentPTA_and_QuestionPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
+			List<String> sequence, boolean accepted, JUConstants newColour)
+	{
+		topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
+		tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question
+		// since we've attempted to augment our new tentative automaton and reached no contradiction, 
+		// we can add new paths one-by one here and expect no contradiction.
+	}
+	
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
 	
 	public LearnerGraph learnMachine()
@@ -192,11 +199,6 @@ public class RPNIUniversalLearner extends RPNILearner
 				if(counterExamples.size()>0)
 					restartLearning = RestartLearningEnum.restartSOFT;
 			}
-			int questionsBeforeConstraints = -1;
-			if (config.isUseConstraints() && shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE)
-			{
-				questionsBeforeConstraints = ComputeQuestions.computeQS(pair, tentativeAutomaton,temp, null).size();
-			}
 			
 			if (config.isUseConstraints()) 
 			{
@@ -213,22 +215,21 @@ public class RPNIUniversalLearner extends RPNILearner
 				// finished with questions.
 			}
 
-			if (shouldAskQuestions(score) && restartLearning == RestartLearningEnum.restartNONE) 
+			Iterator<List<String>> questionIt = null;
+			
+			if (restartLearning == RestartLearningEnum.restartNONE && shouldAskQuestions(score)) 
 			{
 				temp.setName(learntGraphName+"_"+iterations);
 				//LearnerGraph updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, tentativeAutomaton, temp);
 				//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual);
+
 				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+				questionIt = questions.iterator();
 			}
-			//System.out.println("<info> questions, before constraints : "+questionsBeforeConstraints+", after: "+questions.size());
-			Iterator<List<String>> questionIt = questions.iterator();
-			boolean questionAnswered = true;
-			List<String> question = null;
-			while (questionIt.hasNext() && restartLearning == RestartLearningEnum.restartNONE) 
+			
+			while (restartLearning == RestartLearningEnum.restartNONE && questionIt != null && questionIt.hasNext()) 
 			{
-				if (questionAnswered) question = questionIt.next();// only pick next question if we've got an answer to the previous one
-				assert question != null;// this clears subsequent warnings that question may be null :)
-				questionAnswered = false;
+				List<String> question = questionIt.next();
 				
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
@@ -239,38 +240,39 @@ public class RPNIUniversalLearner extends RPNILearner
 				boolean answerFromSpin = false;
 				if(answer != null && answer.firstElem >= 0) 
 					answerFromSpin = true;
-				else{
-					//System.out.println("<question> "+question);
+				else
 					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePath(question), new Object[] { "LTL"});
-				}
 				
-				if (answer.firstElem == AbstractOracle.USER_CANCELLED) {
+				if (answer.firstElem == AbstractOracle.USER_CANCELLED) 
+				{
 					System.out.println("CANCELLED");
 					return null;
 				}
 				
-
-				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) {
+				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) 
+				{
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
-						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
+						AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
+					
 					if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
 
-					questionAnswered = true;
 					if (!tempVertex.isAccept()) 
 					{// contradiction with the result of merging
 						if(!answerFromSpin)
 							restartLearning = RestartLearningEnum.restartHARD;
 						else
 							restartLearning = RestartLearningEnum.restartSOFT;
-						break;
+						
 					}
-				} else if (answer.firstElem >= 0) {// The sequence has been rejected by a user
+				} else 
+				if (answer.firstElem >= 0) 
+				{// The sequence has been rejected by a user
 					assert answer.firstElem < question.size();
-					questionAnswered = true;
 					LinkedList<String> subAnswer = new LinkedList<String>();
 					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
-						topLevelListener.AugmentPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
+						AugumentPTA_and_QuestionPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
+
 					if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,colourToAugmentWith);
 					// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
@@ -283,9 +285,10 @@ public class RPNIUniversalLearner extends RPNILearner
 							restartLearning = RestartLearningEnum.restartHARD;
 						else
 							restartLearning = RestartLearningEnum.restartSOFT;
-						break;
+						
 					}
-				} else 
+				} 
+				else 
 					if(answer.firstElem == AbstractOracle.USER_LTL || answer.firstElem == AbstractOracle.USER_IFTHEN)
 					{
 						String answerType = null;
@@ -296,7 +299,8 @@ public class RPNIUniversalLearner extends RPNILearner
 								answerType = QSMTool.cmdIFTHENAUTOMATON;
 							else
 								throw new IllegalArgumentException("unexpected user choice kind "+answer.firstElem);
-						
+
+						restartLearning = RestartLearningEnum.restartRECOMPUTEQUESTIONS;
 						String addedConstraint = answer.secondElem;
 						boolean obtainedLTLViaAuto = addedConstraint != null;
 						if (addedConstraint == null) addedConstraint = JOptionPane.showInputDialog("New "+answerType+" formula:");
@@ -340,7 +344,13 @@ public class RPNIUniversalLearner extends RPNILearner
 					}
 					else
 						throw new IllegalArgumentException("unexpected user choice "+answer);
-			}
+				
+				if ( (config.isUseConstraints() && restartLearning == RestartLearningEnum.restartNONE) || restartLearning == RestartLearningEnum.restartRECOMPUTEQUESTIONS)
+				{
+					questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+					questionIt = questions.iterator();restartLearning = RestartLearningEnum.restartNONE;
+				}
+			} // loop of questions
 
 			if (restartLearning == RestartLearningEnum.restartHARD || 
 					restartLearning == RestartLearningEnum.restartSOFT) 

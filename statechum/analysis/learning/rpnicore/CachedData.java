@@ -23,6 +23,7 @@ import java.util.TreeMap;
 
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.model.testset.PTASequenceEngine;
 
 /** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
  * This includes rebuilding max score and flow graph, as well as routines used for
@@ -83,10 +84,20 @@ public class CachedData<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CA
 		return alphabet;
 	}
 
+	/** PTA of questions, so that I could walk through it and mark relevant nodes as visited,
+	 * a subsequent call to <em>getData</em> would then return the revised collection of questions.
+	 */
+	PTASequenceEngine questionsPTA = null;
+	
+	public PTASequenceEngine getQuestionsPTA()
+	{
+		return questionsPTA;
+	}
+	
 	public void invalidate()
 	{
 		flowgraph=null;stateToNumber = null;
-		alphabet=null;
+		alphabet=null;questionsPTA = null;
 	}
 
 }

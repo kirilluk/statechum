@@ -64,7 +64,7 @@ public class TestSolverRandomly {
 
 	public static String parametersToString(final Integer i, @SuppressWarnings("unused") final Random conf, Integer s)
 	{
-		return "random("+i+"), size "+s;
+		return "random{"+i+"}, size "+s;
 	}
 	
 	@Test

@@ -528,7 +528,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			oldToNew.put(state, cloneCmpVertex(state, result.config));
 
 		result.init = oldToNew.get(from.init);
-		addAndRelabelGraphs(from, oldToNew, result);
+		addAndRelabelGraphs(from, oldToNew, result);result.learnerCache.invalidate();
 	}
 
 	/** Copies a transition matrix and incompatible sets between graphs, relabelling states as specified.

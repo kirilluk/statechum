@@ -152,9 +152,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testFSMStructureEquals2e2()
 	{
-		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
@@ -175,9 +175,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testFSMStructureEquals2f2()
 	{
-		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
@@ -198,9 +198,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testFSMStructureEquals2g2()
 	{
-		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | A = MERGED = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / A = MERGED = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	
@@ -224,9 +224,9 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testFSMStructureEquals2h2()
 	{
-		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = A | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
-		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = A | B = INCOMPATIBLE = A", "testFSMStructureEquals2e"),config);
-		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B | C = INCOMPATIBLE = B | A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = A / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
+		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = A / B = INCOMPATIBLE = A", "testFSMStructureEquals2e"),config);
+		LearnerGraph c=new LearnerGraph(buildGraph("A-a->A-b->B\nA-c->C\nB-b->B / C = INCOMPATIBLE = B / A = INCOMPATIBLE = B", "testFSMStructureEquals2e"),config);
 		equalityTestingHelper(a,b,c,differentB);
 	}
 	

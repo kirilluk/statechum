@@ -43,8 +43,15 @@ public interface Learner
 	 * possible to determine. If such counter-examples are added to a collection of traces, they become
 	 * just such semi-trusted tentative data; an alternative is to mark the pair of state to be 
 	 * unmergeable and pick a different pair. This is called <em>restartRECOMPUTEPAIRS</em>.  
+	 * 
+	 * restartRECOMPUTEQUESTIONS is used in two cases, 
+	 * <ul>
+	 * <li>when a user felt like adding an LTL constraint but eventually decided not to and</li>
+	 * <li>when using constraints -  each question changes our PTA so we need to re-augment in order
+	 * to take the new hard fact into account in order to reduce the amount of questions being asked. 
+	 * </li></ul>
 	 */
-	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT,restartRECOMPUTEPAIRS }
+	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT,restartRECOMPUTEPAIRS, restartRECOMPUTEQUESTIONS }
 	
 	/** Learns the machine. When different learning events occur, the learner
 	 * calls its listeners (which are the decorators); these listeners are given

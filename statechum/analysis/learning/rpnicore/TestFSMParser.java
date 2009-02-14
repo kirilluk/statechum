@@ -99,7 +99,7 @@ public class TestFSMParser {
 
 	@Test
 	public void testFsmParse2() {
-		new bufferMatcher(" A-b->C1<-d0-P----a->C | A- b ->B-a->U",
+		new bufferMatcher(" A-b->C1<-d0-P----a->C / A- b ->B-a->U",
 			new String [] {
 				"A", "C1", "b",	 "ACCEPT",
 				"P", "C1", "d0", "ACCEPT",
@@ -118,7 +118,7 @@ public class TestFSMParser {
 
 	@Test
 	public void testFsmParse4() {
-		new bufferMatcher(" \n | | \n",
+		new bufferMatcher(" \n / / \n",
 			new String [] {
 			}).match();
 	}
@@ -232,7 +232,7 @@ public class TestFSMParser {
 		
 	@Test
 	public void testFsmParse_compatibility1() {
-		new bufferMatcher(" A-b->C1<-d0-P----a->C | A- b ->B-a->U | A== MERGED == B = INCOMPATIBLE == C",
+		new bufferMatcher(" A-b->C1<-d0-P----a->C / A- b ->B-a->U / A== MERGED == B = INCOMPATIBLE == C",
 			new String [] {
 				"A", "C1", "b",	 "ACCEPT",
 				"P", "C1", "d0", "ACCEPT",
@@ -246,7 +246,7 @@ public class TestFSMParser {
 
 	@Test
 	public void testFsmParse_compatibility2() {
-		new bufferMatcher(" A-b->C1<-d0-P----a->C | A== MERGED == B | A- b ->B-a->U | A== MERGED == B = INCOMPATIBLE == C",
+		new bufferMatcher(" A-b->C1<-d0-P----a->C / A== MERGED == B / A- b ->B-a->U / A== MERGED == B = INCOMPATIBLE == C",
 			new String [] {
 				"A", "C1", "b",	 "ACCEPT",
 				"P", "C1", "d0", "ACCEPT",

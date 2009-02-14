@@ -389,11 +389,17 @@ public class ComputeQuestions {
 			case SYMMETRIC:qConstructor=new SymmetricQuestionGenerator();break;
 			case ORIGINAL:assert false;break;// should not be reached because it is handled at the top of this routine.
 		}
-		PTASequenceEngine engine = computeQS_general(pair, original, merged, qConstructor);
+		PTASequenceEngine engine = original.learnerCache.getQuestionsPTA();
+		if (engine == null)
+		{
+			engine = computeQS_general(pair, original, merged, qConstructor);
+			original.learnerCache.questionsPTA = engine;
+		}
+		
 		if (properties != null)
 			for(LearnerGraph if_then:properties)
 				try {
-					// this marks visited questions ...
+					// this marks visited questions so that getData() we'll subsequently do will return only those questions which were not answered by property automata
 					Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), if_then, -1);
 				} catch (IncompatibleStatesException e) { 
 					Helper.throwUnchecked("failure doing merge on the original graph", e);
@@ -419,9 +425,12 @@ public class ComputeQuestions {
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
 			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else
-			questions = getQuestionPta(pair,original,merged,properties).getData();// ... and this one will return only those which were not answered by property automata
-
-		return ArrayOperations.sort(questions);// this appears important to ensure termination without using amber states
+		{
+			questions = getQuestionPta(pair,original,merged,properties).getData();// This one will return only those questions which were not answered by property automata
+		}
+		
+		return ArrayOperations.sort(questions);
+			// this appears important to ensure termination without using amber states
 			// because in an unsorted collection long paths may appear first and they will hence be added to PTA and we'll
 			// proceed to merge them.
 	}

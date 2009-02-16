@@ -698,7 +698,7 @@ public class LabelRepresentation {
 	
 	/** Similar to CheckWithEndUser, but works via SMT. 
 	 */
-	public int CheckWithEndUser(Smt solver,LearnerGraph graph,List<String> question)
+	public int CheckWithEndUser(Smt solver,List<String> question)
 	{
 		int pos = -1;
 		List<String> partialPath = new LinkedList<String>();

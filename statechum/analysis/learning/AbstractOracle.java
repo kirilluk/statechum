@@ -41,6 +41,11 @@ public interface AbstractOracle {
 	/** Means that a user offered an if-then automaton. */
 	public static final int USER_IFTHEN = -5;
 	
+	/** Means that a user chose to ignore this question, hence we assume that the answer was
+	 * compatible with the chosen state pair and not to add the supplied path to a PTA.
+	 */
+	public static final int USER_IGNORED = -6;
+	
 	/** Default value for a dialog box. */
 	public static final int USER_WAITINGFORSELECTION = -1;
 

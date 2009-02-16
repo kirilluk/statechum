@@ -31,10 +31,12 @@ import java.util.Map.Entry;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -71,6 +73,25 @@ public class MergeStates {
 		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
 	}
+	
+	/** Used to populate <em>result.learnerCache.setMergedStates</em> with dummy values. 
+	public void buildDummyMergeResult()
+	{
+		int i=0;
+		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		for(CmpVertex vertex:coregraph.transitionMatrix.keySet())
+		{
+			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(i++,coregraph);
+			try {
+				eqClass.addFrom(vertex, null);
+			} catch (IncompatibleStatesException e) {
+				Helper.throwUnchecked("failed to construct an AMEquivalenceClass with a single node", e);
+			}
+			mergedVertices.add(eqClass);
+		}	
+		coregraph.learnerCache.setMergedStates(mergedVertices);
+	}
+	*/
 	
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.

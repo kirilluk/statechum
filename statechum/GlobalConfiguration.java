@@ -44,7 +44,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
  */
 public class GlobalConfiguration {
 	public enum G_PROPERTIES { // internal properties
-		ASSERT,// whether to display assert warning.
+		ASSERT,// whether to display assert warnings. If this is set, a number of additional consistency checks are enabled.
 		TEMP, // temporary directory to use
 		LINEARWARNINGS,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
 		SMTWARNINGS,// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.

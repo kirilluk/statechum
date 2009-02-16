@@ -241,14 +241,20 @@ public class RPNIUniversalLearner extends RPNILearner
 				if(answer != null && answer.firstElem >= 0) 
 					answerFromSpin = true;
 				else
-					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePath(question), new Object[] { "LTL"});
+					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePath(question), new Object[] { "LTL","IFTHEN","IGNORE"});
 				
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) 
 				{
-					System.out.println("CANCELLED");
+					System.err.println("CANCELLED");
 					return null;
 				}
-				
+				else
+				if (answer.firstElem == AbstractOracle.USER_IGNORED)
+				{// do nothing
+					restartLearning = RestartLearningEnum.restartNONE;
+					System.err.println("<ignore> "+question);
+				}
+				else
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) 
 				{
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
@@ -426,7 +432,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	
 	/** We might be doing a restart, but it never hurts to go through the existing 
 	 * collection of vertices to merge and see if we can update the graph.
-	 *  
+	 * FIXME: there is no support for LTL/IFTHEN/IGNORE in this method.
 	 * @return true if question answering has been cancelled by a user.
 	 */
 	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph newPTA)

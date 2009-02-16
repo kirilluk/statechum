@@ -19,7 +19,6 @@ package statechum.analysis.learning.rpnicore;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1121,11 +1120,11 @@ public class TestSmtLabelRepresentation {
 		Smt.closeStdOut();
 		Smt smt = new Smt();
 		
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{})));
-		Assert.assertEquals(0,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{"remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{"add"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{"add","remove"})));
-		Assert.assertEquals(2,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{"add","remove","remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, graph, Arrays.asList(new String[]{"add","remove","add","add"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{})));
+		Assert.assertEquals(0,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove"})));
+		Assert.assertEquals(2,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove","remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove","add","add"})));
 	}		
 }

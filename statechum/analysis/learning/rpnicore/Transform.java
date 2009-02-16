@@ -585,9 +585,10 @@ public class Transform
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
 			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
 		
-		for(CmpVertex state:graph.transitionMatrix.keySet())
-			if (state.getID().getKind() == VertKind.NONEXISTING)
-				throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
+		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
+			for(CmpVertex state:graph.transitionMatrix.keySet())
+				if (state.getID().getKind() == VertKind.NONEXISTING)
+					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.nonExistingVertices;
 		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue

@@ -379,7 +379,7 @@ public class ComputeQuestions {
 		return engine.getData(PTASequenceEngine.truePred);
 	}
 	
-	public static PTASequenceEngine getQuestionPta(final StatePair pair, LearnerGraph original, LearnerGraph merged, Collection<LearnerGraph> properties)
+	public static PTASequenceEngine getQuestionPta(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
 	{
 		QuestionConstructor qConstructor=null;
 		switch(original.config.getQuestionGenerator())
@@ -397,17 +397,16 @@ public class ComputeQuestions {
 		}
 		
 		if (properties != null)
-			for(LearnerGraph if_then:properties)
-				try {
-					// this marks visited questions so that getData() we'll subsequently do will return only those questions which were not answered by property automata
-					Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), if_then, -1);
-				} catch (IncompatibleStatesException e) { 
-					Helper.throwUnchecked("failure doing merge on the original graph", e);
-					// An exception "cannot merge a tentative state" at this point means that
-					// a merged graph had a valid path (absent from the original graph) which
-					// contradicts the property automata, hence we should not even have gotten
-					// as far as trying to compute questions.
-				}
+			try {
+				// this marks visited questions so that getData() we'll subsequently do will return only those questions which were not answered by property automata
+				Transform.augmentFromIfThenAutomaton(original, (NonExistingPaths)engine.getFSM(), properties, -1);
+			} catch (IncompatibleStatesException e) { 
+				Helper.throwUnchecked("failure doing merge on the original graph", e);
+				// An exception "cannot merge a tentative state" at this point means that
+				// a merged graph had a valid path (absent from the original graph) which
+				// contradicts the property automata, hence we should not even have gotten
+				// as far as trying to compute questions.
+			}
 		return engine;
 	}
 	
@@ -419,7 +418,21 @@ public class ComputeQuestions {
 	 * @param merged automaton after the merge
 	 * @param properties IF-THEN automata used to answer questions.
 	 */
-	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, Collection<LearnerGraph> properties)
+	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
+	{
+		original.learnerCache.questionsPTA = null;
+		return RecomputeQS(pair, original, merged, properties);
+	}
+	
+	/** Given a pair of states merged in a graph and the result of merging, 
+	 * this method determines questions to ask.
+	 * 
+	 * @param pair pair of state to be merged
+	 * @param original automaton before the above pair has been merged.
+	 * @param merged automaton after the merge
+	 * @param properties IF-THEN automata used to answer questions.
+	 */
+	public static List<List<String>> RecomputeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
 	{
 		List<List<String>> questions = null;
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)

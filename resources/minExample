@@ -15,7 +15,7 @@ ltl !((edit) V (!save) && [](save -> X((edit) V (!save))))
 #ltl !((load) V !(edit)))
 #ltl !((exit) -> [](exit))
 
-# important: these machines are applied one after another, hence the order in which they are provided is important.
+# The machines below are applied at the same time, hence the order in which they are provided does not matter.
 
 #the first machine is an expanded one, the second one (not commented out is the compact version of the first one
 # "closeProps" is the name of this machine

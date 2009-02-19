@@ -643,6 +643,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 
 	/** Tests merging of states <em>stateRed</em> and <em>stateBlue</em> of <em>machineToMerge</em>.
 	 * The outcome of merging has to be equivalent to <em>expectedFSM</em>. 
+	 * <p>
+	 * Important: testing of <em>buildVertexToEqClassMap</em> is included in testFSMAlgo.
 	 * 
 	 * @param machineToMerge machine to merge
 	 * @param expectedFSM the expected result

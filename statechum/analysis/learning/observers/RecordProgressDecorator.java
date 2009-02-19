@@ -233,6 +233,16 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 	
+	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	{
+		List<List<String>> result = decoratedLearner.RecomputeQuestions(pair, original, temp);
+		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
+		Element questionList = writeSequenceList(StatechumXML.ATTR_MOREQUESTIONS.name(), result);
+		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
+		writeElement(questions);
+		return result;
+	}
+	
 	/** Stores the current learner input parameters. */
 	public void writeLearnerEvaluationData(LearnerEvaluationConfiguration cnf)
 	{

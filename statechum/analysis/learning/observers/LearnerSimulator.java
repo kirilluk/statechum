@@ -436,6 +436,18 @@ public class LearnerSimulator extends ProgressDecorator
 		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_QUESTIONS.name());
 	}
 
+	/** Called by the simulator.
+	 * 
+	 * @param pair loaded from XML.
+	 * @param original estimated value.
+	 * @param temp estimated value.
+	 * @return loaded from XML.
+	 */
+	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp)
+	{
+		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_MOREQUESTIONS.name());
+	}
+
 	/** Extracts the child of the current element with the provided name. 
 	 * 
 	 * @param name the name of the element to retrieve

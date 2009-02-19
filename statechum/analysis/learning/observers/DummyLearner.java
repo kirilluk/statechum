@@ -60,6 +60,11 @@ public class DummyLearner extends LearnerDecorator
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 
+	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	{
+		return decoratedLearner.RecomputeQuestions(pair, original, temp);
+	}
+
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original,StatePair pair) 
 	{
 		return decoratedLearner.MergeAndDeterminize(original, pair);

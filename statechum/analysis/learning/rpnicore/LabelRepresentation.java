@@ -648,8 +648,8 @@ public class LabelRepresentation {
 			return true;// both states are initial states.
 		
 		if (B.lastLabel == null)
-		{
-			AbstractState C = A;A = B;B = C;//swap them
+		{// If both states are not null, we make B's last label not null by swapping it with A
+			AbstractState C = A;A = B;B = C;
 		}
 		
 		solver.pushContext();
@@ -661,7 +661,7 @@ public class LabelRepresentation {
 			assertString+"(and"+ENDL+
 			toCurrentMem(B.lastLabel.post,A.stateNumber,B.stateNumber-1)+ENDL+
 			"))";
-		//System.err.println(text);
+
 		solver.loadData(text);
 		boolean outcome = solver.check();
 		solver.popContext();
@@ -678,7 +678,7 @@ public class LabelRepresentation {
 					throw new IllegalArgumentException("state "+entry.getKey()+" has an unsatisfiable abstract state");
 	}
 
-	/** Checks if a path condition corresponding to an abstrast state is satisfiable.
+	/** Checks if a path condition corresponding to an abstract state is satisfiable.
 	 * @return false if a path leading to the supplied state is not satisfiable. 
 	 */
 	protected boolean checkSatisfiability(Smt solver, VertexID state)

@@ -827,6 +827,13 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
+	public List<List<String>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair,
+			@SuppressWarnings("unused")	LearnerGraph original, 
+			@SuppressWarnings("unused")	LearnerGraph temp) 
+	{
+		throw new UnsupportedOperationException("uses an internal method");
+	}
+
 	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused")	LearnerGraph original,
 			@SuppressWarnings("unused")	StatePair pair) 
 	{
@@ -851,6 +858,4 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	{
 		throw new UnsupportedOperationException("does not use constraints");
 	}
-
-
 }

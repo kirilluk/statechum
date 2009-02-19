@@ -127,6 +127,16 @@ public interface Learner
 	 */
 	public List<List<String>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
 	
+	/** Given a pair of graphs, rebuilds a set of questions to validate the merge which 
+	 * resulted in the second graph. This one retains a Pta of questions previously asked
+	 * and hence can be used to dynamically update the collection of questions using if-then automata.
+	 * 
+	 * @param original the original graph
+	 * @param temp the merged graph
+	 * @param pair the pair of states merged in the original graph
+	 */
+	public List<List<String>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted.
 	 * 

@@ -61,17 +61,23 @@ public class MachineOracleDecorator extends LearnerDecorator {
 		return new Pair<Integer, String>(answer,null);
 	}
 
-	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
+	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+	{
 		return decoratedLearner.ChooseStatePairs(graph);
 	}
 
-	public List<List<String>> ComputeQuestions(PairScore pair,
-			LearnerGraph original, LearnerGraph temp) {
+	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	{
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 
-	public LearnerGraph MergeAndDeterminize(LearnerGraph original,
-			StatePair pair) {
+	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	{
+		return decoratedLearner.RecomputeQuestions(pair, original, temp);
+	}
+
+	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+	{
 		return decoratedLearner.MergeAndDeterminize(original, pair);
 	}
 

@@ -35,6 +35,7 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.model.testset.PTASequenceEngine;
 
 public abstract class RPNILearner extends Observable implements Learner {
@@ -114,7 +115,9 @@ public abstract class RPNILearner extends Observable implements Learner {
 	{
 		setChanged();
 		if (config.getDebugMode())
-			notifyObservers(g);
+		{
+			notifyObservers(PathRoutines.convertPairAssociationsToTransitions(g,g.config));
+		}
 	}
 	
 
@@ -199,12 +202,11 @@ public abstract class RPNILearner extends Observable implements Learner {
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
+	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
 			final int lengthInHardFacts, final Object [] moreOptions)
 	{
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
-		updateGraph(model);
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {

@@ -19,6 +19,8 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
@@ -56,7 +58,16 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	public void invalidate()
 	{
 		super.invalidate();
-		mergedStates = null;maxScore=-1;stateLearnt = null;
+		mergedStates = null;maxScore=-1;stateLearnt = null;vertexToEqClass = null;
+	}
+	
+	/** A map from merged vertices to collections of original vertices they correspond to.
+	 */
+	Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> vertexToEqClass = null; 
+
+	public Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getVertexToEqClass()
+	{
+		return vertexToEqClass;
 	}
 	
 }

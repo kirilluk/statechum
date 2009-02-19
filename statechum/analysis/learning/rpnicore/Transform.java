@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -405,6 +406,61 @@ public class Transform
 		return graphModified?result:null;
 	}
 
+	public static class GraphAndState
+	{
+		public final LearnerGraph graph;
+		public final CmpVertex state;
+		
+		public GraphAndState(LearnerGraph gr, CmpVertex s)
+		{
+			graph = gr;state =s;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
+			result = prime * result + ((state == null) ? 0 : state.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof GraphAndState))
+				return false;
+			GraphAndState other = (GraphAndState) obj;
+			if (graph != other.graph)
+				return false;// we care about referential equality only here because if there are multiple equal graphs, we attempt to match all their thens and it will only be somewhat inefficient, compared to invoking inefficient equals() function on graphs.
+			
+			if (state == null) {
+				if (other.state != null)
+					return false;
+			} else if (!state.equals(other.state))
+				return false;
+			return true;
+		}
+		
+		@Override
+		public String toString()
+		{
+			if (graph == null)
+				return "<none>";
+			
+			return state.toString()+" from "+graph.toString();
+		}
+	}
+	
 	/** We explore a cross-product of a 
 	 * <ul>
 	 * <li>union of a tentative automaton with one of the "then automata" and </li>
@@ -419,16 +475,18 @@ public class Transform
 	{
 		/** How far from the last existing state in a tentative automaton we've gone. */
 		public final int depth;
-		public final CmpVertex graphState, thenState, propertyState;
+		public final CmpVertex graphState, thenState;
+		public final LearnerGraph thenGraph;
+		public final CmpVertex [] propertyState;
 		public final ExplorationElement previousElement;
 		
 		/** Either a string or a PAIRCOMPATIBILITY enum. */
 		public final Object inputToThisState;
 		
 		
-		public ExplorationElement(CmpVertex graphS, CmpVertex thenS, CmpVertex propertyS, int currDepth, Object input, ExplorationElement previous)
+		public ExplorationElement(CmpVertex graphS, LearnerGraph thenG, CmpVertex thenS, CmpVertex[] propertyS, int currDepth, Object input, ExplorationElement previous)
 		{
-			graphState = graphS;thenState = thenS;propertyState = propertyS;depth = currDepth;
+			graphState = graphS;thenGraph = thenG;thenState = thenS;propertyState = propertyS;depth = currDepth;
 			previousElement =previous;
 			assert input == null || input instanceof PAIRCOMPATIBILITY || input instanceof String;
 			inputToThisState = input;
@@ -444,9 +502,12 @@ public class Transform
 			result = prime * result
 					+ ((graphState == null) ? 0 : graphState.hashCode());
 			result = prime * result
-					+ ((propertyState == null) ? 0 : propertyState.hashCode());
+					+ Arrays.deepHashCode(propertyState);
 			result = prime * result
-					+ ((thenState == null) ? 0 : thenState.hashCode());
+				+ ((thenGraph == null) ? 0 : thenGraph.hashCode());
+			result = prime * result
+				+ ((thenState == null) ? 0 : thenState.hashCode());
+			
 			return result;
 		}
 
@@ -467,16 +528,18 @@ public class Transform
 					return false;
 			} else if (!graphState.equals(other.graphState))
 				return false;
-			if (propertyState == null) {
-				if (other.propertyState != null)
-					return false;
-			} else if (!propertyState.equals(other.propertyState))
+			if (!Arrays.equals(propertyState, other.propertyState))
 				return false;
+			if (thenGraph != other.thenGraph)
+				return false;// we care about referential equality only here because if there are multiple equal graphs, 
+					// we attempt to match all their thens and it will only be somewhat inefficient, 
+					// compared to invoking inefficient equals() function on graphs.
 			if (thenState == null) {
 				if (other.thenState != null)
 					return false;
 			} else if (!thenState.equals(other.thenState))
 				return false;
+			
 			return true;
 		}
 
@@ -485,7 +548,7 @@ public class Transform
 		 */
 		@Override
 		public String toString() {
-			return "( graph: "+graphState+", THEN: "+thenState+" property: "+propertyState+ ", depth: "+depth+" )";
+			return "( graph: "+graphState+", THEN: "+thenState+" from "+thenGraph+", property: "+propertyState+ ", depth: "+depth+" )";
 		}
 	}
 
@@ -579,7 +642,7 @@ public class Transform
 	 * This means that paths of at most <em>howMayToAdd</em> transitions will be added. 
 	 * If this value if not positive, the graph remains unchanged.
 	 */
-	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph ifthenGraph,  
+	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph [] ifthenGraphs,  
 			int howManyToAdd) throws AugmentFromIfThenAutomatonException
 	{
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
@@ -589,19 +652,24 @@ public class Transform
 			for(CmpVertex state:graph.transitionMatrix.keySet())
 				if (state.getID().getKind() == VertKind.NONEXISTING)
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
+		
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.nonExistingVertices;
 		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Set<ExplorationElement> visited = new HashSet<ExplorationElement>();
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
-		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,ifthenGraph.init,0,null,null);
-		currentExplorationBoundary.add(explorationElement);
 		
+		CmpVertex [] propertyStates = new CmpVertex[ifthenGraphs.length];int cnt=0;
+		for(LearnerGraph ifthenGraph:ifthenGraphs) propertyStates[cnt++]=ifthenGraph.init;
+		ExplorationElement explorationElement = new ExplorationElement(graph.init,null,null,propertyStates,0,null,null);
+		currentExplorationBoundary.add(explorationElement);
+
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			explorationElement = currentExplorationBoundary.remove();
 			assert explorationElement.graphState == null || graph.transitionMatrix.containsKey(explorationElement.graphState) || nonexistingMatrix.containsKey(explorationElement.graphState): "state "+explorationElement.graphState+" is not known to the tentative automaton";
-			assert explorationElement.propertyState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.propertyState) : "state "+explorationElement.propertyState+" is not known to the property graph";
+			for(int i=0;i<ifthenGraphs.length;++i)
+				assert explorationElement.propertyState[i] == null || ifthenGraphs[i].transitionMatrix.containsKey(explorationElement.propertyState[i]) : "state "+explorationElement.propertyState[i].toString()+" is not known to the property graph";
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
 				throw new AugmentFromIfThenAutomatonException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState,
@@ -625,26 +693,36 @@ public class Transform
 			// In the first case, question paths are part of the graph, in a way.
 			// In the second one, we keep extending the graph so THEN part is matched.
 			
-			if (explorationElement.graphState != null && explorationElement.thenState == null && explorationElement.propertyState == null)
+			boolean allPropertyStatesAreNull = true;
+			for(int i=0;i<ifthenGraphs.length;++i)
+				if (explorationElement.propertyState[i] != null)
+				{
+					allPropertyStatesAreNull = false;break;
+				}
+			if (explorationElement.graphState != null && explorationElement.thenState == null && allPropertyStatesAreNull)
 				continue;// strictly speaking, this is an optimisation: without this check I'll explore all states of a tentative graph, doing nothing for all of them 
 			
-			if (explorationElement.propertyState != null)
-			{// Consider match states, but only if the current state (in either a graph or THEN) is an accept-state
-				if ( (explorationElement.graphState == null ||  explorationElement.graphState.isAccept()) &&
-					 (explorationElement.thenState == null || explorationElement.thenState.isAccept()) )
-				{
-					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.propertyState);
-					if (compatibility != null)
-						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
-							if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
-							{// we hit a match-state, add next states
-								ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,entry.getKey(),explorationElement.propertyState, explorationElement.depth,JUConstants.PAIRCOMPATIBILITY.THEN, explorationElement);
-								if (!visited.contains(nextExplorationElement))
-								{// not seen this triple already
-									//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
-									visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+			for(int i=0;i<ifthenGraphs.length;++i)
+			{
+				if (explorationElement.propertyState[i] != null)
+				{// Consider match states, but only if the current state (in either a graph or THEN) is an accept-state
+					if ( (explorationElement.graphState == null ||  explorationElement.graphState.isAccept()) &&
+						 (explorationElement.propertyState[i] == null || explorationElement.propertyState[i].isAccept()) )
+					{
+						Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraphs[i].pairCompatibility.compatibility.get(explorationElement.propertyState[i]);
+						if (compatibility != null)
+							for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
+								if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
+								{// we hit a match-state, add next states
+									ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,ifthenGraphs[i],entry.getKey(),
+											explorationElement.propertyState, explorationElement.depth,JUConstants.PAIRCOMPATIBILITY.THEN, explorationElement);
+									if (!visited.contains(nextExplorationElement))
+									{// not seen this triple already
+										//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
+										visited.add(nextExplorationElement);currentExplorationBoundary.offer(nextExplorationElement);
+									}
 								}
-							}
+					}
 				}
 			}
 			
@@ -658,8 +736,7 @@ public class Transform
 					nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
 			}
 
-			Map<String,CmpVertex> propertyTargets = explorationElement.propertyState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.propertyState),
-				thenTargets = explorationElement.thenState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.thenState);
+			Map<String,CmpVertex> thenTargets = explorationElement.thenState == null?null:explorationElement.thenGraph.transitionMatrix.get(explorationElement.thenState);
 				
 			if (graphTargets != null)
 			{
@@ -668,7 +745,12 @@ public class Transform
 				{
 					String label = labelstate.getKey();
 					CmpVertex nextGraphState = labelstate.getValue();
-					final CmpVertex nextPropertyState = propertyTargets == null?null:propertyTargets.get(label);
+					CmpVertex [] nextPropertyStates = new CmpVertex[ifthenGraphs.length];
+					for(int i=0;i<ifthenGraphs.length;++i)
+					{
+						Map<String,CmpVertex> propertyTargets = explorationElement.propertyState[i] == null?null:ifthenGraphs[i].transitionMatrix.get(explorationElement.propertyState[i]);
+						nextPropertyStates[i] = propertyTargets == null?null:propertyTargets.get(label);
+					}
 					final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
 					int depth = explorationElement.depth;
 					
@@ -683,7 +765,7 @@ public class Transform
 					if (newStates.contains(nextGraphState))
 						++depth;// we made one more transition out the graph
 
-					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth, label,explorationElement);
+					ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,explorationElement.thenGraph,nextThenState,nextPropertyStates,depth, label,explorationElement);
 					if (!visited.contains(nextExplorationElement) &&
 							// An IF part can match a part of a question but unless we know we can get there 
 							// (either by a user confirming that part by answering a question or by THEN parts),
@@ -705,7 +787,12 @@ public class Transform
 					{
 						String label = labelstate.getKey();
 						CmpVertex nextGraphState = graphTargets.get(label);
-						final CmpVertex nextPropertyState = propertyTargets == null?null:propertyTargets.get(label);
+						CmpVertex [] nextPropertyStates = new CmpVertex[ifthenGraphs.length];
+						for(int i=0;i<ifthenGraphs.length;++i)
+						{
+							Map<String,CmpVertex> propertyTargets = explorationElement.propertyState[i] == null?null:ifthenGraphs[i].transitionMatrix.get(explorationElement.propertyState[i]);
+							nextPropertyStates[i] = propertyTargets == null?null:propertyTargets.get(label);
+						}
 						final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
 						
 						int depth = explorationElement.depth;
@@ -721,7 +808,7 @@ public class Transform
 						if (newStates.contains(nextGraphState))
 							++depth;// we made one more transition out the graph
 	
-						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenState,nextPropertyState,depth,label,explorationElement);
+						ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,explorationElement.thenGraph,nextThenState,nextPropertyStates,depth,label,explorationElement);
 
 						if (!visited.contains(nextExplorationElement) &&
 								// An IF part can match a part of a question but unless we know we can get there 

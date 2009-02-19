@@ -46,6 +46,11 @@ public interface AbstractOracle {
 	 */
 	public static final int USER_IGNORED = -6;
 	
+	/** Means a use decided that the pair of vertices should be incompatible without providing 
+	 * an explicit counter-example by answering a question.
+	 */
+	public static final int USER_INCOMPATIBLE = -7;
+	
 	/** Default value for a dialog box. */
 	public static final int USER_WAITINGFORSELECTION = -1;
 

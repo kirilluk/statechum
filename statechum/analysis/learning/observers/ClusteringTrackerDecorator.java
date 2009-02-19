@@ -68,10 +68,12 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
 	}
 
-
-
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
+	}
+
+	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
+		return decoratedLearner.RecomputeQuestions(pair, original, temp);
 	}
 
 

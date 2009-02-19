@@ -174,7 +174,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		what.setTopLevelListener(this);with.setTopLevelListener(this);
 	}
 	
-	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED, M_METHODEXIT, M_ADDCONSTRAINTS}
+	protected enum KIND_OF_METHOD { M_AUGMENT, M_CHECKWITHUSER,M_CHOOSEPAIRS,M_QUESTIONS,M_RECOMPUTEQUESTIONS,M_MERGEANDDETERMINIZE,M_RESTART,M_INIT,M_FINISHED, M_METHODEXIT, M_ADDCONSTRAINTS}
 	
 	/** Next expected call. */
 	protected KIND_OF_METHOD expected = null;
@@ -350,8 +350,8 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		return result;
 	}
 
-	protected PairScore qPair = null;
-	protected Collection<List<String>> questions = null;
+	protected PairScore QqPair = null;
+	protected Collection<List<String>> Qquestions = null;
 	
 	/** Called by the simulator.
 	 * 
@@ -367,7 +367,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		if (Thread.currentThread() == secondThread)
 		{
 			result = whatToCompareWith.ComputeQuestions(pair, original, temp);
-			qPair = pair;questions = result;
+			QqPair = pair;Qquestions = result;
 		}
 		else
 			result = decoratedLearner.ComputeQuestions(pair, original, temp);
@@ -376,11 +376,51 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		
 		if (Thread.currentThread() != secondThread)
 		{// checking, ignoring scores and accept-conditions.
-			if (!qPair.getQ().getID().equals(pair.getQ().getID()) || !qPair.getR().getID().equals(pair.getR().getID()))
-					failureCode = new IllegalArgumentException("different ComputeQuestions pair "+qPair+" v.s. "+pair);
-			if (!questions.equals(result))
-				failureCode = new IllegalArgumentException("different ComputeQuestions questions: \n"+questions+"\n v.s.\n"+result);
-			qPair =null;questions=null;// reset stored data
+			if (!QqPair.getQ().getID().equals(pair.getQ().getID()) || !QqPair.getR().getID().equals(pair.getR().getID()))
+					failureCode = new IllegalArgumentException("different ComputeQuestions pair "+QqPair+" v.s. "+pair);
+			if (!Qquestions.equals(result))
+				failureCode = new IllegalArgumentException("different ComputeQuestions questions: \n"+Qquestions+"\n v.s.\n"+result);
+			QqPair =null;Qquestions=null;// reset stored data
+		}
+
+		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 
+		// from the first checkCall and overwriting the stored value before the other 
+		// thread had a chance to use it in a comparison.
+
+		return result;
+	}
+
+	protected PairScore MqPair = null;
+	protected Collection<List<String>> Mquestions = null;
+	
+	/** Called by the simulator.
+	 * 
+	 * @param pair loaded from XML.
+	 * @param original estimated value.
+	 * @param temp estimated value.
+	 * @return loaded from XML.
+	 */
+	public synchronized List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	{
+		List<List<String>> result = null;
+		// First, we call the expected method
+		if (Thread.currentThread() == secondThread)
+		{
+			result = whatToCompareWith.ComputeQuestions(pair, original, temp);
+			MqPair = pair;Mquestions = result;
+		}
+		else
+			result = decoratedLearner.ComputeQuestions(pair, original, temp);
+
+		syncOnCallOf(KIND_OF_METHOD.M_RECOMPUTEQUESTIONS);
+		
+		if (Thread.currentThread() != secondThread)
+		{// checking, ignoring scores and accept-conditions.
+			if (!MqPair.getQ().getID().equals(pair.getQ().getID()) || !MqPair.getR().getID().equals(pair.getR().getID()))
+					failureCode = new IllegalArgumentException("different RecomputeQuestions pair "+MqPair+" v.s. "+pair);
+			if (!Mquestions.equals(result))
+				failureCode = new IllegalArgumentException("different RecomputeQuestions questions: \n"+Mquestions+"\n v.s.\n"+result);
+			MqPair =null;Mquestions=null;// reset stored data
 		}
 
 		syncOnCallOf(KIND_OF_METHOD.M_METHODEXIT);// aims to stop one of the threads running fast 

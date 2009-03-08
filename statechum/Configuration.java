@@ -202,6 +202,59 @@ public class Configuration implements Cloneable
 		questionPathUnionLimit = limit;
 	}
 	
+	/** For a graph where transitions are annotated with pre/post conditions, we may wish to 
+	 * perform consistency checks. These checks are listed below in the order from the most "relaxed" one 
+	 * to the most "stringent" check.
+	 * <ul>
+	 * <li><em>NONE</em>: no consistency checking is done.</li>
+	 * <li><em>ALLABSTRACTSTATESEXIST</em>: all abstract states are satisfiable.</li>
+	 * <li><em>TRANSITIONSFROMALLORNONE</em>: all transitions either can or cannot be taken, from all abstract states corresponding 
+	 * to each DFA state. A problem detected at this stage is where a transition can be taken from
+	 * some abstract states but not from others.</li>
+	 * <li><em>DETERMINISM</em>: for each abstract state, there is at most one possible outgoing transition. Intersection
+	 * of the preconditions of transitions to reject-states does not matter.</li>
+	 * </ul>
+	 */
+	public enum SMTGRAPHDOMAINCONSISTENCYCHECK { NONE,ALLABSTRACTSTATESEXIST, TRANSITIONSFROMALLORNONE, DETERMINISM };
+	
+	protected SMTGRAPHDOMAINCONSISTENCYCHECK smtGraphDomainConsistencyCheck = SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST;
+	
+	public SMTGRAPHDOMAINCONSISTENCYCHECK getSmtGraphDomainConsistencyCheck()
+	{
+		return smtGraphDomainConsistencyCheck;
+	}
+	
+	public void setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK value)
+	{
+		smtGraphDomainConsistencyCheck = value;
+	}
+	
+	/** For a graph where transitions are annotated with pre/post conditions, we may wish to 
+	 * perform consistency checks. These checks are listed below in the order from the most "relaxed" one 
+	 * to the most "stringent" check.
+	 * <ul>
+	 *  <li><em>NONE</em>: no consistency checking is done.</li>
+	 *  <li><em>RANGEINTERSECTION</em>: for at least one abstract state associated with a 
+	 *  source state of a transition, a postcondition should be
+	 *  contained in one of the abstract states associated with target state.</li>
+	 *  <li><em>RANGECONTAINMENT</em>: for all abstract states associated with a source state of a transition, 
+	 *  a postcondition should be included in a collection of abstract states associated with a target state.</li>
+	 * </ul>
+	*/
+	public enum SMTGRAPHRANGECONSISTENCYCHECK { NONE, RANGEINTERSECTION, RANGECONTAINMENT };
+	
+	protected SMTGRAPHRANGECONSISTENCYCHECK smtGraphRangeConsistencyCheck = SMTGRAPHRANGECONSISTENCYCHECK.RANGEINTERSECTION;
+	
+	public SMTGRAPHRANGECONSISTENCYCHECK getSmtGraphRangeConsistencyCheck()
+	{
+		return smtGraphRangeConsistencyCheck;
+	}
+
+	public void setSmtGraphRangeConsistencyCheck(SMTGRAPHRANGECONSISTENCYCHECK value)
+	{
+		smtGraphRangeConsistencyCheck = value;
+	}
+	
 	public int getGeneralisationThreshold() {
 		return generalisationThreshold;
 	}
@@ -361,6 +414,8 @@ public class Configuration implements Cloneable
 		result = prime * result + (ignoreDepthInTheChoiceOfRepresentatives? 1231 : 1237);
 		result = prime * result + (ignoreVertexAttributesInLogReplay? 1231 : 1237);
 		result = prime * result + howManyStatesToAddFromIFTHEN;
+		result = prime * result + smtGraphDomainConsistencyCheck.hashCode();
+		result = prime * result + smtGraphRangeConsistencyCheck.hashCode();
 		return result;
 	}
 
@@ -466,6 +521,10 @@ public class Configuration implements Cloneable
 		if (ignoreVertexAttributesInLogReplay != other.ignoreVertexAttributesInLogReplay)
 			return false;
 		if (howManyStatesToAddFromIFTHEN != other.howManyStatesToAddFromIFTHEN)
+			return false;
+		if (smtGraphDomainConsistencyCheck != other.smtGraphDomainConsistencyCheck)
+			return false;
+		if (smtGraphRangeConsistencyCheck != other.smtGraphRangeConsistencyCheck)
 			return false;
 		
 		return true;

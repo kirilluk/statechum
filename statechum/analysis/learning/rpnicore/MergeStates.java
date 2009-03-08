@@ -26,19 +26,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
-import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
@@ -76,25 +72,6 @@ public class MergeStates {
 		return mergeAndDeterminize_general(original,pair,mergedVertices);
 	}
 	
-	/** Used to populate <em>result.learnerCache.setMergedStates</em> with dummy values. 
-	public void buildDummyMergeResult()
-	{
-		int i=0;
-		Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		for(CmpVertex vertex:coregraph.transitionMatrix.keySet())
-		{
-			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(i++,coregraph);
-			try {
-				eqClass.addFrom(vertex, null);
-			} catch (IncompatibleStatesException e) {
-				Helper.throwUnchecked("failed to construct an AMEquivalenceClass with a single node", e);
-			}
-			mergedVertices.add(eqClass);
-		}	
-		coregraph.learnerCache.setMergedStates(mergedVertices);
-	}
-	*/
-	
 	/** Merges the supplied pair of states states of the supplied machine. 
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
@@ -108,9 +85,7 @@ public class MergeStates {
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
-/*		result.initEmpty();
-		result.transitionMatrix = result.createNewTransitionMatrix();
-*/
+
 		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
 		{/*
 			try {
@@ -166,95 +141,7 @@ public class MergeStates {
 		AMEquivalenceClass.populateCompatible(result, mergedVertices);
 		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);
 		result.learnerCache.stateLearnt=origToNew.get(pair.getR()).getMergedVertex();
-		if (original.learnerCache.getVertexToEqClass() != null) 
-		{// only build a set if there was one built earlier. This way I can ensure that a graph not built 
-		 // via a sequence of mergers will not have such a map (because we need traceability in order
-		 // to keep the map up to date).
-			original.merger.buildVertexToEqClassMap(null);// update the map in the original with the vertices which may have been added between its construction and now
-			result.merger.buildVertexToEqClassMap(original.learnerCache.getVertexToEqClass());
-		}
 		return result;
-	}
-	
-	/** Each time a merge happens, we need to rebuild a map from merged vertices to collections 
-	 * of original vertices they correspond to. This is the purpose of this method.
-	 * <p>
-	 * If <em>previousMap</em> is null, the current map is updated with vertices not 
-	 * mentioned in the map (or built anew if it does not exist).
-	 * <p>
-	 * There is no waste in using CmpVertex-vertices because they are part of the initial PTA and
-	 * hence kept in memory anyway.
-	 */
-	public void buildVertexToEqClassMap(Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> previousMap)
-	{
-		// First, we build a collection of states of the original PTA which correspond to the each merged vertex.
-		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> newVertexToEqClass = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		
-		if (previousMap == null)
-		{// either the case when we get here for the first time (as well as right after a reset)
-		 // or when vertices have been added to the graph and we need to update the map.	
-			if (coregraph.learnerCache.getVertexToEqClass() != null)
-				newVertexToEqClass = coregraph.learnerCache.getVertexToEqClass();// we are updating the map here.
-			int i=newVertexToEqClass.size();// ensure that if we add new vertices, their IDs will be unique by construction below.
-			
-			for(CmpVertex vertex:coregraph.transitionMatrix.keySet())
-				if (!newVertexToEqClass.containsKey(vertex))
-				{// vertex not in the collection
-					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(i++,coregraph);
-					try {
-						eqClass.addFrom(vertex, null);
-					} catch (IncompatibleStatesException e) {
-						Helper.throwUnchecked("failed to construct an AMEquivalenceClass with a single node", e);
-					}
-	
-					newVertexToEqClass.put(eqClass.getRepresentative(),eqClass);
-				}
-		}
-		else // after a previous successful merge 
-			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
-			{
-				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> combinedEqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(eqClass.getNumber(),coregraph);
-				for(CmpVertex state:eqClass.getStates())
-					try 
-					{
-						combinedEqClass.mergeWith(previousMap.get(state));
-					} catch (IncompatibleStatesException e) {
-						Helper.throwUnchecked("failed to construct a collection of states which have previously been merged successfully", e);
-					}
-				newVertexToEqClass.put(eqClass.getMergedVertex(),combinedEqClass);
-			}
-		coregraph.learnerCache.vertexToEqClass = newVertexToEqClass;
-		
-		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
-		{
-			Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> vertexToCollection = new TreeMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-			for(Entry<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> eqClass:coregraph.learnerCache.vertexToEqClass.entrySet())
-			{
-				for(CmpVertex vert:eqClass.getValue().getStates())
-				{
-					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> existingClass = vertexToCollection.get(vert);
-					if (existingClass != null)
-						throw new IllegalArgumentException("classes "+existingClass+" and "+eqClass.getValue()+" share vertex "+vert);
-					vertexToCollection.put(vert,eqClass.getValue());
-				}
-			}
-			
-			{
-				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();verticesInGraph.addAll(coregraph.transitionMatrix.keySet());
-				verticesInGraph.removeAll(coregraph.learnerCache.getVertexToEqClass().keySet());
-				if (!verticesInGraph.isEmpty())
-					throw new IllegalArgumentException("vertices such as "+verticesInGraph+" do not feature in the vertex to collection map");
-			}
-			
-			{
-				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.learnerCache.getVertexToEqClass().keySet());
-				verticesInCollection.removeAll(coregraph.transitionMatrix.keySet());
-				if (!verticesInCollection.isEmpty())
-					throw new IllegalArgumentException("vertices from the vertex to collection map "+verticesInCollection+" do not feature in the graph");
-			}
-			// the computed number of vertices cannot be matched to that of the 
-			// original PTA because graphs can be updated using IF-THEN automata.
-		}
 	}
 	
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)

@@ -37,6 +37,7 @@ import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.apps.QSMTool;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.Helper.checkForCorrectException;
@@ -75,12 +76,13 @@ public class TestWriteReadLearnerEvaluation {
 				"ltl ![]((initialise) -> X(connect))",
 				"ltl !(XX(initialise))" });
 		labels = new LabelRepresentation();
-		labels.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-		labels.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-		labels.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-		labels.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-		labels.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-		labels.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
+		labels.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl_N",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond_N",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);

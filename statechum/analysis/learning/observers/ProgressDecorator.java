@@ -280,7 +280,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (graphNumberNodes.getLength() > 1)
 			try
 			{
-					graphNumber = Integer.parseInt(((Element)graphNumberNodes.item(0)).getAttribute(StatechumXML.ATTR_GRAPHNUMBER.name()));
+				graphNumber = Integer.parseInt(((Element)graphNumberNodes.item(0)).getAttribute(StatechumXML.ATTR_GRAPHNUMBER.name()));
 			}
 			catch(Exception e)
 			{// ignore - graphNumber is unchanged.

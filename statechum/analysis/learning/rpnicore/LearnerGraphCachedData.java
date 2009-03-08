@@ -20,9 +20,10 @@ package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.TreeMap;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
 
 /** An extension of the cache with elements to support learning. */ 
 public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCachedData>
@@ -58,16 +59,37 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	public void invalidate()
 	{
 		super.invalidate();
-		mergedStates = null;maxScore=-1;stateLearnt = null;vertexToEqClass = null;
+		mergedStates = null;maxScore=-1;stateLearnt = null;
+		vertexToAbstractState = null;abstractStateToLabelPreviouslyChecked = null;
 	}
 	
 	/** A map from merged vertices to collections of original vertices they correspond to.
 	 */
-	Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> vertexToEqClass = null; 
+	Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> vertexToAbstractState = null; 
 
-	public Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getVertexToEqClass()
+	public Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> getVertexToAbstractState()
 	{
-		return vertexToEqClass;
+		return vertexToAbstractState;
 	}
 	
+	/** A map associating an abstract state and a set of transitions which have been evaluated from 
+	 * that state using TRANSITIONSFROMALLORNONE.
+	 * <p>
+	 * Since the process of merging is additive, 
+	 * <ul>
+	 * <li>if there are two abstract states (previously associated to different DFA states) from which
+	 * transitions <em>a</em> and <em>b</em> have been checked, and subsequently these states are merged
+	 * we only need to check <em>b</em> from the first state and <em>a</em> from the second one.</li>
+	 * <li>
+	 * If the outcome of <em>a</em> is in one of the abstract states associated with its target DFA state, then
+	 * after the merge there would be not fewer abstract states associated with its target DFA state, thus 
+	 * the range intersection condition will be satisfied.</li>
+	 * </ul>
+	 */
+	Map<Label,Collection<AbstractState>> abstractStateToLabelPreviouslyChecked = null;
+	
+	public Map<Label,Collection<AbstractState>> getAbstractStateToLabelPreviouslyChecked()
+	{
+		return abstractStateToLabelPreviouslyChecked;
+	}
 }

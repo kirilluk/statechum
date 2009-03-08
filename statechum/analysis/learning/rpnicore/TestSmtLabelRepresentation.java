@@ -17,7 +17,10 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -26,6 +29,10 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.JUConstants;
+import statechum.Pair;
+import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Smt;
@@ -35,8 +42,12 @@ import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.apps.QSMTool;
 
 public class TestSmtLabelRepresentation {
+	private static final String _N = LabelRepresentation.varNewSuffix;
+	private static final String _M = LabelRepresentation.varOldSuffix;
+	
 	Configuration config = null;
 	
 	@Before
@@ -48,6 +59,7 @@ public class TestSmtLabelRepresentation {
 	@AfterClass
 	public static void afterTest()
 	{
+		Smt.loadLibrary();
 		Smt.reopenStdOut();
 	}
 	
@@ -55,16 +67,21 @@ public class TestSmtLabelRepresentation {
 	public void testNoLabels1()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		Assert.assertTrue(lbls.labelMap.isEmpty());
+		Assert.assertNull(lbls.labelMapConstructionOfOperations);
+		Assert.assertNull(lbls.labelMapConstructionOfDataTraces);
+		Assert.assertNull(lbls.labelMapFinal);
 	}
 
 	@Test
 	public void testNoLabels2()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 		lbls.parseLabel(null);
 		lbls.parseLabel("");
-		Assert.assertTrue(lbls.labelMap.isEmpty());
+		Assert.assertTrue(lbls.labelMapConstructionOfOperations.isEmpty());
+		Assert.assertNull(lbls.labelMapConstructionOfDataTraces);
+		Assert.assertNull(lbls.labelMapFinal);
 	}
 		
 	@Test
@@ -73,6 +90,7 @@ public class TestSmtLabelRepresentation {
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 			lbls.parseLabel(INITMEM+" ");
 		}}, IllegalArgumentException.class,"expected details for label");
 	}
@@ -83,6 +101,7 @@ public class TestSmtLabelRepresentation {
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 			lbls.parseLabel(INITMEM+" JUNK");
 		}}, IllegalArgumentException.class,"expected [PRE");
 	}
@@ -93,7 +112,8 @@ public class TestSmtLabelRepresentation {
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.XM_DATA.PRE);
+			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.OP_DATA.PRE);
 		}}, IllegalArgumentException.class,"expected specification for label");
 	}
 
@@ -103,7 +123,8 @@ public class TestSmtLabelRepresentation {
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.XM_DATA.PRE+"  ");
+			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.OP_DATA.PRE+"  ");
 		}}, IllegalArgumentException.class,"expected specification for label");
 	}
 
@@ -111,48 +132,50 @@ public class TestSmtLabelRepresentation {
 	public void testCreateLabels1()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE.name()+" varDecl");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE.name()+" varDecl2");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST.name()+" memory0");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST.name()+" memory1");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST.name()+" memory2");
-		Assert.assertEquals(1,lbls.labelMap.size());
-		Label l = lbls.labelMap.entrySet().iterator().next().getValue();
-		Assert.assertEquals(INITMEM,lbls.labelMap.entrySet().iterator().next().getKey());
+		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl");
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl2");
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory0");
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory1");
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory2");
+		Assert.assertEquals(1,lbls.labelMapConstructionOfOperations.size());
+		Label l = lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getValue();
+		Assert.assertEquals(INITMEM,lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getKey());
 		Assert.assertEquals(INITMEM,l.getName());
-		Assert.assertEquals("memory0\nmemory1\nmemory2",l.post);
-		Assert.assertEquals("varDecl\nvarDecl2",l.pre);
+		Assert.assertEquals("memory0\nmemory1\nmemory2",l.post.text);
+		Assert.assertEquals("varDecl\nvarDecl2",l.pre.text);
 	}
 	
 	@Test
 	public void testCreateLabels2()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE.name()+" varDecl");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST.name()+" postA and            more");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST.name()+"     details of postcondition     of A     ");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE.name()+" value of precondition of B ");
-		Assert.assertEquals(3,lbls.labelMap.size());
+		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl");
+		lbls.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST.name()+" postA and            more");
+		lbls.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST.name()+"     details of postcondition     of A     ");
+		lbls.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE.name()+" value of precondition of B ");
+		Assert.assertEquals(3,lbls.labelMapConstructionOfOperations.size());
 
 		{
-			Label l = lbls.labelMap.get(INITMEM);
+			Label l = lbls.labelMapConstructionOfOperations.get(INITMEM);
 			Assert.assertEquals(INITMEM,l.getName());
-			Assert.assertNull(l.post);
-			Assert.assertEquals("varDecl",l.pre);
+			Assert.assertNull(l.post.text);
+			Assert.assertEquals("varDecl",l.pre.text);
 		}
 
 		{
-			Label l = lbls.labelMap.get("A");
+			Label l = lbls.labelMapConstructionOfOperations.get("A");
 			Assert.assertEquals("A",l.getName());
-			Assert.assertNull(l.pre);
-			Assert.assertEquals("postA and more\ndetails of postcondition of A",l.post);
+			Assert.assertNull(l.pre.text);
+			Assert.assertEquals("postA and more\ndetails of postcondition of A",l.post.text);
 		}
 
 		{
-			Label l = lbls.labelMap.get("B");
+			Label l = lbls.labelMapConstructionOfOperations.get("B");
 			Assert.assertEquals("B",l.getName());
-			Assert.assertNull(l.post);
-			Assert.assertEquals("value of precondition of B",l.pre);
+			Assert.assertNull(l.post.text);
+			Assert.assertEquals("value of precondition of B",l.pre.text);
 		}
 	}
 
@@ -160,48 +183,80 @@ public class TestSmtLabelRepresentation {
 	public void testEquals()
 	{
 		LabelRepresentation lblsA = new LabelRepresentation();
+		lblsA.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 		{
-			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lblsA.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lblsA.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lblsA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lblsA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
+			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N);
+			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
+			lblsA.parseLabel("A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA");
+			lblsA.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA");
+			lblsA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB");
+			lblsA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB");
 		}
 		LabelRepresentation lblsB = new LabelRepresentation();
+		lblsB.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 		{
-			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ "    varDecl_N");
-			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lblsB.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lblsB.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ "    somePostcondA");
-			lblsB.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lblsB.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ "       somePostcondB");
+			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ "    varDecl"+_N);
+			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
+			lblsB.parseLabel("A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA");
+			lblsB.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST+ "    somePostcondA");
+			lblsB.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB");
+			lblsB.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
 		}
 		LabelRepresentation lblsDiffA = new LabelRepresentation();
+		lblsDiffA.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 		{
-			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ "    varDecl_N");
-			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lblsDiffA.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lblsDiffA.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ "    somePostcondA");
-			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ "       somePostcondB");
-			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ "       somePostcondB");
+			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ "    varDecl"+_N);
+			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
+			lblsDiffA.parseLabel("A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA");
+			lblsDiffA.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST+ "    somePostcondA");
+			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB");
+			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
+			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
 		}
 		LabelRepresentation lblsDiffB = new LabelRepresentation();
+		lblsDiffB.labelMapConstructionOfOperations = new TreeMap<String,Label>();
 		TestEqualityComparisonAndHashCode.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB);
 	}
+
+	final String __P = LabelRepresentation.delimiterString,__N = LabelRepresentation.delimiterString+"-";
 	
 	@Test
 	public void testRelabel()
 	{
-		Assert.assertEquals("text more var_6 text var_@3 smth_6 again ",
-				LabelRepresentation.toCurrentMem("text more var_N text var_M smth_N again ", 6,-3));
-		Assert.assertEquals("text more var_@6 text var_7 smth_@6 again ",
-				LabelRepresentation.toCurrentMem("text more var_N text var_M smth_N again ", -6,7));
-		Assert.assertEquals("text more text var_8 again ",
-				LabelRepresentation.toCurrentMem("text more text var_M again ", 6,8));
-		Assert.assertEquals("",
+		Assert.assertEquals("text more var"+__P+"6 text var"+__N+"3 smth"+__P+"6 again ",
+				LabelRepresentation.toCurrentMem("text more var"+_N+" text var"+_M+" smth"+_N+" again ", 6,-3));
+		Assert.assertEquals("text more var"+__N+"6 text var"+__P+"7 smth"+__N+"6 again ",
+				LabelRepresentation.toCurrentMem("text more var"+_N+" text var"+_M+" smth"+_N+" again ", -6,7));
+		Assert.assertEquals("text more text var"+__P+"8 again ",
+				LabelRepresentation.toCurrentMem("text more text var"+_M+" again ", 6,8));
+		Assert.assertEquals("true",
 				LabelRepresentation.toCurrentMem("", 6,4));
+	}
+	
+	/** No exception since args are unused. */
+	@Test
+	public void testRelabel_unknownIgnored()
+	{
+		LabelRepresentation.toCurrentMem("some text ",JUConstants.intUNKNOWN,5);
+		LabelRepresentation.toCurrentMem("some text ",7,JUConstants.intUNKNOWN);
+	}
+	
+	@Test
+	public void testRelabel_fail1()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation.toCurrentMem("some "+_M+" text ",5,JUConstants.intUNKNOWN);
+		}}, IllegalArgumentException.class,"previous number should");
+	}
+	
+	@Test
+	public void testRelabel_fail2()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation.toCurrentMem("some "+_N+" text ",JUConstants.intUNKNOWN,6);
+		}}, IllegalArgumentException.class,"current number should");
 	}
 	
 	@Test
@@ -223,171 +278,362 @@ public class TestSmtLabelRepresentation {
 	}
 	
 	@Test
-	public void testCreateConjunctionMissingInitial()
+	public void testParseCollectionInvalidCommand()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.getConjunctionForPath(Arrays.asList(new String[]{}));
-		}}, IllegalArgumentException.class,"missing initial");
+			lbls.parseCollection(Arrays.asList(new String[]{
+					"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+			}));
+		}}, IllegalArgumentException.class,"invalid command");
 	}
 	
 	@Test
-	public void testCreateLemmaMissingInitial()
+	public void testParseCollectionMissingInitial()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
-					Configuration.getDefaultConfiguration().copy()));
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
 		}}, IllegalArgumentException.class,"missing initial");
 	}
 	
+	/** Uses _M in postcondition - prohibited because we'd like args to toCurrentMem to be different but INITMEM only
+	 * uses one argument. Thus the _N is used and _M is prohibited.
+	 */
+	@Test
+	public void testParseCollection_init_invalid_POST()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+LabelRepresentation.varOldSuffix,
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+		}}, IllegalArgumentException.class,LabelRepresentation.INITMEM+" should not refer");
+	}
+	
+	/** Uses _M in postcondition - prohibited because we'd like args to toCurrentMem to be different but INITMEM only
+	 * uses one argument. Thus the _N is used and _M is prohibited.
+	 */
+	@Test
+	public void testParseCollection_init_invalid_PRE()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+LabelRepresentation.varOldSuffix,
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+					QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+		}}, IllegalArgumentException.class,LabelRepresentation.INITMEM+" should not refer");
+	}
+	
+	@Test
+	public void testParseCollectionInvalidFunctionName1()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " ("+LabelRepresentation.functionArg+")"}));
+		}}, IllegalArgumentException.class,"invalid function name");
+	}
+
+	@Test
+	public void testParseCollectionInvalidFunctionName_no_failure_if_does_not_start_with_frg()
+	{
+		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (a"+LabelRepresentation.functionArg+")"}));
+	}
+
+	@Test
+	public void testParseCollectionInvalidFunctionName2()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"::int)",
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func"+LabelRepresentation.delimiterString+")"}));
+		}}, IllegalArgumentException.class,"invalid function name");
+	}
+
+	@Test
+	public void testParseCollectionInvalidArgumentName()
+	{
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			LabelRepresentation lbls = new LabelRepresentation();
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"::int)",
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func "+LabelRepresentation.functionArg+"arg )"}));
+		}}, IllegalArgumentException.class,"invalid argument name");
+	}
+
+	/** This one is ok because the argument name does not start with a reserved name. */
+	@Test
+	public void testParseCollectionInvalidArgumentNameOk()
+	{
+		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func a"+LabelRepresentation.functionArg+"arg )"}));
+	}
+
+	@Test
+	public void testParseCollectionRepeatConstruction()
+	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func )"}));
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			lbls.parseCollection(Arrays.asList(new String[]{
+					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
+					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func )"}));
+		}}, IllegalArgumentException.class,"operations already built");
+	}
+
 	@Test
 	public void testCreateConjunctionEmpty1()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " decl_N");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-		AbstractState state = lbls.getConjunctionForPath(Arrays.asList(new String[]{}));
-		Assert.assertEquals("varDecl_0"+ENDL+"decl_0"+ENDL,state.variableDeclarations);
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"true"+ENDL, state.abstractState);
-		Assert.assertEquals(0,state.stateNumber);
-		Assert.assertNull(state.lastLabel);
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " decl"+_N,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondA)",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondA)",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondB)",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		Pair<String,String> state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		int number = 4;
+		Assert.assertEquals("define varDecl"+__P+number+" decl"+__P+number+ENDL,state.firstElem);
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"true"+ENDL, state.secondElem);
 	}
 	
 	@Test
 	public void testCreateConjunctionEmpty2()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-		AbstractState state = lbls.getConjunctionForPath(Arrays.asList(new String[]{}));
-		Assert.assertEquals("varDecl_0"+ENDL,state.variableDeclarations);
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"(and"+ENDL+"initCond_0"+ENDL+')'+ENDL,state.abstractState);
-		Assert.assertEquals(0,state.stateNumber);
-		Assert.assertNull(state.lastLabel);
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= initCond"+_N+" 7)",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondA)",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondA)",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondB)",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		Pair<String,String>  state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		int number = 4;
+		Assert.assertEquals("varDecl"+__P+number+ENDL,state.firstElem);
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+
+				"(and"+ENDL+LabelRepresentation.commentForInit+ENDL+"(= initCond"+__P+number+" 7)"+ENDL+')'+ENDL,state.secondElem);
 	}
 	
 	@Test
-	public void testCreateConjunctionUnknown1()
+	public void testbuildVertexToAbstractStateMapUnknown1()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.getConjunctionForPath(Arrays.asList(new String[]{"unknown_label"}));
+			lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+			lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-unknown_label->stD", "testCreateConjunctionUnknown1"), Configuration.getDefaultConfiguration()),null);
 		}}, IllegalArgumentException.class,"unknown label unknown_label");
 	}
 	
 	@Test
-	public void testCreateConjunctionUnknown2()
+	public void testbuildVertexToAbstractStateMapUnknown2()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
 			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.getConjunctionForPath(Arrays.asList(new String[]{"A","B","unknown_label"}));
+			lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+			lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-unknown_label->stD", "testCreateConjunctionUnknown2"), Configuration.getDefaultConfiguration()),null);
 		}}, IllegalArgumentException.class,"unknown label unknown_label");
 	}
 	
 	@Test
-	public void testCreateLemmasUnknown()
+	public void testCreateConjunction_mismatchedLength()
 	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+	
 		Helper.checkForCorrectException(new whatToRun() { public void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDecl_N");
-			lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " initCond_N");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA");
-			lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB");
-			lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB");
-			lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a1->B-a2->C-a3-#D\nB-b->E", "createLemmas1"),
-					Configuration.getDefaultConfiguration().copy()));
-		}}, IllegalArgumentException.class,"unknown label a1");
+			lbls.getConjunctionForPath(
+					Arrays.asList(new Label[]{lbls.labelMapConstructionOfDataTraces.get("A"),lbls.labelMapConstructionOfDataTraces.get("B")}),
+					Arrays.asList(new String[]{}));
+		}}, IllegalArgumentException.class,"mismatched length");
 	}
 	
+	@Test
+	public void testCreateConjunction_constructionIncomplete()
+	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_N,
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			lbls.getConjunctionForPath(
+					Arrays.asList(new Label[]{lbls.labelMapConstructionOfDataTraces.get("A"),lbls.labelMapConstructionOfDataTraces.get("B")}),null);
+		}}, IllegalArgumentException.class,"construction incomplete");
+	}
+		
 	@Test
 	public void testCreateConjunction1()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		AbstractState state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"A","B"}));
-		Assert.assertEquals("varDeclP_0"+ENDL+"varDeclQ_0"+ENDL+
-				"varDeclP_1"+ENDL+"varDeclQ_1"+ENDL+
-				"varDeclP_2"+ENDL+"varDeclQ_2"+ENDL,state.variableDeclarations);
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N+"",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N+"",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N+"",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M+"",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N+"",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M+"",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N+""}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		Pair<String,String> state = lbls.getConjunctionForPath(
+				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+		int number = 4;
+		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
+				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
+				"varDeclP"+__P+(number+2)+" varDeclQ"+__P+(number+2)+ENDL,state.firstElem);
 
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A, B]"+ENDL+
-				"(and"+ENDL+"initCond_0"+ENDL+
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A,B]"+ENDL+
+				"(and"+ENDL+LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+(number+0)+ENDL+
 				LabelRepresentation.commentForLabel+"A"+ENDL+
-				"somePrecondA_0"+ENDL+
-				"somePostcondA_1"+ENDL+
+				"somePrecondA"+__P+(number+0)+ENDL+
+				"somePostcondA"+__P+(number+1)+ENDL+
 				LabelRepresentation.commentForLabel+"B"+ENDL+
-				"somePrecondB_1"+ENDL+
-				"somePostcondB_2"+ENDL+')'+ENDL,
-				state.abstractState);
-		Assert.assertEquals(2,state.stateNumber);
-		Assert.assertSame(lbls.labelMap.get("B"),state.lastLabel);
+				"somePrecondB"+__P+(number+1)+ENDL+
+				"somePostcondB"+__P+(number+2)+ENDL+')'+ENDL,
+				state.secondElem);
 	}
 	
+	@Test
+	public final void testCreateAbstractState1()
+	{
+		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		AbstractState state = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("P"),config),0);
+		Assert.assertEquals("varDecl"+__P+"0",state.variableDeclarations);
+		Assert.assertEquals(LabelRepresentation.commentForInit+ENDL+"initCond"+__P+"0",state.abstractState);
+		Assert.assertNull(state.lastLabel);
+		Assert.assertNull(state.previousState);
+		Assert.assertEquals(0,state.stateNumber);
+	}
+	
+	@Test
+	public final void testCreateAbstractState2()
+	{
+		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		int number0 = 10,number1=15,number2=20;
+		AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),number0);
+		AbstractState stateAfterA = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,lbls.labelMapFinal.get("A"),number1);
+		AbstractState stateAfterB = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterB"),config),stateAfterA,lbls.labelMapFinal.get("B"),number2);
+		Assert.assertEquals("varDeclP"+__P+number0+" varDeclQ"+__P+number0+ENDL+
+				"varDeclP"+__P+number1+" varDeclQ"+__P+number1+ENDL+
+				"varDeclP"+__P+number2+" varDeclQ"+__P+number2,stateAfterB.variableDeclarations);
+
+		Assert.assertEquals(LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+number0+ENDL+
+				LabelRepresentation.commentForLabel+"A"+ENDL+
+				"somePrecondA"+__P+number0+ENDL+
+				"somePostcondA"+__P+number1+ENDL+
+				LabelRepresentation.commentForLabel+"B"+ENDL+
+				"somePrecondB"+__P+number1+ENDL+
+				"somePostcondB"+__P+number2,
+				stateAfterB.abstractState);
+		Assert.assertEquals("AfterB",stateAfterB.vertex.toString());
+		Assert.assertSame(lbls.labelMapFinal.get("B"),stateAfterB.lastLabel);
+		Assert.assertEquals(number2,stateAfterB.stateNumber);
+	}
 	
 	private LabelRepresentation testCreateConjunction2_internal()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel("A"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("B"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		AbstractState state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"A","B"}));
-		Assert.assertEquals("varDeclP_0"+ENDL+"varDeclQ_0"+ENDL+
-				"varDeclP_1"+ENDL+"varDeclQ_1"+ENDL+
-				"varDeclP_2"+ENDL+"varDeclQ_2"+ENDL, state.variableDeclarations);
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
+			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null);
+		Pair<String,String> state = lbls.getConjunctionForPath(
+				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+		int number = 4;
+		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
+				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
+				"varDeclP"+__P+(number+2)+" varDeclQ"+__P+(number+2)+ENDL, state.firstElem);
 
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A, B]"+ENDL+
-				"(and"+ENDL+
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A,B]"+ENDL+
+				"(and"+ENDL+LabelRepresentation.commentForInit+ENDL+
 				LabelRepresentation.commentForLabel+"A"+ENDL+
-				"somePrecondA_0"+ENDL+
+				"somePrecondA"+__P+(number+0)+ENDL+
 				LabelRepresentation.commentForLabel+"B"+ENDL+
-				"somePrecondB_1"+ENDL+
-				"somePostcondB_2"+ENDL+')'+ENDL,
-				state.abstractState
+				"somePrecondB"+__P+(number+1)+ENDL+
+				"somePostcondB"+__P+(number+2)+ENDL+
+				')'+ENDL,
+				state.secondElem
 				);
-		Assert.assertEquals(2,state.stateNumber);
-		Assert.assertSame(lbls.labelMap.get("B"),state.lastLabel);
 		
 		return lbls;
 	}
@@ -403,596 +649,285 @@ public class TestSmtLabelRepresentation {
 	public void testCreateConjunction3()
 	{
 		LabelRepresentation lbls = testCreateConjunction2_internal();
-		AbstractState state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"A","B"}));
-		Assert.assertEquals("varDeclP_3"+ENDL+"varDeclQ_3"+ENDL+
-				"varDeclP_4"+ENDL+"varDeclQ_4"+ENDL+
-				"varDeclP_5"+ENDL+"varDeclQ_5"+ENDL, state.variableDeclarations);
+		Pair<String,String> state = lbls.getConjunctionForPath(
+				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+		int number = 7;
+		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
+				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
+				"varDeclP"+__P+(number+2)+" varDeclQ"+__P+(number+2)+ENDL, state.firstElem);
 
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A, B]"+ENDL+
-				"(and"+ENDL+
+		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[A,B]"+ENDL+
+				"(and"+ENDL+LabelRepresentation.commentForInit+ENDL+
 				LabelRepresentation.commentForLabel+"A"+ENDL+
-				"somePrecondA_3"+ENDL+
+				"somePrecondA"+__P+(number+0)+ENDL+
 				LabelRepresentation.commentForLabel+"B"+ENDL+
-				"somePrecondB_4"+ENDL+
-				"somePostcondB_5"+ENDL+')'+ENDL,
-				state.abstractState
+				"somePrecondB"+__P+(number+1)+ENDL+
+				"somePostcondB"+__P+(number+2)+ENDL+')'+ENDL,
+				state.secondElem
 				);
-		Assert.assertEquals(5,state.stateNumber);
-		Assert.assertSame(lbls.labelMap.get("B"),state.lastLabel);
 	}
 
-	/** A typical case. */
-	@Test
-	public void testCreateLemmas1()
-	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
-		//	System.out.println(entry.getKey()+" "+entry.getValue().abstractState);
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
-				Configuration.getDefaultConfiguration().copy()));
-		String expected = "";
-		for(int i=0;i<=11;++i)
-			expected+=
-				"varDeclP_"+i+ENDL+
-				"varDeclQ_"+i+ENDL;
-		Assert.assertEquals(
-			expected+
-				LabelRepresentation.commentForTransition+"A(0)-a->B(1)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-				"(and"+ENDL+
-				"initCond_0"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondA_0 somePostcondA_1)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(3)-b->E(4)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_2"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_2"+ENDL+
-				"somePostcondA_3"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondB_3 somePostcondB_4)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(6)-a->C(7)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_5"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_5"+ENDL+
-				"somePostcondA_6"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondA_6 somePostcondA_7)))"+ENDL+
-				LabelRepresentation.commentForTransition+"C(10)-a-#D(11)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a, a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_8"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_8"+ENDL+
-				"somePostcondA_9"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_9"+ENDL+
-				"somePostcondA_10"+ENDL+
-				")"+ENDL+
-				"\t(not somePrecondA_10)))"+ENDL+
-				";; END OF PATH AXIOMS"+ENDL
-				,
-				axioms);
-	}
-
-	/** Empty precondition on a transition to a reject-state. */
-	@Test
-	public void testCreateLemmas2()
-	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
-				Configuration.getDefaultConfiguration().copy()));
-
-		String expected = "";
-		for(int i=0;i<=11;++i)
-			expected+=
-				"varDeclP_"+i+ENDL+
-				"varDeclQ_"+i+ENDL;
-		Assert.assertEquals(
-			expected+
-				LabelRepresentation.commentForTransition+"A(0)-a->B(1)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-				"(and"+ENDL+
-				"initCond_0"+ENDL+
-				")"+ENDL+
-				"\t(and somePostcondA_1)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(3)-b->E(4)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_2"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePostcondA_3"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondB_3 somePostcondB_4)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(6)-a->C(7)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_5"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePostcondA_6"+ENDL+
-				")"+ENDL+
-				"\t(and somePostcondA_7)))"+ENDL+
-				";; END OF PATH AXIOMS"+ENDL
-				,
-				axioms);
-	}
-
-	/** Empty postcondition */
-	@Test
-	public void testCreateLemmas3()
-	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
-				Configuration.getDefaultConfiguration().copy()));
-		String expected = "";
-		for(int i=0;i<=11;++i)
-			expected+=
-				"varDeclP_"+i+ENDL+
-				"varDeclQ_"+i+ENDL;
-		Assert.assertEquals(
-			expected+
-				LabelRepresentation.commentForTransition+"A(0)-a->B(1)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-				"(and"+ENDL+
-				"initCond_0"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondA_0 somePostcondA_1)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(3)-b->E(4)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_2"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_2"+ENDL+
-				"somePostcondA_3"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondB_3)))"+ENDL+
-				LabelRepresentation.commentForTransition+"B(6)-a->C(7)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_5"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_5"+ENDL+
-				"somePostcondA_6"+ENDL+
-				")"+ENDL+
-				"\t(and somePrecondA_6 somePostcondA_7)))"+ENDL+
-				LabelRepresentation.commentForTransition+"C(10)-a-#D(11)"+ENDL+
-				LabelRepresentation.assertString+"(implies"+ENDL+
-				LabelRepresentation.commentForNewSeq+"[a, a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_8"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_8"+ENDL+
-				"somePostcondA_9"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_9"+ENDL+
-				"somePostcondA_10"+ENDL+
-				")"+ENDL+
-				"\t(not somePrecondA_10)))"+ENDL+
-				";; END OF PATH AXIOMS"+ENDL
-				,
-				axioms);
-	}
-
-	/** A more complex set of lemmas. */
-	@Test
-	public void testCreateLemmas4()
-	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondC_N");
-		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondC_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
-				Configuration.getDefaultConfiguration().copy()));
-		String expected = "";
-		for(int i=0;i<=15;++i)
-			expected+=
-				"varDeclP_"+i+ENDL+
-				"varDeclQ_"+i+ENDL;
-		Assert.assertEquals(
-			expected+
-			LabelRepresentation.commentForTransition+"A(0)-a->B(1)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-			"(and"+ENDL+
-			"initCond_0"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondA_0 somePostcondA_1)))"+ENDL+
-			LabelRepresentation.commentForTransition+"B(3)-b->E(4)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-			"(and"+ENDL+
-			"initCond_2"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_2"+ENDL+
-			"somePostcondA_3"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondB_3 somePostcondB_4)))"+ENDL+
-			LabelRepresentation.commentForTransition+"E(7)-c->F(8)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a, b]"+ENDL+
-			"(and"+ENDL+
-			"initCond_5"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_5"+ENDL+
-			"somePostcondA_6"+ENDL+
-			LabelRepresentation.commentForLabel+"b"+ENDL+
-			"somePrecondB_6"+ENDL+
-			"somePostcondB_7"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondC_7 somePostcondC_8)))"+ENDL+
-			LabelRepresentation.commentForTransition+"B(10)-a->C(11)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-			"(and"+ENDL+
-			"initCond_9"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_9"+ENDL+
-			"somePostcondA_10"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondA_10 somePostcondA_11)))"+ENDL+
-			LabelRepresentation.commentForTransition+"C(14)-a-#D(15)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a, a]"+ENDL+
-			"(and"+ENDL+
-			"initCond_12"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_12"+ENDL+
-			"somePostcondA_13"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_13"+ENDL+
-			"somePostcondA_14"+ENDL+
-			")"+ENDL+
-			"\t(not somePrecondA_14)))"+ENDL+
-			";; END OF PATH AXIOMS"+ENDL
-				,axioms);
-	}
-
-	/** Empty pre and post-conditions. */
-	@Test
-	public void testCreateLemmas5()
-	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		lbls.labelMap.get("b").pre=null;
-		lbls.labelMap.get("b").post=null;
-		
-		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondC_N");
-		lbls.parseLabel("c"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondC_N");
-		String axioms = lbls.constructPathAxioms(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E-c->F", "createLemmas1"),
-				Configuration.getDefaultConfiguration().copy()));
-		String expected = "";
-		for(int i=0;i<=15;++i)
-			expected+=
-				"varDeclP_"+i+ENDL+
-				"varDeclQ_"+i+ENDL;
-		Assert.assertEquals(
-			expected+
-			LabelRepresentation.commentForTransition+"A(0)-a->B(1)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-			"(and"+ENDL+
-			"initCond_0"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondA_0 somePostcondA_1)))"+ENDL+
-			LabelRepresentation.commentForTransition+"E(7)-c->F(8)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a, b]"+ENDL+
-			"(and"+ENDL+
-			"initCond_5"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_5"+ENDL+
-			"somePostcondA_6"+ENDL+
-			LabelRepresentation.commentForLabel+"b"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondC_7 somePostcondC_8)))"+ENDL+
-			LabelRepresentation.commentForTransition+"B(10)-a->C(11)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-			"(and"+ENDL+
-			"initCond_9"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_9"+ENDL+
-			"somePostcondA_10"+ENDL+
-			")"+ENDL+
-			"\t(and somePrecondA_10 somePostcondA_11)))"+ENDL+
-			LabelRepresentation.commentForTransition+"C(14)-a-#D(15)"+ENDL+
-			LabelRepresentation.assertString+"(implies"+ENDL+
-			LabelRepresentation.commentForNewSeq+"[a, a]"+ENDL+
-			"(and"+ENDL+
-			"initCond_12"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_12"+ENDL+
-			"somePostcondA_13"+ENDL+
-			LabelRepresentation.commentForLabel+"a"+ENDL+
-			"somePrecondA_13"+ENDL+
-			"somePostcondA_14"+ENDL+
-			")"+ENDL+
-			"\t(not somePrecondA_14)))"+ENDL+
-			";; END OF PATH AXIOMS"+ENDL
-				,axioms);
-	}
-
-	/** Tests that Augment and mapVerticesToAbstractStates give the same results. */
-	@Test
-	public final void testCreateIDToStateMap1()
-	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),config);
-		LabelRepresentation lblsMap = new LabelRepresentation();
-		lblsMap.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lblsMap.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lblsMap.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lblsMap.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lblsMap.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lblsMap.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lblsMap.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		lblsMap.mapVerticesToAbstractStates(graph);
-		Assert.assertEquals(5,lblsMap.idToState.size());
-
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-
-		lbls.AugmentAbstractStates(null,Arrays.asList(new String[]{}), graph,true);// initial state
-		Assert.assertEquals(1,lbls.idToState.size());
-		Assert.assertTrue(lbls.idToState.containsKey(VertexID.parseID("A")));
-		AbstractState stateInit = lbls.idToState.get(VertexID.parseID("A"));
-		
-		lbls.AugmentAbstractStates(null,Arrays.asList(new String[]{}), graph,true);// and again
-		Assert.assertEquals(1,lbls.idToState.size());
-		Assert.assertTrue(lbls.idToState.containsKey(VertexID.parseID("A")));
-		Assert.assertSame(stateInit,lbls.idToState.get(VertexID.parseID("A")));
-
-		lbls.AugmentAbstractStates(null,Arrays.asList(new String[]{"a","b"}), graph,true);
-		Assert.assertEquals(3,lbls.idToState.size());
-		Assert.assertTrue(lbls.idToState.containsKey(VertexID.parseID("A")));
-
-		lbls.AugmentAbstractStates(null,Arrays.asList(new String[]{"a","a","a"}), graph,true);
-		Assert.assertEquals(lblsMap.idToState.size(), lbls.idToState.size());
-		Assert.assertEquals(lblsMap.idToState, lbls.idToState);
-	}
-	
 	private LabelRepresentation simpleLabel()
 	{
 		final LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
 		return lbls;
 	}
 	
-	/** Initial accept-state should have a satisfiable abstract state. */
 	@Test
-	public final void testAugmentFailure1()
+	public void testCheckConsistency_constructionIncomplete()
 	{
 		final LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (and (= m_N 0) (= m_N 1))");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_N,
+				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_N,
+				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
-		final List<String> sequence = Arrays.asList(new String[]{});
+		Helper.checkForCorrectException(new whatToRun() { public void run()
+		{
+			config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.NONE);
+			lbls.checkConsistency(graph,config);
+		}}, IllegalArgumentException.class,"construction incomplete");
+	}
 
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			lbls.AugmentAbstractStates(smt,sequence, graph,true);// initial state
-		}},IllegalArgumentException.class,"unsatisfiable");
+	/** Initial accept-state should have a satisfiable abstract state. */
+	@Test
+	public final void testAugmentCheck1()
+	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (and (= m"+_N+" 0) (= m"+_N+" 1))",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		final LearnerGraph graph = new LearnerGraph(config);
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		
+		// no check - everything seems ok.
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.NONE);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
+
+		// when checking states, an error should be reported.
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertTrue(lbls.checkConsistency(graph,config).getMessage().contains("has an abstract state inconsistent with the accept condition"));
 	}
 
 	/** Initial reject-state may not have a satisfiable abstract state. */
 	@Test
-	public final void testAugmentFailure2()
+	public final void testAugmentCheck2()
 	{
 		final LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (and (= m_N 0) (= m_N 1))");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
-		final List<String> sequence = Arrays.asList(new String[]{});
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		final LearnerGraph graph = new LearnerGraph(config);graph.init.setAccept(false);
+		lbls.buildVertexToAbstractStateMap(graph, null);
 		
-		lbls.AugmentAbstractStates(smt,sequence, graph,false);// initial state
+		// no check - everything seems ok.
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.NONE);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
+
+		// when checking states, an error should be reported.
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertTrue(lbls.checkConsistency(graph,config).getMessage().contains("has an abstract state inconsistent with the accept condition"));
 	}
 
 	/** Augmenting reject-paths. */
 	@Test
-	public final void testAugmentFailure3()
+	public final void testAugmentCheck3()
 	{
 		final LabelRepresentation lbls = simpleLabel();
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
 
 		final List<String> sequence = Arrays.asList(new String[]{"remove"});
 		graph.paths.augmentPTA(sequence,false, false, null);
 		
-		lbls.AugmentAbstractStates(smt,sequence, graph,false);
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
 	}
 
 	/** Augmenting reject-paths. */
 	@Test
-	public final void testAugmentFailure4()
+	public final void testAugmentCheck4()
 	{
 		final LabelRepresentation lbls = simpleLabel();
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
-
+		
 		final List<String> sequence = Arrays.asList(new String[]{"remove"});
-		
 		graph.paths.augmentPTA(sequence,true, false, null);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			lbls.AugmentAbstractStates(smt,sequence, graph,true);
-		}},IllegalArgumentException.class,"unsatisfiable");
+		
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertTrue(lbls.checkConsistency(graph,config).getMessage().contains("has an abstract state inconsistent with the accept condition"));
 	}
 
 	/** Augmenting reject-paths. */
 	@Test
-	public final void testAugmentFailure5()
+	public final void testAugmentCheck5()
 	{
 		final LabelRepresentation lbls = simpleLabel();
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
-
 		final List<String> sequence = Arrays.asList(new String[]{"add","remove","remove"});
-		
 		graph.paths.augmentPTA(sequence,false, false, null);
-		lbls.AugmentAbstractStates(smt,sequence, graph,false);
+		
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
 	}
 
 	/** Augmenting reject-paths. */
 	@Test
-	public final void testAugmentFailure6()
+	public final void testAugmentCheck6()
 	{
 		final LabelRepresentation lbls = simpleLabel();
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
 
 		final List<String> sequence = Arrays.asList(new String[]{"add","remove","remove"});
-		
 		graph.paths.augmentPTA(sequence,true, false, null);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			lbls.AugmentAbstractStates(smt,sequence, graph,true);
-		}},IllegalArgumentException.class,"unsatisfiable");
+
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertTrue(lbls.checkConsistency(graph,config).getMessage().contains("has an abstract state inconsistent with the accept condition"));
 	}
 
 	/** Augmenting accept-paths. */
 	@Test
-	public final void testAugment7()
+	public final void testCheck7()
 	{
 		final LabelRepresentation lbls = simpleLabel();
 		final LearnerGraph graph = new LearnerGraph(config);
-		Smt.loadLibrary();Smt.closeStdOut();final Smt smt = new Smt();
 
 		final List<String> sequence = Arrays.asList(new String[]{"add","remove","add"});
-		
 		graph.paths.augmentPTA(sequence,true, false, null);
-		lbls.AugmentAbstractStates(smt,sequence, graph,true);
+
+		lbls.buildVertexToAbstractStateMap(graph, null);
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
 	}
 
+	/** Checks that it is possible to check that all states can be entered. */
+	@Test
+	public final void testCheck8()
+	{
+		LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
+	}
 	
+	/** Checks that it is possible to check that all states can be entered. */
+	@Test
+	public final void testCheck9()
+	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2"), config);
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertTrue(lbls.checkConsistency(graph,config).getMessage().contains("has an abstract state inconsistent with the accept condition"));
+	}
+
+	// FIXME: to test multiple abstract states per single DFA state (using what I did in TestFSMAlgo), allnone, inclusion of a postcondition and determinism.
+	
+	/** The <em>testCreateIDToStateMap1</em> is in TestFSMAlgo. */
 	@Test
 	public final void testCreateIDToStateMap2()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclP_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " varDeclQ_N");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " initCond_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondA_N");
-		lbls.parseLabel("a"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondA_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.PRE+ " somePrecondB_N");
-		lbls.parseLabel("b"+" "+LabelRepresentation.XM_DATA.POST+ " somePostcondB_N");
-		lbls.mapVerticesToAbstractStates(new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),
-				config));
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
+			QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M,
+			QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
+			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
+			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "createLemmas1"),config);
+		lbls.buildVertexToAbstractStateMap(graph, null);
+
 		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
 		//	System.out.println(entry.getKey()+" "+entry.getValue().abstractState);
-		Assert.assertEquals(5,lbls.idToState.size());
+		Assert.assertEquals(5,graph.learnerCache.getVertexToAbstractState().size());
+		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.learnerCache.getVertexToAbstractState().entrySet())
+			Assert.assertEquals(1,entry.getValue().size());
+		int varNumber = 0;
+		Assert.assertEquals(
+				LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+varNumber,
+				extractAbstractStateFrom(graph,"A").abstractState);
 		
 		Assert.assertEquals(
-				LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-				"(and"+ENDL+
-				"initCond_0"+ENDL+
-				")"+ENDL,
-				lbls.idToState.get(VertexID.parseID("A")).abstractState);
+				LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+(varNumber+0)+ENDL+
+				LabelRepresentation.commentForLabel+"a"+ENDL+
+				"somePrecondA"+__P+(varNumber+0)+ENDL+
+				"somePostcondA"+__P+(varNumber+1),
+				extractAbstractStateFrom(graph,"B").abstractState);
+		
 		Assert.assertEquals(
-				LabelRepresentation.commentForNewSeq+"[a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_1"+ENDL+
+				LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+(varNumber+0)+ENDL+
 				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_1"+ENDL+
-				"somePostcondA_2"+ENDL+
-				")"+ENDL,
-				lbls.idToState.get(VertexID.parseID("B")).abstractState);
+				"somePrecondA"+__P+(varNumber+0)+ENDL+
+				"somePostcondA"+__P+(varNumber+1)+ENDL+
+				LabelRepresentation.commentForLabel+"a"+ENDL+
+				"somePrecondA"+__P+(varNumber+1)+ENDL+
+				"somePostcondA"+__P+(varNumber+2),
+				extractAbstractStateFrom(graph,"C").abstractState);
+		
 		Assert.assertEquals(
-				LabelRepresentation.commentForNewSeq+"[a, a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_6"+ENDL+
+				LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+(varNumber+0)+ENDL+
 				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_6"+ENDL+
-				"somePostcondA_7"+ENDL+
+				"somePrecondA"+__P+(varNumber+0)+ENDL+
+				"somePostcondA"+__P+(varNumber+1)+ENDL+
 				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_7"+ENDL+
-				"somePostcondA_8"+ENDL+
-				")"+ENDL,
-				lbls.idToState.get(VertexID.parseID("C")).abstractState);
+				"somePrecondA"+__P+(varNumber+1)+ENDL+
+				"somePostcondA"+__P+(varNumber+2)+ENDL+
+				LabelRepresentation.commentForLabel+"a"+ENDL+
+				"somePrecondA"+__P+(varNumber+2)+ENDL+
+				"somePostcondA"+__P+(varNumber+4),
+				extractAbstractStateFrom(graph,"D").abstractState);
+		
 		Assert.assertEquals(
-				LabelRepresentation.commentForNewSeq+"[a, a, a]"+ENDL+
-				"(and"+ENDL+
-				"initCond_9"+ENDL+
+				LabelRepresentation.commentForInit+ENDL+
+				"initCond"+__P+(varNumber+0)+ENDL+
 				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_9"+ENDL+
-				"somePostcondA_10"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_10"+ENDL+
-				"somePostcondA_11"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_11"+ENDL+
-				"somePostcondA_12"+ENDL+
-				")"+ENDL,
-				lbls.idToState.get(VertexID.parseID("D")).abstractState);
-		Assert.assertEquals(
-				LabelRepresentation.commentForNewSeq+"[a, b]"+ENDL+
-				"(and"+ENDL+
-				"initCond_3"+ENDL+
-				LabelRepresentation.commentForLabel+"a"+ENDL+
-				"somePrecondA_3"+ENDL+
-				"somePostcondA_4"+ENDL+
+				"somePrecondA"+__P+(varNumber+0)+ENDL+
+				"somePostcondA"+__P+(varNumber+1)+ENDL+
 				LabelRepresentation.commentForLabel+"b"+ENDL+
-				"somePrecondB_4"+ENDL+
-				"somePostcondB_5"+ENDL+
-				")"+ENDL,
-				lbls.idToState.get(VertexID.parseID("E")).abstractState);
+				"somePrecondB"+__P+(varNumber+1)+ENDL+
+				"somePostcondB"+__P+(varNumber+3),
+				extractAbstractStateFrom(graph,"E").abstractState);
 	}
 	
 	
@@ -1000,82 +935,35 @@ public class TestSmtLabelRepresentation {
 	public void testSolvingConstraints()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		Smt.loadLibrary();
-		Smt.closeStdOut();
-		Smt smt = new Smt();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-remove->C-remove-#D\nB-add->E", "testSolvingConstraints"),config);
+		lbls.buildVertexToAbstractStateMap(graph, null);
 
-		AbstractState state = null;
-		smt.pushContext();
-		state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"remove"}));
-		smt.loadData(LabelRepresentation.getAssertionFromAbstractState(state));
-		Assert.assertFalse(smt.check());
-		smt.popContext();
+		Pair<String,String> state = null;
+		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("remove")}),null);
+		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-		smt.pushContext();
-		state = lbls.getConjunctionForPath(Arrays.asList(new String[]{}));
-		smt.loadData(LabelRepresentation.getAssertionFromAbstractState(state));
-		Assert.assertTrue(smt.check());
-		smt.popContext();
+		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-		smt.pushContext();
-		state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"add","remove"}));
-		smt.loadData(LabelRepresentation.getAssertionFromAbstractState(state));
-		Assert.assertTrue(smt.check());
-		smt.popContext();
+		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove")}),null);
+		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-
-		smt.pushContext();
-		state = lbls.getConjunctionForPath(Arrays.asList(new String[]{"add","remove","remove"}));
-		smt.loadData(LabelRepresentation.getAssertionFromAbstractState(state));
-		Assert.assertFalse(smt.check());
-		smt.popContext();
-
-		Smt.reopenStdOut();
+		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove"),lbls.labelMapFinal.get("remove")}),null);
+		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 	}
 	
-	/** Checks that it is possible to check that all states can be entered. */
-	@Test
-	public final void testAbstractStateSatisfiability1()
+	/** Obtains an abstract state corresponding to the specific state in a specific graph. */
+	private AbstractState extractAbstractStateFrom(LearnerGraph graph, String stateName)
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
-		lbls.mapVerticesToAbstractStates(graph);
-		
-		Smt.loadLibrary();
-		Smt.closeStdOut();
-		Smt smt = new Smt();
-		lbls.checkAllStatesExist(smt);
-	}
-	
-	/** Checks that it is possible to check that all states can be entered. */
-	@Test
-	public final void testAbstractStateSatisfiability2()
-	{
-		final LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2"), config);
-		lbls.mapVerticesToAbstractStates(graph);
-		
-		Smt.loadLibrary();
-		Smt.closeStdOut();
-		final Smt smt = new Smt();
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			lbls.checkAllStatesExist(smt);
-		}},IllegalArgumentException.class,"has an unsatisfiable abstract state");
+		Collection<AbstractState> abstractStates = graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(stateName)));
+		Assert.assertEquals(1,abstractStates.size());
+		return abstractStates.iterator().next();
 	}
 	
 	/** Checks that we can use abstract states to compute state compatibility. */
@@ -1083,48 +971,64 @@ public class TestSmtLabelRepresentation {
 	public final void testUpdateScore()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
-		lbls.mapVerticesToAbstractStates(graph);
+		lbls.buildVertexToAbstractStateMap(graph,null);
 		
-		Smt.loadLibrary();
-		Smt.closeStdOut();
-		Smt smt = new Smt();
+		config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
+		Assert.assertNull(lbls.checkConsistency(graph,config));
+
+		Assert.assertTrue(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"A"), extractAbstractStateFrom(graph,"A")));
+		Assert.assertFalse(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"A"), extractAbstractStateFrom(graph,"B")));
+		Assert.assertFalse(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"B"), extractAbstractStateFrom(graph,"A")));
 		
-		lbls.checkAllStatesExist(smt);
-		Assert.assertTrue(lbls.abstractStatesCompatible(smt, VertexID.parseID("A"), VertexID.parseID("A")));
-		Assert.assertFalse(lbls.abstractStatesCompatible(smt, VertexID.parseID("A"), VertexID.parseID("B")));
-		Assert.assertFalse(lbls.abstractStatesCompatible(smt, VertexID.parseID("B"), VertexID.parseID("A")));
-		
-		Assert.assertTrue(lbls.abstractStatesCompatible(smt, VertexID.parseID("A"), VertexID.parseID("E")));
-		Assert.assertTrue(lbls.abstractStatesCompatible(smt, VertexID.parseID("B"), VertexID.parseID("F")));
+		Assert.assertTrue(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"A"), extractAbstractStateFrom(graph,"E")));
+		Assert.assertTrue(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"B"), extractAbstractStateFrom(graph,"F")));
+
+		Assert.assertFalse(lbls.abstractStatesCompatible(extractAbstractStateFrom(graph,"D"), extractAbstractStateFrom(graph,"F")));
 	}
 
 	@Test
 	public final void testCheckWithEndUser()
 	{
 		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.PRE+ " ( define m_N::nat )");
-		lbls.parseLabel(INITMEM+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N 0)");
-		lbls.parseLabel("add"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (+ m_M 1))");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.PRE+ " (> m_N 0)");
-		lbls.parseLabel("remove"+" "+LabelRepresentation.XM_DATA.POST+ " (= m_N (- m_M 1))");
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B","testUpdateScore"), config);
-		lbls.mapVerticesToAbstractStates(graph);
+		lbls.buildVertexToAbstractStateMap(graph,null);
 		
-		Smt.loadLibrary();
-		Smt.closeStdOut();
-		Smt smt = new Smt();
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{})));
+		Assert.assertEquals(0,lbls.CheckWithEndUser(Arrays.asList(new String[]{"remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove"})));
+		Assert.assertEquals(2,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove","remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove","add","add"})));
+	}
+	
+	@Test
+	public final void testCheckWithEndUser_fail()
+	{
+		final LabelRepresentation lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_N+" 0)",
+			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B","testUpdateScore"), config);
+		lbls.buildVertexToAbstractStateMap(graph,null);
 		
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{})));
-		Assert.assertEquals(0,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove"})));
-		Assert.assertEquals(2,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove","remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(smt, Arrays.asList(new String[]{"add","remove","add","add"})));
-	}		
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			lbls.CheckWithEndUser(Arrays.asList(new String[]{"aa"}));
+		}},IllegalArgumentException.class,"unknown label");
+	}
 }

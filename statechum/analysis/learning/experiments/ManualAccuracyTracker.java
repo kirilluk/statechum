@@ -21,7 +21,6 @@ package statechum.analysis.learning.experiments;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.*;

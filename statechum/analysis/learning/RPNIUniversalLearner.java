@@ -94,7 +94,8 @@ public class RPNIUniversalLearner extends RPNILearner
 	/** Given a graph, merges a pair of states from it and returns the result. */
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 	{
-		return MergeStates.mergeAndDeterminize_general(original, pair);		
+		LearnerGraph result = MergeStates.mergeAndDeterminize_general(original, pair);
+		return result;
 	}
 
 	/** A graph representing constraints to be folded into PTA before learning commences and 
@@ -180,9 +181,6 @@ public class RPNIUniversalLearner extends RPNILearner
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, sr.getCounters()));
 		}
-		tentativeAutomaton.merger.buildVertexToEqClassMap(null);// construct the initial version of the 
-		// map associating vertices with those these vertices were built from; this map is subsequently 
-		// updated when a merged automaton is built.
 		
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();

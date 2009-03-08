@@ -24,23 +24,19 @@ import java.util.Stack;
 
 import statechum.JUConstants;
 import statechum.Pair;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.Learner;
-import statechum.analysis.learning.Smt;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.model.testset.PTASequenceEngine;
 
 public class SmtLearnerDecorator extends DummyLearner 
 {
 	protected final LabelRepresentation lbl;
-	protected final Smt solver;
 	
 	public SmtLearnerDecorator(Learner learner,LabelRepresentation labels) {
 		super(learner);lbl=labels;
-		
-		Smt.loadLibrary();Smt.closeStdOut();solver = new Smt();
 	}
 
 	/* (non-Javadoc)
@@ -51,18 +47,29 @@ public class SmtLearnerDecorator extends DummyLearner
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		if (ptaKind == RestartLearningEnum.restartHARD)
-			lbl.AugmentAbstractStates(solver,sequence, pta,accepted);
+		lbl.buildVertexToAbstractStateMap(pta, null);
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * @see statechum.analysis.learning.observers.DummyLearner#AddConstraints(statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.rpnicore.LearnerGraph, java.lang.StringBuffer)
+	 */
+	@Override
+	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome,	StringBuffer counterExampleHolder) 
+	{
+		boolean result = decoratedLearner.AddConstraints(graph, outcome, counterExampleHolder);
+		if (!result) return false;
+		lbl.buildVertexToAbstractStateMap(outcome, null);
+		return lbl.checkConsistency(outcome,graph.config) == null;
+	}
+	
+	/**
 	 * @see statechum.analysis.learning.observers.DummyLearner#CheckWithEndUser(statechum.analysis.learning.rpnicore.LearnerGraph, java.util.List, int, java.lang.Object[])
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
 			List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
 	{
-		int smtAnswer = lbl.CheckWithEndUser(solver, question);
+		int smtAnswer = lbl.CheckWithEndUser(question);
 		System.err.println("question: "+question+" expected for no restart: "+responseForNoRestart+" smt returned: "+smtAnswer);
 		if (smtAnswer != responseForNoRestart)
 			return new Pair<Integer, String>(smtAnswer,null);
@@ -70,7 +77,15 @@ public class SmtLearnerDecorator extends DummyLearner
 		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
 	}
 	
-	/* (non-Javadoc)
+	@Override
+	public LearnerGraph MergeAndDeterminize(LearnerGraph original,StatePair pair) 
+	{
+		LearnerGraph result = decoratedLearner.MergeAndDeterminize(original, pair);
+		lbl.buildVertexToAbstractStateMap(result, original);// update the map from vertices to the corresponding collections of abstract states
+		return result;
+	}
+
+	/**
 	 * @see statechum.analysis.learning.observers.DummyLearner#ChooseStatePairs(statechum.analysis.learning.rpnicore.LearnerGraph)
 	 */
 	@Override
@@ -82,15 +97,15 @@ public class SmtLearnerDecorator extends DummyLearner
 		for(int i=0;i<graph.pairsAndScores.size();++i)
 		{
 			PairScore pair = graph.pairsAndScores.get(i);
-			Iterator<CmpVertex> 
-				stateA_iter = graph.learnerCache.getVertexToEqClass().get(pair.firstElem).getStates().iterator(),
-				stateB_iter = graph.learnerCache.getVertexToEqClass().get(pair.secondElem).getStates().iterator();
+			Iterator<AbstractState> 
+				stateA_iter = graph.learnerCache.getVertexToAbstractState().get(pair.firstElem).iterator(),
+				stateB_iter = graph.learnerCache.getVertexToAbstractState().get(pair.secondElem).iterator();
 			boolean finished = false, statesIntersect = false;// using these two variables I can choose whether to check for intersection or non-intersection.
 			while(stateA_iter.hasNext() && !finished)
 			{
-				CmpVertex stateA = stateA_iter.next();
+				AbstractState stateA = stateA_iter.next();
 				while(stateB_iter.hasNext() && !finished)
-					if (lbl.abstractStatesCompatible(solver, stateA.getID(), stateB_iter.next().getID()))
+					if (lbl.abstractStatesCompatible(stateA, stateB_iter.next()))
 					{
 						finished = true;statesIntersect = true;
 					}
@@ -112,16 +127,20 @@ public class SmtLearnerDecorator extends DummyLearner
 	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 	{
 		LearnerGraph result= decoratedLearner.init(plus, minus);
-		lbl.idToState.clear();
-		lbl.mapVerticesToAbstractStates(result);return result;
+		lbl.buildVertexToAbstractStateMap(result, null);// construct the initial version of the 
+		// map associating vertices with those these vertices were built from; this map is subsequently 
+		// updated when a merged automaton is built.
+		return result;
 	}
 
 	@Override
 	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
 	{
 		LearnerGraph result= decoratedLearner.init(engine, plusSize, minusSize);
-		lbl.idToState.clear();
-		lbl.mapVerticesToAbstractStates(result);return result;
+		lbl.buildVertexToAbstractStateMap(result, null);// construct the initial version of the 
+		// map associating vertices with those these vertices were built from; this map is subsequently 
+		// updated when a merged automaton is built.
+		return result;
 	}
 
 	/**
@@ -131,14 +150,5 @@ public class SmtLearnerDecorator extends DummyLearner
 	public void Restart(RestartLearningEnum mode) 
 	{
 		decoratedLearner.Restart(mode);
-	}
-
-	/**
-	 * @see statechum.analysis.learning.observers.DummyLearner#AddConstraints(statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.rpnicore.LearnerGraph, java.lang.StringBuffer)
-	 */
-	@Override
-	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome,	StringBuffer counterExampleHolder) 
-	{
-		return decoratedLearner.AddConstraints(graph, outcome, counterExampleHolder);
 	}
 }

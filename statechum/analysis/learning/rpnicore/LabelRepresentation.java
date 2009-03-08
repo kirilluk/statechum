@@ -18,30 +18,36 @@
 package statechum.analysis.learning.rpnicore;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import cern.colt.Arrays;
-
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.JUConstants;
+import statechum.Pair;
 import statechum.StatechumXML;
+import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.model.testset.PTAExploration;
-import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.analysis.learning.rpnicore.LabelParser.FunctionArgumentsHandler;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.Smt;
+import statechum.apps.QSMTool;
 
 /** Transition labels may have complex behaviours associated with them and
  * SMT can be used to check
@@ -49,12 +55,15 @@ import statechum.analysis.learning.Smt;
  * @author kirill
  *
  */
-public class LabelRepresentation {
+public class LabelRepresentation 
+{
 	/** Constraints declaration of memory and input variables, together with constraints
 	 * on input variables to ensure that design-for-test conditions are met are stored as a precondition of MEM0
 	 * A postcondition of MEM0 describes the initial memory value.
 	 */
 	public static final String INITMEM="MEM0";
+	
+	protected Label init = null;
 	
 	/** Eliminates spaces at the beginning and end of the supplied 
 	 * string. If not empty, the outcome is appended to the buffer provided. 
@@ -66,7 +75,7 @@ public class LabelRepresentation {
 	 * <pre>
 	 * String text = null;
 	 * ...
-	 * text = appendStringToBuffer(string,text);
+	 * text = appendToString(string,text);
 	 * </pre>
 	 * 
 	 * @param str what to append
@@ -82,26 +91,249 @@ public class LabelRepresentation {
 		if (buffer == null) result = trimmed;else { result= result+ENDL+trimmed; }
 		return result;
 	}
-	
-	public class Label
+
+	/** Represents a function used by preconditions, postconditions and i/o. */
+	public static class LowLevelFunction implements Comparable<LowLevelFunction>
 	{
-		protected String name, pre = null, post = null;
+		protected String name;
+		
+		/** This is a constraint used to limit the range of arguments and the return value of this function.
+		 * For example,
+		 * <pre>
+		 * (and (< frg0 4) (= frg2 (+ frg1 frg0)))
+		 * </pre>
+		 * where expressions <em>frg0</em> is the return value of this function and
+		 * <em>frg<b>i</b></em> (where <em><b>i</b></em> is in the range of <em>1..arity</em>) refer 
+		 * to the arguments of this function.
+		 */
+		protected String constraint= null;
+		
+		/** Variable declarations for the arguments of this function - for uninterpreted functions
+		 * this is not necessary but we have to introduce variables for them, hence the type has 
+		 * to be provided to Yices.
+		 */
+		protected String varDeclaration = null;
+		
+		protected int arity = 0;
+		
+		/** Whether arguments to this function should be constrained to terms used in existing traces. */ 
+		protected boolean constrainArgsToTraces = false;
+
+		public LowLevelFunction(String functionName)
+		{
+			name = functionName;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((constraint == null) ? 0 : constraint.hashCode());
+			result = prime * result + ((name == null) ? 0 : name.hashCode());
+			result = prime
+					* result
+					+ ((varDeclaration == null) ? 0 : varDeclaration.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof LowLevelFunction))
+				return false;
+			LowLevelFunction other = (LowLevelFunction) obj;
+			if (constraint == null) {
+				if (other.constraint != null)
+					return false;
+			} else if (!constraint.equals(other.constraint))
+				return false;
+			if (name == null) {
+				if (other.name != null)
+					return false;
+			} else if (!name.equals(other.name))
+				return false;
+			if (varDeclaration == null) {
+				if (other.varDeclaration != null)
+					return false;
+			} else if (!varDeclaration.equals(other.varDeclaration))
+				return false;
+			return true;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public int compareTo(LowLevelFunction o) {
+			return name.compareTo(o.name);
+		}
+	}
+
+	public static final String blockVARS="VARS",blockVARDECLS="VAR DECL",blockVALUES="POSSIBLE VALUES",blockDATATRACES="KNOWN DATA TRACES"; 
+	
+	/** Given a block of text, surrounds it in begin-end if it is not empty.
+	 * What is important is that in case anything is appended, it is separated from the text
+	 * before with a new line.
+	 * 
+	 * @param block text to surround
+	 * @param title the title to give to the surrounding text
+	 * @return surrounded text
+	 */
+	public static String encloseInBeginEndIfNotEmpty(String block,String title)
+	{
+		if (block == null || block.length() == 0) return "";
+		
+		return ENDL+";; BEGIN "+title+ENDL+block+ENDL+";; END "+title+ENDL;
+	}
+
+	/** The purpose of this class is to record the results of parsing preconditions, postconditions and i/o. 
+	 * It is constructed following three steps,
+	 * <ol>
+	 * <li><em>text</em> is built by parsing preconditions, postconditions and io.</li>
+	 * <li>After parsing <em>text</em>, it is rebuilt and appropriate functions are substituted using
+	 * new variables.</li>
+	 * <li>After traces are all added to an initial PTA, the variables used in those traces 
+	 * (with substituted _M and _N) are added to this composition.</li>
+	 * </ol> 
+	 */
+	public static class CompositionOfFunctions
+	{
+		protected final String text,relabelledText,finalText;
+		protected final String varDeclarations;
+		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs;
+		
+		/** This constructor is only used in order to build the first version of this composition.
+		 */
+		public CompositionOfFunctions(String argText)
+		{
+			text = argText;varDeclarations=null;relabelledText=null;finalText=null;variablesUsedForArgs = null;
+		}
+		
+		/** This constructor is only used in order to build the second version of this composition.
+		 */
+		public CompositionOfFunctions(String data, String decls, String vars, Map<LowLevelFunction,Collection<String>> argVariablesUsedForArgs)
+		{
+			assert data != null;
+			text = data;varDeclarations = encloseInBeginEndIfNotEmpty(decls,blockVARDECLS);relabelledText = text+encloseInBeginEndIfNotEmpty(vars,blockVARS);variablesUsedForArgs = argVariablesUsedForArgs;
+			finalText = null;
+		}
+
+		/** This constructor is only used in order to build the third version of this composition.
+		 */
+		public CompositionOfFunctions(CompositionOfFunctions composition,String whatToAdd)
+		{
+			text = composition.text;relabelledText = null;varDeclarations = composition.varDeclarations;variablesUsedForArgs = null;
+			finalText = composition.relabelledText+encloseInBeginEndIfNotEmpty(whatToAdd,blockVALUES);
+			assert varDeclarations != null;
+			assert finalText != null;
+		}
+		
+		public String getCondition() 
+		{
+			if (finalText == null)
+				return relabelledText;
+			return finalText;
+		}
+
+		/** Constructs an instance of an empty second phase of this composition. */
+		public static CompositionOfFunctions createEmptySecondPhase() {
+			return new CompositionOfFunctions("","","",new TreeMap<LowLevelFunction,Collection<String>>());
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result
+					+ ((finalText == null) ? 0 : finalText.hashCode());
+			result = prime
+					* result
+					+ ((relabelledText == null) ? 0 : relabelledText.hashCode());
+			result = prime * result + ((text == null) ? 0 : text.hashCode());
+			result = prime
+					* result
+					+ ((varDeclarations == null) ? 0 : varDeclarations
+							.hashCode());
+			result = prime
+					* result
+					+ ((variablesUsedForArgs == null) ? 0
+							: variablesUsedForArgs.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof CompositionOfFunctions))
+				return false;
+			CompositionOfFunctions other = (CompositionOfFunctions) obj;
+			if (finalText == null) {
+				if (other.finalText != null)
+					return false;
+			} else if (!finalText.equals(other.finalText))
+				return false;
+			if (relabelledText == null) {
+				if (other.relabelledText != null)
+					return false;
+			} else if (!relabelledText.equals(other.relabelledText))
+				return false;
+			if (text == null) {
+				if (other.text != null)
+					return false;
+			} else if (!text.equals(other.text))
+				return false;
+			if (varDeclarations == null) {
+				if (other.varDeclarations != null)
+					return false;
+			} else if (!varDeclarations.equals(other.varDeclarations))
+				return false;
+			if (variablesUsedForArgs == null) {
+				if (other.variablesUsedForArgs != null)
+					return false;
+			} else if (!variablesUsedForArgs.equals(other.variablesUsedForArgs))
+				return false;
+			return true;
+		}
+	}
+
+	/** Represents a label on a transition. */
+	public static class Label
+	{
+		protected String name;
+		protected CompositionOfFunctions pre = new CompositionOfFunctions(null), post = new CompositionOfFunctions(null);
 		
 		public Label(String labelName)
 		{
 			name = appendToString(labelName, null);
 			if (name == null)
 				throw new IllegalArgumentException("invalid label name");
-
-			if (labelMap.containsKey(name))
-				throw new IllegalArgumentException("duplicate label "+name);
 		}
 		
-		public Label(String labelName, String preCondition, String postCondition)
+		public Label(String labelName, CompositionOfFunctions preCondition, CompositionOfFunctions postCondition)
 		{
-			this(labelName);pre=appendToString(preCondition,pre);post=appendToString(postCondition,post);
+			//this(labelName);pre.text=appendToString(preCondition,pre.text);post.text=appendToString(postCondition,post.text);
+			this(labelName);pre=preCondition;post=postCondition;
 		}
-		
+	
 		/** Returns the name of this label. */
 		public String getName()
 		{
@@ -118,6 +350,7 @@ public class LabelRepresentation {
 			result = prime * result + ((name == null) ? 0 : name.hashCode());
 			result = prime * result + ((post == null) ? 0 : post.hashCode());
 			result = prime * result + ((pre == null) ? 0 : pre.hashCode());
+
 			return result;
 		}
 
@@ -150,9 +383,19 @@ public class LabelRepresentation {
 				return false;
 			return true;
 		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#toString()
+		 */
+		@Override
+		public String toString() {
+			return getName();
+		}
 	}
 
-	static public final String varNewSuffix = "_N",varOldSuffix="_M"; 
+	static public final char delimiter='@',delimiterNegative='~';
+	static public final String varNewSuffix = delimiter+"N",varOldSuffix=delimiter+"M", functionArg = "frg";
+	public static final String delimiterString=""+delimiter,delimiterNegativeString=""+delimiterNegative;
 	
 	/** Given a string with variables, renumbers them according to the number passed. This is used
 	 * to generate memory and input variables corresponding to different states/labels on a path.
@@ -160,21 +403,42 @@ public class LabelRepresentation {
 	 * @param constraint what to renumber
 	 * @param num how far on a path we are.
 	 * @param previous the way to refer to previous values of variables (so that a postcondition can use them).
+	 * The values <em>num</em> and <em>previous</em> cannot be the same since in the course of constructing
+	 * data traces and collecting arguments to functions, we expect each entry to reference unique variables.
+	 * The uniqueness is determined by function name and use count within each of PRE,POST and IO; only one
+	 * PRE,POST or IO can be present at each point in a sequence and their unique numbers is a pair of _M and _N.
+	 * 
 	 * @return a constraint with renumbered variables. 
 	 */
 	protected static String toCurrentMem(String constraint, int num, int previous)
 	{
-		String result = constraint;
-		if (num>=0)
-			result = result.replaceAll(varNewSuffix,"_"+num);
-		else
-			result = result.replaceAll(varNewSuffix,"_@"+(-num));
-
-		if (previous>=0)
-			result = result.replaceAll(varOldSuffix,"_"+previous);
-		else
-			result = result.replaceAll(varOldSuffix,"_@"+(-previous));
+		if (constraint == null || constraint.length() == 0)
+			return "true";
+		//assert num != previous;// when I'd like to compare the effect of an operation on a state, I may have a loopback transition and hence compare with itself.
 		
+		String result = constraint;
+		if (num != JUConstants.intUNKNOWN)
+			result = result.replaceAll(varNewSuffix,delimiterString+num);
+		else
+			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+			{// Consistency checking
+				if (result.contains(varNewSuffix))
+					throw new IllegalArgumentException("current number should be valid in "+constraint);
+			}
+		/*else
+			result = result.replaceAll(varNewSuffix,delimiterNegativeString+(-num));*/
+
+		if (previous != JUConstants.intUNKNOWN)
+			result = result.replaceAll(varOldSuffix,delimiterString+previous);
+		/*
+		else
+			result = result.replaceAll(varOldSuffix,delimiterNegativeString+(-previous));*/
+		else
+			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+			{// Consistency checking
+				if (result.contains(varOldSuffix))
+					throw new IllegalArgumentException("previous number should be valid in "+constraint);
+			}
 		return result;
 	}
 
@@ -184,12 +448,12 @@ public class LabelRepresentation {
 	 * @param what text to convert
 	 * @param stateNumber state number
 	 * @param oldStateNumber previous state number
-	 * @return true if something was appended.
+	 * @return true if something was appended (<em>what</em> is non-null and has a positive length).
 	 */
 	protected static boolean addStringRepresentation(String what, int stateNumber, int oldStateNumber, StringBuffer result)
 	{
 		boolean outcome = false;
-		if (what != null)
+		if (what != null && what.length()>0)
 		{
 			result.append(toCurrentMem(what,stateNumber,oldStateNumber));result.append(ENDL);
 			outcome = true;
@@ -198,9 +462,15 @@ public class LabelRepresentation {
 	}
 
 	/** Maps names of labels to their representation - a learner does not need to know the details, albeit
-	 * perhaps we should've incorporated an abstract label into our transition structure. 
+	 * perhaps we should've incorporated an abstract label into our transition structure.
+	 * The three maps correspond to different phases of construction of the final map. 
 	 */
-	protected Map<String,Label> labelMap = new TreeMap<String,Label>();
+	protected Map<String,Label> labelMapConstructionOfOperations = null,
+	labelMapConstructionOfDataTraces = null, labelMapFinal = null;
+	
+	/** Maps names of low-level functions to their representation. 
+	 */
+	protected Map<String,LowLevelFunction> functionMap = new TreeMap<String,LowLevelFunction>();
 	
 	/** This one stores the text from which label descriptions have been loaded. */
 	private List<String> originalText = new LinkedList<String>();
@@ -215,9 +485,303 @@ public class LabelRepresentation {
 	
 	public void loadXML(Element elem)
 	{
-		parseLabels(ProgressDecorator.readInputSequence(new StringReader( elem.getTextContent()),-1));		
+		parseCollection(ProgressDecorator.readInputSequence(new StringReader( elem.getTextContent()),-1));		
 	}
 
+	/** Represents a trace with arguments. */
+	public static class TraceWithData
+	{
+		protected boolean accept = true;
+		protected List<String> traceDetails = null;
+		protected List<CompositionOfFunctions> arguments = null;
+	}
+	
+	protected final Collection<TraceWithData> traces = new LinkedList<TraceWithData>();
+	
+	/** Extracts positive sequences from the collection. */
+	public Collection<List<String>> getSPlus() 
+	{
+		final Collection<List<String>> sPlus = new LinkedList<List<String>>();
+		for(TraceWithData trace:traces)
+			if (trace.accept)
+				sPlus.add(trace.traceDetails);
+		return sPlus; 
+	}
+	
+	/** Extracts negative sequences from the collection. */
+	public Collection<List<String>> getSMinus() 
+	{ 
+		final Collection<List<String>> sMinus = new LinkedList<List<String>>();
+		for(TraceWithData trace:traces)
+			if (!trace.accept)
+				sMinus.add(trace.traceDetails);
+		return sMinus; 
+	}
+	
+	public enum VARIABLEUSE { PRE,POST,IO}; 
+	
+	/** Generates a new variable name. 
+	 * 
+	 * @param functionName this variable will be this function's argument or value. 
+	 * @param useNumber Each time a function is used we create a set of fresh variables for its 
+	 * 	arguments and value, this is the number representing the number of times this function
+	 * has been used in a particular element of a trace.
+	 * @param useKind how this variable is expected to be used (to ensure that for each position
+	 * of each data trace, an IO, a PRE and a POST will have disjoint variable IDs). 
+	 * @param position 
+	 * <ul>
+	 * <li>zero means an outcome of a function, </li>
+	 * <li>positive is the position of an argument 
+	 * the generated variable name will represent and</li> 
+	 * <li><em>JUConstants.intUNKNOWN</em> means the positional argument 
+	 * will not be generated (but the separator before it will be).</li>
+	 * </ul>
+	 * @return the generated variable name.
+	 */
+	public static String generateFreshVariable(String functionName, VARIABLEUSE useKind, int useNumber,  int position)
+	{
+		return functionArg+delimiter+functionName+delimiter+useKind.name()+delimiter+useNumber+varOldSuffix+varNewSuffix+delimiter+
+			(position != JUConstants.intUNKNOWN?Integer.toString(position):"");
+	}
+
+	/** Maps low level functions to variables associated with arguments and return values of these functions. */ 
+	final Map<LowLevelFunction,Collection<String>> functionToVariables = new TreeMap<LowLevelFunction,Collection<String>>();
+	
+	/** Contains declarations and assertions associated with known traces and values of arguments 
+	 * of uninterpreted functions used in those traces.  
+	 */
+	String knownTraces;
+	
+	/** Called for each detected function.
+	 * 
+	 * @param functionName the name of the function
+	 * @param args arguments of this function.
+	 * @return if non-null, the name of a variable to represent the result of computing this function;
+	 * null return value means that function and its arguments should be passed unchanged through interpretFunctionalExpression.
+	 */
+	public class FunctionVariablesHandler implements FunctionArgumentsHandler
+	{
+		/** How many times a function has been used within a precondition, postcondition or i/o. */
+		final Map<LowLevelFunction,Integer> functionToUseCounter = new TreeMap<LowLevelFunction,Integer>();
+		final StringBuffer additionalVariables = new StringBuffer(),additionalDeclarations = new StringBuffer();
+		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs = new TreeMap<LowLevelFunction,Collection<String>>();
+
+		public void reset()
+		{
+			additionalVariables.setLength(0);additionalDeclarations.setLength(0);
+			functionToUseCounter.clear();variablesUsedForArgs.clear();
+		}
+		
+		/** All variables introduced using this handler will share this kind. */
+		private final VARIABLEUSE useKind;
+		
+		public FunctionVariablesHandler(VARIABLEUSE kind)
+		{
+			useKind = kind;reset();
+		}
+		
+		public String HandleLowLevelFunction(String functionName,List<String> args) 
+		{
+			String result = null;
+			LowLevelFunction func = functionMap.get(functionName);
+			if (func != null)
+			{// this is a function of interest to us
+				if (args.size() != func.arity)
+					throw new IllegalArgumentException("function "+functionName+" should take "+func.arity+" arguments instead of "+args);
+				assert func.varDeclaration != null;
+				
+				int useCounter = 0;
+				Integer currentUseCounter = functionToUseCounter.get(func);
+				if (currentUseCounter != null) useCounter = currentUseCounter.intValue();
+				
+				additionalVariables.append("(= ");String outcomeVariable = generateFreshVariable(func.getName(), useKind, useCounter, 0);
+				additionalVariables.append(outcomeVariable);
+				additionalVariables.append(" (");additionalVariables.append(func.getName());
+				int argNumber = 1;
+				while(argNumber <= args.size())
+				{
+					additionalVariables.append(' ');additionalVariables.append(generateFreshVariable(func.getName(), useKind, useCounter, argNumber++));
+				}
+				additionalVariables.append("))");
+				
+				argNumber = 1;
+				for(String arg:args)
+				{
+					additionalVariables.append("(= ");
+					additionalVariables.append(generateFreshVariable(func.getName(), useKind, useCounter, argNumber++));
+					additionalVariables.append(' ');additionalVariables.append(arg);
+					additionalVariables.append(')');
+				}
+				additionalVariables.append(ENDL);
+				if (func.constraint != null)
+				{// there is a constraint associated with this function
+					additionalVariables.append(func.constraint.replace(functionArg+delimiterString, generateFreshVariable(func.getName(), useKind, useCounter, JUConstants.intUNKNOWN)));
+					additionalVariables.append(ENDL);
+				}
+				additionalDeclarations.append(func.varDeclaration.replace(functionArg+delimiterString, generateFreshVariable(func.getName(), useKind, useCounter, JUConstants.intUNKNOWN)));
+				additionalDeclarations.append(ENDL);
+				result = outcomeVariable;
+				// variables introduced for every use of this function are recorded in the map 
+				Collection<String> knownValues = variablesUsedForArgs.get(func);
+				if (knownValues == null)
+				{
+					knownValues = new LinkedList<String>();variablesUsedForArgs.put(func,knownValues);
+				}
+				knownValues.add(generateFreshVariable(func.getName(), useKind, useCounter, JUConstants.intUNKNOWN));
+				useCounter++;
+				functionToUseCounter.put(func, useCounter);// stores the value to use next time.
+				
+			}
+			return result;
+		}
+		
+		public CompositionOfFunctions getComposition(String text)
+		{
+			return new CompositionOfFunctions(text,additionalDeclarations.toString(),additionalVariables.toString(),variablesUsedForArgs);
+		}
+	}
+	
+	/** Loads labels and traces from a collection of strings, populating both internal 
+	 * data and the supplied collection of traces. 
+	 */
+	public void parseCollection(Collection<String> data)
+	{
+		LabelParser parser = new LabelParser();
+		for(String text:data)
+			if (!text.startsWith(QSMTool.cmdLowLevelFunction) && 
+				!text.startsWith(QSMTool.cmdDataTrace) &&
+				!text.startsWith(QSMTool.cmdOperation) &&
+				!text.startsWith(QSMTool.cmdComment))
+				throw new IllegalArgumentException("invalid command "+text);
+
+		for(String text:data) 
+			if (text.startsWith(QSMTool.cmdLowLevelFunction))
+			{
+				parseFunction(text.substring(QSMTool.cmdLowLevelFunction.length()).trim());
+			}
+		
+		
+		// When pre/post/io is parsed, Map<LowLevelFunction,Collection<String>> should be populated mapping 
+		// each function to variables introduced with each use of that function
+		// When traces are parsed, the maps corresponding to pre/post/io of each element of a trace should be integrated
+		// into trace maps. Note that each trace should have a unique numbering.
+		
+		// At the moment, we have 
+		// _M,_N (when parsing traces, the range of these values can be determined and stored in each trace, 
+		// by applying parseFunctional to the outcome of toCurrentMemory(pre) or toCurrentMemory(post)
+		// hence no need to store unique trace identifiers).
+		// function name
+		// number of uses - different for each element of a trace: different operations, different i/o.
+		
+		// Number of uses should feature a unique range for PRE, POST and IO. For this reason, it is best
+		// to utilise a prefix reflecting this and a 
+		// Solution: remove the "i/o" argument to convert path to i/o and perform this conversion as a part of 
+		// parsing traces. The outcome would then be a map from a function name to a collection of lists 
+		// where _M and _N are expanded but _P (position of the argument) is not since all tuples have the same number of args for each function.
+
+		// For each PRE/POST, I need to add the equality between arguments in this PRE/POST and those in traces.
+		
+		for(LowLevelFunction function:functionMap.values())
+		{
+			for(int i=0;i<= function.arity;++i) // note the <= here, this is because we have arity arguments and the return value
+			{
+				if (function.varDeclaration == null)
+					throw new IllegalArgumentException("types of return value and arguments is missing for function "+function.getName());
+				if (!function.varDeclaration.contains(functionArg+delimiterString+i))
+					throw new IllegalArgumentException("the variable declaration of "+function.getName()+" is missing a declaration for "+(i>0?"argument "+i:"the return value"));
+			}
+		}
+		
+		if (labelMapConstructionOfOperations != null)
+			throw new IllegalArgumentException("operations already built");
+		labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		for(String text:data) 
+			if (text.startsWith(QSMTool.cmdOperation))
+			{
+				parseLabel(text.substring(QSMTool.cmdOperation.length()).trim());
+			}
+
+		// Assign an initial memory value.
+		init = labelMapConstructionOfOperations.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
+		if ((init.pre.text != null && init.pre.text.contains(varOldSuffix)) || 
+				(init.post.text != null && init.post.text.contains(varOldSuffix)))
+			throw new IllegalArgumentException(init.getName()+" should not refer to "+varOldSuffix);
+
+		assert labelMapConstructionOfDataTraces == null;
+		labelMapConstructionOfDataTraces = new TreeMap<String,Label>();
+		for(Label label:labelMapConstructionOfOperations.values())
+		{
+			label.pre  =  parser.interpretPrePostCondition(label.pre.text, new FunctionVariablesHandler(VARIABLEUSE.PRE));
+			label.post =  parser.interpretPrePostCondition(label.post.text, new FunctionVariablesHandler(VARIABLEUSE.POST));
+			labelMapConstructionOfDataTraces.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
+		}
+
+		for(String text:data) 
+			if (text.startsWith(QSMTool.cmdDataTrace))
+			{
+				parseTrace(text.substring(QSMTool.cmdOperation.length()).trim());
+			}
+
+		for(String text:data)
+			originalText.add(text);
+	}
+	
+	/** Given a string of text, parses it as a low-level function. */
+	public void parseFunction(String text)
+	{
+		if (text == null || text.length() == 0) return;// ignore empty input
+		
+		StringTokenizer tokenizer = new StringTokenizer(text);
+		if (!tokenizer.hasMoreTokens()) return;// ignore empty input
+		String functionName = tokenizer.nextToken();
+		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for function "+functionName);
+		FUNC_DATA kind = null;String prepost = tokenizer.nextToken();
+		try
+		{
+			kind=FUNC_DATA.valueOf(prepost);
+		}
+		catch(IllegalArgumentException ex)
+		{
+			throw new IllegalArgumentException("expected "+Arrays.toString(FUNC_DATA.values())+" but got: "+prepost);
+		}
+		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected specification for function "+functionName+" "+prepost);
+		StringBuffer labelSpec = new StringBuffer(tokenizer.nextToken());
+		while(tokenizer.hasMoreTokens())
+		{
+			labelSpec.append(' ');labelSpec.append(tokenizer.nextToken());
+		}
+		
+		LowLevelFunction func = functionMap.get(functionName);
+		if (func == null)
+		{
+			func = new LowLevelFunction(functionName);functionMap.put(func.getName(),func);
+		}
+		switch(kind)
+		{
+		case CONSTRAINT:
+			func.constraint = appendToString(labelSpec.toString(), func.constraint);break;
+		case DECL:
+			func.varDeclaration = appendToString(labelSpec.toString(),func.varDeclaration);break;
+		case ARITY:
+			if (func.arity > 0) throw new IllegalArgumentException("the arity of "+functionName+" is already known");
+			try
+			{
+				func.arity = Integer.parseInt(labelSpec.toString());
+			}
+			catch(NumberFormatException ex)
+			{
+				throw new IllegalArgumentException("the arity of "+functionName+" is "+labelSpec.toString()+" which is not a number");
+			}
+			if (func.arity < 0)
+				throw new IllegalArgumentException("the arity of "+functionName+" is an invalid number");
+			break;
+		case CONSTRAINARGS:
+			func.constrainArgsToTraces = Boolean.parseBoolean(labelSpec.toString());
+			break;
+		}
+	
+	}
+	
 	/** Given a string of text, parses it as a label. */
 	public void parseLabel(String text)
 	{
@@ -227,14 +791,14 @@ public class LabelRepresentation {
 		if (!tokenizer.hasMoreTokens()) return;// ignore empty input
 		String labelName = tokenizer.nextToken();
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for label "+labelName);
-		XM_DATA kind = null;String prepost = tokenizer.nextToken();
+		OP_DATA kind = null;String prepost = tokenizer.nextToken();
 		try
 		{
-			kind=XM_DATA.valueOf(prepost);
+			kind=OP_DATA.valueOf(prepost);
 		}
 		catch(IllegalArgumentException ex)
 		{
-			throw new IllegalArgumentException("expected "+Arrays.toString(XM_DATA.values())+" but got: "+prepost);
+			throw new IllegalArgumentException("expected "+Arrays.toString(OP_DATA.values())+" but got: "+prepost);
 		}
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected specification for label "+labelName);
 		StringBuffer labelSpec = new StringBuffer(tokenizer.nextToken());
@@ -243,39 +807,46 @@ public class LabelRepresentation {
 			labelSpec.append(' ');labelSpec.append(tokenizer.nextToken());
 		}
 		
-		Label lbl = getLabel(labelName);
+		Label lbl = labelMapConstructionOfOperations.get(labelName);
+		if (lbl == null)
+		{
+			lbl = new Label(labelName);labelMapConstructionOfOperations.put(lbl.getName(),lbl);
+		}
 		switch(kind)
 		{
 		case PRE:
-			lbl.pre = appendToString(labelSpec.toString(), lbl.pre);break;
+			lbl.pre = new CompositionOfFunctions(appendToString(labelSpec.toString(), lbl.pre.text));break;
 		case POST:
-			lbl.post = appendToString(labelSpec.toString(), lbl.post);break;
+			lbl.post = new CompositionOfFunctions(appendToString(labelSpec.toString(), lbl.post.text));break;
 		}
-		originalText.add(text);
-	}
-
-	/** Loads from a collection of strings. */
-	public void parseLabels(Collection<String> data)
-	{
-		for(String str:data) parseLabel(str);
 	}
 	
-	public enum XM_DATA { PRE,POST }
-	
-	/** Extracts a label; if it does not exist, creates a new one.
-	 *  
-	 * @param name label name to use
-	 * @param extracted or newly-create label. 
-	 */
-	protected Label getLabel(String name)
+	/** Given a string of text, parses it as a trace with variable values. */
+	public void parseTrace(String text)
 	{
-		Label lbl = labelMap.get(name);
-		if (lbl == null)
-		{
-			lbl = new Label(name);labelMap.put(lbl.getName(),lbl);
-		}
-		return lbl;
+		if (text == null || text.length() == 0) return;// ignore empty input
+		
+		String traceType = text.substring(0, 1);
+		TraceWithData trace = new TraceWithData();
+		if (traceType.equals("+"))
+			trace.accept = true;
+		else
+			if (traceType.equals("-"))
+				trace.accept = false;
+			else
+				throw new IllegalArgumentException("invalid data trace type");
+		
+		//(positive?sPlus:sMinus).addAll(null);
+		
+		LabelParser parser = new LabelParser();
+		parser.interpretTrace(text.substring(1).trim(),new FunctionVariablesHandler(VARIABLEUSE.IO));
+		trace.traceDetails = parser.operations;
+		trace.arguments = parser.arguments;
+		traces.add(trace);
 	}
+	
+	public enum OP_DATA { PRE,POST }
+	public enum FUNC_DATA { ARITY, DECL, CONSTRAINT, CONSTRAINARGS }
 	
 	public LabelRepresentation()
 	{
@@ -286,8 +857,43 @@ public class LabelRepresentation {
 	 */
 	protected int currentNumber = 0;
 	
-	public static final String commentForNewSeq = ";; sequence", commentForLabel = ";; label ", commentForTransition = ";; transition ",assertString="(assert ";
+	public static final String 
+		commentForNewSeq = ";; sequence", 
+		commentForLabel = ";; label ", 
+		commentForTransition = ";; transition ",
+		assertString="(assert ",
+		commentForInit = ";; INIT";
 	public static final char ENDL = '\n';
+	
+	/** When building conjunctions associated with sequences of operations with arguments,
+	 * these arguments have to be a part of conjunctions. In case no arguments are provided,
+	 * we'd like to have dummies - this is what this iterator is doing.
+	 */
+	public static class EmptyStringIterator implements Iterator<String>
+	{
+		private int elementNumber;
+		
+		public EmptyStringIterator(int size)
+		{
+			elementNumber = size;
+		}
+		
+		public boolean hasNext() {
+			if (elementNumber<=0)
+				return false;
+			elementNumber--;
+			return true;
+		}
+
+		public String next() {
+			return "";
+		}
+
+		public void remove() {
+			throw new UnsupportedOperationException("cannot do a remove from an empty string iterator");
+		}
+		
+	}
 	
 	/** Given a path in a graph returns an expression which can be used to check whether that path can be followed. 
 	 * Note that if a path cannot be followed, this means that either the precondition is not satisfied or that
@@ -295,57 +901,74 @@ public class LabelRepresentation {
 	 * <p>
 	 * The supplied path cannot contain newlines.
 	 */
-	public synchronized AbstractState getConjunctionForPath(List<String> path)
-	{
-		StringBuffer axiom = new StringBuffer(), varDeclaration = new StringBuffer();
-		axiom.append(commentForNewSeq);axiom.append(path);axiom.append(ENDL);
+	public synchronized Pair<String,String> getConjunctionForPath(List<Label> path, List<String> inputOutput)
+	{// TODO: to test with inputOutput
+		if (knownTraces == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+		if (inputOutput != null && inputOutput.size() != path.size())
+			throw new IllegalArgumentException("mismatched length of path and parameters");
 
-		// Initial memory value.
-		Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
+		StringBuffer axiom = new StringBuffer(), varDeclaration = new StringBuffer();
+		axiom.append(commentForNewSeq);
+		Iterator<Label> pathIterator = path.iterator();
+		Iterator<String> ioIterator = inputOutput == null?new EmptyStringIterator(path.size()):inputOutput.iterator();
+		axiom.append('[');
+		boolean first = true;
+		while(pathIterator.hasNext())
+		{
+			if (first) first = false;else axiom.append(',');
+			axiom.append(pathIterator.next().toString());
+			String args = ioIterator.next();if (args.length()>0) { axiom.append('(');axiom.append(args);axiom.append(')'); }
+		}
+		axiom.append(']');axiom.append(ENDL);
 		
 		// We always have to add variable declarations (even for empty paths) because
 		// they may be used in operations involving the abstract state we are returning here.
 		for(int i=0;i<=path.size();++i) 
-			if (init.pre != null)
+			if (init.pre.text != null)
 			{
-				varDeclaration.append(toCurrentMem(init.pre, i+currentNumber, i+currentNumber));varDeclaration.append(ENDL);
+				varDeclaration.append(toCurrentMem(init.pre.getCondition(), i+currentNumber,JUConstants.intUNKNOWN));varDeclaration.append(ENDL);
 			}
 
 		boolean pathNotEmpty = false;
 
 		// Now walk through the path generating constraints.
-		axiom.append("(and");axiom.append(ENDL);
+		axiom.append("(and");axiom.append(ENDL);axiom.append(commentForInit);axiom.append(ENDL);
 
-		pathNotEmpty |= addStringRepresentation(init.post,currentNumber,currentNumber,axiom);
+		pathNotEmpty |= addStringRepresentation(init.post.getCondition(),currentNumber,JUConstants.intUNKNOWN,axiom);
 
 		int i=0;
-		Label lastLabel = null;
-		for(String lbl:path) 
+		ioIterator = inputOutput == null?new EmptyStringIterator(path.size()):inputOutput.iterator();
+		for(Label currentLabel:path) 
 		{
-			Label currentLabel=labelMap.get(lbl);if (currentLabel == null) throw new IllegalArgumentException("unknown label "+lbl);
-			lastLabel = currentLabel;
 			axiom.append(commentForLabel+currentLabel.getName());axiom.append(ENDL);
 			int previousNumber = i+currentNumber;++i;
-			pathNotEmpty |= addStringRepresentation(currentLabel.pre,previousNumber,previousNumber,axiom);
-			pathNotEmpty |= addStringRepresentation(currentLabel.post,i+currentNumber,previousNumber,axiom);
+			pathNotEmpty |= addStringRepresentation(currentLabel.pre.getCondition(),JUConstants.intUNKNOWN,previousNumber,axiom);
+			pathNotEmpty |= addStringRepresentation(currentLabel.post.getCondition(),i+currentNumber,previousNumber,axiom);
+			pathNotEmpty |= addStringRepresentation(ioIterator.next(),i+currentNumber,previousNumber,axiom);
 		}
 		axiom.append(")");
-		int lastValueNumber=currentNumber+path.size();
 		currentNumber+=path.size()+1;
 		
 		axiom.append(ENDL);
-		return new AbstractState(lastValueNumber, varDeclaration.toString(), pathNotEmpty?axiom.toString():commentForNewSeq+path+ENDL+"true"+ENDL,lastLabel);
+		return new Pair<String,String>(varDeclaration.toString(), pathNotEmpty?axiom.toString():commentForNewSeq+path+ENDL+"true"+ENDL);
 	}
 	
-	public static String getAssertionFromAbstractState(AbstractState state)
+	public static String getAssertionFromVarAndAxiom(String variableDeclarations, String abstractState)
 	{
-		return state.variableDeclarations+assertString+state.abstractState+")"+ENDL;
+		return variableDeclarations+assertString+"(and "+ENDL+abstractState+ENDL+"))"+ENDL;
 	}
 	
-	protected Map<VertexID,AbstractState> idToState = new TreeMap<VertexID,AbstractState>();
-
-	public static class AbstractState
+	public class AbstractState
 	{
+		/** Graph vertex corresponding to this state. Very useful for testing. */
+		public final CmpVertex vertex;
+		
+		/** Previous abstract state. Makes it possible to reconstruct a path 
+		 * from which the particular abstract state was built (and hence the axiom is
+		 * merely a cached value. 
+		 */
+		public final AbstractState previousState;
+		
 		/** Axiom so far. */
 		public final String abstractState;
 		
@@ -361,9 +984,52 @@ public class LabelRepresentation {
 		 */
 		public final Label lastLabel;
 		
-		public AbstractState(int number, String varDecl, String axiom,Label arglastLabel)
+		/** Constructs an abstract state for the initial state.
+		 * 
+		 * @param v state
+		 * @param num number to give to this state.
+		 */
+		public AbstractState(CmpVertex initState, int num)
 		{
-			stateNumber=number;variableDeclarations=varDecl;abstractState=axiom;lastLabel=arglastLabel;
+			stateNumber = num;vertex = initState;previousState = null;lastLabel = null;
+			// Initial memory value.
+			variableDeclarations = toCurrentMem(init.pre.getCondition(), num, JUConstants.intUNKNOWN);
+			abstractState = commentForInit+ENDL+toCurrentMem(init.post.getCondition(), num, JUConstants.intUNKNOWN);
+		}
+		/** Creating a clone of an abstract state is easy: it is enough to simply create another instance 
+		 * of this AbstractState using the recorded arguments.  
+		 * @param v DFA vertex this abstract state is to be associated with.
+		 * @param argPreviousState an abstract state from which this state has been entered by invoking <em>step</em>. 
+		 * @param arglastLabel the operation used to enter this abstract state from the previous one.
+		 * @param N the number to give to variables in order to express "current state". Previous state is obtained 
+		 * from the number associated with the previous state provided as an argument <em>argPreviousState</em>.
+		 */
+		public AbstractState(CmpVertex v,AbstractState argPreviousState, Label arglastLabel, int num)
+		{
+			if (argPreviousState == null || arglastLabel == null) throw new IllegalArgumentException("previous state or label cannot be null");// TODO: to test this 
+			vertex=v;previousState=argPreviousState;lastLabel=arglastLabel;
+			/*
+			LinkedList<Label> pathToCurrentState = new LinkedList<Label>();
+			AbstractState currentState = this;
+			while(currentState != null && currentState.lastLabel != null)
+			{
+				pathToCurrentState.addFirst(currentState.lastLabel);
+				currentState = currentState.previousState;
+			}
+			Pair<String,String> axiom = null;
+			synchronized(LabelRepresentation.this)
+			{
+				axiom = getConjunctionForPath(pathToCurrentState,null);
+				stateNumber=currentNumber-1;
+			}
+			*/
+			stateNumber = num;
+			variableDeclarations = previousState.variableDeclarations+ENDL+
+				toCurrentMem(init.pre.getCondition()+lastLabel.pre.varDeclarations+lastLabel.post.varDeclarations,num,previousState.stateNumber);
+
+			abstractState = previousState.abstractState+ENDL+commentForLabel+lastLabel.getName()+ENDL+
+				toCurrentMem(lastLabel.pre.getCondition(),JUConstants.intUNKNOWN,previousState.stateNumber)+ENDL+
+				toCurrentMem(lastLabel.post.getCondition(),num,previousState.stateNumber);
 		}
 
 		/* (non-Javadoc)
@@ -418,62 +1084,288 @@ public class LabelRepresentation {
 		}
 	}
 
+	/** Each time a merge happens, we need to rebuild a map from merged vertices to collections 
+	 * of original vertices they correspond to. This is the purpose of this method.
+	 * <p>
+	 * If <em>previousMap</em> is null, the current map is updated with vertices not 
+	 * mentioned in the map (or built anew if it does not exist).
+	 * <p>
+	 * The typical use for this method is to call it first with an argument of the previous graph
+	 * and subsequently with a null to add abstract states to the graph states added using IF-THEN
+	 * automata.
+	 * <p>
+	 * There is no waste in using CmpVertex-vertices because they are part of the initial PTA and
+	 * hence kept in memory anyway.
+	 */
+	public void buildVertexToAbstractStateMap(LearnerGraph coregraph, LearnerGraph previousGraph)
+	{
+		Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> previousMap = previousGraph == null?null:previousGraph.learnerCache.getVertexToAbstractState();
+		
+		// First, we build a collection of states of the original PTA which correspond to the each merged vertex.
+		Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> newVertexToEqClass = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
+		
+		if (previousMap == null)
+		{// either the case when we get here for the first time (as well as right after a reset)
+		 // or when vertices have been added to the graph and we need to update the map.
+			if (coregraph.learnerCache.getVertexToAbstractState() == null)
+				addAbstractStatesFromTraces(coregraph);
+			
+			newVertexToEqClass = coregraph.learnerCache.getVertexToAbstractState();// we are updating the map here.
+			int elementCounter = currentNumber;
+
+			Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+			Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+			fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
+			
+			// Entry for the initial state is always added by addAbstractStatesFromTraces
+/*			if (!newVertexToEqClass.containsKey(coregraph.init))
+			{// add an entry for the first state
+				List<AbstractState> abstractstates = new LinkedList<AbstractState>();
+				abstractstates.add(new AbstractState(coregraph.init,elementCounter++));
+				newVertexToEqClass.put(coregraph.init, abstractstates);
+			}
+			*/
+			while(!fringe.isEmpty())
+			{// based on computeShortPathsToAllStates in AbstractPathRoutines
+				CmpVertex currentState = fringe.remove();
+				Collection<AbstractState> currentAbstractStates=newVertexToEqClass.get(currentState);
+				Map<String,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+				if(targets != null && !targets.isEmpty())
+					for(Entry<String,CmpVertex> labelstate:targets.entrySet())
+					{
+						CmpVertex target = labelstate.getValue();
+						if (!statesInFringe.contains(target))
+						{// the new state has not yet been visited, so we may need to add an entry the 
+						 // collection of AbstractStates associated with it.
+							Collection<AbstractState> targetDataStates = newVertexToEqClass.get(target);
+							if (targetDataStates == null)
+							{// build a collection of target abstract states if none are known.
+								targetDataStates = new LinkedList<AbstractState>();
+								newVertexToEqClass.put(target, targetDataStates);
+								for(AbstractState currentAbstractState:currentAbstractStates)
+								{
+									Label currentLabel=labelMapFinal.get(labelstate.getKey());if (currentLabel == null) throw new IllegalArgumentException("unknown label "+labelstate.getKey());
+									targetDataStates.add(new AbstractState(target,currentAbstractState, currentLabel,elementCounter++));
+								}
+							}
+							fringe.offer(target);
+							statesInFringe.add(target);
+						}
+					}
+			}
+			
+			currentNumber = elementCounter;
+			
+		}
+		else // after a previous successful merge 
+			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
+			{
+				List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
+				for(CmpVertex state:eqClass.getStates())
+					combinedAbstractStates.addAll(previousMap.get(state));
+				newVertexToEqClass.put(eqClass.getMergedVertex(),combinedAbstractStates);
+			}
+		coregraph.learnerCache.vertexToAbstractState = newVertexToEqClass;
+		
+		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+		{// Consistency checking
+			Map<CmpVertex,CmpVertex> vertexToCollection = new TreeMap<CmpVertex,CmpVertex>();
+			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> eqClass:coregraph.learnerCache.vertexToAbstractState.entrySet())
+			{// checking that vertices contained within different merged vertices do not intersect.
+				for(LabelRepresentation.AbstractState abstractState:eqClass.getValue())
+				{
+					CmpVertex existingClass = vertexToCollection.get(abstractState.vertex);
+					if (existingClass != null)
+						throw new IllegalArgumentException("classes "+existingClass+" and "+eqClass.getValue()+" share vertex "+abstractState.vertex);
+					vertexToCollection.put(abstractState.vertex,eqClass.getKey());
+				}
+			}
+			
+			{// checking that all vertices from the current graph have a merged vertex corresponding to them.
+				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();verticesInGraph.addAll(coregraph.transitionMatrix.keySet());
+				verticesInGraph.removeAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
+				if (!verticesInGraph.isEmpty())
+					throw new IllegalArgumentException("vertices such as "+verticesInGraph+" do not feature in the vertex to collection map");
+			}
+			
+			{
+				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
+				verticesInCollection.removeAll(coregraph.transitionMatrix.keySet());
+				if (!verticesInCollection.isEmpty())
+					throw new IllegalArgumentException("vertices from the vertex to collection map "+verticesInCollection+" do not feature in the graph");
+			}
+			
+			// The computed number of vertices will not always be equal to the number of vertices in an 
+			// original PTA because graphs can be updated using IF-THEN automata. This is the reason
+			// why this check is not performed.
+		}
+	}
+	
+	/** Given a composition and a pair of numbers, associates these numbers with all variables
+	 * of the supplied composition and adds the outcome to variables stored in this object.
+	 * 
+	 * @param composition what to process.
+	 * @param num current number (aka _N).
+	 * @param previous previous number (aka _M).
+	 */
+	protected void populateVarsUsedForArgs(CompositionOfFunctions composition, int num, int previous)
+	{
+		for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
+		{
+			Collection<String> vars = functionToVariables.get(entry.getKey());
+			if (vars == null)
+			{
+				vars = new LinkedList<String>();functionToVariables.put(entry.getKey(),vars);
+			}
+			for(String var:entry.getValue())
+				vars.add(toCurrentMem(var, num, previous));
+		}
+	}
+	
+	/** Goes through the collection of traces and adds them to the graph provided.
+	 * In addition, this method populates the map from functions to variables used.
+	 * 
+	 * @param gr graph to process.
+	 */
+	public void addAbstractStatesFromTraces(LearnerGraph gr)
+	{
+		if (gr.learnerCache.getVertexToAbstractState() != null)
+			throw new IllegalArgumentException("data traces should not be added to a graph with existing abstract states");// TODO: to test this.
+		functionToVariables.clear();
+		StringBuffer tracesVars = new StringBuffer(), traceAxioms = new StringBuffer(); 
+		int elementCounter = currentNumber;
+		gr.learnerCache.vertexToAbstractState = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
+		AbstractState initialAbstractState = new AbstractState(gr.init,elementCounter++);
+		gr.learnerCache.vertexToAbstractState.put(gr.init,Arrays.asList(new AbstractState[]{initialAbstractState}));
+		for(TraceWithData trace:traces)
+		{
+			assert trace.traceDetails.size() == trace.arguments.size();
+			if (!trace.traceDetails.isEmpty())
+			{// a non-empty trace - empty ones are ignored here because they do not make it possible to add new abstract states
+				Iterator<String> operationIterator = trace.traceDetails.iterator();
+				Iterator<CompositionOfFunctions> argumentsIterator = trace.arguments.iterator();
+				AbstractState abstractState = initialAbstractState;
+				Label currentLabel = labelMapConstructionOfDataTraces.get(operationIterator.next()); 
+				CompositionOfFunctions currentIO = argumentsIterator.next();
+				CmpVertex currentState = gr.init;elementCounter++;
+				
+				while(operationIterator.hasNext())
+				{
+					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
+					abstractState = new AbstractState(currentState,abstractState,currentLabel,elementCounter);
+					
+					populateVarsUsedForArgs(currentIO, elementCounter, abstractState.stateNumber);
+					populateVarsUsedForArgs(currentLabel.pre, elementCounter, abstractState.stateNumber);
+					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
+					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
+					if (abstractStatesForDFAState == null)
+					{
+						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
+					}
+					abstractStatesForDFAState.add(abstractState);
+					
+					currentLabel = labelMapConstructionOfDataTraces.get(operationIterator.next());
+					currentIO = argumentsIterator.next();
+					elementCounter++;
+				}
+
+				if (trace.accept)
+				{// positive trace, handle the target state as usual; for negative states all conditions are ignored
+				 // because the last element of a trace should be unsatisfiable when taken together with the last
+				 // but one abstract state. This last element may be internally unsatisfiable, hence we'd like not
+				 // to introduce unsatisfiable constraints on arguments this may bring.
+					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
+					abstractState = new AbstractState(currentState,abstractState,currentLabel,elementCounter);
+
+					populateVarsUsedForArgs(currentIO, elementCounter, abstractState.stateNumber);
+					populateVarsUsedForArgs(currentLabel.pre, elementCounter, abstractState.stateNumber);
+					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
+
+
+					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
+					if (abstractStatesForDFAState == null)
+					{
+						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
+					}
+					abstractStatesForDFAState.add(abstractState);
+				}
+				
+				// populate what we know of supplied data traces.
+				tracesVars.append(abstractState.variableDeclarations);traceAxioms.append(abstractState.abstractState);
+			}
+		}
+		
+		knownTraces = encloseInBeginEndIfNotEmpty(tracesVars.toString(),blockDATATRACES);
+		currentNumber = elementCounter;
+
+		/* Now we go through all the recorded variables and updates pre and post-conditions so that
+		 * they refer to the now recorded values.
+		 */
+		assert labelMapFinal == null;
+		labelMapFinal = new TreeMap<String,Label>();
+		for(Label label:labelMapConstructionOfDataTraces.values())
+		{
+			label.pre  =  addKnownValuesToPrePost(label.pre);
+			label.post =  addKnownValuesToPrePost(label.post);
+			labelMapFinal.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
+		}
+	}
+	
+	public CompositionOfFunctions addKnownValuesToPrePost(CompositionOfFunctions composition)
+	{
+		StringBuffer additionalVariables = new StringBuffer();
+		if (composition.variablesUsedForArgs != null && !composition.variablesUsedForArgs.isEmpty()) // if there are any variables in need of handling, go through them.
+		{
+			for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
+			{// Now we use the variables recorded in order to record that for each use of each function
+			 // in this composition, the tuple of values can be equal to each value passed to this function
+			 // in the recorded traces.
+			
+				for(String funcVar:entry.getValue())
+				{// for each use of this function
+					additionalVariables.append("(or ");
+					for(String knownVar:functionToVariables.get(entry.getKey().getName()))
+					{// constructing the equality of tuples
+						additionalVariables.append("(and ");
+						for(int i=0;i<entry.getKey().arity;++i)
+						{// equality of individual elements of a tuple.
+							additionalVariables.append("(= ");
+							additionalVariables.append(funcVar);additionalVariables.append(i);
+							additionalVariables.append(' ');
+							additionalVariables.append(knownVar);additionalVariables.append(i);
+							additionalVariables.append(")");
+							// this one checks that _M and _N have been already expanded
+							assert !knownVar.contains(varNewSuffix) && !knownVar.contains(varOldSuffix);
+						}
+						additionalVariables.append(")");
+					}
+					additionalVariables.append(")");
+				}
+			}
+		}
+		return new CompositionOfFunctions(composition,additionalVariables.toString());
+	}
+		
 	/** Given PTA computes a path which can be used as an axiom in later computations. 
 	 * In addition to the construction of axioms, the method populates the map associating
 	 * vertex identifiers to abstract states which would be reached in the supplied graph
 	 * when those states are reached. 
-	 */
-	public String constructPathAxioms(LearnerGraph gr)
+
+	public synchronized String constructPathAxioms(LearnerGraph gr)
 	{
-		final Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
-		PTASequenceEngine engine = new PTASequenceEngine();
-		engine.init(gr.new NonExistingPaths() {
-			@Override
-			public boolean shouldBeReturned(Object currentState) {
-				assert !nonExistingVertices.contains(currentState) : "by construction of a tree, all paths should exist";
-				return ((CmpVertex)currentState).isAccept();
-			}});
-		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();
-		gr.pathroutines.computePathsSBetween_All(gr.init, engine, pathsToAllStates);		
-		
-		final StringBuffer variableDeclarations = new StringBuffer(), lemmas = new StringBuffer();
-		PTAExploration<Integer> exploration = new PTAExploration<Integer>(engine) 
-		{
-			@Override
-			public Integer newUserObject() 
+		buildVertexToAbstractStateMap(gr, null);
+		StringBuffer variableDeclarations = new StringBuffer(), lemmas = new StringBuffer();
+		for(Entry<CmpVertex,Collection<AbstractState>> entry:gr.learnerCache.getVertexToAbstractState().entrySet())
+			for(AbstractState previousAbstractState:entry.getValue())
 			{
-				return 0;
-			}
-
-			@Override
-			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit)
-			{
-				handleNode(currentNode, pathToInit);
-			}
-			
-			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				handleNode(currentNode, pathToInit);
-			}
-			
-			public void handleNode(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				// Now we generate path axioms using state IDs 
-				
-				if (!pathToInit.isEmpty())
-				{// a state which is a continuation of an existing path.
-					PTAExplorationNode prevNode = pathToInit.getFirst();
-					assert prevNode.shouldBeReturned() : "there should be no transitions after a reject state";
+				for(Entry<String,CmpVertex> transition:gr.transitionMatrix.get(entry.getKey()).entrySet())
+				{
+					// Now we generate path axioms using state IDs 
+					Label currentLabel=labelMap.get(transition.getKey());// if a label is not known, it will be buildVertexToEqClassMap to throw an exception.
 					
-					Label currentLabel=labelMap.get(prevNode.getInput());if (currentLabel == null) throw new IllegalArgumentException("unknown label "+prevNode.getInput());
-					Iterator<PTAExplorationNode> pathToInitIter = pathToInit.iterator();LinkedList<String> labelsFromInit = new LinkedList<String>();
-					pathToInitIter.next();// trash the last element
-					for(int i=0;i<pathToInit.size()-1;++i)
-						labelsFromInit.addFirst(pathToInitIter.next().getInput());
-					AbstractState prevState = getConjunctionForPath(labelsFromInit);
-
-					final int currentStateNumber = currentNumber;
+					// This one clones the state and builds a path to the new state with new ids of variables.
+					AbstractState prevState = new AbstractState(previousAbstractState.vertex,previousAbstractState.previousState,previousAbstractState.lastLabel);
+					final int currentStateNumber = currentNumber-1;// using the last number utilised to build a clone of the previousAbstractState
 					variableDeclarations.append(prevState.variableDeclarations);
 					variableDeclarations.append(toCurrentMem(init.pre, currentStateNumber, currentStateNumber));variableDeclarations.append(ENDL);
 					
@@ -484,13 +1376,13 @@ public class LabelRepresentation {
 						textPost = " "+toCurrentMem(currentLabel.post,currentStateNumber, prevState.stateNumber);
 					++currentNumber;
 					
-					if (currentNode.shouldBeReturned())
+					if (entry.getKey().isAccept())
 					{// a path to the current state exists
 						if (currentLabel.pre != null || currentLabel.post != null)
 						{
 							// now we need to add a condition that p => pre next and post next
-							lemmas.append(commentForTransition+prevNode.getState()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"->"+
-									currentNode.getState()+"("+currentStateNumber+")");lemmas.append(ENDL);
+							lemmas.append(commentForTransition+entry.getKey()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"->"+
+									transition.getValue()+"("+currentStateNumber+")");lemmas.append(ENDL);
 							
 							lemmas.append(assertString);lemmas.append("(implies");lemmas.append(ENDL);lemmas.append(prevState.abstractState);
 							lemmas.append("\t(and");lemmas.append(textPre);lemmas.append(textPost);lemmas.append(")))");lemmas.append(ENDL);
@@ -508,8 +1400,8 @@ public class LabelRepresentation {
 						if (currentLabel.pre != null)
 						{
 							// now we need to add a condition that p => ¬pre next
-							lemmas.append(commentForTransition+prevNode.getState()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"-#"+
-									currentNode.getState()+"("+currentStateNumber+")");lemmas.append(ENDL);
+							lemmas.append(commentForTransition+entry.getKey()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"-#"+
+									transition.getValue()+"("+currentStateNumber+")");lemmas.append(ENDL);
 									
 							lemmas.append(assertString);lemmas.append("(implies");lemmas.append(ENDL);lemmas.append(prevState.abstractState);
 							lemmas.append("\t(not");lemmas.append(textPre);lemmas.append(")))");lemmas.append(ENDL);
@@ -522,128 +1414,18 @@ public class LabelRepresentation {
 					}
 				}
 			}
-
-			@Override
-			public void nodeLeft(
-						@SuppressWarnings("unused") PTAExplorationNode currentNode,
-						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				// this is needed to implement an interface, but we only care if a leaf is entered.
-			}
-			
-		};
-		exploration.walkThroughAllPaths();
 		StringBuffer outcome = new StringBuffer(variableDeclarations);outcome.append(lemmas);
 		outcome.append(";; END OF PATH AXIOMS");outcome.append(ENDL);
 		return outcome.toString();
 	}
-
-	/** Given PTA constructs a map associating every vertex to the corresponding
-	 * abstract state.
-	 */
-	public void mapVerticesToAbstractStates(LearnerGraph gr)
-	{
-		final Label init = labelMap.get(INITMEM);if (init == null) throw new IllegalArgumentException("missing initial memory value");
-		PTASequenceEngine engine = new PTASequenceEngine();
-		engine.init(gr.new NonExistingPaths() {
-			@Override
-			public boolean shouldBeReturned(Object currentState) {
-				assert !nonExistingVertices.contains(currentState) : "by construction of a tree, all paths should exist";
-				return ((CmpVertex)currentState).isAccept();
-			}});
-		SequenceSet pathsToAllStates=engine.new SequenceSet();pathsToAllStates.setIdentity();
-		gr.pathroutines.computePathsSBetween_All(gr.init, engine, pathsToAllStates);		
-		
-		PTAExploration<Integer> exploration = new PTAExploration<Integer>(engine) 
-		{
-			
-			@Override
-			public Integer newUserObject() 
-			{
-				return 0;
-			}
-
-			@Override
-			public void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit)
-			{
-				handleNode(currentNode, pathToInit);
-			}
-			
-			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				handleNode(currentNode, pathToInit);
-			}
-			
-			public void handleNode(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				LinkedList<String> fullPath = new LinkedList<String>();
-				for(PTAExplorationNode node:pathToInit)	fullPath.addFirst(node.getInput());
-
-				updateMap(((CmpVertex)currentNode.getState()).getID(),fullPath);
-			}
-
-			@Override
-			public void nodeLeft(
-						@SuppressWarnings("unused") PTAExplorationNode currentNode,
-						@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
-			{
-				// this is needed to implement an interface, but we only care if a leaf is entered.
-			}
-			
-		};
-		exploration.walkThroughAllPaths();
-	}
-
-	/** Given an id and a path, updates the corresponding map. */
-	final void updateMap(VertexID id, List<String> path)
-	{
-		assert !idToState.containsKey(id);
-		AbstractState currentAbstractState = getConjunctionForPath(path);
-		idToState.put(id,currentAbstractState);
-	}
-	
-	/** Given a path from an initial state, this method updates the map from identifiers to 
-	 * the corresponding abstract states. If <em>solver</em> is not null, this method also checks that 
-	 * all abstract states encountered are satisfiable.
-	 * 
-	 * @param pathFromInit path to follow.
-	 * @param isAccept whether the path should end at accept-state or reject-state.
-	 */
-	public void AugmentAbstractStates(Smt solver,List<String> pathFromInit, LearnerGraph graph, boolean isAccept)
-	{
-		CmpVertex vertex = graph.init;
-		List<String> currentPath = new LinkedList<String>();
-		if (!idToState.containsKey(vertex.getID())) 
-		{	
-			updateMap(vertex.getID(), currentPath);
-			if (solver != null)
-			{
-				if ( (isAccept || pathFromInit.size() > currentPath.size()) && !checkSatisfiability(solver, vertex.getID()))
-					throw new IllegalArgumentException("state "+vertex+" has an unsatisfiable abstract state");
-			}
-		}
-
-		for(String input:pathFromInit)
-		{
-			vertex = graph.transitionMatrix.get(vertex).get(input);
-			currentPath.add(input);
-			if (!idToState.containsKey(vertex.getID()))
-			{
-				updateMap(vertex.getID(), currentPath);
-				if (solver != null) 
-					if ( (isAccept || pathFromInit.size() > currentPath.size()) && !checkSatisfiability(solver, vertex.getID()))
-						throw new IllegalArgumentException("state "+vertex+" has an unsatisfiable abstract state");
-			}
-		}
-	}
+	*/
 	
 	/** Checks if abstract states corresponding to the supplied vertices are compatible,
 	 * assuming that abstract states are themselves satisfiable. 
 	 */
-	public boolean abstractStatesCompatible(Smt solver,VertexID a, VertexID b)
+	public boolean abstractStatesCompatible(AbstractState Aarg, AbstractState Barg)
 	{
-		AbstractState A=idToState.get(a),B=idToState.get(b);
+		AbstractState A=Aarg,B=Barg;
 		if (A.lastLabel == null && B.lastLabel == null)
 			return true;// both states are initial states.
 		
@@ -652,39 +1434,139 @@ public class LabelRepresentation {
 			AbstractState C = A;A = B;B = C;
 		}
 		
-		solver.pushContext();
-
-		String text=A.variableDeclarations+B.variableDeclarations+
-			assertString+A.abstractState+')'+ENDL+
-			assertString+B.abstractState+')'+ENDL
-			+";; now check that the two states can be equal"+ENDL+
-			assertString+"(and"+ENDL+
-			toCurrentMem(B.lastLabel.post,A.stateNumber,B.stateNumber-1)+ENDL+
-			"))";
-
-		solver.loadData(text);
-		boolean outcome = solver.check();
-		solver.popContext();
-		return outcome;
+		// We make a clone of B in such a way that the new number is the same as that of A,
+		// as a consequence, renumberedB and A share the same new state.
+		AbstractState renumberedB = new AbstractState(B.vertex,B.previousState,B.lastLabel,A.stateNumber);
+		
+		// Since renumberedB and A share the state number, we'll have duplicate variable declarations.
+		// The two paths will have a common prefix (the initial state is always common),
+		// this is why we have to throw away declarations associated with this prefix from a combined declaration.
+		
+		int Bnumber = B.stateNumber, Anumber = A.stateNumber;
+		AbstractState Bcurr = B, Acurr = A;
+		while(Bnumber != Anumber)
+		{
+			if (Bnumber > Anumber)
+				Bcurr = Bcurr.previousState;
+			else
+				Acurr = Acurr.previousState;
+			
+			Anumber = Acurr.stateNumber;Bnumber = Bcurr.stateNumber;
+		}
+		
+		// after the two numbers converge, Acurr is the point of forking.
+		assert A.variableDeclarations.startsWith(Acurr.variableDeclarations);
+		assert B.variableDeclarations.startsWith(Acurr.variableDeclarations);
+		String varDecl = B.previousState.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
+		
+		String assertion = 
+				A.abstractState+ENDL+
+				renumberedB.abstractState;
+		return checkSatisfiability(varDecl,assertion);
 	}
 	
-	/** Checks that all states correspond to satisfiable abstract states.
-	 * @throws IllegalArgumentException if any state cannot be reached. 
-	 */
-	public void checkAllStatesExist(Smt solver) throws IllegalArgumentException
+	/** The solver to be used. */
+	private Smt smtSolver = null;
+	
+	public Smt getSolver()
 	{
-		for(Entry<VertexID,AbstractState> entry:idToState.entrySet())
-			if (!checkSatisfiability(solver, entry.getKey()))
-					throw new IllegalArgumentException("state "+entry.getKey()+" has an unsatisfiable abstract state");
+		if (smtSolver != null)
+			return smtSolver;
+		Smt.loadLibrary();Smt.closeStdOut();
+		smtSolver = new Smt();
+		if (knownTraces != null) smtSolver.loadData(knownTraces);
+		else throw new IllegalArgumentException("construction incomplete");
+		return smtSolver;
+	}
+	
+	/** Checks that <ul>
+	 * <li>all states correspond to satisfiable abstract states.</li>
+	 * <li>all transitions either can or cannot be taken, from all abstract states corresponding 
+	 * to each DFA state.</li>
+	 * <li>for each abstract state, there is at most one possible outgoing transition. Intersection
+	 * of the preconditions of transitions to reject-states does not matter.
+	 * </li>
+	 * </ul>
+	 * Returns IllegalArgumentException if any checked condition is not satisfied, null otherwise.
+	 * 
+	 * The choice of conditions to check is selected using the supplied configuration.
+	 */
+	public synchronized IllegalArgumentException checkConsistency(LearnerGraph graph,Configuration whatToCheck)
+	{
+		if (knownTraces == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+
+		int variableNumber = currentNumber;// we do not intend to change currentNumber since all checks made here are transient.
+		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.learnerCache.getVertexToAbstractState().entrySet())
+		{
+			if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST)
+				for(AbstractState state:entry.getValue())
+					if (entry.getKey().isAccept() != checkSatisfiability(state.variableDeclarations,state.abstractState))
+						return new IllegalArgumentException("state "+entry.getKey()+" has an abstract state inconsistent with the accept condition");
+
+			for(Entry<String,CmpVertex> transition:graph.transitionMatrix.get(entry.getKey()).entrySet())
+			{
+				Label label = labelMapFinal.get(transition.getKey());
+				if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.TRANSITIONSFROMALLORNONE ||
+						whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.DETERMINISM)
+				{
+					// for each transition we check that its precondition is satisfied (or not satisfied) from all abstract states
+					Collection<AbstractState> previouslyConsideredAbstractStates = graph.learnerCache.getAbstractStateToLabelPreviouslyChecked().get(label);
+					for(AbstractState state:entry.getValue())
+						if (!previouslyConsideredAbstractStates.contains(state))
+						{
+							String varDeclaration = state.variableDeclarations+ENDL+
+								toCurrentMem(init.pre.text, variableNumber, variableNumber+1)+ENDL;
+							
+							String statement = "(and "+state.abstractState+ENDL+
+								toCurrentMem(labelMapFinal.get(transition.getKey()).pre.getCondition(), variableNumber, variableNumber+1)+")"+ENDL;
+		
+							if (transition.getValue().isAccept() != checkSatisfiability(varDeclaration,statement)) 
+								return new IllegalArgumentException("from state "+entry.getKey()+" transition "+transition.getKey()+" to "+transition.getValue()+" has an accept condition incompatible with the SMT solution");
+							
+							varDeclaration = state.variableDeclarations+ENDL+
+							toCurrentMem(init.pre.text, variableNumber, variableNumber+1)+ENDL;
+	
+							if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.TRANSITIONSFROMALLORNONE &&
+									transition.getValue().isAccept())
+							{// for each transition we may need to check that the xmachine is deterministic.
+								for(Entry<String,CmpVertex> otherTransition:graph.transitionMatrix.get(entry.getKey()).entrySet())
+									if (otherTransition != transition && otherTransition.getValue().isAccept())
+									{
+										StringBuffer variableBuffer = new StringBuffer();
+										variableBuffer.append(state.abstractState);variableBuffer.append(ENDL);
+										variableBuffer.append(toCurrentMem(init.pre.getCondition(), variableNumber, variableNumber+1));variableBuffer.append(ENDL);
+										variableBuffer.append(toCurrentMem(init.pre.getCondition(), variableNumber, variableNumber+2));variableBuffer.append(ENDL);
+										
+										StringBuffer statementBuffer = new StringBuffer();
+										statementBuffer.append("(and ");statementBuffer.append(ENDL);
+										statementBuffer.append(state.abstractState);statementBuffer.append(ENDL);
+										statementBuffer.append(toCurrentMem(labelMapFinal.get(transition.getKey()).pre.getCondition(), variableNumber, variableNumber+1));statementBuffer.append(ENDL);
+										statementBuffer.append(toCurrentMem(labelMapFinal.get(otherTransition.getKey()).pre.getCondition(), variableNumber, variableNumber+2));statementBuffer.append(ENDL);
+										statementBuffer.append(')');
+										if (checkSatisfiability(variableBuffer.toString(), statementBuffer.toString()))
+											return new IllegalArgumentException("Non-deterministic choice from state "+entry.getKey()+" transitions "+transition.getKey()+" and "+otherTransition.getKey());
+									}
+							}
+						}
+					
+					
+				}				
+
+			}
+		}
+		return null;
 	}
 
 	/** Checks if a path condition corresponding to an abstract state is satisfiable.
 	 * @return false if a path leading to the supplied state is not satisfiable. 
 	 */
-	protected boolean checkSatisfiability(Smt solver, VertexID state)
+	protected boolean checkSatisfiability(String variableDeclarations,String condition)
 	{
+		Smt solver = getSolver();
 		solver.pushContext();
-		solver.loadData(LabelRepresentation.getAssertionFromAbstractState(idToState.get(state)));
+		String whatToCheck = LabelRepresentation.getAssertionFromVarAndAxiom(variableDeclarations,condition);
+		//System.err.println("CHECK: "+whatToCheck);
+		solver.loadData(whatToCheck);
 		boolean outcome = solver.check();
 		solver.popContext();return outcome;		
 	}
@@ -698,34 +1580,51 @@ public class LabelRepresentation {
 	
 	/** Similar to CheckWithEndUser, but works via SMT. 
 	 */
-	public int CheckWithEndUser(Smt solver,List<String> question)
+	public int CheckWithEndUser(List<String> question)
 	{
 		int pos = -1;
-		List<String> partialPath = new LinkedList<String>();
+		List<Label> partialPath = new LinkedList<Label>();
 		for(String label:question)
 		{
 			++pos;
-			partialPath.add(label);
-			solver.pushContext();
-			solver.loadData(LabelRepresentation.getAssertionFromAbstractState(getConjunctionForPath(partialPath)));
-			boolean outcome = solver.check();
-			solver.popContext();if (!outcome) return pos;
+			Label lbl=labelMapFinal.get(label);if (lbl == null) throw new IllegalArgumentException("unknown label "+label);
+			partialPath.add(lbl);
+			Pair<String,String> pair = getConjunctionForPath(partialPath,null);
+			boolean outcome = checkSatisfiability(pair.firstElem,pair.secondElem);
+			if (!outcome) return pos;
 		}
 		return AbstractOracle.USER_ACCEPTED;
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
-	public int hashCode() 
-	{
+	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + currentNumber;
 		result = prime * result
-				+ ((labelMap == null) ? 0 : labelMap.hashCode());
-		result = prime * result 
-				+ ((idToState == null)? 0 : idToState.hashCode());
+				+ ((functionMap == null) ? 0 : functionMap.hashCode());
+		result = prime
+				* result
+				+ ((functionToVariables == null) ? 0 : functionToVariables
+						.hashCode());
+		result = prime * result
+				+ ((knownTraces == null) ? 0 : knownTraces.hashCode());
+		result = prime
+				* result
+				+ ((labelMapConstructionOfDataTraces == null) ? 0
+						: labelMapConstructionOfDataTraces.hashCode());
+		result = prime
+				* result
+				+ ((labelMapConstructionOfOperations == null) ? 0
+						: labelMapConstructionOfOperations.hashCode());
+		result = prime * result
+				+ ((labelMapFinal == null) ? 0 : labelMapFinal.hashCode());
+		result = prime * result
+				+ ((originalText == null) ? 0 : originalText.hashCode());
+		result = prime * result + ((traces == null) ? 0 : traces.hashCode());
 		return result;
 	}
 
@@ -733,8 +1632,7 @@ public class LabelRepresentation {
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj) 
-	{
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -742,19 +1640,53 @@ public class LabelRepresentation {
 		if (!(obj instanceof LabelRepresentation))
 			return false;
 		LabelRepresentation other = (LabelRepresentation) obj;
-		if (!labelMap.equals(other.labelMap))
+		if (currentNumber != other.currentNumber)
 			return false;
-		
-		if (idToState == null)
-		{
-			if (other.idToState != null)
+		if (functionMap == null) {
+			if (other.functionMap != null)
 				return false;
-		}
-		else
-			if (!idToState.equals(other.idToState))
+		} else if (!functionMap.equals(other.functionMap))
+			return false;
+		if (functionToVariables == null) {
+			if (other.functionToVariables != null)
 				return false;
-
+		} else if (!functionToVariables.equals(other.functionToVariables))
+			return false;
+		if (knownTraces == null) {
+			if (other.knownTraces != null)
+				return false;
+		} else if (!knownTraces.equals(other.knownTraces))
+			return false;
+		if (labelMapConstructionOfDataTraces == null) {
+			if (other.labelMapConstructionOfDataTraces != null)
+				return false;
+		} else if (!labelMapConstructionOfDataTraces
+				.equals(other.labelMapConstructionOfDataTraces))
+			return false;
+		if (labelMapConstructionOfOperations == null) {
+			if (other.labelMapConstructionOfOperations != null)
+				return false;
+		} else if (!labelMapConstructionOfOperations
+				.equals(other.labelMapConstructionOfOperations))
+			return false;
+		if (labelMapFinal == null) {
+			if (other.labelMapFinal != null)
+				return false;
+		} else if (!labelMapFinal.equals(other.labelMapFinal))
+			return false;
+		if (originalText == null) {
+			if (other.originalText != null)
+				return false;
+		} else if (!originalText.equals(other.originalText))
+			return false;
+		if (traces == null) {
+			if (other.traces != null)
+				return false;
+		} else if (!traces.equals(other.traces))
+			return false;
 		return true;
 	}
+	
+
 }
 

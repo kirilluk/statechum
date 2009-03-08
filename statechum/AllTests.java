@@ -20,6 +20,7 @@ package statechum;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 /**
  * @author Kirill
@@ -31,7 +32,7 @@ import org.junit.runners.Suite;
 	statechum.AllTests.GraphTests.class,
 	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.LinearTests.class,
-	statechum.analysis.learning.TestSmt.class,
+	statechum.AllTests.SmtTests.class,
 	statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
 })
 public class AllTests {
@@ -91,8 +92,7 @@ public class AllTests {
 		statechum.model.testset.TestPrefixRemovingCollection.class,
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
-		statechum.analysis.learning.rpnicore.TestWMethod.class,
-		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class
+		statechum.analysis.learning.rpnicore.TestWMethod.class
 	})
 	public static class GraphTests {// all tests are included in the annotation.
 	}
@@ -111,5 +111,14 @@ public class AllTests {
 		statechum.apps.TestVisualDemo.class
 		})
 	public static class LinearTests {// all tests are included in the annotation.
+	}
+	
+	@RunWith(Suite.class)
+	@SuiteClasses({
+		statechum.analysis.learning.TestSmt.class,
+		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class,
+		statechum.analysis.learning.rpnicore.TestLabelParser.class		
+	})
+	public static class SmtTests {// all tests are included in the annotation.
 	}
 }

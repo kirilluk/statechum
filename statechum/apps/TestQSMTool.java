@@ -27,8 +27,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import static statechum.Helper.checkForCorrectException;
@@ -306,7 +309,7 @@ public class TestQSMTool {
 	public final void testLoadXMLabels1()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
-		"k 8\n\npassive\n"+QSMTool.cmdData+"\n"+QSMTool.cmdData));
+		"k 8\n\npassive\n"+QSMTool.cmdOperation+"\n"+QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+QSMTool.cmdOperation));
 		Assert.assertEquals(8,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}}),tool.sPlus);
@@ -316,23 +319,26 @@ public class TestQSMTool {
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
-	/** Loading of labels. Valid data provided in label descriptions*/
+	/** Loading of labels. Valid data is provided in label descriptions. */
 	@Test
 	public final void testLoadXMLabels2()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
-			QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.PRE+" decl_N"+"\n"+
-			QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.POST+" constraint_N"+"\n"+
-			QSMTool.cmdData));
+			QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl"+LabelRepresentation.delimiterString+"N"+"\n"+
+			QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.POST+" constraint"+LabelRepresentation.delimiterString+"N"+"\n"+
+			QSMTool.cmdOperation+" a "+LabelRepresentation.OP_DATA.POST+" constraint_N"+"\n"+
+			QSMTool.cmdOperation));
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
-		LabelRepresentation.AbstractState state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new String[]{}));
-		Assert.assertEquals("decl_0"+ENDL,state.variableDeclarations);
+		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("A-a->B", "testLoadXMLabels2"),Configuration.getDefaultConfiguration()), null);
+		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new LabelRepresentation.Label[]{}),null);
+		Assert.assertEquals("decl"+LabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
 		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+
-				"(and"+
-				""+ENDL+"constraint_0"+ENDL+
+				"(and"+ENDL+
+				LabelRepresentation.commentForInit+ENDL+
+				"constraint"+LabelRepresentation.delimiterString+"2"+ENDL+
 				')'+ENDL,
-				state.abstractState);
+				state.secondElem);
 	}
 	
 	/** Loading of labels. Invalid data provided in label descriptions*/
@@ -341,9 +347,9 @@ public class TestQSMTool {
 	{
 		checkForCorrectException(new whatToRun() { public void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
-				QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.XM_DATA.PRE+" decl_N"+"\n"+
-				QSMTool.cmdData+" "+LabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
-				QSMTool.cmdData));
+				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+
+				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
+				QSMTool.cmdOperation));
 		}},IllegalArgumentException.class,"expected [PRE");
 	}
 	

@@ -28,8 +28,8 @@ package statechum.apps;
  * + function1, function3...
  * and optionally strings that do NOT belong to the target machine:
  * -function1, function4
+ * 
  * @author nw
- *
  */
 
 import java.io.*;
@@ -54,7 +54,8 @@ public class QSMTool
 	/** Learner configuration to be set. */
 	protected Set<List<String>> sPlus = new HashSet<List<String>>();
 	protected Set<List<String>> sMinus = new HashSet<List<String>>();
-	protected LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration();
+	protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration();
+	protected Collection<String> dataDescription = null;
 	protected boolean active = true;
 	protected boolean showLTL = false;
 	
@@ -96,13 +97,14 @@ public class QSMTool
 		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
 	
 		BufferedReader in = null;
-		try {
+		try 
+		{
 			in = new BufferedReader(inputData);
 			String fileString;
-			while ((fileString = in.readLine()) != null) {
+			while ((fileString = in.readLine()) != null)
 				process(fileString);
-			}
-		
+			if (learnerInitConfiguration.labelDetails != null)
+				learnerInitConfiguration.labelDetails.parseCollection(dataDescription);		
 		} catch (IOException e) {
 			statechum.Helper.throwUnchecked("failed to read learner initial data", e);
 		}
@@ -120,7 +122,10 @@ public class QSMTool
 		setSimpleConfiguration(learnerInitConfiguration.config, active, k);
 		if(learnerInitConfiguration.ifthenSequences!=null && !learnerInitConfiguration.ifthenSequences.isEmpty())
 			learnerInitConfiguration.config.setUseLTL(true);
-
+		if (learnerInitConfiguration.labelDetails != null)
+		{
+			sPlus.addAll(learnerInitConfiguration.labelDetails.getSPlus());sMinus.addAll(learnerInitConfiguration.labelDetails.getSMinus());
+		}
 		PickNegativesVisualiser pnv = new PickNegativesVisualiser();
 		pnv.construct(sPlus, sMinus, learnerInitConfiguration);
 		
@@ -197,11 +202,14 @@ public class QSMTool
 			showLTL = true;
 		}
 		else
-		if (fileString.startsWith(cmdData))
+		if (fileString.startsWith(cmdOperation) || fileString.startsWith(cmdDataTrace) || fileString.startsWith(cmdLowLevelFunction))
 		{
 			if (learnerInitConfiguration.labelDetails == null)
+			{
 				learnerInitConfiguration.labelDetails = new LabelRepresentation();
-			learnerInitConfiguration.labelDetails.parseLabel(fileString.substring(cmdData.length()).trim());
+				dataDescription = new LinkedList<String>();
+			}
+			dataDescription.add(fileString.trim());
 		}
 		else
 			throw new IllegalArgumentException("invalid command "+fileString);
@@ -212,13 +220,15 @@ public class QSMTool
 		cmdIFTHENAUTOMATON = "ifthenFSM",
 		cmdK = "k", 
 		cmdPositive="+", 
-		cmdNegative="-", 
+		cmdNegative="-",
+		cmdDataTrace="xT",
 		cmdConfig="config",
 		cmdTextOutput = "textoutput", 
 		cmdDotOutput="dotoutput",
 		cmdComment="#",
 		cmdPassive="passive",
-		cmdData="xm",
+		cmdOperation="xm",
+		cmdLowLevelFunction="func",
 		cmdShowLTL="showltl";
 	
 	private static List<String> tokeniseInput(String str)

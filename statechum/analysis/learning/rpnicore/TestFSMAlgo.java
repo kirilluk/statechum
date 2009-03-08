@@ -36,7 +36,9 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
+import statechum.apps.QSMTool;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -57,6 +59,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 
 public class TestFSMAlgo {
 
@@ -67,6 +70,8 @@ public class TestFSMAlgo {
 	}
 	
 	org.w3c.dom.Document doc = null;
+	
+	LabelRepresentation lbls = null;
 	
 	/** Make sure that whatever changes a test have made to the 
 	 * configuration, next test is not affected.
@@ -87,6 +92,19 @@ public class TestFSMAlgo {
 		{
 			statechum.Helper.throwUnchecked("failed to construct DOM document",e);
 		}
+
+	
+		lbls = new LabelRepresentation();
+		lbls.parseCollection(Arrays.asList(new String[]{
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ_N",
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond_N",
+				QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA_N",
+				QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA_N",
+				QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB_N",
+				QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB_N",
+				QSMTool.cmdOperation+" "+"c"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondC_N",
+				QSMTool.cmdOperation+" "+"c"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondC_N"}));
 	}
 
 	/** The configuration to use when running tests. */
@@ -915,32 +933,38 @@ public class TestFSMAlgo {
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("C")));
 	}
 	
-	/** Given a graph and a name of a state, this method builds a set of states containing this single state. */
-	//private static Set<CmpVertex> buildSingletonStateSet(LearnerGraph 
+	/** Extracts PTA states from a collection of abstract states. */
+	private static Set<CmpVertex> extractStates(Collection<AbstractState> abstractStates)
+	{
+		Set<CmpVertex> result = new TreeSet<CmpVertex>();
+		for(AbstractState state:abstractStates) result.add(state.vertex);
+		return result;
+	}
 	
 	/** Tests <em>buildVertexToEqClassMap</em>. */
 	@Test
 	public final void testBuildVertexToEqClassMap1()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b-#D","testBuildVertexToEqClassMap1"),Configuration.getDefaultConfiguration());
-		Assert.assertNull(graph.learnerCache.getVertexToEqClass());
-		graph.merger.buildVertexToEqClassMap(null);
-		Assert.assertEquals(4,graph.learnerCache.getVertexToEqClass().size());
+		Assert.assertNull(graph.learnerCache.getVertexToAbstractState());
+		
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		Assert.assertEquals(4,graph.learnerCache.getVertexToAbstractState().size());
 
 		for(String vertex:new String[]{"A","B","C","D"})
 		{
 			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-			Assert.assertEquals(expectedSet,graph.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID(vertex))).getStates());
+			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 		
 		// Now update the map and check that it did not change
-		graph.merger.buildVertexToEqClassMap(null);
-		Assert.assertEquals(4,graph.learnerCache.getVertexToEqClass().size());
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		Assert.assertEquals(4,graph.learnerCache.getVertexToAbstractState().size());
 
 		for(String vertex:new String[]{"A","B","C","D"})
 		{
 			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-			Assert.assertEquals(expectedSet,graph.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID(vertex))).getStates());
+			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 	}
 	
@@ -951,15 +975,15 @@ public class TestFSMAlgo {
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		
-		Assert.assertNull(graph.learnerCache.getVertexToEqClass());
-		Assert.assertNull(mergedAB.learnerCache.getVertexToEqClass());
+		Assert.assertNull(graph.learnerCache.getVertexToAbstractState());
+		Assert.assertNull(mergedAB.learnerCache.getVertexToAbstractState());
 
-		graph.merger.buildVertexToEqClassMap(null);
-		Assert.assertEquals(7,graph.learnerCache.getVertexToEqClass().size());
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		Assert.assertEquals(7,graph.learnerCache.getVertexToAbstractState().size());
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"})
 		{
 			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-			Assert.assertEquals(expectedSet,graph.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID(vertex))).getStates());
+			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 	}
 	
@@ -968,40 +992,41 @@ public class TestFSMAlgo {
 	public final void testBuildVertexToEqClassMap3()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
-		graph.merger.buildVertexToEqClassMap(null);
+		lbls.buildVertexToAbstractStateMap(graph,null);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		
-		Assert.assertNotNull(graph.learnerCache.getVertexToEqClass());
-		Assert.assertNotNull(mergedAB.learnerCache.getVertexToEqClass());
+		Assert.assertNotNull(graph.learnerCache.getVertexToAbstractState());
+		lbls.buildVertexToAbstractStateMap(mergedAB,graph);
+		Assert.assertNotNull(mergedAB.learnerCache.getVertexToAbstractState());
 		
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
 		
 		expectedSet.clear();
 		for(String vertex:new String[]{"A","B","C","D"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("A"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 		
 		expectedSet.clear();
 		for(String vertex:new String[]{"C1","D1"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("C1"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("C1")))));
 
 		expectedSet.clear();
 		for(String vertex:new String[]{"D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("D2"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("D2")))));
 		
 		// Now update the matrix and check that it did not change
-		mergedAB.merger.buildVertexToEqClassMap(null);
+		lbls.buildVertexToAbstractStateMap(mergedAB, null);
 
 		expectedSet.clear();
 		for(String vertex:new String[]{"A","B","C","D"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("A"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 		
 		expectedSet.clear();
 		for(String vertex:new String[]{"C1","D1"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("C1"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("C1")))));
 
 		expectedSet.clear();
 		for(String vertex:new String[]{"D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAB.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("D2"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAB.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("D2")))));
 	}
 	
 	/** Tests <em>buildVertexToEqClassMap</em>. */
@@ -1009,26 +1034,27 @@ public class TestFSMAlgo {
 	public final void testBuildVertexToEqClassMap4()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
-		graph.merger.buildVertexToEqClassMap(null);
+		lbls.buildVertexToAbstractStateMap(graph,null);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
+		lbls.buildVertexToAbstractStateMap(mergedAB, graph);
 		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(graph.findVertex("A"),graph.findVertex("C1")));
+		lbls.buildVertexToAbstractStateMap(mergedAll, mergedAB);
 		
-		Assert.assertNotNull(graph.learnerCache.getVertexToEqClass());
-		Assert.assertNotNull(mergedAB.learnerCache.getVertexToEqClass());
-		Assert.assertNotNull(mergedAll.learnerCache.getVertexToEqClass());
+		Assert.assertNotNull(graph.learnerCache.getVertexToAbstractState());
+		Assert.assertNotNull(mergedAB.learnerCache.getVertexToAbstractState());
+		Assert.assertNotNull(mergedAll.learnerCache.getVertexToAbstractState());
 		
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
 		
 		expectedSet.clear();
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAll.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("A"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAll.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 
 		// Now update the matrix and check that it did not change
-		mergedAll.merger.buildVertexToEqClassMap(null);
-		
+		lbls.buildVertexToAbstractStateMap(mergedAll, null);		
 		expectedSet.clear();
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAll.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("A"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAll.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 	}
 	
 	/** Similar to the above, but this time a new vertex is added to the intermediate graph and the matrix is updated. */
@@ -1036,23 +1062,26 @@ public class TestFSMAlgo {
 	public final void testBuildVertexToEqClassMap5()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
-		graph.merger.buildVertexToEqClassMap(null);
+		lbls.buildVertexToAbstractStateMap(graph, null);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
+		lbls.buildVertexToAbstractStateMap(mergedAB, graph);
 		CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D3"), mergedAB.config);
 		mergedAB.transitionMatrix.put(newVertex, mergedAB.createNewRow());
 		mergedAB.addTransition(mergedAB.transitionMatrix.get(mergedAB.findVertex("D2")), "b", newVertex);
+		lbls.buildVertexToAbstractStateMap(mergedAB, null);// update map
 		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(graph.findVertex("A"),graph.findVertex("C1")));
-		
-		Assert.assertNotNull(graph.learnerCache.getVertexToEqClass());
-		Assert.assertNotNull(mergedAB.learnerCache.getVertexToEqClass());
-		Assert.assertNotNull(mergedAll.learnerCache.getVertexToEqClass());
+		lbls.buildVertexToAbstractStateMap(mergedAll, mergedAB);
+
+		Assert.assertNotNull(graph.learnerCache.getVertexToAbstractState());
+		Assert.assertNotNull(mergedAB.learnerCache.getVertexToAbstractState());
+		Assert.assertNotNull(mergedAll.learnerCache.getVertexToAbstractState());
 		
 		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
 		
 		expectedSet.clear();
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		for(String vertex:new String[]{"D3"}) expectedSet.add(mergedAB.findVertex(VertexID.parseID(vertex)));
-		Assert.assertEquals(expectedSet,mergedAll.learnerCache.getVertexToEqClass().get(graph.findVertex(VertexID.parseID("A"))).getStates());
+		Assert.assertEquals(expectedSet,extractStates(mergedAll.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 	}
 	
 	@BeforeClass

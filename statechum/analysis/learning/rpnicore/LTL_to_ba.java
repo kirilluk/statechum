@@ -207,8 +207,16 @@ public class LTL_to_ba {
 		{
 			int result = -1;
 			if(lastMatchNumber >=0)
-				lexer.region(lexer.end(lastMatchNumber),lexer.regionEnd());
-	
+			{
+				try
+				{
+					lexer.region(lexer.end(lastMatchNumber),lexer.regionEnd());
+				}
+				catch(IllegalStateException e)
+				{
+					throwException(e.getMessage()+" when lexing "+text);
+				}
+			}
 			if (lexer.regionStart() < lexer.regionEnd())
 			{// not run out of elements
 				if (!lexer.lookingAt())
@@ -222,6 +230,11 @@ public class LTL_to_ba {
 				lastMatch = lexer.group(i);
 				lastMatchNumber = i;result = i;
 			}
+			else
+			{// record the fact we reached the end of the text to parse.
+				lastMatchNumber = -1;
+				lastMatch = null;
+			}
 			return result;
 		}
 		
@@ -233,6 +246,11 @@ public class LTL_to_ba {
 		public String group(int i)
 		{
 			return lexer.group(i);
+		}
+		
+		public String getText()
+		{
+			return text;
 		}
 	}
 	

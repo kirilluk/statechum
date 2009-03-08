@@ -144,6 +144,10 @@ public class Test_CheckLearnerAgainstLog
 
 		final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 		final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
+		if (evalData.labelDetails != null) 
+		{ 
+			initial.plus.addAll(evalData.labelDetails.getSPlus());initial.minus.addAll(evalData.labelDetails.getSMinus());
+		}
 		simulator.setNextElement(nextElement);
 
 		Learner learner2 = null;

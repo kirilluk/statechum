@@ -3,5 +3,5 @@
 xm MEM0 PRE ( define m_N::nat )
 xm MEM0 POST (= m_N 0)
 xm add POST (= m_N (+ m_M 1))
-xm remove PRE (> m_N 0)
+xm remove PRE (> m_M 0)
 xm remove POST (= m_N (- m_M 1))

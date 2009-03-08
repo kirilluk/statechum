@@ -28,6 +28,8 @@ import junit.framework.Assert;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
+import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
+import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
@@ -166,6 +168,16 @@ public class Test_AttributeMutator {
 				if (var.getType().equals(QuestionGeneratorKind.class))
 				{
 						valueA = QuestionGeneratorKind.CONVENTIONAL;valueB=QuestionGeneratorKind.SYMMETRIC;
+				}
+				else
+				if (var.getType().equals(SMTGRAPHDOMAINCONSISTENCYCHECK.class))
+				{
+						valueA = SMTGRAPHDOMAINCONSISTENCYCHECK.DETERMINISM;valueB=SMTGRAPHDOMAINCONSISTENCYCHECK.TRANSITIONSFROMALLORNONE;
+				}
+				else
+				if (var.getType().equals(SMTGRAPHRANGECONSISTENCYCHECK.class))
+				{
+						valueA = SMTGRAPHRANGECONSISTENCYCHECK.RANGECONTAINMENT;valueB=SMTGRAPHRANGECONSISTENCYCHECK.RANGEINTERSECTION;
 				}
 				else
 				if (var.getType().equals(LEARNER.class))

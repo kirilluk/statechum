@@ -406,61 +406,6 @@ public class Transform
 		return graphModified?result:null;
 	}
 
-	public static class GraphAndState
-	{
-		public final LearnerGraph graph;
-		public final CmpVertex state;
-		
-		public GraphAndState(LearnerGraph gr, CmpVertex s)
-		{
-			graph = gr;state =s;
-		}
-
-		/* (non-Javadoc)
-		 * @see java.lang.Object#hashCode()
-		 */
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + ((graph == null) ? 0 : graph.hashCode());
-			result = prime * result + ((state == null) ? 0 : state.hashCode());
-			return result;
-		}
-
-		/* (non-Javadoc)
-		 * @see java.lang.Object#equals(java.lang.Object)
-		 */
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (!(obj instanceof GraphAndState))
-				return false;
-			GraphAndState other = (GraphAndState) obj;
-			if (graph != other.graph)
-				return false;// we care about referential equality only here because if there are multiple equal graphs, we attempt to match all their thens and it will only be somewhat inefficient, compared to invoking inefficient equals() function on graphs.
-			
-			if (state == null) {
-				if (other.state != null)
-					return false;
-			} else if (!state.equals(other.state))
-				return false;
-			return true;
-		}
-		
-		@Override
-		public String toString()
-		{
-			if (graph == null)
-				return "<none>";
-			
-			return state.toString()+" from "+graph.toString();
-		}
-	}
-	
 	/** We explore a cross-product of a 
 	 * <ul>
 	 * <li>union of a tentative automaton with one of the "then automata" and </li>

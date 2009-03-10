@@ -330,7 +330,6 @@ public class LabelRepresentation
 		
 		public Label(String labelName, CompositionOfFunctions preCondition, CompositionOfFunctions postCondition)
 		{
-			//this(labelName);pre.text=appendToString(preCondition,pre.text);post.text=appendToString(postCondition,post.text);
 			this(labelName);pre=preCondition;post=postCondition;
 		}
 	
@@ -393,9 +392,9 @@ public class LabelRepresentation
 		}
 	}
 
-	static public final char delimiter='@',delimiterNegative='~';
+	static public final char delimiter='@';
 	static public final String varNewSuffix = delimiter+"N",varOldSuffix=delimiter+"M", functionArg = "frg";
-	public static final String delimiterString=""+delimiter,delimiterNegativeString=""+delimiterNegative;
+	public static final String delimiterString=""+delimiter;
 	
 	/** Given a string with variables, renumbers them according to the number passed. This is used
 	 * to generate memory and input variables corresponding to different states/labels on a path.
@@ -425,14 +424,9 @@ public class LabelRepresentation
 				if (result.contains(varNewSuffix))
 					throw new IllegalArgumentException("current number should be valid in "+constraint);
 			}
-		/*else
-			result = result.replaceAll(varNewSuffix,delimiterNegativeString+(-num));*/
 
 		if (previous != JUConstants.intUNKNOWN)
 			result = result.replaceAll(varOldSuffix,delimiterString+previous);
-		/*
-		else
-			result = result.replaceAll(varOldSuffix,delimiterNegativeString+(-previous));*/
 		else
 			if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 			{// Consistency checking
@@ -540,7 +534,8 @@ public class LabelRepresentation
 	 */
 	public static String generateFreshVariable(String functionName, VARIABLEUSE useKind, int useNumber,  int position)
 	{
-		return functionArg+delimiter+functionName+delimiter+useKind.name()+delimiter+useNumber+varOldSuffix+varNewSuffix+delimiter+
+		return functionArg+delimiter+functionName+delimiter+useKind.name()+delimiter+useNumber+varOldSuffix+
+			(useKind == VARIABLEUSE.IO?delimiterString+"IO":varNewSuffix)+delimiter+
 			(position != JUConstants.intUNKNOWN?Integer.toString(position):"");
 	}
 
@@ -774,6 +769,9 @@ public class LabelRepresentation
 			}
 			if (func.arity < 0)
 				throw new IllegalArgumentException("the arity of "+functionName+" is an invalid number");
+			if (func.arity == 0)
+				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
+					System.err.println("WARNING: function "+func.getName()+" has a zero arity and hence arguments cannot be constrained to values used"); 
 			break;
 		case CONSTRAINARGS:
 			func.constrainArgsToTraces = Boolean.parseBoolean(labelSpec.toString());
@@ -834,7 +832,7 @@ public class LabelRepresentation
 			if (traceType.equals("-"))
 				trace.accept = false;
 			else
-				throw new IllegalArgumentException("invalid data trace type");
+				throw new IllegalArgumentException("invalid data trace type "+traceType+", only \"+\" or \"-\" is allowed");
 		
 		//(positive?sPlus:sMinus).addAll(null);
 		
@@ -903,7 +901,7 @@ public class LabelRepresentation
 	 */
 	public synchronized Pair<String,String> getConjunctionForPath(List<Label> path, List<String> inputOutput)
 	{// TODO: to test with inputOutput
-		if (knownTraces == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
 		if (inputOutput != null && inputOutput.size() != path.size())
 			throw new IllegalArgumentException("mismatched length of path and parameters");
 
@@ -978,11 +976,14 @@ public class LabelRepresentation
 		/** The number corresponding to this abstract state. */
 		public final int stateNumber;
 
-		/** The transition leading to this state, making it possible to compute a postcondition
+		/** The transition leading to this state, making it (in conjuction with lastIO) possible to compute a postcondition
 		 * for an arbitrarily-chosen abstract state number. 
 		 * This would be null for an initial state. 
 		 */
 		public final Label lastLabel;
+		
+		/** Arguments to the last label. Can be null if lastLabel is not null, but will never be non-null if lastLabel is null. */
+		public final CompositionOfFunctions lastIO;
 		
 		/** Constructs an abstract state for the initial state.
 		 * 
@@ -991,45 +992,40 @@ public class LabelRepresentation
 		 */
 		public AbstractState(CmpVertex initState, int num)
 		{
-			stateNumber = num;vertex = initState;previousState = null;lastLabel = null;
+			stateNumber = num;vertex = initState;previousState = null;lastLabel = null;lastIO = null;
 			// Initial memory value.
-			variableDeclarations = toCurrentMem(init.pre.getCondition(), num, JUConstants.intUNKNOWN);
-			abstractState = commentForInit+ENDL+toCurrentMem(init.post.getCondition(), num, JUConstants.intUNKNOWN);
+			variableDeclarationsThisState = toCurrentMem(init.pre.getCondition(), num, JUConstants.intUNKNOWN);
+			variableDeclarations = variableDeclarationsThisState;
+			abstractStateThisState = commentForInit+ENDL+toCurrentMem(init.post.getCondition(), num, num);
+			abstractState = abstractStateThisState;
 		}
+		
+		/** Reflects the contribution of this state to the global condition. */
+		final String variableDeclarationsThisState, abstractStateThisState;
+		
 		/** Creating a clone of an abstract state is easy: it is enough to simply create another instance 
 		 * of this AbstractState using the recorded arguments.  
 		 * @param v DFA vertex this abstract state is to be associated with.
 		 * @param argPreviousState an abstract state from which this state has been entered by invoking <em>step</em>. 
 		 * @param arglastLabel the operation used to enter this abstract state from the previous one.
+		 * @param arglastIO the arguments to the operation used to enter this abstract state from the previous one.
 		 * @param N the number to give to variables in order to express "current state". Previous state is obtained 
 		 * from the number associated with the previous state provided as an argument <em>argPreviousState</em>.
 		 */
-		public AbstractState(CmpVertex v,AbstractState argPreviousState, Label arglastLabel, int num)
+		public AbstractState(CmpVertex v,AbstractState argPreviousState, Label arglastLabel, CompositionOfFunctions arglastIO, int num)
 		{
 			if (argPreviousState == null || arglastLabel == null) throw new IllegalArgumentException("previous state or label cannot be null");// TODO: to test this 
-			vertex=v;previousState=argPreviousState;lastLabel=arglastLabel;
-			/*
-			LinkedList<Label> pathToCurrentState = new LinkedList<Label>();
-			AbstractState currentState = this;
-			while(currentState != null && currentState.lastLabel != null)
-			{
-				pathToCurrentState.addFirst(currentState.lastLabel);
-				currentState = currentState.previousState;
-			}
-			Pair<String,String> axiom = null;
-			synchronized(LabelRepresentation.this)
-			{
-				axiom = getConjunctionForPath(pathToCurrentState,null);
-				stateNumber=currentNumber-1;
-			}
-			*/
-			stateNumber = num;
-			variableDeclarations = previousState.variableDeclarations+ENDL+
-				toCurrentMem(init.pre.getCondition()+lastLabel.pre.varDeclarations+lastLabel.post.varDeclarations,num,previousState.stateNumber);
+			vertex=v;previousState=argPreviousState;lastLabel=arglastLabel;lastIO = arglastIO;
 
-			abstractState = previousState.abstractState+ENDL+commentForLabel+lastLabel.getName()+ENDL+
+			stateNumber = num;
+			variableDeclarationsThisState = (lastIO == null || lastIO.varDeclarations.length()==0?"":toCurrentMem(lastIO.varDeclarations,num,previousState.stateNumber)+ENDL)+
+				toCurrentMem(init.pre.getCondition()+lastLabel.pre.varDeclarations+lastLabel.post.varDeclarations,num,previousState.stateNumber);
+			variableDeclarations = previousState.variableDeclarations+ENDL+variableDeclarationsThisState;
+
+			abstractStateThisState = (lastIO == null || lastIO.getCondition().length()==0?"":toCurrentMem(lastIO.getCondition(),num,previousState.stateNumber)+ENDL)+
 				toCurrentMem(lastLabel.pre.getCondition(),JUConstants.intUNKNOWN,previousState.stateNumber)+ENDL+
 				toCurrentMem(lastLabel.post.getCondition(),num,previousState.stateNumber);
+			abstractState = previousState.abstractState+ENDL+commentForLabel+lastLabel.getName()+ENDL+abstractStateThisState;
 		}
 
 		/* (non-Javadoc)
@@ -1042,7 +1038,9 @@ public class LabelRepresentation
 			result = prime * result
 					+ ((abstractState == null) ? 0 : abstractState.hashCode());
 			result = prime * result
-					+ ((lastLabel == null) ? 0 : lastLabel.hashCode());
+				+ ((lastLabel == null) ? 0 : lastLabel.hashCode());
+			result = prime * result
+				+ ((lastIO == null) ? 0 : lastIO.hashCode());
 			result = prime * result + stateNumber;
 			result = prime
 					* result
@@ -1072,6 +1070,11 @@ public class LabelRepresentation
 				if (other.lastLabel != null)
 					return false;
 			} else if (!lastLabel.equals(other.lastLabel))
+				return false;
+			if (lastIO == null) {
+				if (other.lastIO != null)
+					return false;
+			} else if (!lastIO.equals(other.lastIO))
 				return false;
 			if (stateNumber != other.stateNumber)
 				return false;
@@ -1117,14 +1120,9 @@ public class LabelRepresentation
 			Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
 			fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
 			
-			// Entry for the initial state is always added by addAbstractStatesFromTraces
-/*			if (!newVertexToEqClass.containsKey(coregraph.init))
-			{// add an entry for the first state
-				List<AbstractState> abstractstates = new LinkedList<AbstractState>();
-				abstractstates.add(new AbstractState(coregraph.init,elementCounter++));
-				newVertexToEqClass.put(coregraph.init, abstractstates);
-			}
-			*/
+			// Entry for the initial state is always added by addAbstractStatesFromTraces, 
+			// hence no need to add it here.			
+
 			while(!fringe.isEmpty())
 			{// based on computeShortPathsToAllStates in AbstractPathRoutines
 				CmpVertex currentState = fringe.remove();
@@ -1134,7 +1132,7 @@ public class LabelRepresentation
 					for(Entry<String,CmpVertex> labelstate:targets.entrySet())
 					{
 						CmpVertex target = labelstate.getValue();
-						if (!statesInFringe.contains(target))
+						if (!statesInFringe.contains(target) && target.isAccept()) // TODO: to check that everything else will work ok with rejects ignored, as they should be.
 						{// the new state has not yet been visited, so we may need to add an entry the 
 						 // collection of AbstractStates associated with it.
 							Collection<AbstractState> targetDataStates = newVertexToEqClass.get(target);
@@ -1144,8 +1142,11 @@ public class LabelRepresentation
 								newVertexToEqClass.put(target, targetDataStates);
 								for(AbstractState currentAbstractState:currentAbstractStates)
 								{
-									Label currentLabel=labelMapFinal.get(labelstate.getKey());if (currentLabel == null) throw new IllegalArgumentException("unknown label "+labelstate.getKey());
-									targetDataStates.add(new AbstractState(target,currentAbstractState, currentLabel,elementCounter++));
+									Label currentLabel=labelMapConstructionOfDataTraces.get(labelstate.getKey());if (currentLabel == null) throw new IllegalArgumentException("unknown label "+labelstate.getKey());
+									AbstractState abstractState = new AbstractState(target,currentAbstractState, currentLabel,null,elementCounter++);
+									targetDataStates.add(abstractState);
+									tracesVars.append(abstractState.variableDeclarationsThisState);tracesVars.append(ENDL);
+									traceAxioms.append(abstractState.abstractStateThisState);
 								}
 							}
 							fringe.offer(target);
@@ -1156,6 +1157,20 @@ public class LabelRepresentation
 			
 			currentNumber = elementCounter;
 			
+			knownTraces = encloseInBeginEndIfNotEmpty(tracesVars.toString()+ENDL+assertString+"(and "+traceAxioms.toString()+"))",blockDATATRACES);
+			
+			/* Now we go through all the recorded variables and updates pre and post-conditions so that
+			 * they refer to the recorded values.
+			 */
+			
+			labelMapFinal = new TreeMap<String,Label>();
+			for(Label label:labelMapConstructionOfDataTraces.values())
+			{
+				label.pre  =  addKnownValuesToPrePost(label.pre);
+				label.post =  addKnownValuesToPrePost(label.post);
+				labelMapFinal.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
+			}
+			labelMapConstructionOfOperations=null;
 		}
 		else // after a previous successful merge 
 			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
@@ -1171,24 +1186,32 @@ public class LabelRepresentation
 		{// Consistency checking
 			Map<CmpVertex,CmpVertex> vertexToCollection = new TreeMap<CmpVertex,CmpVertex>();
 			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> eqClass:coregraph.learnerCache.vertexToAbstractState.entrySet())
-			{// checking that vertices contained within different merged vertices do not intersect.
+			{
+			 // Checking that vertices associated with abstract states from different merged vertices do not intersect.
+			 // This is done by building a map associating DFA vertices recorded in abstract states
+			 // with the DFA states they are associated with. If there are abstract states with the same 
+			 // DFA vertex associated to different DFA states, this is to be reported.
 				for(LabelRepresentation.AbstractState abstractState:eqClass.getValue())
 				{
 					CmpVertex existingClass = vertexToCollection.get(abstractState.vertex);
-					if (existingClass != null)
-						throw new IllegalArgumentException("classes "+existingClass+" and "+eqClass.getValue()+" share vertex "+abstractState.vertex);
+					if (existingClass != null && existingClass != eqClass.getKey())
+						throw new IllegalArgumentException("classes with DFA state "+abstractState.vertex+" are associated to both "+eqClass.getKey()+" and "+existingClass);
 					vertexToCollection.put(abstractState.vertex,eqClass.getKey());
 				}
 			}
 			
-			{// checking that all vertices from the current graph have a merged vertex corresponding to them.
-				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();verticesInGraph.addAll(coregraph.transitionMatrix.keySet());
+			{// Checking that all accept-vertices from the current graph have a merged vertex corresponding to them.
+			 // This should be true by construction of the graph; the only way we may get here is where a vertex
+			 // is not reachable from an initial state.
+				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();
+				for(CmpVertex vert:coregraph.transitionMatrix.keySet())
+					if (vert.isAccept()) verticesInGraph.add(vert);
 				verticesInGraph.removeAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
 				if (!verticesInGraph.isEmpty())
-					throw new IllegalArgumentException("vertices such as "+verticesInGraph+" do not feature in the vertex to collection map");
+					throw new IllegalArgumentException("vertices such as "+verticesInGraph+" are not in the vertex to collection map (unreachable state?)");
 			}
 			
-			{
+			{// Checking that domain of getVertexToAbstractState is contained within the set of vertices of our graph.
 				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
 				verticesInCollection.removeAll(coregraph.transitionMatrix.keySet());
 				if (!verticesInCollection.isEmpty())
@@ -1221,7 +1244,10 @@ public class LabelRepresentation
 				vars.add(toCurrentMem(var, num, previous));
 		}
 	}
-	
+
+	/** Used to build global constraints. */
+	StringBuffer tracesVars = null, traceAxioms = null; 
+
 	/** Goes through the collection of traces and adds them to the graph provided.
 	 * In addition, this method populates the map from functions to variables used.
 	 * 
@@ -1230,13 +1256,21 @@ public class LabelRepresentation
 	public void addAbstractStatesFromTraces(LearnerGraph gr)
 	{
 		if (gr.learnerCache.getVertexToAbstractState() != null)
-			throw new IllegalArgumentException("data traces should not be added to a graph with existing abstract states");// TODO: to test this.
+			throw new IllegalArgumentException("data traces should not be added to a graph with existing abstract states");
 		functionToVariables.clear();
-		StringBuffer tracesVars = new StringBuffer(), traceAxioms = new StringBuffer(); 
+		tracesVars = new StringBuffer();traceAxioms = new StringBuffer(); 
 		int elementCounter = currentNumber;
 		gr.learnerCache.vertexToAbstractState = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
 		AbstractState initialAbstractState = new AbstractState(gr.init,elementCounter++);
 		gr.learnerCache.vertexToAbstractState.put(gr.init,Arrays.asList(new AbstractState[]{initialAbstractState}));
+
+		populateVarsUsedForArgs(init.post, initialAbstractState.stateNumber, initialAbstractState.stateNumber);
+		// Add details of the current abstract state to what we know of supplied data traces.
+		/*String header = commentForInit+" initialisation"+ENDL;
+		tracesVars.append(header);traceAxioms.append(header);*/
+		tracesVars.append(initialAbstractState.variableDeclarationsThisState);tracesVars.append(ENDL);
+		traceAxioms.append(initialAbstractState.abstractStateThisState);
+
 		for(TraceWithData trace:traces)
 		{
 			assert trace.traceDetails.size() == trace.arguments.size();
@@ -1245,24 +1279,35 @@ public class LabelRepresentation
 				Iterator<String> operationIterator = trace.traceDetails.iterator();
 				Iterator<CompositionOfFunctions> argumentsIterator = trace.arguments.iterator();
 				AbstractState abstractState = initialAbstractState;
+
 				Label currentLabel = labelMapConstructionOfDataTraces.get(operationIterator.next()); 
 				CompositionOfFunctions currentIO = argumentsIterator.next();
-				CmpVertex currentState = gr.init;elementCounter++;
+				CmpVertex currentState = gr.init;
 				
 				while(operationIterator.hasNext())
 				{
+					CmpVertex previousState = currentState;
 					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
-					abstractState = new AbstractState(currentState,abstractState,currentLabel,elementCounter);
-					
-					populateVarsUsedForArgs(currentIO, elementCounter, abstractState.stateNumber);
+
+					populateVarsUsedForArgs(currentIO, JUConstants.intUNKNOWN, abstractState.stateNumber);
 					populateVarsUsedForArgs(currentLabel.pre, elementCounter, abstractState.stateNumber);
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
+					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
+					
 					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
 					if (abstractStatesForDFAState == null)
 					{
 						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
 					}
 					abstractStatesForDFAState.add(abstractState);
+
+					// Add details of the current abstract state to what we know of supplied data traces.
+					/*header = commentForLabel+previousState+"-"+currentLabel.getName()+
+						(currentIO != null?"("+toCurrentMem(currentIO.text,JUConstants.intUNKNOWN, abstractState.stateNumber)+")":"")+
+						"->"+currentState+ENDL;
+					tracesVars.append(header);traceAxioms.append(header);*/
+					tracesVars.append(abstractState.variableDeclarationsThisState);tracesVars.append(ENDL);
+					traceAxioms.append(abstractState.abstractStateThisState);
 					
 					currentLabel = labelMapConstructionOfDataTraces.get(operationIterator.next());
 					currentIO = argumentsIterator.next();
@@ -1274,13 +1319,13 @@ public class LabelRepresentation
 				 // because the last element of a trace should be unsatisfiable when taken together with the last
 				 // but one abstract state. This last element may be internally unsatisfiable, hence we'd like not
 				 // to introduce unsatisfiable constraints on arguments this may bring.
+					CmpVertex previousState = currentState;
 					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
-					abstractState = new AbstractState(currentState,abstractState,currentLabel,elementCounter);
 
-					populateVarsUsedForArgs(currentIO, elementCounter, abstractState.stateNumber);
+					populateVarsUsedForArgs(currentIO, JUConstants.intUNKNOWN, abstractState.stateNumber);
 					populateVarsUsedForArgs(currentLabel.pre, elementCounter, abstractState.stateNumber);
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
-
+					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
 
 					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
 					if (abstractStatesForDFAState == null)
@@ -1288,27 +1333,21 @@ public class LabelRepresentation
 						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
 					}
 					abstractStatesForDFAState.add(abstractState);
+
+					// Add details of the current abstract state to what we know of supplied data traces.
+					/*header = commentForLabel+previousState+"-"+currentLabel.getName()+
+						(currentIO != null?"("+toCurrentMem(currentIO.text,JUConstants.intUNKNOWN, abstractState.stateNumber)+")":"")+
+						"->"+currentState+ENDL;
+					tracesVars.append(header);traceAxioms.append(header);*/
+					tracesVars.append(abstractState.variableDeclarationsThisState);tracesVars.append(ENDL);
+					traceAxioms.append(abstractState.abstractStateThisState);
+					elementCounter++;
 				}
 				
-				// populate what we know of supplied data traces.
-				tracesVars.append(abstractState.variableDeclarations);traceAxioms.append(abstractState.abstractState);
 			}
 		}
 		
-		knownTraces = encloseInBeginEndIfNotEmpty(tracesVars.toString(),blockDATATRACES);
 		currentNumber = elementCounter;
-
-		/* Now we go through all the recorded variables and updates pre and post-conditions so that
-		 * they refer to the now recorded values.
-		 */
-		assert labelMapFinal == null;
-		labelMapFinal = new TreeMap<String,Label>();
-		for(Label label:labelMapConstructionOfDataTraces.values())
-		{
-			label.pre  =  addKnownValuesToPrePost(label.pre);
-			label.post =  addKnownValuesToPrePost(label.post);
-			labelMapFinal.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
-		}
 	}
 	
 	public CompositionOfFunctions addKnownValuesToPrePost(CompositionOfFunctions composition)
@@ -1323,8 +1362,9 @@ public class LabelRepresentation
 			
 				for(String funcVar:entry.getValue())
 				{// for each use of this function
+					additionalVariables.append(";; ");additionalVariables.append(funcVar);additionalVariables.append(ENDL);
 					additionalVariables.append("(or ");
-					for(String knownVar:functionToVariables.get(entry.getKey().getName()))
+					for(String knownVar:functionToVariables.get(entry.getKey()))
 					{// constructing the equality of tuples
 						additionalVariables.append("(and ");
 						for(int i=0;i<entry.getKey().arity;++i)
@@ -1337,9 +1377,9 @@ public class LabelRepresentation
 							// this one checks that _M and _N have been already expanded
 							assert !knownVar.contains(varNewSuffix) && !knownVar.contains(varOldSuffix);
 						}
-						additionalVariables.append(")");
+						additionalVariables.append(")");additionalVariables.append(ENDL);
 					}
-					additionalVariables.append(")");
+					additionalVariables.append(")");additionalVariables.append(ENDL);
 				}
 			}
 		}
@@ -1436,12 +1476,12 @@ public class LabelRepresentation
 		
 		// We make a clone of B in such a way that the new number is the same as that of A,
 		// as a consequence, renumberedB and A share the same new state.
-		AbstractState renumberedB = new AbstractState(B.vertex,B.previousState,B.lastLabel,A.stateNumber);
+		AbstractState renumberedB = new AbstractState(B.vertex,B.previousState,B.lastLabel,B.lastIO,A.stateNumber);
 		
 		// Since renumberedB and A share the state number, we'll have duplicate variable declarations.
 		// The two paths will have a common prefix (the initial state is always common),
 		// this is why we have to throw away declarations associated with this prefix from a combined declaration.
-		
+		/*
 		int Bnumber = B.stateNumber, Anumber = A.stateNumber;
 		AbstractState Bcurr = B, Acurr = A;
 		while(Bnumber != Anumber)
@@ -1458,11 +1498,11 @@ public class LabelRepresentation
 		assert A.variableDeclarations.startsWith(Acurr.variableDeclarations);
 		assert B.variableDeclarations.startsWith(Acurr.variableDeclarations);
 		String varDecl = B.previousState.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
-		
+		*/
 		String assertion = 
 				A.abstractState+ENDL+
 				renumberedB.abstractState;
-		return checkSatisfiability(varDecl,assertion);
+		return checkSatisfiability("",assertion);
 	}
 	
 	/** The solver to be used. */
@@ -1475,7 +1515,6 @@ public class LabelRepresentation
 		Smt.loadLibrary();Smt.closeStdOut();
 		smtSolver = new Smt();
 		if (knownTraces != null) smtSolver.loadData(knownTraces);
-		else throw new IllegalArgumentException("construction incomplete");
 		return smtSolver;
 	}
 	
@@ -1493,14 +1532,14 @@ public class LabelRepresentation
 	 */
 	public synchronized IllegalArgumentException checkConsistency(LearnerGraph graph,Configuration whatToCheck)
 	{
-		if (knownTraces == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
 
 		int variableNumber = currentNumber;// we do not intend to change currentNumber since all checks made here are transient.
 		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.learnerCache.getVertexToAbstractState().entrySet())
 		{
 			if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST)
 				for(AbstractState state:entry.getValue())
-					if (entry.getKey().isAccept() != checkSatisfiability(state.variableDeclarations,state.abstractState))
+					if (entry.getKey().isAccept() != checkSatisfiability("",state.abstractState))
 						return new IllegalArgumentException("state "+entry.getKey()+" has an abstract state inconsistent with the accept condition");
 
 			for(Entry<String,CmpVertex> transition:graph.transitionMatrix.get(entry.getKey()).entrySet())
@@ -1611,7 +1650,7 @@ public class LabelRepresentation
 				+ ((functionToVariables == null) ? 0 : functionToVariables
 						.hashCode());
 		result = prime * result
-				+ ((knownTraces == null) ? 0 : knownTraces.hashCode());
+			+ ((knownTraces == null) ? 0 : knownTraces.hashCode());
 		result = prime
 				* result
 				+ ((labelMapConstructionOfDataTraces == null) ? 0

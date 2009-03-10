@@ -117,6 +117,7 @@ public class AllTests {
 	@SuiteClasses({
 		statechum.analysis.learning.TestSmt.class,
 		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class,
+		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestFeaturesOfAbstractStates.class,
 		statechum.analysis.learning.rpnicore.TestLabelParser.class		
 	})
 	public static class SmtTests {// all tests are included in the annotation.

@@ -59,20 +59,8 @@ public class LabelParser {
 	 */
 	public CompositionOfFunctions interpretPrePostCondition(String data,FunctionArgumentsHandler functionArgumentsHandler)
 	{
-		//System.out.println("parsing :"+data);
 		if (data == null) return CompositionOfFunctions.createEmptySecondPhase();// returns the second phase CompositionOfFunctions here.
 		buildLexer(data);
-		/*
-		int currentMatch = lexExpr.getMatchType();
-		if (currentMatch < 0)
-			throw new IllegalArgumentException("unexpected end of expression");
-		if (currentMatch != exprOpen)
-			throw new IllegalArgumentException("expected opening brace, got "+lexExpr.getMatch());
-		
-		CompositionOfFunctions result = functionArgumentsHandler.getComposition(interpretFunctionalExpression(functionArgumentsHandler,false));
-		if (lexExpr.getMatchType() >= 0)
-			throw new IllegalArgumentException("extra text "+lexExpr.getMatch()+" at the end of expression "+data);
-			*/
 		CompositionOfFunctions result = functionArgumentsHandler.getComposition(interpretFunctionalExpression(functionArgumentsHandler,true));
 		if (lexExpr.getMatch() != null) // if we did not stop parsing the expression due to the end of text
 			throw new IllegalArgumentException("extra text at the end of expression "+lexExpr.getText());

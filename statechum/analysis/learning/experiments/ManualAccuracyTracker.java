@@ -44,14 +44,16 @@ public class ManualAccuracyTracker extends QSMTool {
 		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
 		active = true;
 		learnerInitConfiguration.config.setQuestionPathUnionLimit(1);
+		//learnerInitConfiguration.config.setUseConstraints(true);
+		learnerInitConfiguration.config.setHowManyStatesToAddFromIFTHEN(1);
 		setSimpleConfiguration(learnerInitConfiguration.config, active, k);
 		//if(learnerInitConfiguration.ltlSequences!=null && !learnerInitConfiguration.ltlSequences.isEmpty())
 			learnerInitConfiguration.config.setUseLTL(true);
 		learnerInitConfiguration.config.setDebugMode(true);
-		//String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
-		//"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
+		String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
+		"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
 		
-		String target = "q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedirectory->q9-listfiles->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16";
+		//String target = "q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedirectory->q9-listfiles->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16";
 		
 		LearnerGraph targetMachine = new LearnerGraph(FsmParser.buildGraph(target, "Target"), learnerInitConfiguration.config);
 		
@@ -79,8 +81,8 @@ public class ManualAccuracyTracker extends QSMTool {
 			sPlus.addAll(samples.getData(posPredicate));
 			sMinus.addAll(samples.getData(negPredicate));
 			RPNILearner l = new RPNIUniversalLearner(null, new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null));
-			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
-			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
+			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
+			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
 			Learner autoAns = new AutoAnswers(atd);
 			autoAns.init(sPlus, sMinus);
 			

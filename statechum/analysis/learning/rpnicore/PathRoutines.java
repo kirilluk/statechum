@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -41,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -796,5 +798,30 @@ public class PathRoutines {
 		
 		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
 		return gr;
+	}
+
+	/** Returns a minimal version of this graph. */
+	public LearnerGraph reduce()
+	{
+		LearnerGraph result = coregraph;
+		try
+		{
+			WMethod.computeWSet_reducedmemory(coregraph);
+		}
+		catch(EquivalentStatesException ex)
+		{
+			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction());
+		}
+		
+		try
+		{
+			WMethod.computeWSet_reducedmemory(result);
+		}
+		catch(EquivalentStatesException ex)
+		{
+			Helper.throwUnchecked("failed to build a minimal version of a graph", ex);
+		}
+
+		return result;
 	}
 }

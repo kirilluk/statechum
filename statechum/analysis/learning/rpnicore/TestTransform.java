@@ -328,19 +328,20 @@ public class TestTransform {
 	@Test
 	public final void testStateRelabelling1()
 	{
-		LearnerGraphND A = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
-			expected = new LearnerGraphND(FsmParser.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND A = new LearnerGraphND(FsmParser.buildGraph("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
+			expected = new LearnerGraphND(FsmParser.buildGraph("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
 		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		expected.addToCompatibility(expected.findVertex("U"), expected.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
+		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("T");
+		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("NE");
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
 	
@@ -348,8 +349,8 @@ public class TestTransform {
 	@Test
 	public final void testStateRelabelling2()
 	{
-		LearnerGraphND A = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
-			expected = new LearnerGraphND(FsmParser.buildGraph("T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND A = new LearnerGraphND(FsmParser.buildGraph("NA-s->A-a->B\nA-a->C\nB-a->D\nB-a->A", "testStateRelabelling1"),Configuration.getDefaultConfiguration()),
+			expected = new LearnerGraphND(FsmParser.buildGraph("NE-s->T-a->U\nT-a->R\nU-a->S\nU-a->T", "testStateRelabelling1"),Configuration.getDefaultConfiguration());
 		A.addToCompatibility(A.findVertex("B"), A.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		A.addToCompatibility(A.findVertex("D"), A.findVertex("A"),JUConstants.PAIRCOMPATIBILITY.MERGED);
@@ -357,12 +358,13 @@ public class TestTransform {
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		expected.addToCompatibility(expected.findVertex("S"), expected.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.MERGED);
 		Map<CmpVertex,CmpVertex> whatToG = new TreeMap<CmpVertex,CmpVertex>();
+		whatToG.put(A.findVertex("NA"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("NE"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("A"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("B"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("T");
+		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("NE");
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
 	
@@ -1392,15 +1394,28 @@ public class TestTransform {
 
 	/** Tests identification of self-loops. */
 	@Test
-	public final void testCountMatchedTransitions7()
+	public final void testCountMatchedTransitions7a()
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B-c->B","testCountMatchedTransitions7big"),config);
 		LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-b->B-a->C-c->D","testCountMatchedTransitions7small"),config);
 		
-		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).Tx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Tx);
 		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
 		Assert.assertEquals(3,Transform.countSharedTransitions(big, small).matched);
+	}
+
+	/** Tests identification of self-loops. */
+	@Test
+	public final void testCountMatchedTransitions7b()
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B-c->B","testCountMatchedTransitions7big"),config);
+		LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-b->A2-b->A3-b->B-a->C-c->D","testCountMatchedTransitions7bsmall"),config);
+		
+		Assert.assertEquals(2,Transform.countSharedTransitions(big, small).Tx);
+		Assert.assertEquals(0,Transform.countSharedTransitions(big, small).Nx);
+		Assert.assertEquals(5,Transform.countSharedTransitions(big, small).matched);
 	}
 
 	/** Tests identification of self-loops. */
@@ -1490,7 +1505,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA=new LearnerGraph(FsmParser.buildGraph("A-a->B-a->D-a->A\nA-b->B\nD-e->D\nB-f->B", "testQuanteKoschke2A"),config);
 		LearnerGraph grB=new LearnerGraph(FsmParser.buildGraph("A-a->C-a->E-a->C\nA-b->C-q->C\nE-p->E", "testQuanteKoschke2B"),config);
-		Assert.assertEquals(0.22,
+		Assert.assertEquals(0.25,
 			Transform.QuanteKoschkeDifference(grA,grB),
 			0.01
 			);

@@ -49,11 +49,14 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Helper.whatToRun;
+import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
@@ -612,10 +615,34 @@ public class TestWMethod {
 		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
+	private void checkEquivalentStatesException(EquivalentStatesException e,LearnerGraph fsm)
+	{
+		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroup:e.getEquivalentStates())
+		{
+			// Checks that all states recorded as equivalent are indeed equivalent
+			for(CmpVertex eA:eqStatesGroup.getStates())
+				for(CmpVertex eB:eqStatesGroup.getStates())
+					Assert.assertNull("states "+eA+" and "+eB+" should belong to the same equivalence class",WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE));
+			
+			// Checks that all states in different equivalence classes are not equivalent. 
+			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroupAnother:e.getEquivalentStates())
+				if (eqStatesGroup != eqStatesGroupAnother)
+				{
+					for(CmpVertex eA:eqStatesGroup.getStates()) // our states
+						for(CmpVertex eB:eqStatesGroupAnother.getStates()) // other states
+								Assert.assertNotNull("states "+eA+" and "+eB+" should belong to different equivalence classes",WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE));				
+				}
+		}
+	}
+	
 	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected)
 	{
-		DirectedSparseGraph g = buildGraph(machine,"testWset");
-		LearnerGraph fsm = new LearnerGraph(g,config);
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		testWsetconstruction(fsm,equivalentExpected,reductionExpected);
+	}
+	
+	public void testWsetconstruction(LearnerGraph fsm, boolean equivalentExpected, boolean reductionExpected)
+	{
 		Set<List<String>> origWset = new HashSet<List<String>>(); 
 		try
 		{
@@ -626,7 +653,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
+			checkEquivalentStatesException(e,fsm);
 		}
 
 		try
@@ -643,7 +670,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
+			checkEquivalentStatesException(e,fsm);
 		}
 
 		try
@@ -657,7 +684,7 @@ public class TestWMethod {
 		catch(EquivalentStatesException e)
 		{
 			Assert.assertEquals(true, equivalentExpected);
-			Assert.assertNull(WMethod.checkM(fsm,e.getA(),fsm,e.getB(),WMethod.VERTEX_COMPARISON_KIND.NONE));
+			checkEquivalentStatesException(e,fsm);
 		}
 	}	
 	
@@ -673,8 +700,9 @@ public class TestWMethod {
 		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q",false,true);
 	}
 	
+	/** Equivalent states. */
 	@Test
-	public final void testWset3() // equivalent states
+	public final void testWset3()
 	{
 		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q",true,true);
 	}
@@ -686,22 +714,25 @@ public class TestWMethod {
 		Assert.assertTrue(WMethod.computeWSet_reducedmemory(fsm).isEmpty());
 	}
 
+	/** Equivalent states. */
 	@Test
-	public final void testWset5a() // equivalent states
+	public final void testWset5a()
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
 				true,true);
 	}
 	
+	/** Equivalent states. */
 	@Test
-	public final void testWset5b() // equivalent states
+	public final void testWset5b()
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
 				true,true);
 	}
 	
+	/** Equivalent states. */
 	@Test
-	public final void testWset6() // no equivalent states
+	public final void testWset6()
 	{
 		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
 				false,true);
@@ -755,6 +786,102 @@ public class TestWMethod {
 		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->5\n0-a4->9\n0-a5->5\n0-a10->9\n0-a11->7\n0-a12->9\n0-a15->8\n0-a16->0\n0-a17->3\n0-a18->8\n1-a0->7\n1-a2->0\n1-a3->2\n1-a4->7\n1-a5->6\n1-a7->6\n1-a8->2\n1-a11->0\n1-a15->0\n1-a17->4\n1-a18->1\n1-a19->4\n2-a0->5\n2-a4->7\n2-a5->0\n2-a6->1\n2-a8->9\n2-a10->9\n2-a11->6\n2-a12->2\n2-a13->6\n2-a15->3\n2-a16->1\n2-a17->0\n3-a1->8\n3-a3->3\n3-a4->5\n3-a6->4\n3-a7->6\n3-a9->1\n3-a10->4\n3-a11->3\n3-a15->6\n3-a16->6\n3-a17->5\n3-a19->6\n4-a0->4\n4-a1->0\n4-a2->5\n4-a3->3\n4-a6->2\n4-a7->2\n4-a8->8\n4-a9->0\n4-a10->5\n4-a16->2\n4-a17->5\n4-a19->4\n5-a0->9\n5-a2->6\n5-a5->1\n5-a7->5\n5-a8->4\n5-a9->2\n5-a11->4\n5-a12->7\n5-a15->7\n5-a17->1\n5-a18->7\n5-a19->7\n6-a4->4\n6-a6->7\n6-a7->9\n6-a9->2\n6-a10->8\n6-a12->3\n6-a13->7\n6-a14->1\n6-a15->8\n6-a16->0\n6-a17->1\n6-a18->2\n7-a1->6\n7-a3->1\n7-a5->2\n7-a6->0\n7-a7->6\n7-a8->3\n7-a9->0\n7-a10->5\n7-a11->4\n7-a15->8\n7-a17->8\n7-a19->2\n8-a0->7\n8-a1->3\n8-a3->9\n8-a4->7\n8-a5->6\n8-a6->1\n8-a8->3\n8-a9->0\n8-a10->3\n8-a11->9\n8-a14->8\n8-a18->4\n9-a0->4\n9-a1->9\n9-a5->8\n9-a6->5\n9-a7->3\n9-a9->9\n9-a10->3\n9-a13->8\n9-a14->5\n9-a15->1\n9-a16->8\n9-a17->2\n",false,false);
 	}
 
+	
+	/** Multiple equivalent states. */
+	@Test
+	public final void testWset14()
+	{
+		testWsetconstruction("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2",true,false);
+	}
+	
+	private void testReduction(String fsm, String expected)
+	{
+		LearnerGraph fsmL = new LearnerGraph(buildGraph(fsm,"testReductionA"),config),
+			expectedL = new LearnerGraph(buildGraph(expected,"testReductionB"),config);
+		WMethod.checkM(expectedL, fsmL.paths.reduce());
+	}
+	
+	
+	/** Tests that a process to minimise an automaton works, first with minimal machines. */
+	@Test
+	public final void testReduction1()
+	{
+		LearnerGraph fsmL = new LearnerGraph(config),
+		expectedL = new LearnerGraph(config);
+		WMethod.checkM(expectedL, fsmL.paths.reduce());
+	}
+	
+	/** Tests that a process to minimise an automaton works, first with minimal machines. */
+	@Test
+	public final void testReduction2()
+	{
+		testReduction("A-a->B-a->C", "A-a->B-a->C");
+	}
+	
+	/** Tests that a process to minimise an automaton works, first with minimal machines. */
+	@Test
+	public final void testReduction3()
+	{
+		testReduction("A-a->B-a->C-b->A", "A-a->B-a->C-b->A");
+	}
+	
+	/** Tests that a process to minimise an automaton works, now with non minimal machines. */
+	@Test
+	public final void testReduction4()
+	{
+		testReduction("A-a->B-a->C-a->A", "A-a->A");
+	}
+	
+	/** Tests that a process to minimise an automaton works, now with non minimal machines. */
+	@Test
+	public final void testReduction5()
+	{
+		testReduction("I-c->B / I-b->A-a->B-a->C-a->A", "I-c->A / I-b->A-a->A");
+	}
+	
+	/** Tests that a process to minimise an automaton works, now with non minimal machines. */
+	@Test
+	public final void testReduction6()
+	{
+		testReduction("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2", 
+				"A-a->B-a->B-b->C-b->C-c->D");
+	}
+	
+	/** Multiple non-equivalent states in the presence of incompatible states - should be ignored. */
+	@Test
+	public final void testWset_incompatibles1()
+	{
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1"),config);
+		fsm.addToCompatibility(fsm.findVertex("A"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		testWsetconstruction(fsm,false,false);
+	}
+	
+	/** Multiple non-equivalent states in different equivalence classes - should be ignored. */
+	@Test
+	public final void testWset_incompatibles2()
+	{
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2"),config);
+		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C3"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C3"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C4"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		fsm.addToCompatibility(fsm.findVertex("C4"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		testWsetconstruction(fsm,true,false);
+	}
+	
+	/** Multiple non-equivalent states in the same equivalence classes - exception has to be thrown. */
+	@Test
+	public final void testWset_incompatibles_fail1()
+	{
+		final LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2"),config);
+		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
+		Helper.checkForCorrectException(new whatToRun() { public void run() {
+			testWsetconstruction(fsm,true,false);
+		}},IllegalArgumentException.class,"equivalent states cannot be incompatible");
+	}
 	
 	public class EmptyPermutator implements FsmPermutator {
 		public ArrayList<Pair<CmpVertex, String>> getPermutation(

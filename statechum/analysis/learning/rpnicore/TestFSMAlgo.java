@@ -943,9 +943,9 @@ public class TestFSMAlgo {
 	
 	/** Tests <em>buildVertexToEqClassMap</em>. */
 	@Test
-	public final void testBuildVertexToEqClassMap1()
+	public final void testBuildVertexToEqClassMap1a()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b-#D","testBuildVertexToEqClassMap1"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b->D","testBuildVertexToEqClassMap1a"),Configuration.getDefaultConfiguration());
 		Assert.assertNull(graph.learnerCache.getVertexToAbstractState());
 		
 		lbls.buildVertexToAbstractStateMap(graph,null);
@@ -962,6 +962,33 @@ public class TestFSMAlgo {
 		Assert.assertEquals(4,graph.learnerCache.getVertexToAbstractState().size());
 
 		for(String vertex:new String[]{"A","B","C","D"})
+		{
+			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
+		}
+	}
+	
+	/** Tests <em>buildVertexToEqClassMap</em>. */
+	@Test
+	public final void testBuildVertexToEqClassMap1()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b-#D","testBuildVertexToEqClassMap1b"),Configuration.getDefaultConfiguration());
+		Assert.assertNull(graph.learnerCache.getVertexToAbstractState());
+		
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		Assert.assertEquals(3,graph.learnerCache.getVertexToAbstractState().size());
+
+		for(String vertex:new String[]{"A","B","C"})
+		{
+			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
+		}
+		
+		// Now update the map and check that it did not change
+		lbls.buildVertexToAbstractStateMap(graph,null);
+		Assert.assertEquals(3,graph.learnerCache.getVertexToAbstractState().size());
+
+		for(String vertex:new String[]{"A","B","C"})
 		{
 			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.learnerCache.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));

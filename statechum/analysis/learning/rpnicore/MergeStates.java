@@ -76,31 +76,19 @@ public class MergeStates {
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
 	 * @param original the machine in which to merge two states
-	 * @param pair the states to merge
+	 * @param redVertex the vertex from the original graph corresponding to <em>result.learnerCache.stateLearnt</em> 
+	 * of the new one.
 	 * @return result of merging, which is a shallow copy of the original LearnerGraph.
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
+	public static LearnerGraph mergeCollectionOfVertices(LearnerGraph original,CmpVertex redVertex,
 			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
 	{
 		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
-
-		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
-		{/*
-			try {
-				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
-				original.storage.writeGraphML(failName);
-			} catch (IOException e) {
-				System.out.println("failed to write error file");
-				e.printStackTrace();
-			}
-			*/	
-			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
-		}
-		
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
+		
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
@@ -140,8 +128,37 @@ public class MergeStates {
 		}
 		AMEquivalenceClass.populateCompatible(result, mergedVertices);
 		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);
-		result.learnerCache.stateLearnt=origToNew.get(pair.getR()).getMergedVertex();
+		if (redVertex != null)
+			result.learnerCache.stateLearnt=origToNew.get(redVertex).getMergedVertex();
 		return result;
+	}
+	
+	/** Merges the supplied pair of states states of the supplied machine. 
+	 * Returns the result of merging and populates the collection containing equivalence classes.
+	 *  
+	 * @param original the machine in which to merge two states
+	 * @param pair the states to merge
+	 * @return result of merging, which is a shallow copy of the original LearnerGraph.
+	 * In addition, mergedStates of the graph returned is set to equivalence classes 
+	 * relating original and merged states.
+	 */
+	public static LearnerGraph mergeAndDeterminize_general(LearnerGraph original, StatePair pair,
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices)
+	{
+
+		if (original.pairscores.computePairCompatibilityScore_general(pair,mergedVertices) < 0)
+		{/*
+			try {
+				String failName= new File("resources","failedmerge_"+pair.getR().getID()+"_"+pair.getQ().getID()+".xml").getAbsolutePath();
+				original.storage.writeGraphML(failName);
+			} catch (IOException e) {
+				System.out.println("failed to write error file");
+				e.printStackTrace();
+			}
+			*/	
+			throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
+		}
+		return mergeCollectionOfVertices(original,pair.getR(),mergedVertices);
 	}
 	
 	public static LearnerGraph mergeAndDeterminize(LearnerGraph original,StatePair pair)

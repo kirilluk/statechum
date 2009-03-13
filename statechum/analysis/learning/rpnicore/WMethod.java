@@ -204,28 +204,68 @@ public class WMethod {
 		 */
 		private static final long serialVersionUID = 6988899034488999997L;
 		
-		private final CmpVertex stateA, stateB;
-		private int NumberOfEquivalentStates;
+		private final Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> statesToReduce;
 		
-		public CmpVertex getA()
+		public Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getEquivalentStates()
 		{
-			return stateA;
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:getStatesToComputeReduction())
+				if (eqClass.getStates().size() > 1)
+					equivalentStates.add(eqClass);
+			
+			return equivalentStates;
 		}
 		
-		public CmpVertex getB()
+		/** Returns a collection which can be passed to <em>mergeCollectionOfVertices</em> in order to compute a reduced FSM. */
+		public Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> getStatesToComputeReduction()
 		{
-			return stateB;
+			return statesToReduce;
 		}
 		
-		public EquivalentStatesException(CmpVertex a, CmpVertex b, int Number)
+		public static Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> IdentifyEquivalentStates(final Map<CmpVertex,Integer> equivalenceClasses,LearnerGraph graph)
 		{
-			stateA = a;stateB = b;NumberOfEquivalentStates = Number;
+			Map<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> mapOfEquivalentStates = new TreeMap<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> equivalentStates = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			int number =0;
+			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+			{
+				AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> equiv = mapOfEquivalentStates.get(stateA.getValue());
+				if (equiv == null)
+				{
+					equiv = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(number++,graph);mapOfEquivalentStates.put(stateA.getValue(), equiv);
+				}
+				try {
+					equiv.addFrom(stateA.getKey(),graph.transitionMatrix.get(stateA.getKey()).entrySet());
+				} catch (IncompatibleStatesException e) {
+					Helper.throwUnchecked("equivalent states cannot be incompatible", e);
+				}
+			}
+			
+			boolean equivFound = false;
+			for(Entry<Integer,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> entry:mapOfEquivalentStates.entrySet())
+			{
+				equivalentStates.add(entry.getValue());
+				if (entry.getValue().getStates().size() > 1) equivFound=true;
+			}
+			assert equivFound: "equivalent states were not found";
+			return equivalentStates; 
+		}
+		
+		public static EquivalentStatesException construct(final Map<CmpVertex,Integer> equivalenceClasses,LearnerGraph graph)
+		{
+			return new EquivalentStatesException(IdentifyEquivalentStates(equivalenceClasses,graph));
+		}
+		
+		private EquivalentStatesException(Collection<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> argStatesToReduce)
+		{
+			statesToReduce=argStatesToReduce;
 		}
 		
 		@Override
 		public String toString()
 		{
-			return "There are "+NumberOfEquivalentStates+" equivalent states, such as "+stateA+ " and "+stateB;
+			Iterator<CmpVertex> eqStatesIterator = getEquivalentStates().iterator().next().getStates().iterator();
+			return "There are "+getEquivalentStates().size()+" equivalent states, such as "+eqStatesIterator.next()+ " and "+eqStatesIterator.next();
 		}
 	}
 	
@@ -371,24 +411,9 @@ public class WMethod {
 			}			
 		}
 		else
-		{// report equivalent states
-			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
-			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
-			{
-				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
-					{
-						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
-					}
-				}
-			}
-			assert equivalentStates.size() > 0: "equivalent states were not found";
-			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
-			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
-		}
+			// report equivalent states
+			throw EquivalentStatesException.construct(equivalenceClasses,fsm);
+		
 		return result;
 	}
 
@@ -577,24 +602,9 @@ public class WMethod {
 			}			
 		}
 		else
-		{// report equivalent states
-			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
-			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
-			{
-				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
-					{
-						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
-					}
-				}
-			}
-			assert equivalentStates.size() > 0: "equivalent states were not found";
-			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
-			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
-		}
+			// report equivalent states
+			throw EquivalentStatesException.construct(equivalenceClasses,fsm);
+
 		return result;
 	}
 
@@ -749,24 +759,9 @@ public class WMethod {
 			}			
 		}
 		else
-		{// report equivalent states
-			LinkedHashSet<CmpVertex> equivalentStates = new LinkedHashSet<CmpVertex>();
-			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
-			{
-				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
-				while(stateB_It.hasNext())
-				{
-					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-					if (stateA.getValue().equals(stateB.getValue()) && !stateA.getKey().equals(stateB.getKey()))
-					{
-						equivalentStates.add(stateA.getKey());equivalentStates.add(stateB.getKey());
-					}
-				}
-			}
-			assert equivalentStates.size() > 0: "equivalent states were not found";
-			Iterator<CmpVertex> equivIt = equivalentStates.iterator(); 
-			throw new EquivalentStatesException(equivIt.next(), equivIt.next(), equivalentStates.size());
-		}
+			// report equivalent states
+			throw EquivalentStatesException.construct(equivalenceClasses,fsm);
+
 		return result;
 	}
 
@@ -815,6 +810,7 @@ public class WMethod {
 			boolean result = row.contains(pairAB.secondElem);// if we've just created a row, the outcome will be false, same if the value does not exist.
 			if (!result)
 				row.add(pairAB.secondElem);
+
 			return !result;
 		}
 		
@@ -838,7 +834,7 @@ public class WMethod {
 					Set<CmpVertex> rightHand = pairs.get(entry.getKey());
 					String errorDescrPart1 = "state "+ state+" is mapped with "+entry.getValue().name()+" to "+entry.getKey()+" of the graph ";
 					if (rightHand == null)
-						throw new DifferentFSMException(errorDescrPart1 + "which does not have a corresponding state in the expected graph");
+						throw new DifferentFSMException(errorDescrPart1 + "which does not have a corresponding state in the expected graph, only "+pairs.toString()+" are known");
 					row.addAll(rightHand);
 				}
 			

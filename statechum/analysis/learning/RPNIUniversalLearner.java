@@ -153,12 +153,14 @@ public class RPNIUniversalLearner extends RPNILearner
 			List<String> sequence, boolean accepted, JUConstants newColour)
 	{
 		topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
+		if (config.isUseConstraints()) // This check has to be performed because if constraints are used, 
+			// LTL will be converted to a maximal automata which is not appropriate if the traditional way (with Spin) is used.
+			tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
 		// Note that since we've attempted to augment our new tentative automaton (right after 
 		// merging and reached no contradiction, we can add new paths one-by one here 
 		// and expect no contradiction.
 	}
-	
+
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
 	
 	public LearnerGraph learnMachine()

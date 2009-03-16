@@ -22,6 +22,7 @@ import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -65,6 +66,65 @@ public class TestLabelParser {
 	
 	}
 	
+	/** Checks that the <em>lowLevelFunctions</em> variable is set correctly. */
+	@Test
+	public final void testDetectWhenToUseLowLevelFunctions()
+	{
+		List<String> decl = Arrays.asList(new String[] {
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
+				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
+				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+				QSMTool.cmdDataTrace+" + callA((= 0 (fn input"+_M+" 7)) (< output"+_N+" 8)) callB callC((and (fn 5 input"+_M+") (> input"+_M+" output"+_N+")))"
+			});
+
+		{
+			final LabelRepresentation l = new LabelRepresentation();
+			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
+					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"2::int)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"1::int)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0::int)",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true",
+			}));
+			l.parseCollection(data);
+			Assert.assertTrue(l.usingLowLevelFunctions);
+		}
+
+		{
+			final LabelRepresentation l = new LabelRepresentation();
+			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
+					QSMTool.cmdLowLevelFunction+" fn ARITY 0",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0::int)",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true",
+			}));
+			Assert.assertFalse(l.usingLowLevelFunctions);
+		}
+
+		{
+			final LabelRepresentation l = new LabelRepresentation();
+			l.parseCollection(decl);
+			Assert.assertFalse(l.usingLowLevelFunctions);
+		}
+
+		{
+			final LabelRepresentation l = new LabelRepresentation();
+			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
+					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"2::int)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"1::int)",
+					QSMTool.cmdLowLevelFunction+" fn DECL (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0::int)",
+					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS false",
+			}));
+			l.parseCollection(data);
+			Assert.assertFalse(l.usingLowLevelFunctions);
+		}
+	}
+
 	/** Missing pre/post etc. The line ends with a space. */
 	@Test
 	public final void testFunctionParser_fail0a()

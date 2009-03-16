@@ -53,6 +53,8 @@ import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
+import static statechum.analysis.learning.rpnicore.GDLearnerGraph.PAIR_INCOMPATIBLE;
+import static statechum.analysis.learning.rpnicore.GDLearnerGraph.PAIR_OK;
 
 @RunWith(Parameterized.class)
 public class TestLinearWithMultipleThreads {
@@ -454,8 +456,6 @@ public class TestLinearWithMultipleThreads {
 				"4.0(["+P99+","+P67+"]:["+P99+","+P67+"]) + -"+k+"(["+P99+","+P67+"]:["+P99+","+P99+"]) = 1.0\n"+
 				"-"+k+"(["+P99+","+P99+"]:["+P67+","+P67+"]) + "+(4-k)+"(["+P99+","+P99+"]:["+P99+","+P99+"]) = 2.0\n",outcome);
 	}
-	
-	static final int PAIR_INCOMPATIBLE = GDLearnerGraph.PAIR_INCOMPATIBLE, PAIR_OK=GDLearnerGraph.PAIR_OK;
 	
 	@Test(expected=IllegalArgumentException.class)
 	public final void findIncompatiblePairs_fail()

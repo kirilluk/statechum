@@ -118,7 +118,8 @@ public class AllTests {
 		statechum.analysis.learning.TestSmt.class,
 		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class,
 		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestFeaturesOfAbstractStates.class,
-		statechum.analysis.learning.rpnicore.TestLabelParser.class		
+		statechum.analysis.learning.rpnicore.TestLabelParser.class,
+		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestChecksInTwoContexts.class
 	})
 	public static class SmtTests {// all tests are included in the annotation.
 	}

@@ -64,6 +64,11 @@ public class LabelRepresentation
 	public static final String INITMEM="MEM0";
 	
 	protected Label init = null;
+
+	/** If true, this means that all abstract states corresponding to accept-states will be included in the 
+	 * Yices context.
+	 */
+	protected boolean usingLowLevelFunctions = false;
 	
 	/** Eliminates spaces at the beginning and end of the supplied 
 	 * string. If not empty, the outcome is appended to the buffer provided. 
@@ -245,6 +250,15 @@ public class LabelRepresentation
 			return finalText;
 		}
 
+		@Override
+		public String toString()
+		{
+			String result = getCondition();
+			if (result == null)
+				result = text;
+			return result;
+		}
+		
 		/** Constructs an instance of an empty second phase of this composition. */
 		public static CompositionOfFunctions createEmptySecondPhase() {
 			return new CompositionOfFunctions("","","",new TreeMap<LowLevelFunction,Collection<String>>());
@@ -655,27 +669,6 @@ public class LabelRepresentation
 				parseFunction(text.substring(QSMTool.cmdLowLevelFunction.length()).trim());
 			}
 		
-		
-		// When pre/post/io is parsed, Map<LowLevelFunction,Collection<String>> should be populated mapping 
-		// each function to variables introduced with each use of that function
-		// When traces are parsed, the maps corresponding to pre/post/io of each element of a trace should be integrated
-		// into trace maps. Note that each trace should have a unique numbering.
-		
-		// At the moment, we have 
-		// _M,_N (when parsing traces, the range of these values can be determined and stored in each trace, 
-		// by applying parseFunctional to the outcome of toCurrentMemory(pre) or toCurrentMemory(post)
-		// hence no need to store unique trace identifiers).
-		// function name
-		// number of uses - different for each element of a trace: different operations, different i/o.
-		
-		// Number of uses should feature a unique range for PRE, POST and IO. For this reason, it is best
-		// to utilise a prefix reflecting this and a 
-		// Solution: remove the "i/o" argument to convert path to i/o and perform this conversion as a part of 
-		// parsing traces. The outcome would then be a map from a function name to a collection of lists 
-		// where _M and _N are expanded but _P (position of the argument) is not since all tuples have the same number of args for each function.
-
-		// For each PRE/POST, I need to add the equality between arguments in this PRE/POST and those in traces.
-		
 		for(LowLevelFunction function:functionMap.values())
 		{
 			for(int i=0;i<= function.arity;++i) // note the <= here, this is because we have arity arguments and the return value
@@ -685,6 +678,9 @@ public class LabelRepresentation
 				if (!function.varDeclaration.contains(functionArg+delimiterString+i))
 					throw new IllegalArgumentException("the variable declaration of "+function.getName()+" is missing a declaration for "+(i>0?"argument "+i:"the return value"));
 			}
+			
+			if (function.arity > 0 && function.constrainArgsToTraces)
+				usingLowLevelFunctions = true;
 		}
 		
 		if (labelMapConstructionOfOperations != null)
@@ -834,8 +830,6 @@ public class LabelRepresentation
 			else
 				throw new IllegalArgumentException("invalid data trace type "+traceType+", only \"+\" or \"-\" is allowed");
 		
-		//(positive?sPlus:sMinus).addAll(null);
-		
 		LabelParser parser = new LabelParser();
 		parser.interpretTrace(text.substring(1).trim(),new FunctionVariablesHandler(VARIABLEUSE.IO));
 		trace.traceDetails = parser.operations;
@@ -863,59 +857,32 @@ public class LabelRepresentation
 		commentForInit = ";; INIT";
 	public static final char ENDL = '\n';
 	
-	/** When building conjunctions associated with sequences of operations with arguments,
-	 * these arguments have to be a part of conjunctions. In case no arguments are provided,
-	 * we'd like to have dummies - this is what this iterator is doing.
-	 */
-	public static class EmptyStringIterator implements Iterator<String>
-	{
-		private int elementNumber;
-		
-		public EmptyStringIterator(int size)
-		{
-			elementNumber = size;
-		}
-		
-		public boolean hasNext() {
-			if (elementNumber<=0)
-				return false;
-			elementNumber--;
-			return true;
-		}
-
-		public String next() {
-			return "";
-		}
-
-		public void remove() {
-			throw new UnsupportedOperationException("cannot do a remove from an empty string iterator");
-		}
-		
-	}
-	
 	/** Given a path in a graph returns an expression which can be used to check whether that path can be followed. 
 	 * Note that if a path cannot be followed, this means that either the precondition is not satisfied or that
 	 * a postcondition cannot be satisfied.
 	 * <p>
 	 * The supplied path cannot contain newlines.
 	 */
-	public synchronized Pair<String,String> getConjunctionForPath(List<Label> path, List<String> inputOutput)
-	{// TODO: to test with inputOutput
-		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+	public synchronized Pair<String,String> getConjunctionForPath(List<Label> path, List<CompositionOfFunctions> inputOutput)
+	{
+		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");
 		if (inputOutput != null && inputOutput.size() != path.size())
 			throw new IllegalArgumentException("mismatched length of path and parameters");
 
 		StringBuffer axiom = new StringBuffer(), varDeclaration = new StringBuffer();
 		axiom.append(commentForNewSeq);
 		Iterator<Label> pathIterator = path.iterator();
-		Iterator<String> ioIterator = inputOutput == null?new EmptyStringIterator(path.size()):inputOutput.iterator();
+		Iterator<CompositionOfFunctions> ioIterator = inputOutput == null?null:inputOutput.iterator();
 		axiom.append('[');
 		boolean first = true;
 		while(pathIterator.hasNext())
 		{
 			if (first) first = false;else axiom.append(',');
 			axiom.append(pathIterator.next().toString());
-			String args = ioIterator.next();if (args.length()>0) { axiom.append('(');axiom.append(args);axiom.append(')'); }
+			if (ioIterator != null)
+			{
+				String args = ioIterator.next().getCondition();if (args.length()>0) { axiom.append('(');axiom.append(args);axiom.append(')'); }
+			}
 		}
 		axiom.append(']');axiom.append(ENDL);
 		
@@ -935,14 +902,15 @@ public class LabelRepresentation
 		pathNotEmpty |= addStringRepresentation(init.post.getCondition(),currentNumber,JUConstants.intUNKNOWN,axiom);
 
 		int i=0;
-		ioIterator = inputOutput == null?new EmptyStringIterator(path.size()):inputOutput.iterator();
+		ioIterator = inputOutput == null?null:inputOutput.iterator();
 		for(Label currentLabel:path) 
 		{
 			axiom.append(commentForLabel+currentLabel.getName());axiom.append(ENDL);
 			int previousNumber = i+currentNumber;++i;
+			if (ioIterator != null)
+				pathNotEmpty |= addStringRepresentation(ioIterator.next().getCondition(),i+currentNumber,previousNumber,axiom);
 			pathNotEmpty |= addStringRepresentation(currentLabel.pre.getCondition(),JUConstants.intUNKNOWN,previousNumber,axiom);
 			pathNotEmpty |= addStringRepresentation(currentLabel.post.getCondition(),i+currentNumber,previousNumber,axiom);
-			pathNotEmpty |= addStringRepresentation(ioIterator.next(),i+currentNumber,previousNumber,axiom);
 		}
 		axiom.append(")");
 		currentNumber+=path.size()+1;
@@ -982,7 +950,8 @@ public class LabelRepresentation
 		 */
 		public final Label lastLabel;
 		
-		/** Arguments to the last label. Can be null if lastLabel is not null, but will never be non-null if lastLabel is null. */
+		/** Arguments to the last label. Can be null if lastLabel is not null, but will never 
+		 * be non-null if lastLabel is null. */
 		public final CompositionOfFunctions lastIO;
 		
 		/** Constructs an abstract state for the initial state.
@@ -1014,7 +983,7 @@ public class LabelRepresentation
 		 */
 		public AbstractState(CmpVertex v,AbstractState argPreviousState, Label arglastLabel, CompositionOfFunctions arglastIO, int num)
 		{
-			if (argPreviousState == null || arglastLabel == null) throw new IllegalArgumentException("previous state or label cannot be null");// TODO: to test this 
+			if (argPreviousState == null || arglastLabel == null) throw new IllegalArgumentException("previous state or label cannot be null"); 
 			vertex=v;previousState=argPreviousState;lastLabel=arglastLabel;lastIO = arglastIO;
 
 			stateNumber = num;
@@ -1478,31 +1447,33 @@ public class LabelRepresentation
 		// as a consequence, renumberedB and A share the same new state.
 		AbstractState renumberedB = new AbstractState(B.vertex,B.previousState,B.lastLabel,B.lastIO,A.stateNumber);
 		
-		// Since renumberedB and A share the state number, we'll have duplicate variable declarations.
-		// The two paths will have a common prefix (the initial state is always common),
-		// this is why we have to throw away declarations associated with this prefix from a combined declaration.
-		/*
-		int Bnumber = B.stateNumber, Anumber = A.stateNumber;
-		AbstractState Bcurr = B, Acurr = A;
-		while(Bnumber != Anumber)
+		String varDecl = "";
+		if (!usingLowLevelFunctions)
 		{
-			if (Bnumber > Anumber)
-				Bcurr = Bcurr.previousState;
-			else
-				Acurr = Acurr.previousState;
+			// Since renumberedB and A share the state number, we'll have duplicate variable declarations.
+			// The two paths will have a common prefix (the initial state is always common),
+			// this is why we have to throw away declarations associated with this prefix from a combined declaration.
+			int Bnumber = B.stateNumber, Anumber = A.stateNumber;
+			AbstractState Bcurr = B, Acurr = A;
+			while(Bnumber != Anumber)
+			{
+				if (Bnumber > Anumber)
+					Bcurr = Bcurr.previousState;
+				else
+					Acurr = Acurr.previousState;
+				
+				Anumber = Acurr.stateNumber;Bnumber = Bcurr.stateNumber;
+			}
 			
-			Anumber = Acurr.stateNumber;Bnumber = Bcurr.stateNumber;
+			// after the two numbers converge, Acurr is the point of forking.
+			assert A.variableDeclarations.startsWith(Acurr.variableDeclarations);
+			assert B.variableDeclarations.startsWith(Acurr.variableDeclarations);
+			varDecl = B.previousState.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
 		}
-		
-		// after the two numbers converge, Acurr is the point of forking.
-		assert A.variableDeclarations.startsWith(Acurr.variableDeclarations);
-		assert B.variableDeclarations.startsWith(Acurr.variableDeclarations);
-		String varDecl = B.previousState.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
-		*/
 		String assertion = 
 				A.abstractState+ENDL+
 				renumberedB.abstractState;
-		return checkSatisfiability("",assertion);
+		return checkSatisfiability(varDecl,assertion);
 	}
 	
 	/** The solver to be used. */
@@ -1514,7 +1485,7 @@ public class LabelRepresentation
 			return smtSolver;
 		Smt.loadLibrary();Smt.closeStdOut();
 		smtSolver = new Smt();
-		if (knownTraces != null) smtSolver.loadData(knownTraces);
+		if (usingLowLevelFunctions) smtSolver.loadData(knownTraces);
 		return smtSolver;
 	}
 	
@@ -1532,14 +1503,14 @@ public class LabelRepresentation
 	 */
 	public synchronized IllegalArgumentException checkConsistency(LearnerGraph graph,Configuration whatToCheck)
 	{
-		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");// TODO to test this
+		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");
 
 		int variableNumber = currentNumber;// we do not intend to change currentNumber since all checks made here are transient.
 		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.learnerCache.getVertexToAbstractState().entrySet())
 		{
 			if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST)
 				for(AbstractState state:entry.getValue())
-					if (entry.getKey().isAccept() != checkSatisfiability("",state.abstractState))
+					if (entry.getKey().isAccept() != checkSatisfiability(!usingLowLevelFunctions?state.variableDeclarations:"",state.abstractState))
 						return new IllegalArgumentException("state "+entry.getKey()+" has an abstract state inconsistent with the accept condition");
 
 			for(Entry<String,CmpVertex> transition:graph.transitionMatrix.get(entry.getKey()).entrySet())

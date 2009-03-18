@@ -51,7 +51,6 @@ import statechum.analysis.learning.rpnicore.LabelRepresentation.VARIABLEUSE;
 
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
-import static statechum.analysis.learning.rpnicore.LabelRepresentation.delimiterString;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.toCurrentMem;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.generateFreshVariable;
 import statechum.analysis.learning.AbstractOracle;
@@ -1293,7 +1292,7 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define a"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" a"+_M+"))",
+				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" a"+_N+"))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
 				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2",
@@ -1302,8 +1301,8 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"2::int)",
 				
 				// There are a few data traces to be added.
-				QSMTool.cmdDataTrace+" + add((= a"+_M+" 2)) remove",
-				QSMTool.cmdDataTrace+" + add((= a"+_M+" 1)) add((= a"+_M+" 1)) remove",
+				QSMTool.cmdDataTrace+" + add((= a"+_N+" 2)) remove",
+				QSMTool.cmdDataTrace+" + add((= a"+_N+" 1)) add((= a"+_N+" 1)) remove",
 			});
 		
 		@Before
@@ -1348,17 +1347,17 @@ public class TestSmtLabelRepresentation {
 					LabelRepresentation.commentForInit+ENDL+
 					"(= m"+__P+(varNumberInit)+" 0)"+ENDL+
 					LabelRepresentation.commentForLabel+"add"+ENDL+
-					"(= a"+__P+(varNumberInit)+" 2)"+ENDL+
+					"(= a"+__P+(varNumber1)+" 2)"+ENDL+
 					"true"+ENDL+
-					"(= m"+__P+(varNumber1)+" (+ m"+__P+(varNumberInit)+" a"+__P+(varNumberInit)+"))",
+					"(= m"+__P+(varNumber1)+" (+ m"+__P+(varNumberInit)+" a"+__P+(varNumber1)+"))",
 					abIterator.next().abstractState);
 			Assert.assertEquals(
 					LabelRepresentation.commentForInit+ENDL+
 					"(= m"+__P+(varNumberInit)+" 0)"+ENDL+
 					LabelRepresentation.commentForLabel+"add"+ENDL+
-					"(= a"+__P+(varNumberInit)+" 1)"+ENDL+
+					"(= a"+__P+(varNumber2)+" 1)"+ENDL+
 					"true"+ENDL+
-					"(= m"+__P+(varNumber2)+" (+ m"+__P+(varNumberInit)+" a"+__P+(varNumberInit)+"))",
+					"(= m"+__P+(varNumber2)+" (+ m"+__P+(varNumberInit)+" a"+__P+(varNumber2)+"))",
 					abIterator.next().abstractState);
 			Assert.assertFalse(abIterator.hasNext());
 		}
@@ -1461,13 +1460,13 @@ public class TestSmtLabelRepresentation {
 	/** Tests that the arguments of functions are collected. */
 	@Test
 	public final void testAssociationsOfArgsToValues()
-	{// FIXME: a_M refers to the previous state which is fine except when I'm trying to refer to the initial state which appears shared amoung multiple traces		
+	{		
 		final LabelRepresentation lbls = new LabelRepresentation();
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define a"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (func 0 m"+_N+"))",
-				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" (func a"+_M+" (func 77 m"+_M+"))))",
+				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" (func a"+_N+" (func 77 m"+_M+"))))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
 				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2",
@@ -1477,8 +1476,8 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.CONSTRAINT+" (> "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"1 0)",
 				
 				// There are a few data traces to be added.
-				QSMTool.cmdDataTrace+" + add((= a"+_M+" 2)) remove",
-				QSMTool.cmdDataTrace+" + add((= a"+_M+" (func 1 (func m"+_M+" 20)))) add((= a"+_M+" (func (func 55 m"+_M+") (+ 8 m"+_M+")))) remove",
+				QSMTool.cmdDataTrace+" + add((= a"+_N+" 2)) remove",
+				QSMTool.cmdDataTrace+" + add((= a"+_N+" (func 1 (func m"+_M+" 20)))) add((= a"+_N+" (func (func 55 m"+_M+") (+ 8 m"+_M+")))) remove",
 		}));
 		
 		final LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
@@ -1487,28 +1486,33 @@ public class TestSmtLabelRepresentation {
 		
 		lbls.buildVertexToAbstractStateMap(graph, null);
 
-		// FUNC[trace]_[_M]_[PRE/POST/IO]_[USE]
-		int varNumberInit =0,varNumber11=1,varNumber12=2,varNumber21=3,varNumber22=4;
+		int varNumberInit =0,varNumber11=1,varNumber12=2,varNumber21=3,varNumber22=4,varNumber23=5;
 	
-		// The values used as args are:
-		// first trace,
-		// {(0,"m"+__P+"0")} { (77,"m"+__P+"0") ("a"+__P+"0",FUNC1_1_POST_0)}
-		// second trace,
-		// {(0,"m"+__P+"0")} {("m"+__P+"0" 20) (FUNC2_1_IO_0, 20) (77,"m"+__P+"0") ("a"+__P+"0",FUNC2_1_POST_0)}
-		// {(55,m"+_M+") (FUNC2_2_IO_1)}
 		String 
 			FUNC0_0_POST_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, 0),varNumberInit,varNumberInit),// func inside Init
 			fArg0_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumberInit,varNumberInit),
 			// trace 1
 			FUNC1_1_POST_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, 0),varNumber11,varNumberInit),
-			fArg1_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumberInit+1,varNumberInit),
+			fArg11_POST_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumber11,varNumberInit),
 			FUNC1_1_POST_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, 0),varNumber11,varNumberInit),
-			fArg1_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN),varNumberInit+1,varNumberInit),
+			fArg11_POST_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN),varNumber11,varNumberInit),
 			// trace 2
 			FUNC2_1_IO_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 0, 0),varNumber21,varNumberInit),
 			FUNC2_1_IO_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 1, 0),varNumber21,varNumberInit),
+			fArg21_IO_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 0, JUConstants.intUNKNOWN),varNumber21,varNumberInit),
 			FUNC2_1_POST_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, 0),varNumber21,varNumberInit),
-			FUNC2_1_POST_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, 0),varNumber21,varNumberInit);
+			FUNC2_1_POST_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, 0),varNumber21,varNumberInit),
+			fArg21_IO_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 1, JUConstants.intUNKNOWN),varNumber21,varNumberInit),
+			fArg21_POST_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumber21,varNumberInit),
+			fArg21_POST_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN),varNumber21,varNumberInit),
+			FUNC2_2_IO_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 0, 0),varNumber22,varNumber21),
+			FUNC2_2_IO_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 1, 0),varNumber22,varNumber21),
+			FUNC2_2_POST_0=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, 0),varNumber22,varNumber21),
+			FUNC2_2_POST_1=toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, 0),varNumber22,varNumber21),
+			fArg22_IO_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 0, JUConstants.intUNKNOWN),varNumber22,varNumber21),
+			fArg22_IO_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.IO, 1, JUConstants.intUNKNOWN),varNumber22,varNumber21),
+			fArg22_POST_0 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),varNumber22,varNumber21),
+			fArg22_POST_1 = toCurrentMem(generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN),varNumber22,varNumber21);
 		;
 		StringBuffer expectedDecls = new StringBuffer();
 		for(int arg=0;arg<=2;++arg)
@@ -1519,7 +1523,6 @@ public class TestSmtLabelRepresentation {
 		final String expectedCompDeclarations = LabelRepresentation.encloseInBeginEndIfNotEmpty(
 				expectedDecls.toString(),LabelRepresentation.blockVARDECLS);
 
-		System.out.println(lbls.knownTraces);
 		Assert.assertEquals("",lbls.labelMapFinal.get("add").pre.varDeclarations);
 		Assert.assertEquals(expectedCompDeclarations,lbls.labelMapFinal.get("add").post.varDeclarations);
 		Assert.assertEquals("",lbls.labelMapFinal.get("remove").pre.varDeclarations);
@@ -1547,30 +1550,104 @@ public class TestSmtLabelRepresentation {
 		
 		StringBuffer traceAxioms = new StringBuffer();
 		traceAxioms.append(LabelRepresentation.commentForInit);traceAxioms.append(ENDL);
-		int number = 0;
 		// 0 0
 		traceAxioms.append("(= m"+__P+varNumberInit+" "+FUNC0_0_POST_0+")");
 		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
-				"(= "+FUNC0_0_POST_0+" (func "+fArg0_0+"1 "+fArg0_0+"2))(= "+fArg0_0+"1 0)(= "+fArg0_0+"2 m"+__P+varNumberInit+")"+ENDL+
-				"(> "+fArg0_0+"1 0)"+ENDL
-				,
-				LabelRepresentation.blockVARS));
+			"(= "+FUNC0_0_POST_0+" (func "+fArg0_0+"1 "+fArg0_0+"2))(= "+fArg0_0+"1 0)(= "+fArg0_0+"2 m"+__P+varNumberInit+")"+ENDL+
+			"(> "+fArg0_0+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));
 		// 1 1
-		traceAxioms.append("(= a"+__P+(varNumberInit)+" 2)");traceAxioms.append(ENDL);traceAxioms.append("true");traceAxioms.append(ENDL);
-		traceAxioms.append("(= m"+__P+(varNumber11)+" (+ m"+__P+(number+0)+" "+FUNC1_1_POST_1+"))");
+		traceAxioms.append("(= a"+__P+(varNumber11)+" 2)");traceAxioms.append(ENDL);traceAxioms.append("true");traceAxioms.append(ENDL);
+		traceAxioms.append("(= m"+__P+(varNumber11)+" (+ m"+__P+(varNumberInit)+" "+FUNC1_1_POST_1+"))");
 		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
-				"(= "+FUNC1_1_POST_0+" (func "+fArg1_0+"1 "+fArg1_0+"2))(= "+fArg1_0+"1 77)(= "+fArg1_0+"2 m"+__P+(varNumberInit)+")"+ENDL+
-				"(> "+fArg1_0+"1 0)"+ENDL+
-				"(= "+FUNC1_1_POST_1+" (func "+fArg1_1+"1 "+fArg1_1+"2))(= "+fArg1_1+"1 a"+__P+(varNumberInit)+")(= "+fArg1_1+"2 "+FUNC1_1_POST_0+")"+ENDL+
-				"(> "+fArg1_1+"1 0)"+ENDL
-				,
-				LabelRepresentation.blockVARS));
+			"(= "+FUNC1_1_POST_0+" (func "+fArg11_POST_0+"1 "+fArg11_POST_0+"2))(= "+fArg11_POST_0+"1 77)(= "+fArg11_POST_0+"2 m"+__P+(varNumberInit)+")"+ENDL+
+			"(> "+fArg11_POST_0+"1 0)"+ENDL+
+			"(= "+FUNC1_1_POST_1+" (func "+fArg11_POST_1+"1 "+fArg11_POST_1+"2))(= "+fArg11_POST_1+"1 a"+__P+(varNumber11)+")(= "+fArg11_POST_1+"2 "+FUNC1_1_POST_0+")"+ENDL+
+			"(> "+fArg11_POST_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));
 		// 1 2
 		traceAxioms.append("(> m"+__P+(varNumber11)+" 0)");traceAxioms.append(ENDL);
-		traceAxioms.append("(= m"+__P+(varNumber12)+" (- m"+__P+(varNumber11)+" 1))");traceAxioms.append(ENDL);
-		Assert.assertEquals(expectedTrace.toString(),lbls.tracesVars.toString());
-		//Assert.assertEquals(LabelRepresentation.encloseInBeginEndIfNotEmpty(expectedTrace.toString()+ENDL+LabelRepresentation.assertString+"(and "+traceAxioms.toString()+"))",LabelRepresentation.blockDATATRACES),lbls.knownTraces);
-			//lbls.labelMapFinal.get("add").post.finalText);
+		traceAxioms.append("(= m"+__P+(varNumber12)+" (- m"+__P+(varNumber11)+" 1))");
 		
+		// 2 1
+		traceAxioms.append("(= a"+__P+(varNumber21)+" "+FUNC2_1_IO_1+")");
+		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+			"(= "+FUNC2_1_IO_0+" (func "+fArg21_IO_0+"1 "+fArg21_IO_0+"2))(= "+fArg21_IO_0+"1 m"+__P+(varNumberInit)+")(= "+fArg21_IO_0+"2 20)"+ENDL+
+			"(> "+fArg21_IO_0+"1 0)"+ENDL+
+			"(= "+FUNC2_1_IO_1+" (func "+fArg21_IO_1+"1 "+fArg21_IO_1+"2))(= "+fArg21_IO_1+"1 1)(= "+fArg21_IO_1+"2 "+FUNC2_1_IO_0+")"+ENDL+
+			"(> "+fArg21_IO_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));traceAxioms.append(ENDL);
+		traceAxioms.append("true");traceAxioms.append(ENDL);
+		traceAxioms.append("(= m"+__P+(varNumber21)+" (+ m"+__P+(varNumberInit)+" "+FUNC2_1_POST_1+"))");
+		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+			"(= "+FUNC2_1_POST_0+" (func "+fArg21_POST_0+"1 "+fArg21_POST_0+"2))(= "+fArg21_POST_0+"1 77)(= "+fArg21_POST_0+"2 m"+__P+(varNumberInit)+")"+ENDL+
+			"(> "+fArg21_POST_0+"1 0)"+ENDL+
+			"(= "+FUNC2_1_POST_1+" (func "+fArg21_POST_1+"1 "+fArg21_POST_1+"2))(= "+fArg21_POST_1+"1 a"+__P+(varNumber21)+")(= "+fArg21_POST_1+"2 "+FUNC2_1_POST_0+")"+ENDL+
+			"(> "+fArg21_POST_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));
+		// 2 2
+		traceAxioms.append("(= a"+__P+(varNumber22)+" "+FUNC2_2_IO_1+")");
+		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+			"(= "+FUNC2_2_IO_0+" (func "+fArg22_IO_0+"1 "+fArg22_IO_0+"2))(= "+fArg22_IO_0+"1 55)(= "+fArg22_IO_0+"2 m"+__P+(varNumber21)+")"+ENDL+
+			"(> "+fArg22_IO_0+"1 0)"+ENDL+
+			"(= "+FUNC2_2_IO_1+" (func "+fArg22_IO_1+"1 "+fArg22_IO_1+"2))(= "+fArg22_IO_1+"1 "+FUNC2_2_IO_0+")(= "+fArg22_IO_1+"2 (+ 8 m"+__P+(varNumber21)+"))"+ENDL+
+			"(> "+fArg22_IO_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));traceAxioms.append(ENDL);traceAxioms.append("true");traceAxioms.append(ENDL);
+		traceAxioms.append("(= m"+__P+(varNumber22)+" (+ m"+__P+(varNumber21)+" "+FUNC2_2_POST_1+"))");
+		traceAxioms.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+			"(= "+FUNC2_2_POST_0+" (func "+fArg22_POST_0+"1 "+fArg22_POST_0+"2))(= "+fArg22_POST_0+"1 77)(= "+fArg22_POST_0+"2 m"+__P+(varNumber21)+")"+ENDL+
+			"(> "+fArg22_POST_0+"1 0)"+ENDL+
+			"(= "+FUNC2_2_POST_1+" (func "+fArg22_POST_1+"1 "+fArg22_POST_1+"2))(= "+fArg22_POST_1+"1 a"+__P+(varNumber22)+")(= "+fArg22_POST_1+"2 "+FUNC2_2_POST_0+")"+ENDL+
+			"(> "+fArg22_POST_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));
+		
+		// 2 3
+		traceAxioms.append("(> m"+__P+(varNumber22)+" 0)");traceAxioms.append(ENDL);
+		traceAxioms.append("(= m"+__P+(varNumber23)+" (- m"+__P+(varNumber22)+" 1))");
+
+		Assert.assertEquals(expectedTrace.toString(),lbls.tracesVars.toString());
+		Assert.assertEquals(LabelRepresentation.encloseInBeginEndIfNotEmpty(expectedTrace.toString()+ENDL+LabelRepresentation.assertString+"(and "+traceAxioms.toString()+"))",LabelRepresentation.blockDATATRACES),lbls.knownTraces);
+		
+		StringBuffer finalTextAdd = new StringBuffer();
+		
+		String 
+			FUNC_ADD_0 = generateFreshVariable("func", VARIABLEUSE.POST, 0, 0),
+			FUNC_ADD_1 = generateFreshVariable("func", VARIABLEUSE.POST, 1, 0),
+			fArg_ADD_0 = generateFreshVariable("func", VARIABLEUSE.POST, 0, JUConstants.intUNKNOWN),
+			fArg_ADD_1 = generateFreshVariable("func", VARIABLEUSE.POST, 1, JUConstants.intUNKNOWN)
+			;
+		finalTextAdd.append("(= m"+_N+" (+ m"+_M+" "+FUNC_ADD_1+"))");
+		finalTextAdd.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+			"(= "+FUNC_ADD_0+" (func "+fArg_ADD_0+"1 "+fArg_ADD_0+"2))(= "+fArg_ADD_0+"1 77)(= "+fArg_ADD_0+"2 m"+_M+")"+ENDL+
+			"(> "+fArg_ADD_0+"1 0)"+ENDL+
+			"(= "+FUNC_ADD_1+" (func "+fArg_ADD_1+"1 "+fArg_ADD_1+"2))(= "+fArg_ADD_1+"1 a"+_N+")(= "+fArg_ADD_1+"2 "+FUNC_ADD_0+")"+ENDL+
+			"(> "+fArg_ADD_1+"1 0)"+ENDL
+			,
+			LabelRepresentation.blockVARS));
+		StringBuffer values = new StringBuffer();
+		values.append(";; "+FUNC_ADD_0+ENDL);
+		values.append("(or ");
+		for(String varName:new String[]{fArg0_0,fArg11_POST_0,fArg11_POST_1,fArg21_IO_0,fArg21_IO_1,fArg21_POST_0,fArg21_POST_1,fArg22_IO_0,fArg22_IO_1,fArg22_POST_0,fArg22_POST_1})
+			values.append("(and (= "+fArg_ADD_0+"1 "+varName+"1)(= "+fArg_ADD_0+"2 "+varName+"2))"+ENDL);
+		values.append(")"+ENDL);
+		values.append(";; "+FUNC_ADD_1+ENDL);
+		values.append("(or ");
+		for(String varName:new String[]{fArg0_0,fArg11_POST_0,fArg11_POST_1,fArg21_IO_0,fArg21_IO_1,fArg21_POST_0,fArg21_POST_1,fArg22_IO_0,fArg22_IO_1,fArg22_POST_0,fArg22_POST_1})
+			values.append("(and (= "+fArg_ADD_1+"1 "+varName+"1)(= "+fArg_ADD_1+"2 "+varName+"2))"+ENDL);
+		values.append(")"+ENDL);
+		finalTextAdd.append(LabelRepresentation.encloseInBeginEndIfNotEmpty(
+				values.toString()
+				,
+				LabelRepresentation.blockVALUES));
+
+		Assert.assertEquals("",lbls.labelMapFinal.get("add").pre.finalText);
+		Assert.assertEquals("(> m"+_M+" 0)",lbls.labelMapFinal.get("remove").pre.finalText);
+		Assert.assertEquals("(= m"+_N+" (- m"+_M+" 1))",lbls.labelMapFinal.get("remove").post.finalText);		
 	}
 }

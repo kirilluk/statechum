@@ -474,7 +474,7 @@ public class LabelRepresentation
 	 * The three maps correspond to different phases of construction of the final map. 
 	 */
 	protected Map<String,Label> labelMapConstructionOfOperations = null,
-	labelMapConstructionOfDataTraces = null, labelMapFinal = null;
+		labelMapConstructionOfDataTraces = null, labelMapFinal = null;
 	
 	/** Maps names of low-level functions to their representation. 
 	 */
@@ -1331,12 +1331,12 @@ public class LabelRepresentation
 			
 				for(String funcVar:entry.getValue())
 				{// for each use of this function
-					additionalVariables.append(";; ");additionalVariables.append(funcVar);additionalVariables.append(ENDL);
+					additionalVariables.append(";; ");additionalVariables.append(funcVar);additionalVariables.append(0);additionalVariables.append(ENDL);
 					additionalVariables.append("(or ");
 					for(String knownVar:functionToVariables.get(entry.getKey()))
 					{// constructing the equality of tuples
 						additionalVariables.append("(and ");
-						for(int i=0;i<entry.getKey().arity;++i)
+						for(int i=1;i<=entry.getKey().arity;++i)
 						{// equality of individual elements of a tuple.
 							additionalVariables.append("(= ");
 							additionalVariables.append(funcVar);additionalVariables.append(i);

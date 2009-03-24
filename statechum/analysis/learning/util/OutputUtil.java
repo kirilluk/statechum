@@ -64,10 +64,11 @@ public class OutputUtil {
 		graphout.write("digraph dotMachine{");
 		ArrayList<DirectedSparseVertex> vertexList = new ArrayList<DirectedSparseVertex>();
 		for(DirectedSparseVertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
-			vertexList.add(v);
+				vertexList.add(v);
 		}
 		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
-			if(!v.toString().equals("Init"))
+			Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
+			if(!v.toString().equals("Init") && accepted.booleanValue())
 				graphout.write("\n"+vertexList.indexOf(v)+"[label=\"\" shape=\"circle\"]");
 		}
 		

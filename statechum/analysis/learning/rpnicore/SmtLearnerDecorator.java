@@ -101,21 +101,22 @@ public class SmtLearnerDecorator extends DummyLearner
 		for(int i=0;i<graph.pairsAndScores.size();++i)
 		{
 			PairScore pair = graph.pairsAndScores.get(i);
-			
-			Iterator<AbstractState> 
-				stateA_iter = graph.getVertexToAbstractState().get(pair.firstElem).iterator(),
-				stateB_iter = graph.getVertexToAbstractState().get(pair.secondElem).iterator();
 			boolean finished = false, statesIntersect = false;// using these two variables I can choose whether to check for intersection or non-intersection.
-			while(stateA_iter.hasNext() && !finished)
+			if (pair.firstElem.isAccept() && pair.secondElem.isAccept())
 			{
-				AbstractState stateA = stateA_iter.next();
-				while(stateB_iter.hasNext() && !finished)
-					if (lbl.abstractStatesCompatible(stateA, stateB_iter.next()))
-					{
-						finished = true;statesIntersect = true;
-					}
+				Iterator<AbstractState> 
+					stateA_iter = graph.getVertexToAbstractState().get(pair.firstElem).iterator(),
+					stateB_iter = graph.getVertexToAbstractState().get(pair.secondElem).iterator();
+				while(stateA_iter.hasNext() && !finished)
+				{
+					AbstractState stateA = stateA_iter.next();
+					while(stateB_iter.hasNext() && !finished)
+						if (lbl.abstractStatesCompatible(stateA, stateB_iter.next()))
+						{
+							finished = true;statesIntersect = true;
+						}
+				}
 			}
-			
 			if (statesIntersect)
 			{
 				System.err.println("bumped score for "+new StatePair(pair.firstElem, pair.secondElem));

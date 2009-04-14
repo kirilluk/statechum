@@ -26,7 +26,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -107,7 +106,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	{
 		if (ifthenAutomata == null) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, pta, config).toArray(new LearnerGraph[0]);
 		boolean result = true;
-		AbstractLearnerGraph.copyGraphs(pta, outcome);
+		LearnerGraph.copyGraphs(pta, outcome);
 		try {
 			Transform.augmentFromIfThenAutomaton(outcome, null, ifthenAutomata, config.getHowManyStatesToAddFromIFTHEN());
 		} catch (AugmentFromIfThenAutomatonException e) {
@@ -166,7 +165,8 @@ public class RPNIUniversalLearner extends RPNILearner
 	public LearnerGraph learnMachine()
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph ptaHardFacts = new LearnerGraph(tentativeAutomaton,shallowCopy);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		LearnerGraph ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		LearnerGraph.copyGraphs(tentativeAutomaton, ptaHardFacts);
 		LearnerGraph ptaSoftFacts = tentativeAutomaton;
 		setChanged();tentativeAutomaton.setName(learntGraphName+"_init");
 		
@@ -397,7 +397,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					if (config.isSpeculativeQuestionAsking())
 						if (speculativeGraphUpdate(possibleMerges, ptaHardFacts))
 							return null;// this is the case when a user cancels the learning process when presented by "speculative" questions.
-					AbstractLearnerGraph.copyGraphs(ptaHardFacts,ptaSoftFacts);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+					LearnerGraph.copyGraphs(ptaHardFacts,ptaSoftFacts);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				}
 				tentativeAutomaton = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
 				tentativeAutomaton.clearColoursButAmber();// this one will clear all colours if amber mode is not set.

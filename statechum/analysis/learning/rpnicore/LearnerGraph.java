@@ -23,10 +23,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.Map.Entry;
 
 import statechum.Configuration;
 import statechum.StringVertex;
@@ -34,6 +36,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 
@@ -270,6 +273,36 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		pairsAndScores = new ArrayList<PairScore>(pairArraySize);
 	}
 
+	/** A map from merged vertices to collections of original vertices they correspond to.
+	 */
+	Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> vertexToAbstractState = null; 
+
+	public Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> getVertexToAbstractState()
+	{
+		return vertexToAbstractState;
+	}
+	
+	/** Makes a deep-clone of the map. Abstract states are immutable hence they are preserved. */
+	public static void copyVertexToAbstractState(LearnerGraph from,LearnerGraph to)
+	{// TODO: to test this one
+		if (from.getVertexToAbstractState() != null)
+		{
+			Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> newMap = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
+			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> entry:from.getVertexToAbstractState().entrySet())
+			{
+				List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
+				combinedAbstractStates.addAll(entry.getValue());newMap.put(entry.getKey(), combinedAbstractStates);
+			}
+			to.vertexToAbstractState = newMap;
+		}
+	}
+	
+	public static void copyGraphs(LearnerGraph from,LearnerGraph result)
+	{
+		AbstractLearnerGraph.copyGraphs(from, result);
+		copyVertexToAbstractState(from,result);
+	}
+	
 	/** Converts a transition into an FSM structure, by taking a copy.
 	 * 
 	 * @param tTable table, where tTable[source][input]=targetstate

@@ -228,6 +228,7 @@ public class QSMTool
 		cmdComment="#",
 		cmdPassive="passive",
 		cmdOperation="xm",
+		cmdVarInput="varInput",
 		cmdLowLevelFunction="func",
 		cmdShowLTL="showltl";
 	

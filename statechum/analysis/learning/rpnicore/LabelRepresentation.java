@@ -20,6 +20,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -70,6 +71,17 @@ public class LabelRepresentation
 	 */
 	protected boolean usingLowLevelFunctions = false;
 	
+	/** This collection contains names and kinds of all variables. Used to check that preconditions
+	 * do not refer to output variables or new values of memory. Such a constraint is necessary
+	 * in order to check for determinism correctly (we are limiting arguments of operations to
+	 * old values of inputs/outputs; if preconditions refer to outputs, our
+	 * check is limited to outcomes where outputs are the same as those we've seen, hence we are
+	 * only looking at a subset of possible behaviours and may miss non-determinism if it occurs in 
+	 * a wider context). 
+	 */
+	protected Map<String,VARTYPE> variables = new HashMap<String,VARTYPE>();
+	
+	public enum VARTYPE { VAR_INPUT, VAR_OUTPUT, VAR_MEMORY };
 	/** Eliminates spaces at the beginning and end of the supplied 
 	 * string. If not empty, the outcome is appended to the buffer provided. 
 	 * This is needed because a in number 
@@ -236,8 +248,8 @@ public class LabelRepresentation
 		/** This constructor is only used in order to build the third version of this composition.
 		 */
 		public CompositionOfFunctions(CompositionOfFunctions composition,String whatToAdd)
-		{
-			text = composition.text;relabelledText = null;varDeclarations = composition.varDeclarations;variablesUsedForArgs = null;
+		{// both the original and relabelled text is preserved, not least in order to rebuild compositions when hard facts are changed when sequences are added to it.
+			text = composition.text;relabelledText = composition.relabelledText;varDeclarations = composition.varDeclarations;variablesUsedForArgs = null;
 			finalText = composition.relabelledText+encloseInBeginEndIfNotEmpty(whatToAdd,blockVALUES);
 			assert varDeclarations != null;
 			assert finalText != null;
@@ -574,7 +586,7 @@ public class LabelRepresentation
 		final Map<LowLevelFunction,Integer> functionToUseCounter = new TreeMap<LowLevelFunction,Integer>();
 		final StringBuffer additionalVariables = new StringBuffer(),additionalDeclarations = new StringBuffer();
 		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs = new TreeMap<LowLevelFunction,Collection<String>>();
-
+		
 		public void reset()
 		{
 			additionalVariables.setLength(0);additionalDeclarations.setLength(0);
@@ -592,6 +604,36 @@ public class LabelRepresentation
 		public String HandleLowLevelFunction(String functionName,List<String> args) 
 		{
 			String result = null;
+			
+			// First, we check that the supplied function does not refer to variables it is not allowed to refer to. */
+			for(String arg:args)
+			{// TODO: to test these checks
+				char first = arg.charAt(0);
+				if (first < '0' && first > '9' && !arg.startsWith(functionArg))
+				{// must be a user-declared identifier
+					boolean next = false, prev=false;
+					if (arg.endsWith(varOldSuffix))
+					{
+						prev = true;arg.substring(0, arg.length()-varOldSuffix.length());
+					}
+					else
+						if (arg.endsWith(varNewSuffix))
+						{
+							next = true;arg.substring(0, arg.length()-varNewSuffix.length());
+						}
+					VARTYPE type = variables.get(arg);
+					if (type == null)
+						throw new IllegalArgumentException("undeclared variable "+arg+" used in function "+functionName);
+					
+					if ((type == VARTYPE.VAR_INPUT || type == VARTYPE.VAR_OUTPUT) && prev) 
+						throw new IllegalArgumentException("i/o variables should only be used with "+varNewSuffix+" suffix");
+					
+					if (useKind == VARIABLEUSE.PRE && 
+							(type == VARTYPE.VAR_OUTPUT || (type == VARTYPE.VAR_MEMORY && next)))
+						throw new IllegalArgumentException("preconditions cannot refer to new values of memory or outputs");
+				}
+			}
+			
 			LowLevelFunction func = functionMap.get(functionName);
 			if (func != null)
 			{// this is a function of interest to us
@@ -660,7 +702,8 @@ public class LabelRepresentation
 			if (!text.startsWith(QSMTool.cmdLowLevelFunction) && 
 				!text.startsWith(QSMTool.cmdDataTrace) &&
 				!text.startsWith(QSMTool.cmdOperation) &&
-				!text.startsWith(QSMTool.cmdComment))
+				!text.startsWith(QSMTool.cmdComment) &&
+				!text.startsWith(QSMTool.cmdVarInput))
 				throw new IllegalArgumentException("invalid command "+text);
 
 		for(String text:data) 
@@ -686,6 +729,12 @@ public class LabelRepresentation
 		if (labelMapConstructionOfOperations != null)
 			throw new IllegalArgumentException("operations already built");
 		labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		for(String text:data) 
+			if (text.startsWith(QSMTool.cmdVarInput))
+			{
+				parseVarDeclaration(text.substring(QSMTool.cmdVarInput.length()).trim());
+			}
+
 		for(String text:data) 
 			if (text.startsWith(QSMTool.cmdOperation))
 			{
@@ -774,6 +823,30 @@ public class LabelRepresentation
 			break;
 		}
 	
+	}
+	
+	/** Given a string of text, parses it as a declaration of an input variable. */
+	public void parseVarDeclaration(String text)
+	{
+		if (text == null || text.length() == 0) return;// ignore empty input
+		
+		StringTokenizer tokenizer = new StringTokenizer(text);
+		if (!tokenizer.hasMoreTokens()) return;// ignore empty input
+		String varName = tokenizer.nextToken();
+		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for variable "+varName);
+		VARTYPE kind = null;String prepost = tokenizer.nextToken();
+		try
+		{
+			kind=VARTYPE.valueOf(prepost);
+		}
+		catch(IllegalArgumentException ex)
+		{
+			throw new IllegalArgumentException("expected "+Arrays.toString(VARTYPE.values())+" but got: "+prepost);
+		}
+		
+		if (variables.containsKey(varName))
+			throw new IllegalArgumentException("declaration of variable "+varName+" already exists");
+		variables.put(varName, kind);
 	}
 	
 	/** Given a string of text, parses it as a label. */
@@ -1069,9 +1142,9 @@ public class LabelRepresentation
 	 * There is no waste in using CmpVertex-vertices because they are part of the initial PTA and
 	 * hence kept in memory anyway.
 	 */
-	public void buildVertexToAbstractStateMap(LearnerGraph coregraph, LearnerGraph previousGraph)
+	public void buildVertexToAbstractStateMap(LearnerGraph coregraph, LearnerGraph previousGraph, boolean updateValuesUsedOnTraces)
 	{
-		Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> previousMap = previousGraph == null?null:previousGraph.learnerCache.getVertexToAbstractState();
+		Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> previousMap = previousGraph == null?null:previousGraph.getVertexToAbstractState();
 		
 		// First, we build a collection of states of the original PTA which correspond to the each merged vertex.
 		Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> newVertexToEqClass = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
@@ -1079,10 +1152,10 @@ public class LabelRepresentation
 		if (previousMap == null)
 		{// either the case when we get here for the first time (as well as right after a reset)
 		 // or when vertices have been added to the graph and we need to update the map.
-			if (coregraph.learnerCache.getVertexToAbstractState() == null)
+			if (coregraph.getVertexToAbstractState() == null)
 				addAbstractStatesFromTraces(coregraph);
 			
-			newVertexToEqClass = coregraph.learnerCache.getVertexToAbstractState();// we are updating the map here.
+			newVertexToEqClass = coregraph.getVertexToAbstractState();// we are updating the map here.
 			int elementCounter = currentNumber;
 
 			Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
@@ -1126,35 +1199,39 @@ public class LabelRepresentation
 			
 			currentNumber = elementCounter;
 			
-			knownTraces = encloseInBeginEndIfNotEmpty(tracesVars.toString()+ENDL+assertString+"(and "+traceAxioms.toString()+"))",blockDATATRACES);
-			
-			/* Now we go through all the recorded variables and updates pre and post-conditions so that
-			 * they refer to the recorded values.
-			 */
-			
-			labelMapFinal = new TreeMap<String,Label>();
-			for(Label label:labelMapConstructionOfDataTraces.values())
+			if (updateValuesUsedOnTraces)
 			{
-				label.pre  =  addKnownValuesToPrePost(label.pre);
-				label.post =  addKnownValuesToPrePost(label.post);
-				labelMapFinal.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
+				knownTraces = encloseInBeginEndIfNotEmpty(tracesVars.toString()+ENDL+assertString+"(and "+traceAxioms.toString()+"))",blockDATATRACES);
+				
+				/* Now we go through all the recorded variables and updates pre and post-conditions so that
+				 * they refer to the recorded values.
+				 */
+				
+				labelMapFinal = new TreeMap<String,Label>();
+				for(Label label:labelMapConstructionOfDataTraces.values())
+				{
+					label.pre  =  addKnownValuesToPrePost(label.pre);
+					label.post =  addKnownValuesToPrePost(label.post);
+					labelMapFinal.put(label.getName(), label);// changes to pre/post may change the ordering in the map, hence we rebuild the map.
+				}
 			}
 			labelMapConstructionOfOperations=null;
 		}
 		else // after a previous successful merge 
 			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:coregraph.learnerCache.getMergedStates())
-			{
-				List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
-				for(CmpVertex state:eqClass.getStates())
-					combinedAbstractStates.addAll(previousMap.get(state));
-				newVertexToEqClass.put(eqClass.getMergedVertex(),combinedAbstractStates);
-			}
-		coregraph.learnerCache.vertexToAbstractState = newVertexToEqClass;
+				if (eqClass.getMergedVertex().isAccept())
+				{// TODO: to test this
+					List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
+					for(CmpVertex state:eqClass.getStates())
+						combinedAbstractStates.addAll(previousMap.get(state));
+					newVertexToEqClass.put(eqClass.getMergedVertex(),combinedAbstractStates);
+				}
+		coregraph.vertexToAbstractState = newVertexToEqClass;
 		
 		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.SMTWARNINGS)))
 		{// Consistency checking
 			Map<CmpVertex,CmpVertex> vertexToCollection = new TreeMap<CmpVertex,CmpVertex>();
-			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> eqClass:coregraph.learnerCache.vertexToAbstractState.entrySet())
+			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> eqClass:coregraph.vertexToAbstractState.entrySet())
 			{
 			 // Checking that vertices associated with abstract states from different merged vertices do not intersect.
 			 // This is done by building a map associating DFA vertices recorded in abstract states
@@ -1175,13 +1252,13 @@ public class LabelRepresentation
 				Set<CmpVertex> verticesInGraph = new TreeSet<CmpVertex>();
 				for(CmpVertex vert:coregraph.transitionMatrix.keySet())
 					if (vert.isAccept()) verticesInGraph.add(vert);
-				verticesInGraph.removeAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
+				verticesInGraph.removeAll(coregraph.getVertexToAbstractState().keySet());
 				if (!verticesInGraph.isEmpty())
 					throw new IllegalArgumentException("vertices such as "+verticesInGraph+" are not in the vertex to collection map (unreachable state?)");
 			}
 			
 			{// Checking that domain of getVertexToAbstractState is contained within the set of vertices of our graph.
-				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.learnerCache.getVertexToAbstractState().keySet());
+				Set<CmpVertex> verticesInCollection = new TreeSet<CmpVertex>();verticesInCollection.addAll(coregraph.getVertexToAbstractState().keySet());
 				verticesInCollection.removeAll(coregraph.transitionMatrix.keySet());
 				if (!verticesInCollection.isEmpty())
 					throw new IllegalArgumentException("vertices from the vertex to collection map "+verticesInCollection+" do not feature in the graph");
@@ -1202,16 +1279,17 @@ public class LabelRepresentation
 	 */
 	protected void populateVarsUsedForArgs(CompositionOfFunctions composition, int num, int previous)
 	{
-		for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
-		{
-			Collection<String> vars = functionToVariables.get(entry.getKey());
-			if (vars == null)
+		if (composition.variablesUsedForArgs != null)
+			for(Entry<LowLevelFunction,Collection<String>> entry:composition.variablesUsedForArgs.entrySet())
 			{
-				vars = new LinkedList<String>();functionToVariables.put(entry.getKey(),vars);
+				Collection<String> vars = functionToVariables.get(entry.getKey());
+				if (vars == null)
+				{
+					vars = new LinkedList<String>();functionToVariables.put(entry.getKey(),vars);
+				}
+				for(String var:entry.getValue())
+					vars.add(toCurrentMem(var, num, previous));
 			}
-			for(String var:entry.getValue())
-				vars.add(toCurrentMem(var, num, previous));
-		}
 	}
 
 	/** Used to build global constraints. */
@@ -1224,14 +1302,14 @@ public class LabelRepresentation
 	 */
 	public void addAbstractStatesFromTraces(LearnerGraph gr)
 	{
-		if (gr.learnerCache.getVertexToAbstractState() != null)
+		if (gr.getVertexToAbstractState() != null)
 			throw new IllegalArgumentException("data traces should not be added to a graph with existing abstract states");
 		functionToVariables.clear();
 		tracesVars = new StringBuffer();traceAxioms = new StringBuffer(); 
 		int elementCounter = currentNumber;
-		gr.learnerCache.vertexToAbstractState = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
+		gr.vertexToAbstractState = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
 		AbstractState initialAbstractState = new AbstractState(gr.init,elementCounter++);
-		gr.learnerCache.vertexToAbstractState.put(gr.init,Arrays.asList(new AbstractState[]{initialAbstractState}));
+		gr.vertexToAbstractState.put(gr.init,Arrays.asList(new AbstractState[]{initialAbstractState}));
 
 		populateVarsUsedForArgs(init.post, initialAbstractState.stateNumber, initialAbstractState.stateNumber);
 		// Add details of the current abstract state to what we know of supplied data traces.
@@ -1263,10 +1341,10 @@ public class LabelRepresentation
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
 					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
 					
-					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
+					Collection<AbstractState> abstractStatesForDFAState = gr.vertexToAbstractState.get(currentState);
 					if (abstractStatesForDFAState == null)
 					{
-						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
+						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
 					}
 					abstractStatesForDFAState.add(abstractState);
 
@@ -1296,10 +1374,10 @@ public class LabelRepresentation
 					populateVarsUsedForArgs(currentLabel.post, elementCounter, abstractState.stateNumber);
 					abstractState = new AbstractState(currentState,abstractState,currentLabel,currentIO,elementCounter);
 
-					Collection<AbstractState> abstractStatesForDFAState = gr.learnerCache.vertexToAbstractState.get(currentState);
+					Collection<AbstractState> abstractStatesForDFAState = gr.vertexToAbstractState.get(currentState);
 					if (abstractStatesForDFAState == null)
 					{
-						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.learnerCache.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
+						abstractStatesForDFAState = new LinkedList<AbstractState>();gr.vertexToAbstractState.put(currentState, abstractStatesForDFAState);
 					}
 					abstractStatesForDFAState.add(abstractState);
 
@@ -1468,7 +1546,7 @@ public class LabelRepresentation
 			// after the two numbers converge, Acurr is the point of forking.
 			assert A.variableDeclarations.startsWith(Acurr.variableDeclarations);
 			assert B.variableDeclarations.startsWith(Acurr.variableDeclarations);
-			varDecl = B.previousState.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
+			varDecl = B.variableDeclarations+A.variableDeclarations.substring(Acurr.variableDeclarations.length());
 		}
 		String assertion = 
 				A.abstractState+ENDL+
@@ -1506,7 +1584,7 @@ public class LabelRepresentation
 		if (labelMapFinal == null) throw new IllegalArgumentException("construction incomplete");
 
 		int variableNumber = currentNumber;// we do not intend to change currentNumber since all checks made here are transient.
-		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.learnerCache.getVertexToAbstractState().entrySet())
+		for(Entry<CmpVertex,Collection<AbstractState>> entry:graph.getVertexToAbstractState().entrySet())
 		{
 			if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST)
 				for(AbstractState state:entry.getValue())

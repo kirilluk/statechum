@@ -39,7 +39,11 @@ public class SmtLearnerDecorator extends DummyLearner
 		super(learner);lbl=labels;
 	}
 
-	/* (non-Javadoc)
+	/**
+	 * This one rebuilds a map from operations to values previously used in them, hence
+	 * whenever a learner has new traces confirmed, the outcome in terms of values of low-level
+	 * functions used can immediately be used.
+	 * 
 	 * @see statechum.analysis.learning.observers.DummyLearner#AugmentPTA(statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.observers.Learner.RestartLearningEnum, java.util.List, boolean, statechum.JUConstants)
 	 */
 	@Override
@@ -47,7 +51,7 @@ public class SmtLearnerDecorator extends DummyLearner
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		lbl.buildVertexToAbstractStateMap(pta, null);
+		lbl.buildVertexToAbstractStateMap(pta, null,true);
 	}
 
 	/**
@@ -58,7 +62,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	{
 		boolean result = decoratedLearner.AddConstraints(graph, outcome, counterExampleHolder);
 		if (!result) return false;
-		lbl.buildVertexToAbstractStateMap(outcome, null);
+		lbl.buildVertexToAbstractStateMap(outcome, null,false);// do not rebuild maps.
 		return lbl.checkConsistency(outcome,graph.config) == null;
 	}
 	
@@ -81,7 +85,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original,StatePair pair) 
 	{
 		LearnerGraph result = decoratedLearner.MergeAndDeterminize(original, pair);
-		lbl.buildVertexToAbstractStateMap(result, original);// update the map from vertices to the corresponding collections of abstract states
+		lbl.buildVertexToAbstractStateMap(result, original,false);// update the map from vertices to the corresponding collections of abstract states
 		return result;
 	}
 
@@ -97,9 +101,10 @@ public class SmtLearnerDecorator extends DummyLearner
 		for(int i=0;i<graph.pairsAndScores.size();++i)
 		{
 			PairScore pair = graph.pairsAndScores.get(i);
+			
 			Iterator<AbstractState> 
-				stateA_iter = graph.learnerCache.getVertexToAbstractState().get(pair.firstElem).iterator(),
-				stateB_iter = graph.learnerCache.getVertexToAbstractState().get(pair.secondElem).iterator();
+				stateA_iter = graph.getVertexToAbstractState().get(pair.firstElem).iterator(),
+				stateB_iter = graph.getVertexToAbstractState().get(pair.secondElem).iterator();
 			boolean finished = false, statesIntersect = false;// using these two variables I can choose whether to check for intersection or non-intersection.
 			while(stateA_iter.hasNext() && !finished)
 			{
@@ -127,7 +132,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 	{
 		LearnerGraph result= decoratedLearner.init(plus, minus);
-		lbl.buildVertexToAbstractStateMap(result, null);// construct the initial version of the 
+		lbl.buildVertexToAbstractStateMap(result, null, true);// construct the initial version of the 
 		// map associating vertices with those these vertices were built from; this map is subsequently 
 		// updated when a merged automaton is built.
 		return result;
@@ -137,7 +142,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) 
 	{
 		LearnerGraph result= decoratedLearner.init(engine, plusSize, minusSize);
-		lbl.buildVertexToAbstractStateMap(result, null);// construct the initial version of the 
+		lbl.buildVertexToAbstractStateMap(result, null, true);// construct the initial version of the 
 		// map associating vertices with those these vertices were built from; this map is subsequently 
 		// updated when a merged automaton is built.
 		return result;

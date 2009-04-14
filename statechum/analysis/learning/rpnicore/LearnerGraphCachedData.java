@@ -60,16 +60,7 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	{
 		super.invalidate();
 		mergedStates = null;maxScore=-1;stateLearnt = null;
-		vertexToAbstractState = null;abstractStateToLabelPreviouslyChecked = null;
-	}
-	
-	/** A map from merged vertices to collections of original vertices they correspond to.
-	 */
-	Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> vertexToAbstractState = null; 
-
-	public Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> getVertexToAbstractState()
-	{
-		return vertexToAbstractState;
+		abstractStateToLabelPreviouslyChecked = null;
 	}
 	
 	/** A map associating an abstract state and a set of transitions which have been evaluated from 

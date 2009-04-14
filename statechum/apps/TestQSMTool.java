@@ -330,7 +330,7 @@ public class TestQSMTool {
 			QSMTool.cmdOperation));
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
-		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("A-a->B", "testLoadXMLabels2"),Configuration.getDefaultConfiguration()), null);
+		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("A-a->B", "testLoadXMLabels2"),Configuration.getDefaultConfiguration()), null,true);
 		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new LabelRepresentation.Label[]{}),null);
 		Assert.assertEquals("decl"+LabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
 		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+

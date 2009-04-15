@@ -54,6 +54,10 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Transition matrix. */
 	Map<CmpVertex,Map<String,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
 
+	public Map<CmpVertex, Map<String, TARGET_TYPE>> getTransitionMatrix() {
+		return transitionMatrix;
+	}
+
 	final CACHE_TYPE learnerCache = createCache();
 	
 	/** Creates the cache. Should be overridden by subclasses to create instances of an appropriate type. */

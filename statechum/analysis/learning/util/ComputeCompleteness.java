@@ -41,6 +41,8 @@ public class ComputeCompleteness {
 		Set<StateLabelPair> unknown = new HashSet<StateLabelPair>();
 		Set<String> alphabet = lg.pathroutines.computeAlphabet();
 		for (CmpVertex v : lg.getTransitionMatrix().keySet()) {
+			if(!v.isAccept())
+				continue;
 			for (String label : alphabet) {
 				StateLabelPair pair = new StateLabelPair(v,label);
 				ArrayList seq = new ArrayList();

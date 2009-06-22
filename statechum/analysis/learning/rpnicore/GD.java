@@ -889,7 +889,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	
 	/** This class counts the requested changes.
 	 */
-	public static class ChangesCounter implements PatchGraph
+	public static class ChangesCounter<TARGET_A_TYPE,TARGET_B_TYPE,
+		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
+		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
+		 implements PatchGraph
 	{
 		private int added = 0, removed = 0;
 		private final int transitionsInA,transitionsInB;
@@ -898,9 +901,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
 
-		public ChangesCounter(LearnerGraph a,LearnerGraph b, PatchGraph nextInStack)
+		public ChangesCounter(final AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
+				final AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b, PatchGraph nextInStack)
 		{
-			transitionsInA=a.countEdges();transitionsInB=b.countEdges();nameA = a.getNameNotNull();nameB=b.getNameNotNull();
+			transitionsInA=a.pathroutines.countEdges();transitionsInB=b.pathroutines.countEdges();nameA = a.getNameNotNull();nameB=b.getNameNotNull();
 			next = nextInStack;
 		}
 		

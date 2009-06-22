@@ -58,7 +58,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		LearnerGraph targetMachine = new LearnerGraph(FsmParser.buildGraph(target, "Target"), learnerInitConfiguration.config);
 		
 		
-		int sampleSize = (targetMachine.countEdges()*2);
+		int sampleSize = (targetMachine.pathroutines.countEdges()*2);
 		int percentPerChunk = 10;
 		int nrPerChunk = sampleSize/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 		

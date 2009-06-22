@@ -1509,11 +1509,11 @@ public class TestTransform {
 			Transform.QuanteKoschkeDifference(grA,grB),
 			0.01
 			);
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, 1, counter,config);
-		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.countEdges()+grB.countEdges());
+		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.pathroutines.countEdges()+grB.pathroutines.countEdges());
 		//System.out.println("removed: "+counter.getRemoved()+" out of "+grA.countEdges()+", added: "+counter.getAdded()+" to produce "+grB.countEdges()+"; our difference: "+our);
 		Assert.assertEquals(0.5, ourDifference,0.01);
 	}
@@ -1529,11 +1529,11 @@ public class TestTransform {
 			Transform.QuanteKoschkeDifference(grA,grB),
 			0.01
 			);
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, 1, counter,config);
-		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.countEdges()+grB.countEdges());
+		double ourDifference = ((double)counter.getAdded()+counter.getRemoved())/(grA.pathroutines.countEdges()+grB.pathroutines.countEdges());
 		//System.out.println("removed: "+counter.getRemoved()+" out of "+grA.countEdges()+", added: "+counter.getAdded()+" to produce "+grB.countEdges()+"; our difference: "+our);
 		Assert.assertEquals(0.33, ourDifference,0.01);
 	}

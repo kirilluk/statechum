@@ -209,13 +209,13 @@ public class TestGD_Multithreaded {
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		ChangesRecorder rec1 = 	new ChangesRecorder(null);
 		ChangesDisplay  rec2 = new ChangesDisplay(rec1);
-		ChangesCounter  rec3 = new ChangesCounter(grA,grB,rec2);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> rec3 = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,rec2);
 		ChangesRecorder rec4 = 	new ChangesRecorder(rec3);
 		ChangesDisplay  rec5 = new ChangesDisplay(rec4);
-		ChangesCounter  rec6 = new ChangesCounter(grA,grB,rec5);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>  rec6 = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,rec5);
 		ChangesRecorder rec7 = 	new ChangesRecorder(rec6);
 		ChangesDisplay  rec8 = new ChangesDisplay(rec7);
-		ChangesCounter  rec9 = new ChangesCounter(grA,grB,rec8);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>  rec9 = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,rec8);
 		{// compute GD and check that changes recorded by rec9 are correct.
 			LearnerGraph graph1 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph1, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(), rec9,Configuration.getDefaultConfiguration()));
@@ -334,7 +334,7 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config));
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
@@ -349,7 +349,7 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
 		Assert.assertEquals(0,counter.getRemoved());
@@ -408,8 +408,8 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
-		int transitionsCount = grB.countEdges();
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		int transitionsCount = grB.pathroutines.countEdges();
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
 		Assert.assertEquals(0,counter.getRemoved());
@@ -438,8 +438,8 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));
-		int transitionsCount = grA.countEdges();
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		int transitionsCount = grA.pathroutines.countEdges();
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
 		Assert.assertEquals(transitionsCount,counter.getRemoved());
@@ -1001,7 +1001,7 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
 		Assert.assertEquals(1,counter.getRemoved());
@@ -1016,7 +1016,7 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
 		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
-		ChangesCounter counter = new ChangesCounter(grA,grB,null);
+		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		ChangesDisplay recorder = new ChangesDisplay(counter);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);

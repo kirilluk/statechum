@@ -118,7 +118,7 @@ public class TestExperimentRunner {
 				Runtime.getRuntime().halt(-1); // abort the jvm
 			}
 			else
-				result = result + graph.countEdges()*percent + ExperimentRunner.FS + WMethod.computeWSet_reducedmemory(graph).size();
+				result = result + graph.pathroutines.countEdges()*percent + ExperimentRunner.FS + WMethod.computeWSet_reducedmemory(graph).size();
 		}
 	}
 	
@@ -132,7 +132,7 @@ public class TestExperimentRunner {
 		
 		@Override
 		protected void runTheExperiment() {
-			result = result + graph.countEdges() + ExperimentRunner.FS + graph.pathroutines.computeAlphabet().size()*percent;
+			result = result + graph.pathroutines.countEdges() + ExperimentRunner.FS + graph.pathroutines.computeAlphabet().size()*percent;
 		}
 	}
 	
@@ -158,12 +158,12 @@ public class TestExperimentRunner {
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			for(int stage:new int[]{30,45,90,99})
 				result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()+
 						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			for(int stage:new int[]{30,45,90,99})
 				result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()*stage+
 						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		multiExpResult = result.toArray(new String[]{});
 	}
@@ -220,7 +220,7 @@ public class TestExperimentRunner {
 
 		@Override
 		protected void runTheExperiment() {
-			result = result + graph.countEdges();
+			result = result + graph.pathroutines.countEdges();
 		}
 	}
 	
@@ -239,7 +239,7 @@ public class TestExperimentRunner {
 		getSingleStageEvaluator().runExperiment(new String[]{testGraphsDir.getAbsolutePath()});
 		List<String> result = new LinkedList<String>();
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
-				result.add(gr.getKey()+ExperimentRunner.FS+"testAllGraphsSingleStage"+ExperimentRunner.FS+gr.getValue().countEdges());
+				result.add(gr.getKey()+ExperimentRunner.FS+"testAllGraphsSingleStage"+ExperimentRunner.FS+gr.getValue().pathroutines.countEdges());
 		checkCSV(result.toArray(new String[]{}));
 	}
 	
@@ -387,13 +387,13 @@ public class TestExperimentRunner {
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()+
 						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()*stage+
 						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		checkCSV(result.toArray(new String[]{}));
 	}
@@ -411,13 +411,13 @@ public class TestExperimentRunner {
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerAlphabet"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()+
 						ExperimentRunner.FS+gr.getValue().pathroutines.computeAlphabet().size()*stage);
 		for(Entry<String,LearnerGraph> gr:graphs.entrySet())
 			if (gr.getKey() != fileToRemove)
 				for(int stage:new int[]{30,45,90,99})
 					result.add(gr.getKey()+ExperimentRunner.FS+"learnerTransitions"+ExperimentRunner.FS+stage+
-						ExperimentRunner.FS+gr.getValue().countEdges()*stage+
+						ExperimentRunner.FS+gr.getValue().pathroutines.countEdges()*stage+
 						ExperimentRunner.FS+WMethod.computeWSet_reducedmemory(gr.getValue()).size());
 		checkCSV(result.toArray(new String[]{}));
 	}

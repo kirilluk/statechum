@@ -1110,6 +1110,34 @@ public class TestFSMAlgo {
 		for(String vertex:new String[]{"D3"}) expectedSet.add(mergedAB.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAll.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
 	}
+
+	@Test
+	public final void testCountEdges1()
+	{
+		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-b->B-b->C-c->D / A-a->E-a->F-d->F","testCountEdges1"),Configuration.getDefaultConfiguration());
+		Assert.assertEquals(7, graph.pathroutines.countEdges());
+	}
+	
+	@Test
+	public final void testCountEdges2()
+	{
+		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-b2->C-c->D / A-a2->E-a->F-d->F","testCountEdges2"),Configuration.getDefaultConfiguration());
+		Assert.assertEquals(7, graph.pathroutines.countEdges());
+	}
+	
+	@Test
+	public final void testCountEdges3()
+	{
+		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+		Assert.assertEquals(0, graph.pathroutines.countEdges());
+	}
+	
+	@Test
+	public final void testCountEdges4()
+	{
+		LearnerGraphND graph = new LearnerGraphND(Configuration.getDefaultConfiguration());
+		Assert.assertEquals(0, graph.pathroutines.countEdges());
+	}
 	
 	@BeforeClass
 	public static void initJungViewer() // initialisation - once only for all tests in this class

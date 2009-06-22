@@ -62,9 +62,9 @@ public class Linear {
 	}
 
 	/** Computes similarity via GD. */
-	public static GD.ChangesCounter getSimilarityGD(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
+	public static GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> getSimilarityGD(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
 	{
-		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
+		GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(reference,learnt,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		// I need to remove reject-states because the learnt machine ends up collecting a huge
 		// number of negative edges implicit in the original one but since we're learning
@@ -80,7 +80,7 @@ public class Linear {
 	/** Computes similarity via GD and returns details. */
 	public static String getSimilarityGD_details(LearnerGraph reference, LearnerGraph learnt, int ThreadNumber) 
 	{
-		GD.ChangesCounter counter = new GD.ChangesCounter(reference,learnt,null);
+		GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(reference,learnt,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		// I need to remove reject-states because the learnt machine ends up collecting a huge
 		// number of negative edges implicit in the original one but since we're learning
@@ -90,7 +90,7 @@ public class Linear {
 		LearnerGraph reducedLearnt = new LearnerGraph(reference.config);
 		AbstractPathRoutines.removeRejectStates(learnt,reducedLearnt);
 		gd.computeGD(reducedReference, reducedLearnt, ThreadNumber, counter,reference.config);
-		return reducedReference.countEdges()+"+"+counter.getAdded()+"-"+counter.getRemoved()+"="+reducedLearnt.countEdges();
+		return reducedReference.pathroutines.countEdges()+"+"+counter.getAdded()+"-"+counter.getRemoved()+"="+reducedLearnt.pathroutines.countEdges();
 		//return Double.toString(counter.getCompressionRate());
 	}
 }

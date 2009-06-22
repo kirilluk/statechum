@@ -71,7 +71,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 		@Override
 		public void runTheExperiment()
 		{
-			int size = 2*graph.countEdges();
+			int size = 2*graph.pathroutines.countEdges();
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even

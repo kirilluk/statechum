@@ -48,7 +48,6 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.apps.QSMTool;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -989,7 +988,7 @@ public class Transform
 		
 		// TX contains an entry for each visited transition; the total number of transitions is big.countEdges,
 		// hence nx = big.countEdges()-TX_counter.size().
-		return new TraversalStatistics(big.countEdges()-TX_counter.size(),tx,matchedTransitionCounter);
+		return new TraversalStatistics(big.pathroutines.countEdges()-TX_counter.size(),tx,matchedTransitionCounter);
 	}
 	
 	public static double QuanteKoschkeDifference(LearnerGraph A, LearnerGraph B)
@@ -1004,8 +1003,8 @@ public class Transform
 		//Visualiser.updateFrame(A, B);
 		//Visualiser.updateFrame(automaton, null);
 		TraversalStatistics UA= countSharedTransitions(automaton, A), UB = countSharedTransitions(automaton, B);
-		double DuA = ((double)UA.Nx+UA.Tx)/(UA.matched+automaton.countEdges()),
-			DuB = ((double)UB.Nx+UB.Tx)/(UB.matched+automaton.countEdges());
+		double DuA = ((double)UA.Nx+UA.Tx)/(UA.matched+automaton.pathroutines.countEdges()),
+			DuB = ((double)UB.Nx+UB.Tx)/(UB.matched+automaton.pathroutines.countEdges());
 		
 		return (DuA+DuB)/2;
 	}

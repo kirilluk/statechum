@@ -76,7 +76,7 @@ public class TestGD {
 		
 		// Now check the transition matrix
 		Assert.assertEquals(gr.findVertex("C"),gr.transitionMatrix.get(gr.findVertex("B")).get("c"));
-		Assert.assertEquals(1,gr.countEdges());
+		Assert.assertEquals(1,gr.pathroutines.countEdges());
 	}
 	
 	/** Tests that supplied states are not cloned when there is already a state with that ID. */
@@ -323,7 +323,7 @@ public class TestGD {
 
 		// Now check the transition matrix
 		Assert.assertEquals(gr.findVertex("C"),gr.transitionMatrix.get(gr.findVertex("B")).get("c"));
-		Assert.assertEquals(1,gr.countEdges());
+		Assert.assertEquals(1,gr.pathroutines.countEdges());
 	}
 
 	/** Test that I can add transitions in a non-deterministic case. */

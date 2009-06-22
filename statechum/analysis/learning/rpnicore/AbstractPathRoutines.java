@@ -21,6 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -370,7 +371,19 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		
 		return result;
 	}
-	
+
+	public int countEdges()
+	{
+		Iterator<Map<String,TARGET_TYPE>> outIt = coregraph.transitionMatrix.values().iterator();
+		int counter = 0;
+		while(outIt.hasNext()){
+			for(Entry<String,TARGET_TYPE> sv:outIt.next().entrySet())
+				counter = counter + coregraph.getTargets(sv.getValue()).size();
+		}
+		return counter;
+	}
+
+
 	/** Inverts states' acceptance conditions. */
 	public void invertStates()
 	{

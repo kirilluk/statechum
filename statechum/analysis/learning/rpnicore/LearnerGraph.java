@@ -254,17 +254,6 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		return result;
 	}
 
-	public int countEdges()
-	{
-		Iterator<Map<String,CmpVertex>> outIt = transitionMatrix.values().iterator();
-		int counter = 0;
-		while(outIt.hasNext()){
-			Map<String,CmpVertex> current = outIt.next();
-			counter = counter + current.keySet().size();
-		}
-		return counter;
-	}
-
 	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
 	@Override
 	public void initEmpty()

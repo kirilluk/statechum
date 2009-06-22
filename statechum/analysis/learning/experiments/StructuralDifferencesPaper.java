@@ -19,6 +19,7 @@ package statechum.analysis.learning.experiments;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -109,7 +110,7 @@ public class StructuralDifferencesPaper {
 		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5);
 		final int posOrNegPerChunk = 50;
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,1);
-		List<List<String>> sequences = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Collection<List<String>> sequences = cvsGraph.wmethod.getFullTestSet(1);//generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
 
 		PTASequenceEngine walkEngine = new PTA_FSMStructure(cvsGraph);
 		SequenceSet ptaWalk = walkEngine.new SequenceSet();ptaWalk.setIdentity();

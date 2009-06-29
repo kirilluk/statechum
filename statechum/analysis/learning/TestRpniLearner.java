@@ -1130,7 +1130,21 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				new String[][] {new String[]{"A","B1","REJ2"},new String[]{"A","B1","REJ1"}},
 				pairsAndScores,"testNewchooseStatePairs3");
 	}
-
+	
+	private static int testNumber = 1;
+	
+	private void buildRubyTests(String fsm,int expectedScore,String graphName)
+	{
+		LearnerGraph s = new LearnerGraph(FsmParser.buildGraph(fsm, graphName), testConfig);
+		StringBuffer test = new StringBuffer();
+		
+		test.append("def testScores");test.append(testNumber++);test.append("\n\tdfa = ADL::parse <<-AUTOMATON\n");
+		test.append(s.pathroutines.toADL());test.append("AUTOMATON\n\n");
+		test.append("assert_equal(");test.append(expectedScore);
+		test.append(",dfa.compute_score(dfa.get_state(\"A\"), dfa.get_state(\"B\")))\nend\n");
+		System.out.println(test.toString());
+	}
+	
 	/** Checks that scores are correctly computed on complex graphs, taking the ability of pairCompatibilityScore
 	 * to verify compatibility.
 	 * 
@@ -1148,6 +1162,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			int k1,int k2,int k3,
 			String graphName)
 	{
+		//buildRubyTests(fsm,expectedComputedScore,graphName);
+		
 		DirectedSparseGraph g = FsmParser.buildGraph(fsm, graphName);
 		OrigStatePair pairOrig = new OrigStatePair(
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("B"), g),
@@ -1166,7 +1182,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		int newScoreC = s.pairscores.computePairCompatibilityScore(pairNew);
 		s.config.setLearnerScoreMode(Configuration.ScoreMode.CONVENTIONAL);
 		assertEquals(expectedComputedScore, origScore); 
-		assertEquals(expectedComputedScore, newScoreA); 
+		assertEquals(expectedComputedScore, newScoreA);
+		
+		
+		
 		assertEquals(pairCompatibility,newScoreB);
 		assertEquals(pairCompatibilityScore,newScoreC);
 		

@@ -786,4 +786,31 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		throw new IllegalArgumentException("something wrong with the graph - the expected state was not found");
 	}
 
+
+	/** Returns an ADL representation of this graph. */
+	public String toADL()
+	{
+		StringBuffer result = new StringBuffer();
+		result.append(coregraph.transitionMatrix.size());result.append(' ');result.append(countEdges());result.append('\n');
+		
+		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.init == entry.getKey());
+			result.append(' ');result.append(entry.getKey().isAccept());result.append('\n');
+		}
+		
+		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		{
+			for(Entry<String,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
+				for(CmpVertex targetState:coregraph.getTargets(transitionEntry.getValue()))
+				{
+					result.append(entry.getKey().getID());result.append(' ');result.append(targetState.getID());
+					result.append(' ');result.append(transitionEntry.getKey());result.append('\n');
+				}
+		}
+		
+		return result.toString();
+	}
+	
+
 }

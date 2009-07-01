@@ -27,9 +27,11 @@ public class SimpleSequenceHandler extends DefaultHandler{
 	private HashMap<Integer, Integer> objectsToClasses;
 	protected List<Integer> methodSequence;
 	protected Map<Integer,String> ticketToString;
+	protected String threadName;
 
-	public SimpleSequenceHandler(File f){
+	public SimpleSequenceHandler(File f, String thread){
 		super();
+		threadName = thread;
 		source = f;
 		threads = new HashSet<Integer>();
 		classDefs = new HashMap<Integer, String>();
@@ -125,7 +127,7 @@ public class SimpleSequenceHandler extends DefaultHandler{
 		}
 		else if(qName.equals("threadStart")){
 			String groupName = attributes.getValue("groupName");
-			if(groupName.equals("main")){
+			if(groupName.equals(this.threadName)){
 				Integer number = Integer.valueOf(attributes.getValue("threadId"));
 				threads.add(number);
 			}
@@ -135,7 +137,7 @@ public class SimpleSequenceHandler extends DefaultHandler{
 	public void endDocument() throws SAXException {
 		super.endDocument();
 			try{
-				FileOutputStream fos = new FileOutputStream("out");
+				FileOutputStream fos = new FileOutputStream("temp"+System.getProperty("file.separator")+"trace.txt");
 				OutputStreamWriter out= new OutputStreamWriter(fos, "UTF-8");
 				Iterator<Integer> obsIt = methodSequence.iterator();
 				out.write("+ ");

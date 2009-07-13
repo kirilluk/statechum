@@ -122,7 +122,7 @@ public class SimpleSequenceHandler extends DefaultHandler{
 			Integer thread = Integer.valueOf(attributes.getValue("threadIdRef"));
 			if(!(ticketRef == null)&& threads.contains(thread)){
 				Integer ticket = Integer.valueOf(ticketRef);
-				methodSequence.add(ticket);
+				//methodSequence.add(ticket);
 			}
 		}
 		else if(qName.equals("threadStart")){

@@ -107,7 +107,13 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		/** When checking which questions have been answered by IF-THEN automata, we need to record
 		 * which newly-added nodes have been explored by THEN automata. The set below records it.
 		*/
-		public final Set<CmpVertex> nonExistingVertices = new HashSet<CmpVertex>();
+		private final Set<CmpVertex> nonExistingVertices = new HashSet<CmpVertex>();
+		
+		/** Returns vertices which have not been traversed by THEN parts of if-then automata and hence should be presented to a user. */
+		public Set<CmpVertex> getNonExistingVertices()
+		{
+			return nonExistingVertices;
+		}
 		
 		
 		/** Returns a transition matrix of new paths. */
@@ -129,15 +135,16 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			CmpVertex result = null;
 			Map<String,CmpVertex> transitions = NonExistingTransitions.get(currentState);
 			if (transitions == null)
-			{// the current state is not one of the non-existing/semi-non-existing ones
+			{// the current state is not one of the non-existing/semi-non-existing ones. Semi non-existing states are those
+			 // which replace existing states in order to make it possible to add transitions leading to non-existing states.
 				Map<String,CmpVertex> row = transitionMatrix.get(currentState);
-				assert row != null;// a transition matrix is always total (unless current state is non-existing but then we'll not get here in this case). 
+				assert row != null;// a transition matrix is always total (unless current state is (semi)non-existing but then we'll not get here in this case). 
 				result = row.get(input);
 				if (result == null)
 				{// add the current state to the matrix of non-existing states
 					result = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,idCounter++), config);
 					nonExistingVertices.add(result);
-					transitions = createNewRow();transitions.putAll(row);transitions.put(input, result);
+					transitions = createNewRow();transitions.putAll(row);transitions.put(input, result);// clones the existing row and adds to it
 					NonExistingTransitions.put(result, createNewRow());
 					NonExistingTransitions.put((CmpVertex)currentState, transitions);
 				}

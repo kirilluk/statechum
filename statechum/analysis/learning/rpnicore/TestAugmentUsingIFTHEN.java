@@ -744,6 +744,34 @@ final public class TestAugmentUsingIFTHEN
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-a->B / C-c->D", "testPerformAugment14b"),config), graph);
 	}
 
+	/** Two properties where there is one which matches after a while and another short one which depends on the result of the match of the first one. */ 
+	@Test
+	public final void testPerformAugment15() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A", "testPerformAugment15a"),config);
+		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
+				new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-a->D-b->E / P-a->Q-c->S / E==THEN==P", "testPerformAugment15c"), config),
+				new LearnerGraph(FsmParser.buildGraph("A-a->B-c->C / P-d->Q / C==THEN==P", "testPerformAugment15d"), config)				
+		}; 
+		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 400);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("bA-a->bB-b->bA / bB-c->bC-d->bD", "testPerformAugment15b"),config), graph);
+	}
+	
+	/** Two properties where there is one which matches after a while and another short one which depends on the result of the match of the first one. */ 
+	@Test
+	public final void testPerformAugment16() throws IncompatibleStatesException
+	{
+		Configuration config = Configuration.getDefaultConfiguration();
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A", "testPerformAugment15a"),config);
+		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
+				new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-a->D-b->E / B-c->F-d->G / P-a->Q-c->S / T-e->U / E==THEN==P / G==THEN==T", "testPerformAugment16c"), config),
+				new LearnerGraph(FsmParser.buildGraph("1A-a->1B-c->1C / 1P-d->1Q / 1C==THEN==1P", "testPerformAugment16d"), config)				
+		}; 
+		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 400);
+		compareGraphs(new LearnerGraph(FsmParser.buildGraph("bA-a->bB-b->bA / bB-c->bC-d->bD-e->bE", "testPerformAugment16b"),config), graph);
+	}
+	
 	/** Tests how properties can answer questions. 
 	 * @throws IncompatibleStatesException */
 	@Test

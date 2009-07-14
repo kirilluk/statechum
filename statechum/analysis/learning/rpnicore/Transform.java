@@ -726,10 +726,14 @@ public class Transform
 					// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
 					// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
 					// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
-					
 					for(int i=0;i<ifthenGraphs.length;++i)
 						for(ExplorationElement elem:visited[i].get(explorationElement.graphState))
-							currentExplorationBoundary.offer(elem);
+							if (elem.IFState != null)
+							{// if we have not been matching IF part at this point (this happens when we 
+							 // unroll THEN through some paths some of which are in a tentative automaton), 
+							 // there is no point extending. 
+								currentExplorationBoundary.offer(elem);
+							}
 				}
 				if (newStates.contains(nextGraphState))
 					++depth;// we made one more transition out the graph. It does not matter whether nextGraphState has just been added or we're threading on a path added by some other THEN part.

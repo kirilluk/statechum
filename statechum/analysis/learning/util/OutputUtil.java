@@ -25,6 +25,13 @@ public class OutputUtil {
 		write(graphout.toString(), outputMachine);
 	}
 	
+	public static void generatePajekOutput(DirectedSparseGraph g){
+		StringWriter graphout = pajekGraph(g);
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"dotOutput.dot";
+		File outputMachine  = new File(fileRef);
+		write(graphout.toString(), outputMachine);
+	}
+	
 	public static void write(String string, File f){
 		try {
 			if(f.getParentFile()!=null)
@@ -89,6 +96,36 @@ public class OutputUtil {
         	}
 		}
 		graphout.write("\n}");
+		return graphout;
+	}
+	
+	protected static StringWriter pajekGraph(DirectedSparseGraph g){
+		StringWriter graphout = new StringWriter(); 
+		graphout.write("*Network\n*Vertices "+g.numVertices());
+		ArrayList<DirectedSparseVertex> vertexList = new ArrayList<DirectedSparseVertex>();
+		for(DirectedSparseVertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+				vertexList.add(v);
+		}
+		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
+			//Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
+			//if(!v.toString().equals("Init") && accepted.booleanValue())
+				graphout.write("\n"+(vertexList.indexOf(v)+1));
+		}
+		graphout.write("\n*Arcs");
+		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
+			Vertex dest = e.getDest();
+			//if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
+			//	continue;
+			String from = String.valueOf((vertexList.indexOf(e.getSource())+1));
+			String to = String.valueOf((vertexList.indexOf(e.getDest())+1));
+			if(e.containsUserDatumKey(JUConstants.LABEL)){
+        		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+        		Iterator<String> labelIt = labels.iterator();
+        		while(labelIt.hasNext()){
+        			graphout.write("\n"+from+" "+to+" l \"" + labelIt.next()+"\"");
+        		}
+        	}
+		}
 		return graphout;
 	}
 

@@ -34,6 +34,7 @@ import statechum.JUConstants;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.util.OutputUtil;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
@@ -53,21 +54,24 @@ public class ForestFireStateMachineGenerator {
 	private double forwards, backwards;
 	protected DirectedSparseGraph machine;
 	protected List<DirectedSparseVertex> vertices;
-	private Set<DirectedSparseVertex> visited;
-	private RandomEngine generator = new MersenneTwister(0);
+	protected Set<DirectedSparseVertex> visited;
+	protected RandomEngine generator;
 	
 	
-	public ForestFireStateMachineGenerator(double forwards, double backwards){
+	
+	public ForestFireStateMachineGenerator(double forwards, double backwards) throws Exception{
 		this.forwards = forwards;
 		this.backwards = backwards;
+		if(!(forwards > 0 && forwards < 1) || !(backwards > 0 && backwards < 1)){throw new Exception("invalid scopes for backwards or forwards");};
 		visited = new HashSet<DirectedSparseVertex>();
 		machine = new DirectedSparseGraph();
 		vertices = new ArrayList<DirectedSparseVertex>();
+		generator  = new MersenneTwister();
 		addInitialNode();
 	}
 
-	private DirectedSparseGraph buildMachine(int size) {
-		for(int i=0;i<size-1;i++){
+	protected DirectedSparseGraph buildMachine(int size) {
+		for(int i=0;i<size;i++){
 			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
 			visited.add(v);
 			DirectedSparseVertex random = selectRandom();
@@ -80,9 +84,10 @@ public class ForestFireStateMachineGenerator {
 		return machine;
 	}
 
-	protected void addEdge(DirectedSparseVertex v, DirectedSparseVertex w) {
+	protected boolean addEdge(DirectedSparseVertex v, DirectedSparseVertex w) {
 		DirectedSparseEdge e = new DirectedSparseEdge(v,w);
 		machine.addEdge(e);
+		return true;
 	}
 	
 	private void addInitialNode(){
@@ -92,7 +97,7 @@ public class ForestFireStateMachineGenerator {
 		vertices.add(v);
 	}
 	
-	private void spread(DirectedSparseVertex v, DirectedSparseVertex ambassador){
+	protected void spread(DirectedSparseVertex v, DirectedSparseVertex ambassador){
 		int x = Distributions.nextGeometric(forwards, generator);
 		int y = Distributions.nextGeometric(backwards*forwards, generator);
 		Set<DirectedSparseVertex> selectedVertices = selectLinks(x,y,ambassador);
@@ -138,7 +143,7 @@ public class ForestFireStateMachineGenerator {
 		return vertices;
 	}
 
-	private DirectedSparseVertex selectRandom(){
+	protected DirectedSparseVertex selectRandom(){
 		int size = vertices.size();
 		if(size ==1)
 			return (DirectedSparseVertex)vertices.get(0);
@@ -149,9 +154,11 @@ public class ForestFireStateMachineGenerator {
 		}
 	}
 	
-	public static void main(String[] args){
-		ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.9,0.8,15);
-		Visualiser.updateFrame(fsmg.buildMachine(30), null);
+	public static void main(String[] args) throws Exception{
+		ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.70,0.70,9);
+		DirectedSparseGraph g = fsmg.buildMachine(6);
+		Visualiser.updateFrame(g, null);
+		OutputUtil.generatePajekOutput(g);
 	}
 
 }

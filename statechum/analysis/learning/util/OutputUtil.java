@@ -27,7 +27,14 @@ public class OutputUtil {
 	
 	public static void generatePajekOutput(DirectedSparseGraph g){
 		StringWriter graphout = pajekGraph(g);
-		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"dotOutput.dot";
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"pajekOutput.dot";
+		File outputMachine  = new File(fileRef);
+		write(graphout.toString(), outputMachine);
+	}
+	
+	public static void generatePajekOutput(DirectedSparseGraph g, String name){
+		StringWriter graphout = pajekGraph(g);
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name+".net";
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
 	}

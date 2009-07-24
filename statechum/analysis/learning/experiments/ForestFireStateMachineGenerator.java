@@ -62,7 +62,7 @@ public class ForestFireStateMachineGenerator {
 	public ForestFireStateMachineGenerator(double forwards, double backwards) throws Exception{
 		this.forwards = forwards;
 		this.backwards = backwards;
-		if(!(forwards > 0 && forwards < 1) || !(backwards > 0 && backwards < 1)){throw new Exception("invalid scopes for backwards or forwards");};
+		if(!(forwards > 0 && forwards < 1) || !(backwards > 0 && backwards <= 1)){throw new Exception("invalid scopes for backwards or forwards");};
 		visited = new HashSet<DirectedSparseVertex>();
 		machine = new DirectedSparseGraph();
 		vertices = new ArrayList<DirectedSparseVertex>();
@@ -148,17 +148,83 @@ public class ForestFireStateMachineGenerator {
 		if(size ==1)
 			return (DirectedSparseVertex)vertices.get(0);
 		else{
-			Random r = new Random(0);
+			Random r = new Random();
 			int index = r.nextInt(vertices.size()-1);
 			return (DirectedSparseVertex)vertices.get(index);
 		}
 	}
 	
 	public static void main(String[] args) throws Exception{
-		ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.70,0.70,9);
-		DirectedSparseGraph g = fsmg.buildMachine(6);
-		Visualiser.updateFrame(g, null);
-		OutputUtil.generatePajekOutput(g);
+		
+		//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.9,1,17,4);
+		//DirectedSparseGraph g = fsmg.buildMachine(50);
+		//Visualiser.updateFrame(g, null);
+		
+		ArrayList<String> graphs = new ArrayList<String>();
+		for(int i=5;i<50;i=i+1){
+			for(int j=i;j<i+2;j++){
+				ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.9,1,17,j+i);
+				DirectedSparseGraph g = fsmg.buildMachine(i);
+				String name = String.valueOf(i+"."+j);
+				OutputUtil.generatePajekOutput(g,name);
+				graphs.add(name);
+			}
+		}
+		for (int i=0;i<graphs.size();i++) {
+			System.out.println("synth."+graphs.get(i)+".net <- read.graph(\""+ graphs.get(i)+".net\", format=\"pajek\")");
+		}
+		System.out.print("synth.states <- c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("vcount(synth."+graphs.get(i)+".net)");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else System.out.print(")\n");
+		}
+		System.out.print("synth.transitions <- c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("ecount(synth."+graphs.get(i)+".net)");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else System.out.print(")\n");
+		}
+		System.out.print("synth.depth <- c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("max(shortest.paths(simplify(synth."+graphs.get(i)+".net,remove.loops=TRUE),v=0, mode=\"out\"))");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else System.out.print(")\n");
+		}
+		System.out.print("synth.diameter <- c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("diameter(synth."+graphs.get(i)+".net)");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else System.out.print(")\n");
+		}
+		System.out.print("synth.transitivity <- c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("transitivity(synth."+graphs.get(i)+".net)");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else System.out.print(")\n");
+		}
+		System.out.print("stats.inout <- cbind(c(");
+		for (int i=0;i<graphs.size();i++) {
+			System.out.print("degree(synth."+graphs.get(i)+".net,mode=\"out\",loops=TRUE)");
+			if(i!=graphs.size()-1)
+				System.out.print(",");
+			else{
+				System.out.print("),c(");
+				for (int j=0;j<graphs.size();j++) {
+					System.out.print("degree(synth."+graphs.get(j)+".net,mode=\"in\",loops=TRUE)");
+					if(j<graphs.size()-1)
+						System.out.print(",");
+					else{
+						System.out.print("))\n");
+					}
+				}
+			}
+		}
 	}
 
 }

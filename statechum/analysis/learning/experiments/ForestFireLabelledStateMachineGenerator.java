@@ -1,19 +1,33 @@
 package statechum.analysis.learning.experiments;
 
+import java.util.Collection;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
 import cern.jet.random.engine.MersenneTwister;
 
+import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.LearnerGraph.FSMImplementation;
+import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
+import edu.uci.ics.jung.utils.UserDataContainer.CopyAction;
 /**
  * Adds an alphabet of a specific size, ensuring that the final machine is deterministic.
  * Also adds the potential of loops to the same state
@@ -41,10 +55,15 @@ public class ForestFireLabelledStateMachineGenerator extends
 		this.alphabet=alphabet;
 	}
 	
-	protected DirectedSparseGraph buildMachine(int size) {
+	protected LearnerGraph buildMachine(int size) {
+		labelmap = new HashMap<Object,DirectedSparseVertex>();
 		for(int i=0;i<size-1;i++){
-			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
+			DirectedSparseVertex v =  new DirectedSparseVertex();
 			//visited.add(v);
+			String label = String.valueOf(i+1);
+			v.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
+			machine.addVertex(v);
+			this.labelmap.put(label, v);
 			HashSet tried = new HashSet<DirectedSparseVertex>();
 			DirectedSparseVertex random = selectRandom();
 			tried.add(random);
@@ -54,7 +73,7 @@ public class ForestFireLabelledStateMachineGenerator extends
 				if(random == null){
 					System.out.println("Could not construct complete machine");
 					machine.removeVertex(v);
-					return machine;
+					return new LearnerGraph(machine,Configuration.getDefaultConfiguration());
 				}
 			}
 			visited.add(random);
@@ -62,32 +81,80 @@ public class ForestFireLabelledStateMachineGenerator extends
 			vertices.add(v);
 			visited.clear();
 		}
-		return machine;
+		Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> equivalents = ensureMinimal();
+		boolean success = true;
+		for (AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass : equivalents) {
+			success = differentiate(equivalenceClass);
+		}
+		if(!success)
+			return null;
+		else{
+			Configuration conf = Configuration.getDefaultConfiguration();
+			conf.setAllowedToCloneNonCmpVertex(true);
+			return new LearnerGraph(machine,conf);
+		}
+	}
+	
+	private Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  ensureMinimal(){
+		Configuration conf = Configuration.getDefaultConfiguration();
+		conf.setAllowedToCloneNonCmpVertex(true);
+		try{
+			WMethod.computeWSetOrig(new LearnerGraph(machine, conf));
+		} catch(EquivalentStatesException e){
+			return e.getEquivalentStates();
+		}
+		return new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+	}
+	
+	private boolean differentiate(AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass){
+		Iterator<CmpVertex> vertices = equivalenceClass.getStates().iterator();
+		while(vertices.hasNext()) {
+			CmpVertex rep = vertices.next();
+			HashSet tried = new HashSet<DirectedSparseVertex>();
+			DirectedSparseVertex random = selectRandom(tried);
+			tried.add(random);
+			String label = String.valueOf(rep.getID());
+			DirectedSparseVertex old = labelmap.get(label);
+			while(!addEdge(old,random)){
+				random = selectRandom(tried);
+				tried.add(random);
+				if(random == null){
+					System.out.println("Could not construct minimal machine");
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	@Override
 	protected boolean addEdge(DirectedSparseVertex v, DirectedSparseVertex random){
 		Set<String> vertexAlphabet = new HashSet<String>();
-		for (Object e : random.getOutEdges()) {
+		for (Object e : v.getOutEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
 			Set<String>labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
 			if(labels!=null)
 				vertexAlphabet.addAll(labels);
 		}
-		Set<String> possibles = alphabet;
+		Set<String> possibles = new HashSet<String>();
+		possibles.addAll(alphabet);
 		possibles.removeAll(vertexAlphabet);
 		String label = null;
 		if(possibles.size()==0)
 			return false;
-		else if(possibles.size()==1)
-			label = (String) possibles.toArray()[0];
 		else
-			label = pickRandom(possibles);
+			label = (String)pickRandom(possibles.toArray());
 		Set<String> labelSet = new HashSet<String>();
 		labelSet.add(label);
 		DirectedSparseEdge e = new DirectedSparseEdge(v,random);
 		e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
-		machine.addEdge(e);
+		try{
+			machine.addEdge(e);
+		}
+		catch(edu.uci.ics.jung.exceptions.ConstraintViolationException e1){
+			System.out.println("poor constraints from"+v+random);
+			return false;
+		}
 		return true;
 	}
 	
@@ -106,17 +173,17 @@ public class ForestFireLabelledStateMachineGenerator extends
 		}
 	}
 
-	private String pickRandom(Set<String> possibles) {
+	private Object pickRandom(Object[] possibles) {
 		Random index = new Random();
-		int size = possibles.size();
+		int size = possibles.length;
 		int random = index.nextInt(size);
-		return String.valueOf(random);
+		return possibles[random];
 	}
 
 	private static Set<String> getAlphabet(int number){
 		Set<String> alphabet = new HashSet<String>();
 		for (int i=0;i<number;i++){
-			String next = new Formatter().format("%05d", i).toString();
+			String next = String.valueOf(i);
 			alphabet.add(next);
 		}
 		return alphabet;

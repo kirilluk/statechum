@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -56,7 +57,7 @@ public class ForestFireStateMachineGenerator {
 	protected List<DirectedSparseVertex> vertices;
 	protected Set<DirectedSparseVertex> visited;
 	protected RandomEngine generator;
-	
+	protected Map<Object,DirectedSparseVertex> labelmap;
 	
 	
 	public ForestFireStateMachineGenerator(double forwards, double backwards) throws Exception{
@@ -70,7 +71,7 @@ public class ForestFireStateMachineGenerator {
 		addInitialNode();
 	}
 
-	protected DirectedSparseGraph buildMachine(int size) {
+	protected LearnerGraph buildMachine(int size) {
 		for(int i=0;i<size;i++){
 			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
 			visited.add(v);
@@ -81,7 +82,7 @@ public class ForestFireStateMachineGenerator {
 			vertices.add(v);
 			visited.clear();
 		}
-		return machine;
+		return new LearnerGraph(machine,Configuration.getDefaultConfiguration());
 	}
 
 	protected boolean addEdge(DirectedSparseVertex v, DirectedSparseVertex w) {
@@ -92,14 +93,15 @@ public class ForestFireStateMachineGenerator {
 	
 	private void addInitialNode(){
 		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.setUserDatum(JUConstants.INITIAL, "true", UserData.SHARED);
+		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+		v.setUserDatum(JUConstants.LABEL, String.valueOf(0), UserData.SHARED);
 		machine.addVertex(v);
 		vertices.add(v);
 	}
 	
 	protected void spread(DirectedSparseVertex v, DirectedSparseVertex ambassador){
-		int x = Distributions.nextGeometric(forwards, generator);
-		int y = Distributions.nextGeometric(backwards*forwards, generator);
+		int x = Distributions.nextGeometric((forwards/(1-forwards)), generator);
+		int y = Distributions.nextGeometric((backwards*forwards)/(1-(backwards*forwards)), generator);
 		Set<DirectedSparseVertex> selectedVertices = selectLinks(x,y,ambassador);
 		if(selectedVertices.isEmpty()){
 			return;
@@ -162,12 +164,21 @@ public class ForestFireStateMachineGenerator {
 		
 		ArrayList<String> graphs = new ArrayList<String>();
 		for(int i=5;i<50;i=i+1){
-			for(int j=i;j<i+2;j++){
-				ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.9,1,17,j+i);
-				DirectedSparseGraph g = fsmg.buildMachine(i);
-				String name = String.valueOf(i+"."+j);
-				OutputUtil.generatePajekOutput(g,name);
-				graphs.add(name);
+			System.out.println("|||||||");
+			int seed = i+2;
+			for(int j=i;j<seed;j++){
+				ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.45,0.82,17,j+i);
+				LearnerGraph g = fsmg.buildMachine(i);
+				if(g!=null){
+					System.out.println("----");
+					String name = String.valueOf(i+"."+j);
+					OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
+					graphs.add(name);
+				}
+				else{
+					seed++;
+				}
+					
 			}
 		}
 		for (int i=0;i<graphs.size();i++) {
@@ -189,7 +200,7 @@ public class ForestFireStateMachineGenerator {
 		}
 		System.out.print("synth.depth <- c(");
 		for (int i=0;i<graphs.size();i++) {
-			System.out.print("max(shortest.paths(simplify(synth."+graphs.get(i)+".net,remove.loops=TRUE),v=0, mode=\"out\"))");
+			System.out.print("max(shortest.paths(simplify(synth."+graphs.get(i)+".net,remove.loops=TRUE),v=V(synth."+graphs.get(i)+".net)[id==\"init\"], mode=\"out\"))");
 			if(i!=graphs.size()-1)
 				System.out.print(",");
 			else System.out.print(")\n");

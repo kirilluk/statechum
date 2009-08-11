@@ -22,8 +22,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
+import statechum.Configuration;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.*;
+import statechum.analysis.learning.util.OutputUtil;
 import statechum.analysis.learning.observers.*;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
@@ -44,19 +46,20 @@ public class ManualAccuracyTracker extends QSMTool {
 		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
 		active = true;
 		learnerInitConfiguration.config.setQuestionPathUnionLimit(1);
-		//learnerInitConfiguration.config.setUseConstraints(true);
+		learnerInitConfiguration.config.setUseConstraints(true);
 		learnerInitConfiguration.config.setHowManyStatesToAddFromIFTHEN(1);
+		learnerInitConfiguration.config.setUseLTL(true);
+		learnerInitConfiguration.config.setDebugMode(true);
+		learnerInitConfiguration.config.setUseSpin(false);
 		setSimpleConfiguration(learnerInitConfiguration.config, active, k);
 		//if(learnerInitConfiguration.ltlSequences!=null && !learnerInitConfiguration.ltlSequences.isEmpty())
-			learnerInitConfiguration.config.setUseLTL(true);
-		learnerInitConfiguration.config.setDebugMode(true);
-		String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
-		"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
 		
-		//String target = "q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedirectory->q9-listfiles->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16";
+		//String target = "B-initialise->C-receiveDown->C-sendHalt->E-receiveDown->C-receiveHalt->D\nA-receiveDown->C-monitorHigherPriorityNodes->A-receiveHalt->D-receiveHalt->" +
+		//"D-receiveDown->D-sendAck->F-receiveDown->F-receiveHalt->F\nE-receiveAck->G-announceLeadership->C";
+		
+		String target =  "X-initialise->B-fail_close->A-check_updates->A-update->H-failed_get_use_old->I-succeed_use_remove_pending->F-write_to_cm_sim->D-set_wind_altimeter->A\nB-success_ctas_use_new_weather->C-succeed_use->D\nC-failed_use->A\nI-failed_use->E-write_to_cm_sim->A\nG-succeed_use_remove_pending->F\nG-failed_use_remove_pending->E\nH-success_ctas_use_new_weather->G";
 		
 		LearnerGraph targetMachine = new LearnerGraph(FsmParser.buildGraph(target, "Target"), learnerInitConfiguration.config);
-		
 		
 		int sampleSize = (targetMachine.pathroutines.countEdges()*2);
 		int percentPerChunk = 10;
@@ -81,8 +84,10 @@ public class ManualAccuracyTracker extends QSMTool {
 			sPlus.addAll(samples.getData(posPredicate));
 			sMinus.addAll(samples.getData(negPredicate));
 			RPNILearner l = new RPNIUniversalLearner(null, new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null));
-			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
-			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
+			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
+			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
+			//atd.init(sPlus, sMinus);
+			OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph());
 			Learner autoAns = new AutoAnswers(atd);
 			autoAns.init(sPlus, sMinus);
 			

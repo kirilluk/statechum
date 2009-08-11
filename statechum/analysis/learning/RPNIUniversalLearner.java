@@ -344,24 +344,11 @@ public class RPNIUniversalLearner extends RPNILearner
 						{
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <"+answerType+"> "+addedConstraint);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ifthenAutomataAsText);tmpLtl.add(answerType+" "+addedConstraint);
-							Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
-							if (counters.size()>0)
-							{
-								String errorMessage = getHardFactsContradictionErrorMessage(tmpLtl, counters);
-								if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
-									throw new IllegalArgumentException(errorMessage);
-								
-								// if not obtained via auto, complain
-								System.out.println(errorMessage);
-							}
-							if (config.isUseConstraints()) 
-							{
-								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
-								StringBuffer counterExampleHolder = new StringBuffer();
-								if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
+							if(!config.isUseConstraints()){
+								Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
+								if (counters.size()>0)
 								{
-									String errorMessage = getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString());
-									
+									String errorMessage = getHardFactsContradictionErrorMessage(tmpLtl, counters);
 									if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
 										throw new IllegalArgumentException(errorMessage);
 									
@@ -369,7 +356,24 @@ public class RPNIUniversalLearner extends RPNILearner
 									System.out.println(errorMessage);
 								}
 							}
+							else{
+								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, tentativeAutomaton, config).toArray(new LearnerGraph[0]);
+								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 
+								LearnerGraph.copyGraphs(tentativeAutomaton, updatedTentativeAutomaton);
+								try {
+									Transform.augmentFromIfThenAutomaton(updatedTentativeAutomaton, null, tmpIfthenAutomata, config.getHowManyStatesToAddFromIFTHEN());
+								} catch (AugmentFromIfThenAutomatonException e) {
+								// merge failed because the constraints disallowed it, hence return a failure
+									StringBuffer counterExampleHolder = new StringBuffer();
+									e.getFailureLocation(counterExampleHolder);
+									String errorMessage = getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString());
+									if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
+										throw new IllegalArgumentException(errorMessage);
+											// if not obtained via auto, complain
+								        	System.out.println(errorMessage);
+								} 
+							}
 							// the current set of constraints does not contradict hard facts, update them and restart learning.
 							ifthenAutomataAsText.add(answerType+" "+addedConstraint);
 							ifthenAutomata = null;// make sure constraints are rebuilt if in use

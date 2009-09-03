@@ -45,7 +45,9 @@ final public class DeterministicDirectedSparseGraph {
 		 */
 		private static final long serialVersionUID = -6367197525198958482L;
 
-		/** A kind of a state.
+		/** A kind of a state identifier - this is not the same as state label accept/reject/none; the two are different
+		 * because I may choose to give uniform IDs to all states however some have to be accept and others - rejects.
+		 * 
 		 * <ul>
 		 * <li>NONE is for states which only have string IDs.</li>
 		 * <li>NEUTRAL is used if I wish to give uniform IDs to accept and reject states. 

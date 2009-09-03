@@ -263,9 +263,9 @@ public class RPNIUniversalLearner extends RPNILearner
 				else
 				{
 					if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
-						if (ptaHardFacts.paths.tracePath(question) == AbstractOracle.USER_ACCEPTED)
+						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED)
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
-					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePath(question), new Object[] { "LTL","IFTHEN","IGNORE QUESTION","MARK AS INCOMPATIBLE"});
+					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,ptaHardFacts.paths.tracePathPrefixClosed(question), new Object[] { "LTL","IFTHEN","IGNORE QUESTION","MARK AS INCOMPATIBLE"});
 				}
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) 
 				{
@@ -494,7 +494,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				{					
 					for(List<String> question:topLevelListener.ComputeQuestions(pair, newPTA, tempNew))
 					{
-						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(tentativeAutomaton,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,newPTA.paths.tracePath(question),new Object [] {"Test"});
+						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(tentativeAutomaton,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,newPTA.paths.tracePathPrefixClosed(question),new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");

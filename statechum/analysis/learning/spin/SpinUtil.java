@@ -84,10 +84,10 @@ public class SpinUtil {
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
 		while(counterIt.hasNext()){
 			List<String> counter = counterIt.next();
-			if(current.paths.tracePath(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
+			if(current.paths.tracePathPrefixClosed(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
 				toBeRemoved.add(counter);
 			else if(current !=null)
-				if(current.paths.tracePath(counter) == AbstractOracle.USER_ACCEPTED)
+				if(current.paths.tracePathPrefixClosed(counter) == AbstractOracle.USER_ACCEPTED)
 					toBeRemoved.add(counter);
 			
 			else{ 

@@ -77,6 +77,7 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
 		statechum.apps.TestQSMTool.class,
 		statechum.TestArrayOperations.class,
+		statechum.analysis.learning.rpnicore.TestNextID.class,
 		statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
 		statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
 		statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
@@ -92,6 +93,7 @@ public class AllTests {
 		statechum.model.testset.TestPrefixRemovingCollection.class,
 		statechum.model.testset.TestPTASequenceEngine.class,
 		statechum.analysis.learning.rpnicore.TestTransform.class,
+		statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
 		statechum.analysis.learning.rpnicore.TestWMethod.class
 	})
 	public static class GraphTests {// all tests are included in the annotation.

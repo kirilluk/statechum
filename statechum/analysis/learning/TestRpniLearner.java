@@ -115,9 +115,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(Arrays.asList(path));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(Arrays.asList(path));
 		// Visualiser.getVisualiser()
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
@@ -128,7 +128,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 			}
 		};
 		config.setDebugMode(false);

@@ -20,7 +20,7 @@ package statechum;
 
 public enum JUConstants {
 	LABEL("label"),
-	ACCEPTED("accepted"),
+	ACCEPTED("accepted"),// used to mark accept-states
 	TITLE("title"),
 	INITIAL("init"),// (boolean) whether a vertex is an initial state
 	HIGHLIGHT("highlight"),// (boolean) whether a vertex should be highlighted on a display
@@ -37,6 +37,13 @@ public enum JUConstants {
 	
 	;
 	private String stringRepresentation;
+	
+	public enum VERTEXLABEL
+	{
+		ACCEPT, // vertex is an accept one
+		REJECT, // vertex is reject
+		NONE // unknown - it could be either of the above.
+	}
 	
 	public enum PAIRCOMPATIBILITY
 	{

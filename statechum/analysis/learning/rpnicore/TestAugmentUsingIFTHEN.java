@@ -45,6 +45,7 @@ import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
@@ -1041,6 +1042,9 @@ final public class TestAugmentUsingIFTHEN
 		@Test
 		public final void testQuestions_and_marking1a()
 		{
+			Visualiser.updateFrame(graph, null);
+			Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"),config));
+			Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged),new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"),config));
 			List<List<String>> qs = ComputeQuestions.computeQS(pair, graph, merged, new LearnerGraph[] {
 					new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"),config),
 					new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"),config)

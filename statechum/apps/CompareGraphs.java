@@ -89,7 +89,7 @@ public class CompareGraphs {
 	public static double computeAccuracy(LearnerGraph learned, LearnerGraph correct, Collection<List<String>> tests){
 		int failed = 0;
 		for (List<String> list : tests) {
-			if(learned.paths.tracePath(list)!=correct.paths.tracePath(list))
+			if(learned.paths.tracePathPrefixClosed(list)!=correct.paths.tracePathPrefixClosed(list))
 				failed++;
 		}
 		double accuracy = 1-((double)failed/(double)tests.size());

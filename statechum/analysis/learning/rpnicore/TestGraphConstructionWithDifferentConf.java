@@ -24,8 +24,8 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper.whatToRun;
 
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import junit.framework.Assert;
 
@@ -402,10 +402,12 @@ public class TestGraphConstructionWithDifferentConf {
 	public final void testGraphConstruction_nondet_1a()
 	{
 		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
-		List<CmpVertex> targets_a = new LinkedList<CmpVertex>();targets_a.add(graph.findVertex("B"));
-		List<CmpVertex> targets_b = new LinkedList<CmpVertex>();targets_b.add(graph.findVertex("C"));targets_b.add(graph.findVertex("D"));
-		Assert.assertTrue(targets_a.equals(graph.transitionMatrix.get(graph.findVertex("A")).get("a")));
-		Assert.assertTrue(targets_b.equals(graph.transitionMatrix.get(graph.findVertex("B")).get("b")));
+		Set<CmpVertex> targets_a = new TreeSet<CmpVertex>();targets_a.add(graph.findVertex("B"));
+		Set<CmpVertex> targets_b = new TreeSet<CmpVertex>();targets_b.add(graph.findVertex("C"));targets_b.add(graph.findVertex("D"));
+		Set<CmpVertex> actual_a = new TreeSet<CmpVertex>();actual_a.addAll(graph.transitionMatrix.get(graph.findVertex("A")).get("a")); 
+		Assert.assertTrue(targets_a.equals(actual_a));
+		Set<CmpVertex> actual_b = new TreeSet<CmpVertex>();actual_b.addAll(graph.transitionMatrix.get(graph.findVertex("B")).get("b")); 
+		Assert.assertTrue(targets_b.equals(actual_b));
 		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("C")).isEmpty());
 		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("D")).isEmpty());
 	}

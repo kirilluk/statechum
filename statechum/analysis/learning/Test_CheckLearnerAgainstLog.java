@@ -79,7 +79,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
-					return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+					return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
 				}
 			};
 	
@@ -191,7 +191,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+						return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
 					}
 				
 				@Override
@@ -230,7 +230,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") int lengthInHardFacts,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 						{
-							return new Pair<Integer,String>(evalData.graph.paths.tracePath(question),null);
+							return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
 						}
 			};
 		}

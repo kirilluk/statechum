@@ -33,6 +33,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.model.testset.PTASequenceEngine;
@@ -379,6 +380,16 @@ public class ComputeQuestions {
 		return engine.getData(PTASequenceEngine.truePred);
 	}
 	
+	/**
+	 * Computes a set of questions in the form of PTA which can later be traversed by IF-THEN. First time it is called, questions are computed,
+	 * next time, we just augment from IF-THEN.
+	 * 
+	 * @param pair what has been merged
+	 * @param original the original graph
+	 * @param merged the outcome of merging
+	 * @param properties if-then automata
+	 * @return PTA with questions.
+	 */
 	public static PTASequenceEngine getQuestionPta(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
 	{
 		QuestionConstructor qConstructor=null;
@@ -438,10 +449,10 @@ public class ComputeQuestions {
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
 			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else
-		{
 			questions = getQuestionPta(pair,original,merged,properties).getData();// This one will return only those questions which were not answered by property automata
-		}
 		
+		//Visualiser.updateFrame(constructGraphWithQuestions(pair,original,merged), null);
+		//System.out.println(((NonExistingPaths)getQuestionPta(pair,original,merged,properties).getFSM()).getNonExistingVertices());
 		return ArrayOperations.sort(questions);
 			// this appears important to ensure termination without using amber states
 			// because in an unsorted collection long paths may appear first and they will hence be added to PTA and we'll
@@ -453,11 +464,11 @@ public class ComputeQuestions {
 		PTASequenceEngine questionsPTA = getQuestionPta(pair,original,merged,null);
 		Configuration config = original.config.copy();config.setLearnerCloneGraph(false);
 		LearnerGraph updatedGraph = new LearnerGraph(original,config);
-	
+		updatedGraph.setName("graph_with_questions");
 		// for the putAll below to work, I have to ensure that if a state of the original graph is cloned
 		// in NonExistingPaths and points to some of the existing states, the references added by
 		// putAll should refer the vertices from updatedGraphActual rather than those from graph.
-		// This is best accomplished by not cloning vertices when making copies of grahps.
+		// This is best accomplished by not cloning vertices when making copies of graphs.
 		updatedGraph.transitionMatrix.putAll(((NonExistingPaths)questionsPTA.getFSM()).getNonExistingTransitionMatrix());
 		updatedGraph.learnerCache.invalidate();return updatedGraph;
 	}

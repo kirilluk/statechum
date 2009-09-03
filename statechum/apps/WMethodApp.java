@@ -57,7 +57,7 @@ public class WMethodApp {
 		while(testIt.hasNext()){
 			count++;
 			List<String> test = testIt.next();
-			int accept = g.paths.tracePath(test);
+			int accept = g.paths.tracePathPrefixClosed(test);
 			System.out.print("#"+count+" ");
 			if(accept == AbstractOracle.USER_ACCEPTED)
 				System.out.println("ACCEPTED: " + test);

@@ -103,9 +103,9 @@ public class TestRecorderIntegration {
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(Arrays.asList(path));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePath(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(Arrays.asList(path));
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
@@ -115,7 +115,7 @@ public class TestRecorderIntegration {
 					@SuppressWarnings("unused") int lengthInHardFacts,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 			}
 		};
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
@@ -170,7 +170,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
 				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus), buildSet(minus));
@@ -188,7 +188,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
 				Learner learnerB = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
@@ -200,7 +200,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") int lengthInHardFacts,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePath(question),null);
+						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
 				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus), buildSet(minus));

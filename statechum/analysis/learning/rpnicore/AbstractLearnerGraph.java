@@ -42,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
+import statechum.JUConstants.VERTEXLABEL;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
@@ -208,16 +209,34 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	protected int vertPositiveID = 0;
 	protected int vertNegativeID = 0;
 
-	/** Generates vertex IDs. Since it modifies instance ID-related variables, it has to be synchronized. */
+	@Deprecated
 	public synchronized VertexID nextID(boolean accepted)
 	{
+		return nextID(accepted?JUConstants.VERTEXLABEL.ACCEPT:JUConstants.VERTEXLABEL.REJECT,true);
+	}
+	
+	/** Generates vertex IDs. Since it modifies instance ID-related variables, 
+	 * it has to be synchronised.
+	 * 
+	 * @param accept whether the vertex is to be accept, reject, or none.
+	 * @param store whether to store changes to identifiers. If this is true, each call generates a vertex with a new number,
+	 * modifying the graph in the process. For graphs we'd rather not modify, this can be set to false, but then each call
+	 * will give the same identifier.
+	 */
+	public synchronized VertexID nextID(JUConstants.VERTEXLABEL accepted, boolean store)
+	{
 		VertexID result = null;
+		int positiveID = vertPositiveID, negativeID = vertNegativeID;
 		if (config.getLearnerIdMode() == IDMode.POSITIVE_ONLY)
-			result = new VertexID(VertKind.NEUTRAL,vertPositiveID++);
+			result = new VertexID(VertKind.NEUTRAL,positiveID++);
 		else
-			result = (accepted?new VertexID(VertKind.POSITIVE,vertPositiveID++):
-					new VertexID(VertKind.NEGATIVE,vertNegativeID++));
+			result = (accepted != VERTEXLABEL.REJECT?new VertexID(VertKind.POSITIVE,positiveID++):
+					new VertexID(VertKind.NEGATIVE,negativeID++));
 
+		if (store)
+		{
+			vertPositiveID = positiveID;vertNegativeID = negativeID;
+		}
 		return result;
 	}
 
@@ -448,7 +467,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Initialises this graph with a single-state PTA with ID of 1001 rather than 1000 as per normal initPTA(). */
 	public void initPTA_1()
 	{
-		initEmpty();nextID(true);
+		initEmpty();nextID(JUConstants.VERTEXLABEL.ACCEPT,true);
 		init = generateNewCmpVertex(getDefaultInitialPTAName(),config);
 		init.setAccept(true);init.setColour(JUConstants.RED);
 		init.setDepth(0);

@@ -38,6 +38,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
 import statechum.analysis.learning.rpnicore.GD.ChangesDisplay;
@@ -666,7 +667,7 @@ public class TestGD_Multithreaded {
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps(recorder);
-
+		Visualiser.updateFrame(grA, grB);
 		Assert.assertEquals(expectedSizeOfATOb,gd.aTOb.size());
 		Assert.assertEquals(expectedSizeOfDuplicates,gd.duplicates.size()); 
 		LearnerGraphND graph = new LearnerGraphND(cloneConfig);AbstractLearnerGraph.copyGraphs(grA, graph);

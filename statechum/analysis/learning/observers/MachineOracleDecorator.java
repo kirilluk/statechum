@@ -57,7 +57,7 @@ public class MachineOracleDecorator extends LearnerDecorator {
 			@SuppressWarnings("unused") int lengthInHardFacts,
 			@SuppressWarnings("unused") Object[] options) {
 		questions++;
-		int answer = target.paths.tracePath(question);
+		int answer = target.paths.tracePathPrefixClosed(question);
 		return new Pair<Integer, String>(answer,null);
 	}
 

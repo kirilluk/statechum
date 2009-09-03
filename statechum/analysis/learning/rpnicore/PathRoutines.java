@@ -648,42 +648,68 @@ public class PathRoutines {
 		}
 	}
 
+	public int tracePathPrefixClosed(List<String> path)
+	{
+		return tracePath(path,coregraph.init, true);
+	}
+	
+	public int tracePathPrefixClosed(List<String> path, CmpVertex startState)
+	{
+		return tracePath(path,startState,true);
+	}
+
 	/** Navigates a path from the initial state and either returns 
 	 * RPNIBlueFringeLearner.USER_ACCEPTED if it is a valid path or the
-	 * position of the first element on the path which does not 
-	 * exist.
+	 * position of the first element on the path which does not exist.
+	 * 
 	 * @param path path to traverse
-	 * @param startState the state to start from
+	 * @param prefixClosed whether to return the first element of a prefix which does not exist or whether the whole path exists or not.
 	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
 	 * of the first non-existing element.
 	 */
-	public int tracePath(List<String> path)
+	public int tracePath(List<String> path, boolean prefixClosed)
 	{
-		return tracePath(path,coregraph.init);
+		return tracePath(path,coregraph.init, prefixClosed);
 	}
 	
 	/** Navigates a path from the supplied state and either returns 
 	 * RPNIBlueFringeLearner.USER_ACCEPTED if it is a valid path or the
 	 * position of the first element on the path which does not 
-	 * exist.
+	 * exist. In the presence of reject-states, returns the shortest prefix which does not exist.
+	 * 
 	 * @param path path to traverse
 	 * @param startState the state to start from
+	 * @param prefixClosed whether to return the first element of a prefix which does not exist or whether the whole path exists or not.
+	 * It is not possible to get rid of this one altogether because a prefix may be rejected but a path as a whole might be accepting.
 	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
 	 * of the first non-existing element.
 	 */
-	public int tracePath(List<String> path, CmpVertex startState)
+	public int tracePath(List<String> path, CmpVertex startState, boolean prefixClosed)
 	{
 		CmpVertex current = startState;
 		if (current == null)
 			return 0;// if we start from null (i.e. not found) state, fail immediately.
+		if (path.isEmpty())
+			return startState.isAccept()? AbstractOracle.USER_ACCEPTED:0;
+
 		int pos = -1;
+		
 		for(String label:path)
 		{
 			++pos;
+
 			Map<String,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
 			if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+				// cannot make a move
 				return pos;
+			
+			if (!current.isAccept())
+			{
+				if (prefixClosed)
+					return pos;
+			}
 		}
+
 		return current.isAccept()? AbstractOracle.USER_ACCEPTED:pos;
 	}
 	
@@ -713,7 +739,7 @@ public class PathRoutines {
 	 */
 	public List<String> truncateSequence(List<String> path)
 	{
-		int pos = tracePath(path);
+		int pos = tracePathPrefixClosed(path);
 		List<String> seq = path;
 		assert pos == AbstractOracle.USER_ACCEPTED || pos < path.size();
 		if (pos >= 0)
@@ -813,14 +839,40 @@ public class PathRoutines {
 			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction());
 		}
 		
-		try
+		// Now we need to eliminate the sink vertex - due to merging, there will only be one of them,
+		// which has to be reject and all transitions loop in it.
+		Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateEntryIterator = result.transitionMatrix.entrySet().iterator();
+		CmpVertex sink = null;
+
+		while(stateEntryIterator.hasNext() && sink == null)
 		{
-			WMethod.computeWSet_reducedmemory(result);
+			Entry<CmpVertex,Map<String,CmpVertex>> entry = stateEntryIterator.next();
+			if (!entry.getKey().isAccept())
+			{
+				Iterator<Entry<String,CmpVertex>> targetIterator = entry.getValue().entrySet().iterator();
+				boolean foundSink = true;
+				while(targetIterator.hasNext() && foundSink)
+				{
+					Entry<String,CmpVertex> target = targetIterator.next();
+					if (target.getValue() != entry.getKey())
+						foundSink = false;
+				}
+				if (foundSink)
+					sink = entry.getKey();
+			}
 		}
-		catch(EquivalentStatesException ex)
-		{
-			Helper.throwUnchecked("failed to build a minimal version of a graph", ex);
-		}
+		
+		if (sink != null) result.transitionMatrix.get(sink).clear();// the sink state is preserved since it may happen to be the only state in the graph. 
+		
+		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+			try
+			{
+				WMethod.computeWSet_reducedmemory(result);
+			}
+			catch(EquivalentStatesException ex)
+			{
+				Helper.throwUnchecked("failed to build a minimal version of a graph", ex);
+			}
 
 		return result;
 	}

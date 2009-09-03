@@ -18,7 +18,9 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -786,7 +788,6 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		throw new IllegalArgumentException("something wrong with the graph - the expected state was not found");
 	}
 
-
 	/** Returns an ADL representation of this graph. */
 	public String toADL()
 	{
@@ -802,11 +803,15 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
 			for(Entry<String,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
-				for(CmpVertex targetState:coregraph.getTargets(transitionEntry.getValue()))
+			{
+				List<CmpVertex> targetStates = new ArrayList<CmpVertex>(coregraph.getTargets(transitionEntry.getValue()));
+				Collections.sort(targetStates);
+				for(CmpVertex targetState:targetStates)
 				{
 					result.append(entry.getKey().getID());result.append(' ');result.append(targetState.getID());
 					result.append(' ');result.append(transitionEntry.getKey());result.append('\n');
 				}
+			}
 		}
 		
 		return result.toString();

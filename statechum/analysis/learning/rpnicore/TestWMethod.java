@@ -25,7 +25,6 @@ import static statechum.analysis.learning.rpnicore.WMethod.cross;
 import static statechum.analysis.learning.rpnicore.WMethod.crossWithSet;
 import static statechum.analysis.learning.rpnicore.WMethod.crossWithSet_One;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import junit.framework.Assert;
@@ -49,18 +47,14 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
-import statechum.Helper;
 import statechum.JUConstants;
-import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
-import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
+import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
-import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 import statechum.model.testset.PrefixFreeCollection;
 import statechum.model.testset.SlowPrefixFreeCollection;
 import static statechum.model.testset.PrefixFreeCollection.isPrefix;
@@ -405,7 +399,7 @@ public class TestWMethod {
 	}
 
 	@Test
-	public final void testTruncateSeq5()
+	public final void testTruncateSeq5a()
 	{
 		LearnerGraph fsm = new LearnerGraph(buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S","testTruncateSeq5"),config);
 		Assert.assertEquals(Arrays.asList(new String[]{"p","b","d"}), fsm.paths.truncateSequence(Arrays.asList(new String[]{"p","b","d"})));
@@ -615,40 +609,57 @@ public class TestWMethod {
 		Assert.assertTrue("expected : "+expected+" got: "+actual,expected.equals(actual));
 	}
 
-	private void checkEquivalentStatesException(EquivalentStatesException e,LearnerGraph fsm)
+	public static void checkEquivalentStatesException(EquivalentStatesException e,LearnerGraph fsm)
 	{
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroup:e.getEquivalentStates())
 		{
 			// Checks that all states recorded as equivalent are indeed equivalent
 			for(CmpVertex eA:eqStatesGroup.getStates())
 				for(CmpVertex eB:eqStatesGroup.getStates())
-					Assert.assertNull("states "+eA+" and "+eB+" should belong to the same equivalence class",WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE));
-			
+				{
+					DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+					Assert.assertNull("states "+eA+" and "+eB+" should belong to the same equivalence class, got "+(exception == null?"":exception.getMessage()),exception);
+				}
 			// Checks that all states in different equivalence classes are not equivalent. 
 			for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqStatesGroupAnother:e.getEquivalentStates())
 				if (eqStatesGroup != eqStatesGroupAnother)
 				{
 					for(CmpVertex eA:eqStatesGroup.getStates()) // our states
 						for(CmpVertex eB:eqStatesGroupAnother.getStates()) // other states
-								Assert.assertNotNull("states "+eA+" and "+eB+" should belong to different equivalence classes",WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE));				
+						{
+							DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+							if (exception == null)
+							{
+								fsm.config.setPrefixClosed(true);
+								DifferentFSMException ex = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+								System.out.println("B: "+fsm.transitionMatrix.get(fsm.findVertex("B"))+" ; D:  "+fsm.transitionMatrix.get(fsm.findVertex("D")));
+								System.out.println(ex);
+								fsm.config.setPrefixClosed(false);
+								DifferentFSMException ex2 = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
+								System.out.println(ex2==null?"NULL":ex);
+							}
+							Assert.assertNotNull("states "+eA+" and "+eB+" should belong to different equivalence classes",exception);
+						}
 				}
 		}
 	}
 	
-	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected)
+
+	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
 	{
 		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
-		testWsetconstruction(fsm,equivalentExpected,reductionExpected);
+		testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
 	}
 	
-	public void testWsetconstruction(LearnerGraph fsm, boolean equivalentExpected, boolean reductionExpected)
+	public static void testWsetconstruction(LearnerGraph fsm, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
 	{
+		fsm.config.setPrefixClosed(prefixClosed);
 		Set<List<String>> origWset = new HashSet<List<String>>(); 
 		try
 		{
 			origWset.addAll(WMethod.computeWSetOrig(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(origWset);			
+			fsm.wmethod.checkW_is_corrent(origWset,prefixClosed);			
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -660,7 +671,7 @@ public class TestWMethod {
 		{
 			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset);// we are not checking for W reduction here since space-saving way to compute W
+			fsm.wmethod.checkW_is_corrent(wset,prefixClosed);// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
 			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep 
@@ -677,7 +688,7 @@ public class TestWMethod {
 		{
 			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedw(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset);
+			fsm.wmethod.checkW_is_corrent(wset,prefixClosed);
 			int reduction = origWset.size() - wset.size();
 			Assert.assertTrue(reduction >= 0 || !reductionExpected);
 		}
@@ -688,110 +699,130 @@ public class TestWMethod {
 		}
 	}	
 	
+	/** Checking generation of a sink state. */
 	@Test
-	public final void testWset1()
+	public final void testGenerateSink1()
 	{
-		testWsetconstruction("A-p->A-b->B-c->B-a->C",false,true);
+		LearnerGraph fsm = new LearnerGraph(config);
+		CmpVertex sink = WMethod.generateSinkState(fsm);Assert.assertNotNull(sink);Assert.assertFalse(sink.isAccept());
 	}
 	
+	/** Checking generation of a sink state.  */
 	@Test
-	public final void testWset2()
+	public final void testGenerateSink2a()
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-a->Q",false,true);
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B","testFindSink2a"),config);
+		CmpVertex sink = WMethod.generateSinkState(fsm);Assert.assertFalse(sink.isAccept());
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(sink));		
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(sink));		
 	}
 	
-	/** Equivalent states. */
+	/** Checking generation of a sink state. */
 	@Test
-	public final void testWset3()
+	public final void testGenerateSink2b()
 	{
-		testWsetconstruction("A-a->C-b->Q\nB-a->D-b->Q",true,true);
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B","testFindSink2a"),config);
+		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
+		CmpVertex sink = WMethod.generateSinkState(fsm);Assert.assertFalse(sink.isAccept());
+		//Assert.assertEquals(fsm.findVertex(VertexID.parseID("B")),WMethod.generateSinkState(fsm));		
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(sink));		
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(sink));		
+	}
+	
+	/** Checking identification of a sink state. B is reject but has outgoing transitions, hence not a sink state. 
+	@Test
+	public final void testFindSink2c()
+	{
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-b->B","testFindSink2c"),config);
+		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(WMethod.generateSinkState(fsm)));		
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(WMethod.generateSinkState(fsm)));		
+	}
+	
+	/** Checking identification of a sink state. 
+	@Test
+	public final void testFindSink3()
+	{
+		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B","testWset"),config);
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("A")).equals(WMethod.generateSinkState(fsm)));		
+		Assert.assertFalse(fsm.findVertex(VertexID.parseID("B")).equals(WMethod.generateSinkState(fsm)));		
+	}
+	*/
+	
+	/** All states reject-states. */
+	@Test
+	public final void testW_nonAccept1()
+	{
+		String machine = "A-a->A";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("A")).setAccept(false);
+		testWsetconstruction(fsm,false,true,false);
+	}
+	
+	/** Not all states accept-states. */
+	@Test
+	public final void testW_nonAccept2()
+	{
+		String machine = "A-a->A\nB-a->B";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("A")).setAccept(false);
+		testWsetconstruction(fsm,false,true,false);
 	}
 
+	/** C and D are distinguishable via transitions to A and B. */
 	@Test
-	public final void testWset4()
+	public final void testW_nonAccept3()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->A","testWset4"),config);
-		Assert.assertTrue(WMethod.computeWSet_reducedmemory(fsm).isEmpty());
+		String machine = "A-a->A\nB-a->B\nC-b->A\nD-b->B";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("A")).setAccept(false);
+		testWsetconstruction(fsm,false,true,false);
 	}
 
-	/** Equivalent states. */
+	/** C and D are not distinguishable. */
 	@Test
-	public final void testWset5a()
+	public final void testW_nonAccept4()
 	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				true,true);
-	}
-	
-	/** Equivalent states. */
-	@Test
-	public final void testWset5b()
-	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-a->K1\nB-a->B1-z->B2-b->K1\nC-a->C1-b->C2-a->K2-b->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				true,true);
-	}
-	
-	/** Equivalent states. */
-	@Test
-	public final void testWset6()
-	{
-		testWsetconstruction("S-a->A\nS-b->B\nS-c->C\nS-d->D\nS-e->E\nS-f->F\nS-h->H-d->H\nA-a->A1-b->A2-a->K1-m->K1\nB-a->B1-b->B2-b->K1\nC-a->C1-b->C2-a->K2-z->K2\nD-a->D1-b->D2-b->K2\nE-a->E1-b->E2-a->K3-c->K3\nF-a->F1-b->F2-b->K3",
-				false,true);
+		String machine = "A-a->A\nB-a->B\nC-b->A\nD-b->B";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		testWsetconstruction(fsm,true,true,false);
 	}
 
+	/** Loop of sink states. */
 	@Test
-	public final void testWset7()
+	public final void testW_nonAccept5()
 	{
-		testWsetconstruction("A-a->B-a->C-a->A-b->C-b->B",false,true);
+		String machine = "A-a->A\nB-b->C-a->D-b->B";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("C")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("D")).setAccept(false);
+		testWsetconstruction(fsm,true,true,false);
 	}
 	
+	/** Loop of sink states with an outgoing transition to another leaf sink. */
 	@Test
-	public final void testWset8()
+	public final void testW_nonAccept6()
 	{
-		testWsetconstruction("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N",true,true);
+		String machine = "A-a->A\nB-b->C-a->D-b->B\nC-p-#S";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("C")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("D")).setAccept(false);
+		testWsetconstruction(fsm,true,true,false);
 	}
 	
+	/** Loop of sink states with an outgoing transition to a non-sink state. */
 	@Test
-	public final void testWset9()
+	public final void testW_nonAccept7()
 	{
-		testWsetconstruction("A-a->D\nB-a->C\nA-b->B\nD-b->C",false,true);
-	}
-	
-	@Test
-	public final void testWset10()
-	{
-		String machineOrig = "0--a4->0--a2->0--a5->2\n0--a7->4\n0--a9->3\n0--a0->1\n1--a5->0\n1--a3->0\n4--a1->0\n4--a8->3\n3--a4->1\n3--a6->2\n2--a8->4\n2--a4->0\n3--a9->0",
-			machine = null;
-		int a = 4, b = 2;
-		machine = machineOrig.replaceAll(a+"--", "Q"+"--").replaceAll(">"+a, ">"+"Q")
-			.replaceAll(b+"--", a+"--").replaceAll(">"+b, ">"+a)
-			.replaceAll("Q"+"--", b+"--").replaceAll(">"+"Q", ">"+b);
-		testWsetconstruction(machine,false,true);
-	}
-
-	@Test
-	public final void testWset11()
-	{
-		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->6\n0-a3->1\n0-a5->0\n0-a7->7\n0-a10->7\n0-a12->5\n1-a0->9\n1-a1->5\n1-a3->3\n1-a6->3\n1-a8->7\n1-a14->9\n1-a17->9\n1-a18->6\n2-a0->8\n2-a2->8\n2-a3->6\n2-a4->4\n2-a7->3\n2-a9->2\n2-a10->4\n2-a15->5\n3-a0->5\n3-a1->2\n3-a2->2\n3-a7->3\n3-a9->8\n3-a10->0\n3-a15->6\n3-a16->5\n4-a0->8\n4-a4->8\n4-a5->0\n4-a7->4\n4-a11->0\n4-a12->3\n4-a16->0\n4-a19->5\n5-a0->1\n5-a2->1\n5-a5->6\n5-a6->2\n5-a7->9\n5-a9->0\n5-a11->3\n5-a19->5\n6-a0->1\n6-a2->4\n6-a4->7\n6-a9->8\n6-a10->0\n6-a12->1\n6-a18->1\n6-a19->3\n7-a1->6\n7-a5->4\n7-a7->9\n7-a10->9\n7-a12->7\n7-a13->4\n7-a14->6\n7-a15->9\n8-a2->7\n8-a4->1\n8-a5->6\n8-a6->4\n8-a9->0\n8-a11->2\n8-a13->2\n8-a14->7\n9-a2->7\n9-a3->3\n9-a5->4\n9-a6->2\n9-a9->5\n9-a11->2\n9-a16->8\n9-a17->8\n",false,true);
-	}
-
-	@Test
-	public final void testWset12()
-	{
-		testWsetconstruction("0-a0->1\n0-a1->8\n0-a2->7\n0-a7->3\n0-a9->3\n0-a11->8\n0-a12->6\n0-a15->0\n1-a2->0\n1-a4->6\n1-a6->4\n1-a12->5\n1-a13->5\n1-a16->8\n1-a18->6\n1-a19->2\n2-a2->2\n2-a5->7\n2-a8->0\n2-a10->8\n2-a12->8\n2-a13->1\n2-a14->5\n2-a16->8\n3-a3->3\n3-a6->2\n3-a8->7\n3-a10->4\n3-a11->6\n3-a14->9\n3-a15->3\n3-a16->7\n4-a0->4\n4-a3->1\n4-a5->6\n4-a6->7\n4-a10->7\n4-a12->3\n4-a17->4\n4-a18->4\n5-a0->0\n5-a6->3\n5-a7->0\n5-a11->0\n5-a14->4\n5-a16->3\n5-a17->3\n5-a18->4\n6-a0->6\n6-a2->2\n6-a4->1\n6-a10->9\n6-a11->2\n6-a12->1\n6-a17->5\n6-a19->9\n7-a1->5\n7-a2->9\n7-a3->5\n7-a5->1\n7-a7->2\n7-a10->1\n7-a11->0\n7-a16->9\n8-a3->9\n8-a4->9\n8-a5->6\n8-a6->8\n8-a7->6\n8-a12->8\n8-a17->5\n8-a18->9\n9-a1->7\n9-a5->5\n9-a9->1\n9-a10->7\n9-a15->2\n9-a17->0\n9-a18->2\n9-a19->4\n",false,true);
-	}
-
-	@Test
-	public final void testWset13()
-	{
-		testWsetconstruction("0-a0->1\n0-a1->9\n0-a2->5\n0-a4->9\n0-a5->5\n0-a10->9\n0-a11->7\n0-a12->9\n0-a15->8\n0-a16->0\n0-a17->3\n0-a18->8\n1-a0->7\n1-a2->0\n1-a3->2\n1-a4->7\n1-a5->6\n1-a7->6\n1-a8->2\n1-a11->0\n1-a15->0\n1-a17->4\n1-a18->1\n1-a19->4\n2-a0->5\n2-a4->7\n2-a5->0\n2-a6->1\n2-a8->9\n2-a10->9\n2-a11->6\n2-a12->2\n2-a13->6\n2-a15->3\n2-a16->1\n2-a17->0\n3-a1->8\n3-a3->3\n3-a4->5\n3-a6->4\n3-a7->6\n3-a9->1\n3-a10->4\n3-a11->3\n3-a15->6\n3-a16->6\n3-a17->5\n3-a19->6\n4-a0->4\n4-a1->0\n4-a2->5\n4-a3->3\n4-a6->2\n4-a7->2\n4-a8->8\n4-a9->0\n4-a10->5\n4-a16->2\n4-a17->5\n4-a19->4\n5-a0->9\n5-a2->6\n5-a5->1\n5-a7->5\n5-a8->4\n5-a9->2\n5-a11->4\n5-a12->7\n5-a15->7\n5-a17->1\n5-a18->7\n5-a19->7\n6-a4->4\n6-a6->7\n6-a7->9\n6-a9->2\n6-a10->8\n6-a12->3\n6-a13->7\n6-a14->1\n6-a15->8\n6-a16->0\n6-a17->1\n6-a18->2\n7-a1->6\n7-a3->1\n7-a5->2\n7-a6->0\n7-a7->6\n7-a8->3\n7-a9->0\n7-a10->5\n7-a11->4\n7-a15->8\n7-a17->8\n7-a19->2\n8-a0->7\n8-a1->3\n8-a3->9\n8-a4->7\n8-a5->6\n8-a6->1\n8-a8->3\n8-a9->0\n8-a10->3\n8-a11->9\n8-a14->8\n8-a18->4\n9-a0->4\n9-a1->9\n9-a5->8\n9-a6->5\n9-a7->3\n9-a9->9\n9-a10->3\n9-a13->8\n9-a14->5\n9-a15->1\n9-a16->8\n9-a17->2\n",false,false);
-	}
-
-	
-	/** Multiple equivalent states. */
-	@Test
-	public final void testWset14()
-	{
-		testWsetconstruction("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2",true,false);
+		String machine = "A-a->A\nB-b->C-a->D-b->B\nC-p->Q-p->R";
+		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		fsm.findVertex(VertexID.parseID("B")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("C")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("D")).setAccept(false);
+		fsm.findVertex(VertexID.parseID("Q")).setAccept(false);
+		testWsetconstruction(fsm,false,true,false);
 	}
 	
 	private void testReduction(String fsm, String expected)
@@ -847,107 +878,77 @@ public class TestWMethod {
 				"A-a->B-a->B-b->C-b->C-c->D");
 	}
 	
-	/** Multiple non-equivalent states in the presence of incompatible states - should be ignored. */
+	/** Tests that a process to minimise an automaton works, now with non minimal machines. */
 	@Test
-	public final void testWset_incompatibles1()
+	public final void testReduction7()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1"),config);
-		fsm.addToCompatibility(fsm.findVertex("A"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		testWsetconstruction(fsm,false,false);
+		testReduction("A-a-#B / A-b->A","A-b->A");
 	}
 	
-	/** Multiple non-equivalent states in different equivalence classes - should be ignored. */
+	/** Tests that a process to minimise an automaton works, now with non minimal machines. */
 	@Test
-	public final void testWset_incompatibles2()
+	public final void testReduction8()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2"),config);
-		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C3"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C3"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C4"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		fsm.addToCompatibility(fsm.findVertex("C4"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		testWsetconstruction(fsm,true,false);
+		testReduction("A-a-#B / A-b->A / A-c-#C","A-b->A");
 	}
 	
-	/** Multiple non-equivalent states in the same equivalence classes - exception has to be thrown. */
+	/** All states are reject-states. */
 	@Test
-	public final void testWset_incompatibles_fail1()
+	public final void testReduction9()
 	{
-		final LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2"),config);
-		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			testWsetconstruction(fsm,true,false);
-		}},IllegalArgumentException.class,"equivalent states cannot be incompatible");
-	}
-	
-	public class EmptyPermutator implements FsmPermutator {
-		public ArrayList<Pair<CmpVertex, String>> getPermutation(
-				Collection<Pair<CmpVertex, String>> from) {
-			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());
-			result.addAll(from);
-			return result;
-		}
-	}
+		LearnerGraph fsmL = new LearnerGraph(buildGraph("A-a->B-a->C-b->A","testReduction9a"),config),
+		expectedL = new LearnerGraph(buildGraph("A-a->A","testReduction9b"),config);
+		fsmL.findVertex(VertexID.parseID("A")).setAccept(false);
+		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);
+		fsmL.findVertex(VertexID.parseID("C")).setAccept(false);
+		expectedL.findVertex(VertexID.parseID("A")).setAccept(false);
+		
+		// this one directly verifies the machine.
+		LearnerGraph outcome = fsmL.paths.reduce();
+		Assert.assertEquals(0, outcome.getAcceptStateNumber());
+		Assert.assertEquals(1, outcome.getStateNumber());
+		Assert.assertEquals(0, outcome.pathroutines.countEdges());
 
-	public class RandomPermutator implements FsmPermutator {
-		private Random rnd = null;
+		// there is a transition between them in the expected machine.
+		LearnerGraph expectedA = new LearnerGraph(expectedL,config);
+		WMethod.checkM(expectedA, fsmL.paths.reduce());
 		
-		public RandomPermutator(int randomArg)
-		{
-			rnd = new Random(randomArg);
-		}
-		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
-		public ArrayList<Pair<CmpVertex, String>> getPermutation(
-				Collection<Pair<CmpVertex, String>> from) {
-			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());
-			result.addAll(from);
-			
-			for(int i=0;i< from.size();++i)
-			{
-				int first = rnd.nextInt(from.size()), second = rnd.nextInt(from.size());
-				Pair<CmpVertex, String> firstObj = result.get(first);result.set(first,result.get(second));result.set(second,firstObj);
-			}
-			return result;
-		}
+		// there are no transitions in the expected machine.
+		LearnerGraph expectedB = new LearnerGraph(expectedL,config);
+		expectedB.removeTransition(expectedL.transitionMatrix.get(expectedB.findVertex(VertexID.parseID("A"))), "a", expectedB.findVertex(VertexID.parseID("A")));
+		WMethod.checkM(expectedB, fsmL.paths.reduce());
 	}
 	
-	/** Given a machine, this method permutes its states. Tested as a part of testing that 
-	 * W set generation is not affected by the order in which states are presented in
-	 * a string from which a machine is built.
-	 * 
-	 * @param machine machine to permute
-	 * @param perm the permutator function
-	 * @param testName the name to give to the generated machine
-	 */
-	public void testWsetDeterministic(String machine, FsmPermutator perm, String testName)
-	{
-		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName);
-		LearnerGraph fsm = new LearnerGraph(g,config);//visFrame.update(null, g);
-		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
-		LearnerGraph permFsm = fsm.wmethod.Permute(perm);
-		Assert.assertNull(WMethod.checkM(fsm,permFsm));
-		
-		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
-		fsm.wmethod.checkW_is_corrent(newWset);
-		fsm.wmethod.checkW_is_corrent(origWset);
-		permFsm.wmethod.checkW_is_corrent(newWset);
-		permFsm.wmethod.checkW_is_corrent(origWset);
-		
-		Assert.assertTrue(origWset.equals(newWset));
-	}
-
+	/** There are some non-terminal states. */
 	@Test
-	public final void testDeterminism()
+	public final void testReduction10()
 	{
-		String machine = "0-a0->1\n0-a1->9\n0-a2->6\n0-a3->1\n0-a5->0\n0-a7->7\n0-a10->7\n0-a12->5\n1-a0->9\n1-a1->5\n1-a3->3\n1-a6->3\n1-a8->7\n1-a14->9\n1-a17->9\n1-a18->6\n2-a0->8\n2-a2->8\n2-a3->6\n2-a4->4\n2-a7->3\n2-a9->2\n2-a10->4\n2-a15->5\n3-a0->5\n3-a1->2\n3-a2->2\n3-a7->3\n3-a9->8\n3-a10->0\n3-a15->6\n3-a16->5\n4-a0->8\n4-a4->8\n4-a5->0\n4-a7->4\n4-a11->0\n4-a12->3\n4-a16->0\n4-a19->5\n5-a0->1\n5-a2->1\n5-a5->6\n5-a6->2\n5-a7->9\n5-a9->0\n5-a11->3\n5-a19->5\n6-a0->1\n6-a2->4\n6-a4->7\n6-a9->8\n6-a10->0\n6-a12->1\n6-a18->1\n6-a19->3\n7-a1->6\n7-a5->4\n7-a7->9\n7-a10->9\n7-a12->7\n7-a13->4\n7-a14->6\n7-a15->9\n8-a2->7\n8-a4->1\n8-a5->6\n8-a6->4\n8-a9->0\n8-a11->2\n8-a13->2\n8-a14->7\n9-a2->7\n9-a3->3\n9-a5->4\n9-a6->2\n9-a9->5\n9-a11->2\n9-a16->8\n9-a17->8\n";
-		testWsetDeterministic(machine, new EmptyPermutator(), "testDeterminism1_empty");
-		for(int i=0;i<100;++i)
-			testWsetDeterministic(machine, new RandomPermutator(i), "testDeterminism1_random");
+		LearnerGraph fsmL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction10a"),config),
+		expectedL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A","testReduction10b"),config);
+		WMethod.checkM(expectedL, fsmL.paths.reduce());
 	}
 	
+	/** There are some non-terminal states. */
+	@Test
+	public final void testReduction11()
+	{
+		LearnerGraph fsmL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction11a"),config),
+		expectedL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A","testReduction11b"),config);
+		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);
+		WMethod.checkM(expectedL, fsmL.paths.reduce());
+	}
+	
+	/** There are some non-terminal states. */
+	@Test
+	public final void testReduction12()
+	{
+		LearnerGraph fsmL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A / A-b->B2-a->C2-c->A","testReduction12a"),config),
+		expectedL = new LearnerGraph(buildGraph("A-a->B-a->C-c->A","testReduction12b"),config);
+		fsmL.findVertex(VertexID.parseID("B")).setAccept(false);
+		fsmL.findVertex(VertexID.parseID("B2")).setAccept(false);
+		expectedL.findVertex(VertexID.parseID("B")).setAccept(false);
+		WMethod.checkM(expectedL, fsmL.paths.reduce());
+	}
 	
 	/** Adds an entry to the supplied map of pairs of states to labels which distinguish among those states.
 	 * 

@@ -52,6 +52,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.Helper.whatToRun;
+import statechum.JUConstants.VERTEXLABEL;
 import statechum.Test_AttributeMutator.MethodAndArgs;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
@@ -105,7 +106,6 @@ public class TestEqualityComparisonAndHashCode {
 	/** FSMs used in testing of cloning. */
 	private LearnerGraph testGraphJung,testGraphString,testGraphSame;
 
-	
 	static final protected OrigStatePair constructOrigPair(String a,String b)
 	{
 		DirectedSparseVertex aV = new DirectedSparseVertex(), bV = new DirectedSparseVertex();

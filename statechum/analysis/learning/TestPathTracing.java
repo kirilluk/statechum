@@ -22,6 +22,7 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import junit.framework.Assert;
 
@@ -89,7 +90,7 @@ public class TestPathTracing {
 		assert (enteredName == null)? (ExpectedResult >= 0):true;
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final LearnerGraph fsm = new LearnerGraph(g,config);
-		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path)));
+		assertEquals(ExpectedResult, fsm.paths.tracePathPrefixClosed(Arrays.asList(path)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
 		Vertex receivedA = Test_Orig_RPNIBlueFringeLearner.getVertex(g, Arrays.asList(path));
 		CmpVertex receivedB = new LearnerGraph(g,conf).paths.getVertex(Arrays.asList(path));
@@ -110,53 +111,74 @@ public class TestPathTracing {
 	 * accepted from a supplied state or not, and if not whether it is rejected at the correct element.
 	 * 
 	 * @param fsmString a description of an FSM
+	 * @param rejectStates states which are supposed to be marked reject (this method was written before I had support for
+	 * reject-transitions interpretation in string representation of graphs)
 	 * @param path a sequence of labels to follow
 	 * @param ExpectedResult the result to check
 	 * @param The name of the vertex which is expected to be returned by getVertex
 	 * @param config the configuration to pass to LearnerGraph
 	 */
-	public void checkPathFrom(String fsmString, String startingState, String []path, int ExpectedResult, String enteredName, Configuration conf)
+	public void checkPathFrom(String fsmString, List<String> rejectStates, String startingState,String []path, 
+			int ExpectedResult, String enteredName, Configuration conf)
 	{
 		assert (enteredName == null) == (ExpectedResult >= 0);
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM");
 		final LearnerGraph fsm = new LearnerGraph(g,config);
-		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState)));
+		if (rejectStates != null) 
+			for(String reject:rejectStates)
+				fsm.findVertex(VertexID.parseID(reject)).setAccept(false);
+		
+		assertEquals(ExpectedResult, fsm.paths.tracePath(Arrays.asList(path),fsm.findVertex(startingState), conf.isPrefixClosed()));
 		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(new VertexID(enteredName));
 		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, Arrays.asList(path));
-		if (expected == null)
-			Assert.assertNull(received);
-		else
+
+		if (expected != null)
 		{
 			assertEquals(expected.getID(),received.getUserDatum(JUConstants.LABEL));
 			assertEquals(expected.isAccept(),DeterministicDirectedSparseGraph.isAccept(received));
 		}
 	}
-	
+
 	@Test
-	public void testTracePath()
+	public void testTraceEmptyPath1()
 	{
-		checkPath("A-a->B-b->C-c->D", new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config);
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{}), "A", 
+				new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config);
 	}
-	
+
+	@Test
+	public void testTraceEmptyPath2()
+	{
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"A"}), "A", 
+				new String[]{}, 0,null,config);
+	}
+
+	@Test
+	public void testTraceEmptyPath3()
+	{
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"B","C","D"}), "A", 
+				new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config);
+	}
+
 	@Test
 	public void testTracePath1a()
 	{
 		checkPath("A-a->B-b->C-c->D", new String[]{"a"}, AbstractOracle.USER_ACCEPTED,"B",config);
 	}
-	
+
 	@Test
 	public void testTracePath1b()
 	{
-		checkPathFrom("A-a->B-b->C-c->D","B",new String[]{"b"},AbstractOracle.USER_ACCEPTED,"C",config);
+		checkPathFrom("A-a->B-b->C-c->D",null,"B",new String[]{"b"},AbstractOracle.USER_ACCEPTED,"C",config);
 	}
-	
+
 	@Test
 	public void testTracePath2a()
 	{
 		checkPath("A-a->B-b->C-c->D", new String[]{"a","b","c"}, AbstractOracle.USER_ACCEPTED,"D",config);
 	}
-	
+
 	@Test
 	public void testTracePath2b()
 	{
@@ -184,13 +206,13 @@ public class TestPathTracing {
 	@Test
 	public void testTracePath5b()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", "B",new String[]{"c"},0,null,config);
+		checkPathFrom("A-a->B-b->C-c->D", null, "B",new String[]{"c"},0,null,config);
 	}
 	
 	@Test
 	public void testTracePath5c()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", "Q",new String[]{"c"},0,null,config);
+		checkPathFrom("A-a->B-b->C-c->D", null, "Q",new String[]{"c"},0,null,config);
 	}
 	
 	@Test
@@ -208,12 +230,84 @@ public class TestPathTracing {
 	@Test
 	public void testTracePath8()
 	{
-		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d"}, 3,null,config);
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d"}, 2,null,config);
 	}
 	
 	@Test
 	public void testTracePath9()
 	{
-		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 3,null,config);
+		checkPath("A-a->B-b->C-c-#D", new String[]{"a","b","c","d","e"}, 2,null,config);
 	}
+	
+	@Test
+	public void testTracePath10()
+	{
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+				new String[]{"a","b","c","d","e"}, 0,null,config);
+	}
+	
+	@Test
+	public void testTracePath11a()
+	{
+		config.setPrefixClosed(true);
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C"}),"A",
+				new String[]{"a","b","c","a","a"}, 0,null,config);
+	}
+	
+	@Test
+	public void testTracePath11b()
+	{
+		config.setPrefixClosed(false);
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C"}),"A",
+				new String[]{"a","b","c","a","a"}, AbstractOracle.USER_ACCEPTED,"D",config);
+	}
+	
+	@Test
+	public void testTracePath12a()
+	{
+		config.setPrefixClosed(true);
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+				new String[]{"a","b","c","a","a"}, 0,null,config);
+	}
+	
+	@Test
+	public void testTracePath12b()
+	{
+		config.setPrefixClosed(false);
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+				new String[]{"a","b","c","a","a"}, 4,null,config);
+	}
+	
+	@Test
+	public void testTracePath13a()
+	{
+		config.setPrefixClosed(true);
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"B","C"}),"A",
+				new String[]{"a","b","c","a","a","b"}, 0,null,config);
+	}
+	
+	@Test
+	public void testTracePath13b()
+	{
+		config.setPrefixClosed(false);
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"B","C"}),"A",
+				new String[]{"a","b","c","a","a","b"},5,null,config);
+	}
+	
+	@Test
+	public void testTracePath14a()
+	{
+		config.setPrefixClosed(true);
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"C"}),"A",
+				new String[]{"a","b","c","a","a","c"}, 1,null,config);
+	}
+	
+	@Test
+	public void testTracePath14b()
+	{
+		config.setPrefixClosed(false);
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"C"}),"A",
+				new String[]{"a","b","c","a","a","c"}, 5,null,config);
+	}
+	
 }

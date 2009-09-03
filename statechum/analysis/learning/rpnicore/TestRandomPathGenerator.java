@@ -294,7 +294,7 @@ public class TestRandomPathGenerator {
 				Collection<List<String>> currentNeg = generator.getAllSequences(i).getData(PTASequenceEngine.truePred);
 				Assert.assertEquals("chunk "+i+" (neg) should be of length "+(posOrNegPerChunk*(i+1))+" but it was "+currentNeg.size(),(posOrNegPerChunk*(i+1)), currentNeg.size());
 				for(List<String> s:currentNeg)
-					Assert.assertTrue("path "+s+" should not exist",graph.paths.tracePath(s) >=0);
+					Assert.assertTrue("path "+s+" should not exist",graph.paths.tracePathPrefixClosed(s) >=0);
 				Assert.assertEquals(0, generator.getAllSequences(i).getData().size());// all seq reject ones
 				if (previousChunkNeg != null) currentNeg.containsAll(previousChunkNeg);
 				previousChunkNeg = currentNeg;
@@ -304,7 +304,7 @@ public class TestRandomPathGenerator {
 				Assert.assertEquals("chunk "+i+" (pos) should be of length "+(posOrNegPerChunk*(i+1))+" but it was "+currentPos.size(),(posOrNegPerChunk*(i+1)), currentPos.size());
 				Assert.assertEquals((posOrNegPerChunk*(i+1)), generator.getExtraSequences(i).getData().size());// all seq accept ones
 				for(List<String> s:currentPos)
-					Assert.assertTrue("path "+s+" should exist",graph.paths.tracePath(s) == AbstractOracle.USER_ACCEPTED);
+					Assert.assertTrue("path "+s+" should exist",graph.paths.tracePathPrefixClosed(s) == AbstractOracle.USER_ACCEPTED);
 				if (previousChunkPos != null) currentPos.containsAll(previousChunkPos);
 				previousChunkPos = currentPos;
 			}
@@ -380,7 +380,7 @@ public class TestRandomPathGenerator {
 				}
 			});
 			for(List<String> s:currentSequences)
-				if(graph.paths.tracePath(s) >=0) 
+				if(graph.paths.tracePathPrefixClosed(s) >=0) 
 				{
 					++negative;
 					Assert.assertFalse(positivePTA.containsSequence(s));Assert.assertTrue(negativePTA.containsSequence(s));

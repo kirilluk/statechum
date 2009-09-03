@@ -20,8 +20,8 @@
    <object class="statechum.GlobalConfiguration$WindowPosition"> 
     <void property="rect"> 
      <object class="java.awt.Rectangle"> 
-      <int>2640</int> 
-      <int>4</int> 
+      <int>697</int> 
+      <int>341</int> 
       <int>774</int> 
       <int>622</int> 
      </object> 

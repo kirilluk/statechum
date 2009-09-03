@@ -86,7 +86,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);
-					return new Pair<Integer,String>(graph.paths.tracePath(question),null);
+					return new Pair<Integer,String>(graph.paths.tracePathPrefixClosed(question),null);
 				}
 			};
 			QuestionAndRestartCounter l = new QuestionAndRestartCounter(learner);

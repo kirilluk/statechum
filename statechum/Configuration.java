@@ -279,6 +279,21 @@ public class Configuration implements Cloneable
 		this.bumpPositives = bumpPositivesArg;
 	}
 
+	/** Much of the current learning techniques expect prefix-closed automata, but many of them can be adapted for non-prefix-closed ones.
+	 * The choice depends on the variable below.
+	 */
+	protected boolean prefixClosed  = true;
+	
+	public boolean isPrefixClosed()
+	{
+		return prefixClosed;
+	}
+	
+	public void setPrefixClosed(boolean closed)
+	{
+		prefixClosed = closed;
+	}
+	
 	@Override
 	public Object clone() {
 		try {
@@ -416,6 +431,7 @@ public class Configuration implements Cloneable
 		result = prime * result + howManyStatesToAddFromIFTHEN;
 		result = prime * result + smtGraphDomainConsistencyCheck.hashCode();
 		result = prime * result + smtGraphRangeConsistencyCheck.hashCode();
+		result = prime * result + (prefixClosed?  1231 : 1237);
 		return result;
 	}
 
@@ -525,6 +541,8 @@ public class Configuration implements Cloneable
 		if (smtGraphDomainConsistencyCheck != other.smtGraphDomainConsistencyCheck)
 			return false;
 		if (smtGraphRangeConsistencyCheck != other.smtGraphRangeConsistencyCheck)
+			return false;
+		if (prefixClosed != other.prefixClosed)
 			return false;
 		
 		return true;

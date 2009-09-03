@@ -104,7 +104,7 @@ public class Transform
 	{
 		List<Boolean> result = new LinkedList<Boolean>();
 		for(List<String> seq:wSet)
-			result.add(g.paths.tracePath(seq,state) == AbstractOracle.USER_ACCEPTED);
+			result.add(g.paths.tracePathPrefixClosed(seq,state) == AbstractOracle.USER_ACCEPTED);
 		return result;
 	}
 	
@@ -227,7 +227,7 @@ public class Transform
 				LearnerGraph newGraph = new LearnerGraph(coregraph,coregraph.config);
 				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
-				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet);
+				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet,true);
 				boolean changed = (description != null);
 /*
 				for(Entry<CmpVertex,Map<String,CmpVertex>> state:graph.transitionMatrix.entrySet())
@@ -435,6 +435,7 @@ public class Transform
 		public ExplorationElement(CmpVertex tentativeGraphState, LearnerGraph thenG, CmpVertex thenS, int IFgraph, CmpVertex IFstate, int currDepth, Object input, ExplorationElement previous)
 		{
 			graphState = tentativeGraphState;thenGraph = thenG;thenState = thenS;propertyGraph = IFgraph;IFState = IFstate;depth = currDepth;
+			assert (thenGraph == null) == (thenState == null) : " then graph is "+((thenGraph == null)?"NULL":thenGraph)+" but then state is "+((thenState == null)?"NULL":thenState);
 			previousElement =previous;
 			assert input == null || input instanceof PAIRCOMPATIBILITY || input instanceof String;
 			inputToThisState = input;
@@ -506,7 +507,7 @@ public class Transform
 		 */
 		@Override
 		public String toString() {
-			return "( graph: "+graphState+", THEN: "+thenState+" from "+thenGraph+", IF state: "+IFState+ ", depth: "+depth+" )";
+			return "( graph: "+graphState+", THEN: "+thenState+" from "+thenGraph+", IF state: "+IFState+ ", edepth: "+depth+" )";
 		}
 	}
 
@@ -602,6 +603,7 @@ public class Transform
 			propertyStatesForThisGraphState.add(explorationElement);
 		return result;
 	}
+	
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
 	 * property answers the supplied questions.
 	 * <p>
@@ -622,7 +624,6 @@ public class Transform
 	{
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
 			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
-		
 		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
 			for(CmpVertex state:graph.transitionMatrix.keySet())
 				if (state.getID().getKind() == VertKind.NONEXISTING)
@@ -697,13 +698,10 @@ public class Transform
 			Map<String,CmpVertex> graphTargets = nonexistingMatrix.get(explorationElement.graphState);
 			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 				graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
-			if (explorationElement.graphState.getID().getKind() == VertKind.NONEXISTING)
-				nonExistingVertices.remove(explorationElement.graphState);// we may attempt to remove an element which exists but it does matter since removing an element from a collection not containing that element is fine 
-
+			
 			Map<String,CmpVertex> thenTargets = explorationElement.thenState == null?null:explorationElement.thenGraph.transitionMatrix.get(explorationElement.thenState);
 			List<String> labelsOnOutgoingTransitions = new LinkedList<String>();labelsOnOutgoingTransitions.addAll(graphTargets.keySet());
 			if (thenTargets != null) labelsOnOutgoingTransitions.addAll(thenTargets.keySet());// Exploring the added "THEN" graph, by adding the appropriate states to the graph or following question PTA.
-			
 			for(String label:labelsOnOutgoingTransitions)
 			{
 				CmpVertex nextGraphState = graphTargets.get(label);
@@ -711,6 +709,7 @@ public class Transform
 				Map<String,CmpVertex> IFTargets = explorationElement.IFState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.IFState);
 				CmpVertex nextPropertyState = IFTargets == null?null:IFTargets.get(label);
 				final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
+				final LearnerGraph nextThenGraph = nextThenState == null?null:explorationElement.thenGraph;
 				int depth = explorationElement.depth;
 				
 				if (nextGraphState == null && nextThenState != null && depth < howManyToAdd)
@@ -721,11 +720,6 @@ public class Transform
 					DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);
 					graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
 					
-					// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
-					// consider what the new transition may bring.  We hence add all previously-considered states
-					// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
-					// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
-					// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
 					for(int i=0;i<ifthenGraphs.length;++i)
 						for(ExplorationElement elem:visited[i].get(explorationElement.graphState))
 							if (elem.IFState != null)
@@ -735,10 +729,10 @@ public class Transform
 								currentExplorationBoundary.offer(elem);
 							}
 				}
+				
 				if (newStates.contains(nextGraphState))
 					++depth;// we made one more transition out the graph. It does not matter whether nextGraphState has just been added or we're threading on a path added by some other THEN part.
-
-				ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,explorationElement.thenGraph,nextThenState,explorationElement.propertyGraph,nextPropertyState,depth, label,explorationElement);
+				ExplorationElement nextExplorationElement = new ExplorationElement(nextGraphState,nextThenGraph,nextThenState,explorationElement.propertyGraph,nextPropertyState,depth, label,explorationElement);
 				if (
 						// An IF part can match a part of a question but unless we know we can get there 
 						// (either by a user confirming that part by answering a question or by THEN parts),
@@ -747,8 +741,8 @@ public class Transform
 						// in the absence of an active THEN part to extend, when
 						// a graph can make a transition into a questions PTA or it is already
 						// in the questions PTA and the current transition leads to an element which was not previously explored.
-					nextExplorationElement.graphState != null // always non-null
-						&& ( nextExplorationElement.thenState != null || nextExplorationElement.IFState != null) // junk useless states
+						nextGraphState != null && // it will be null when we've exhausted the depth of exploration
+						( nextExplorationElement.thenState != null || nextExplorationElement.IFState != null) // junk useless states
 							&& !(nextExplorationElement.thenState == null // we have no THEN part to extend 
 									&& nonExistingVertices.contains(nextExplorationElement.graphState)) // a user has not confirmed this part of question PTA 
 							&& !hasBeenVisited(visited,nextExplorationElement)			
@@ -756,6 +750,29 @@ public class Transform
 				{// not seen this triple already and if we are traversing question vertices then we should be extending using the THEN part.
 					//System.out.println("G: "+explorationElement+"-"+label+"->"+nextExplorationElement);
 					currentExplorationBoundary.offer(nextExplorationElement);
+
+					if (nextGraphState.getID().getKind() == VertKind.NONEXISTING && nonExistingVertices.contains(nextGraphState))
+					{// we're extending into the area of questions not previously visited
+						nonExistingVertices.remove(nextGraphState);
+					
+						// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
+						// consider what the new transition may bring.  We hence add all previously-considered states
+						// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
+						// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
+						// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
+						for(int i=0;i<ifthenGraphs.length;++i)
+						{
+							Set<ExplorationElement> previouslyVisited = visited[i].get(explorationElement.graphState);
+							if (previouslyVisited != null)
+								for(ExplorationElement elem:previouslyVisited)
+									if (elem.IFState != null)
+									{// if we have not been matching IF part at this point (this happens when we 
+									 // unroll THEN through some paths some of which are in a tentative automaton), 
+									 // there is no point extending. 
+										currentExplorationBoundary.offer(elem);
+									}
+						}
+					}
 				}
 			}
 			

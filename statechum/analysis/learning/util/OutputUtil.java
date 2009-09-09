@@ -116,7 +116,12 @@ public class OutputUtil {
 		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
 			//Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
 			//if(!v.toString().equals("Init") && accepted.booleanValue())
-				graphout.write("\n"+(vertexList.indexOf(v)+1));
+			String label = null;	
+			if(v.getUserDatum(JUConstants.INITIAL)!=null)
+				label = "init";
+			else
+				label = v.toString();
+			graphout.write("\n"+(vertexList.indexOf(v)+1) + " \""+label+"\"");
 		}
 		graphout.write("\n*Arcs");
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {

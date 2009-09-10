@@ -24,7 +24,7 @@ public class ForestFireIntermediateNegativesGenerator extends
 		super(forwards, backwards, alphabetSize, seed);
 	}
 
-	protected LearnerGraph buildMachine(int size) {
+	protected LearnerGraph buildMachine(int size) throws Exception{
 		boolean accept = true;
 		labelmap = new HashMap<Object,DirectedSparseVertex>();
 		for(int i=0;i<size-1;i++){
@@ -53,19 +53,15 @@ public class ForestFireIntermediateNegativesGenerator extends
 			visited.clear();
 			accept = !accept;
 		}
-		boolean success = true;
-		if(!success)
-			return null;
-		else{
-			Configuration conf = Configuration.getDefaultConfiguration();
-			conf.setAllowedToCloneNonCmpVertex(true);
-			
-			LearnerGraph l = new LearnerGraph(machine,conf);
-			l = l.paths.reduce();
-			System.out.println(l.pathroutines.computeAlphabet().size() + ", "+l.getStateNumber());
-			Visualiser.updateFrame(l, null);
-			return l;
-		}
+		
+		Configuration conf = Configuration.getDefaultConfiguration();
+		conf.setAllowedToCloneNonCmpVertex(true);
+		
+		LearnerGraph l = new LearnerGraph(machine,conf);
+		l = l.paths.reduce();
+		System.out.println(l.pathroutines.computeAlphabet().size() + ", "+l.getStateNumber());
+		Visualiser.updateFrame(l, null);
+		return l;
 	}
 
 }

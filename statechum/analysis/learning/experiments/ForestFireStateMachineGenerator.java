@@ -71,7 +71,7 @@ public class ForestFireStateMachineGenerator {
 		addInitialNode();
 	}
 
-	protected LearnerGraph buildMachine(int size) {
+	protected LearnerGraph buildMachine(int size) throws Exception {
 		for(int i=0;i<size;i++){
 			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
 			visited.add(v);

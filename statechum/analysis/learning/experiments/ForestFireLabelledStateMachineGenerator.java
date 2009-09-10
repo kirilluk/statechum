@@ -56,7 +56,7 @@ public class ForestFireLabelledStateMachineGenerator extends
 		this.alphabet=alphabet;
 	}
 	
-	protected LearnerGraph buildMachine(int size) {
+	protected LearnerGraph buildMachine(int size) throws Exception {
 		labelmap = new HashMap<Object,DirectedSparseVertex>();
 		for(int i=0;i<size-1;i++){
 			DirectedSparseVertex v =  new DirectedSparseVertex();
@@ -72,9 +72,7 @@ public class ForestFireLabelledStateMachineGenerator extends
 				random = selectRandom(tried);
 				tried.add(random);
 				if(random == null){
-					System.out.println("Could not construct complete machine");
-					machine.removeVertex(v);
-					return new LearnerGraph(machine,Configuration.getDefaultConfiguration());
+					throw new Exception("Could not construct machine");
 				}
 			}
 			visited.add(random);
@@ -82,29 +80,10 @@ public class ForestFireLabelledStateMachineGenerator extends
 			vertices.add(v);
 			visited.clear();
 		}
-		Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>> equivalents = ensureMinimal();
-		boolean success = true;
-		for (AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass : equivalents) {
-			success = differentiate(equivalenceClass);
-		}
-		if(!success)
-			return null;
-		else{
-			Configuration conf = Configuration.getDefaultConfiguration();
-			conf.setAllowedToCloneNonCmpVertex(true);
-			return new LearnerGraph(machine,conf);
-		}
-	}
-	
-	protected Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  ensureMinimal(){
+		
 		Configuration conf = Configuration.getDefaultConfiguration();
 		conf.setAllowedToCloneNonCmpVertex(true);
-		try{
-			WMethod.computeWSetOrig(new LearnerGraph(machine, conf));
-		} catch(EquivalentStatesException e){
-			return e.getEquivalentStates();
-		}
-		return new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		return new LearnerGraph(machine,conf).paths.reduce();
 	}
 	
 	private boolean differentiate(AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass){

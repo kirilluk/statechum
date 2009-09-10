@@ -93,12 +93,12 @@ public class TestLearnerGraphND {
 	@Test
 	public final void testbuildDeterministicGraph0b() throws IncompatibleStatesException
 	{
-		LearnerGraphND graph = new LearnerGraphND(config);graph.init.setAccept(false);
+		LearnerGraphND graph = new LearnerGraphND(config);graph.getInit().setAccept(false);
 		LearnerGraph converted = graph.pathroutines.buildDeterministicGraph();
-		Assert.assertTrue(converted.init.getID().equals(VertexID.parseID("P1000")));// the original name is preserved ...
-		Assert.assertFalse(converted.init.isAccept());// as is the accept condition.
+		Assert.assertTrue(converted.getInit().getID().equals(VertexID.parseID("P1000")));// the original name is preserved ...
+		Assert.assertFalse(converted.getInit().isAccept());// as is the accept condition.
 		Assert.assertEquals(1,converted.transitionMatrix.size());
-		Assert.assertTrue(converted.transitionMatrix.get(converted.init).isEmpty());
+		Assert.assertTrue(converted.transitionMatrix.get(converted.getInit()).isEmpty());
 	}
 	
 	/** Tests that conversion from non-deterministic matrix to a deterministic one works. 
@@ -335,7 +335,7 @@ public class TestLearnerGraphND {
 	public final void testConvertToND3()
 	{
 		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		LearnerGraph actual = new LearnerGraph(new LearnerGraphND(graph,graph.config),config);
 		Assert.assertNull(WMethod.checkM_and_colours(actual, graph,WMethod.VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -389,7 +389,7 @@ public class TestLearnerGraphND {
 			Collections.sort(mapEntry.getValue());
 		
 		Assert.assertEquals(A.transitionMatrix,B.transitionMatrix);
-		Assert.assertEquals(A.init,B.init);
+		Assert.assertEquals(A.getInit(),B.getInit());
 	}
 	
 	/** An empty graph. */
@@ -421,9 +421,9 @@ public class TestLearnerGraphND {
 	public final void testBuildInverse3()
 	{
 		LearnerGraphND graph = new LearnerGraphND(Configuration.getDefaultConfiguration());graph.initPTA();
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		LearnerGraphND expected = new LearnerGraphND(Configuration.getDefaultConfiguration());expected.initPTA();
-		expected.init.setAccept(false);
+		expected.getInit().setAccept(false);
 
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());
 		LearnerGraphND.buildInverse(graph, LearnerGraphND.ignoreNone, actual);

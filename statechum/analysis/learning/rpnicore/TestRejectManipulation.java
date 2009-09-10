@@ -231,7 +231,7 @@ public class TestRejectManipulation {
 	@Test(expected=IllegalArgumentException.class)
 	public final void testRemoveRejects_fail1()
 	{
-		LearnerGraph graph = new LearnerGraph(config);graph.init.setAccept(false);
+		LearnerGraph graph = new LearnerGraph(config);graph.getInit().setAccept(false);
 		AbstractPathRoutines.removeRejectStates(graph,new LearnerGraph(config));
 	}
 
@@ -240,7 +240,7 @@ public class TestRejectManipulation {
 	{
 		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D";
 		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects1A"), config);
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		AbstractPathRoutines.removeRejectStates(graph,new LearnerGraph(config));
 	}
 
@@ -249,7 +249,7 @@ public class TestRejectManipulation {
 	{
 		String fsmOrig = "A-a-#D";
 		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects_fail3"), config);
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		AbstractPathRoutines.removeRejectStates(graph,new LearnerGraph(config));
 	}
 }

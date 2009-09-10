@@ -144,7 +144,7 @@ final public class TestAugmentUsingIFTHEN
 	{
 		final Configuration config = Configuration.getDefaultConfiguration();
 		LearnerGraph gr = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
-		LearnerGraph max = new LearnerGraph(config);max.init.setAccept(false);
+		LearnerGraph max = new LearnerGraph(config);max.getInit().setAccept(false);
 		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
 		Assert.assertNull(WMethod.checkM(max, result));
 	}
@@ -154,7 +154,7 @@ final public class TestAugmentUsingIFTHEN
 	{
 		final Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph gr = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
-		final LearnerGraph max = new LearnerGraph(config);max.init.setAccept(false);
+		final LearnerGraph max = new LearnerGraph(config);max.getInit().setAccept(false);
 		checkForCorrectException(new whatToRun() {	public void run() throws NumberFormatException 
 			{
 				Transform.augmentFromMAX(gr, max, false, true,config, true);
@@ -165,7 +165,7 @@ final public class TestAugmentUsingIFTHEN
 	public final void testAugmentFromMax6_BA()
 	{
 		final Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph gr = new LearnerGraph(config);gr.init.setAccept(false);
+		LearnerGraph gr = new LearnerGraph(config);gr.getInit().setAccept(false);
 		LearnerGraph max = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr"),config);
 		LearnerGraph result = Transform.augmentFromMAX(gr, max, true, true,config,true);
 		Assert.assertNull(result);
@@ -251,7 +251,7 @@ final public class TestAugmentUsingIFTHEN
 	public final void testCheckIFTHEN_fail0b()
 	{
 		Helper.checkForCorrectException(new whatToRun() { public void run() {
-			LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());graph.init.setAccept(false);
+			LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());graph.getInit().setAccept(false);
 			Transform.checkTHEN_disjoint_from_IF(graph);
 		}}, IllegalArgumentException.class,"no THEN states");
 	}
@@ -299,7 +299,7 @@ final public class TestAugmentUsingIFTHEN
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = new LearnerGraph(FsmParser.buildGraph("I-a->A-b->A / I-b->IA-a->A / I-c->IA-b->IA-c->IA / P-c-#P1 / P-a-#P2 / A = THEN = P / " +
 				"I - transition_to_THEN ->P","!("+ltlFormula+")"),config);
-		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.init), "transition_to_THEN", topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
+		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.getInit()), "transition_to_THEN", topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
 		graphIter = automata.iterator();
 		compareGraphs(expectedTop,graphIter.next());
 		Assert.assertFalse(graphIter.hasNext());
@@ -322,18 +322,18 @@ final public class TestAugmentUsingIFTHEN
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = new LearnerGraph(FsmParser.buildGraph("I-c->A / I-d->A / A-a->A-b->A-c->A-d->A / P2#-b-P-a-#P1 / I = THEN = P / " +
 				"I - transition_to_THEN ->P","!("+ltlFormulaA+"||"+ltlFormulaB+")"),config);
-		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.init), "transition_to_THEN", topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
+		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.getInit()), "transition_to_THEN", topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
 		LearnerGraph next = null;
 		compareGraphs(expectedTop, topGraph);Assert.assertEquals("LTL",topGraph.getName());
 		
 		next=graphIter.next();Assert.assertEquals("graphA", next.getName());
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN", next.findVertex("P"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN", next.findVertex("P"));
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a->B / P-a->P == THEN == A-transition_to_THEN->P","1"),config),next);
 		
 		next=graphIter.next();Assert.assertEquals("graphB", next.getName());
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_P", next.findVertex("P"));
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_S", next.findVertex("S"));
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_T", next.findVertex("T"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_P", next.findVertex("P"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_S", next.findVertex("S"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_T", next.findVertex("T"));
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph(ifthenA+" / A-transition_to_THEN_P->P / A-transition_to_THEN_S->S / A-transition_to_THEN_T->T","2"),config),next);
 		Assert.assertFalse(graphIter.hasNext());
 	}
@@ -353,13 +353,13 @@ final public class TestAugmentUsingIFTHEN
 		LearnerGraph next = null;
 		
 		next=graphIter.next();Assert.assertEquals("graphA", next.getName());
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN", next.findVertex("P"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN", next.findVertex("P"));
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph("A-a->B / P-a->P == THEN == A-transition_to_THEN->P","1"),config),next);
 		
 		next=graphIter.next();Assert.assertEquals("graphB", next.getName());
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_P", next.findVertex("P"));
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_S", next.findVertex("S"));
-		next.addTransition(next.transitionMatrix.get(next.init), "transition_to_THEN_T", next.findVertex("T"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_P", next.findVertex("P"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_S", next.findVertex("S"));
+		next.addTransition(next.transitionMatrix.get(next.getInit()), "transition_to_THEN_T", next.findVertex("T"));
 		compareGraphs(new LearnerGraph(FsmParser.buildGraph(ifthenA+" / A-transition_to_THEN_P->P / A-transition_to_THEN_S->S / A-transition_to_THEN_T->T","2"),config),next);
 		Assert.assertFalse(graphIter.hasNext());
 	}

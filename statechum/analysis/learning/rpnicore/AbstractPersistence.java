@@ -74,7 +74,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	/** Returns the ID of the node, prepending Initial as appropriate for the initial state. */
 	protected String transformNodeName(CmpVertex node)
 	{
-		return (node == coregraph.init? Initial+" ":"")+node.getID().toString(); 
+		return (node == coregraph.getInit()? Initial+" ":"")+node.getID().toString(); 
 	}
 
 	/** Writes a graph into a graphML file. All vertices are written. */

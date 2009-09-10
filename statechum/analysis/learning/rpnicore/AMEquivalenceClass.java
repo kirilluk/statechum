@@ -108,7 +108,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		{
 			int vertDepth = vert.getDepth();
 			int currentDepth = representative.getDepth();
-			if (vert == coregraph.init)
+			if (vert == coregraph.getInit())
 				representative = vert;// the special case for graphs not built from PTAs where depth labelling would ensure that the init state is chosen as representative. 
 			else
 			if (coregraph.config.isIgnoreDepthInTheChoiceOfRepresentatives())

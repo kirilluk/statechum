@@ -308,9 +308,9 @@ public final class TestGraphConstruction
 		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
 		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,graph.transitionMatrix.equals(expected.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -325,9 +325,9 @@ public final class TestGraphConstruction
 		expected.transitionMatrix.put(A, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),B,null), null, A));
 		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),C,null), null, B));
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null), null, C));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,graph.transitionMatrix.equals(expected.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -347,9 +347,9 @@ public final class TestGraphConstruction
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"c"}),
 				new StringVertex("A"),null), null, C));
 		expected.transitionMatrix.put(D, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, D));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -367,9 +367,9 @@ public final class TestGraphConstruction
 				createLabelToStateMap(Arrays.asList(new String[] {"r","p","q"}),C,null)), null, B));
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null)), null, C));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -389,13 +389,13 @@ public final class TestGraphConstruction
 		expected.transitionMatrix.put(D, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"b"}),B, 
 				createLabelToStateMap(Arrays.asList(new String[] {"c"}),A,null)), null, D));
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		expected.findVertex("A").setAccept(true);
 		expected.findVertex("B").setAccept(true);
 		expected.findVertex("C").setAccept(false);
 		expected.findVertex("D").setAccept(true);
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -413,9 +413,9 @@ public final class TestGraphConstruction
 		expected.transitionMatrix.put(B, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"d"}),B,
 				createLabelToStateMap(Arrays.asList(new String[] {"b","r","p","q"}),C,null)), null, B));
 		expected.transitionMatrix.put(C, convertRowToDet(expected,createLabelToStateMap(Collections.EMPTY_LIST,null,null), null, C));
-		expected.init = expected.findVertex("A");
+		expected.setInit(expected.findVertex("A"));
 		
-		assertEquals("A", graph.init.getID().toString());
+		assertEquals("A", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);		
 	}
@@ -431,9 +431,9 @@ public final class TestGraphConstruction
 				createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,null)), null, P));
 		expected.transitionMatrix.put(Q_State, convertRowToDet(expected,createLabelToStateMap(Arrays.asList(new String[] {"a"}),Q_State,
 				createLabelToStateMap(Arrays.asList(new String[] {"b"}),P,null)), null, Q_State));
-		expected.init = expected.findVertex("P");
+		expected.setInit(expected.findVertex("P"));
 		
-		assertEquals("P", graph.init.getID().toString());
+		assertEquals("P", graph.getInit().getID().toString());
 		assertEquals("incorrect transition set",true,expected.transitionMatrix.equals(graph.transitionMatrix));
 		equalityTestingHelper(graph,expected,differentA,differentB);
 	}

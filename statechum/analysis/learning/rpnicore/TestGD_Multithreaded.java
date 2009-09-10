@@ -362,12 +362,12 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5b_RA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
+		LearnerGraph grA = new LearnerGraph(config);grA.getInit().setAccept(false);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		LearnerGraph graph = new LearnerGraph(config);graph.setInit(null);graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -378,11 +378,11 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.getInit().setAccept(false);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		LearnerGraph graph = new LearnerGraph(config);graph.setInit(null);graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -392,12 +392,12 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		LearnerGraph grA = new LearnerGraph(config);grA.getInit().setAccept(false);
+		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.getInit().setAccept(false);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		LearnerGraph graph = new LearnerGraph(config);graph.setInit(null);graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -422,12 +422,12 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5d_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
+		LearnerGraph grA = new LearnerGraph(config);grA.getInit().setAccept(false);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		LearnerGraph graph = new LearnerGraph(config);graph.setInit(null);graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -453,7 +453,7 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.init.setAccept(false);
+		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.getInit().setAccept(false);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
@@ -619,12 +619,12 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		config.setGdMaxNumberOfStatesInCrossProduct(0);
-		LearnerGraph grA = new LearnerGraph(config);grA.init.setAccept(false);
+		LearnerGraph grA = new LearnerGraph(config);grA.getInit().setAccept(false);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(config);graph.init = null;graph.transitionMatrix.clear();
+		LearnerGraph graph = new LearnerGraph(config);graph.setInit(null);graph.transitionMatrix.clear();
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}

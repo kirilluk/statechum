@@ -729,7 +729,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				for(TARGET_TYPE targets:entry.getValue().values())
 					statesInGraph.removeAll(graph.getTargets(targets));// and remove those used as targets
-			statesInGraph.remove(graph.init);// initial state should stay
+			statesInGraph.remove(graph.getInit());// initial state should stay
 			statesInGraph.removeAll(statesToInclude);// as should those which have been explicitly added.
 			graph.transitionMatrix.keySet().removeAll(statesInGraph);
 		}
@@ -738,7 +738,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void setInitial(CmpVertex vertex) {
 			if (next != null) next.setInitial(vertex);
 			
-			graph.init = addNewVertex(vertex); // assuming that addNewVertex has been tested as a part of integration testing of addTransition :)
+			graph.setInit(addNewVertex(vertex)); // assuming that addNewVertex has been tested as a part of integration testing of addTransition :)
 		}
 
 		public void addVertex(CmpVertex vertex) {
@@ -815,7 +815,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				}
 			}
 			
-			result.init = oldToNew.get(graph.init);
+			result.setInit(oldToNew.get(graph.getInit()));
 			AbstractLearnerGraph.addAndRelabelGraphs(graph, oldToNew, result);
 			result.setIDNumbers();// have to do this because we used different IDs than those used in the outcome of patching
 		}
@@ -995,7 +995,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			next = nextInStack;
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			added = new LearnerGraphND(config);removed = new LearnerGraphND(config);removed.initEmpty();
-			added.init = null;added.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
+			added.setInit(null);added.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
 			addedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(added, config,null);
 			removedPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(removed,config,null);
 		}
@@ -1023,7 +1023,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		/** Writes the recorded changes in a form of an XML tag. */
 		protected Element writeGD(Document doc)
 		{
-			if (added.init == null) throw new IllegalArgumentException("init state is was not defined");
+			if (added.getInit() == null) throw new IllegalArgumentException("init state is was not defined");
 			Element gd = doc.createElement(StatechumXML.gdGD.toString()), addedNode = doc.createElement(StatechumXML.gdAdded.toString()), removedNode = doc.createElement(StatechumXML.gdRemoved.toString()), relabellingNode = doc.createElement(StatechumXML.gdRelabelling.toString());
 			addedNode.appendChild(added.storage.createGraphMLNode(doc));removedNode.appendChild(removed.storage.createGraphMLNode(doc));
 			for(Entry<VertexID,VertexID> entry:relabelling.entrySet())
@@ -1163,7 +1163,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						graphPatcher.addRelabelling(pair.getQ().getID(), pair.getR().getID());
 					}
 			}
-			graphPatcher.setInitial(gr.init);
+			graphPatcher.setInitial(gr.getInit());
 		}
 
 		public void setInitial(CmpVertex vertex) 
@@ -1219,7 +1219,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		grCombined.config.setLearnerCloneGraph(false);//reset the clone attribute
 		grCombined.vertNegativeID=Math.max(grCombined.vertNegativeID, b.vertNegativeID);// we aim for new vertices in grCombined to have ids different from all vertices in B. 
 		grCombined.vertPositiveID=Math.max(grCombined.vertPositiveID, b.vertPositiveID);
-		combined_initA = grCombined.init;
+		combined_initA = grCombined.getInit();
 		origToNewB = new TreeMap<CmpVertex,CmpVertex>();
 		statesOfA = new TreeSet<CmpVertex>();statesOfA.addAll(grCombined.transitionMatrix.keySet());
 

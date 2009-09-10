@@ -933,7 +933,7 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_N+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-			final LearnerGraph graph = new LearnerGraph(config);graph.init.setAccept(false);
+			final LearnerGraph graph = new LearnerGraph(config);graph.getInit().setAccept(false);
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
 			
 			// no check - everything seems ok.
@@ -1403,7 +1403,7 @@ public class TestSmtLabelRepresentation {
 		public final void testBuildVertexToAbstractStateMapConsistency_fail1()
 		{
 			graph.getVertexToAbstractState().get(graph.paths.getVertex(Arrays.asList("add","remove"))).addAll(
-					graph.getVertexToAbstractState().get(graph.init));
+					graph.getVertexToAbstractState().get(graph.getInit()));
 			Helper.checkForCorrectException(new whatToRun() { public void run() {
 				lbls.buildVertexToAbstractStateMap(graph, null,true);
 			}},IllegalArgumentException.class,"classes with DFA state");

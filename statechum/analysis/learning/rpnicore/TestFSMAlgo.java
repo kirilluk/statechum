@@ -1159,7 +1159,7 @@ public class TestFSMAlgo {
 	public final void testToADL3()
 	{
 		LearnerGraph graph = new LearnerGraph(Configuration.getDefaultConfiguration());
-		graph.initPTA();graph.init.setAccept(false);
+		graph.initPTA();graph.getInit().setAccept(false);
 		Assert.assertEquals("1 0\nP1000 true false\n",graph.pathroutines.toADL());
 	}
 	
@@ -1167,7 +1167,7 @@ public class TestFSMAlgo {
 	public final void testToADL4()
 	{
 		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B","testtoADL4"),Configuration.getDefaultConfiguration());
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 2\nA true false\nB false true\nA A a\nA B a\n",graph.pathroutines.toADL());
 	}
 	
@@ -1175,7 +1175,7 @@ public class TestFSMAlgo {
 	public final void testToADL5()
 	{
 		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B / A-b->B","testtoADL4"),Configuration.getDefaultConfiguration());
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 3\nA true false\nB false true\nA A a\nA B a\nA B b\n",graph.pathroutines.toADL());
 	}
 	
@@ -1183,7 +1183,7 @@ public class TestFSMAlgo {
 	public final void testToADL6()
 	{
 		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4"),Configuration.getDefaultConfiguration());
-		graph.init.setAccept(false);
+		graph.getInit().setAccept(false);
 		Assert.assertEquals("3 5\nA true false\nB false true\nC false false\nA A a\nA B a\nA B b\nB A b\nB C c\n",graph.pathroutines.toADL());
 	}
 	

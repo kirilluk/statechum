@@ -1073,7 +1073,7 @@ public class WMethod {
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to build a deterministic version of a supplied graph", e);
 			}
-			stateActual = actual.init;stateExpected = expected.init;
+			stateActual = actual.getInit();stateExpected = expected.getInit();
 		}
 		
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
@@ -1187,7 +1187,7 @@ public class WMethod {
 		DifferentFSMException checkM(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> expected,
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> graph)
 	{
-		return checkM(expected,expected.init, graph, graph.init,VERTEX_COMPARISON_KIND.NONE);
+		return checkM(expected,expected.getInit(), graph, graph.getInit(),VERTEX_COMPARISON_KIND.NONE);
 	}
 	
 	/** Verifies that vertices contain the same attributes in the two graphs
@@ -1204,7 +1204,7 @@ public class WMethod {
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> B, VERTEX_COMPARISON_KIND howToCompare)
 				
 	{
-		DifferentFSMException ex = WMethod.checkM(A, A.init,B,B.init,howToCompare);if (ex != null) return ex;
+		DifferentFSMException ex = WMethod.checkM(A, A.getInit(),B,B.getInit(),howToCompare);if (ex != null) return ex;
 		return null;
 	}
 		
@@ -1288,7 +1288,7 @@ public class WMethod {
 			newFsm.append("\n"+from+"-"+label+"->"+coregraph.transitionMatrix.get(from).get(label));
 		}
 		LearnerGraph permFsm = new LearnerGraph(buildGraph(newFsm.toString(), "testDeterminism_perm"),coregraph.config);
-		permFsm.init = permFsm.findVertex(coregraph.init.getID());
+		permFsm.setInit(permFsm.findVertex(coregraph.getInit().getID()));
 		return permFsm;
 	}
 

@@ -49,7 +49,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public abstract class FSMImplementation implements FSMAbstraction
 	{
 		public Object getInitState() {
-			return init;
+			return getInit();
 		}
 	
 		public Object getNextState(Object currentState, String input) 
@@ -94,7 +94,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 */
 	class NonExistingPaths implements FSMAbstraction
 	{
-		private final CmpVertex red = init;
+		private final CmpVertex red = getInit();
 		
 		/** Counter used to uniquely identify non-existing states. */ 
 		private int idCounter = 0;
@@ -242,7 +242,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			
 	public CmpVertex getVertex(List<String> seq)
 	{
-		return getVertex(init,seq);
+		return getVertex(getInit(),seq);
 	}
 	
 	/** Follows the supplied sequence of transitions from the supplied vertex and returns the vertex reached. 
@@ -314,7 +314,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=new StringVertex("S"+i);
 		String inputName[] = new String[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
 		LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
-		fsm.init = stateName[vFrom[0]];
+		fsm.setInit(stateName[vFrom[0]]);
 		Set<CmpVertex> statesUsed = new HashSet<CmpVertex>();
 		for(int i=0;i<vFrom.length;++i)
 		{
@@ -365,6 +365,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 */
 	@Override
+	public
 	Collection<CmpVertex> getTargets(final CmpVertex targ) 
 	{
 		return new Collection<CmpVertex>() {

@@ -528,7 +528,7 @@ public class TestEqualityComparisonAndHashCode {
 		//new AMEquivalenceClass(0,testGraphString);
 		for(CmpVertex vert:vertices)
 			try {
-				result.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.init).entrySet());
+				result.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.getInit()).entrySet());
 			} catch (IncompatibleStatesException e) {
 				Assert.fail(e.getMessage());
 			}
@@ -1148,8 +1148,8 @@ public class TestEqualityComparisonAndHashCode {
 			eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,testGraphString);
 		for(CmpVertex vert:vertices)
 			try {
-				eqClassA.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.init).entrySet());
-				eqClassB.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.init).entrySet());
+				eqClassA.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.getInit()).entrySet());
+				eqClassB.addFrom(vert, testGraphString.transitionMatrix.get(testGraphString.getInit()).entrySet());
 			} catch (IncompatibleStatesException e) {
 				Assert.fail(e.getMessage());
 			}
@@ -1829,7 +1829,7 @@ public class TestEqualityComparisonAndHashCode {
 		Assert.assertNotSame(initial,copyOfInitial);Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(initial, copyOfInitial));
 		Assert.assertEquals(2,vertexMap.size());
 		LearnerGraph gr = new LearnerGraph(graphC,config);Assert.assertEquals(1,gr.getStateNumber());
-		Assert.assertEquals("init",gr.init.getID().getStringId());
+		Assert.assertEquals("init",gr.getInit().getID().getStringId());
 	}
 	
 	private static void testColourHelper(CmpVertex vert)
@@ -2010,7 +2010,7 @@ public class TestEqualityComparisonAndHashCode {
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("A")),"a",graph.findVertex("C"));
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.init).get("a")));
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get("a")));
 		Assert.assertEquals(targets,actual);
 	}
 
@@ -2067,7 +2067,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
 		Set<CmpVertex> targets = new TreeSet<CmpVertex>();
 		targets.add(graph.findVertex("B"));targets.add(graph.findVertex("D"));targets.add(graph.findVertex("C"));
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.init).get("a")));
+		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get("a")));
 		Assert.assertEquals(targets,actual);
 	}
 	
@@ -2076,7 +2076,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testAccessToTargetStates2()
 	{
 		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-a2->C\nA-a3-#D\nB-b->C\nA-c->C", "testAccessToTargetStates2"),config);
-		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.init).get("a"));
+		Collection<CmpVertex> targets = graph.getTargets(graph.transitionMatrix.get(graph.getInit()).get("a"));
 		Assert.assertFalse(targets.isEmpty());Assert.assertEquals(1,targets.size());
 		Assert.assertTrue(targets.contains(graph.findVertex("B")));
 		Iterator<CmpVertex> data = targets.iterator();
@@ -2093,20 +2093,20 @@ public class TestEqualityComparisonAndHashCode {
 
 		Assert.assertFalse(a.equals(null));
 		Assert.assertFalse(a.equals("hello"));
-		b.init = new StringVertex("B");Assert.assertFalse(a.equals(b));
+		b.setInit(new StringVertex("B"));Assert.assertFalse(a.equals(b));
 	}
 
 	@Test
 	public final void testFSMStructureEquals1()
 	{
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
-		a.init = new StringVertex("A");b.init = new StringVertex("A");
+		a.setInit(new StringVertex("A"));b.setInit(new StringVertex("A"));
 		Assert.assertTrue(a.equals(a));
 		Assert.assertTrue(a.equals(b));
 
 		Assert.assertFalse(a.equals(null));
 		Assert.assertFalse(a.equals("hello"));
-		b.init = new StringVertex("B");Assert.assertFalse(a.equals(b));
+		b.setInit(new StringVertex("B"));Assert.assertFalse(a.equals(b));
 	}
 
 	/** Same as above, but with something in a transition matrix. */
@@ -2114,26 +2114,26 @@ public class TestEqualityComparisonAndHashCode {
 	public final void testFSMStructureEquals2()
 	{
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
-		a.init = new StringVertex("A");b.init = new StringVertex("A");
-		a.transitionMatrix.put(a.init,a.createNewRow());b.transitionMatrix.put(b.init,b.createNewRow());
+		a.setInit(new StringVertex("A"));b.setInit(new StringVertex("A"));
+		a.transitionMatrix.put(a.getInit(),a.createNewRow());b.transitionMatrix.put(b.getInit(),b.createNewRow());
 		Assert.assertTrue(a.equals(a));
 		Assert.assertTrue(a.equals(b));
 
 		Assert.assertFalse(a.equals(null));
 		Assert.assertFalse(a.equals("hello"));
-		b.init = new StringVertex("B");Assert.assertFalse(a.equals(b));
+		b.setInit(new StringVertex("B"));Assert.assertFalse(a.equals(b));
 	}
 
 	@Test
 	public final void testFSMStructureEquals3()
 	{
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
-		a.init = new StringVertex("A");b.init = new StringVertex("A");
-		a.transitionMatrix.put(a.init,a.createNewRow());b.transitionMatrix.put(b.init,b.createNewRow());
+		a.setInit(new StringVertex("A"));b.setInit(new StringVertex("A"));
+		a.transitionMatrix.put(a.getInit(),a.createNewRow());b.transitionMatrix.put(b.getInit(),b.createNewRow());
 		Assert.assertTrue(a.equals(a));
 		Assert.assertTrue(a.equals(b));
 
-		b.init.setAccept(false);
+		b.getInit().setAccept(false);
 		Assert.assertFalse(a.equals(b));
 	}
 
@@ -2141,9 +2141,9 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testFSMStructureEquals4()
 	{
-		Assert.assertTrue(testGraphString.init instanceof StringVertex);
-		Assert.assertTrue(testGraphJung.init instanceof DeterministicVertex);
-		Assert.assertTrue(testGraphSame.init instanceof DeterministicVertex);
+		Assert.assertTrue(testGraphString.getInit() instanceof StringVertex);
+		Assert.assertTrue(testGraphJung.getInit() instanceof DeterministicVertex);
+		Assert.assertTrue(testGraphSame.getInit() instanceof DeterministicVertex);
 		equalityTestingHelper(testGraphJung,testGraphString,differentA,differentB);
 		equalityTestingHelper(testGraphJung,testGraphSame,differentA,differentB);
 		equalityTestingHelper(testGraphString,testGraphSame,differentA,differentB);
@@ -2287,16 +2287,16 @@ public class TestEqualityComparisonAndHashCode {
 			Configuration copyConfig = g.config.copy();
 			copyConfig.setLearnerUseStrings(false);copyConfig.setLearnerCloneGraph(true);
 			LearnerGraph cloneJung = new LearnerGraph(g,copyConfig);
-			Assert.assertTrue(cloneJung.init instanceof DeterministicVertex);
+			Assert.assertTrue(cloneJung.getInit() instanceof DeterministicVertex);
 
 			copyConfig.setLearnerUseStrings(true);copyConfig.setLearnerCloneGraph(true);
 			LearnerGraph cloneStrings = new LearnerGraph(g,copyConfig);
-			Assert.assertTrue(cloneStrings.init instanceof StringVertex);
+			Assert.assertTrue(cloneStrings.getInit() instanceof StringVertex);
 
 			copyConfig.setLearnerUseStrings(false);copyConfig.setLearnerCloneGraph(false);
 			LearnerGraph cloneSame = new LearnerGraph(g,copyConfig);
-			Assert.assertTrue(cloneSame.init.getClass().equals(g.init.getClass()));
-			Assert.assertSame(cloneSame.init, g.init);
+			Assert.assertTrue(cloneSame.getInit().getClass().equals(g.getInit().getClass()));
+			Assert.assertSame(cloneSame.getInit(), g.getInit());
 
 			origAndCloned.add(cloneJung);origAndCloned.add(cloneStrings);origAndCloned.add(cloneSame);
 		}
@@ -2318,7 +2318,7 @@ public class TestEqualityComparisonAndHashCode {
 				g.config.setLearnerUseStrings(false);g.config.setLearnerCloneGraph(false);
 				DirectedSparseGraph almostOrigGraph = g.pathroutines.getGraph("new Name");
 				Assert.assertEquals("new Name", almostOrigGraph.getUserDatum(JUConstants.TITLE));
-				Assert.assertEquals(DeterministicDirectedSparseGraph.findInitial(almostOrigGraph), g.init);
+				Assert.assertEquals(DeterministicDirectedSparseGraph.findInitial(almostOrigGraph), g.getInit());
 				afterGetGraph.add(new LearnerGraph(almostOrigGraph,conf));
 			}
 		

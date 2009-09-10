@@ -120,9 +120,9 @@ public class TestLTL_to_ba
 	public final void testFindInitialState1()
 	{
 		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1"),config);
-		Assert.assertEquals("Avertex", graph.init.getID().getStringId());
+		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
 		graph.findInitialState("A");
-		Assert.assertEquals("Avertex", graph.init.getID().getStringId());
+		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
 	}
 	
 	/** Tests a search of a different initial state. */
@@ -131,7 +131,7 @@ public class TestLTL_to_ba
 	{
 		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1"),config);
 		graph.findInitialState("B");
-		Assert.assertEquals("Bvertex", graph.init.getID().getStringId());
+		Assert.assertEquals("Bvertex", graph.getInit().getID().getStringId());
 	}
 	
 	/** Tests that a search for an initial state may fail. */
@@ -150,7 +150,7 @@ public class TestLTL_to_ba
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("Avertex-a->Bvertex-b->Cvertex", "testCopyVertex"),config);
 		graph.findInitialState("");
-		Assert.assertEquals("Avertex", graph.init.getID().getStringId());
+		Assert.assertEquals("Avertex", graph.getInit().getID().getStringId());
 	}
 	
 	@Test
@@ -681,7 +681,7 @@ public class TestLTL_to_ba
 		final String text="never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
 		"state_init: false;\n}\n"
 		;
-		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
+		LearnerGraph expected = new LearnerGraph(config);expected.getInit().setAccept(false);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}
 	
@@ -1034,7 +1034,7 @@ public class TestLTL_to_ba
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
-		LearnerGraph expected = new LearnerGraph(config);expected.init.setAccept(false);
+		LearnerGraph expected = new LearnerGraph(config);expected.getInit().setAccept(false);
 		ba.runLTL2BA("false");
 		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}

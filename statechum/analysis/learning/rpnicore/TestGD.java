@@ -332,7 +332,7 @@ public class TestGD {
 	{
 		LearnerGraphND gr = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D","testAddTransitions8a"),Configuration.getDefaultConfiguration());
 		LearnerGraphND grAnother = new LearnerGraphND(buildGraph("B-d->C\nB-d->D","testAddTransitions8b"),Configuration.getDefaultConfiguration());
-		grAnother.init.setColour(null);
+		grAnother.getInit().setColour(null);
 		LearnerGraphND expected = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D"+"\nB-d->C\nB-d->B\nB-d->D","testAddTransitions8"),Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> patcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("C"));
@@ -347,7 +347,7 @@ public class TestGD {
 	{
 		LearnerGraphND gr = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D","testAddTransitions9a"),Configuration.getDefaultConfiguration());
 		LearnerGraphND grAnother = new LearnerGraphND(buildGraph("B-d->C\nB-d->D\nF-a->E","testAddTransitions9b"),Configuration.getDefaultConfiguration());
-		grAnother.init.setColour(null);
+		grAnother.getInit().setColour(null);
 		LearnerGraphND expected = new LearnerGraphND(buildGraph("A-a->B-a->C\nA-b->D"+"\nB-a->F-d->C\nF-d->B\nF-d->E","testAddTransitions8"),Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> patcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("F"), "d", grAnother.findVertex("C"));
@@ -365,7 +365,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d-#C","testAddTransitionsG1A"),Configuration.getDefaultConfiguration());
-		grAnother.init.setColour(null);
+		grAnother.getInit().setColour(null);
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D"+"\nB-d-#C","testAddTransitionsG1E"),Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addTransition(grAnother.findVertex("B"), "d", grAnother.findVertex("C"));
@@ -390,7 +390,7 @@ public class TestGD {
 	{
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D","testAddTransitionsG1"),Configuration.getDefaultConfiguration());
 		LearnerGraph grAnother = new LearnerGraph(buildGraph("B-d->A","testAddTransitionsG3A"),Configuration.getDefaultConfiguration());
-		grAnother.findVertex("A").setColour(JUConstants.AMBER);grAnother.init.setColour(null);
+		grAnother.findVertex("A").setColour(JUConstants.AMBER);grAnother.getInit().setColour(null);
 		LearnerGraph expected = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-b-#D"+"\nB-d->A","testAddTransitionsG3E"),Configuration.getDefaultConfiguration());
 		expected.findVertex("A").setColour(JUConstants.AMBER);
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
@@ -404,8 +404,8 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b->T","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		gr.init = null;
-		patcher.setInitial(grB.findVertex("T"));Assert.assertSame(gr.findVertex("T"),gr.init);
+		gr.setInit(null);
+		patcher.setInitial(grB.findVertex("T"));Assert.assertSame(gr.findVertex("T"),gr.getInit());
 	}
 	
 	@Test
@@ -414,8 +414,8 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("T-u-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		gr.init = null;
-		patcher.setInitial(grB.findVertex("C"));Assert.assertSame(gr.findVertex("C"),gr.init);
+		gr.setInit(null);
+		patcher.setInitial(grB.findVertex("C"));Assert.assertSame(gr.findVertex("C"),gr.getInit());
 	}
 	
 	@Test
@@ -424,8 +424,8 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		gr.init = null;
-		patcher.setInitial(grB.findVertex("Q"));Assert.assertSame(gr.findVertex("Q"),gr.init);
+		gr.setInit(null);
+		patcher.setInitial(grB.findVertex("Q"));Assert.assertSame(gr.findVertex("Q"),gr.getInit());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -434,7 +434,7 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraph grB = new LearnerGraph(buildGraph("C-b-#T\nC-c->Q","testAddTransitions0B"), Configuration.getDefaultConfiguration());
 		LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
-		gr.init = null;
+		gr.setInit(null);
 		patcher.setInitial(grB.findVertex("T"));
 	}
 	
@@ -543,7 +543,7 @@ public class TestGD {
 		patcher.removeDanglingStates();
 		Assert.assertEquals(1, gr.getStateNumber());
 		Assert.assertNotNull(gr.findVertex("A"));// the initial state
-		Assert.assertSame(gr.init, gr.findVertex("A"));
+		Assert.assertSame(gr.getInit(), gr.findVertex("A"));
 	}
 
 	/** Tests that states added explicitly are preserved. */
@@ -560,7 +560,7 @@ public class TestGD {
 		patcher.removeDanglingStates();
 		Assert.assertEquals(2, gr.getStateNumber());
 		Assert.assertNotNull(gr.findVertex("A"));// the initial state
-		Assert.assertSame(gr.init, gr.findVertex("A"));
+		Assert.assertSame(gr.getInit(), gr.findVertex("A"));
 		Assert.assertNotNull(gr.findVertex("D"));
 	}
 	

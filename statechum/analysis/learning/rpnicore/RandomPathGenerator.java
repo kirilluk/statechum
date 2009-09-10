@@ -145,7 +145,7 @@ public class RandomPathGenerator {
 		do
 		{
 			path.clear();
-			CmpVertex current = g.init;
+			CmpVertex current = g.getInit();
 
 			int positiveLength = positive?walkLength:walkLength-1;
 			if (positiveLength>0)

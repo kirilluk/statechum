@@ -56,9 +56,9 @@ public class Linear {
 		if (forceAccept) for(CmpVertex vert:copy.transitionMatrix.keySet()) vert.setAccept(true);
 		copy.learnerCache.invalidate();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(copy,LearnerGraphND.ignoreNone,false);
-		assert ndGraph.getStatesToNumber().containsKey(copy.init);
+		assert ndGraph.getStatesToNumber().containsKey(copy.getInit());
 		assert ndGraph.getStatesToNumber().containsKey(grInit);
-		return ndGraph.computeStateCompatibility(ThreadNumber,DDRH_default.class)[ndGraph.vertexToIntNR(copy.init, grInit)]; 
+		return ndGraph.computeStateCompatibility(ThreadNumber,DDRH_default.class)[ndGraph.vertexToIntNR(copy.getInit(), grInit)]; 
 	}
 
 	/** Computes similarity via GD. */

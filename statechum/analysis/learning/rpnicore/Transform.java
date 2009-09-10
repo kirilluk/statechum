@@ -286,18 +286,18 @@ public class Transform
 		LearnerGraph result = new LearnerGraph(config);result.initEmpty();
 		// Two sets are constructed so that I do not have to think about vertices which are shared between the two graphs regardless whether such a case is possible or not.
 		final Set<CmpVertex> encounteredGraph = new HashSet<CmpVertex>();
-		StatePair statePair = new StatePair(graph.init,from.init);
+		StatePair statePair = new StatePair(graph.getInit(),from.getInit());
 		encounteredGraph.add(statePair.firstElem);
-		result.init = AbstractLearnerGraph.cloneCmpVertex(graph.init, config);
-		result.transitionMatrix.put(result.init, result.createNewRow());
-		pairsToGraphStates.put(statePair, result.init);
+		result.setInit(AbstractLearnerGraph.cloneCmpVertex(graph.getInit(), config));
+		result.transitionMatrix.put(result.getInit(), result.createNewRow());
+		pairsToGraphStates.put(statePair, result.getInit());
 		boolean graphModified = false;
 		if (statePair.firstElem.isAccept() && !statePair.secondElem.isAccept())
 		{// initial states are incompatible because the tentative automaton is accept and 
 		 // the max automaton is reject, hence either override if possible and requested or throw.
 			if (override)
 			{
-				result.init.setAccept(false);graphModified = true;
+				result.getInit().setAccept(false);graphModified = true;
 			}
 			else
 				throw new IllegalArgumentException("incompatible labelling: maximal automaton is all-reject and tentative one is not");			
@@ -573,7 +573,7 @@ public class Transform
 
 		NonExistingPaths nonExisting = (NonExistingPaths) engine.getFSM();
 		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
-		CmpVertex currentState = coregraph.init;
+		CmpVertex currentState = coregraph.getInit();
 		nonExisting.getNonExistingVertices().remove(currentState);
 		for(String label:question)
 		{
@@ -638,10 +638,10 @@ public class Transform
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
 			visited[i]=new TreeMap<CmpVertex,Set<ExplorationElement>>();
-			ExplorationElement initialState = new ExplorationElement(graph.init,null,null,i,ifthenGraphs[i].init,0,null,null);
+			ExplorationElement initialState = new ExplorationElement(graph.getInit(),null,null,i,ifthenGraphs[i].getInit(),0,null,null);
 			currentExplorationBoundary.add(initialState);
 			Set<ExplorationElement> visitedStates = new HashSet<ExplorationElement>();
-			visited[i].put(graph.init, visitedStates);visitedStates.add(initialState);
+			visited[i].put(graph.getInit(), visitedStates);visitedStates.add(initialState);
 		}
 		ExplorationElement explorationElement = null;
 		while(!currentExplorationBoundary.isEmpty())
@@ -872,7 +872,7 @@ public class Transform
 	 */
 	public static void checkTHEN_disjoint_from_IF(LearnerGraph ifthen)
 	{
-		Set<CmpVertex> ifStates = ifthen.pathroutines.computeShortPathsToAllStates(ifthen.init).keySet();
+		Set<CmpVertex> ifStates = ifthen.pathroutines.computeShortPathsToAllStates(ifthen.getInit()).keySet();
 		Set<CmpVertex> allStates = new TreeSet<CmpVertex>();allStates.addAll(ifStates);
 		int thenStatesCount = 0;
 		for(CmpVertex state:ifStates)
@@ -941,7 +941,7 @@ public class Transform
 	 */
 	public static TraversalStatistics countSharedTransitions(LearnerGraph big, LearnerGraph small)
 	{
-		CmpVertex stateBig = big.init, stateSmall = small.init;
+		CmpVertex stateBig = big.getInit(), stateSmall = small.getInit();
 		Map<Pair<CmpVertex,String>,Integer> TX_counter = new HashMap<Pair<CmpVertex,String>,Integer>();// counts transitions which are visited more than once during the traversal.
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		int matchedTransitionCounter = 0;

@@ -95,21 +95,21 @@ public class ComputeQuestions {
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
-					original.pathroutines.computePathsSBetween(original.init, pairToMerge.getQ(), identity, toBlue);
+					original.pathroutines.computePathsSBetween(original.getInit(), pairToMerge.getQ(), identity, toBlue);
 					return toBlue;
 				}
 
 				public SequenceSet getPathsToRed() 
 				{
 					SequenceSet toRed = engine.new SequenceSet();
-					original.pathroutines.computePathsSBetween(original.init, pairToMerge.getR(), identity, toRed);
+					original.pathroutines.computePathsSBetween(original.getInit(), pairToMerge.getR(), identity, toRed);
 					return toRed;
 				}
 
 				public SequenceSet getPathsToLearnt() 
 				{
 					SequenceSet toLearnt = engine.new SequenceSet();
-					learnt.pathroutines.computePathsSBetween(learnt.init, learnt.learnerCache.stateLearnt, identity, toLearnt);
+					learnt.pathroutines.computePathsSBetween(learnt.getInit(), learnt.learnerCache.stateLearnt, identity, toLearnt);
 					return toLearnt;
 				}
 
@@ -236,7 +236,7 @@ public class ComputeQuestions {
 			if (fanout == null)
 			{
 				SequenceSet pathsToInitState = engine.new SequenceSet();pathsToInitState.setIdentity();
-				fanout = original.pathroutines.computePathsSBetween_All(original.init, engine, pathsToInitState);
+				fanout = original.pathroutines.computePathsSBetween_All(original.getInit(), engine, pathsToInitState);
 			}
 			
 			for(CmpVertex vert:state.getStates())
@@ -317,7 +317,7 @@ public class ComputeQuestions {
 		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
-		merged.pathroutines.computePathsSBetween(merged.init,mergedRed, initp, paths);
+		merged.pathroutines.computePathsSBetween(merged.getInit(),mergedRed, initp, paths);
 		
 		Collection<String> inputsToMultWith = new LinkedList<String>();
 		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
@@ -347,7 +347,7 @@ public class ComputeQuestions {
 		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
-		List<Collection<String>> sequenceOfSets = merged.paths.COMPAT_computePathsSBetween(merged.init,mergedRed);
+		List<Collection<String>> sequenceOfSets = merged.paths.COMPAT_computePathsSBetween(merged.getInit(),mergedRed);
 		if (sequenceOfSets == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
 		for(Collection<String> inputsToMultWith:sequenceOfSets)

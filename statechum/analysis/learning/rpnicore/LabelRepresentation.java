@@ -1160,7 +1160,7 @@ public class LabelRepresentation
 
 			Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 			Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
-			fringe.add(coregraph.init);statesInFringe.add(coregraph.init);
+			fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
 			
 			// Entry for the initial state is always added by addAbstractStatesFromTraces, 
 			// hence no need to add it here.			
@@ -1308,8 +1308,8 @@ public class LabelRepresentation
 		tracesVars = new StringBuffer();traceAxioms = new StringBuffer(); 
 		int elementCounter = currentNumber;
 		gr.vertexToAbstractState = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
-		AbstractState initialAbstractState = new AbstractState(gr.init,elementCounter++);
-		gr.vertexToAbstractState.put(gr.init,Arrays.asList(new AbstractState[]{initialAbstractState}));
+		AbstractState initialAbstractState = new AbstractState(gr.getInit(),elementCounter++);
+		gr.vertexToAbstractState.put(gr.getInit(),Arrays.asList(new AbstractState[]{initialAbstractState}));
 
 		populateVarsUsedForArgs(init.post, initialAbstractState.stateNumber, initialAbstractState.stateNumber);
 		// Add details of the current abstract state to what we know of supplied data traces.
@@ -1329,7 +1329,7 @@ public class LabelRepresentation
 
 				Label currentLabel = labelMapConstructionOfDataTraces.get(operationIterator.next()); 
 				CompositionOfFunctions currentIO = argumentsIterator.next();
-				CmpVertex currentState = gr.init;
+				CmpVertex currentState = gr.getInit();
 				
 				while(operationIterator.hasNext())
 				{

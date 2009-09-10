@@ -52,7 +52,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	{
 		super(conf);
 		transitionMatrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		init = null;
+		setInit(null);
 		initPTA();
 	}
 
@@ -82,9 +82,9 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 					if (!(property instanceof Boolean) || !((Boolean)property).booleanValue())
 						throw new IllegalArgumentException("invalid init property");
 
-					if (init != null)
-						throw new IllegalArgumentException("vertices "+srcVert+" and "+init+" are both labelled as initial states");
-					init = vert;
+					if (getInit() != null)
+						throw new IllegalArgumentException("vertices "+srcVert+" and "+getInit()+" are both labelled as initial states");
+					setInit(vert);
 				}
 				else vert = cloneCmpVertex(srcVert,config);
 				origToCmp.put(srcVert, vert);
@@ -97,7 +97,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 			}
 		} // synchronized (LearnerGraph.syncObj)
 
-		if (init == null)
+		if (getInit() == null)
 			throw new IllegalArgumentException("missing initial state");
 
 		Iterator<DirectedSparseEdge> edgeIter = g.getEdges().iterator();
@@ -202,8 +202,8 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		// that all states are mentioned on the left-hand side
 		// LearnerGraph's transition matrix.
 		
-		assert matrixND.findVertex(coregraph.init.getID()) != null : "initial state was filtered out";
-		matrixND.init = coregraph.init;
+		assert matrixND.findVertex(coregraph.getInit().getID()) != null : "initial state was filtered out";
+		matrixND.setInit(coregraph.getInit());
 	}
 	
 	/** Builds a (non-deterministic in general) transition matrix where all 
@@ -241,8 +241,8 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 							sourceStates.add(entry.getKey());
 						}
 			}
-		if (matrixND.transitionMatrix.isEmpty()) matrixND.init = null;
-		else matrixND.init = graph.init;
+		if (matrixND.transitionMatrix.isEmpty()) matrixND.setInit(null);
+		else matrixND.setInit(graph.getInit());
 	}
 
 	/** Looks through all the states for the one matching the supplied name and sets the initial state to the found one.
@@ -261,7 +261,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		if (initVertex == null)
 			throw new IllegalArgumentException("absent initial state");
 
-		init = initVertex;
+		setInit(initVertex);
 	}
 	
 	public static final JUConstants ltlColour = JUConstants.INF_AMBER;
@@ -283,9 +283,9 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		// going to hit a state clash if we simply generate state names
 		// based on the existing IDs of origGraph. 
 		Map<CmpVertex,CmpVertex> firstToSecond = new TreeMap<CmpVertex,CmpVertex>();
-		firstToSecond.put(matrixToAdd.init, matrixResult.init);
+		firstToSecond.put(matrixToAdd.getInit(), matrixResult.getInit());
 		for(CmpVertex firstVertex:matrixToAdd.transitionMatrix.keySet())
-			if (firstVertex != matrixToAdd.init)
+			if (firstVertex != matrixToAdd.getInit())
 			{// new vertices are generated using the new matrix, hence min/max vertex IDs remain valid.
 				CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(matrixResult.nextID(firstVertex.isAccept()), origGraph.config);
 				DeterministicDirectedSparseGraph.copyVertexData(firstVertex, vert);

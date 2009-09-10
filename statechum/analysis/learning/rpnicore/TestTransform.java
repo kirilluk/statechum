@@ -341,7 +341,7 @@ public class TestTransform {
 		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("NE");
+		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.setInit(actual.findVertex("NE"));
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
 	
@@ -364,7 +364,7 @@ public class TestTransform {
 		whatToG.put(A.findVertex("C"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("R"), Configuration.getDefaultConfiguration()));
 		whatToG.put(A.findVertex("D"),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("S"), Configuration.getDefaultConfiguration()));
 		LearnerGraphND actual = new LearnerGraphND(Configuration.getDefaultConfiguration());actual.initEmpty();
-		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.init = actual.findVertex("NE");
+		AbstractLearnerGraph.addAndRelabelGraphs(A, whatToG, actual);actual.setInit(actual.findVertex("NE"));
 		Assert.assertNull(WMethod.checkM_and_colours(expected, actual, VERTEX_COMPARISON_KIND.DEEP));		
 	}
 	
@@ -391,7 +391,7 @@ public class TestTransform {
 				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmSrc,
 				AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmToAdd) throws IncompatibleStatesException
 	{
-		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
+		fsmToAdd.getInit().setColour(JUConstants.BLUE);fsmToAdd.getInit().setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.compatibility.isEmpty());
@@ -399,9 +399,9 @@ public class TestTransform {
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
 		Assert.assertEquals(JUConstants.BLUE, newA.getColour());
 		Assert.assertTrue(newA.isHighlight());
-		Assert.assertEquals(1, oldToNew.size());Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		Assert.assertEquals(1, oldToNew.size());Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		
-		Assert.assertFalse(fsm.transitionMatrix.get(fsm.init).isEmpty());
+		Assert.assertFalse(fsm.transitionMatrix.get(fsm.getInit()).isEmpty());
 		Assert.assertTrue(fsm.transitionMatrix.get(newA).isEmpty());
 	}
 
@@ -428,18 +428,18 @@ public class TestTransform {
 			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmSrc,
 			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmToAdd) throws IncompatibleStatesException
 	{
-		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
+		fsmToAdd.getInit().setColour(JUConstants.BLUE);fsmToAdd.getInit().setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 		
 		Assert.assertNull(WMethod.checkM(fsmSrc, fsm));Assert.assertTrue(fsm.pairCompatibility.compatibility.isEmpty());
 		LearnerGraph addedPartOfFsm = fsm.pathroutines.buildDeterministicGraph(newA);
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
-		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
+		Assert.assertTrue(fsm.transitionMatrix.get(fsm.getInit()).isEmpty());
 		Assert.assertFalse(fsm.transitionMatrix.get(newA).isEmpty());
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
-		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
 			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
@@ -474,11 +474,11 @@ public class TestTransform {
 		LearnerGraph addedPartOfFsm = fsm.pathroutines.buildDeterministicGraph(newA);
 		Assert.assertNull(WMethod.checkM(fsmToAdd,addedPartOfFsm));
 		
-		Assert.assertTrue(fsm.transitionMatrix.get(fsm.init).isEmpty());
+		Assert.assertTrue(fsm.transitionMatrix.get(fsm.getInit()).isEmpty());
 		Assert.assertTrue(fsm.transitionMatrix.get(newA).isEmpty());
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
-		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
 			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmSrc,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
@@ -506,7 +506,7 @@ public class TestTransform {
 			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmSrc,
 			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> fsmToAdd) throws IncompatibleStatesException
 	{
-		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
+		fsmToAdd.getInit().setColour(JUConstants.BLUE);fsmToAdd.getInit().setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 
@@ -517,7 +517,7 @@ public class TestTransform {
 		Assert.assertTrue(newA.isHighlight());
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
-		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
 			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
@@ -532,17 +532,17 @@ public class TestTransform {
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex newA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 
-		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init, fsm,fsm.init,WMethod.VERTEX_COMPARISON_KIND.NONE));
-		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.init,fsm,newA,WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(), fsm,fsm.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(fsmToAdd,fsmToAdd.getInit(),fsm,newA,WMethod.VERTEX_COMPARISON_KIND.NONE));
 		
-		StatePair whatToMerge = new StatePair(fsm.init,newA);
+		StatePair whatToMerge = new StatePair(fsm.getInit(),newA);
 		LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		Assert.assertTrue(0 < fsm.pairscores.computePairCompatibilityScore_general(whatToMerge,collectionOfVerticesToMerge));
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(fsm, whatToMerge,collectionOfVerticesToMerge);
-		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.init,result,result.init,WMethod.VERTEX_COMPARISON_KIND.NONE));
+		Assert.assertNull(WMethod.checkM(fsmSrc,fsmSrc.getInit(),result,result.getInit(),WMethod.VERTEX_COMPARISON_KIND.NONE));
 
 		Assert.assertEquals(fsmToAdd.getStateNumber(), oldToNew.size());
-		Assert.assertSame(newA, oldToNew.get(fsmToAdd.init));
+		Assert.assertSame(newA, oldToNew.get(fsmToAdd.getInit()));
 		for(CmpVertex oldVert:fsmToAdd.transitionMatrix.keySet())
 			Assert.assertNull(WMethod.checkM(fsm,oldToNew.get(oldVert),fsmToAdd,oldVert,WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
@@ -559,7 +559,7 @@ public class TestTransform {
 		CmpVertex newB=fsmToAdd.findVertex(VertexID.parseID("B")), newA=fsmToAdd.findVertex(VertexID.parseID("A"));
 		fsmToAdd.addToCompatibility(newB,newA,JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		
-		fsmToAdd.init.setColour(JUConstants.BLUE);fsmToAdd.init.setHighlight(true);
+		fsmToAdd.getInit().setColour(JUConstants.BLUE);fsmToAdd.getInit().setHighlight(true);
 		Map<CmpVertex,CmpVertex> oldToNew = new TreeMap<CmpVertex,CmpVertex>();
 		CmpVertex addedA = AbstractPathRoutines.addToGraph(fsm, fsmToAdd,oldToNew);
 		Assert.assertSame(addedA,oldToNew.get(newA));
@@ -759,7 +759,7 @@ public class TestTransform {
 		}
 		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertEquals(fsm.init, actual.init);
+		Assert.assertEquals(fsm.getInit(), actual.getInit());
 	}
 	
 	@Test
@@ -782,7 +782,7 @@ public class TestTransform {
 		}
 		LearnerGraph actual = loadLearnerGraph(fsm.storage.createGraphMLNode(doc),Configuration.getDefaultConfiguration());
 		Assert.assertNull(WMethod.checkM_and_colours(fsm, actual,WMethod.VERTEX_COMPARISON_KIND.DEEP));
-		Assert.assertEquals(fsm.init, actual.init);
+		Assert.assertEquals(fsm.getInit(), actual.getInit());
 	}
 	
 	/** No graph element. */
@@ -890,7 +890,7 @@ public class TestTransform {
 		LearnerGraph loaded = loadLearnerGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
-		Assert.assertNull(WMethod.checkM(gr,gr.init,loaded,loaded.init,VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNull(WMethod.checkM(gr,gr.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertTrue(ids_are_valid(loaded));
 		Assert.assertEquals(gr.pairCompatibility,loaded.pairCompatibility);
 	}
@@ -1083,7 +1083,7 @@ public class TestTransform {
 		AbstractPersistence.loadGraph(new StringReader(text), loaded);
 
 		Assert.assertTrue(!fsm.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
-		Assert.assertNull(WMethod.checkM(fsm,fsm.init,loaded,loaded.init,VERTEX_COMPARISON_KIND.DEEP));
+		Assert.assertNull(WMethod.checkM(fsm,fsm.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP));
 		for(Entry<CmpVertex,LinkedList<String>> entry:fsm.pathroutines.computeShortPathsToAllStates().entrySet())
 		{
 			CmpVertex v=entry.getKey(),other = loaded.paths.getVertex(entry.getValue());
@@ -1436,7 +1436,7 @@ public class TestTransform {
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail1big"),config);
-		final LearnerGraph small = new LearnerGraph(config);small.init.setAccept(false);
+		final LearnerGraph small = new LearnerGraph(config);small.getInit().setAccept(false);
 		Helper.checkForCorrectException(new whatToRun() { public void run() {
 			Transform.countSharedTransitions(big, small);
 		}},DifferentFSMException.class,"have a different acceptance");

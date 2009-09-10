@@ -256,7 +256,7 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals6"),config);
 		LearnerGraph b=new LearnerGraph(buildGraph("A-a->A-b->B\nB-b->B", "testFSMStructureEquals6"),config);
 		
-		b.init=new StringVertex("B");
+		b.setInit(new StringVertex("B"));
 		equalityTestingHelper(a,a,b,differentB);
 	}
 

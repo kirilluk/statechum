@@ -89,7 +89,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	
 	public Collection<List<String>> computePathsToRed(CmpVertex red)
 	{
-		return computePathsBetween(coregraph.init, red);
+		return computePathsBetween(coregraph.getInit(), red);
 	}
 	
 	/** Computes all possible shortest paths from the supplied source state to the 
@@ -317,7 +317,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			{
 				CmpVertex source = entry.getKey();
 				DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
-				if (coregraph.init == source)
+				if (coregraph.getInit() == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				result.addVertex(vert);
 				oldToNew.put(source,vert);
@@ -416,7 +416,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		void removeRejectStates(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> what,
 					AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
-		if (!what.init.isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
+		if (!what.getInit().isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
 		AbstractLearnerGraph.copyGraphs(what, result);
 		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
 		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:what.transitionMatrix.entrySet())
@@ -565,7 +565,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		}
 
 		AbstractLearnerGraph.addAndRelabelGraphs(what, whatToG, g);
-		return whatToG.get(what.init);
+		return whatToG.get(what.getInit());
 	}
 
 	/** Changes states labels on a graph to their numerical equivalents.
@@ -580,7 +580,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		result.initEmpty();
-		result.init = addToGraph(result, what, null);if (what.getName() != null) result.setName(what.getName());
+		result.setInit(addToGraph(result, what, null));if (what.getName() != null) result.setName(what.getName());
 	}
 
 	/** Makes sure that the transition matrix is (mostly) consistent. 
@@ -595,14 +595,14 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		{
 			if (coregraph.transitionMatrix.isEmpty())
 			{
-				if (coregraph.init != null) 
+				if (coregraph.getInit() != null) 
 					throw new IllegalArgumentException("an empty matrix must correspond to a null initial state");
 			}
 			else
 			{
-				if (coregraph.findVertex(coregraph.init.getID()) != coregraph.init) 
+				if (coregraph.findVertex(coregraph.getInit().getID()) != coregraph.getInit()) 
 					throw new IllegalArgumentException("initial state is not in a graph");
-				if (reference.findVertex(coregraph.init.getID()) != coregraph.init)
+				if (reference.findVertex(coregraph.getInit().getID()) != coregraph.getInit())
 					throw new IllegalArgumentException("initial state is not in a reference graph");
 				
 				for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
@@ -635,7 +635,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public LearnerGraph buildDeterministicGraph() throws IncompatibleStatesException
 	{
-		return buildDeterministicGraph(coregraph.init);
+		return buildDeterministicGraph(coregraph.getInit());
 	}
 
 	/** Takes the recorded non-deterministic transition matrix and turns it into
@@ -664,7 +664,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		int eqClassNumber = 0;
 		AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> initial = new AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);initial.addFrom(initialState,null);
 		initial.constructMergedVertex(result,true,false);
-		result.init = initial.getMergedVertex();
+		result.setInit(initial.getMergedVertex());
 		Queue<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
 
 		Map<String,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<String,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
@@ -732,7 +732,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates()
 	{
-		return computeShortPathsToAllStates(coregraph.init);
+		return computeShortPathsToAllStates(coregraph.getInit());
 	}
 	
 	/** Computes a mapping from every state to a shortest path to that state. The term
@@ -788,7 +788,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		throw new IllegalArgumentException("something wrong with the graph - the expected state was not found");
 	}
 
-	/** Returns an ADL representation of this graph. */
+	/** Returns an ADL representation of this graph. 
+	 * Should be moved to util.OutputUtil */
 	public String toADL()
 	{
 		StringBuffer result = new StringBuffer();
@@ -796,7 +797,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		
 		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.init == entry.getKey());
+			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.getInit() == entry.getKey());
 			result.append(' ');result.append(entry.getKey().isAccept());result.append('\n');
 		}
 		
@@ -804,7 +805,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		{
 			for(Entry<String,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
 			{
-				List<CmpVertex> targetStates = new ArrayList<CmpVertex>(coregraph.getTargets(transitionEntry.getValue()));
+				List<CmpVertex> targetStates = new ArrayList<CmpVertex>();
+				targetStates.addAll(coregraph.getTargets(transitionEntry.getValue()));
 				Collections.sort(targetStates);
 				for(CmpVertex targetState:targetStates)
 				{

@@ -155,7 +155,7 @@ public class TestLinear {
 	@Test
 	public final void testPerformRowTasks_A_1()
 	{
-		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());gr.init.setAccept(false);
+		LearnerGraph gr=new LearnerGraph(Configuration.getDefaultConfiguration());gr.getInit().setAccept(false);
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		int ThreadNumber=4;

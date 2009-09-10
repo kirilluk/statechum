@@ -47,7 +47,7 @@ import statechum.JUConstants.VERTEXLABEL;
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
 	/** The initial vertex. */
-	CmpVertex init;
+	private CmpVertex init;
 	
 	final public AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE> pathroutines = new AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE>(this);
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
@@ -132,7 +132,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	{
 		for(CmpVertex v:transitionMatrix.keySet())
 			v.setColour(null);
-		init.setColour(JUConstants.RED);
+		getInit().setColour(JUConstants.RED);
 	}
 	
 	/** Resets all the colour labelling to the initial value, keeping the Amber. */
@@ -142,7 +142,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			if (!config.getUseAmber() || // clear if not using amber
 					(v.getColour() != JUConstants.AMBER && v.getColour() != JUConstants.GRAY))// or colour is not AMBER or GREY 
 				v.setColour(null);
-		init.setColour(JUConstants.RED);
+		getInit().setColour(JUConstants.RED);
 	}
 	
 	/** Returns the number of states in the state machine. */
@@ -456,11 +456,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public void initPTA()
 	{
 		initEmpty(); 
-		init = generateNewCmpVertex(getDefaultInitialPTAName(),config);
-		init.setAccept(true);init.setColour(JUConstants.RED);
-		init.setDepth(0);
+		setInit(generateNewCmpVertex(getDefaultInitialPTAName(),config));
+		getInit().setAccept(true);getInit().setColour(JUConstants.RED);
+		getInit().setDepth(0);
 
-		transitionMatrix.put(init,createNewRow());
+		transitionMatrix.put(getInit(),createNewRow());
 		learnerCache.invalidate();
 	}
 
@@ -468,18 +468,18 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public void initPTA_1()
 	{
 		initEmpty();nextID(JUConstants.VERTEXLABEL.ACCEPT,true);
-		init = generateNewCmpVertex(getDefaultInitialPTAName(),config);
-		init.setAccept(true);init.setColour(JUConstants.RED);
-		init.setDepth(0);
+		setInit(generateNewCmpVertex(getDefaultInitialPTAName(),config));
+		getInit().setAccept(true);getInit().setColour(JUConstants.RED);
+		getInit().setDepth(0);
 	
-		transitionMatrix.put(init,createNewRow());
+		transitionMatrix.put(getInit(),createNewRow());
 		learnerCache.invalidate();
 	}
 
 	/** Initialises this graph with an empty graph, but IDs of vertices are unchanged. */
 	public void initEmpty()
 	{
-		transitionMatrix.clear();init=null;pairCompatibility.compatibility.clear();
+		transitionMatrix.clear();setInit(null);pairCompatibility.compatibility.clear();
 		learnerCache.invalidate();
 		vertNegativeID = config.getInitialIDvalue();vertPositiveID = config.getInitialIDvalue();
 	}
@@ -550,7 +550,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		for(CmpVertex state:from.transitionMatrix.keySet())
 			oldToNew.put(state, cloneCmpVertex(state, result.config));
 
-		result.init = oldToNew.get(from.init);
+		result.setInit(oldToNew.get(from.getInit()));
 		addAndRelabelGraphs(from, oldToNew, result);result.learnerCache.invalidate();
 	}
 
@@ -611,7 +611,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		//result = prime * result + ((config == null) ? 0 : config.hashCode());
 		//result = prime * result + vertNegativeID;
 		//result = prime * result + vertPositiveID;
-		result = prime * result + (init == null?0:init.hashCode());
+		result = prime * result + (getInit() == null?0:getInit().hashCode());
 		//result = prime * result + transitionMatrix.hashCode();
 		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
@@ -661,13 +661,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			return false;
 		final AbstractLearnerGraph other = (AbstractLearnerGraph) obj;
 		
-		if (init == null)
+		if (getInit() == null)
 		{
-			if (other.init != null)
+			if (other.getInit() != null)
 				return false;
 		}
 		else
-			if (!init.equals(other.init))
+			if (!getInit().equals(other.getInit()))
 				return false;
 
 		if (!transitionMatrix.keySet().equals(other.transitionMatrix.keySet()))
@@ -739,6 +739,14 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		assert !A.getID().equals(B.getID());
 		pairCompatibility.removeFromIncompatibles(A, B);
 	}	
+
+	public void setInit(CmpVertex init) {
+		this.init = init;
+	}
+
+	public CmpVertex getInit() {
+		return init;
+	}
 
 	final protected PairCompatibility<CmpVertex> pairCompatibility = new PairCompatibility<CmpVertex>();
 

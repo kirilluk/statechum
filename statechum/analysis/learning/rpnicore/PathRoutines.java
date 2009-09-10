@@ -258,7 +258,7 @@ public class PathRoutines {
 	 */
 	public LearnerGraph augmentPTA(List<String> sequence, boolean accepted, boolean maximalAutomaton, JUConstants newColour)
 	{
-		CmpVertex currentState = coregraph.init, prevState = null;
+		CmpVertex currentState = coregraph.getInit(), prevState = null;
 		Iterator<String> inputIt = sequence.iterator();
 		String lastInput = null;
 		int position = 0;
@@ -352,7 +352,7 @@ public class PathRoutines {
 				CmpVertex ourVertex = null;
 				if (pathToInit.isEmpty())
 				{// processing the first vertex in a PTA
-					ourVertex = coregraph.init;
+					ourVertex = coregraph.getInit();
 				}
 				else
 				{// not the first vertex in a PTA
@@ -431,7 +431,7 @@ public class PathRoutines {
 			{
 				CmpVertex source = entry.getKey();
 				DeterministicVertex vert = new DeterministicVertex(source.getID());
-				if (coregraph.init == source)
+				if (coregraph.getInit() == source)
 					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 				vert.setAccept(source.isAccept());
 				vert.setColour(source.getColour());
@@ -547,7 +547,7 @@ public class PathRoutines {
 		// but were not removed at the end of the merging process. 
 		Queue<CmpVertex> currentBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
 		Set<CmpVertex> visitedStates = new HashSet<CmpVertex>();
-		currentBoundary.add( mergeResult.init );visitedStates.add(mergeResult.init);
+		currentBoundary.add( mergeResult.getInit() );visitedStates.add(mergeResult.getInit());
 		while(!currentBoundary.isEmpty())
 		{
 			CmpVertex current = currentBoundary.remove();
@@ -650,7 +650,7 @@ public class PathRoutines {
 
 	public int tracePathPrefixClosed(List<String> path)
 	{
-		return tracePath(path,coregraph.init, true);
+		return tracePath(path,coregraph.getInit(), true);
 	}
 	
 	public int tracePathPrefixClosed(List<String> path, CmpVertex startState)
@@ -669,7 +669,7 @@ public class PathRoutines {
 	 */
 	public int tracePath(List<String> path, boolean prefixClosed)
 	{
-		return tracePath(path,coregraph.init, prefixClosed);
+		return tracePath(path,coregraph.getInit(), prefixClosed);
 	}
 	
 	/** Navigates a path from the supplied state and either returns 
@@ -720,7 +720,7 @@ public class PathRoutines {
 	 */
 	public CmpVertex getVertex(List<String> path)
 	{
-		CmpVertex current = coregraph.init;
+		CmpVertex current = coregraph.getInit();
 		int pos = -1;
 		for(String label:path)
 		{
@@ -862,7 +862,23 @@ public class PathRoutines {
 			}
 		}
 		
-		if (sink != null) result.transitionMatrix.get(sink).clear();// the sink state is preserved since it may happen to be the only state in the graph. 
+		if (sink != null){
+			result.transitionMatrix.get(sink).clear(); 
+			if (result.getStateNumber() > 1 && sink !=null)
+			{// the sink state is preserved since it may happen to be the only state in the graph.
+				for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
+				{
+					Set<String> inputsToRemove = new HashSet<String>();
+					for(Entry<String,CmpVertex> target:entry.getValue().entrySet())
+						if (target.getValue() == sink)
+							inputsToRemove.add(target.getKey());
+					for(String input:inputsToRemove)
+						result.removeTransition(entry.getValue(),input, sink);
+				}
+				result.transitionMatrix.remove(sink);
+			}
+		}
+		
 		
 		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
 			try

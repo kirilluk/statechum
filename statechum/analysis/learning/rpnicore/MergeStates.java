@@ -97,10 +97,10 @@ public class MergeStates {
 			for(CmpVertex v:eqClass.getStates())
 				origToNew.put(v, eqClass);
 		}
-		result.init = origToNew.get(original.init).getMergedVertex();
+		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
 		Queue<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();// FIFO queue containing vertices to be explored
-		currentExplorationBoundary.add(origToNew.get(original.init));
+		currentExplorationBoundary.add(origToNew.get(original.getInit()));
 		Set<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> visitedEqClasses = new HashSet<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		while(!currentExplorationBoundary.isEmpty())
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to

@@ -36,7 +36,8 @@ import edu.uci.ics.jung.utils.UserDataContainer.CopyAction;
  */
 public class ForestFireLabelledStateMachineGenerator extends
 		ForestFireStateMachineGenerator {
-	
+
+
 	Set<String> alphabet;
 
 	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, int alphabetSize, int seed) throws Exception{
@@ -95,7 +96,7 @@ public class ForestFireLabelledStateMachineGenerator extends
 		}
 	}
 	
-	private Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  ensureMinimal(){
+	protected Collection<AMEquivalenceClass<CmpVertex, LearnerGraphCachedData>>  ensureMinimal(){
 		Configuration conf = Configuration.getDefaultConfiguration();
 		conf.setAllowedToCloneNonCmpVertex(true);
 		try{

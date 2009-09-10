@@ -155,32 +155,44 @@ public class ForestFireStateMachineGenerator {
 			return (DirectedSparseVertex)vertices.get(index);
 		}
 	}
+	//0.46,0.92,17,seed
+	//MAY NOT NEED LOWER / UPPER LIMITS
+	private static ArrayList<String> generateGraphs(int numberOfGraphs, int lowerLimit, int upperLimit, double forward, double backward, int alphabet, int uppersize) throws Exception{
+		ArrayList<String> graphs = new ArrayList<String>();
+		int seed = 0;
+		for(int i=0;i<numberOfGraphs;i++){
+			//ForestFireStateMachineGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,alphabet,seed);
+			//LearnerGraph g = fsmg.buildMachine(69);
+			ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
+			LearnerGraph g = fsmg.buildMachine(uppersize);
+			if(g!=null){
+				String name = String.valueOf(i+"."+i);
+				OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
+				//OutputUtil.generateADLOutput(g, g.pathroutines.computeAlphabet().size()+"-"+i+".adl");
+				graphs.add(name);
+			}
+			else{
+				seed++;
+				i--;
+			}
+				
+		}
+		return graphs;
+	}
 	
 	public static void main(String[] args) throws Exception{
-		
-		//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.9,1,17,4);
-		//DirectedSparseGraph g = fsmg.buildMachine(50);
-		//Visualiser.updateFrame(g, null);
-		
-		ArrayList<String> graphs = new ArrayList<String>();
-		for(int i=5;i<50;i=i+1){
-			System.out.println("|||||||");
-			int seed = i+2;
-			for(int j=i;j<seed;j++){
-				ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(0.45,0.82,17,j+i);
-				LearnerGraph g = fsmg.buildMachine(i);
-				if(g!=null){
-					System.out.println("----");
-					String name = String.valueOf(i+"."+j);
-					OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
-					graphs.add(name);
-				}
-				else{
-					seed++;
-				}
-					
-			}
-		}
+		int numberOfGraphs = Integer.valueOf(args[0]);
+		int lowerLimit = Integer.valueOf(args[1]);
+		int upperLimit = Integer.valueOf(args[2]);
+		double forward = Double.valueOf(args[3]);
+		double backward = Double.valueOf(args[4]);
+		int alphabet = Integer.valueOf(args[5]);
+		int uppersize = Integer.valueOf(args[6]);
+		ArrayList<String> graphs = generateGraphs(numberOfGraphs, lowerLimit, upperLimit, forward, backward, alphabet, uppersize);
+		printResults(graphs);	
+	}
+	
+	private static void printResults(ArrayList<String> graphs){
 		for (int i=0;i<graphs.size();i++) {
 			System.out.println("synth."+graphs.get(i)+".net <- read.graph(\""+ graphs.get(i)+".net\", format=\"pajek\")");
 		}

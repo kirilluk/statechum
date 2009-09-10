@@ -8,26 +8,29 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 import statechum.JUConstants;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
 public class OutputUtil {
 	
-	public static void generateTextOutput(DirectedSparseGraph g){
+	public static void generateTextOutput(DirectedSparseGraph g, String name){
 		StringWriter graphout = traverseGraph(g);
-		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"textMachineOutput";
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
 	}
 	
-	public static void generateDotOutput(DirectedSparseGraph g){
+	public static void generateADLOutput(LearnerGraph g, String name){
+		StringWriter graphout = new StringWriter();
+		graphout.write(new LearnerGraphND(g,g.config).pathroutines.toADL());
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
+		File outputMachine  = new File(fileRef);
+		write(graphout.toString(), outputMachine);
+	}
+	
+	public static void generateDotOutput(DirectedSparseGraph g, String name){
 		StringWriter graphout = dotGraph(g);
-		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"dotOutput.dot";
-		File outputMachine  = new File(fileRef);
-		write(graphout.toString(), outputMachine);
-	}
-	
-	public static void generatePajekOutput(DirectedSparseGraph g){
-		StringWriter graphout = pajekGraph(g);
-		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"pajekOutput.dot";
+		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File outputMachine  = new File(fileRef);
 		write(graphout.toString(), outputMachine);
 	}

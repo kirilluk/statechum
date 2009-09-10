@@ -87,7 +87,7 @@ public class ManualAccuracyTracker extends QSMTool {
 			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
 			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);
 			//atd.init(sPlus, sMinus);
-			OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph());
+			OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph(),"dotOutput.dot");
 			Learner autoAns = new AutoAnswers(atd);
 			autoAns.init(sPlus, sMinus);
 			

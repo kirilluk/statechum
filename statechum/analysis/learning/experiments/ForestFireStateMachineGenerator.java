@@ -68,10 +68,10 @@ public class ForestFireStateMachineGenerator {
 		machine = new DirectedSparseGraph();
 		vertices = new ArrayList<DirectedSparseVertex>();
 		generator  = new MersenneTwister();
-		addInitialNode();
 	}
 
 	protected LearnerGraph buildMachine(int size) throws Exception {
+		addInitialNode();
 		for(int i=0;i<size;i++){
 			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
 			visited.add(v);
@@ -91,7 +91,7 @@ public class ForestFireStateMachineGenerator {
 		return true;
 	}
 	
-	private void addInitialNode(){
+	protected void addInitialNode(){
 		DirectedSparseVertex v = new DirectedSparseVertex();
 		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
 		v.setUserDatum(JUConstants.LABEL, String.valueOf(0), UserData.SHARED);
@@ -156,19 +156,19 @@ public class ForestFireStateMachineGenerator {
 		}
 	}
 	//0.46,0.92,17,seed
-	//MAY NOT NEED LOWER / UPPER LIMITS
-	private static ArrayList<String> generateGraphs(int numberOfGraphs, int lowerLimit, int upperLimit, double forward, double backward, int alphabet, int uppersize) throws Exception{
+	private static ArrayList<String> generateGraphs(int numberOfGraphs, double forward, double backward, int alphabet, int uppersize) throws Exception{
 		ArrayList<String> graphs = new ArrayList<String>();
 		int seed = 0;
+		Random r = new Random(0);
 		for(int i=0;i<numberOfGraphs;i++){
-			//ForestFireStateMachineGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,alphabet,seed);
-			//LearnerGraph g = fsmg.buildMachine(69);
-			ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
+			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,alphabet,seed, new Boolean(r.nextBoolean()));
 			LearnerGraph g = fsmg.buildMachine(uppersize);
+			//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
+			//LearnerGraph g = fsmg.buildMachine(uppersize);
 			if(g!=null){
 				String name = String.valueOf(i+"."+i);
-				OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
-				//OutputUtil.generateADLOutput(g, g.pathroutines.computeAlphabet().size()+"-"+i+".adl");
+				//OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
+				OutputUtil.generateADLOutput(g, g.pathroutines.computeAlphabet().size()+"-"+i+".adl");
 				graphs.add(name);
 			}
 			else{
@@ -182,13 +182,11 @@ public class ForestFireStateMachineGenerator {
 	
 	public static void main(String[] args) throws Exception{
 		int numberOfGraphs = Integer.valueOf(args[0]);
-		int lowerLimit = Integer.valueOf(args[1]);
-		int upperLimit = Integer.valueOf(args[2]);
-		double forward = Double.valueOf(args[3]);
-		double backward = Double.valueOf(args[4]);
-		int alphabet = Integer.valueOf(args[5]);
-		int uppersize = Integer.valueOf(args[6]);
-		ArrayList<String> graphs = generateGraphs(numberOfGraphs, lowerLimit, upperLimit, forward, backward, alphabet, uppersize);
+		double forward = Double.valueOf(args[1]);
+		double backward = Double.valueOf(args[2]);
+		int alphabet = Integer.valueOf(args[3]);
+		int uppersize = Integer.valueOf(args[4]);
+		ArrayList<String> graphs = generateGraphs(numberOfGraphs, forward, backward, alphabet, uppersize);
 		printResults(graphs);	
 	}
 	

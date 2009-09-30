@@ -41,6 +41,7 @@ public class TestNextID {
 	private static Configuration confJung, confString, confSame;
 
 	private final Configuration config;
+	@SuppressWarnings("unused")
 	private final String description;
 	private final LearnerGraphND graph;
 	

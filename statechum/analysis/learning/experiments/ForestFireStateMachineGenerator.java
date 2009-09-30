@@ -19,12 +19,16 @@
 package statechum.analysis.learning.experiments;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import cern.jet.random.Distributions;
 import cern.jet.random.engine.MersenneTwister;
@@ -32,13 +36,14 @@ import cern.jet.random.engine.RandomEngine;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.Visualiser;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.util.OutputUtil;
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
 /*
@@ -54,114 +59,241 @@ public class ForestFireStateMachineGenerator {
 	
 	private double forwards, backwards;
 	protected DirectedSparseGraph machine;
-	protected List<DirectedSparseVertex> vertices;
-	protected Set<DirectedSparseVertex> visited;
+	protected List<DeterministicVertex> vertices;
+	protected Set<DeterministicVertex> visited;
 	protected RandomEngine generator;
-	protected Map<Object,DirectedSparseVertex> labelmap;
 	
-	
-	public ForestFireStateMachineGenerator(double forwards, double backwards) throws Exception{
-		this.forwards = forwards;
-		this.backwards = backwards;
-		if(!(forwards > 0 && forwards < 1) || !(backwards > 0 && backwards <= 1)){throw new Exception("invalid scopes for backwards or forwards");};
-		visited = new HashSet<DirectedSparseVertex>();
+	public ForestFireStateMachineGenerator(double argForward, double argBackward, int seed)
+	{
+		this.forwards = argForward;this.backwards = argBackward;
+		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
+			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
+		visited = new HashSet<DeterministicVertex>();
 		machine = new DirectedSparseGraph();
-		vertices = new ArrayList<DirectedSparseVertex>();
-		generator  = new MersenneTwister();
-	}
-
-	protected LearnerGraph buildMachine(int size) throws Exception {
-		addInitialNode();
-		for(int i=0;i<size;i++){
-			DirectedSparseVertex v = (DirectedSparseVertex) machine.addVertex(new DirectedSparseVertex());
-			visited.add(v);
-			DirectedSparseVertex random = selectRandom();
-			addEdge(random, v);
-			visited.add(random);
-			spread(v,random);
-			vertices.add(v);
-			visited.clear();
-		}
-		return new LearnerGraph(machine,Configuration.getDefaultConfiguration());
-	}
-
-	protected boolean addEdge(DirectedSparseVertex v, DirectedSparseVertex w) {
-		DirectedSparseEdge e = new DirectedSparseEdge(v,w);
-		machine.addEdge(e);
-		return true;
-	}
-	
-	protected void addInitialNode(){
-		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		v.setUserDatum(JUConstants.LABEL, String.valueOf(0), UserData.SHARED);
+		vertices = new ArrayList<DeterministicVertex>();
+		generator  = new MersenneTwister(seed);
+		
+		DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
+		annotateVertex(v);
 		machine.addVertex(v);
-		vertices.add(v);
+		vertices.add(v);// permits v to be chosen as a target, creating self-loops
+		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+	}
+
+	/** Annotates a vertex with various things such as accept conditions. Expected to be overridden by subclasses. */
+	protected void annotateVertex(@SuppressWarnings("unused") DeterministicVertex vertex)
+	{
 	}
 	
-	protected void spread(DirectedSparseVertex v, DirectedSparseVertex ambassador){
-		int x = Distributions.nextGeometric((forwards/(1-forwards)), generator);
-		int y = Distributions.nextGeometric((backwards*forwards)/(1-(backwards*forwards)), generator);
-		Set<DirectedSparseVertex> selectedVertices = selectLinks(x,y,ambassador);
-		if(selectedVertices.isEmpty()){
-			return;
+	protected Map<VertexID,DeterministicVertex> labelmap;
+
+	/** Adds the supplied number of states to the machine, connecting them to the surrounding ones via forest-fire.
+	 * 
+	 * @param size the number of states to add
+	 * @return constructed machine.
+	 * @throws Exception if something goes wrong.
+	 */
+	protected void buildGraph(int size) 
+	{
+		synchronized(AbstractLearnerGraph.syncObj)
+		{// This kills multi-core operation but then with Jung there is no other choice - it simply does not
+		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
+			
+			labelmap = new HashMap<VertexID,DeterministicVertex>();
+			for(int i=0;i<size-1;i++)
+			{
+				DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
+				annotateVertex(v);
+				machine.addVertex(v);
+				vertices.add(v);// permits v to be chosen as a target, creating self-loops
+				this.labelmap.put(v.getID(), v);
+				Set<DeterministicVertex> tried = new HashSet<DeterministicVertex>();
+				DeterministicVertex random = null;
+				do
+				{
+					random = selectRandom(tried);
+					tried.add(random);
+				}
+				while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
+				
+				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
+				// at this point it is appropriate to assume that we were successful.
+				visited.add(random);visited.add(v);
+				spread(v,random);
+				visited.clear();
+			}
+			
 		}
-		for (DirectedSparseVertex w : selectedVertices) {
+	}
+	
+	protected LearnerGraph buildMachine(int size) 
+	{
+		buildGraph(size);
+		Configuration conf = Configuration.getDefaultConfiguration();
+		//conf.setAllowedToCloneNonCmpVertex(true);
+		return new LearnerGraph(machine,conf).paths.reduce();
+	}
+	
+	/** Adds an edge between the supplied vertices and returns true/false if this was successful. */ 
+	protected boolean addEdge(DeterministicVertex v, DeterministicVertex w) {
+		machine.addEdge(new DirectedSparseEdge(v,w));return true;
+	}
+	
+	/** Randomly selects a vertex from a set of vertices in the current graph, avoiding the collection of 
+	 * vertices passed in.
+	 * 
+	 * @param blocked vertices not to choose
+	 * @return vertex from the set of vertices which is not in blocked.
+	 * @throws IllegalArgumentException if no vertices are left to select from
+	 */
+	protected DeterministicVertex selectRandom(Set<DeterministicVertex> blocked)
+	{
+		Set<DeterministicVertex> available = new HashSet<DeterministicVertex>();available.addAll(vertices);
+		if (blocked != null) available.removeAll(blocked);
+		if (available.isEmpty()) throw new IllegalArgumentException("no vertices to select from");
+		DeterministicVertex availableArray[] = new DeterministicVertex[available.size()];available.toArray(availableArray);
+		return availableArray[randomInt(availableArray.length)];
+	}
+	
+	protected void spread(final DeterministicVertex v, DeterministicVertex ambassador)
+	{
+		int x = Distributions.nextGeometric(1-forwards,generator);
+		
+		int y = Distributions.nextGeometric(1-backwards*forwards,generator);
+		
+		List<DeterministicVertex> selectedVertices = selectLinks(x,y,ambassador);
+		if(selectedVertices.isEmpty())
+			return;
+
+		for (DeterministicVertex w : selectedVertices) {
 			addEdge(v,w);
 			visited.add(w);
 		}
-		for (DirectedSparseVertex w : selectedVertices) {
+		
+		for (DeterministicVertex w : selectedVertices) {
 			spread(v,w);
 		}
 		
 	}
 	
+	protected static int getEffectiveDiameter(DirectedSparseGraph machine)
+	{
+		DijkstraDistance p = new DijkstraDistance(machine);
+		List<Integer> distances = new LinkedList<Integer>();
+		for(DeterministicVertex v:(Set<DeterministicVertex>)machine.getVertices())
+			for(DeterministicVertex vOther:(Set<DeterministicVertex>)machine.getVertices())
+			{
+				int length = 0;
+				Number distance = p.getDistance(v, vOther);if (distance != null) length = distance.intValue();
+				if (length > 0) // non-empty path
+					distances.add(length);
+				if (v == vOther)
+					break;// we only process a triangular subset.
+			}
+		
+		int result = 0;
+		if (distances.size() == 1)
+			result = distances.get(0);
+		else
+		if (distances.size() > 0)
+		{
+			Integer distancesArray [] = new Integer[distances.size()];distances.toArray(distancesArray);
+			Arrays.sort(distancesArray);
+			int position90 = (int)(distances.size()*0.9)-1;
 	
+			result = distancesArray[position90];
+		}
+		return result;
+	}
 
-
-	private Set<DirectedSparseVertex> selectLinks(int x, int y,
-			DirectedSparseVertex ambassador) {
-		HashSet<DirectedSparseVertex> vertices = new HashSet<DirectedSparseVertex>();
+	/** Given a collection of vertices and a number, this method randomly chooses the set number of vertices 
+	 * from the collection.  
+	 */
+	protected Collection<DeterministicVertex> selectVertices(Collection<DeterministicVertex> argVertices, int x)
+	{
+		Set<Integer> chosenInts = new TreeSet<Integer>();int size = argVertices.size();
+		if (size <= x) return argVertices;
+		//if (size < x) throw new IllegalArgumentException("cannot return more vertices than there is in the set");
+		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>(); 
+		final int attemptCounter = 10000;
+		int i=0;
+		for(i=0;i<attemptCounter && chosenInts.size() < x;++i)
+			chosenInts.add(randomInt(size));
+		if (i == attemptCounter) 
+			throw new IllegalArgumentException("random number generator failure");
+		DeterministicVertex verticesGiven[]=new DeterministicVertex[size];argVertices.toArray(verticesGiven);
+		for(Integer chosen:chosenInts)
+			result.add(verticesGiven[chosen]);
+		return result;
+	}
+	
+	/** Aims to help connecting the given ambassador node to the supplied number of 
+	 * vertices in both directions, by choosing vertices to connect to. Only vertices  
+	 * which have not been previously considered (that is, not in the visited set) can be chosen.
+	 *  
+	 * @param x the number of vertices to connect to, in the forward direction.
+	 * @param y the number of vertices to connect to, in reverse.
+	 * @param ambassador what to connect
+	 * @return collection of vertices 
+	 */
+	private List<DeterministicVertex> selectLinks(int x, int y, DeterministicVertex ambassador) 
+	{
+		// This one needs to choose vertices at random, not just choose first x/y vertices.
+		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>();
 		Iterator<DirectedSparseEdge> inIt = ambassador.getInEdges().iterator();
-		int added = 0;
-		while(added<x&&inIt.hasNext()){
+		List<DeterministicVertex> verticesToChooseFrom = new LinkedList<DeterministicVertex>();
+		while(inIt.hasNext()){
 			DirectedSparseEdge e = inIt.next();
-			DirectedSparseVertex v = (DirectedSparseVertex) e.getSource();
-			if(!visited.contains(v)){
-				vertices.add(v);
-				added++;
-			}
+			DeterministicVertex v = (DeterministicVertex) e.getSource();
+			if(!visited.contains(v))
+				verticesToChooseFrom.add(v);
 		}
-		added=0;
+		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, x));
+		
 		Iterator<DirectedSparseEdge> outIt = ambassador.getOutEdges().iterator();
-		while(added<y&&outIt.hasNext()){
+		verticesToChooseFrom = new LinkedList<DeterministicVertex>();
+		while(outIt.hasNext()){
 			DirectedSparseEdge e = outIt.next();
-			DirectedSparseVertex v = (DirectedSparseVertex) e.getDest();
-			if(!visited.contains(v)){
-				vertices.add(v);
-				added++;
-			}
+			DeterministicVertex v = (DeterministicVertex) e.getDest();
+			if(!visited.contains(v))
+				verticesToChooseFrom.add(v);
 		}
-		return vertices;
+		
+		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, y));
+		return result;
 	}
 
-	protected DirectedSparseVertex selectRandom(){
-		int size = vertices.size();
-		if(size ==1)
-			return (DirectedSparseVertex)vertices.get(0);
-		else{
-			Random r = new Random();
-			int index = r.nextInt(vertices.size()-1);
-			return (DirectedSparseVertex)vertices.get(index);
-		}
+	final long integerRange = -(long)Integer.MIN_VALUE+Integer.MAX_VALUE;
+	
+   /** Generates a random number in the range of 0..upTo-1
+    * <p>
+    * Description:<br>
+    * Let the random number r be between 0 and 1 (inclusive), then 
+	* r*size will be distributed between 0 and size, thus one way is to
+	* do position = (int)(r*upTo), truncating floating-point numbers. There is a possibility that
+	* the max value will be reached (albeit this will be rare), so we could do something like 
+	* if (position == size) --position;
+	* It is worth pointing out that if size==1, the above will still work.
+	* Note that it does not make sense to use position = (int)(r*upTo-1) because the value size-1
+	* will be rarely reached.
+	* If we wish to avoid floating-point numbers, an option is to do 
+	* r=((long)generator.nextInt()-(long)Integer.MIN_VALUE)/integerRange
+	*/
+	protected int randomInt(int upTo)
+	{
+		if (upTo <= 0) throw new IllegalArgumentException("upTo has to be above zero");
+		long result = ((long)generator.nextInt()-(long)Integer.MIN_VALUE)*upTo/integerRange;
+		assert result >=0 && result <= upTo;
+		if (result == upTo) --result;
+		return (int)result;
 	}
+		
 	//0.46,0.92,17,seed
 	private static ArrayList<String> generateGraphs(int numberOfGraphs, double forward, double backward, int alphabet, int uppersize) throws Exception{
 		ArrayList<String> graphs = new ArrayList<String>();
 		int seed = 0;
-		Random r = new Random(0);
 		for(int i=0;i<numberOfGraphs;i++){
-			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,alphabet,seed, new Boolean(r.nextBoolean()));
+			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,0.2,alphabet,seed);
 			LearnerGraph g = fsmg.buildMachine(uppersize);
 			//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
 			//LearnerGraph g = fsmg.buildMachine(uppersize);

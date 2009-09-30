@@ -114,6 +114,8 @@ final public class DeterministicDirectedSparseGraph {
 					tentativeKind = VertKind.NEGATIVE;
 				else if (text.charAt(0) == '+')
 					tentativeKind = VertKind.NONEXISTING;
+				else if (text.charAt(0) == 'V')
+					tentativeKind = VertKind.NEUTRAL;
 				
 				if (tentativeKind != VertKind.NONE)
 					try

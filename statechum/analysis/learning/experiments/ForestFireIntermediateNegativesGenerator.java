@@ -1,80 +1,65 @@
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning.experiments;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
-
-import statechum.Configuration;
-import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.util.OutputUtil;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
-import edu.uci.ics.jung.utils.UserData;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 
-public class ForestFireIntermediateNegativesGenerator extends
-		ForestFireLabelledStateMachineGenerator {
+public class ForestFireIntermediateNegativesGenerator extends ForestFireLabelledStateMachineGenerator {
 
-	Boolean initBool;
-	
-	public ForestFireIntermediateNegativesGenerator(double forwards,
-			double backwards, int alphabetSize, int seed, Boolean initBool) throws Exception {
-		super(forwards, backwards, alphabetSize, seed);
-		this.initBool = new Boolean(initBool);
+	public ForestFireIntermediateNegativesGenerator(double forwards,double backwards, double argParallel, int alphabetSize, int seed) 
+	{
+		super(forwards, backwards, argParallel,  alphabetSize, seed);
 	}
 	
-	protected void addInitialNode(){
-		DirectedSparseVertex v = new DirectedSparseVertex();
-		v.setUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-		v.setUserDatum(JUConstants.LABEL, String.valueOf(0), UserData.SHARED);
-		v.setUserDatum(JUConstants.ACCEPTED, initBool, UserData.SHARED);
-		machine.addVertex(v);
-		vertices.add(v);
+
+
+	@Override
+	protected void annotateVertex(DeterministicVertex vertex)
+	{
+		super.annotateVertex(vertex);
+		vertex.setAccept(randomInt(2) > 0);
 	}
 
-	protected LearnerGraph buildMachine(int size) throws Exception{
-		addInitialNode();
-		boolean accept = !initBool;
-		labelmap = new HashMap<Object,DirectedSparseVertex>();
-		for(int i=0;i<size-1;i++){
-			DirectedSparseVertex v =  new DirectedSparseVertex();
-			//visited.add(v);  COMMENTED OUT TO ENABLE LOOPS
-			String label = String.valueOf(i+1);
-			v.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
-			v.setUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
-			machine.addVertex(v);
-			this.labelmap.put(label, v);
-			HashSet tried = new HashSet<DirectedSparseVertex>();
-			DirectedSparseVertex random = selectRandom();
-			tried.add(random);
-			while(!addEdge(random,v)){
-				random = selectRandom(tried);
-				tried.add(random);
-				if(random == null){
-					System.out.println("Could not construct complete machine");
-					machine.removeVertex(v);
-					return new LearnerGraph(machine,Configuration.getDefaultConfiguration());
-				}
+	
+	public static void main(String args[])
+	{
+		for(double f=0.1;f < 1;f+=0.05)
+		{
+			final int nr = 10;
+			double accumMachine = 0, accumReduced = 0, statesMachine = 0, statesReduced = 0;
+			for(int counter=0;counter < nr;++counter)
+			{
+				ForestFireIntermediateNegativesGenerator gen = new ForestFireIntermediateNegativesGenerator(f,0.4,0.2,10,0);
+				LearnerGraph fsm = gen.buildMachine(130);
+				accumMachine += ForestFireStateMachineGenerator.getEffectiveDiameter(gen.machine);statesMachine+=gen.machine.getVertices().size();
+				accumReduced += ForestFireStateMachineGenerator.getEffectiveDiameter(fsm.pathroutines.getGraph());statesReduced+=fsm.getStateNumber();
+
 			}
-			visited.add(random);
-			spread(v,random);
-			vertices.add(v);
-			visited.clear();
-			accept = !accept;
+			System.out.println(f+" effective dim orig: "+accumMachine/nr+" effective dim reduced: "+accumReduced/nr+" statesOrig: "+statesMachine/nr+" statesReduced: "+statesReduced/nr);
 		}
 		
-		Configuration conf = Configuration.getDefaultConfiguration();
-		conf.setAllowedToCloneNonCmpVertex(true);
-		LearnerGraph l = new LearnerGraph(machine,conf);
-		l = l.paths.reduce();
-		System.out.println(l.pathroutines.computeAlphabet().size() + ", "+l.getStateNumber());
-		//Visualiser.updateFrame(l, null);
-		return l;
-	}
+		/* Illustration */
+		ForestFireIntermediateNegativesGenerator gen = new ForestFireIntermediateNegativesGenerator(0.5,0.4,0.2,10,0);
+		LearnerGraph fsm = gen.buildMachine(13);
 
+		System.out.println(fsm.pathroutines.computeAlphabet().size() + ", "+fsm.getStateNumber());
+		//Visualiser.updateFrame(gen.machine, fsm);
+		//Visualiser.waitForKey();
+	}
 }

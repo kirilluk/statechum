@@ -276,11 +276,10 @@ public class WMethod {
 	private static class TransitionRowEqClass extends HashMap<String,Integer>
 	{
 		private final boolean accept;
-		private final Integer sinkEqClass;
 		
-		public TransitionRowEqClass(boolean acceptState, Integer sinkClass)
+		public TransitionRowEqClass(boolean acceptState)
 		{
-			accept = acceptState;sinkEqClass = sinkClass;
+			accept = acceptState;
 		}
 		
 		@Override
@@ -422,21 +421,19 @@ public class WMethod {
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
 			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>();
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
-			Integer sinkEqClass = equivalenceClasses.get(sink);
-			
+			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept(),sinkEqClass);
+				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
 				Map<String,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
-						Integer targetEqClass = equivalenceClasses.get(labelstate.getValue());
+						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
 						if (targetEqClass != sinkEqClass) // filter out all transitions to sink
 							map.put(labelstate.getKey(), targetEqClass);
 					}
 				newMap.put(stateA, map);
-				//System.out.println(stateA+" ("+equivalenceClasses.get(stateA)+") "+map);
 				if (map.looksLikeSink()) statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
@@ -447,6 +444,8 @@ public class WMethod {
 					newEquivClasses.put(stateA, sortedRows.get(map));
 			}
 
+			//System.out.println(newEquivClasses);
+			//System.out.println("v163: "+fsm.transitionMatrix.get(fsm.findVertex("V163")));
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 			{
 				Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
@@ -468,6 +467,10 @@ public class WMethod {
 						
 						// the two states used to be equivalent but not any more, find the different element
 						String label = newMap.get(stateA.getKey()).computeDistinguishingLabel(newMap.get(stateB.getKey())).iterator().next();
+						//System.out.println(stateA.getKey()+" - "+stateB.getKey());
+						/*if (
+								stateA.getKey().getID().equals(VertexID.parseID("V148")))
+							System.out.println("v148 v.s. "+stateB.getKey()+" label: "+label);*/
 						CmpVertex toA = stateA.getKey() == sink? sink:fsm.transitionMatrix.get(stateA.getKey()).get(label);if (toA == null) toA=sink;
 						CmpVertex toB = stateB.getKey() == sink? sink:fsm.transitionMatrix.get(stateB.getKey()).get(label);if (toB == null) toB=sink;
 						Wsequence.add(label);
@@ -477,13 +480,12 @@ public class WMethod {
 						else
 							Wprevious = Wdata.get(toB).get(toA);
 						assert Wprevious != null : "In states ("+stateA.getKey()+","+stateB.getKey()+") previous pair ("+toA+","+toB+") has a null sequence";
-						assert !Wprevious.isEmpty() || toA.isAccept() != toB.isAccept(): "In states ("+stateA.getKey()+","+stateB.getKey()+"), separating input \""+label+"\" previous pair ("+toA+","+toB+") was not separated";
+						assert !Wprevious.isEmpty() || toA.isAccept() != toB.isAccept(): "In states ("+stateA.getKey()+","+stateB.getKey()+"), separating input \""+label+"\" previous pair ("+toA+"("+toA.isAccept()+"),"+toB+"("+toB.isAccept()+") was not separated";
 						
 						Wsequence.addAll(Wprevious);
 					}
 				}			
 			}			
-
 			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
@@ -612,15 +614,15 @@ public class WMethod {
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
 			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>();
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
-			Integer sinkEqClass = equivalenceClasses.get(sink);
+			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept(),sinkEqClass);
+				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
 				Map<String,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
-						Integer targetEqClass = equivalenceClasses.get(labelstate.getValue());
+						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
 						if (targetEqClass != sinkEqClass) // filter out all transitions to sink
 							map.put(labelstate.getKey(), targetEqClass);
 					}
@@ -706,7 +708,6 @@ public class WMethod {
 				}			
 			}
 			
-			
 			equivalenceClasses = newEquivClasses;newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
 		}
 		while(equivalenceClassNumber > oldEquivalenceClassNumber);
@@ -789,16 +790,16 @@ public class WMethod {
 			oldEquivalenceClassNumber = equivalenceClassNumber;statesEquivalentToSink = 0;
 			Map<CmpVertex,TransitionRowEqClass> newMap = new HashMap<CmpVertex,TransitionRowEqClass>();
 			equivalenceClassNumber = 0;sortedRows.clear();newEquivClasses.clear();
-			Integer sinkEqClass = equivalenceClasses.get(sink);
+			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
-				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept(),sinkEqClass);
+				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
 				Map<String,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 				{
 					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
-						Integer targetEqClass = equivalenceClasses.get(labelstate.getValue());
+						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
 						if (targetEqClass != sinkEqClass) // filter out all transitions to sink
 							map.put(labelstate.getKey(), targetEqClass);
 					}

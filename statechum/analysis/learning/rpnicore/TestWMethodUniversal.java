@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -202,6 +203,15 @@ public class TestWMethodUniversal
 		testWsetconstruction("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2",true,false);
 	}
 	
+	/** A big graph */
+	@Test
+	public final void testWsetBig1() throws IOException
+	{
+		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
+		AbstractPersistence.loadGraph("resources/testWset1.graphml",fsm);
+		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
+	}
+	
 	/** Multiple non-equivalent states in the presence of incompatible states - should be ignored. */
 	@Test
 	public final void testWset_incompatibles1()
@@ -319,5 +329,5 @@ public class TestWMethodUniversal
 	public static junit.framework.Test suite()
 	{
 		return new JUnit4TestAdapter(TestWMethod.class);
-	}
+	}	
 }

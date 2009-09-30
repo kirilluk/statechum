@@ -1,166 +1,111 @@
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package statechum.analysis.learning.experiments;
 
-import java.util.Collection;
-import java.util.Formatter;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
-import cern.jet.random.engine.MersenneTwister;
+import cern.jet.random.Distributions;
 
-import statechum.Configuration;
+import statechum.Helper;
 import statechum.JUConstants;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.analysis.learning.rpnicore.LearnerGraph.FSMImplementation;
-import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
-import edu.uci.ics.jung.utils.UserDataContainer.CopyAction;
+
 /**
  * Adds an alphabet of a specific size, ensuring that the final machine is deterministic.
- * Also adds the potential of loops to the same state
+ * Also adds the potential of loops to the same state.
+ * 
  * @author nw
  *
  */
-public class ForestFireLabelledStateMachineGenerator extends
-		ForestFireStateMachineGenerator {
-
-
+public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMachineGenerator 
+{
 	Set<String> alphabet;
-
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, int alphabetSize, int seed) throws Exception{
-		super(forwards, backwards);
-		this.generator = new MersenneTwister(seed);
-		this.alphabet=getAlphabet(alphabetSize);
+	double parallel;
+	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argParallel, int alphabetSize, int seed)
+	{
+		super(forwards, backwards,seed);this.parallel=argParallel;
+		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, int alphabetSize) throws Exception{
-		super(forwards, backwards);
-		this.alphabet=getAlphabet(alphabetSize);
-	}
-	
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, Set<String> alphabet) throws Exception{
-		super(forwards, backwards);
-		this.alphabet=alphabet;
-	}
-	
-	protected LearnerGraph buildMachine(int size) throws Exception {
-		labelmap = new HashMap<Object,DirectedSparseVertex>();
-		for(int i=0;i<size-1;i++){
-			DirectedSparseVertex v =  new DirectedSparseVertex();
-			//visited.add(v);
-			String label = String.valueOf(i+1);
-			v.setUserDatum(JUConstants.LABEL, label, UserData.SHARED);
-			machine.addVertex(v);
-			this.labelmap.put(label, v);
-			HashSet tried = new HashSet<DirectedSparseVertex>();
-			DirectedSparseVertex random = selectRandom();
-			tried.add(random);
-			while(!addEdge(random,v)){
-				random = selectRandom(tried);
-				tried.add(random);
-				if(random == null){
-					throw new Exception("Could not construct machine");
-				}
-			}
-			visited.add(random);
-			spread(v,random);
-			vertices.add(v);
-			visited.clear();
-		}
-		
-		Configuration conf = Configuration.getDefaultConfiguration();
-		conf.setAllowedToCloneNonCmpVertex(true);
-		return new LearnerGraph(machine,conf).paths.reduce();
-	}
-	
-	private boolean differentiate(AMEquivalenceClass<CmpVertex, LearnerGraphCachedData> equivalenceClass){
-		Iterator<CmpVertex> vertices = equivalenceClass.getStates().iterator();
-		while(vertices.hasNext()) {
-			CmpVertex rep = vertices.next();
-			HashSet tried = new HashSet<DirectedSparseVertex>();
-			DirectedSparseVertex random = selectRandom(tried);
-			tried.add(random);
-			String label = String.valueOf(rep.getID());
-			DirectedSparseVertex old = labelmap.get(label);
-			while(!addEdge(old,random)){
-				random = selectRandom(tried);
-				tried.add(random);
-				if(random == null){
-					System.out.println("Could not construct minimal machine");
-					return false;
-				}
-			}
-		}
-		return true;
+	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argParallel, Set<String> argAlphabet, int seed)
+	{
+		super(forwards, backwards, seed);this.parallel=(int)(1/argParallel);
+		this.alphabet=argAlphabet;
 	}
 	
 	@Override
-	protected boolean addEdge(DirectedSparseVertex v, DirectedSparseVertex random){
+	protected boolean addEdge(DeterministicVertex v, DeterministicVertex random)
+	{
+		int numberOfLabels = Distributions.nextGeometric(1-parallel,generator);
+		if (!addEdgeInternal(v,random)) 
+			return false;
+		for(int i=0;i<numberOfLabels && addEdgeInternal(v,random);++i);
+		return true;			
+	}
+	
+	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
+	{
 		Set<String> vertexAlphabet = new HashSet<String>();
+		DirectedSparseEdge existingEdge = null;
 		for (Object e : v.getOutEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
+			if (edge.getDest() == random)
+				existingEdge = edge;
 			Set<String>labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
-			if(labels!=null)
-				vertexAlphabet.addAll(labels);
+			assert labels!=null : "vertex "+v.getID().toString()+" has outgoing edges without labels";
+			vertexAlphabet.addAll(labels);
 		}
 		Set<String> possibles = new HashSet<String>();
 		possibles.addAll(alphabet);
 		possibles.removeAll(vertexAlphabet);
 		String label = null;
-		if(possibles.size()==0)
-			return false;
-		else
-			label = (String)pickRandom(possibles.toArray());
-		Set<String> labelSet = new HashSet<String>();
-		labelSet.add(label);
-		DirectedSparseEdge e = new DirectedSparseEdge(v,random);
-		e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
-		try{
-			machine.addEdge(e);
+		if(possibles.isEmpty())
+			return false;// failure to add an edge since all possible letters of an alphabet have already been used
+		String possiblesArray [] = new String[possibles.size()];possibles.toArray(possiblesArray); 
+		label = possiblesArray[randomInt(possiblesArray.length)];
+		
+		if (existingEdge != null)
+		{// a parallel edge
+			((Set<String>)existingEdge.getUserDatum(JUConstants.LABEL)).add(label);
 		}
-		catch(edu.uci.ics.jung.exceptions.ConstraintViolationException e1){
-			System.out.println("poor constraints from"+v+random);
-			return false;
+		else
+		{// new edge needs to be added.
+			try
+			{
+				Set<String> labelSet = new HashSet<String>();
+				labelSet.add(label);
+				DirectedSparseEdge e = new DirectedSparseEdge(v,random);
+				e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
+				machine.addEdge(e);
+			}
+			catch(edu.uci.ics.jung.exceptions.ConstraintViolationException e1){
+				Helper.throwUnchecked("poor constraints from"+v+" to "+random,e1);
+			}
 		}
 		return true;
 	}
 	
-	protected DirectedSparseVertex selectRandom(Set<DirectedSparseVertex> blocked){
-		List<DirectedSparseVertex> available = vertices;
-		available.removeAll(blocked);
-		int size = available.size();
-		if(size ==0)
-			return null;
-		else if(size == 1)
-			return (DirectedSparseVertex) available.toArray()[0];
-		else{
-			Random r = new Random();
-			int index = r.nextInt(available.size()-1);
-			return (DirectedSparseVertex)available.get(index);
-		}
-	}
-
-	private Object pickRandom(Object[] possibles) {
-		Random index = new Random();
-		int size = possibles.length;
-		int random = index.nextInt(size);
-		return possibles[random];
-	}
-
-	private static Set<String> getAlphabet(int number){
+	private static Set<String> generateAlphabet(int number)
+	{
 		Set<String> alphabet = new HashSet<String>();
 		for (int i=0;i<number;i++){
 			String next = String.valueOf(i);

@@ -40,15 +40,15 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 {
 	Set<String> alphabet;
 	double parallel;
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argParallel, int alphabetSize, int seed)
+	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, int seed)
 	{
-		super(forwards, backwards,seed);this.parallel=argParallel;
+		super(forwards, backwards,argSelfloop,seed);this.parallel=argParallel;
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argParallel, Set<String> argAlphabet, int seed)
+	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argSelfloop, double argParallel, Set<String> argAlphabet, int seed)
 	{
-		super(forwards, backwards, seed);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards, argSelfloop, seed);this.parallel=(int)(1/argParallel);
 		this.alphabet=argAlphabet;
 	}
 	
@@ -58,7 +58,14 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		int numberOfLabels = Distributions.nextGeometric(1-parallel,generator);
 		if (!addEdgeInternal(v,random)) 
 			return false;
-		for(int i=0;i<numberOfLabels && addEdgeInternal(v,random);++i);
+		if (randomInt(2) > 0)
+		{
+			for(int i=0;i<numberOfLabels && addEdgeInternal(random,v);++i);
+		}
+		else
+		{
+			for(int i=0;i<numberOfLabels && addEdgeInternal(v,random);++i);
+		}
 		return true;			
 	}
 	

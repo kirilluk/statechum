@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -57,22 +58,23 @@ import edu.uci.ics.jung.utils.UserData;
 
 public class ForestFireStateMachineGenerator {
 	
-	private double forwards, backwards;
+	private double forwards, backwards, selfLoop;
 	protected DirectedSparseGraph machine;
 	protected List<DeterministicVertex> vertices;
 	protected Set<DeterministicVertex> visited;
 	protected RandomEngine generator;
+	protected Random boolGenerator;
 	
-	public ForestFireStateMachineGenerator(double argForward, double argBackward, int seed)
+	public ForestFireStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed)
 	{
-		this.forwards = argForward;this.backwards = argBackward;
+		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
 			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
 		visited = new HashSet<DeterministicVertex>();
 		machine = new DirectedSparseGraph();
 		vertices = new ArrayList<DeterministicVertex>();
 		generator  = new MersenneTwister(seed);
-		
+		boolGenerator = new Random(seed);
 		DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,0));
 		annotateVertex(v);
 		machine.addVertex(v);
@@ -116,6 +118,9 @@ public class ForestFireStateMachineGenerator {
 				}
 				while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
 				
+				if (Distributions.nextGeometric(1-selfLoop,generator)>0)
+					addEdge(v,v); 
+
 				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
 				// at this point it is appropriate to assume that we were successful.
 				visited.add(random);visited.add(v);
@@ -166,7 +171,10 @@ public class ForestFireStateMachineGenerator {
 			return;
 
 		for (DeterministicVertex w : selectedVertices) {
-			addEdge(v,w);
+			if(boolGenerator.nextBoolean())
+				addEdge(v,w);
+			else
+				addEdge(w,v);
 			visited.add(w);
 		}
 		
@@ -293,13 +301,13 @@ public class ForestFireStateMachineGenerator {
 		ArrayList<String> graphs = new ArrayList<String>();
 		int seed = 0;
 		for(int i=0;i<numberOfGraphs;i++){
-			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,0.2,alphabet,seed);
+			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,0.35,0.2,alphabet,seed);
 			LearnerGraph g = fsmg.buildMachine(uppersize);
 			//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
 			//LearnerGraph g = fsmg.buildMachine(uppersize);
 			if(g!=null){
 				String name = String.valueOf(i+"."+i);
-				//OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
+				OutputUtil.generatePajekOutput(g.pathroutines.getGraph(),name);
 				OutputUtil.generateADLOutput(g, g.pathroutines.computeAlphabet().size()+"-"+i+".adl");
 				graphs.add(name);
 			}
@@ -322,7 +330,7 @@ public class ForestFireStateMachineGenerator {
 		printResults(graphs);	
 	}
 	
-	private static void printResults(ArrayList<String> graphs){
+	protected static void printResults(ArrayList<String> graphs){
 		for (int i=0;i<graphs.size();i++) {
 			System.out.println("synth."+graphs.get(i)+".net <- read.graph(\""+ graphs.get(i)+".net\", format=\"pajek\")");
 		}
@@ -363,13 +371,13 @@ public class ForestFireStateMachineGenerator {
 		}
 		System.out.print("stats.inout <- cbind(c(");
 		for (int i=0;i<graphs.size();i++) {
-			System.out.print("degree(synth."+graphs.get(i)+".net,mode=\"out\",loops=TRUE)");
+			System.out.print("degree(synth."+graphs.get(i)+".net,mode=\"in\",loops=TRUE)");
 			if(i!=graphs.size()-1)
 				System.out.print(",");
 			else{
 				System.out.print("),c(");
 				for (int j=0;j<graphs.size();j++) {
-					System.out.print("degree(synth."+graphs.get(j)+".net,mode=\"in\",loops=TRUE)");
+					System.out.print("degree(synth."+graphs.get(j)+".net,mode=\"out\",loops=TRUE)");
 					if(j<graphs.size()-1)
 						System.out.print(",");
 					else{

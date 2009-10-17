@@ -1138,7 +1138,7 @@ public class ExperimentRunner
 					if (isForked())
 					{// arguments for the JVM to run
 						commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
-						commandLine.addAll(jvmArgs);commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
+						commandLine.addAll(jvmArgs);commandLine.add("-Djava.awt.headless=true");commandLine.add("-cp");commandLine.add(ManagementFactory.getRuntimeMXBean().getClassPath());
 						commandLine.add(this.getClass().getCanonicalName());
 					}
 					commandLine.add(serialisedExperiment.getAbsolutePath());commandLine.add(graphDir.getAbsolutePath());commandLine.add(outputDirectory.getAbsolutePath());

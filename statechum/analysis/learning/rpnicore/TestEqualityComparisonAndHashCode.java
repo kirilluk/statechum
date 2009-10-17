@@ -1448,7 +1448,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexConstruction()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DeterministicVertex vertex = new DeterministicVertex("testVertex");
 		vertex.setAccept(false);vertex.setHighlight(true);vertex.setColour(JUConstants.AMBER);vertex.setOrigState(new VertexID("id"));vertex.setDepth(34);
 		Assert.assertTrue(vertex.containsUserDatumKey(JUConstants.LABEL));
@@ -1711,7 +1711,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail1()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		AbstractLearnerGraph.cloneCmpVertex("junk", conf);
 	}
 	
@@ -1719,7 +1719,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail2()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
 		AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 	}
@@ -1728,7 +1728,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail3()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();
 		AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 	}
@@ -1737,7 +1737,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test(expected = IllegalArgumentException.class) 
 	public final void testVertexClone_fail4()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, true, UserData.SHARED);
 		AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 	}
@@ -1747,7 +1747,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone1a()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
 		CmpVertex result = AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 		Assert.assertEquals("name", result.getID().toString());
@@ -1759,7 +1759,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone1b()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, new VertexID("name"), UserData.SHARED);
 		CmpVertex result = AbstractLearnerGraph.cloneCmpVertex(vertex, conf);
 		Assert.assertEquals("name", result.getID().toString());
@@ -1771,7 +1771,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone2()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(true);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(true);
 		DirectedSparseVertex vertex = new DirectedSparseVertex();vertex.addUserDatum(JUConstants.LABEL, "name", UserData.SHARED);
 		vertex.addUserDatum(JUConstants.HIGHLIGHT, 1, UserData.SHARED);
 		vertex.addUserDatum(JUConstants.COLOUR, JUConstants.BLUE, UserData.SHARED);
@@ -1793,7 +1793,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone3()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
 		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
 		Assert.assertSame(vA, AbstractLearnerGraph.cloneCmpVertex(vA, conf));
@@ -1803,7 +1803,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone4()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerUseStrings(true);conf.setLearnerCloneGraph(false);
 		CmpVertex vA = new DeterministicVertex("test vertex");vA.setColour(JUConstants.RED);
 		Assert.assertSame(vA, AbstractLearnerGraph.cloneCmpVertex(vA, conf));
@@ -1894,7 +1894,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone5()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerCloneGraph(true);
 		
 		conf.setLearnerUseStrings(true);
@@ -1906,7 +1906,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public final void testVertexClone6()
 	{
-		Configuration conf = Configuration.getDefaultConfiguration();conf.setAllowedToCloneNonCmpVertex(false);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setLearnerCloneGraph(true);
 		
 		conf.setLearnerUseStrings(false);

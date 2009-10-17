@@ -37,7 +37,7 @@ import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.check
 public class TestRejectManipulation {
 	public TestRejectManipulation()
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
 	

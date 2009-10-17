@@ -31,6 +31,7 @@ import java.util.Set;
 import junit.framework.Assert;
 import junit.framework.JUnit4TestAdapter;
 
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -207,7 +208,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWsetBig1() throws IOException
 	{
-		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration());
+		LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
 		AbstractPersistence.loadGraph("resources/testWset1.graphml",fsm);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
 	}

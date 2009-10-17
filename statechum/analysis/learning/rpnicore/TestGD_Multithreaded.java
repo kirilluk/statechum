@@ -667,7 +667,7 @@ public class TestGD_Multithreaded {
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps(recorder);
-		Visualiser.updateFrame(grA, grB);
+		//Visualiser.updateFrame(grA, grB);
 		Assert.assertEquals(expectedSizeOfATOb,gd.aTOb.size());
 		Assert.assertEquals(expectedSizeOfDuplicates,gd.duplicates.size()); 
 		LearnerGraphND graph = new LearnerGraphND(cloneConfig);AbstractLearnerGraph.copyGraphs(grA, graph);

@@ -54,10 +54,12 @@ public class Configuration implements Cloneable
 		// the initial values are provided for each variable inline.
 	}
 	
-	protected final static Configuration defaultConfig = new Configuration();
+	protected final static Configuration defaultConfig = new Configuration(), originalDefaultConfiguration = new Configuration();
 	
 	public static Configuration getDefaultConfiguration()
 	{
+		if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT_ENABLED)))
+			assert defaultConfig.equals(originalDefaultConfiguration) : "original configuration has been modified - this should not happen";
 		return defaultConfig; 
 	}
 	

@@ -37,6 +37,7 @@ import java.util.Set;
 import junit.framework.Assert;
 import junit.framework.JUnit4TestAdapter;
 
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;

@@ -65,7 +65,7 @@ public class TestFSMAlgo {
 
 	public TestFSMAlgo()
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
 	

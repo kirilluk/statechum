@@ -43,7 +43,7 @@ public class TestVisualDemo {
 	
 	private static Pair<String,String> differenceLabelling(String graphA,String graphB)
 	{
-		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0);
+		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0,false);
 		Map<String,String> labelling = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
 		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = (Map<String,Map<String,Map<String,Color>>>)graph.getUserDatum(JUConstants.EDGE);
 		return new Pair<String,String>(labelling.toString(),transitionAnnotation.toString());

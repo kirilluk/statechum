@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
@@ -39,7 +38,7 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 public class TestEquivalenceChecking {
 	public TestEquivalenceChecking()
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
 	

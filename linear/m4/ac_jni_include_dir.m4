@@ -62,7 +62,7 @@ case "$host_os" in
         *)              _JINC="$_JTOPDIR/include";;
 esac
 if test -f "$_JINC/jni.h"; then
-        JNI_INCLUDE_DIRS="$JNI_INCLUDE_DIRS \"$_JINC\""
+        JNI_INCLUDE_DIRS="$JNI_INCLUDE_DIRS $_JINC"
 else
         _JTOPDIR=`echo "$_JTOPDIR" | sed -e 's:/[[^/]]*$::' -e's:Program Files:Progra~1:'`
         if test -f "$_JTOPDIR/include/jni.h"; then
@@ -87,7 +87,7 @@ esac
 for JINCSUBDIR in $_JNI_INC_SUBDIRS
 do
         if test -d "$_JTOPDIR/include/$JINCSUBDIR"; then
-                JNI_INCLUDE_DIRS="$JNI_INCLUDE_DIRS $_JTOPDIR/include/$JINCSUBDIR"
+                JNI_INCLUDE_DIRS=$JNI_INCLUDE_DIRS $_JTOPDIR/include/$JINCSUBDIR
         fi
 done
 ])

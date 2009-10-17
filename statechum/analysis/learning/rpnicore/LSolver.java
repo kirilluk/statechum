@@ -26,18 +26,18 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
 /** Interfaces to an external solver.
- * <p> 
+* <h1>General building instructions. </h1>
 * Building the external solver is described below. 
-* The procedure is similar for Linux and Win32 (with cygwin). 
+* The procedure is similar for Linux, MacOS X and Win32 (with cygwin). 
 * <ul>
 * <li>
-* You need Atlas (such as version 3.8.1), {@link http://math-atlas.sourceforge.net}.
+* On both Linux and Win32 you will need Atlas (such as version 3.8.1), {@link http://math-atlas.sourceforge.net}.
 * After uncompressing it, create a build directory builddir in its top folder,
 * enter it
 * <pre>
 * cd ATLAS/builddir
 * <pre>
-* and run (replacing the prefix path with the one you'd like Atlas to be installed)
+* and run (replacing the prefix path with the one where you'd like Atlas to be installed)
 * <pre>  
 * ../configure --prefix=/usr/local/soft/atlas-3.8.1 -Fa alg -fPIC
 * </pre>
@@ -56,11 +56,11 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * as follows:
 * <pre>
 * iret = GetIntProbe(verb, ln, "arch", "NCPU", 2048);
-* if (iret == 0) { printf("\nKIRR ugly hack: forcing NCPU to 2");iret=2;}
+* if (iret == 0) { printf("\nKIRR: ugly hack: forcing NCPU to 2");iret=2;}
 * </pre>
 * </li></ul>
 * 
-* After configure succeeds, you need to run "make" to build Atlas, 
+* After configure succeeds, you need to run "make" to build Atlas, then run 
 * <pre>
 * make check
 * </pre>
@@ -75,8 +75,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * attempts to detect it).
 * </li>
 * 
-* <li>
-* You need UMFPACK, {@link http://www.cise.ufl.edu/research/sparse/umfpack/}
+* <li>You need UMFPACK, {@link http://www.cise.ufl.edu/research/sparse/umfpack/}
 * which includes AMD and UFconfig. These three need to be uncompressed
 * starting from the same directory.
 * Subsequently, configuration needs to be set. The file to edit is 
@@ -99,10 +98,9 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * Subsequently, running make in the UMFPACK directory will build UMFPACK (and AMD).
 * </li>
 * 
-* <li>
-* If files 
+* <li>If files
 * <em>linear/configure</em> or <em>linear/Makefile.in</em>
-* are not present, you need to build it as follows:
+* are not present, you need to build them as follows:
 * <pre>
 * cd linear
 * ./bootstrap
@@ -124,8 +122,7 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * with it will not work with Java (jvm will lock up on LoadLibrary). 
 * </li>
 * 
-* <li>
-* The easiest way to build a library is to edit <em>fullrebuild.sh</em> by adding the relevant paths 
+* <li>The easiest way to build a library is to edit <em>fullrebuild.sh</em> by adding the relevant paths 
 * to it and then issue 
 * <pre>
 * cd linear
@@ -144,13 +141,66 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * expect it to (build a dll out of static libraries built with -fPIC), 
 * I think it is not appropriate to "fix" configure scripts to work around these problems.
 * </li>
- 
 * <li>
 * In order for the just built library to be picked by Java, 
 * you need to pass the following as a JVM option: 
 * <pre>
 * -Djava.library.path=linear/.libs
 * </pre> 
+* </li></ul>
+* 
+* 
+ * <h1>MacOS X - specific instructions</h1>
+ * It may be advisable to build gcc first (gmp web page suggests it will not work when built with XCode so using a recent gcc may be advisable),
+ * <ul>
+ * <li>Using <em>Applications/Utilities/Java/Java Preferences</em>, set the default JVM to be 64-bit version 6.0.</li> 
+ * <li>build gmp
+ * <pre>
+ * CC='gcc-4.2 -m64' ./configure --prefix=/usr/local/soft_a/gmp
+ * make
+ * make install
+ * </pre></li>
+ * <li>build mpfr
+ * <pre>
+ * CC='gcc-4.2 -m64' ./configure --with-gmp=/usr/local/soft_a/gmp --prefix=/usr/local/soft_a/mpfr
+ * make
+ * make install
+ * </pre></li>
+ * <li>
+ * Build gcc,
+ * <pre>
+ * CC='gcc-4.2 -m64' ./configure --prefix=/usr/local/soft_a/gcc-4.4.1 --with-gmp=/usr/local/soft_a/gmp-4.3.1 --with-mpfr=/usr/local/soft_a/mpfr-2.4.1 --host=x86_64-apple-darwin9.8.0 --build=x86_64-apple-darwin9.8.0 --enable-languages="c c++"
+*  </pre>
+*  The -m64 ensures all of gcc is built for 64-bit. --host and --build make sure that gcc rebuilds itself for 64-bit.
+*  </li>
+*  <li>Now repeat the above but build gmp,mpfr and gcc with the just-built gcc, replacing soft_a with soft above.
+*  The distinction between soft_a and soft is whether Apple's gcc (gcc-4.2) has been used to build a library or not.
+*  </li>
+*  <p>MacOS X or XCode come with blas libraries, hence one does not need to install Atlas (which can be built using instructions for building
+*  Atlas on Linux). If Atlas is installed into somewhere like <em>/usr/local/soft/atlas-3.8.3</em>, in the course of building
+*  UMFPACK gcc may choose to pick <em>/usr/lib/libatlas.dylib</em>
+*  instead of the newly-installed Atlas library <em>/usr/local/soft/atlas-3.8.3/lib/libatlas.dylib</em>, leading to build errors 
+*  for umfpack's examples because Atlas's symbols have different names to that of Apples's Atlas.
+*  </li>
+*  <li>After unpacking all three parts of UMFPACK, options to be included in <em>UFconfig/UFconfig.mk</em> are :
+* <pre>
+* UMFPACK_CONFIG = -DNO_TIMER -fPIC
+* BLAS = -L/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A -lblas
+* </pre>
+* </li>
+* <li>
+* For building Statechum library, the following is done:
+* <pre>
+* cd linear
+* ./configure --with-blasdir=/System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A --with-umfpack=/Users/Shared/experiment/umfpack && make
+* </pre>
+* Where <em>/Users/Shared/experiment/umfpack</em> is where UMFPACK was extracted, it should have subdirectories UMFPACK, AMD and UFconfig.
+* </li>
+* <li>
+* For testing, providing the <em>-Djava.awt.headless=true</em> option to JVM is necessary on MacOS to stop loading of Statechum's 
+* properties from making a connection to a monitor
+* and triggering a bouncing coffee icon in the dock as well as a display of application name in the menu bar.
+* The problem is caused by static data in, for instance, <em>java.awt.Rectangle</em> making the said connection upon classloading of <em>java.awt.Rectangle</em>.
 * </li></ul>
 */
 public class LSolver 

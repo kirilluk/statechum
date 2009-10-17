@@ -687,7 +687,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\n","testGetExtentOfCompleteness1"), testConfig);
 		Assert.assertEquals(1,graph.paths.getExtentOfCompleteness(), Configuration.fpAccuracy);		
 	}
-	
+		
 	@Test
 	public final void testGetExtentOfCompleteness4()
 	{

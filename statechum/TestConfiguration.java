@@ -35,7 +35,7 @@ import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHash
 public class TestConfiguration {
 	public TestConfiguration()
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
 	

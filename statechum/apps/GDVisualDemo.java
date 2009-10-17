@@ -40,32 +40,36 @@ import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
  */
 public class GDVisualDemo 
 {
-	public static DirectedSparseGraph obtainDifferenceGraph(String graphA, String graphB,int counter)
+	public static DirectedSparseGraph obtainDifferenceGraph(String graphA, String graphB,int counter,boolean display)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		Configuration config = Configuration.getDefaultConfiguration();
-		return gd.showGD(
-				new LearnerGraphND(buildGraph(graphA, "labellingDemo_A_"+counter),config),
-				new LearnerGraphND(buildGraph(graphB, "labellingDemo_B_"+counter),config),
+		LearnerGraphND grA=new LearnerGraphND(buildGraph(graphA, "labellingDemo_A_"+counter),config),grB=
+		new LearnerGraphND(buildGraph(graphB, "labellingDemo_B_"+counter),config);
+		DirectedSparseGraph gr = gd.showGD(
+				grA,grB,
 				ExperimentRunner.getCpuNumber());
+		if (display)
+		{
+		Visualiser.updateFrame(grA, grB);
+		Visualiser.updateFrame(gr, null);
+		}
+		return gr;
 	}
 	
 	public static void main(String str[])
 	{// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
-		
-		int counter = 0;
-		for(Pair<String,String> pair:new Pair[] {
-				new Pair<String,String>("A-a->B-a->C\nB-b->D","A-a->C-c->E-c->D-c->F"),
-				new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T"),
-				new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->T","A-a->C-c->E-c->D-c->F-s->T\nA-d->U-d->U"),
-				new Pair<String,String>(TestGD_Multithreaded.A6,TestGD_Multithreaded.B6)
-				})
-		{
-			DirectedSparseGraph dGraph = obtainDifferenceGraph(pair.firstElem, pair.secondElem, counter);
-			++counter;
-			Visualiser.updateFrame(dGraph, null);
-		}
+	
+		Pair<String,String> [] pairs=new Pair[] {
+				new Pair<String,String>("A-a->B-a->C / A-b->D", "P-a->Q-a->R / S-c->R"),
+				new Pair<String,String>("A-a->B-a->C-b->D", "P-a->Q-b->R-c->R"),
+				//new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T"),
+				//new Pair<String,String>("A-a->B-a->C\nB-b->D\nA-d->T-d->T","A-a->C-c->E-c->D-c->F-s->T\nA-d->U-d->U"),
+				//new Pair<String,String>(TestGD_Multithreaded.A6,TestGD_Multithreaded.B6)
+				};
+		int position=1;
+		obtainDifferenceGraph(pairs[position].firstElem, pairs[position].secondElem, position,true);
 		
 	}
 }

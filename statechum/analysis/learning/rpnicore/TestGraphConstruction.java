@@ -47,7 +47,7 @@ public final class TestGraphConstruction
 {
 	public TestGraphConstruction()
 	{
-		mainConfiguration = Configuration.getDefaultConfiguration();
+		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
 	

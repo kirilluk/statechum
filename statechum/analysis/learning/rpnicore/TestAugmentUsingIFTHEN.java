@@ -1042,9 +1042,9 @@ final public class TestAugmentUsingIFTHEN
 		@Test
 		public final void testQuestions_and_marking1a()
 		{
-			Visualiser.updateFrame(graph, null);
-			Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"),config));
-			Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged),new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"),config));
+			//Visualiser.updateFrame(graph, null);
+			//Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged), new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"),config));
+			//Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged),new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"),config));
 			List<List<String>> qs = ComputeQuestions.computeQS(pair, graph, merged, new LearnerGraph[] {
 					new LearnerGraph(FsmParser.buildGraph(ifthen_s, "ifthen_s"),config),
 					new LearnerGraph(FsmParser.buildGraph(ifthen_sc, "ifthen_sc"),config)

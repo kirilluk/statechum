@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.5.0_10" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_16" class="java.beans.XMLDecoder"> 
  <object class="java.util.Properties"> 
   <void method="put"> 
    <string>LINEARWARNINGS</string> 
@@ -33,8 +33,8 @@
    <object class="statechum.GlobalConfiguration$WindowPosition"> 
     <void property="rect"> 
      <object class="java.awt.Rectangle"> 
-      <int>1920</int> 
-      <int>0</int> 
+      <int>219</int> 
+      <int>22</int> 
       <int>1045</int> 
       <int>1073</int> 
      </object> 

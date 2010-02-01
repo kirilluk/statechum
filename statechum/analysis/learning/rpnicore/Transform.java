@@ -458,6 +458,8 @@ public class Transform
 			result = prime * result
 				+ ((thenGraph == null) ? 0 : thenGraph.hashCode());
 			result = prime * result
+				+ ((IFState == null) ? 0 : IFState.hashCode());
+			result = prime * result
 				+ ((thenState == null) ? 0 : thenState.hashCode());
 			
 			return result;
@@ -486,7 +488,7 @@ public class Transform
 			if (IFState == null) {
 				if (other.IFState != null)
 					return false;
-			} else if (!IFState.equals(other.IFState)) //Arrays.equals(IFState, other.propertyState))
+			} else if (!IFState.equals(other.IFState))
 				return false;
 			
 			if (thenGraph != other.thenGraph)
@@ -552,8 +554,14 @@ public class Transform
 	 * based on the path, potentially answering more questions. Such an augmentation will not introduce a contradiction
 	 * because the decision whether to augment is based on existence of specific paths, thus an addition of them will
 	 * not stop previously-added IF conditions from matching - this is a very important condition relying on linear constraints, i.e. 
-	 * the IF part matches if there is a path to a match state; THENs cannot make existing paths disappear. 
-	 * The only potential source of contradictions is the THEN parts (potentially
+	 * the IF part matches if there is a path to a match state; THENs cannot make existing paths disappear.
+	 * 
+	 * In the light of three-valued logic (accept/reject/unknown), which has not yet been implemented, the above still applies:
+	 * if THEN is associated with an unknown vertex, any of accept/reject/unknown is good enough for a match,
+	 * otherwise marking of the vertex in the IF part has to match marking in the tentative automaton. Without
+	 * this rule, THEN parts could mark unknown vertices as accept/reject and this would contradict previously-matched IFs.
+	 * 
+	 * The only potential source of contradictions is THEN parts (potentially
 	 * recursively built). If a THEN part contradicts a tentative automaton, 
 	 * it will also do so when all questions are answered.
 	 * The contradiction with a different THEN part is possible but given the additive nature of IF conditions, it will
@@ -607,20 +615,25 @@ public class Transform
 	/** Can be used both to add new transitions to the graph (at most <em>howMayToAdd</em> waves) and to check if the
 	 * property answers the supplied questions.
 	 * <p>
-	 * Each state entered can be of either of the two kinds, a real state from the graph's transition
-	 * matrix or a non-existing state where we explore a PTA of questions. A collection of such non-existing vertices
-	 * is constructed when PTA of questions is built and we remove nodes from it when they are encountered as a part
-	 * of unrolling the THEN parts.
+	 * Each state entered in the course of exploration can be one of two kinds, a real state from the graph's transition
+	 * matrix or a (potentially) non-existing state where we explore a PTA of questions rooted at one of the 
+	 * states of a graph before merge takes place. A collection of such non-existing vertices
+	 * is constructed when PTA of questions is built and we "remove" nodes from it when they are encountered as a part
+	 * of unrolling THEN parts. All remaining nodes are those which were not answered using if-then automata
+	 * and hence have to be given to a user. In addition, it is possible that some questions contradict if-then automata;
+	 * in this case the merge is clearly impossible since questions are expected to be (positive or negative) 
+	 * paths to be confirmed.
+	 *  
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
 	 * This PTA is ignored if null, otherwise answered questions are marked.
 	 * @param ifthenGraph property automaton to consider.
-	 * @param howManyToAdd how many waves of transitions to add to the graph. 
-	 * This means that paths of at most <em>howMayToAdd</em> transitions will be added. 
-	 * If this value if not positive, the graph remains unchanged.
+	 * @param howManyToAdd how many waves of transitions to add to the graph. This is not used when if-then is used to answer 
+	 * questions (questionPaths not empty). At most <em>howMayToAdd</em> transitions will be added; 
+	 * if this value if not positive, the graph remains unchanged.
 	 */
-	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, LearnerGraph [] ifthenGraphs,  
-			int howManyToAdd) throws AugmentFromIfThenAutomatonException
+	public static void augmentFromIfThenAutomaton(LearnerGraph graph, NonExistingPaths questionPaths, 
+			LearnerGraph [] ifthenGraphs, int howManyToAdd) throws AugmentFromIfThenAutomatonException
 	{
 		assert ( questionPaths == null && howManyToAdd >= 0 ) || (questionPaths != null && howManyToAdd <= 0) : 
 			"inconsistent requirements, when states are to be added, there have to be no questions; when answering questions, the graph should not be updated";
@@ -634,7 +647,7 @@ public class Transform
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Map<CmpVertex,Set<ExplorationElement>>[] visited = new TreeMap[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
-		
+
 		for(int i=0;i<ifthenGraphs.length;++i)
 		{
 			visited[i]=new TreeMap<CmpVertex,Set<ExplorationElement>>();
@@ -647,6 +660,7 @@ public class Transform
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			explorationElement = currentExplorationBoundary.remove();
+			//System.out.println("-- "+explorationElement+" --");
 			LearnerGraph ifthenGraph = ifthenGraphs[explorationElement.propertyGraph];
 			assert explorationElement.graphState != null : "current TA state should never be null";
 			assert graph.transitionMatrix.containsKey(explorationElement.graphState) || nonexistingMatrix.containsKey(explorationElement.graphState): "state "+explorationElement.graphState+" is not known to the tentative automaton";
@@ -678,7 +692,7 @@ public class Transform
 						 // The reason such an exploration will occur is that absent IF graph is interpreted as "all true", so we just unroll the THEN part if present.
 			
 			if (explorationElement.IFState != null && explorationElement.IFState.isAccept() == explorationElement.graphState.isAccept())
-			{// Consider match states.
+			{// Consider matched states.
 				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.IFState);
 				if (compatibility != null)
 					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
@@ -694,7 +708,8 @@ public class Transform
 							}
 						}
 			}
-			
+			// If the "if" parts do not match, we should not extend the "if" portion.
+			// Imagine exploring non-existing portion - no states can be marked as visited.
 			Map<String,CmpVertex> graphTargets = nonexistingMatrix.get(explorationElement.graphState);
 			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 				graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
@@ -720,14 +735,35 @@ public class Transform
 					DeterministicDirectedSparseGraph.copyVertexData(nextThenState, nextGraphState);
 					graph.transitionMatrix.put(nextGraphState,graph.createNewRow());graphTargets.put(label, nextGraphState);
 					
+					// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
+					// consider what the new transition may bring.  We hence add all previously-considered states
+					// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
+					// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
+					// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
+					// Note that there could be a number of "then" states associated to a graph state, hence we use
+					// a collection of exploration elements associated to each graph state which is "flushed" here.
+					// Each flush does not actually remove elements from the collection because we are only interested
+					// in visited states which have been modified in the course of "then" expansion by means of addition
+					// of a new transition. 
+					//
+					// The newly-added transition would usually enter a state which was not previously explored
+					// when the "if" part is expanded. If that state was already seen (i.e. the corresponding if-then-graph 
+					// states are the same as seen before), we'll be wasting a bit of time but adding the code to 
+					// check for this here would mean replicating the code above which explores all transitions out of
+					// the current if-then-graph triple, albeit tailored to only look at the triple corresponding to 
+					// a target state of newly-added transition).
 					for(int i=0;i<ifthenGraphs.length;++i)
-						for(ExplorationElement elem:visited[i].get(explorationElement.graphState))
-							if (elem.IFState != null)
-							{// if we have not been matching IF part at this point (this happens when we 
-							 // unroll THEN through some paths some of which are in a tentative automaton), 
-							 // there is no point extending. 
-								currentExplorationBoundary.offer(elem);
-							}
+					{
+						final Set<ExplorationElement> visitedEarlier = visited[i].get(explorationElement.graphState);
+						if (visitedEarlier != null) // some vertices in a tentative automaton can never be reached by an IF portion of some if-then automata, in which case there will not be a corresponding entry in visited- we're checking for this here.
+							for(ExplorationElement elem:visitedEarlier)
+								if (elem.IFState != null)
+								{// if we have not been matching IF part at this point (this happens when we 
+								 // unroll THEN through some paths some of which are in a tentative automaton), 
+								 // there is no point extending. 
+									currentExplorationBoundary.offer(elem);
+								}
+					}
 				}
 				
 				if (newStates.contains(nextGraphState))
@@ -746,20 +782,30 @@ public class Transform
 							&& !(nextExplorationElement.thenState == null // we have no THEN part to extend 
 									&& nonExistingVertices.contains(nextExplorationElement.graphState)) // a user has not confirmed this part of question PTA 
 							&& !hasBeenVisited(visited,nextExplorationElement)			
-				) 
+				)
 				{// not seen this triple already and if we are traversing question vertices then we should be extending using the THEN part.
 					//System.out.println("G: "+explorationElement+"-"+label+"->"+nextExplorationElement);
 					currentExplorationBoundary.offer(nextExplorationElement);
 
 					if (nextGraphState.getID().getKind() == VertKind.NONEXISTING && nonExistingVertices.contains(nextGraphState))
-					{// we're extending into the area of questions not previously visited
+					{// we're extending into the area of questions (nextGraphState.getID().getKind() == VertKind.NONEXISTING) 
+					 // not previously visited (nonExistingVertices.contains(nextGraphState))
 						nonExistingVertices.remove(nextGraphState);
 					
-						// Given that we have extended this state, all other property graphs may have to be re-evaluate to 
-						// consider what the new transition may bring.  We hence add all previously-considered states
-						// to the frontline for exploration (if we explore two IFs side-by-side this way, we'll end up
-						// flushing each other visited far too often, perhaps we'd like to make the described addition to the 
-						// other side of the queue, which will be explored once we are finished with this particular IF-THEN).
+						// The fact that we extended a graph (i.e. matched THEN against the non-existing part of a graph),
+						// there could be some IF portion which was earlier dropped because it was entering a
+						// state which was not validated; now that the new state has been validated, we need to re-evaluate 
+						// that part of IF graph and this is accomplished by adding the corresponding states to the exploration 
+						// boundary. Imagine that we extended graph by a few transitions, the corresponding states will appear
+						// in the frontline. Regardless of the order in which these states are subsequently processed,
+						// we'll consider all of them - if earliest one first (as will be in practice), we just trace a path
+						// to all the rest; with last one first, just that one, then earlier one but without looking at the next etc.
+						// 
+						// Assume that we earlier matched non-existing states to IF without going through THEN; this is the case where
+						// we check whether questions contradict if-then. Re-evaluation of existing pairs of IF-graph will only
+						// serve to mark states as visited; since in this situation new transitions are not added, we'll not 
+						// develop a contradiction. This is the reason previously-considered exploration elements where
+						// THEN is null and graph vertices are not-visited-non-existent are not added to the frontline.
 						for(int i=0;i<ifthenGraphs.length;++i)
 						{
 							Set<ExplorationElement> previouslyVisited = visited[i].get(explorationElement.graphState);

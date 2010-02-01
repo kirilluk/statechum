@@ -1,4 +1,4 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+/** Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
  
 This file is part of StateChum
 
@@ -14,9 +14,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
 
-/*
  * Building Win32 version of smt library: 
  * download "Yices for Windows" from http://yices.csl.sri.com/download.shtml
  * The file is called yices-1.0.16-i686-pc-mingw32.tar.gz and should contain a .dll.
@@ -25,10 +23,24 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  * From the smt directory, run
  * <pre>
  * sh fullrebuild.sh
- * </pre>
- * This should build the library and you are done.
+ * </pre> 
  * 
- * On Linux, the process is same as for win32/cygwin (and fullrebuild.sh has a lot less work to do).
+ * On Linux, the process is conceptually same as for win32/cygwin (and fullrebuild.sh has a lot less work to do).
+ * In practice this will only work if you've got libtool-2.2 and the like (not the default on Debian Lenny in Oct 2009).
+ * For this reason, you may instead attempt the following:
+ * <ul><li>Modify configure to include 
+ * <pre>
+ *  -Wl,-rpath,/usr/local/lib
+ * </pre>
+ * at the end of <em>YICES_LIBS</em> (rpath is a linker flag which should be at the end of gcc command line) and ensure that <em>LIBS="$YICES_LIBS $LIBS"</em>
+ * is <em>LIBS="$LIBS $YICES_LIBS"</em>.
+ * </li>
+ * <li>
+ * <pre> 
+ * CC='gcc -I/usr/local/soft/jdk1.6.0_16/include/linux/' sh ./configure --with-yices=/usr/local/soft/yices-1.0.24
+ * </pre>
+ * </li>
+ * 
  */
 
 package statechum.analysis.learning;

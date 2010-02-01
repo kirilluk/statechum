@@ -91,6 +91,17 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * Note the reference to the Atlas installation directory. You may also wish 
 * to replace -llf77blas with -lptf77blas, but it should not affect anything.
 * <p>
+* You might also want to 
+* <pre>
+* CC = gcc
+* CFLAGS = -O3
+* </pre>
+* or even 
+* <pre>
+* CC = gcc -fPIC
+* </pre>
+* to ensure that AMD is built as a relocable library - without it Statechum's .so library may fail to build.
+* <p>
 * Win32/cygwin note: if using gcc version 3 rather than 4, use the following line
 * <pre>
 * BLAS = -L/usr/local/soft/atlas-3.8.1/lib -lf77blas -latlas -lg2c
@@ -112,6 +123,12 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * </pre>
 * Note that the above includes both Atlas directory and the one into which 
 * UMFPACK was extracted. Subsequently, running make should build the library.
+* <p>
+* If gcc has gcj installed, Sun JDK may include a jni_md.h which will pick gcc's jni_md.h rather than Sun's one and give
+* an error about a boolean. The solution is to do something like 
+* <pre>
+* CC='gcc -I/usr/local/soft/jdk1.6.0_16/include/linux/' sh ./configure --with-blasdir=/usr/local/soft/atlas-3.8.3 --with-umfpack=/usr/local/src/umfpack/
+* </pre>
 * <p>
 * On Win32 with cygwin's gcc version 3, this will not work because libtool will not link to static libraries
 * (.a import libraries from .dlls are ok). Linking to all the object files from atlas, amd and umfpack will

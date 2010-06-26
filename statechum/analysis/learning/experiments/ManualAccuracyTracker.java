@@ -44,6 +44,7 @@ public class ManualAccuracyTracker extends QSMTool {
 	{
 		String AutoName = System.getProperty(statechum.GlobalConfiguration.G_PROPERTIES.VIZ_AUTOFILENAME.name());
 		if (AutoName != null) learnerInitConfiguration.config.setAutoAnswerFileName(AutoName);
+		System.out.println("autoname is "+AutoName);
 		active = true;
 		learnerInitConfiguration.config.setQuestionPathUnionLimit(1);
 		learnerInitConfiguration.config.setUseConstraints(true);
@@ -83,6 +84,13 @@ public class ManualAccuracyTracker extends QSMTool {
 			sMinus = new HashSet<List<String>>();
 			sPlus.addAll(samples.getData(posPredicate));
 			sMinus.addAll(samples.getData(negPredicate));
+			/*
+			RPNIUniversalLearner lr=new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null));
+			LearnerGraph ifthen = Transform.buildIfThenAutomata(learnerInitConfiguration.ifthenSequences, lr.init(sPlus, sMinus), 
+					learnerInitConfiguration.config).toArray(new LearnerGraph[0])[0];
+			Visualiser.updateFrame(ifthen, null);
+			Visualiser.waitForKey();
+			*/
 			RPNILearner l = new RPNIUniversalLearner(null, new LearnerEvaluationConfiguration(null,null,learnerInitConfiguration.config,learnerInitConfiguration.ifthenSequences,null));
 			//AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(new MachineOracleDecorator(l,targetMachine),targetMachine);
 			AccuracyTrackerDecorator atd = new  AccuracyTrackerDecorator(l,targetMachine);

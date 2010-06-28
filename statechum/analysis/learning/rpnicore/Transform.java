@@ -676,7 +676,7 @@ public class Transform
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
 			{
-				Visualiser.updateFrame(graph, PathRoutines.convertPairAssociationsToTransitions(explorationElement.thenGraph,explorationElement.thenGraph.config));
+				//Visualiser.updateFrame(graph, PathRoutines.convertPairAssociationsToTransitions(explorationElement.thenGraph,explorationElement.thenGraph.config));
 				throw new AugmentFromIfThenAutomatonException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState,
 						explorationElement);
 			}

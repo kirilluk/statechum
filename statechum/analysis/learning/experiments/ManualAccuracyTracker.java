@@ -98,7 +98,7 @@ public class ManualAccuracyTracker extends QSMTool {
 			OutputUtil.generateDotOutput(targetMachine.pathroutines.getGraph(),"dotOutput.dot");
 			Learner autoAns = new AutoAnswers(atd);
 			autoAns.init(sPlus, sMinus);
-			
+			/*
 			for(List<String> st:sPlus)
 			{
 				System.out.print("+ ");
@@ -114,7 +114,7 @@ public class ManualAccuracyTracker extends QSMTool {
 					System.out.print(" "+elem);
 				System.out.println();
 			}
-			
+			*/
 			LearnerGraph learned = autoAns.learnMachine();
 			//statechum.analysis.learning.util.OutputUtil.generateDotOutput(learned.pathroutines.getGraph());
 			System.out.println(atd.getResult());

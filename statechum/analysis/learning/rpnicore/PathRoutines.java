@@ -40,11 +40,10 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
+import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
@@ -716,6 +715,37 @@ public class PathRoutines {
 		return current.isAccept()? AbstractOracle.USER_ACCEPTED:pos;
 	}
 	
+	/** Given a path, checks if this path contradicts current if-then constraints.
+	 * 
+	 * @param path path to check
+	 * @param condition whether this is an accept- or a reject-path
+	 * @param config configuration for a graph to generate
+	 * @param ifthenAutomata constraints to check against.
+	 * @return true if the path complies with constraints and false otherwise.
+	 */
+	private static boolean checkPathAgainstIFTHEN(List<String> path, boolean condition, Configuration config, LearnerGraph []ifthenAutomata)
+	{
+		LearnerGraph ptaHardFacts = new LearnerGraph(config);
+		ptaHardFacts.setInit(AbstractLearnerGraph.generateNewCmpVertex(ptaHardFacts.getDefaultInitialPTAName(),ptaHardFacts.config));
+		ptaHardFacts.getInit().setAccept(true);ptaHardFacts.getInit().setColour(JUConstants.RED);
+		ptaHardFacts.getInit().setDepth(0);
+
+		ptaHardFacts.transitionMatrix.put(ptaHardFacts.getInit(),ptaHardFacts.createNewRow());
+		ptaHardFacts.paths.augmentPTA(path, condition, false, JUConstants.AMBER);
+		ptaHardFacts.learnerCache.invalidate();
+		
+		boolean prefixValid = false;
+		try {
+			Transform.augmentFromIfThenAutomaton(ptaHardFacts, null, ifthenAutomata, 0);
+			prefixValid = true;
+		} catch (AugmentFromIfThenAutomatonException e) {
+			//System.out.println("Checking path "+path+"("+condition+"), exception "+e.getMessage());
+			// merge failed because the constraints disallowed it, hence return a failure
+			//e.getFailureLocation(counterExampleHolder);
+		}
+		return prefixValid;
+	}
+	
 	/** Given a question, this method computes a map from position to whether a vertex has
 	 * a confirmed value. Used to enable/disable individual elements in 
 	 * <em>CheckWithEndUser</em> dialog.
@@ -724,79 +754,47 @@ public class PathRoutines {
 	 * of the result is true/false (any other choice will contradict our tentative automaton) 
 	 * or null (user can accept or reject - we do not mind). 
 	 * 
+	 * @param hardFacts graph containing hard facts to check possibility of accepts/rejects against.
 	 * @param path path to trace
 	 * @param startState the state to start from
 	 */
-	public List<Boolean> mapPathToConfirmedElements(List<String> path)
+	public static List<Boolean> mapPathToConfirmedElements(LearnerGraph hardFacts, List<String> path, LearnerGraph [] ifthenAutomata)
 	{
 		List<Boolean> result = new ArrayList<Boolean>(path.size());
 		
-		CmpVertex current = coregraph.getInit();
-		NonExistingPaths nonExisting = (LearnerGraph.NonExistingPaths)coregraph.learnerCache.questionsPTA.getFSM();
-
-		for(String label:path)
+		final Configuration shallowCopy = hardFacts.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		
+		for(int length=0;length < path.size();++length)
 		{
-			if (current != null)
-			{
-				Map<String,CmpVertex> exitingTrans = nonExisting.getNonExistingTransitionMatrix().get(current);
-				if (exitingTrans == null) // nonexisting has a priority
-					exitingTrans = coregraph.transitionMatrix.get(current);
+			List<String> prefix = path.subList(0, length+1);
+			CmpVertex pathVertex = hardFacts.getVertex(prefix);
+			if (pathVertex != null)
+				result.add(pathVertex.isAccept());
+			else
+			{// The question represented with path is outside hard facts. Given that constraints are
+			 // entirely linear and thus acceptance conditions depend on paths rather than on
+			 // branching structure, we can simply automaton with a single path and then run
+			 // augment. 
+
+				boolean prefixFalse = checkPathAgainstIFTHEN(prefix,false,shallowCopy,ifthenAutomata);
+				boolean prefixTrue = checkPathAgainstIFTHEN(prefix,true,shallowCopy,ifthenAutomata);
 				
-				if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
-				// cannot make a move
-					current = null;
+				if (prefixFalse && prefixTrue)
+					result.add(null);
 				else
-				{
-					assert current != null;// usually a redundant check but it is just in case I break something above
-					
-					// For three-valued logic, isAccept() should be replaced by a check if acceptance condition
-					// is set and if not, null should be appended - subsequent addConstraints will re-run the entire
-					// if-then automaton and any change in conditions and confirmation status
-					// getNonExistingVertices().contains() be taken into account.
-					if (current.getID().getKind() != VertKind.NONEXISTING)
-						result.add(current.isAccept());// vertex of the main graph - add its acceptance condition
-					else // question PTA - add a non-null condition depending on whether it has been if-then explored
-						if (nonExisting.getNonExistingVertices().contains(current))
-							result.add(null); // not yet explored
+					if (prefixFalse)
+						result.add(false);
+					else
+						if (prefixTrue)
+							result.add(true);
 						else
-							result.add(current.isAccept());// acceptance set in stone - we do not accept three-valued logic yet.
-				}
+							throw new IllegalArgumentException("path "+prefix+" is invalid: either of true/false choices leads to a contradiction with if-then, presumably because its prefix is invalid");
 			}
 			
-			if (current == null)
-				result.add(null);
-		}		
-		
+		}
+
 		return result;
 	}
-	
-	/** Image an outcome of <em>mapPathToConfirmedElements</em> method where a user
-	 * clicks on the position and selects <em>accept</em> - some of these should 
-	 * be allowed and others should not.
-	 * 
-	 * @param condition  path condition to consider. null means the answer from <em>mapPathToConfirmedElements</em> 
-	 * is always true, used for compatibility with Orig_RPNIBlueFringe.
-	 * @param position selected element
-	 * @param accept accept/reject
-	 * @return whether the above selection contradicts the condition. 
-	 */
-	public static boolean verifyPrefixClosedness(List<Boolean> condition, int position, boolean accept)
-	{
-		if (condition == null)
-			return true;
-		
-		assert condition.size() > position && position >= 0;
-		Iterator<Boolean> listIter = condition.iterator();
-		for(int i=0;i<position;++i)
-		{
-			Boolean current = listIter.next();
-			if (current != null && current.booleanValue() == false)
-				return false;
-		}
-		Boolean current = listIter.next();
-		return current == null || current.booleanValue() == accept;// either no preference or the same preference as the chosen value
-	}
-	
 	
 	/** Traces a path in a graph and returns the entered state; null if a path does not exist.
 	 * 

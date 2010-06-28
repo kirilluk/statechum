@@ -65,7 +65,7 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				List<String> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
 				Pair<Integer,String> answer = CheckWithEndUser(tentativeAutomaton,question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,
-							newPTA.paths.mapPathToConfirmedElements(question), new Object [] {"Test"});
+							null, new Object [] {"Test"});
 				if(answer.firstElem>=0){
 					String from = oracle.getFrom();
 					String to = question.get(answer.firstElem);

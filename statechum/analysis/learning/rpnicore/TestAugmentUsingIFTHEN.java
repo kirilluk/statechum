@@ -1277,12 +1277,17 @@ final public class TestAugmentUsingIFTHEN
 			Assert.assertEquals(13,questionList.size());
 		}
 
+		final static LearnerGraph 
+			ifthen1=new LearnerGraph(FsmParser.buildGraph("I-a->A-b->B / P-c->C / P==THEN==B","ifthenA"),Configuration.getDefaultConfiguration()),
+			ifthen2=new LearnerGraph(FsmParser.buildGraph("I-a->I-b->I-c->A / A-a->I / A-c->A / A-b->B / B-a->I / B-b->I / B-c->A / P-a->C / P==THEN==B","ifthenA"),Configuration.getDefaultConfiguration()),
+			ifthen3=new LearnerGraph(FsmParser.buildGraph("I-a->I-b->I-c->A / A-a->I / A-c->A / A-b->B / B-a->I / B-b->I / B-c->A / P-a-#C / P==THEN==B","ifthenA"),Configuration.getDefaultConfiguration());
+		
 		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
 		@Test
 		public final void testMapPathToConfirmedElements1a()
-		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			Assert.assertTrue(graph.paths.mapPathToConfirmedElements(new LinkedList<String>())
+		{
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts,new LinkedList<String>(),new LearnerGraph[]{})
 					.isEmpty());
 		}
 		
@@ -1290,214 +1295,257 @@ final public class TestAugmentUsingIFTHEN
 		@Test
 		public final void testMapPathToConfirmedElements1b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"u"}));
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"u"}),new LearnerGraph[]{});
 			Assert.assertEquals(Arrays.asList(new Boolean[]{null}),result);
 		}
 		
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements2()
+		public final void testMapPathToConfirmedElements2a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			//Visualiser.updateFrame(graph, merged);
-			//System.err.println(questions.getData());
-			graph.learnerCache.questionsPTA = questions;
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s"}));
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s"}), new LearnerGraph[]{});
 			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements3()
+		public final void testMapPathToConfirmedElements2b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "d"}));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements4()
+		public final void testMapPathToConfirmedElements3a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "U"}));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","t"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements5()
+		public final void testMapPathToConfirmedElements3b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
-			"s", "c" }), true));
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "U" }));
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), false, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","t"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements4a()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","t","q"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements4b()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), false, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","t","q"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then but "then" element does not confirm anything. 
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5a()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","q"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{null,null,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then and "then" element confirms a path
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5b()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{null,null,true}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then and "then" element confirms a path
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5c()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+		}
+		
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then and "then" element confirms a path
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5d()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then and "then" element confirms a path
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5e()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * Path matches if-then and "then" element confirms a path
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements5f()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","f"}), new LearnerGraph[]{ifthen1,ifthen2});
 			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
-		 * The fact that the initial state is reject does not accept non-empty paths.
 		 */
 		@Test
 		public final void testMapPathToConfirmedElements6a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
-			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
-			"s", "c" }), true));
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "U" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
 		public final void testMapPathToConfirmedElements6b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "a", "b" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","b"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
 		public final void testMapPathToConfirmedElements6c()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "a", "b","U" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,true}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
 		public final void testMapPathToConfirmedElements6d()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "a", "b","U","V" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false,null,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null}),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements7()
+		public final void testMapPathToConfirmedElements6e()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			((LearnerGraph.NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix().get(
-					graph.getVertex(Arrays.asList(new String[]{"s"}))).get("c").setAccept(false);
-			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
-			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
-			"s", "c" }), false));
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "U" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null,null}),result);
 		}
-		
+
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements8()
+		public final void testMapPathToConfirmedElements6f()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
-			graph.learnerCache.questionsPTA = questions;
-			((LearnerGraph.NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix().get(
-					graph.getVertex(Arrays.asList(new String[]{"s"}))).get("c").setAccept(false);
-			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
-			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
-			"s", "c","c","f" }), false));
-			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "U" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
-
-			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "c" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true}),result);
-
-			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "c", "f" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true,false}),result);
-			
-			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
-					"s", "c", "c", "f","g" }));
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true,false,null}),result);
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","s"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null,true}),result);
 		}
-		
-		/** Tests <em>verifyPrefixClosedness</em>. */
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testVerifyPrefixClosedness1()
-		{
-			List<Boolean> condition = Arrays.asList(new Boolean[]{true,null,true,false,null});
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 0, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 0, false));
-
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, false));
-
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 2, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, false));
-
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, false));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, true));
-
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		public final void testMapPathToConfirmedElements7a()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen3});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true,null,null,false}),result);
 		}
-		
-		/** Tests <em>verifyPrefixClosedness</em>. */
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testVerifyPrefixClosedness2()
-		{
-			List<Boolean> condition = Arrays.asList(new Boolean[]{true,null,true,null,null});
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, false));
-
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 4, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		public final void testMapPathToConfirmedElements7b()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen2});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true,null,null,true,null}),result);
 		}
-		
-		/** Tests <em>verifyPrefixClosedness</em>. */
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testVerifyPrefixClosedness3()
-		{
-			List<Boolean> condition = Arrays.asList(new Boolean[]{true,false,true,null,null});
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 0, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 0, false));
-
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 1, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, false));
-
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, false));
-
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, false));
-
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, true));
-			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		public final void testMapPathToConfirmedElements7c()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			final LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"a","b"}), true, false, JUConstants.BLUE);
+			Helper.checkForCorrectException(new whatToRun() { public void run() {
+				PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen3});
+			}},IllegalArgumentException.class,"is invalid: either of true/false");
 		}
-		
-		/** Tests <em>verifyPrefixClosedness</em>. */
-		@Test
-		public final void testVerifyPrefixClosedness4()
-		{
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 0, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 0, false));
 
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 1, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 1, false));
-
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 2, true));
-			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 2, false));
-		}
-		
 		/** Tests marking of questions as answered. */
 		@Test
 		public final void testQuestionMarking1()

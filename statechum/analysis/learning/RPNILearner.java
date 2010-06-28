@@ -205,7 +205,6 @@ public abstract class RPNILearner extends Observable implements Learner {
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
 			final List<Boolean> consistentFacts, final Object [] moreOptions)
 	{
-		if (consistentFacts != null) System.err.println(consistentFacts);
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
 		try {
@@ -236,13 +235,16 @@ public abstract class RPNILearner extends Observable implements Learner {
 						listElements.add(elementHtml);
 					}
 					final JList javaList = new JList(listElements.toArray());
-					String optionZero = "Accept";
-					if (!PathRoutines.verifyPrefixClosedness(consistentFacts, consistentFacts.size()-1, true))
-						optionZero = "<html><font color=grey>"+optionZero;
+					String optionZero = null;Boolean lastFact = consistentFacts.get(consistentFacts.size()-1);
+					if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject
+						optionZero = "<html><font color=grey>cannot accept";
 					else
-						optionZero = "<html><font color=green>"+optionZero;
+						optionZero = "<html><font color=green>Accept";
 					
-					if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) optionZero = addAnnotationExpected(optionZero);
+					if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED)
+					{
+						optionZero = addAnnotationExpected(optionZero);assert lastFact == null || lastFact.booleanValue();
+					}
 					options[0]=optionZero;
 					System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
@@ -276,14 +278,17 @@ public abstract class RPNILearner extends Observable implements Learner {
 									i = AbstractOracle.USER_CANCELLED;// nothing was chosen
 								else
 								{
-									if (!PathRoutines.verifyPrefixClosedness(consistentFacts, consistentFacts.size()-1, true))
-										clickValid = false;
+									if (i == 0)
+									{
+										Boolean fact= consistentFacts.get(consistentFacts.size()-1);
+										clickValid = (fact == null || fact.booleanValue());
+									}
 									i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
 								}
 								
-								// one of the valid choices was made, record which one and close the window
 								if (clickValid)
 								{
+									// one of the valid choices was made, record which one and close the window
 									answer.getAndSet( i );
 									synchronized(answer)
 									{
@@ -303,7 +308,8 @@ public abstract class RPNILearner extends Observable implements Learner {
 								)
 							{
 								int position = javaList.getLeadSelectionIndex();
-								if (PathRoutines.verifyPrefixClosedness(consistentFacts, position,false))
+								Boolean fact= consistentFacts.get(position);
+								if (fact == null || !fact.booleanValue())
 								{
 									answer.getAndSet( position );
 									synchronized(answer)

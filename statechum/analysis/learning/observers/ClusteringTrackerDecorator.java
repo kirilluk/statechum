@@ -64,8 +64,8 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 		return decoratedLearner.getResult();
 	}
 
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) {
-		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) {
+		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
 	}
 
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {

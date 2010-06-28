@@ -44,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -545,27 +546,34 @@ public class Transform
 		
 	}
 	
-	/** Similar to AugmentPTA on a non-existing matrix but expects the path corresponding to the question to already exist.
-	 * Whenever a user confirms a question, this method is used to add this question to a tentative automaton,  
-	 * thus making sure that
+	/** Similar to AugmentPTA on a non-existing matrix but expects the path corresponding to the question to 
+	 * already exist. Whenever a user confirms a question, this method is used to add this question to a 
+	 * tentative automaton, thus making sure that
 	 * <ul>
-	 * <li>when we re-generate a collection of questions from a PTA of questions, this question will not be asked again and</li>
+	 * <li>when we re-generate a collection of questions from a PTA of questions, 
+	 * this question will not be asked again and</li>
 	 * <li><em>augmentFromIfThenAutomaton</em> will know that this path exists and hence will augment the automaton
 	 * based on the path, potentially answering more questions. Such an augmentation will not introduce a contradiction
 	 * because the decision whether to augment is based on existence of specific paths, thus an addition of them will
-	 * not stop previously-added IF conditions from matching - this is a very important condition relying on linear constraints, i.e. 
-	 * the IF part matches if there is a path to a match state; THENs cannot make existing paths disappear.
-	 * 
-	 * In the light of three-valued logic (accept/reject/unknown), which has not yet been implemented, the above still applies:
-	 * if THEN is associated with an unknown vertex, any of accept/reject/unknown is good enough for a match,
-	 * otherwise marking of the vertex in the IF part has to match marking in the tentative automaton. Without
-	 * this rule, THEN parts could mark unknown vertices as accept/reject and this would contradict previously-matched IFs.
-	 * 
-	 * The only potential source of contradictions is THEN parts (potentially
-	 * recursively built). If a THEN part contradicts a tentative automaton, 
-	 * it will also do so when all questions are answered.
-	 * The contradiction with a different THEN part is possible but given the additive nature of IF conditions, it will
-	 * also be present when all questions are answered. 
+	 * not stop previously-added IF conditions from matching - this is a very important condition relying on 
+	 * linear constraints, i.e. the IF part matches if there is a path to a match state; THENs cannot make existing 
+	 * paths disappear.
+	 * <br/>
+	 * In the light of three-valued logic (accept/reject/unknown), which has not yet been implemented, the above 
+	 * still applies: if THEN is associated with an unknown vertex, any of accept/reject/unknown is good enough 
+	 * for a match, otherwise marking of the vertex in the IF part has to match marking in the tentative automaton
+	 * (and by this I mean accept/reject/unknown marking in the IF part has to match accept/reject/unknown in the
+	 * tentative automaton). Without this rule, THEN parts could mark previously unknown vertices as accept/reject 
+	 * and this would contradict previously-matched IFs. Using this rule, additional IF automata may appear to match
+	 * after unlabelled vertices receive their accept/reject labelling, but this is handled by recording
+	 * IF states associated with each state of a tentative automaton during exploration, so if a particular
+	 * state is receiving a label (in a similar way to that state having an outgoing transition added), we need
+	 * to add all IF-that_state pairs to the exploration stack. 
+	 * <br/>
+	 * The only potential source of contradictions is THEN parts (potentially recursively built). 
+	 * If a THEN part contradicts a tentative automaton, it will also do so when all questions are answered.
+	 * The contradiction with a different THEN part is possible but given the additive nature of IF conditions, 
+	 * it will also be present when all questions are answered. 
 	 * </ul>
 	 * Each state entered can be of either of the two kinds, a real state from the graph's transition
 	 * matrix or a non-existing state where we explore a PTA of questions. A collection of such non-existing vertices
@@ -667,9 +675,12 @@ public class Transform
 			assert explorationElement.IFState == null || ifthenGraph.transitionMatrix.containsKey(explorationElement.IFState) : "state "+explorationElement.IFState.toString()+" is not known to the property graph";
 			if (explorationElement.thenState != null && explorationElement.graphState != null &&
 					explorationElement.thenState.isAccept() != explorationElement.graphState.isAccept())
+			{
+				Visualiser.updateFrame(graph, PathRoutines.convertPairAssociationsToTransitions(explorationElement.thenGraph,explorationElement.thenGraph.config));
 				throw new AugmentFromIfThenAutomatonException("cannot merge a tentative state "+explorationElement.graphState+" with THEN state "+explorationElement.thenState,
 						explorationElement);
-						
+			}
+			
 			// There are eight combinations of null/non-null values of the current states in total,
 			// 	graph	THEN 	IF		|	consider labels	| 	meaning
 			// 	.		.		.		|	graph & THEN	|	proceed with matching of a graph and then to IF automaton

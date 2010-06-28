@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -375,6 +376,7 @@ public class LTL_to_ba {
 		}
 		
 		matrixFromLTL.findInitialState(initStateName);
+		//Visualiser.updateFrame(matrixFromLTL, null);
 	}
 	
 	/** Takes a SPIN transition label and a target state and adds transitions from the given state to the target state,

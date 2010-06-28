@@ -46,9 +46,9 @@ public class DummyLearner extends LearnerDecorator
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
-		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
+		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
 	}
 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {

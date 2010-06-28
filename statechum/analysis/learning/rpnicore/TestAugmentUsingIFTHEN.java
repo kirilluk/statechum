@@ -46,7 +46,6 @@ import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
@@ -1254,28 +1253,249 @@ final public class TestAugmentUsingIFTHEN
 					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->C13A-b->C13B / C15-a->C15A-b->C15B /"+
 					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->C23A-b->C23B / C25-a->C25A-b->C25B /"+
 					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B", "testQuestionAnswering9");
-			Configuration config = Configuration.getDefaultConfiguration();
-			graph = new LearnerGraph(origGraph,config);
+			Configuration defaultConfig = Configuration.getDefaultConfiguration();
+			graph = new LearnerGraph(origGraph,defaultConfig);
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{
-					new LearnerGraph(FsmParser.buildGraph(ifthen_ab_to_c, "ifthen_ab_to_c"), config),
-					new LearnerGraph(FsmParser.buildGraph(ifthen_c_to_cc, "ifthen_c_to_cc"), config),			
-					new LearnerGraph(FsmParser.buildGraph(ifthen_ccc_to_ab, "ifthen_ccc_to_ab"), config)
+					new LearnerGraph(FsmParser.buildGraph(ifthen_ab_to_c, "ifthen_ab_to_c"), defaultConfig),
+					new LearnerGraph(FsmParser.buildGraph(ifthen_c_to_cc, "ifthen_c_to_cc"), defaultConfig),			
+					new LearnerGraph(FsmParser.buildGraph(ifthen_ccc_to_ab, "ifthen_ccc_to_ab"), defaultConfig)
 			};
 			pair = new StatePair(graph.findVertex("I"),graph.findVertex("A"));
 			merged = MergeStates.mergeAndDeterminize_general(graph, pair);
 			LearnerGraph expectedMergedGraph = new LearnerGraph(FsmParser.buildGraph("A-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
 					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->C13A-b->C13B / C15-a->C15A-b->C15B /"+
 					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->C23A-b->C23B / C25-a->C25A-b->C25B /"+
-					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B", "testQuestionAnswering9b"),config);
+					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->C33A-b->C33B / C35-a->C35A-b->C35B", "testQuestionAnswering9b"),defaultConfig);
 			//Visualiser.updateFrame(graph, merged);Visualiser.waitForKey();
 			compareGraphs(expectedMergedGraph,merged);
 			questions = ComputeQuestions.computeQS_general(pair, graph, merged, new ComputeQuestions.QSMQuestionGenerator());
 			graph.learnerCache.questionsPTA=questions;
 			Assert.assertEquals(19,questions.getData().size());
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
-			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
+			compareGraphs(new LearnerGraph(origGraph,defaultConfig),graph);// check that augment did not modify the automaton
 			List<List<String>> questionList = questions.getData();
 			Assert.assertEquals(13,questionList.size());
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
+		@Test
+		public final void testMapPathToConfirmedElements1a()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			Assert.assertTrue(graph.paths.mapPathToConfirmedElements(new LinkedList<String>())
+					.isEmpty());
+		}
+		
+		/** Tests <em>mapPathToConfirmedElements</em> with a sequence containing a non-existing element. */
+		@Test
+		public final void testMapPathToConfirmedElements1b()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"u"}));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{null}),result);
+		}
+		
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements2()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			//Visualiser.updateFrame(graph, merged);
+			//System.err.println(questions.getData());
+			graph.learnerCache.questionsPTA = questions;
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s"}));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements3()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "d"}));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements4()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "U"}));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements5()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
+			"s", "c" }), true));
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "U" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. 
+		 * The fact that the initial state is reject does not accept non-empty paths.
+		 */
+		@Test
+		public final void testMapPathToConfirmedElements6a()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
+			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
+			"s", "c" }), true));
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "U" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements6b()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "a", "b" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements6c()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "a", "b","U" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements6d()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			graph.findVertex(VertexID.parseID("A2")).setAccept(false);
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "a", "b","U","V" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,false,null,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements7()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			((LearnerGraph.NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix().get(
+					graph.getVertex(Arrays.asList(new String[]{"s"}))).get("c").setAccept(false);
+			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
+			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
+			"s", "c" }), false));
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "U" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
+		}
+		
+		/** Tests <em>mapPathToConfirmedElements</em>. */
+		@Test
+		public final void testMapPathToConfirmedElements8()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			graph.learnerCache.questionsPTA = questions;
+			((LearnerGraph.NonExistingPaths)questions.getFSM()).getNonExistingTransitionMatrix().get(
+					graph.getVertex(Arrays.asList(new String[]{"s"}))).get("c").setAccept(false);
+			graph.getVertex(Arrays.asList(new String[]{})).setAccept(false);
+			Assert.assertTrue(graph.transform.AugmentNonExistingMatrixWith(Arrays.asList(new String[]{
+			"s", "c","c","f" }), false));
+			List<Boolean> result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "U" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
+
+			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "c" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true}),result);
+
+			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "c", "f" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true,false}),result);
+			
+			result = graph.paths.mapPathToConfirmedElements(Arrays.asList(new String[]{
+					"s", "c", "c", "f","g" }));
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,true,false,null}),result);
+		}
+		
+		/** Tests <em>verifyPrefixClosedness</em>. */
+		@Test
+		public final void testVerifyPrefixClosedness1()
+		{
+			List<Boolean> condition = Arrays.asList(new Boolean[]{true,null,true,false,null});
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 0, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 0, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 2, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, false));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, true));
+
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		}
+		
+		/** Tests <em>verifyPrefixClosedness</em>. */
+		@Test
+		public final void testVerifyPrefixClosedness2()
+		{
+			List<Boolean> condition = Arrays.asList(new Boolean[]{true,null,true,null,null});
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 3, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 4, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		}
+		
+		/** Tests <em>verifyPrefixClosedness</em>. */
+		@Test
+		public final void testVerifyPrefixClosedness3()
+		{
+			List<Boolean> condition = Arrays.asList(new Boolean[]{true,false,true,null,null});
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 0, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 0, false));
+
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 1, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(condition, 1, false));
+
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 2, false));
+
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 3, false));
+
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, true));
+			Assert.assertFalse(PathRoutines.verifyPrefixClosedness(condition, 4, false));
+		}
+		
+		/** Tests <em>verifyPrefixClosedness</em>. */
+		@Test
+		public final void testVerifyPrefixClosedness4()
+		{
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 0, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 0, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 1, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 1, false));
+
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 2, true));
+			Assert.assertTrue(PathRoutines.verifyPrefixClosedness(null, 2, false));
 		}
 		
 		/** Tests marking of questions as answered. */

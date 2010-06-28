@@ -76,7 +76,7 @@ public class AutoAnswers extends DummyLearner {
 	}
 	
 	@Override
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
 		if (ans == null) setAutoOracle(graph.config);
 		Pair<Integer,String> answer = null;
@@ -89,7 +89,7 @@ public class AutoAnswers extends DummyLearner {
 		
 		if (answer == null)
 		{// auto did not provide an answer, pass the question further
-			answer = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
+			answer = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
 			howAnswerWasObtained = RPNILearner.QUESTION_USER;// we expect to be last in the chain, but do not really care.
 		}
 		

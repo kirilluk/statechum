@@ -267,17 +267,17 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML or computed by the learner.
 	 */
-	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
+	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
 		Pair<Integer, String> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, lengthInHardFacts, options);
+			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, options);
 			question = argQuestion;cPair = result;
 		}
 		else
-			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, lengthInHardFacts, options);
+			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, options);
 
 		syncOnCallOf(KIND_OF_METHOD.M_CHECKWITHUSER);
 

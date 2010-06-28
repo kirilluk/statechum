@@ -18,6 +18,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.awt.Color;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,9 +40,11 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.EquivalentStatesException;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
@@ -712,6 +715,88 @@ public class PathRoutines {
 
 		return current.isAccept()? AbstractOracle.USER_ACCEPTED:pos;
 	}
+	
+	/** Given a question, this method computes a map from position to whether a vertex has
+	 * a confirmed value. Used to enable/disable individual elements in 
+	 * <em>CheckWithEndUser</em> dialog.
+	 * The goal is to return whether it would be appropriate to answer yes or no for
+	 * each element of a question. This is determined by whether an appropriate element
+	 * of the result is true/false (any other choice will contradict our tentative automaton) 
+	 * or null (user can accept or reject - we do not mind). 
+	 * 
+	 * @param path path to trace
+	 * @param startState the state to start from
+	 */
+	public List<Boolean> mapPathToConfirmedElements(List<String> path)
+	{
+		List<Boolean> result = new ArrayList<Boolean>(path.size());
+		
+		CmpVertex current = coregraph.getInit();
+		NonExistingPaths nonExisting = (LearnerGraph.NonExistingPaths)coregraph.learnerCache.questionsPTA.getFSM();
+
+		for(String label:path)
+		{
+			if (current != null)
+			{
+				Map<String,CmpVertex> exitingTrans = nonExisting.getNonExistingTransitionMatrix().get(current);
+				if (exitingTrans == null) // nonexisting has a priority
+					exitingTrans = coregraph.transitionMatrix.get(current);
+				
+				if (exitingTrans == null || (current = exitingTrans.get(label)) == null)
+				// cannot make a move
+					current = null;
+				else
+				{
+					assert current != null;// usually a redundant check but it is just in case I break something above
+					
+					// For three-valued logic, isAccept() should be replaced by a check if acceptance condition
+					// is set and if not, null should be appended - subsequent addConstraints will re-run the entire
+					// if-then automaton and any change in conditions and confirmation status
+					// getNonExistingVertices().contains() be taken into account.
+					if (current.getID().getKind() != VertKind.NONEXISTING)
+						result.add(current.isAccept());// vertex of the main graph - add its acceptance condition
+					else // question PTA - add a non-null condition depending on whether it has been if-then explored
+						if (nonExisting.getNonExistingVertices().contains(current))
+							result.add(null); // not yet explored
+						else
+							result.add(current.isAccept());// acceptance set in stone - we do not accept three-valued logic yet.
+				}
+			}
+			
+			if (current == null)
+				result.add(null);
+		}		
+		
+		return result;
+	}
+	
+	/** Image an outcome of <em>mapPathToConfirmedElements</em> method where a user
+	 * clicks on the position and selects <em>accept</em> - some of these should 
+	 * be allowed and others should not.
+	 * 
+	 * @param condition  path condition to consider. null means the answer from <em>mapPathToConfirmedElements</em> 
+	 * is always true, used for compatibility with Orig_RPNIBlueFringe.
+	 * @param position selected element
+	 * @param accept accept/reject
+	 * @return whether the above selection contradicts the condition. 
+	 */
+	public static boolean verifyPrefixClosedness(List<Boolean> condition, int position, boolean accept)
+	{
+		if (condition == null)
+			return true;
+		
+		assert condition.size() > position && position >= 0;
+		Iterator<Boolean> listIter = condition.iterator();
+		for(int i=0;i<position;++i)
+		{
+			Boolean current = listIter.next();
+			if (current != null && current.booleanValue() == false)
+				return false;
+		}
+		Boolean current = listIter.next();
+		return current == null || current.booleanValue() == accept;// either no preference or the same preference as the chosen value
+	}
+	
 	
 	/** Traces a path in a graph and returns the entered state; null if a path does not exist.
 	 * 

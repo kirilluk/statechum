@@ -203,42 +203,50 @@ public abstract class RPNILearner extends Observable implements Learner {
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
-			final int lengthInHardFacts, final Object [] moreOptions)
+			final List<Boolean> consistentFacts, final Object [] moreOptions)
 	{
+		if (consistentFacts != null) System.err.println(consistentFacts);
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
 					final Object[] options = new Object[1+moreOptions.length];
-					JList nonrejectElements = null;
-					Iterator<String> inputIter = questionList.iterator();
-					int inputCounter=0;
-					if (lengthInHardFacts >= 0)
-					{
-						assert lengthInHardFacts < questionList.size();
-						List<String> nonrejects = new ArrayList<String>(lengthInHardFacts+1);
-						for(;inputCounter<lengthInHardFacts;++inputCounter) nonrejects.add("<html><font color=gray>"+inputIter.next());
-						nonrejectElements = new JList(nonrejects.toArray());
-					}
-					final int RejectsStartFrom = inputCounter;
-					List<String> rejects = new ArrayList<String>(questionList.size());
-					assert expectedForNoRestart < 0 || expectedForNoRestart >= lengthInHardFacts: "expectedForNoRestart = "+expectedForNoRestart+" and lengthInHardFacts = "+lengthInHardFacts;
-					for(;inputCounter<questionList.size();++inputCounter)
-					{
-						String textToAdd = null;
-						if (inputCounter == expectedForNoRestart)
-							textToAdd = addAnnotationExpected(inputIter.next());
-						else
-							textToAdd = inputIter.next();
-						rejects.add("<html><font color=green>"+textToAdd);
-					}
-					final JList rejectElements = new JList(rejects.toArray());
 					
-					options[0]="Accept";if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) options[0] = addAnnotationExpected((String)options[0]);
+					// A click on an element means a reject for that element and accept to all
+					// earlier elements, hence we have to disable all those which should not
+					// be rejected. The fact that we do only consider prefix-closed questions
+					// implies that a whole prefix will be accept-only.
+					Iterator<String> inputIter = questionList.iterator();
+					Iterator<Boolean> factsIter = consistentFacts == null? null:consistentFacts.iterator();
+					List<String> listElements = new ArrayList<String>(questionList.size());
+					int inputCounter=0;
+					while(inputIter.hasNext())
+					{
+						String currentElement = inputIter.next();Boolean fact = factsIter==null?null:factsIter.next();
+						String elementHtml = null;
+						if (fact != null && fact.booleanValue())
+							elementHtml = "<html><font color=gray>"+currentElement;
+						else
+							elementHtml = "<html><font color=green>"+currentElement;
+						
+						if (inputCounter == expectedForNoRestart)
+							elementHtml = addAnnotationExpected(elementHtml);
+						++inputCounter;
+						listElements.add(elementHtml);
+					}
+					final JList javaList = new JList(listElements.toArray());
+					String optionZero = "Accept";
+					if (!PathRoutines.verifyPrefixClosedness(consistentFacts, consistentFacts.size()-1, true))
+						optionZero = "<html><font color=grey>"+optionZero;
+					else
+						optionZero = "<html><font color=green>"+optionZero;
+					
+					if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED) optionZero = addAnnotationExpected(optionZero);
+					options[0]=optionZero;
 					System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
 					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
-					jop = new JOptionPane((nonrejectElements == null? new Object[] {label,rejectElements}:new Object[] {label,nonrejectElements,rejectElements}),
+					jop = new JOptionPane(new Object[] {label,javaList},
 			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
 					dialog = new JDialog(parentFrame,"Valid input string?",false);
 					dialog.setContentPane(jop);
@@ -262,36 +270,49 @@ public abstract class RPNILearner extends Observable implements Learner {
 							if (dialog.isVisible() && e.getSource() == jop
 					            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
 							{
+								boolean clickValid = true;
 								int i = 0;for(;i < options.length && options[i] != value;++i);
 								if (i == options.length)
 									i = AbstractOracle.USER_CANCELLED;// nothing was chosen
 								else
-									i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
-									
-								// one of the choices was made, determine which one and close the window
-								answer.getAndSet( i );
-								synchronized(answer)
 								{
-									answer.notifyAll();
+									if (!PathRoutines.verifyPrefixClosedness(consistentFacts, consistentFacts.size()-1, true))
+										clickValid = false;
+									i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
 								}
-
-								dialog.setVisible(false);dialog.dispose();
+								
+								// one of the valid choices was made, record which one and close the window
+								if (clickValid)
+								{
+									answer.getAndSet( i );
+									synchronized(answer)
+									{
+										answer.notifyAll();
+									}
+	
+									dialog.setVisible(false);dialog.dispose();
+								}
 				            }
 				        }
 				    });
-					rejectElements.addListSelectionListener(new ListSelectionListener() {
+					javaList.addListSelectionListener(new ListSelectionListener() {
 
 						public void valueChanged(ListSelectionEvent e) {
-							if (dialog.isVisible() && e.getSource() == rejectElements &&
-									!e.getValueIsAdjusting() && !rejectElements.isSelectionEmpty())
+							if (dialog.isVisible() && e.getSource() == javaList &&
+									!e.getValueIsAdjusting() && !javaList.isSelectionEmpty()
+								)
 							{
-								answer.getAndSet( RejectsStartFrom+rejectElements.getLeadSelectionIndex() );
-								synchronized(answer)
+								int position = javaList.getLeadSelectionIndex();
+								if (PathRoutines.verifyPrefixClosedness(consistentFacts, position,false))
 								{
-									answer.notifyAll();
+									answer.getAndSet( position );
+									synchronized(answer)
+									{
+										answer.notifyAll();
+									}
+									
+									dialog.setVisible(false);dialog.dispose();
 								}
-								
-								dialog.setVisible(false);dialog.dispose();
 							}
 						}
 						

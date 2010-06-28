@@ -71,14 +71,14 @@ public class SmtLearnerDecorator extends DummyLearner
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, int responseForNoRestart, int lengthInHardFacts, Object[] options) 
+			List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
 		int smtAnswer = lbl.CheckWithEndUser(question);
 		System.err.println("question: "+question+" expected for no restart: "+responseForNoRestart+" smt returned: "+smtAnswer);
 		if (smtAnswer != responseForNoRestart)
 			return new Pair<Integer, String>(smtAnswer,null);
 		
-		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, lengthInHardFacts, options);
+		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
 	}
 	
 	@Override

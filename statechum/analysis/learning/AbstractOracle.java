@@ -22,6 +22,12 @@ import java.util.List;
 
 import statechum.Pair;
 
+/** Choices which can be made by a user - all these number have to be negative because positives are
+ * selected from a list.
+ * 
+ * @author kirill
+ *
+ */
 public interface AbstractOracle {
 	/** Used in an interface to indicate that a user wishes to abort the leaning process. */
 	public static final int USER_CANCELLED = -2;

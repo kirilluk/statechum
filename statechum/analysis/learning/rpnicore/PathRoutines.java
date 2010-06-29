@@ -796,6 +796,59 @@ public class PathRoutines {
 		return result;
 	}
 	
+	/** A user may only make specific choices in a dialogue box, if there only one choice left,
+	 * it does not seem necessary to pop it, hence we could answer it directly for a user.
+	 * This method determines whether this is the case and what choice it is.
+	 * 
+	 * @param choices possibilities
+	 * @return null if multiple choices are possible, otherwise a specific choice to return from CheckWithUser dialog.
+	 */
+	public static Integer identifyTheOnlyChoice(List<Boolean> choices)
+	{
+		if (choices.size() == 0) throw new IllegalArgumentException("an empty path cannot be presented to a user");
+		
+		int decision = AbstractOracle.USER_CANCELLED;
+		
+		Iterator<Boolean> choiceIterator = choices.iterator();
+		int i=0;
+		while(choiceIterator.hasNext() && decision != AbstractOracle.USER_WAITINGFORSELECTION)
+		{
+			Boolean choice = choiceIterator.next();
+			int newDecision = AbstractOracle.USER_CANCELLED;
+
+			if (i == choices.size()-1)
+			{// at the last element of a sequence
+				if (choice == null)
+					newDecision = AbstractOracle.USER_WAITINGFORSELECTION;// this means there is more than a single possible choice for a user to make
+				else
+					if (choice.booleanValue())
+						newDecision = AbstractOracle.USER_ACCEPTED;
+					else
+						newDecision = i;// reject at the last element
+					
+			}
+			else
+			{// not at the end of a sequence
+				if (choice == null || !choice.booleanValue())
+					newDecision = i;// since we're not at the end of a sequence yet, there is only one possible choice left
+			}						
+
+			if (newDecision != AbstractOracle.USER_CANCELLED)
+			{// a possible choice for a user at the current position 
+				if (decision == AbstractOracle.USER_CANCELLED)
+					decision = newDecision;
+				else
+					decision = AbstractOracle.USER_WAITINGFORSELECTION;// the second case we came across a valid choice for a user to make, record this fact.
+			}
+
+			++i;
+		}
+		
+		assert decision != AbstractOracle.USER_CANCELLED;
+		if (decision == AbstractOracle.USER_WAITINGFORSELECTION) return null;
+		return decision;
+	}
+	
 	/** Traces a path in a graph and returns the entered state; null if a path does not exist.
 	 * 
 	 * @param path path to trace

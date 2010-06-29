@@ -205,141 +205,147 @@ public abstract class RPNILearner extends Observable implements Learner {
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
 			final List<Boolean> consistentFacts, final Object [] moreOptions)
 	{
+			
+		
 		final List<String> questionList = beautifyQuestionList(question);
 		final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
-		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				public void run() {
-					final Object[] options = new Object[1+moreOptions.length];
-					
-					// A click on an element means a reject for that element and accept to all
-					// earlier elements, hence we have to disable all those which should not
-					// be rejected. The fact that we do only consider prefix-closed questions
-					// implies that a whole prefix will be accept-only.
-					Iterator<String> inputIter = questionList.iterator();
-					Iterator<Boolean> factsIter = consistentFacts == null? null:consistentFacts.iterator();
-					List<String> listElements = new ArrayList<String>(questionList.size());
-					int inputCounter=0;
-					while(inputIter.hasNext())
-					{
-						String currentElement = inputIter.next();Boolean fact = factsIter==null?null:factsIter.next();
-						String elementHtml = null;
-						if (fact != null && fact.booleanValue())
-							elementHtml = "<html><font color=gray>"+currentElement;
-						else
-							elementHtml = "<html><font color=green>"+currentElement;
+		Integer outcome = PathRoutines.identifyTheOnlyChoice(consistentFacts);
+		if (outcome != null)
+			answer.getAndSet(outcome);
+		else
+			try {
+				SwingUtilities.invokeAndWait(new Runnable() {
+					public void run() {
+						final Object[] options = new Object[1+moreOptions.length];
 						
-						if (inputCounter == expectedForNoRestart)
-							elementHtml = addAnnotationExpected(elementHtml);
-						++inputCounter;
-						listElements.add(elementHtml);
-					}
-					final JList javaList = new JList(listElements.toArray());
-					String optionZero = null;Boolean lastFact = consistentFacts.get(consistentFacts.size()-1);
-					if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject
-						optionZero = "<html><font color=grey>cannot accept";
-					else
-						optionZero = "<html><font color=green>Accept";
-					
-					if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED)
-					{
-						optionZero = addAnnotationExpected(optionZero);assert lastFact == null || lastFact.booleanValue();
-					}
-					options[0]=optionZero;
-					System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
-					final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
-					jop = new JOptionPane(new Object[] {label,javaList},
-			                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
-					dialog = new JDialog(parentFrame,"Valid input string?",false);
-					dialog.setContentPane(jop);
-					
-					// the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
-					dialog.setDefaultCloseOperation(
-						    WindowConstants.DO_NOTHING_ON_CLOSE);
-					dialog.addWindowListener(new WindowAdapter() {
-					    @Override
-						public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
-					    	jop.setValue(new Integer(
-                                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
-					    }
-					});
-					jop.addPropertyChangeListener(new PropertyChangeListener() {
-				        public void propertyChange(PropertyChangeEvent e) {
-				            String prop = e.getPropertyName();
-				            
-							Object value = e.getNewValue();
-
-							if (dialog.isVisible() && e.getSource() == jop
-					            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
-							{
-								boolean clickValid = true;
-								int i = 0;for(;i < options.length && options[i] != value;++i);
-								if (i == options.length)
-									i = AbstractOracle.USER_CANCELLED;// nothing was chosen
-								else
-								{
-									if (i == 0)
-									{
-										Boolean fact= consistentFacts.get(consistentFacts.size()-1);
-										clickValid = (fact == null || fact.booleanValue());
-									}
-									i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
-								}
-								
-								if (clickValid)
-								{
-									// one of the valid choices was made, record which one and close the window
-									answer.getAndSet( i );
-									synchronized(answer)
-									{
-										answer.notifyAll();
-									}
+						// A click on an element means a reject for that element and accept to all
+						// earlier elements, hence we have to disable all those which should not
+						// be rejected. The fact that we do only consider prefix-closed questions
+						// implies that a whole prefix will be accept-only.
+						Iterator<String> inputIter = questionList.iterator();
+						Iterator<Boolean> factsIter = consistentFacts == null? null:consistentFacts.iterator();
+						List<String> listElements = new ArrayList<String>(questionList.size());
+						int inputCounter=0;
+						while(inputIter.hasNext())
+						{
+							String currentElement = inputIter.next();Boolean fact = factsIter==null?null:factsIter.next();
+							String elementHtml = null;
+							if (fact != null && fact.booleanValue())
+								elementHtml = "<html><font color=gray>"+currentElement;
+							else
+								elementHtml = "<html><font color=green>"+currentElement;
+							
+							if (inputCounter == expectedForNoRestart)
+								elementHtml = addAnnotationExpected(elementHtml);
+							++inputCounter;
+							listElements.add(elementHtml);
+						}
+						final JList javaList = new JList(listElements.toArray());
+						String optionZero = null;Boolean lastFact = consistentFacts.get(consistentFacts.size()-1);
+						if (lastFact != null && !lastFact.booleanValue()) // last element has to be a reject
+							optionZero = "<html><font color=grey>cannot accept";
+						else
+							optionZero = "<html><font color=green>Accept";
+						
+						if (expectedForNoRestart == AbstractOracle.USER_ACCEPTED)
+						{
+							optionZero = addAnnotationExpected(optionZero);assert lastFact == null || lastFact.booleanValue();
+						}
+						options[0]=optionZero;
+						System.arraycopy(moreOptions, 0, options, 1, moreOptions.length);
+						final JLabel label = new JLabel("<html><font color=red>Click on the first non-accepting element below", SwingConstants.CENTER);
+						jop = new JOptionPane(new Object[] {label,javaList},
+				                JOptionPane.QUESTION_MESSAGE,JOptionPane.YES_NO_CANCEL_OPTION,null,options, options[0]);
+						dialog = new JDialog(parentFrame,"Valid input string?",false);
+						dialog.setContentPane(jop);
+						
+						// the following chunk is partly from http://java.sun.com/docs/books/tutorial/uiswing/components/dialog.html
+						dialog.setDefaultCloseOperation(
+							    WindowConstants.DO_NOTHING_ON_CLOSE);
+						dialog.addWindowListener(new WindowAdapter() {
+						    @Override
+							public void windowClosing(@SuppressWarnings("unused") WindowEvent we) {
+						    	jop.setValue(new Integer(
+	                                    JOptionPane.CLOSED_OPTION));// from http://java.sun.com/docs/books/tutorial/uiswing/components/examples/CustomDialog.java
+						    }
+						});
+						jop.addPropertyChangeListener(new PropertyChangeListener() {
+					        public void propertyChange(PropertyChangeEvent e) {
+					            String prop = e.getPropertyName();
+					            
+								Object value = e.getNewValue();
 	
-									dialog.setVisible(false);dialog.dispose();
-								}
-				            }
-				        }
-				    });
-					javaList.addListSelectionListener(new ListSelectionListener() {
-
-						public void valueChanged(ListSelectionEvent e) {
-							if (dialog.isVisible() && e.getSource() == javaList &&
-									!e.getValueIsAdjusting() && !javaList.isSelectionEmpty()
-								)
-							{
-								int position = javaList.getLeadSelectionIndex();
-								Boolean fact= consistentFacts.get(position);
-								if (fact == null || !fact.booleanValue())
+								if (dialog.isVisible() && e.getSource() == jop
+						            		 && (prop.equals(JOptionPane.VALUE_PROPERTY))) 
 								{
-									answer.getAndSet( position );
-									synchronized(answer)
+									boolean clickValid = true;
+									int i = 0;for(;i < options.length && options[i] != value;++i);
+									if (i == options.length)
+										i = AbstractOracle.USER_CANCELLED;// nothing was chosen
+									else
 									{
-										answer.notifyAll();
+										if (i == 0)
+										{
+											Boolean fact= consistentFacts.get(consistentFacts.size()-1);
+											clickValid = (fact == null || fact.booleanValue());
+										}
+										i = AbstractOracle.USER_ACCEPTED-i; // to ensure that zero translates into USER_ACCEPTED and other choices into lower numbers 
 									}
 									
-									dialog.setVisible(false);dialog.dispose();
+									if (clickValid)
+									{
+										// one of the valid choices was made, record which one and close the window
+										answer.getAndSet( i );
+										synchronized(answer)
+										{
+											answer.notifyAll();
+										}
+		
+										dialog.setVisible(false);dialog.dispose();
+									}
+					            }
+					        }
+					    });
+						javaList.addListSelectionListener(new ListSelectionListener() {
+	
+							public void valueChanged(ListSelectionEvent e) {
+								if (dialog.isVisible() && e.getSource() == javaList &&
+										!e.getValueIsAdjusting() && !javaList.isSelectionEmpty()
+									)
+								{
+									int position = javaList.getLeadSelectionIndex();
+									Boolean fact= consistentFacts.get(position);
+									if (fact == null || !fact.booleanValue())
+									{
+										answer.getAndSet( position );
+										synchronized(answer)
+										{
+											answer.notifyAll();
+										}
+										
+										dialog.setVisible(false);dialog.dispose();
+									}
 								}
 							}
-						}
-						
-					});				
-					dialog.pack();
-					//rejectElements.setListData(questionList.toArray());
-					dialog.setVisible(true);
+							
+						});				
+						dialog.pack();
+						//rejectElements.setListData(questionList.toArray());
+						dialog.setVisible(true);
+					}
+				});
+				synchronized (answer) {
+					while(answer.get() == AbstractOracle.USER_WAITINGFORSELECTION)
+							answer.wait();// wait for a user to make a response
 				}
-			});
-			synchronized (answer) {
-				while(answer.get() == AbstractOracle.USER_WAITINGFORSELECTION)
-						answer.wait();// wait for a user to make a response
+			} catch (InvocationTargetException e) {
+				//e.printStackTrace();
+				// if we cannot make a call, return a negative number - nothing do not know what else to do about it.
 			}
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-			// if we cannot make a call, return a negative number - nothing do not know what else to do about it.
-		}
-		catch (InterruptedException e) {
-			
-			// if we are interrupted, return a negative number - nothing do not know what else to do about it.
-		}
+			catch (InterruptedException e) {
+				
+				// if we are interrupted, return a negative number - nothing do not know what else to do about it.
+			}
 		if (answer.get() == AbstractOracle.USER_WAITINGFORSELECTION) // this one if an exception was thrown
 			answer.getAndSet(AbstractOracle.USER_CANCELLED);
 		return new Pair<Integer,String>(answer.get(),null);

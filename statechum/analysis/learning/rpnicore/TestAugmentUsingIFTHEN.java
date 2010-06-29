@@ -44,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -1546,6 +1547,79 @@ final public class TestAugmentUsingIFTHEN
 			}},IllegalArgumentException.class,"is invalid: either of true/false");
 		}
 
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice1()
+		{
+			Helper.checkForCorrectException(new whatToRun() { public void run() {
+				PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{}));
+			}},IllegalArgumentException.class,"an empty path");
+		}
+		
+
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice2()
+		{
+			Assert.assertEquals(new Integer(2),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,false})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice3()
+		{
+			Assert.assertEquals(new Integer(AbstractOracle.USER_ACCEPTED),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice4()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,null})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice5()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,false,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice6()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,null,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice7()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{false,true,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice8()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,true,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice9()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,null,true})));
+		}
+		
+		/** Tests <em>identifyTheOnlyChoice</em>. */
+		@Test
+		public final void testIdentifyTheOnlyChoice10()
+		{
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,false,true})));
+		}
+		
 		/** Tests marking of questions as answered. */
 		@Test
 		public final void testQuestionMarking1()

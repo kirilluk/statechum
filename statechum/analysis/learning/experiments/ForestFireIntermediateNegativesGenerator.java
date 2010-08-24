@@ -42,49 +42,4 @@ public class ForestFireIntermediateNegativesGenerator extends ForestFireLabelled
 		vertex.setAccept(randomInt(2) > 0);
 	}
 
-	
-	public static void main(String args[])
-	{
-		/*for(double f=0.6;f < 1;f+=0.05)
-		{
-			final int nr = 20;
-			double accumMachine = 0, accumReduced = 0, statesMachine = 0, statesReduced = 0;
-			for(int counter=0;counter < nr;++counter)
-			{
-				ForestFireIntermediateNegativesGenerator gen = new ForestFireIntermediateNegativesGenerator(f,1,0.2,10,0);
-				LearnerGraph fsm = gen.buildMachine(130);
-				accumMachine += ForestFireStateMachineGenerator.getEffectiveDiameter(gen.machine);statesMachine+=gen.machine.getVertices().size();
-				accumReduced += ForestFireStateMachineGenerator.getEffectiveDiameter(fsm.pathroutines.getGraph());statesReduced+=fsm.getStateNumber();
-				OutputUtil.generatePajekOutput(fsm.pathroutines.getGraph(),""+counter);
-				OutputUtil.generateADLOutput(fsm, fsm.pathroutines.computeAlphabet().size()+"-"+counter+".adl");
-			}
-			System.out.println(f+" effective dim orig: "+accumMachine/nr+" effective dim reduced: "+accumReduced/nr+" statesOrig: "+statesMachine/nr+" statesReduced: "+statesReduced/nr);
-		}*/
-		int avgSize = 0;
-		ArrayList<String> graphs = new ArrayList<String>();
-		int counter = 0;
-		int seed = 0;
-		int alphabet = 50;
-		while(counter<20){
-			ForestFireIntermediateNegativesGenerator gen = new ForestFireIntermediateNegativesGenerator(0.31,0.385,0.2,0.2,alphabet,seed);
-			LearnerGraph fsm = gen.buildMachine(160);
-			if(fsm.getStateNumber()>40 && fsm.getStateNumber()<60 && fsm.pathroutines.computeAlphabet().size() == alphabet){
-				String name = fsm.pathroutines.computeAlphabet().size()+"-"+counter;
-				OutputUtil.generateADLOutput(fsm, name+".adl");
-				OutputUtil.generatePajekOutput(fsm.pathroutines.getGraph(),name);
-				avgSize+=fsm.getStateNumber();
-				graphs.add(name);
-				counter++;
-				Visualiser.updateFrame(fsm, null);
-				Visualiser.waitForKey();
-			}
-			seed++;
-			//System.out.println(fsm.pathroutines.computeAlphabet().size() + ", "+fsm.getStateNumber());
-			
-		}
-		printResults(graphs);
-		System.out.println(avgSize/20);
-		//Visualiser.updateFrame(fsm, null);
-		//Visualiser.waitForKey();
-	}
 }

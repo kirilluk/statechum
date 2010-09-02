@@ -270,8 +270,8 @@ public class RPNIUniversalLearner extends RPNILearner
 						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED)
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
 					List<Boolean> acceptedElements = null;
-					if (tentativeAutomaton.config.isUseConstraints())
-						acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
+					acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
+					
 					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, 
 							tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,
 									acceptedElements, 

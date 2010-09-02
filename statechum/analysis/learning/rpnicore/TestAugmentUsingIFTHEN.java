@@ -1285,7 +1285,7 @@ final public class TestAugmentUsingIFTHEN
 		
 		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
 		@Test
-		public final void testMapPathToConfirmedElements1a()
+		public final void testMapPathToConfirmedElements1Ea()
 		{
 			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
 			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts,new LinkedList<String>(),new LearnerGraph[]{})
@@ -1294,7 +1294,7 @@ final public class TestAugmentUsingIFTHEN
 		
 		/** Tests <em>mapPathToConfirmedElements</em> with a sequence containing a non-existing element. */
 		@Test
-		public final void testMapPathToConfirmedElements1b()
+		public final void testMapPathToConfirmedElements1Eb()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
@@ -1302,6 +1302,49 @@ final public class TestAugmentUsingIFTHEN
 			Assert.assertEquals(Arrays.asList(new Boolean[]{null}),result);
 		}
 		
+
+		/** Tests <em>mapPathToConfirmedElements</em> when there are no ifthen automata (empty set of automata). */
+		@Test
+		public final void testMapPathToConfirmedElements1Ec()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","v","j"}),new LearnerGraph[]{});
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+		}
+
+		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
+		@Test
+		public final void testMapPathToConfirmedElements1Na()
+		{
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts,new LinkedList<String>(),null)
+					.isEmpty());
+		}
+		
+		/** Tests <em>mapPathToConfirmedElements</em> with a sequence containing a non-existing element. */
+		@Test
+		public final void testMapPathToConfirmedElements1Nb()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"u"}),null);
+			Assert.assertEquals(Arrays.asList(new Boolean[]{null}),result);
+		}
+		
+
+		/** Tests <em>mapPathToConfirmedElements</em> when there are no ifthen automata (null argument). */
+		@Test
+		public final void testMapPathToConfirmedElements1Nc()
+		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
+			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
+			hardFacts.paths.augmentPTA(Arrays.asList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
+			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,Arrays.asList(new String[]{
+					"s","v","j"}),null);
+			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+		}
+
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
 		public final void testMapPathToConfirmedElements2a()
@@ -1312,7 +1355,7 @@ final public class TestAugmentUsingIFTHEN
 					"s"}), new LearnerGraph[]{});
 			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
 		}
-
+		
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
 		public final void testMapPathToConfirmedElements2b()

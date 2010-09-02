@@ -1,0 +1,3 @@
+<USER> [open, save, edit, save] <yes>
+<USER> [open, save, save] <no> at position 2, element save
+<USER> [open, edit, save, save] <no> at position 3, element save

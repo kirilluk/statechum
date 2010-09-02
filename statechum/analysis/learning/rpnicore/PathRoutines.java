@@ -770,6 +770,8 @@ public class PathRoutines {
 			CmpVertex pathVertex = hardFacts.getVertex(prefix);
 			if (pathVertex != null)
 				result.add(pathVertex.isAccept());
+			else if (ifthenAutomata == null)
+				result.add(null);
 			else
 			{// The question represented with path is outside hard facts. Given that constraints are
 			 // entirely linear and thus acceptance conditions depend on paths rather than on

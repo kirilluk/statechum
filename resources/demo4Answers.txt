@@ -1,0 +1,4 @@
+<USER> [open, open] <yes>
+<USER> [open, edit, edit, save, edit, edit] <yes>
+<USER> [open, open, edit] <yes>
+<USER> [open, open, open] <yes>

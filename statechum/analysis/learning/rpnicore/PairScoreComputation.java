@@ -164,11 +164,16 @@ public class PairScoreComputation {
 				if (compatibilityScore < 0)
 					computedScore = -1;
 			}
+			
 			if (computedScore <= coregraph.learnerCache.maxScore &&
 					coregraph.config.getLearnerScoreMode()==Configuration.ScoreMode.KTAILS)
 					    computedScore = -1; 
+			else
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-				assert computePairCompatibilityScore(pairToComputeFrom) <= computedScore;
+			{
+				int compatScore = computePairCompatibilityScore(pairToComputeFrom);
+				assert compatScore <= computedScore;
+			}
 		}
 		
 		return new PairScore(blue,red,computedScore, compatibilityScore);

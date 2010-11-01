@@ -95,7 +95,7 @@ public class TestLinearWithMultipleThreads {
 		DoubleMatrix1D result = DoubleFactory1D.dense.make(size);
 		StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
-		DetermineDiagonalAndRightHandSide ddrhInstance = new GDLearnerGraph.DDRH_default();
+		DetermineDiagonalAndRightHandSide ddrhInstance = ndGraph.new DDRH_default();
 		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entryA:ndGraph.matrixForward.transitionMatrix.entrySet())
 		{
 			// Now iterate through states
@@ -105,7 +105,7 @@ public class TestLinearWithMultipleThreads {
 				Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
 
 				int currentStatePair = ndGraph.vertexToIntNR(stateB.getKey(),entryA.getKey());
-				ddrhInstance.compute(!AbstractLearnerGraph.checkCompatible(entryA.getKey(),stateB.getKey(),gr.pairCompatibility),entryA.getValue(),stateB.getValue());
+				ddrhInstance.compute(entryA.getKey(),stateB.getKey(),entryA.getValue(),stateB.getValue());
 				result.setQuick(currentStatePair, ddrhInstance.getRightHandSide());
 				
 				if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.

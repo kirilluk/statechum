@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -615,8 +616,15 @@ public class GDLearnerGraph
 	 * of a diagonal and the right-hand side (aka b in Ax=b).
 	 * 
 	 */
-	public abstract static class DetermineDiagonalAndRightHandSide
+	public abstract class DetermineDiagonalAndRightHandSide
 	{
+/*		final PairCompatibility<CmpVertex> pairCompatibility;
+		
+		public DetermineDiagonalAndRightHandSide(PairCompatibility<CmpVertex> compatibility)
+		{
+			pairCompatibility = compatibility;
+		}
+*/		
 		/** The number of shared transitions which lead to states with the same <em>isHightlight()</em> value
 		 * (this can be used to interpret an arbitrary subset of states as pseudo-reject ones; 
 		 * in practice useful when I make <em>isHightlight() = !isAccept()</em>).
@@ -643,13 +651,14 @@ public class GDLearnerGraph
 		 * different filters will affect scores obtained; filter should only impact efficiency
 		 * with Zero filter best performing. 
 		 * <p>
-		 * The reason we need both state and rows here is because we usually have rows handy
+		 * The reason we use rows here is because we usually have rows handy
 		 * when using this method and hence would not wish to do a .get again to retrieve them
-		 * based on state values. States are needed to ensure that incompatible vertices get
-		 * appropriate scores.
+		 * based on state values. States are needed to ensure that (a) incompatible vertices get
+		 * appropriate scores and (b) to use alternative methods for computation of scores such as BCR.
 		 */
-		protected void compute(boolean incompatible, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
+		protected void compute(CmpVertex stateA, CmpVertex stateB, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
 		{
+			boolean incompatible = !AbstractLearnerGraph.checkCompatible(stateA, stateB, pairCompatibility);
 			sharedSameHighlight = 0;sharedOutgoing = 0;totalOutgoing = 0;
 			
 			for(Entry<String,List<CmpVertex>> entry:rowA.entrySet())
@@ -697,9 +706,8 @@ public class GDLearnerGraph
 	 * if a pair of states is incompatible for a particular matched transition,
 	 * such a matched transition is ignored. 
 	 */
-	public static class DDRH_highlight extends DetermineDiagonalAndRightHandSide
+	public class DDRH_highlight extends DetermineDiagonalAndRightHandSide
 	{
-
 		@Override
 		public int getDiagonal() {
 			return sharedSameHighlight;
@@ -712,7 +720,7 @@ public class GDLearnerGraph
 		
 	}
 	
-	public static class DDRH_default extends DetermineDiagonalAndRightHandSide
+	public class DDRH_default extends DetermineDiagonalAndRightHandSide
 	{
 
 		@Override
@@ -841,10 +849,19 @@ public class GDLearnerGraph
 			final int debugThread = -1;
 			DetermineDiagonalAndRightHandSide ddrhInstance = null;
 			
-			public void init(int threadNo) throws InstantiationException, IllegalAccessException
+			public void init(int threadNo)
 			{
 				tmpAi = new IntArrayList(getExpectedIncomingPerPairOfStates()*pairsNumber);
-				if (ddrh == null) ddrhInstance = new DDRH_default();else ddrhInstance = ddrh.newInstance();// instances of ddrh are stateful, hence we need one per thread.
+				
+				// instances of ddrh are stateful, hence we need one per thread.
+				if (ddrh == null) ddrhInstance = new DDRH_default();
+				else
+					try {// from http://forums.sun.com/thread.jspa?threadID=767974
+						ddrhInstance = ddrh.getDeclaredConstructor(new Class[]{GDLearnerGraph.class}).newInstance(new Object[] { GDLearnerGraph.this });
+					} catch (Exception e) {
+						Helper.throwUnchecked("failed to create an instance of ddrh", e);
+					}
+					
 				Ai_array[threadNo]=new IntArrayList(expectedMatrixSize/ThreadNumber+getExpectedIncomingPerPairOfStates());
 				Ax_array[threadNo]=new DoubleArrayList(expectedMatrixSize/ThreadNumber+getExpectedIncomingPerPairOfStates());
 				currentPosition[threadNo]=0;
@@ -853,7 +870,7 @@ public class GDLearnerGraph
 			
 			Set<Integer> sourceData = new TreeSet<Integer>();
 			
-			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
+			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo)
 			{
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];
@@ -929,7 +946,7 @@ public class GDLearnerGraph
 									}
 							}
 						}
-						ddrhInstance.compute(!AbstractLearnerGraph.checkCompatible(entryA.getKey(),stateB.getKey(), pairCompatibility), entryA.getValue(),matrixForward.transitionMatrix.get(stateB.getKey()));
+						ddrhInstance.compute(entryA.getKey(),stateB.getKey(), entryA.getValue(),matrixForward.transitionMatrix.get(stateB.getKey()));
 						b[currentStatePair]=ddrhInstance.getRightHandSide();
 						if (debugThread == threadNo) System.out.println("shared outgoing: "+ddrhInstance.getRightHandSide());
 						

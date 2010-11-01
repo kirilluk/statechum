@@ -301,7 +301,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+duplicates+" are shared between A and B");
 		}
 		
-		// Now actually record the changes.
+		// Now actually record the changes. The reason a special class is used is historical - originally, 
+		// changes needed to be collected and then applied (I think due to vertex renaming), but this is not needed now.
 		new DCollector()
 		{
 			
@@ -427,14 +428,18 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			// Pick all transitions and incompatible pairs which have been added/removed from the matched states.
 			for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
 			{
-				// check records of compatible/incompatible pairs of states
+				// check records of compatible/incompatible pairs of states. This is based on what our compatibility matrix
+				// says about states A (i.e. from the left-hand side of the aTOb set) and then matching it to what it says
+				// about the right-hand side of it (the B part).
 				{
+					// targetsB are the states&compatibility values associated with the B state in the entry pair.
 					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> targetsB = grCombined.pairCompatibility.compatibility.get(entry.getValue());// this is a function - there is no potential for non-determinism unlike that of transitionMatrix
 					Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> newTargetsForB=new TreeMap<CmpVertex,JUConstants.PAIRCOMPATIBILITY>();if (targetsB != null) newTargetsForB.putAll(targetsB);
 					if (grCombined.pairCompatibility.compatibility.containsKey(entry.getKey())) // we have some pairs recorded in A which may match those in B
 						for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> targetInA:grCombined.pairCompatibility.compatibility.get(entry.getKey()).entrySet())
 							if (aTOb.containsKey(targetInA.getKey()))
-							{
+							{// both the current state (entry.getKey()) and the other side (targetInA.getKey()) are part of key pairs,
+							 // hence we have to check what happens to the corresponding side (entry.getValue() - targetInB.getKey())
 								if (targetsB == null || // this state has no compatible/incompatible states recorded in B
 										!targetsB.containsKey(aTOb.get(targetInA.getKey())) || // It is not enough to check if both targetA and targetB are 
 										// key states, but the two have to be part of the same key state. 
@@ -449,6 +454,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					 		// such an relation will be removed later on when we focus on removing transitions from/to unmatched states
 					
 					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> newTarget:newTargetsForB.entrySet())
+						// the pair entry.getKey(),targetInA.getKey() are not related or
+						// they in a different relation to entry.getValue() - targetInB.getKey() (such as INCOMPATIBLE v.s. IFTHEN)						
 						addToCompatibility(entry.getKey(), getOrig(newTarget.getKey()),newTarget.getValue());
 				}
 				
@@ -665,8 +672,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			{// vertex with this ID is not already known
 				fromVert = AbstractLearnerGraph.cloneCmpVertex(vert, cloneConfig);
 				graph.transitionMatrix.put(fromVert,graph.createNewRow());
+				graph.updateIDWith(fromVert);
 			}
-			else
+			else // vertex with the same ID exists
 				if (!AbstractLearnerGraph.checkCompatible(fromVert,vert, graph.pairCompatibility)) // it is known but with a different accept condition
 					throw new IllegalArgumentException("vertex "+vert+" is incompatible to the one in graph "+graph);// incompatibles cannot 
 						// lead to this exception since this would mean that a state is not compatible with 
@@ -1034,12 +1042,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			return gd;
 		}
 
-		/** Given an element containing a number of elements, this one picks the one
-		 * with the right tag and returns its first element-child.
+		/** Given an element containing a number of children, this one picks the one
+		 * with the right tag and returns its first child.
 		 * If <em>tolerateAbsentElements</em> is set, returns null if the element with the requested
-		 * name was not found; otherwise, an exception is thrown if an element is not found.
+		 * name was not found; otherwise, an exception is thrown.
 		 * <p>
-		 * If <em>checksingleChild</em> is set, checks that there is only NODE child of the found node
+		 * If <em>checksingleChild</em> is set, checks that there is exactly one ELEMENT_NODE child of the found node
 		 * and throws {@link IllegalArgumentException} if this is not so.
 		 * 
 		 * @param elem element within which to look for a node with the supplied tag.
@@ -1267,11 +1275,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						// Now iterate through states
 						for(CmpVertex stateB:statesOfB)
 						{
-							assert pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]==GDLearnerGraph.PAIR_INCOMPATIBLE:
-								"duplicate number "+forward.vertexToIntNR(stateB,entryA.getKey())+" for states "+
+							int pairINT = forward.vertexToIntNR(stateB,entryA.getKey());
+							assert pairScores[pairINT]==GDLearnerGraph.PAIR_INCOMPATIBLE:
+								"duplicate number "+pairINT+" for states "+
 								forward.getStatesToNumber().get(stateB)+","+forward.getStatesToNumber().get(entryA.getKey());
-							pairScores[forward.vertexToIntNR(stateB,entryA.getKey())]=
-								GDLearnerGraph.PAIR_OK;// caching is likely to lower down my performance a lot here
+							pairScores[pairINT]=GDLearnerGraph.PAIR_OK;// caching is likely to lower down my performance a lot here
 						}
 						
 						// Perhaps I should be numbering states directly here instead of using numberNonNegativeElements afterwards,
@@ -1293,7 +1301,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				solverForward.freeAllButResult();// deallocate memory before creating a large array.
 				scoresForward = solverForward.j_x;
 			}
-	
+
 			{
 				LSolver solverInverse = inverse.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,DDRH_default.class);
 				//System.out.println(inverse.dumpEquations(solverInverse, pairScores, newBToOrig));

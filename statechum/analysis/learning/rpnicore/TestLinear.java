@@ -333,14 +333,14 @@ public class TestLinear {
 	 * @param A name of the first state
 	 * @param B name of the second state
 	 */
-	private final void getMatcherValue(LearnerGraph gr,LearnerGraphND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
+	private final void getMatcherValue(LearnerGraph gr,GDLearnerGraph gdlearnerGraph,LearnerGraphND matrixND, DetermineDiagonalAndRightHandSide matcher, String A,String B)
 	{
-		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(A),gr.findVertex(B), gr.pairCompatibility),
+		matcher.compute(gr.findVertex(A),gr.findVertex(B),
 				matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
 
 		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
-		matcher.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.pairCompatibility),
+		matcher.compute(gr.findVertex(B),gr.findVertex(A),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
 		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
@@ -348,12 +348,12 @@ public class TestLinear {
 		
 		// Now copy the matcher and do another computation, with A and B reversed.
 		DetermineDiagonalAndRightHandSide anotherMather = null;
-		try {
-			anotherMather = matcher.getClass().newInstance();
+		try {// based on http://forums.sun.com/thread.jspa?threadID=767974
+			anotherMather = matcher.getClass().getDeclaredConstructor(new Class[]{GDLearnerGraph.class}).newInstance(new Object[]{gdlearnerGraph});
 		} catch (Exception e) {
 			Assert.fail("Unexpected exception cloning a matcher: "+e);
 		}
-		anotherMather.compute(!AbstractLearnerGraph.checkCompatible(gr.findVertex(B),gr.findVertex(A), gr.pairCompatibility),
+		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
 		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
@@ -365,8 +365,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
 
@@ -375,8 +375,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","A");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","A");
 		Assert.assertEquals(3,matcher.getRightHandSide());
 	}
 
@@ -386,13 +386,13 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R-a->R\nQ-b->S", "testCountMatchingOutgoing3a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
-		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"A","Q");
 		// A and Q have 3 outgoing transitions, 2 are matched.
 		// target pair B1-S has a score of 0, B-R has a score of -1.
 		Assert.assertEquals(2,matcher.getRightHandSide());
 		Assert.assertEquals(3*2,matcher.getDiagonal());
-		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"B","R");
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"B","R");
 		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
 		Assert.assertEquals(1*2,matcher.getDiagonal());
 	}
@@ -403,8 +403,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3b"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreNone, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default(); 
-		getMatcherValue(gr,ndGraph.matrixForward, matcher ,"A","B");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"A","B");
 		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide()*2);
 		Assert.assertEquals(3*2,matcher.getDiagonal());
 	}
@@ -416,8 +416,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
 		// the score for the first pair is -1, for another one it is 1, hence the outcome is zero
 		Assert.assertEquals(2,matcher.getRightHandSide());
@@ -431,8 +431,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->Q-c->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
 		Assert.assertEquals(3,matcher.getRightHandSide());
@@ -445,8 +445,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3c"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
 		Assert.assertEquals(1,matcher.getRightHandSide());
 	}
@@ -458,8 +458,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-b->B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing3d"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
 		Assert.assertEquals(2,matcher.getRightHandSide());
@@ -470,9 +470,9 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		// 3 outgoing and 2 matching reject, but we count them as positives
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(2,matcher.getRightHandSide());
 	}
 
@@ -483,8 +483,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","Q");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
@@ -493,10 +493,10 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","C");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"S","C");
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"S","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
@@ -507,10 +507,10 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nA-c->C\nQ-a->R\nQ-b->S", "testCountMatchingOutgoing1"), config);
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","C");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"S","C");
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"S","C");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 
@@ -520,8 +520,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","R");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","R");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 	
@@ -531,8 +531,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A-a-#B\nA-b-#B1\nQ-a->R", "testCountMatchingOutgoing1"), Configuration.getDefaultConfiguration());
 		gr.linear.moveRejectToHighlight();
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_highlight();
-		getMatcherValue(gr,ndGraph.matrixForward, matcher,"A","R");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","R");
 		Assert.assertEquals(0,matcher.getRightHandSide());
 	}
 	
@@ -547,8 +547,8 @@ public class TestLinear {
 	{
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F", "testCountMatchingOutgoing_nd1"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
 		Assert.assertEquals(8*2,matcher.getDiagonal());
 	}
@@ -559,8 +559,8 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C", "testCountMatchingOutgoing_nd2a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
 		Assert.assertEquals(9*2,matcher.getDiagonal());
 	}
@@ -573,8 +573,8 @@ public class TestLinear {
 				+"M-d->D"
 				, "testCountMatchingOutgoing_nd2b"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(8,matcher.getRightHandSide());
 		Assert.assertEquals(10*2,matcher.getDiagonal());
 	}
@@ -586,8 +586,8 @@ public class TestLinear {
 				+"N-c->C\n"
 				+"N-a->C", "testCountMatchingOutgoing_nd3a"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(10,matcher.getRightHandSide());
 		Assert.assertEquals(11*2,matcher.getDiagonal());
 	}
@@ -599,8 +599,8 @@ public class TestLinear {
 				+"N-c->C<-f-U\n"
 				+"N-a->C\nS-r->D", "testCountMatchingOutgoing_nd3b"), Configuration.getDefaultConfiguration());
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
-		DetermineDiagonalAndRightHandSide matcher = new GDLearnerGraph.DDRH_default();
-		getMatcherValue(gr,ndGraph.matrixInverse, matcher,"C","D");
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
 		Assert.assertEquals(10,matcher.getRightHandSide());
 		Assert.assertEquals(13*2,matcher.getDiagonal());
 	}

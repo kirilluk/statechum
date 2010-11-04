@@ -719,9 +719,9 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	}
 
 	/** Computes a state cover (a collection of sequences to reach every state in this machine). */
-	public List<List<String>> computeStateCover()
+	public List<List<String>> computeStateCover(CmpVertex initialVertex)
 	{
-		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(computeShortPathsToAllStates().values());
+		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(computeShortPathsToAllStates(initialVertex).values());
 		return outcome;
 	}
 	
@@ -774,7 +774,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 */
 	public boolean checkUnreachableStates()
 	{
-		return computeStateCover().size() != coregraph.transitionMatrix.size();
+		return computeStateCover(coregraph.getInit()).size() != coregraph.transitionMatrix.size();
 	}
 
 	/** Returns a state, randomly chosen according to the supplied random number generator. */

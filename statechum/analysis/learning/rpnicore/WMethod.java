@@ -92,7 +92,7 @@ public class WMethod {
 	public Collection<List<String>> computeOldTestSet(int numberOfExtraStates)
 	{
 		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
-		List<List<String>> partialSet = coregraph.pathroutines.computeStateCover();
+		List<List<String>> partialSet = coregraph.pathroutines.computeStateCover(coregraph.getInit());
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
@@ -108,14 +108,14 @@ public class WMethod {
 		return testsequenceCollection.getData();
 	}
 
-	public Collection<List<String>> computeNewTestSet(int numberOfExtraStates)
+	public PTASequenceEngine computeNewTestSet(CmpVertex initialState, int numberOfExtraStates)
 	{
 		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
-		List<List<String>> stateCover = coregraph.pathroutines.computeStateCover();
+		List<List<String>> stateCover = coregraph.pathroutines.computeStateCover(initialState);
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
-		PTASequenceEngine engine = new PTA_FSMStructure(coregraph);
+		PTASequenceEngine engine = new PTA_FSMStructure(coregraph,initialState);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(stateCover);
 		
@@ -126,7 +126,12 @@ public class WMethod {
 			partialPTA.cross(characterisationSet);
 		}
 		
-		return engine.getData();
+		return engine;
+	}
+	
+	public Collection<List<String>> computeNewTestSet(int numberOfExtraStates)
+	{
+		return computeNewTestSet(coregraph.getInit(),numberOfExtraStates).getData();
 	}
 	
 	/** Checks if the supplied FSM has equivalent states. */

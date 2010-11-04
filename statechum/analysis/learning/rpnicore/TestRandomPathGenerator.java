@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import statechum.ArrayOperations;
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
@@ -74,9 +75,19 @@ public class TestRandomPathGenerator {
 	private LearnerGraph simpleGraph = null;
 	
 	@Test
-	public void test_generateRandomWalk1()
+	public void test_generateRandomWalk1a()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
+		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
+		Assert.assertEquals(Arrays.asList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
+	}
+
+	/** Same as above but using a different initial state. */
+	@Test
+	public void test_generateRandomWalk1b()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("WW-s->WW\n"+"A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,graph.findVertex(VertexID.parseID("A")));
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
 	}
@@ -84,7 +95,7 @@ public class TestRandomPathGenerator {
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk2()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		List<String> path = generator.generateRandomWalk(2,3, true);
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}), path);
 		generator.allSequences.add(path);
@@ -94,14 +105,14 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk3a()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		Assert.assertNull(generator.generateRandomWalk(20,20, true));// no paths of this length
 	}
 	
 	@Test
 	public void test_generateRandomWalk3b()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		Assert.assertNull(generator.generateRandomWalk(20,20, false));// no paths of this length
 	}
 	
@@ -132,35 +143,35 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_generateRandomWalk4()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generateSeq(1,2,generator,new String[][]{new String[]{"c"},new String[]{"b"}});
 	}
 	
 	@Test
 	public void test_generateRandomWalk5a()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generateSeq(2,2, 2,generator,new String[][]{new String[]{"a","c"},new String[]{"a","a"}});
 	}	
 
 	@Test
 	public void test_generateRandomWalk5b()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generateSeq(2,1, 1,generator,new String[][]{new String[]{"a","c"}});
 	}	
 
 	@Test
 	public void test_generateRandomWalk5c()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generateSeq(2,1, 1,generator,new String[][]{new String[]{"a","c"}});// this could be new String[]{"a","c"} just as well
 	}	
 
 	@Test
 	public void test_generateRandomWalk6()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generateSeq(4,3,generator,
 				ArrayOperations.flatten(new Object[]{"a","b","c",new String[]{"a","b","c"}}));
 	}	
@@ -169,7 +180,7 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk7()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
-		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,3,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
@@ -183,7 +194,7 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk8a()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
-		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,4, 7,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
@@ -200,7 +211,7 @@ public class TestRandomPathGenerator {
 	public void test_generateRandomWalk8b()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk8"),config);
-		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
 		generateSeq(4,3, 5,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
@@ -216,63 +227,63 @@ public class TestRandomPathGenerator {
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort1()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomWalk(-1,1, true);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort2()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomWalk(0,0, true);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort3()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomWalk(0,0, false);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort4()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomWalk(2,3, false);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort5()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomWalk(2,-1, false);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort_PosNeg_fail1()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100,null);
 		generator.generatePosNeg(10, 10);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort_PosNeg_fail2()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generatePosNeg(11, 10);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort_Random_fail1()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),-100,null);
 		generator.generateRandomPosNeg(10, 10);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomWalk_tooshort_Random_fail2()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0);
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomPosNeg(11, 10);
 	}
 	
@@ -281,7 +292,7 @@ public class TestRandomPathGenerator {
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(automaton,automatonName),config);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
-		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
 		Collection<List<String>> previousChunkNeg = null;
 		Collection<List<String>> previousChunkPos = null;
@@ -359,7 +370,7 @@ public class TestRandomPathGenerator {
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(automaton,automatonName),config);
 		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
-		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
 		
 		Collection<List<String>> previousChunk = null;
@@ -449,7 +460,7 @@ public class TestRandomPathGenerator {
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
-		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
 		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
@@ -503,7 +514,7 @@ public class TestRandomPathGenerator {
 		final int chunkNumber = 18,posOrNegPerChunk=12;
 				
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2"),config);
-		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
 		Assert.assertEquals(0, generator.getChunkNumber());
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
 		Assert.assertEquals(chunkNumber, generator.getChunkNumber());

@@ -388,7 +388,8 @@ public class Configuration implements Cloneable
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
-	public int hashCode() {
+	public int hashCode() 
+	{
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (LearnerCloneGraph ? 1231 : 1237);
@@ -434,6 +435,8 @@ public class Configuration implements Cloneable
 		result = prime * result + smtGraphDomainConsistencyCheck.hashCode();
 		result = prime * result + smtGraphRangeConsistencyCheck.hashCode();
 		result = prime * result + (prefixClosed?  1231 : 1237);
+		result = prime * result + gdScoreComputation.hashCode();
+		
 		return result;
 	}
 
@@ -545,6 +548,8 @@ public class Configuration implements Cloneable
 		if (smtGraphRangeConsistencyCheck != other.smtGraphRangeConsistencyCheck)
 			return false;
 		if (prefixClosed != other.prefixClosed)
+			return false;
+		if (gdScoreComputation != other.gdScoreComputation)
 			return false;
 		
 		return true;
@@ -726,6 +731,22 @@ public class Configuration implements Cloneable
 		return ignoreVertexAttributesInLogReplay;
 	}
 	
+	/** Scores of state pairs can be computed in different ways in GD, the enumeration below reflects the choices.
+	 */
+	public enum GDScoreComputationEnum { GD_BCR, GD_LINEAR_RH_BCR, GD_LINEAR_RH_OUTGOINGINCOMING };
+
+	protected GDScoreComputationEnum gdScoreComputation = GDScoreComputationEnum.GD_LINEAR_RH_OUTGOINGINCOMING;
+	
+	public GDScoreComputationEnum getGdScoreComputation()
+	{
+		return gdScoreComputation;
+	}
+	
+	public void setGdScoreComputation(GDScoreComputationEnum value)
+	{
+		gdScoreComputation = value;
+	}
+	
 	/** Considering all pairs of states, we need to determine those of 
 	 * them which are over a specific threshold,
 	 * defined as top so many percent (expressed as a fraction, so top 5% is 0.05).
@@ -750,7 +771,7 @@ public class Configuration implements Cloneable
 	 * <em>gdKeyPairThreshold</em> not too low and choose
 	 * a state of B which should be paired to a state in A where the 
 	 * corresponding pairs's low score is at most <em>gdLowToHighRatio</em>
-	 * that of its highest score (). Refer to <em>handleRow</em> part of 
+	 * that of its highest score. Refer to <em>handleRow</em> part of 
 	 * <em>identifyKeyPairs()</em> for details.
 	 */ 
 	protected double gdLowToHighRatio = 0.5;
@@ -1038,7 +1059,8 @@ public class Configuration implements Cloneable
 			{
 				Method getter = Test_AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
-				try {
+				try 
+				{
 					Object value = getter.invoke(this, new Object[]{});
 					if (value != null)
 					{

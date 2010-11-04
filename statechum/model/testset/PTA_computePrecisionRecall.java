@@ -1,20 +1,20 @@
-/*Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
- 
-This file is part of StateChum
-
-StateChum is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-StateChum is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
+/* Copyright (c) 2006, 2007, 2008 Neil Walkinshaw and Kirill Bogdanov
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package statechum.model.testset;
 
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Map.Entry;
 
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -33,11 +34,27 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  */
 public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 
-	public PTA_computePrecisionRecall(LearnerGraph machine) {
-		super(machine);
+	/** Constructs a tree for the supplied machine, using the given state as an initial state.
+	 * 
+	 * @param machine machine to use
+	 * @param initState the initial state to use
+	 */
+	public PTA_computePrecisionRecall(LearnerGraph machine, CmpVertex initState) 
+	{
+		super(machine,initState);
 	}
 
-	int pos_Ret, pos_Rel, pos_relret, neg_Ret, neg_Rel, neg_relret;
+	/** Constructs a tree for the supplied machine.
+	 * 
+	 * @param machine machine to use
+	 */
+	public PTA_computePrecisionRecall(LearnerGraph machine) 
+	{
+		super(machine,null);
+	}
+
+	int pos_Ret, pos_Rel, neg_Ret, neg_Rel;
+	int resultTN,resultTP, resultFP, resultFN;
 	
 	protected static class PosNegPrecisionRecallNum extends PosNegPrecisionRecall
 	{
@@ -52,30 +69,40 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 			posrecall = pos_Rel>0?(double)pos_relret/(double)pos_Rel:0;
 			precision = computeMean(negprecision, posprecision);
 			recall = computeMean(posrecall, negrecall);
-			fMeasure = computeMean(precision, recall);	
+			fMeasure = computeMean(precision, recall);
 		}
 	}
 
-	private void updateCounters(Node currentExplorationNode, Node currentLearntNode,PTASequenceEngine pc)
+	private void updateCounters(Node testNode, Node ptaNode, Node testNodeReject)
 	{
-		//System.out.println("matching "+currentExplorationNode+" and "+currentLearntNode);
-		/* First, we process a pair of the two nodes being considered. */ 
-		if (currentExplorationNode == pc.rejectNode && currentLearntNode == rejectNode)
-		{
-			neg_relret++;neg_Rel++;neg_Ret++;
+		if (testNode == testNodeReject && ptaNode == rejectNode)
+		{// True Positive
+			resultTP++;neg_Rel++;neg_Ret++;
 		}
-		if (currentExplorationNode == pc.rejectNode && currentLearntNode != rejectNode)
-		{
-			neg_Rel++;pos_Ret++;
+		if (testNode == testNodeReject && ptaNode != rejectNode)
+		{// False Positive
+			resultFP++;neg_Rel++;pos_Ret++;
 		}
-		if (currentExplorationNode != pc.rejectNode && currentLearntNode == rejectNode)
-		{
-			pos_Rel++;neg_Ret++;
+		if (testNode != testNodeReject && ptaNode == rejectNode)
+		{// False Negative
+			resultFN++;pos_Rel++;neg_Ret++;
 		}
-		if (currentExplorationNode != pc.rejectNode && currentLearntNode != rejectNode)
-		{
-			pos_relret++;pos_Rel++;pos_Ret++;
+		if (testNode != testNodeReject && ptaNode != rejectNode)
+		{// True Negative
+			resultTN++;pos_Rel++;pos_Ret++;
 		}		
+	}
+	
+	/** Computes BCR. */
+	public double getBCR()
+	{
+		return ( (double)resultTP/(double)(resultTP+resultFN)+(double)resultTN/(double)(resultTN+resultFP) )/2.;
+	}
+	
+	/** Resets all counters. */
+	private void reset()
+	{
+		pos_Ret = 0;pos_Rel = 0;resultTN = 0;neg_Ret = 0;neg_Rel = 0;resultTP = 0;resultFP=0;resultFN=0;
 	}
 	
 	/** Calculates precision/recall when supplied with a specific set of sequences (such as a test set, backed by an FSM).
@@ -86,44 +113,51 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	 * (by construction, we do not build long paths with multiple non-existing transitions).
 	 * 
 	 * @param pc the set of sequences.
-	 * @return precision/recall values 
+	 * 
 	 */
-	public PosNegPrecisionRecall crossWith(PTASequenceEngine pc)
+	public void crossWith(PTASequenceEngine pc)
 	{
-		pos_Ret = 0;pos_Rel = 0;pos_relret = 0;neg_Ret = 0;neg_Rel = 0;neg_relret = 0;
+		reset();
 		
-		Queue<Node> currentExplorationBoundary = new LinkedList<Node>(), currentLearntBoundary = new LinkedList<Node>();// FIFO queue
-		currentExplorationBoundary.add(pc.init);currentLearntBoundary.add(init);
+		Queue<Node> testExplorationBoundary = new LinkedList<Node>(), ptaExplorationBoundary = new LinkedList<Node>();// FIFO queue
+		testExplorationBoundary.add(pc.init);ptaExplorationBoundary.add(init);
 		
-		while(!currentExplorationBoundary.isEmpty()) // we explore all of the pc supplied
+		while(!testExplorationBoundary.isEmpty()) // we explore all of the pc supplied
 		{
-			Node currentExplorationNode = currentExplorationBoundary.remove(), currentLearntNode = currentLearntBoundary.remove();
-			Map<String,Node> explorationRow = pc.pta.get(currentExplorationNode), learntRow = pta.get(currentLearntNode);
+			Node testCurrentNode = testExplorationBoundary.remove(), ptaCurrentNode = ptaExplorationBoundary.remove();
+			Map<String,Node> testRow = pc.pta.get(testCurrentNode), ptaRow = pta.get(ptaCurrentNode);
 
-			if (!explorationRow.isEmpty())
-				for(Entry<String,Node> entry:explorationRow.entrySet())
+			if (!testRow.isEmpty())
+				for(Entry<String,Node> testNextInput:testRow.entrySet())
 				{// for each outgoing transition of a test, we need to do something with the current transition of a machine
-					Node nextLearntNode=learntRow.get(entry.getKey());
-					if (nextLearntNode == null)
+					Node nextPtaExplorationNode=ptaRow.get(testNextInput.getKey());
+					if (nextPtaExplorationNode == null)
 					{// if we've not seen this entry already, proceed (below). Otherwise, ignore.
 					 // Note that we also end up here if the current node is a reject node.
 
-						if (currentLearntNode != rejectNode) 
+						if (ptaCurrentNode != rejectNode) 
 							// Unlike methods cross..., we do not really have to update a tree here - it is enough to simply 
-							// track the current state in the learnt automata. However, updating makes it possible to implement
-							// precision/recall analysis where I first identify states and subsequently perform analysis
-							// of their behaviour compared to the original automaton.
-							nextLearntNode = followToNextNode(currentLearntNode,entry.getKey());
+							// track the current state in the learnt automata. However, updating makes it possible to filter
+							// out training sequences and only keep results for test sequences. 
+							nextPtaExplorationNode = followToNextNode(ptaCurrentNode,testNextInput.getKey());
 						else
-							nextLearntNode=rejectNode;
+							nextPtaExplorationNode=rejectNode;
 
-						updateCounters(entry.getValue(),nextLearntNode,pc);
+						updateCounters(testNextInput.getValue(),nextPtaExplorationNode,pc.rejectNode);
 					}
 					
-					currentExplorationBoundary.offer(entry.getValue());currentLearntBoundary.offer(nextLearntNode);
+					testExplorationBoundary.offer(testNextInput.getValue());ptaExplorationBoundary.offer(nextPtaExplorationNode);
 				}
 		}
 		
-		return new PosNegPrecisionRecallNum(pos_Ret, pos_Rel, pos_relret, neg_Ret, neg_Rel, neg_relret);
+	}
+	
+	/** Converts counters stored in this object to precision/recall values.
+	 * 
+	 * @return precision/recall values 
+	 */
+	public PosNegPrecisionRecallNum getPosNegPrecisionRecallNum()
+	{
+		return new PosNegPrecisionRecallNum(pos_Ret, pos_Rel, (int)resultTN, neg_Ret, neg_Rel, (int)resultTP);
 	}
 }

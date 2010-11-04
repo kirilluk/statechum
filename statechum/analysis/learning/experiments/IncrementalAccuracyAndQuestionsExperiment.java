@@ -72,7 +72,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 		public void runTheExperiment()
 		{
 			int size = 2*graph.pathroutines.countEdges();
-			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5);// the seed for Random should be the same for each file
+			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5,null);// the seed for Random should be the same for each file
 			int percentPerChunk = 10;
 			int nrPerChunk = size/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 			rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);// 2* reflects the fact that nrPerChunk denotes the number of elements in both chunks (positive and negative) combined.  */
@@ -94,11 +94,11 @@ public class IncrementalAccuracyAndQuestionsExperiment
 
 			LearnerGraph learnt = learn(l,sMinus);
 			PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(learnt);
-			PTASequenceEngine engine = new PTA_FSMStructure(graph);
-			PosNegPrecisionRecall ptaPR = precRec.crossWith(sMinus);
+			PTASequenceEngine engine = new PTA_FSMStructure(graph,null);
+			precRec.crossWith(sMinus);PosNegPrecisionRecall ptaPR = precRec.getPosNegPrecisionRecallNum(); 
 			SequenceSet ptaTestSet = engine.new SequenceSet();ptaTestSet.setIdentity();
 			ptaTestSet = ptaTestSet.cross(graph.wmethod.getFullTestSet(1));
-			PosNegPrecisionRecall prNeg = precRec.crossWith(engine);
+			precRec.crossWith(engine);PosNegPrecisionRecall prNeg = precRec.getPosNegPrecisionRecallNum(); 
 			
 			assert questionNumber.get() == l.getQuestionCounter();
 			

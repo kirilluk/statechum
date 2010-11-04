@@ -66,18 +66,18 @@ public class CompareGraphs {
 	
 	public static PosNegPrecisionRecall compare(LearnerGraph specfsm, LearnerGraph imp){
 		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(imp);
-		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);
+		PTASequenceEngine engine = new PTA_FSMStructure(specfsm,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(specfsm.wmethod.getFullTestSet(1));
-		return precRec.crossWith(engine);
+		precRec.crossWith(engine);return precRec.getPosNegPrecisionRecallNum();
 	}
 	
 	public static PosNegPrecisionRecall compare(Collection<List<String>> tests, LearnerGraph specfsm, LearnerGraph imp){
 		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(imp);
-		PTASequenceEngine engine = new PTA_FSMStructure(specfsm);
+		PTASequenceEngine engine = new PTA_FSMStructure(specfsm,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(tests);
-		return precRec.crossWith(engine);
+		precRec.crossWith(engine);return precRec.getPosNegPrecisionRecallNum();
 	}
 /*
 	private static void printTests(Collection<List<String>> tests){

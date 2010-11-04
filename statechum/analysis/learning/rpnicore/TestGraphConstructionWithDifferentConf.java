@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
 
 import java.util.Collection;
 import java.util.Set;

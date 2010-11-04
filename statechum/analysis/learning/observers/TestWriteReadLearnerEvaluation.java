@@ -30,7 +30,6 @@ import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.StatechumXML;
-import statechum.Helper.whatToRun;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;

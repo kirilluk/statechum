@@ -46,7 +46,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 
 		results = new LinkedList<List<ResultsContainer>>();
 		tests = target.wmethod.getFullTestSet(4);
-		RandomPathGenerator rpg = new RandomPathGenerator(target, new Random(100),5);
+		RandomPathGenerator rpg = new RandomPathGenerator(target, new Random(100),5,null);
 		double nSquared = (target.getStateNumber()*target.getStateNumber())/2;
 		int number = (int)(nSquared + (nSquared%2));
 		rpg.generateRandomPosNeg(number, 1);

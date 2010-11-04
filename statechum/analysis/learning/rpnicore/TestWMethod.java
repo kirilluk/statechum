@@ -37,7 +37,6 @@ import java.util.Set;
 import junit.framework.Assert;
 import junit.framework.JUnit4TestAdapter;
 
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -89,9 +88,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover1() {
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1"),config);
 		Set<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S","computeStateCover1"),config).pathroutines.computeStateCover());
+			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -100,9 +100,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover2() {
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"),config);
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"),config).pathroutines.computeStateCover());
+			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -111,9 +112,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover3() {
+		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"),config);
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"),config).pathroutines.computeStateCover());
+			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -122,9 +124,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover3_ND() {
+		LearnerGraphND gr=new LearnerGraphND(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S\nA-a->C","computeStateCover3_ND"),config);
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraphND(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S\nA-a->C","computeStateCover3_ND"),config).pathroutines.computeStateCover());
+			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -133,9 +136,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover4() {
+		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"),config);
 		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
 			actual = new HashSet<List<String>>();
-			actual.addAll(new LearnerGraph(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"),config).pathroutines.computeStateCover());
+			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
 
@@ -1158,6 +1162,22 @@ public class TestWMethod {
 		Set<List<String>> 
 			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
 			actualA.addAll(fsm.wmethod.computeOldTestSet(2));actualB.addAll(fsm.wmethod.computeNewTestSet(2));
+			assertTrue("the two test generators return different values, old returns "+
+					actualA+" and the new one - "+actualB,
+			actualA.equals(actualB));
+	}
+	
+	/** Almost the same as testTestGeneration7 but using a different initial state. */
+	@Test
+	public final void testTestGeneration8()
+	{
+		LearnerGraph fsmWW = new LearnerGraph(buildGraph(
+				"WW-s->WW\nS-p->A-a->A1-a->A3\n"+"A-b->A2-b->A3\nA<-c-A2<-c-A3\n"+"A<-d-A5<-a-A3-b->A4-f->AA4-a->S\n"+
+				"A-d->A\nA5-b->AA6", "testTestGeneration7"),config);
+		LearnerGraph fsmWOther = new LearnerGraph(fsmWW,fsmWW.config);fsmWOther.init=fsmWOther.findVertex(VertexID.parseID("S"));
+		Set<List<String>> 
+			actualA = new HashSet<List<String>>(),actualB = new HashSet<List<String>>();
+			actualA.addAll(fsmWOther.wmethod.computeOldTestSet(4));actualB.addAll(fsmWW.wmethod.computeNewTestSet(fsmWW.findVertex(VertexID.parseID("S")),4).getData());
 			assertTrue("the two test generators return different values, old returns "+
 					actualA+" and the new one - "+actualB,
 			actualA.equals(actualB));

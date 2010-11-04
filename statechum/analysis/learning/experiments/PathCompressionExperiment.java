@@ -66,7 +66,7 @@ public class PathCompressionExperiment {
 		{
 			loadGraph();
 			int size = graph.pathroutines.getGraph().getEdges().size()*4;// FIXME: this one ignores parallel edges
-	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),3);// the seed for Random should be the same for each file
+	    	RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),3,null);// the seed for Random should be the same for each file
 			rpg.generatePosNeg(size, experiment.getStageNumber());
 			pta = rpg.getAllSequences(percent);
 		}

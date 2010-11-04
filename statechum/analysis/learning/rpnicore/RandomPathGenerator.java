@@ -33,7 +33,8 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 public class RandomPathGenerator {
 	
-	protected LearnerGraph g;
+	final protected LearnerGraph g;
+	final CmpVertex initialState;
 	final int pathLength;
 	final Random randomNumberGenerator;
 	
@@ -49,9 +50,15 @@ public class RandomPathGenerator {
 	 * @param baseGraph the graph to operate on
 	 * @param random the random number generator.
 	 * @param extra the length of paths will be diameter plus this value.
+	 * @param initial the state to start the traversal with. null means use the initial state of <em>graph</em>.
 	 */ 
-	public RandomPathGenerator(LearnerGraph graph, Random random, int extra) {
+	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial) {
 		g = graph;randomNumberGenerator = random;
+		if (initial != null) 
+		{ 
+			g.verifyVertexInGraph(initial);initialState=initial; 
+		}
+		else initialState=g.getInit();
 		pathLength = diameter(g)+extra;
 		
 		transitions.clear();inputsRejected.clear();
@@ -145,7 +152,7 @@ public class RandomPathGenerator {
 		do
 		{
 			path.clear();
-			CmpVertex current = g.getInit();
+			CmpVertex current = initialState;
 
 			int positiveLength = positive?walkLength:walkLength-1;
 			if (positiveLength>0)
@@ -260,9 +267,7 @@ public class RandomPathGenerator {
 		
 		return extraSequences.filter(new PercentFilter(upToChunk));
 	}
-	
-	
-	
+
 	/** Generates positive and negative paths where negatives are just 
 	 * positives with an extra element added at the end. 
 	 * Data added is split into a number of parts, with a specific 

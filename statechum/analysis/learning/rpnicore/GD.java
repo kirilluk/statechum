@@ -1216,9 +1216,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 * @param threads how many threads to use
 	 * @param config configuration to use
 	 */ 
-	protected void init(
-			AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,
-			AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
+	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
 	{
 		ThreadNumber = threads;

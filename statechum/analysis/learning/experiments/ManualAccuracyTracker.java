@@ -67,7 +67,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		int nrPerChunk = sampleSize/(100/percentPerChunk);nrPerChunk+=nrPerChunk % 2;// make the number even
 		
 		
-		RandomPathGenerator rpg = new RandomPathGenerator(targetMachine, new Random(100),5);// the seed for Random should be the same for each file
+		RandomPathGenerator rpg = new RandomPathGenerator(targetMachine, new Random(100),5,null);// the seed for Random should be the same for each file
 		rpg.generatePosNeg(2*nrPerChunk , 100/percentPerChunk);
 		for(int i=0;i<10;i++){
 			final PTASequenceEngine samples = rpg.getAllSequences(i);

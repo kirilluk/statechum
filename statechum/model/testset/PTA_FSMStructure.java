@@ -18,13 +18,23 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.model.testset;
 
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class PTA_FSMStructure extends PTASequenceEngine 
 {
-	public PTA_FSMStructure(LearnerGraph machine) 
+	public PTA_FSMStructure(final LearnerGraph machine, final CmpVertex initState) 
 	{
+		//if (initState != null && machine.findVertex(initState.getID()) != initState)
+		// verifies that the supplied state is a valid one.
+		//throw new IllegalArgumentException("state "+initState+" is not a valid state of the graph");
+		if (initState != null) machine.verifyVertexInGraph(initState);
+		
 		init(machine.new FSMImplementation() {
+			@Override
+			public Object getInitState() {
+				return initState == null? machine.getInit():initState;
+			} 
 			@Override
 			public boolean shouldBeReturned(@SuppressWarnings("unused")	Object elem) 
 			{

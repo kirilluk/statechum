@@ -107,12 +107,12 @@ public class StructuralDifferencesPaper {
 		assert origAlphabet.equals(markov.pathroutines.computeAlphabet());
 		assert origAlphabet.equals(markovD.pathroutines.computeAlphabet());
 		assert origAlphabet.equals(edsm.pathroutines.computeAlphabet());
-		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5);
+		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5,null);
 		final int posOrNegPerChunk = 50;
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,1);
 		Collection<List<String>> sequences = cvsGraph.wmethod.getFullTestSet(1);//generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
 
-		PTASequenceEngine walkEngine = new PTA_FSMStructure(cvsGraph);
+		PTASequenceEngine walkEngine = new PTA_FSMStructure(cvsGraph,null);
 		SequenceSet ptaWalk = walkEngine.new SequenceSet();ptaWalk.setIdentity();
 		ptaWalk = ptaWalk.cross(sequences);
 		
@@ -122,7 +122,7 @@ public class StructuralDifferencesPaper {
 		
 		{
 			precRec = new PTA_computePrecisionRecall(markovD);
-			PosNegPrecisionRecall result = precRec.crossWith(walkEngine);
+			precRec.crossWith(walkEngine);PosNegPrecisionRecall result = precRec.getPosNegPrecisionRecallNum(); 
 			final String name = "Markov";
 			System.out.println(name+": +precision "+result.getPosprecision()+" +recall: "+result.getPosrecall());
 			System.out.println(name+": -precision "+result.getNegprecision()+" -recall: "+result.getNegrecall());
@@ -131,7 +131,7 @@ public class StructuralDifferencesPaper {
 
 		{
 			precRec = new PTA_computePrecisionRecall(edsm);
-			PosNegPrecisionRecall result = precRec.crossWith(walkEngine);
+			precRec.crossWith(walkEngine);PosNegPrecisionRecall result = precRec.getPosNegPrecisionRecallNum(); 
 			final String name = "EDSM";
 			System.out.println(name+": +precision "+result.getPosprecision()+" +recall: "+result.getPosrecall());
 			System.out.println(name+": -precision "+result.getNegprecision()+" -recall: "+result.getNegrecall());

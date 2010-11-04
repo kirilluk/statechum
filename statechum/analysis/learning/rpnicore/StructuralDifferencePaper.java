@@ -96,7 +96,7 @@ public class StructuralDifferencePaper {
 		
 		Visualiser.waitForKey();
 		*/
-		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5);
+		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5,null);
 		final int posOrNegPerChunk = 45;
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,1);
 
@@ -117,13 +117,13 @@ public class StructuralDifferencePaper {
 		
 		{
 			precRec = new PTA_computePrecisionRecall(markovD);
-			PosNegPrecisionRecall result = precRec.crossWith(generator.getAllSequences(0));
+			precRec.crossWith(generator.getAllSequences(0));PosNegPrecisionRecall result = precRec.getPosNegPrecisionRecallNum(); 
 			System.out.println("Markov: precision "+result.getPosprecision()+" recall: "+result.getPosrecall());
 		}
 
 		{
 			precRec = new PTA_computePrecisionRecall(edsm);
-			PosNegPrecisionRecall result = precRec.crossWith(generator.getAllSequences(0));
+			precRec.crossWith(generator.getAllSequences(0));PosNegPrecisionRecall result = precRec.getPosNegPrecisionRecallNum(); 
 			System.out.println("EDSM: precision "+result.getPosprecision()+" recall: "+result.getPosrecall());
 		}
 		

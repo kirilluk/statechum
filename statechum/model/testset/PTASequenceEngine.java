@@ -365,7 +365,7 @@ public class PTASequenceEngine
 		{// No transition in the pta with the given input, 
 		 // hence we have to extend the pta by adding a new transition
 			Object newState = fsm.getNextState(currentNode.getState(), input); 
-			if (newState == null || !fsm.isAccept(newState))
+			if (newState == null || !fsm.isAccept(newState)) //TODO here it is assumed that automata are prefix-closed. 
 			{
 				row.put(input, rejectNode);// next node is the reject one
 				nextCurrentNode = rejectNode;

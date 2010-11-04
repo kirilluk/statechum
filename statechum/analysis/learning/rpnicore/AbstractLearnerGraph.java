@@ -47,7 +47,7 @@ import statechum.JUConstants.VERTEXLABEL;
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
 	/** The initial vertex. */
-	private CmpVertex init;
+	protected CmpVertex init;
 	
 	final public AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE> pathroutines = new AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE>(this);
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
@@ -513,6 +513,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				result = currentVert;
 		}
 		return result;
+	}
+	
+	/** Checks if the supplied vertex belongs to this graph. */
+	public void verifyVertexInGraph(CmpVertex vertex)
+	{
+		if (findVertex(vertex.getID()) != vertex)
+			throw new IllegalArgumentException("state "+vertex+" is not a valid state of the graph");
 	}
 	
 	/** Given two graphs, empties the target graph and copies all of the <em>from</em> 

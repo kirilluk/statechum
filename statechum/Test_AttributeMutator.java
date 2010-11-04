@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import junit.framework.Assert;
+import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
@@ -32,6 +33,7 @@ import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph;
 
 public class Test_AttributeMutator {
 	/** Makes it possible to construct mutators by reflection in order to test that 
@@ -183,6 +185,11 @@ public class Test_AttributeMutator {
 				if (var.getType().equals(LEARNER.class))
 				{
 						valueA = LEARNER.LEARNER_BLUEFRINGE_MAY2008;valueB=LEARNER.LEARNER_BLUEAMBER_MAY2008;
+				}
+				else
+				if (var.getType().equals(GDScoreComputationEnum.class))
+				{
+						valueA = GDScoreComputationEnum.GD_BCR;valueB=GDScoreComputationEnum.GD_LINEAR_RH_OUTGOINGINCOMING;
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))

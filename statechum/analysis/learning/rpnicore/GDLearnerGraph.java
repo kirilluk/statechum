@@ -735,6 +735,29 @@ public class GDLearnerGraph
 		
 	}
 	
+	public class DDRH_BCR extends DDRH_default
+	{
+
+		@Override
+		public int getDiagonal() {
+			return totalOutgoing*2;
+		}
+
+		@Override
+		public int getRightHandSide() {
+			// TODO Auto-generated method stub
+			return 0;
+		}
+		
+		@Override
+		protected void compute(CmpVertex stateA, CmpVertex stateB, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
+		{
+			super.compute(stateA, stateB, rowA, rowB);
+			
+			
+		}
+	}
+	
 	/** This routine is used for testing of buildMatrix_internal. */
 	public LSolver buildMatrix(final int ThreadNumber)
 	{

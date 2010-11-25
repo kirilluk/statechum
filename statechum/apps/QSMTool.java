@@ -36,6 +36,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
@@ -66,7 +67,8 @@ public class QSMTool
 		{
 			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);
 			LTL_to_ba ba = new LTL_to_ba(tool.learnerInitConfiguration.config);
-			if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus),true))
+			if (ba.ltlToBA(tool.learnerInitConfiguration.ifthenSequences, l.init(tool.sPlus, tool.sMinus),true,
+					GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)))
 			{
 				try 
 				{

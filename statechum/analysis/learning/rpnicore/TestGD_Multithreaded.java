@@ -38,7 +38,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
 import statechum.analysis.learning.rpnicore.GD.ChangesDisplay;
@@ -516,7 +515,7 @@ public class TestGD_Multithreaded {
 	{
 		final Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setGdFailOnDuplicateNames(true);
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
 			testComputeGD(A6, D6, "testComputeGD8b_", 9,null);
 		}},IllegalArgumentException.class,"are shared between A and B");
 	}

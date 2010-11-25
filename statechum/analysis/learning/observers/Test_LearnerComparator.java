@@ -55,7 +55,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 		{
 			secondThread = new Thread(new Runnable() {
 
-				public void run() {
+				public @Override void run() {
 					try
 					{
 						learningOutcome=runLearner(whatToCompareWith);
@@ -225,6 +225,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param accepted loaded from XML.
 	 * @param newColour loaded from XML.
 	 */
+	@Override 
 	public synchronized void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 
@@ -267,6 +268,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML or computed by the learner.
 	 */
+	@Override 
 	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
 		Pair<Integer, String> result = null;
@@ -304,6 +306,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param graph estimated graph
 	 * @return loaded values from XML.
 	 */
+	@Override 
 	public synchronized Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 	{
 		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
@@ -360,6 +363,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
+	@Override 
 	public synchronized List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		List<List<String>> result = null;
@@ -400,6 +404,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
+	@Override 
 	public synchronized List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		List<List<String>> result = null;
@@ -439,6 +444,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param pair the pair to be merged. Loaded from XML file (without scores).
 	 * @return graph loaded from XML file.
 	 */
+	@Override 
 	public synchronized LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
 		LearnerGraph result = null, copyOfResult = null;
@@ -478,6 +484,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * 
 	 * @param mode value loaded from XML.
 	 */
+	@Override 
 	public synchronized void Restart(RestartLearningEnum mode) {
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
@@ -503,7 +510,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 
 	/** Not used by the simulator. */
-	public synchronized String getResult() {
+	@Override 
+	public synchronized String getResult() 
+	{
 		return null;
 	}
 
@@ -514,6 +523,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param plus value loaded from XML
 	 * @param minus value loaded from XML
 	 */
+	@Override 
 	public synchronized LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
 		LearnerGraph result = null, copyOfResult = null;
 		// First, we call the expected method
@@ -545,6 +555,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 
 	/** Not supported. */
+	@Override 
 	public LearnerGraph init(@SuppressWarnings("unused") PTASequenceEngine engine, 
 			@SuppressWarnings("unused")	int plusSize,
 			@SuppressWarnings("unused")	int minusSize) 
@@ -555,6 +566,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	protected LearnerGraph cGraph = null;
 	protected Boolean cResult = null;
 	
+	@Override 
 	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) 
 	{
 		LearnerGraph copyOfOutcome = null;

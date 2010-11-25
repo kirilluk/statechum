@@ -120,6 +120,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	/** Ignores all reject-states. */
 	public static class ignoreRejectStatesClass implements StatesToConsider
 	{
+		@Override
 		public boolean stateToConsider(CmpVertex vert) {
 			return vert.isAccept();
 		}
@@ -149,6 +150,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 			graph=g;
 		}
 		
+		@Override
 		public boolean stateToConsider(CmpVertex vert) {
 			return graph.transitionMatrix.get(vert).size() > 0;
 		}
@@ -157,6 +159,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	/** Does not ignore any states. */
 	public static class ignoreNoneClass implements StatesToConsider
 	{
+		@Override
 		public boolean stateToConsider(@SuppressWarnings("unused") CmpVertex vert) {
 			return true;
 		}

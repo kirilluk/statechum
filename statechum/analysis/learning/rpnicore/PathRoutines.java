@@ -1000,9 +1000,10 @@ public class PathRoutines {
 			}
 		}
 		
-		if (sink != null){
+		if (sink != null)
+		{
 			result.transitionMatrix.get(sink).clear(); 
-			if (result.getStateNumber() > 1 && sink !=null)
+			if (result.getStateNumber() > 1)
 			{// the sink state is preserved since it may happen to be the only state in the graph.
 				for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
 				{

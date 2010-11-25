@@ -131,7 +131,7 @@ public class TestWriteReadAugmentPta {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"cannot load augmentPTA data");
 	}
@@ -150,7 +150,7 @@ public class TestWriteReadAugmentPta {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing sequence");
 	}
@@ -189,7 +189,7 @@ public class TestWriteReadAugmentPta {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing accept");
 	}
@@ -208,7 +208,7 @@ public class TestWriteReadAugmentPta {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing kind");
 	}

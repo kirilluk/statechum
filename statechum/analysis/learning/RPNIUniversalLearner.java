@@ -80,18 +80,21 @@ public class RPNIUniversalLearner extends RPNILearner
 	
 	/** Returns statistics reflecting the learning. 
 	 */
+	@Override 
 	public String getResult()
 	{
 		return null;
 	}
 
 	/** Identifies a collection of states to merge, sorted in the order of scores. */
+	@Override 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 	{
 		return graph.pairscores.chooseStatePairs();
 	}
 	
 	/** Given a graph, merges a pair of states from it and returns the result. */
+	@Override 
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 	{
 		LearnerGraph result = MergeStates.mergeAndDeterminize_general(original, pair);
@@ -103,6 +106,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 */
 	protected LearnerGraph [] ifthenAutomata = null;
 	
+	@Override 
 	public boolean AddConstraints(LearnerGraph pta, LearnerGraph outcome, StringBuffer counterExampleHolder)
 	{
 		assert ifthenAutomata != null;
@@ -125,6 +129,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param tempNew the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
+	@Override 
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
@@ -139,12 +144,14 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
+	@Override 
 	public List<List<String>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.RecomputeQS(pair, tentativeAutomaton,temp, ifthenAutomata);
 	}
 	
+	@Override 
 	public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 		pta.paths.augmentPTA(sequence, accepted, false, newColour);
@@ -164,6 +171,7 @@ public class RPNIUniversalLearner extends RPNILearner
 
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
 	
+	@Override 
 	public LearnerGraph learnMachine()
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);

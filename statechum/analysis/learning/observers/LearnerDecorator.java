@@ -39,23 +39,27 @@ public abstract class LearnerDecorator implements Learner {
 	 * 
 	 * @param top the current top of the listener stack
 	 */
+	@Override 
 	public void setTopLevelListener(Learner top)
 	{
 		if (decoratedLearner != null)
 			decoratedLearner.setTopLevelListener(top);
 	}
 	
+	@Override 
 	public LearnerGraph learnMachine()
 	{
 		return decoratedLearner.learnMachine();
 	}
 
+	@Override 
 	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		init(plus,minus);
 		return decoratedLearner.learnMachine();
 	}
 	
+	@Override 
 	public LearnerGraph learnMachine(PTASequenceEngine engine, int plusSize, int minusSize)
 	{
 		init(engine, plusSize, minusSize);

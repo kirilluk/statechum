@@ -29,7 +29,7 @@ import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.StateBasedRandom;
 
 
 public class ScoreMatrixOutput {
@@ -43,8 +43,8 @@ public class ScoreMatrixOutput {
 	
 	
 	public static void writeMatrix(LearnerGraph gr, String name){
-		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone);
-		ArrayList vertexList = new ArrayList();
+		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(new Random(1)));
+		ArrayList<StringVertex> vertexList = new ArrayList<StringVertex>();
 		DirectedSparseGraph dsg = gr.pathroutines.getGraph();
 		vertexList.addAll(dsg.getVertices());
 		writeMatrix(pairScores,vertexList,vertexList, name);
@@ -54,11 +54,11 @@ public class ScoreMatrixOutput {
 		String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+name;
 		File output  = new File(fileRef);
 		int[][] matrix = new int[stateLabelsA.size()][stateLabelsB.size()];
-		int max = 0;
+		//int max = 0;
 		for (PairScore p : ps) {
 			int indexA = stateLabelsA.indexOf(p.getQ());
 			int indexB = stateLabelsB.indexOf(p.getR());
-			int score = p.getScore();
+			//int score = p.getScore();
 			matrix[indexA][indexB] = p.getScore();
 			matrix[indexB][indexA] = p.getScore();
 			

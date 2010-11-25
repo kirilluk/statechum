@@ -52,7 +52,6 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.Helper.whatToRun;
-import statechum.JUConstants.VERTEXLABEL;
 import statechum.Test_AttributeMutator.MethodAndArgs;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
@@ -843,7 +842,7 @@ public class TestEqualityComparisonAndHashCode {
 		eqClass.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.addFrom(B, gr.transitionMatrix.get(B).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClass.addFrom(C, gr.transitionMatrix.get(C).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -861,7 +860,7 @@ public class TestEqualityComparisonAndHashCode {
 		eqClass.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		eqClass.addFrom(B, gr.transitionMatrix.get(B).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClass.mergeWith(C, gr.transitionMatrix.get(C).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -897,7 +896,7 @@ public class TestEqualityComparisonAndHashCode {
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.addFrom(C, gr.transitionMatrix.get(C).entrySet());
 		eqClass.addFrom(C, gr.transitionMatrix.get(C).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClass.addFrom(D, gr.transitionMatrix.get(D).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -913,7 +912,7 @@ public class TestEqualityComparisonAndHashCode {
 		
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClass.addFrom(C, gr.transitionMatrix.get(C).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClass.mergeWith(D, gr.transitionMatrix.get(D).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -932,7 +931,7 @@ public class TestEqualityComparisonAndHashCode {
 		eqClassA.addFrom(C, gr.transitionMatrix.get(C).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.addFrom(D, gr.transitionMatrix.get(D).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassA.mergeWith(eqClassB);
 		}}, IncompatibleStatesException.class,"incompatible");
 	}
@@ -951,7 +950,7 @@ public class TestEqualityComparisonAndHashCode {
 		eqClassA.addFrom(C, gr.transitionMatrix.get(C).entrySet());
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.addFrom(D, gr.transitionMatrix.get(D).entrySet());
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassB.mergeWith(eqClassA);
 		}}, IncompatibleStatesException.class,"incompatible");
 	}
@@ -972,7 +971,7 @@ public class TestEqualityComparisonAndHashCode {
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.addFrom(D, gr.transitionMatrix.get(D).entrySet());
 		
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassA.mergeWith(eqClassB);
 		}}, IncompatibleStatesException.class,"incompatible");
 	}
@@ -993,7 +992,7 @@ public class TestEqualityComparisonAndHashCode {
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassB = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(1,gr);
 		eqClassB.addFrom(D, gr.transitionMatrix.get(D).entrySet());
 		
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassB.mergeWith(eqClassA);
 		}}, IncompatibleStatesException.class,"incompatible");
 	}
@@ -1012,7 +1011,7 @@ public class TestEqualityComparisonAndHashCode {
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassA.addFrom(D,gr.transitionMatrix.get(D).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -1049,7 +1048,7 @@ public class TestEqualityComparisonAndHashCode {
 		final AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClassA = new AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>(0,gr);
 		eqClassA.addFrom(A, gr.transitionMatrix.get(A).entrySet());
 		
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassA.mergeWith(D,gr.transitionMatrix.get(D).entrySet());
 		}}, IncompatibleStatesException.class,"cannot");
 	}
@@ -1073,7 +1072,7 @@ public class TestEqualityComparisonAndHashCode {
 		eqClassC.addFrom(E, gr.transitionMatrix.get(E).entrySet());
 		eqClassA.mergeWith(eqClassB);
 		
-		Helper.checkForCorrectException(new Helper.whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			eqClassA.mergeWith(eqClassC);
 		}}, IncompatibleStatesException.class,"incompatible");
 	}
@@ -1961,7 +1960,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_fail1()
 	{
 		final LearnerGraph graph = testGraphString;
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),"c",graph.findVertex("A"));
 		}},IllegalArgumentException.class,"non-determinism");
 	}
@@ -1972,7 +1971,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagram_fail2()
 	{
 		final LearnerGraph graph = testGraphString;
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),"c",graph.findVertex("B"));
 		}},IllegalArgumentException.class,"non-determinism");
 	}
@@ -2021,7 +2020,7 @@ public class TestEqualityComparisonAndHashCode {
 	public final void updateDiagramND_add1()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() { 
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() { 
 			graph.addTransition(graph.transitionMatrix.get(graph.findVertex("B")),"c",graph.findVertex("B"));
 		}},IllegalArgumentException.class,"duplicate transition");
 	}
@@ -2267,7 +2266,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B-a->C-a->D\nB-b->D\nB-a->A", "testGraphCopying2"),Configuration.getDefaultConfiguration());
 		final LearnerGraph otherGraph = new LearnerGraph(Configuration.getDefaultConfiguration());
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.copyGraphs(graph, otherGraph);
 		}},IllegalArgumentException.class, "non-determinism");
 	}

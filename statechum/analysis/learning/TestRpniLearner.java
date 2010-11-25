@@ -988,7 +988,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		// check how the reference pair selection function performs
 		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
 		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public Stack<StatePair> choosePairs() {// Here I need to convert the old type of pairs to the new one.
+			public @Override Stack<StatePair> choosePairs() {// Here I need to convert the old type of pairs to the new one.
 				Stack<OrigStatePair> pairs = chooseStatePairs(gB, new HashSet<List<String>>(), new HashSet<List<String>>());
 				Stack<StatePair> result = new Stack<StatePair>();
 				for(OrigStatePair pair:pairs) result.add(new StatePair((CmpVertex)pair.getQ(),(CmpVertex)pair.getR()));
@@ -1000,7 +1000,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		// check how the revised pair selection function performs
 		final LearnerGraph s = new LearnerGraph(gA, testConfig);
 		testChooseStatePairsInternal(gA,s, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public Stack<? extends StatePair> choosePairs() {
+			public @Override Stack<? extends StatePair> choosePairs() {
 				return s.pairscores.chooseStatePairs();
 			}
 		});

@@ -36,8 +36,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 		//scm = new SootCallGraphManager();
 	}
 	
-	
-
+	@Override 
 	public Pair<Integer,String> getAnswer(List<String> question) {
 		HashMap<MethodOrMethodContext,String> methodToString = new HashMap<MethodOrMethodContext,String>();
 		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();

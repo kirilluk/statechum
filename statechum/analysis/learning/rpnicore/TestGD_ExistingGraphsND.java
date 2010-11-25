@@ -38,6 +38,8 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
+import statechum.Configuration.GDScoreComputationAlgorithmEnum;
+import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
@@ -62,6 +64,7 @@ public class TestGD_ExistingGraphsND {
 		File path = new File(testFilePath);assert path.isDirectory();
 		File files [] = path.listFiles(new FilenameFilter()
 		{
+			@Override 
 			public boolean accept(@SuppressWarnings("unused") File dir, String name) 
 			{
 				return name.startsWith("N_");
@@ -96,7 +99,7 @@ public class TestGD_ExistingGraphsND {
 	
 	public static String parametersToString(Integer th, Double ratio, String fileA, String fileB, String fileC, String fileD)
 	{
-		return "threshold: "+th+" ratio: "+ratio+", "+fileA+"+"+fileB+" v.s. "+fileC+"+"+fileD;
+		return "threads: "+th+" ratio: "+ratio+", "+fileA+"+"+fileB+" v.s. "+fileC+"+"+fileD;
 	}
 	
 	@Before
@@ -183,16 +186,77 @@ public class TestGD_ExistingGraphsND {
 	}
 
 	@Test
-	public final void testGD_ND_AB()
+	public final void testGD_AB_linearRH()
 	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
 		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
 	}
 	
 	@Test
-	public final void testGD_ND_BA()
+	public final void testGD_BA_linearRH()
 	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
 		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
 	}
 	
+	@Test
+	public final void testGD_AB_walkRH()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+	}
+	
+	@Test
+	public final void testGD_BA_walkRH()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+	}
+	
+	@Test
+	public final void testGD_AB_walk()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+	}
+	
+	@Test
+	public final void testGD_BA_walk()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+	}
+	
+	@Test
+	public final void testGD_AB_testsetRH()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
+		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+	}
+	
+	@Test
+	public final void testGD_BA_testsetRH()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
+		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+	}
+	
+	@Test
+	public final void testGD_AB_testset()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
+		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+	}
+	
+	@Test
+	public final void testGD_BA_testset()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
+		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+	}
 
 }

@@ -50,7 +50,6 @@ import statechum.analysis.learning.rpnicore.LSolver.LibraryLoadResult;
 
 public class Smt {
 	/** Yices' context, this field is actually a C pointer, accessed and set by the C code. */  
-	@SuppressWarnings("unused")
 	private volatile long context =0;
 	
 	/** Whether library was loaded. */

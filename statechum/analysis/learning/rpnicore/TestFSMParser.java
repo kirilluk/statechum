@@ -47,6 +47,7 @@ public class TestFSMParser {
 
 		private int i=0;
 		
+		@Override 
 		public void accept(String from, String to, String label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
@@ -54,6 +55,7 @@ public class TestFSMParser {
 			assertEquals("wrong tag","ACCEPT",elements[i++]);
 		}
 		
+		@Override 
 		public void reject(String from, String to, String label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
@@ -61,6 +63,7 @@ public class TestFSMParser {
 			assertEquals("wrong tag","REJECT",elements[i++]);
 		}
 		
+		@Override 
 		public void pairCompatibility(String stateA, JUConstants.PAIRCOMPATIBILITY compat, String stateB)
 		{
 			assertEquals("wrong A string "+stateA,elements[i++],stateA);
@@ -261,21 +264,26 @@ public class TestFSMParser {
 
 	protected static void checkEx(final String whatToParse, String exceptionSubString)
 	{
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public void run() {
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
 			new FsmParser(whatToParse).parse(new TransitionReceiver()
 			{
+				@Override 
 				public void accept(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
 						@SuppressWarnings("unused")	String label) 
 				{
 					// do nothing at all
 				}
+				
+				@Override 
 				public void reject(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
 						@SuppressWarnings("unused")	String label) 
 				{
 					// do nothing at all
 				}
+				
+				@Override 
 				public void pairCompatibility(@SuppressWarnings("unused") String stateA, 
 						@SuppressWarnings("unused") PAIRCOMPATIBILITY pairRelation, @SuppressWarnings("unused") String stateB) 
 				{

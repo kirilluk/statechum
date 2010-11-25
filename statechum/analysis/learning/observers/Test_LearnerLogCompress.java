@@ -70,7 +70,7 @@ public class Test_LearnerLogCompress implements Runnable
 	
 	public void updateProgressBar(final boolean indeterminate, final int bar, final String value)
 	{
-		SwingUtilities.invokeLater(new Runnable() { public void run() {
+		SwingUtilities.invokeLater(new Runnable() { public @Override void run() {
 			progressBar.setIndeterminate(indeterminate);
 			progressBar.setString(value);
 			if (bar>=0) progressBar.setValue(bar);
@@ -211,7 +211,7 @@ public class Test_LearnerLogCompress implements Runnable
 		{
 			sourceFile = src;graphsInFile = number;
 		}
-		public String call() throws Exception 
+		public @Override String call() throws Exception 
 		{
 			final String targetFile = sourceFile.getAbsolutePath()+".gd";
 			/*SwingUtilities.invokeLater(new Runnable() { public void run() {
@@ -273,7 +273,7 @@ public class Test_LearnerLogCompress implements Runnable
 		frame.setLayout(new java.awt.GridLayout(2,0));
 		
 		for(final File file:new File(dir).listFiles(new FileFilter() {
-			public boolean accept(File pathname) {
+			public @Override boolean accept(File pathname) {
 				return pathname.isFile() && pathname.canRead() &&
 					pathname.getAbsolutePath().endsWith(".xml");
 			}}))
@@ -294,24 +294,24 @@ public class Test_LearnerLogCompress implements Runnable
 
 			/** Serial number. */
 
-			public void actionPerformed(@SuppressWarnings("unused")	ActionEvent e) 
+			public @Override void actionPerformed(@SuppressWarnings("unused")	ActionEvent e) 
 			{
 				terminateCompressor();
 			}
 		});
 		frame.addKeyListener(new KeyListener() {
 
-			public void keyPressed(KeyEvent arg0) {
+			public @Override void keyPressed(KeyEvent arg0) {
 				Action act = keyToActionMap.get(arg0.getKeyCode());
 				if (act != null)
 					act.actionPerformed(null);
 			}
 
-			public void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
+			public @Override void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
 			{// we handle a combined event (keyPressed) instead
 			}
 
-			public void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
+			public @Override void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
 			{// we handle a combined event (keyPressed) instead
 			}
 			
@@ -328,7 +328,7 @@ public class Test_LearnerLogCompress implements Runnable
 		frame.pack();
 	}
 	
-	public void run() {
+	public @Override void run() {
 		Thread updaterThread = null;
 		/** The runner of computational threads. */
 		final ExecutorService executorService = Executors.newFixedThreadPool(threadNumber);
@@ -346,7 +346,7 @@ public class Test_LearnerLogCompress implements Runnable
 			for(File file:filesToProcess)
 				graphSizes.put(file, computeGraphNumber(file));
 
-			SwingUtilities.invokeLater(new Runnable() { public void run() {
+			SwingUtilities.invokeLater(new Runnable() { public @Override void run() {
 				descrLabel.setText("<html><font color=green>Processing "+graphNumber+" graphs from "+dir);
 				progressBar.setIndeterminate(false);
 				progressBar.setString("Starting to compress ... ");
@@ -356,7 +356,7 @@ public class Test_LearnerLogCompress implements Runnable
 			updaterThread = new Thread(new Runnable() { 
 				private final long prevTime = new Date().getTime();
 				
-				public void run() {
+				public @Override void run() {
 				try
 				{
 					while(!computationAborted)

@@ -206,7 +206,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongCommand()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("A# sample file"));
 		}},IllegalArgumentException.class,"invalid command");
 	}
@@ -214,7 +214,7 @@ public class TestQSMTool {
 	@Test
 	public final void testEmpty1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("+"));
 		}},IllegalArgumentException.class,"Argument required");
 	}
@@ -222,7 +222,7 @@ public class TestQSMTool {
 	@Test
 	public final void testEmpty2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("-"));
 		}},IllegalArgumentException.class,"Argument required");
 	}
@@ -230,7 +230,7 @@ public class TestQSMTool {
 	@Test
 	public final void testEmpty3()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdLTL));
 		}},IllegalArgumentException.class,"Argument required");
 	}
@@ -238,7 +238,7 @@ public class TestQSMTool {
 	@Test
 	public final void testInsufficientArgsForProperty1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig));
 		}},IllegalArgumentException.class,"Argument required");
 	}
@@ -246,7 +246,7 @@ public class TestQSMTool {
 	@Test
 	public final void testInsufficientArgsForProperty2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" a"));
 		}},IllegalArgumentException.class,"invalid configuration");
 	}
@@ -254,7 +254,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongProperty()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" junk test"));
 		}},IllegalArgumentException.class,"cannot deserialise");
 	}
@@ -263,7 +263,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongValueForProperty1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" learnerIdMode JUNK"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
@@ -272,7 +272,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongValueForProperty2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" klimit 2.0"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
@@ -281,7 +281,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongValueForProperty3()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio AAA34"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
@@ -290,7 +290,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongValueForProperty4()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio 34"));
 		}},IllegalArgumentException.class,"failed to load");
 	}
@@ -299,7 +299,7 @@ public class TestQSMTool {
 	@Test
 	public final void testWrongValueForK()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("k 2.0"));
 		}},NumberFormatException.class,"");
 	}
@@ -345,7 +345,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoadXMLabels_Error()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
 				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+
 				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+

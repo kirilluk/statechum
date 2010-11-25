@@ -37,32 +37,39 @@ final public class StringVertex implements CmpVertex {
 		vertexId = nameArg;
 	}
 	
+	@Override 
 	public JUConstants getColour() {
 		return colour;
 	}
 
+	@Override 
 	public VertexID getID() {
 		return vertexId;
 	}
 	
+	@Override 
 	public boolean isAccept() {
 		return accept;
 	}
 
+	@Override 
 	public boolean isHighlight() {
 		return highlight;
 	}
 
+	@Override 
 	public void setAccept(boolean a) {
 		accept = a;
 	}
 
+	@Override 
 	public void setColour(JUConstants c) {
 		if (c != null && c != JUConstants.RED && c != JUConstants.BLUE && c != JUConstants.AMBER && c != JUConstants.GRAY && c != JUConstants.INF_AMBER)
 			throw new IllegalUserDataException("colour "+colour+" is not a valid colour (vertex "+getID().toString()+")");
 		colour = c;
 	}
 
+	@Override 
 	public void setHighlight(boolean h) {
 		highlight = h;
 	}
@@ -73,7 +80,9 @@ final public class StringVertex implements CmpVertex {
 	 * rejects should appear earlier/later, the <i>nextID</i> method
 	 * will generate the appropriate number. 
 	 */
-	public int compareTo(CmpVertex o) {
+	@Override 
+	public int compareTo(CmpVertex o) 
+	{
 		assert o != null;
 /*		if (!(o instanceof CmpVertex))
 			throw new IllegalArgumentException("an attempt to compare "
@@ -116,18 +125,22 @@ final public class StringVertex implements CmpVertex {
 		return vertexId == null?"NULL":vertexId.toString()+origName+strDepth+strColour;
 	}
 
+	@Override 
 	public int getDepth() {
 		return depth;
 	}
 
+	@Override 
 	public VertexID getOrigState() {
 		return origState;
 	}
 
+	@Override 
 	public void setDepth(int argDepth) {
 		depth = argDepth;
 	}
 
+	@Override 
 	public void setOrigState(VertexID newState) {
 		origState = newState;
 	}

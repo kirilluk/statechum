@@ -87,7 +87,7 @@ public class TestWriteReadInit {
 	@Test
 	public final void createInitialData_fail1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new InitialData(new LinkedList<List<String>>(),-1,new LinkedList<List<String>>(),0,null);
 		}},IllegalArgumentException.class,"inconsistent positive");
 	}
@@ -95,7 +95,7 @@ public class TestWriteReadInit {
 	@Test
 	public final void createInitialData_fail2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new InitialData(new LinkedList<List<String>>(),0,new LinkedList<List<String>>(),5,null);
 		}},IllegalArgumentException.class,"inconsistent negative");
 	}
@@ -132,7 +132,7 @@ public class TestWriteReadInit {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_INIT).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"expecting to load learner initial data");
 	}
@@ -151,7 +151,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing positive");
 	}
@@ -169,7 +169,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate positive");
 	}
@@ -188,7 +188,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing negative");
 	}
@@ -206,7 +206,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate negative");
 	}
@@ -225,7 +225,7 @@ public class TestWriteReadInit {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing graph");
 	}
@@ -244,7 +244,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"duplicate graph");
 	}
@@ -256,7 +256,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,StatechumXML.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing positive size");
 	}
@@ -268,7 +268,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, StatechumXML.ATTR_POSITIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"positive value is not");
 	}
@@ -280,7 +280,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData
 				.replace(StatechumXML.ATTR_NEGATIVE_SIZE.name(), "JUNKTAG").getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"missing negative size");
 	}
@@ -292,7 +292,7 @@ public class TestWriteReadInit {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, StatechumXML.ATTR_NEGATIVE_SIZE).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"negative value is not");
 	}
@@ -310,7 +310,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"unexpected");
 	}
@@ -329,7 +329,7 @@ public class TestWriteReadInit {
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		}},IllegalArgumentException.class,"unexpected kind of sequences");
 	}

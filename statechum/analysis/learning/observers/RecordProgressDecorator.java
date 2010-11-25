@@ -198,7 +198,8 @@ public class RecordProgressDecorator extends ProgressDecorator
 		close();
 		return graph;
 	}
-	
+
+	@Override 
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph,
 			List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
 	{
@@ -212,6 +213,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 
+	@Override 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
 		Stack<PairScore> result = decoratedLearner.ChooseStatePairs(graph);
 		Element pairsElement = doc.createElement(StatechumXML.ELEM_PAIRS.name());
@@ -223,6 +225,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 	
+	@Override 
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		List<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
@@ -233,6 +236,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 	
+	@Override 
 	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		List<List<String>> result = decoratedLearner.RecomputeQuestions(pair, original, temp);
@@ -249,6 +253,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		writeElement(writeLearnerEvaluationConfiguration(cnf));		
 	}
 	
+	@Override 
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
 		LearnerGraph result = decoratedLearner.MergeAndDeterminize(original, pair);
@@ -262,19 +267,21 @@ public class RecordProgressDecorator extends ProgressDecorator
 	/** We deliberately avoid storing this so as to be able to change 
 	 * the format of diagnostics without having to regenerate test data. 
 	 */
+	@Override 
 	public String getResult() 
 	{
 		String result = decoratedLearner.getResult();
 		return result;
 	}
 
+	@Override 
 	public LearnerGraph init(final PTASequenceEngine engine, int plusSize, int minusSize) 
 	{
 		LearnerGraph result = decoratedLearner.init(engine,plusSize,minusSize);
 		
 		final PTASequenceEngine.FilterPredicate positiveFilter = engine.getFSM_filterPredicate(),
 			negativeFilter = new PTASequenceEngine.FilterPredicate() {
-			public boolean shouldBeReturned(Object name) {
+			public @Override boolean shouldBeReturned(Object name) {
 				return !positiveFilter.shouldBeReturned(name);
 			}
 		};
@@ -282,6 +289,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 
+	@Override 
 	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
 	{
 		LearnerGraph result = decoratedLearner.init(plus, minus);
@@ -290,6 +298,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		return result;
 	}
 
+	@Override 
 	public void Restart(RestartLearningEnum mode) 
 	{
 		decoratedLearner.Restart(mode);
@@ -299,6 +308,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		if (mode != RestartLearningEnum.restartNONE) series.reset();
 	}
 
+	@Override 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) 
 	{
@@ -306,6 +316,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 		writeElement(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));
 	}
 
+	@Override 
 	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) 
 	{
 		boolean result = decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);

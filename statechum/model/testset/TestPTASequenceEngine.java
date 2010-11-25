@@ -67,6 +67,9 @@ public class TestPTASequenceEngine
 		en = new PTA_FSMStructure(fsm,null);		
 		engine_testLimitToGraph = new PTA_FSMStructure(new LearnerGraph(FsmParser.buildGraph(
 				"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine"),config),null);
+		//Visualiser.updateFrame(new LearnerGraph(FsmParser.buildGraph(
+		//		"A-a->B-a->F-b-#C\nB-c->D\nA-c->A\nB-b->D-c->E", "TestPTATestSequenceEngine"),config), null);
+		//Visualiser.waitForKey();
 	}
 	
 
@@ -882,8 +885,7 @@ public class TestPTASequenceEngine
 		final LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b"),config);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		Helper.checkForCorrectException(new whatToRun() {
-			public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("newVertex"), mach.config));
 			}},IllegalArgumentException.class,"is not a valid state of the graph");
 	}
@@ -896,8 +898,7 @@ public class TestPTASequenceEngine
 		final LearnerGraph sameMach = new LearnerGraph(FsmParser.buildGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b"),config);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		Helper.checkForCorrectException(new whatToRun() {
-			public void run() {
+		Helper.checkForCorrectException(new whatToRun() {public @Override void run() {
 				new PTA_FSMStructure(mach,sameMach.findVertex(VertexID.parseID("A")));
 			}},IllegalArgumentException.class,"is not a valid state of the graph");
 	}
@@ -1212,6 +1213,35 @@ public class TestPTASequenceEngine
 		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"c","c"})));
 		assertFalse(en.containsSequence(Arrays.asList(new String[]{"b"})));
 		assertFalse(en.containsAsLeaf(Arrays.asList(new String[]{"b"})));
+	}
+	
+	/** Tests extendsLeaf. */
+	@Test
+	public final void test_extendsLeaf1()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"a"})));
+	}
+	
+	/** Tests extendsLeaf. */
+	@Test
+	public final void test_extendsLeaf2()
+	{
+		SequenceSet seqStart = engine_testLimitToGraph.new SequenceSet();seqStart.setIdentity();
+		seqStart.cross(TestFSMAlgo.buildList(new String[][] {
+				new String[] {"a","c","b"},
+				new String[] {"c","c","c","c"}
+		}));
+		
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"a"})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"c","c"})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"a","c","b"})));
+		assertTrue(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"a","c","b","a"})));
+		assertTrue(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"c","c","c","c","c"})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"c","c","c","c"})));
+		assertFalse(engine_testLimitToGraph.extendsLeaf(Arrays.asList(new String[]{"c","c","c"})));
 	}
 	
 	/** Test for Union: adding something to an empty set. */

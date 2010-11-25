@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import junit.framework.Assert;
+import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.LEARNER;
@@ -33,7 +34,6 @@ import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.Configuration.SMTGRAPHRANGECONSISTENCYCHECK;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph;
 
 public class Test_AttributeMutator {
 	/** Makes it possible to construct mutators by reflection in order to test that 
@@ -189,12 +189,17 @@ public class Test_AttributeMutator {
 				else
 				if (var.getType().equals(GDScoreComputationEnum.class))
 				{
-						valueA = GDScoreComputationEnum.GD_BCR;valueB=GDScoreComputationEnum.GD_LINEAR_RH_OUTGOINGINCOMING;
+						valueA = GDScoreComputationEnum.GD_RH;valueB=GDScoreComputationEnum.GD_DIRECT;
+				}
+				else
+				if (var.getType().equals(GDScoreComputationAlgorithmEnum.class))
+				{
+						valueA = GDScoreComputationAlgorithmEnum.SCORE_LINEAR;valueB = GDScoreComputationAlgorithmEnum.SCORE_TESTSET;
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
 				{
-					valueA = varName.hashCode();valueB=setter.hashCode();// just some integers likely to be different from each other between different variables.
+					valueA = Math.abs(varName.hashCode());valueB=Math.abs(setter.hashCode());// just some integers likely to be different from each other between different variables.
 				}
 				else
 				if (var.getType().equals(VertexID.class))

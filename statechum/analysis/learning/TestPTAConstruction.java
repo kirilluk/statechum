@@ -558,7 +558,7 @@ public class TestPTAConstruction
 			l.tentativeAutomaton.paths.augmentPTA(minusStrings, false,maxAutomaton);
 			l.tentativeAutomaton.paths.augmentPTA(plusStrings, true,maxAutomaton);
 			
-			checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
+			checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
 				l.tentativeAutomaton.paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}}),true,maxAutomaton);
 			}},IllegalArgumentException.class,"incompatible ");
 		}

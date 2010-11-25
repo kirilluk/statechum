@@ -56,7 +56,8 @@ public class GlobalConfiguration {
 		,ASSERT_ENABLED // whether assertions are enabled - in this case some additional checks are carried out outside of assert statements
 		,VIZ_DIR// the path to visualisation-related information, such as graph layouts and configuration file.
 		,VIZ_CONFIG// the configuration file containing window positions and whether to display an assert-related warning.
-		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions
+		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions.
+		, LTL2BA // path to LTL2BA executable, if null the default path will be used.
 		;
 	}
 

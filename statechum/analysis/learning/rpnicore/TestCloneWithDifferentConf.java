@@ -16,18 +16,22 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 /** Tests that cloning and comparison of both deterministic and non-deterministic graphs works. */
 @RunWith(Parameterized.class)
-@SuppressWarnings("unchecked")
 public final class TestCloneWithDifferentConf 
 {
 
+	@SuppressWarnings("rawtypes")
 	private final AbstractLearnerGraph graph;
+	@SuppressWarnings("rawtypes")
 	private final List<AbstractLearnerGraph> sameA,sameB,different;
 	
+	@SuppressWarnings("rawtypes")
 	public TestCloneWithDifferentConf(AbstractLearnerGraph argGraph, 
 			List<AbstractLearnerGraph> argSameA,List<AbstractLearnerGraph> argSameB,List<AbstractLearnerGraph> argDifferent) {
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
 	
+	// AbstractLearnerGraph is polymorphic in this context: I can use both deterministic and non-deterministic graphs.
+	@SuppressWarnings("rawtypes")
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
@@ -63,30 +67,11 @@ public final class TestCloneWithDifferentConf
 					ggND.setName("origND.getGraph");ggCopyND.setName("copyND.getGraph");
 					sameGraphsA.add(ggD);sameGraphsB.add(ggND);
 					sameGraphsA.add(ggCopyD);sameGraphsB.add(ggCopyND);
-/*			
-					for(Configuration configD:new Configuration[]{confJung,confSame,confString})
-					{
-						LearnerGraphND a=new LearnerGraphND(origD,configD);a.setName("origD.copy");
-						LearnerGraphND b=new LearnerGraphND(copyD,configD);b.setName("copyD.copy");
-						LearnerGraphND c=new LearnerGraphND(ggD,configD);c.setName("ggD.copy");
-						LearnerGraphND d=new LearnerGraphND(ggCopyD,configD);d.setName("ggCopyD.copy");
-						sameGraphsA.add(a);sameGraphsA.add(b);sameGraphsA.add(c);sameGraphsA.add(d);
-					}
-*/					
 				}
 			}
 		}
 		
-/*
-		List<AbstractLearnerGraph> sameGraphsA = Arrays.asList(new AbstractLearnerGraph[]{
-				origD,copyD,ggD,ggCopyD,
-				a,b,c,d
-		});
-		
-		List<AbstractLearnerGraph> sameGraphsB = Arrays.asList(new AbstractLearnerGraph[]{
-				origND,copyND,ggND,ggCopyND
-		});
-*/		
+
 		LearnerGraph differentGraphA = new LearnerGraph(graphD,config);differentGraphA.transitionMatrix.get(differentGraphA.findVertex("A2")).put("t", differentGraphA.findVertex("A3"));
 		differentGraphA.setName("differentA");
 		LearnerGraphND differentGraphB = new LearnerGraphND(graphND,config);differentGraphB.transitionMatrix.get(differentGraphB.findVertex("A2")).get("c").add(differentGraphB.findVertex("S"));
@@ -125,6 +110,7 @@ public final class TestCloneWithDifferentConf
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@SuppressWarnings("rawtypes")
 	public static String parametersToString(LearnerGraph argGraph, 
 			LinkedList<AbstractLearnerGraph> argSameA,LinkedList<AbstractLearnerGraph> argSameB,LinkedList<AbstractLearnerGraph> argDifferent)
 	{
@@ -136,12 +122,14 @@ public final class TestCloneWithDifferentConf
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
+	@SuppressWarnings("rawtypes")
 	public static String parametersToString(LearnerGraphND argGraph, 
 			LinkedList<AbstractLearnerGraph> argSameA,LinkedList<AbstractLearnerGraph> argSameB,LinkedList<AbstractLearnerGraph> argDifferent)
 	{
 		return argGraph.getName()+" with "+argSameA.size()*argSameB.size()*argDifferent.size()+" graphs";
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@Test
 	public final void testCopyGraph() // this one tests that clone works
 	{

@@ -117,7 +117,7 @@ public class TestNextID {
 	@Test
 	public void testNextID3()
 	{
-		VertexID id1 = graph.nextID(VERTEXLABEL.NONE,true), 
+		VertexID id1 = graph.nextID(VERTEXLABEL.NOLABEL,true), 
 			id2 = graph.nextID(VERTEXLABEL.ACCEPT, true),
 			id3 = graph.nextID(VERTEXLABEL.REJECT, true);
 		Assert.assertFalse(id1.equals(id2));

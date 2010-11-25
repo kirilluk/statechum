@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -608,22 +607,26 @@ public class LTL_to_ba {
 	 * The graph returned by ltl2ba is stored in the internal matrix. 
 	 *
 	 * @param ltl formula to run
+	 * @param pathTo_ltl2ba path to executable lbl2ba, if null uses "ltl2ba".
 	 */
-	protected void runLTL2BA(String ltl)
+	protected void runLTL2BA(String ltl, String pathTo_ltl2ba)
 	{
 		final StringBuffer converterOutput = new StringBuffer();
 		try 
 		{
-			final Process ltlconverter = Runtime.getRuntime().exec(new String[]{"ltl2ba", "-f",ltl});// run LTL2BA
+			final Process ltlconverter = Runtime.getRuntime().exec(new String[]{pathTo_ltl2ba==null?"ltl2ba":pathTo_ltl2ba, "-f",ltl});// run LTL2BA
 			ExperimentRunner.dumpStreams(ltlconverter,timeBetweenHearbeats,new HandleProcessIO() {
 
+			@Override
 			public void OnHeartBeat() {// no prodding is done for a short-running converter.
 			}
 
+			@Override
 			public void StdErr(StringBuffer b) {
 				System.err.print(b.toString());
 			}
 
+			@Override
 			public void StdOut(StringBuffer b) {
 				converterOutput.append(b);
 			}});
@@ -645,10 +648,11 @@ public class LTL_to_ba {
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
 	 * This information is extracted from the supplied graph.
 	 * @param invert if the ltl expression is to be inverted before passing it to ltl2ba.
+	 * @param pathTo_ltl2ba path to ltl2ba executable, if null the default path will be used.
 	 * @return false if there is no LTL to extract.
 	 * @throws IncompatibleStatesException 
 	 */
-	public boolean ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert)
+	public boolean ltlToBA(Collection<String> ltl, LearnerGraph graph, boolean invert, String pathTo_ltl2ba)
 	{
 		if (graph != null)
 			alphabet = graph.pathroutines.computeAlphabet();
@@ -656,7 +660,7 @@ public class LTL_to_ba {
 		if (ltlString.length() == 0)
 			return false;
 		
-		runLTL2BA( (invert?"!":"")+"("+ltlString+")");
+		runLTL2BA( (invert?"!":"")+"("+ltlString+")",pathTo_ltl2ba);
 		for(CmpVertex v:matrixFromLTL.transitionMatrix.keySet())
 			if (!v.isAccept())
 				throw new IllegalArgumentException("not all states are accept-states");

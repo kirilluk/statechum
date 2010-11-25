@@ -673,7 +673,7 @@ public class TestTransform {
 	@Test
 	public final void testIntToRelation_fail()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			JUConstants.PAIRCOMPATIBILITY.compatibilityToJUConstants(JUConstants.intUNKNOWN);
 		}}, IllegalArgumentException.class,"not a valid");
 	}
@@ -802,7 +802,7 @@ public class TestTransform {
 			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final Document document = doc;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loadLearnerGraph(document.createElement("junk"),Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"element name junk");
 	}
@@ -825,7 +825,7 @@ public class TestTransform {
 			Helper.throwUnchecked("configuration exception: ",ex);
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.removeChild(elem.getFirstChild());
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"absent graph element");
 	}
@@ -849,7 +849,7 @@ public class TestTransform {
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.replaceChild(doc.createElement("something"), elem.getFirstChild());
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"absent graph element");
 	}
@@ -873,7 +873,7 @@ public class TestTransform {
 		}
 		final org.w3c.dom.Element elem = fsm.storage.createGraphMLNode(doc);elem.appendChild(doc.createElement("graph"));
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loadLearnerGraph(elem,Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"duplicate graph element");
 	}
@@ -1113,7 +1113,7 @@ public class TestTransform {
 		graphML_end;
 		final LearnerGraph loaded = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
 		
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractPersistence.loadGraph(new StringReader(text), loaded);}}, 
 		IllegalArgumentException.class, "vertices B and q0 are both");
 	}
@@ -1125,7 +1125,7 @@ public class TestTransform {
 		final StringWriter writer = new StringWriter();gr.storage.writeGraphML(writer);
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace("ACCEPTED=\"false\"", "ACCEPTED=\"aa\"")),Configuration.getDefaultConfiguration());
 	    	}},IllegalUserDataException.class,"invalid colour");
 		}		
@@ -1180,7 +1180,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlDataIncompatible, "AA")),Configuration.getDefaultConfiguration());
 	    	}},IllegalArgumentException.class,"unexpected key");
 		}		
@@ -1198,7 +1198,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		final String Q_S = StatechumXML.ATTR_Q.name()+"=\""+gr.findVertex("S").getID().toString(),
 	    			R_S = StatechumXML.ATTR_R.name()+"=\""+gr.findVertex("S").getID().toString();
 	    		String xmlRepresentation = writer.toString(), brokenRepresentation = null;
@@ -1226,7 +1226,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		final String Q_A = StatechumXML.ATTR_Q.name()+"=\""+gr.findVertex("A").getID().toString(),
     			R_A = StatechumXML.ATTR_R.name()+"=\""+gr.findVertex("A").getID().toString();
 	    		String xmlRepresentation = writer.toString(), brokenRepresentation = null;
@@ -1255,7 +1255,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
 	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
     				StatechumXML.ATTR_SCORE.name()+"=\"6")),Configuration.getDefaultConfiguration());
@@ -1275,7 +1275,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(
 	    				StatechumXML.ATTR_SCORE.name()+"=\""+JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger(),
     				StatechumXML.ATTR_SCORE.name()+"=\"AA")),Configuration.getDefaultConfiguration());
@@ -1294,7 +1294,7 @@ public class TestTransform {
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	
-	    	checkForCorrectException(new whatToRun() { public void run() {
+	    	checkForCorrectException(new whatToRun() { public @Override void run() {
 	    		loadLearnerGraph(new StringReader(writer.toString().replace(AbstractPersistence.graphmlData, "AA")),Configuration.getDefaultConfiguration());
 	    	}},IllegalArgumentException.class,"unexpected node");
 		}		
@@ -1437,7 +1437,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail1big"),config);
 		final LearnerGraph small = new LearnerGraph(config);small.getInit().setAccept(false);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.countSharedTransitions(big, small);
 		}},DifferentFSMException.class,"have a different acceptance");
 	}
@@ -1448,7 +1448,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions1big"),config);
 		final LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-a->B-a-#C","testCountMatchedTransitions_fail2small"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.countSharedTransitions(big, small);
 		}},DifferentFSMException.class,"have a different acceptance");
 	}
@@ -1459,7 +1459,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D-a->A","testCountMatchedTransitions_fail3big"),config);
 		final LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-b->C","testCountMatchedTransitions_fail3small"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.countSharedTransitions(big, small);
 		}},IllegalArgumentException.class,"not contained");
 	}
@@ -1470,7 +1470,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
 		final LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nB-c->D-c->D","testCountMatchedTransitions_fail4small"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.countSharedTransitions(big, small);
 		}},IllegalArgumentException.class,"small graph is not contained in the large one, from [ C, D ] unmatched transition c to (nothing_in_big,D)");
 	}
@@ -1481,7 +1481,7 @@ public class TestTransform {
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraph big = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A\nB-c->C-b->C","testCountMatchedTransitions4big"),config);
 		final LearnerGraph small = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->A\nB-c->D-b->E-b->F","testCountMatchedTransitions_fail5small"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.countSharedTransitions(big, small);
 		}},IllegalArgumentException.class,"small graph is not contained in the large one, from [ A, B ] unmatched transition c to (nothing_in_big,D)");
 	}

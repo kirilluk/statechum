@@ -102,7 +102,7 @@ public class TestWriteReadPair {
 	{
 		final String wrongTag = "junk";
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.replace(StatechumXML.ELEM_PAIR.name(), wrongTag).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(wrongTag));
 		}},IllegalArgumentException.class,"expected to load a pair but got");
 	}
@@ -113,7 +113,7 @@ public class TestWriteReadPair {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,StatechumXML.ATTR_Q).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(StatechumXML.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
@@ -124,7 +124,7 @@ public class TestWriteReadPair {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				removeTagFromString(xmlData,StatechumXML.ATTR_R).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(StatechumXML.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"missing attribute");
 	}
@@ -157,7 +157,7 @@ public class TestWriteReadPair {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, StatechumXML.ATTR_SCORE).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(StatechumXML.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a score");
 	}
@@ -168,7 +168,7 @@ public class TestWriteReadPair {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				breakNumericalValue(xmlData, StatechumXML.ATTR_OTHERSCORE).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(StatechumXML.ELEM_PAIR.name()));
 		}},IllegalArgumentException.class,"failed to read a anotherscore");
 	}

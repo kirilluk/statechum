@@ -266,7 +266,7 @@ public class Test_CheckLearnerAgainstLog
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
 		for(File f:new File(pathToLogFiles).listFiles(new FileFilter(){
-			public boolean accept(File pathName) {
+			public @Override boolean accept(File pathName) {
 				return pathName.canRead() && pathName.isFile() &&
 				pathName.getAbsolutePath().contains(".xml_")
 				//&&	pathName.getAbsolutePath().contains("2_25Inputs_75_1.xml_LEARNER_BLUEFRINGE_MAY2008")

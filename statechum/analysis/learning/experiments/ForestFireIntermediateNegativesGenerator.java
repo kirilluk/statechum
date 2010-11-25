@@ -17,14 +17,7 @@
  */
 package statechum.analysis.learning.experiments;
 
-import java.util.ArrayList;
-
-import edu.uci.ics.jung.graph.Graph;
-
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.util.OutputUtil;
 
 public class ForestFireIntermediateNegativesGenerator extends ForestFireLabelledStateMachineGenerator {
 

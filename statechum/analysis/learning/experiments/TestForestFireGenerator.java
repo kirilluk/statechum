@@ -131,7 +131,7 @@ public class TestForestFireGenerator {
 		gen.vertices = new LinkedList<DeterministicVertex>();
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws IllegalArgumentException {
+			public @Override void run() throws IllegalArgumentException {
 				gen.selectRandom(null);
 			}
 		},IllegalArgumentException.class,"");
@@ -146,7 +146,7 @@ public class TestForestFireGenerator {
 			blocked.add(gen.selectRandom(blocked));
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws IllegalArgumentException {
+			public @Override void run() throws IllegalArgumentException {
 				gen.selectRandom(blocked);
 			}
 		},IllegalArgumentException.class,"");

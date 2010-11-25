@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,12 +68,19 @@ public class TestRandomPathGenerator {
 	@Test
 	public void test_diameter2()
 	{
+		Assert.assertEquals(1, RandomPathGenerator.diameter(
+				new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B","test_diameter2"),config)));
+	}
+
+	@Test
+	public void test_diameter3()
+	{
 		Assert.assertEquals(3, RandomPathGenerator.diameter(
-				new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter1"),config)));
+				new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-c-#C\nB-b->D-c->E","test_diameter3"),config)));
 	}
 
 	/** One of the test graphs. Should not contain reject states since these methods assume that all states are accepts. */
-	private LearnerGraph simpleGraph = null;
+	LearnerGraph simpleGraph = null;
 	
 	@Test
 	public void test_generateRandomWalk1a()
@@ -81,10 +89,71 @@ public class TestRandomPathGenerator {
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}), generator.generateRandomWalk(2,2, true));
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
 	}
-
-	/** Same as above but using a different initial state. */
+	
 	@Test
-	public void test_generateRandomWalk1b()
+	public void test_generateRandomWalk1b1()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
+		Assert.assertEquals(Arrays.asList(new String[]{"a"}), generator.generateRandomWalk(1,1, true));
+		List<String> seq = generator.generateRandomWalk(1,1, false);
+		Assert.assertEquals(Arrays.asList(new String[]{"c"}), seq);generator.allSequences.add(seq);
+		seq = generator.generateRandomWalk(1,1, false);
+		Assert.assertEquals(Arrays.asList(new String[]{"b"}), seq);generator.allSequences.add(seq);
+		Assert.assertNull(generator.generateRandomWalk(1,1, false));
+		
+		// ignore prefixes
+		Assert.assertEquals(Arrays.asList(new String[]{"c"}), generator.generateRandomWalk(1,0, false));
+	}
+
+	@Test
+	public void test_generateRandomWalk1b2()
+	{
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
+		List<String> seq = generator.generateRandomWalk(1,1, true);
+		Assert.assertEquals(Arrays.asList(new String[]{"a"}), seq);generator.allSequences.add(seq);
+
+		Assert.assertNull(generator.generateRandomWalk(1,1, true));
+		
+		// ignore prefixes
+		Assert.assertEquals(Arrays.asList(new String[]{"a"}), generator.generateRandomWalk(1,0, true));
+		
+		Assert.assertNull(generator.generateRandomWalk(2,1, true));// the only path from the initial state goes through "a" hence no paths can be generated
+	}
+	
+	/** Using a supplied alphabet. */
+	@Test
+	public void test_generateRandomWalk1b3()
+	{
+		Set<String> alphabet = new TreeSet<String>();alphabet.addAll(Arrays.asList(new String[]{"a","b","c","d","e","f"}));
+		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null,alphabet);
+		List<String> seq = generator.generateRandomWalk(1,1, true);
+		Assert.assertEquals(Arrays.asList(new String[]{"a"}), seq);generator.allSequences.add(seq);
+
+		Assert.assertNull(generator.generateRandomWalk(1,1, true));
+
+		// All the ones below should be successful because we have a large alphabet.
+		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(Arrays.asList(new String[]{"f"}), seq);
+		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(Arrays.asList(new String[]{"e"}), seq);
+		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(Arrays.asList(new String[]{"d"}), seq);
+		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(Arrays.asList(new String[]{"c"}), seq);
+		seq=generator.generateRandomWalk(1,1, false);generator.allSequences.add(seq);Assert.assertEquals(Arrays.asList(new String[]{"b"}), seq);
+		
+		Assert.assertNull(generator.generateRandomWalk(1,1, false));
+	}
+	
+	/** Using a supplied alphabet. */
+	@Test
+	public void test_generateRandomWalk1b3Fail()
+	{
+		final Set<String> alphabet = new TreeSet<String>();alphabet.addAll(Arrays.asList(new String[]{"b","c","d","e","f"}));
+		checkForCorrectException(new whatToRun() { @Override public void run() {
+			new RandomPathGenerator(simpleGraph,new Random(0),0,null,alphabet);
+		}},IllegalArgumentException.class,"does not include");
+	}
+	
+	/** Same as test_generateRandomWalk1a but using a different initial state. */
+	@Test
+	public void test_generateRandomWalk1c()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("WW-s->WW\n"+"A-a->B\nB-b->D-c->E","test_generateRandomWalk1"),config);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,graph.findVertex(VertexID.parseID("A")));
@@ -92,16 +161,31 @@ public class TestRandomPathGenerator {
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b","c"}), generator.generateRandomWalk(3,3, true));
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void test_generateRandomWalk2()
 	{
-		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
-		List<String> path = generator.generateRandomWalk(2,3, true);
+		final RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
+		List<String> path = generator.generateRandomWalk(2,2, true);
 		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}), path);
 		generator.allSequences.add(path);
-		generator.generateRandomWalk(2,2, true);// no more paths of this length
+		Assert.assertNull(generator.generateRandomWalk(2,2, true));// no more paths of this length
 	}
 
+	@Test
+	public void test_generateRandomWalkAlt()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nA-c->B\nB-b->D-c->E\nB-d->D","test_generateRandomWalkAlt"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		List<String> seq = generator.generateRandomWalk(2,2, true);
+		Assert.assertEquals(Arrays.asList(new String[]{"c","d"}), seq);generator.allSequences.add(seq);
+		seq = generator.generateRandomWalk(2,2, true);
+		Assert.assertEquals(Arrays.asList(new String[]{"a","d"}), seq);generator.allSequences.add(seq);
+		
+		Assert.assertNull(generator.generateRandomWalk(2,1, true));// both letters from the initial state have been used hence no way to generate seq not using them.
+		
+		Assert.assertEquals(Arrays.asList(new String[]{"a","b"}),generator.generateRandomWalk(2,2, true));
+	}
+	
 	@Test
 	public void test_generateRandomWalk3a()
 	{
@@ -139,7 +223,7 @@ public class TestRandomPathGenerator {
 		Set<List<String>> actualB = new HashSet<List<String>>();actualB.addAll(generator.allSequences.getData(PTASequenceEngine.truePred));
 		Assert.assertEquals(expected, actualB);
 	}
-	
+		
 	@Test
 	public void test_generateRandomWalk4()
 	{
@@ -177,7 +261,33 @@ public class TestRandomPathGenerator {
 	}	
 
 	@Test
-	public void test_generateRandomWalk7()
+	public void test_generateRandomWalk7a()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generateSeq(1,2,generator,
+				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
+						// of a sequence, the second Object[] means that the first sequence contains alternatives,
+						// defined in the second Object, the two sequences below denote these alternatives.
+						new String[]{"b"},new String[]{"c"}}
+				}));
+	}
+
+	@Test
+	public void test_generateRandomWalk7b()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generateSeq(2,2,generator,
+				ArrayOperations.flatten(new Object[]{"a",new Object[]{// the first Object[] means we are talking
+						// of a sequence, the second Object[] means that the first sequence contains alternatives,
+						// defined in the second Object, the two sequences below denote these alternatives.
+						new String[]{"a"},new String[]{"c"}}
+				}));
+	}
+
+	@Test
+	public void test_generateRandomWalk7c()
 	{
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B\nB-b->D-a->D-c->E-a->E","test_generateRandomWalk7"),config);
 		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
@@ -198,7 +308,7 @@ public class TestRandomPathGenerator {
 		generateSeq(4,4, 7,generator,
 				ArrayOperations.flatten(new Object[]{new Object[]{// the first Object[] means we are talking
 						// of a sequence, the second Object[] means that the first sequence contains alternatives,
-						// defined in the second Object, the two sequences below denote these alternatives.
+						// defined in the second Object, the sequences below denote these alternatives.
 						new Object[]{"a","b","a","b"},
 						new Object[]{"b","a","b","b"},
 						new Object[]{"b","b","a",new String[]{"a","c"}},
@@ -286,6 +396,35 @@ public class TestRandomPathGenerator {
 		RandomPathGenerator generator = new RandomPathGenerator(simpleGraph,new Random(0),0,null);
 		generator.generateRandomPosNeg(11, 10);
 	}
+
+	@Test
+	public void checkGenerationOfPathsOfLengthOneFail()
+	{
+		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne"),config);
+		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
+		checkForCorrectException(new whatToRun() { @Override public void run() {
+			new RandomPathGenerator(graph,new Random(0),0,null).generatePosNeg(2, 1);
+		}},IllegalArgumentException.class,"length less");
+	}
+	
+	@Test
+	public void checkGenerationOfPathsOfLengthOne1()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne"),config);
+		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),1,null);
+		generator.generatePosNeg(2,1);
+		
+		{
+			Assert.assertTrue(generator.getExtraSequences(0).containsAsLeaf(Arrays.asList(new String[]{})));
+		}
+		
+		{
+			Collection<List<String>> currentNeg = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+			Assert.assertEquals(1,currentNeg.size());
+			Assert.assertEquals(Arrays.asList(new String[]{"b"}), currentNeg.iterator().next());
+		}
+	}
 	
 	public RandomPathGenerator generatePosNegTestHelper(String automaton, String automatonName,
 			final int chunkNumber,final int posOrNegPerChunk)
@@ -320,20 +459,20 @@ public class TestRandomPathGenerator {
 				previousChunkPos = currentPos;
 			}
 		}
-		
-		checkForCorrectException(new whatToRun() { public void run() {
+
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
@@ -386,6 +525,8 @@ public class TestRandomPathGenerator {
 			PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
 			PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
 				FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
+				
+				@Override 
 				public boolean shouldBeReturned(Object name) {
 					return !origFilter.shouldBeReturned(name);
 				}
@@ -409,26 +550,67 @@ public class TestRandomPathGenerator {
 			previousChunk= currentSequences;
 		}
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 		
 		Assert.assertEquals(chunkNumber*posOrNegPerChunk*2, previousChunk.size());
 		return generator;
 	}
-	
+
+	@Test
+	public void checkGenerationOfPathsOfLengthOne2()
+	{
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->A\nB-b->B","checkGenerationOfPathsOfLengthOne"),config);
+		Assert.assertEquals(0,RandomPathGenerator.diameter(graph));
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),1,null);
+		generator.generateRandomPosNeg(2, 1);
+
+		checkForCorrectException(new whatToRun() { @Override public void run() {
+			generator.getAllSequences(1);
+		}},IllegalArgumentException.class,"is out of range");
+
+		checkForCorrectException(new whatToRun() { @Override public void run() {
+			generator.getExtraSequences(1);
+		}},IllegalArgumentException.class,"is out of range");
+		Assert.assertTrue("PTA is not empty",generator.getExtraSequences(0).containsAsLeaf(Arrays.asList(new String[]{})));
+		final PTASequenceEngine currentPTA = generator.getAllSequences(0);
+		PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
+		PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
+			FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
+			
+			@Override 
+			public boolean shouldBeReturned(Object name) {
+				return !origFilter.shouldBeReturned(name);
+			}
+		});
+		
+		{
+			Collection<List<String>> currentPos = positivePTA.getData(PTASequenceEngine.truePred);
+			Assert.assertEquals(1,currentPos.size());
+			Assert.assertEquals(Arrays.asList(new String[]{"a"}), currentPos.iterator().next());
+		}
+		
+		{
+			Collection<List<String>> currentNeg = negativePTA.getData(PTASequenceEngine.truePred);
+			Assert.assertEquals(1,currentNeg.size());
+			Assert.assertEquals(Arrays.asList(new String[]{"b"}), currentNeg.iterator().next());
+		}		
+		
+	}
+
 	@Test
 	public void test_generateRandomPosNeg1()
 	{
@@ -446,12 +628,65 @@ public class TestRandomPathGenerator {
 		Assert.assertTrue(generator.getFudgeDetails().toString().contains("FAILED"));
 	}
 	
+	final String failAutomaton = "A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F",
+		failAutomatonName = "test_generateRandomPosNeg2";
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void test_generateRandomPosNeg_fail1()
 	{
 		config.setRandomPathAttemptFudgeThreshold(1);
-		generateRandomPosNegHelper("A-b->A-a->B\nB-b->D-a->D-c->E-a->E-c->A\nB-c->B\nA-q->A\nA-t->A\nA-r->A\nE-f->F-d->F","test_generateRandomPosNeg2",
-				18,12);
+		generateRandomPosNegHelper(failAutomaton,failAutomatonName,18,12);
+	}
+
+	/** Same as above but disables exception throwing. 
+	 * All comparisons verify that fewer sequences have been generated than requested - this is expected because
+	 * we ask for far more than can be produced. 
+	 */
+	@Test
+	public void test_generateRandomPosNeg_failNot1()
+	{
+		config.setRandomPathAttemptFudgeThreshold(1);
+		
+		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph(failAutomaton,failAutomatonName),config);
+		Assert.assertEquals(4,RandomPathGenerator.diameter(graph));
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		int posOrNegPerChunk = 18, chunkNumber = 12;
+		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber,false);
+
+		Collection<List<String>> previousChunk = null;
+		for(int i=0;i<chunkNumber;++i)
+		{
+			final PTASequenceEngine currentPTA = generator.getAllSequences(i);
+			Collection<List<String>> currentSequences = currentPTA.getData(PTASequenceEngine.truePred);
+			Assert.assertTrue(2*posOrNegPerChunk*(i+1)> currentSequences.size());
+			int positive = 0,negative=0;
+			PTASequenceEngine positivePTA = currentPTA.filter(currentPTA.getFSM_filterPredicate());
+			PTASequenceEngine negativePTA = currentPTA.filter(new FilterPredicate() {
+				FilterPredicate origFilter = currentPTA.getFSM_filterPredicate();
+				
+				@Override 
+				public boolean shouldBeReturned(Object name) {
+					return !origFilter.shouldBeReturned(name);
+				}
+			});
+			for(List<String> s:currentSequences)
+				if(graph.paths.tracePathPrefixClosed(s) >=0) 
+				{
+					++negative;
+					Assert.assertFalse(positivePTA.containsSequence(s));Assert.assertTrue(negativePTA.containsSequence(s));
+				}
+				else
+				{
+					++positive;
+					Assert.assertTrue(positivePTA.containsSequence(s));Assert.assertFalse(negativePTA.containsSequence(s));
+				}
+			Assert.assertTrue(posOrNegPerChunk*(i+1) > positive);Assert.assertEquals(positive,positivePTA.getData(PTASequenceEngine.truePred).size());
+			Assert.assertEquals(positive,positivePTA.getData().size());// all seq are accept ones
+			Assert.assertTrue(posOrNegPerChunk*(i+1) > negative);Assert.assertEquals(negative,negativePTA.getData(PTASequenceEngine.truePred).size());
+			Assert.assertEquals(0,negativePTA.getData().size());// all seq are reject ones
+			if (previousChunk != null) currentSequences.containsAll(previousChunk);
+			previousChunk= currentSequences;
+		}
 	}
 
 	@Test
@@ -469,19 +704,19 @@ public class TestRandomPathGenerator {
 		try	{ generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);Assert.fail("exception not thrown"); }
 		catch(IllegalArgumentException ex) { Assert.assertEquals(0, generator.getChunkNumber()); }
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(0);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(0);
 		}},IllegalArgumentException.class,"is out of range");
 
@@ -489,22 +724,23 @@ public class TestRandomPathGenerator {
 		generator.generatePosNeg(posOrNegPerChunk*2,chunkNumber);
 		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
+		// the following calls should not throw
 		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
 	}
 
@@ -523,19 +759,19 @@ public class TestRandomPathGenerator {
 		try	{ generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);Assert.fail("exception not thrown"); }
 		catch(IllegalArgumentException ex) { Assert.assertEquals(0, generator.getChunkNumber()); }
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(0);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(0);
 		}},IllegalArgumentException.class,"is out of range");
 		
@@ -543,22 +779,23 @@ public class TestRandomPathGenerator {
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,chunkNumber);
 		Assert.assertEquals(chunkNumber, generator.getChunkNumber());
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(-1);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getAllSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { @Override public void run() {
 			generator.getExtraSequences(chunkNumber);
 		}},IllegalArgumentException.class,"is out of range");
 		
+		// the following calls should not throw
 		generator.getAllSequences(chunkNumber/2);generator.getExtraSequences(chunkNumber/2);
 	}
 	

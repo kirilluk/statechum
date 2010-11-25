@@ -18,6 +18,7 @@
 
 package statechum.model.testset;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -73,30 +74,32 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 		}
 	}
 
-	private void updateCounters(Node testNode, Node ptaNode, Node testNodeReject)
+	private void updateCounters(Node walkNode, Node ptaNode)
 	{
-		if (testNode == testNodeReject && ptaNode == rejectNode)
+		if (!walkNode.isAccept() && ptaNode.getState() == null) // ptaNode.getState() == null means it is a reject node
 		{// True Positive
-			resultTP++;neg_Rel++;neg_Ret++;
+			resultTN++;neg_Rel++;neg_Ret++;
 		}
-		if (testNode == testNodeReject && ptaNode != rejectNode)
+		if (!walkNode.isAccept() && ptaNode.getState() != null)
 		{// False Positive
 			resultFP++;neg_Rel++;pos_Ret++;
 		}
-		if (testNode != testNodeReject && ptaNode == rejectNode)
+		if (walkNode.isAccept() && ptaNode.getState() == null)
 		{// False Negative
 			resultFN++;pos_Rel++;neg_Ret++;
 		}
-		if (testNode != testNodeReject && ptaNode != rejectNode)
+		if (walkNode.isAccept() && ptaNode.getState() != null)
 		{// True Negative
-			resultTN++;pos_Rel++;pos_Ret++;
+			resultTP++;pos_Rel++;pos_Ret++;
 		}		
 	}
 	
 	/** Computes BCR. */
 	public double getBCR()
 	{
-		return ( (double)resultTP/(double)(resultTP+resultFN)+(double)resultTN/(double)(resultTN+resultFP) )/2.;
+		double sensitivity = 0.;if (resultTP+resultFN > 0) sensitivity=(double)resultTP/(double)(resultTP+resultFN);
+		double specificity = 0.;if (resultTN+resultFP > 0) specificity=(double)resultTN/(double)(resultTN+resultFP);
+		return (sensitivity+specificity)/2.;
 	}
 	
 	/** Resets all counters. */
@@ -118,36 +121,89 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	public void crossWith(PTASequenceEngine pc)
 	{
 		reset();
+		crossWithNoReset(pc);
+	}
+
+	/** Similar to <em>followToNextNode</em> except that instead of a single reject-node, we keep adding reject nodes. */
+	protected PTASequenceEngine.Node followWithRejectNodes(PTASequenceEngine.Node currentNode, String input)
+	{
+		Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
+		PTASequenceEngine.Node nextCurrentNode = null;
+
+		if (row.containsKey(input))
+			nextCurrentNode = row.get(input); // the next node is an accept one
+		else
+		{// No transition in the pta with the given input, 
+		 // hence we have to extend the pta by adding a new transition
+			PTASequenceEngine.Node nextNode = null;
+
+			if (currentNode.getState() == null)
+				nextNode = new Node();// from a reject-node, we can only enter a reject one
+			else
+			{
+				Object newState = fsm.getNextState(currentNode.getState(), input);
+				if (newState == null || !fsm.isAccept(newState)) //TODO here it is assumed that automata are prefix-closed. 
+					nextNode = new Node();
+				else
+					nextNode = new Node(newState);
+			}
+			row.put(input, nextNode);pta.put(nextNode, new HashMap<String,PTASequenceEngine.Node>());
+			nextCurrentNode = nextNode;
+		}
 		
+		return nextCurrentNode;
+	}
+
+	/** Calculates precision/recall when supplied with a specific set of sequences (such as a test set, backed by an FSM).
+	 * 
+	 * When we record sequences, non-existing transitions at the ends are recorded too, however if we have a long
+	 * non-existing path, only the first non-existing transition is being recorded. This is in compliance with
+	 * the training data which only has one non-existing transition at the end of every non-existing path
+	 * (by construction, we do not build long paths with multiple non-existing transitions).
+	 * 
+	 * @param walk the set of sequences.
+	 * 
+	 */
+	public void crossWithNoReset(PTASequenceEngine walk)
+	{
 		Queue<Node> testExplorationBoundary = new LinkedList<Node>(), ptaExplorationBoundary = new LinkedList<Node>();// FIFO queue
-		testExplorationBoundary.add(pc.init);ptaExplorationBoundary.add(init);
+		testExplorationBoundary.add(walk.init);ptaExplorationBoundary.add(init);
 		
 		while(!testExplorationBoundary.isEmpty()) // we explore all of the pc supplied
 		{
-			Node testCurrentNode = testExplorationBoundary.remove(), ptaCurrentNode = ptaExplorationBoundary.remove();
-			Map<String,Node> testRow = pc.pta.get(testCurrentNode), ptaRow = pta.get(ptaCurrentNode);
+			Node walkCurrentNode = testExplorationBoundary.remove(), ptaCurrentNode = ptaExplorationBoundary.remove();
+			assert ptaCurrentNode != rejectNode;
+			Map<String,Node> walkRow = walk.pta.get(walkCurrentNode), ptaRow = pta.get(ptaCurrentNode);
 
-			if (!testRow.isEmpty())
-				for(Entry<String,Node> testNextInput:testRow.entrySet())
-				{// for each outgoing transition of a test, we need to do something with the current transition of a machine
-					Node nextPtaExplorationNode=ptaRow.get(testNextInput.getKey());
-					if (nextPtaExplorationNode == null)
-					{// if we've not seen this entry already, proceed (below). Otherwise, ignore.
-					 // Note that we also end up here if the current node is a reject node.
+			for(Entry<String,Node> walkNextInputAndState:walkRow.entrySet())
+			{// for each outgoing transition of a test, we need to do something with the current transition of a machine
+				Node nextPtaNode=ptaRow.get(walkNextInputAndState.getKey());
+				if (nextPtaNode == null)
+				{// Since next PTA node is null, this means that we've not seen this already. This is important where we do a cross
+				 // with set including training data which has to be filtered out. In this case, we first do cross with training and
+			     // then only new nodes are considered for the purpose of performance evaluation.
+				 // Note that we also end up here if the current node is a reject node.
 
-						if (ptaCurrentNode != rejectNode) 
-							// Unlike methods cross..., we do not really have to update a tree here - it is enough to simply 
-							// track the current state in the learnt automata. However, updating makes it possible to filter
-							// out training sequences and only keep results for test sequences. 
-							nextPtaExplorationNode = followToNextNode(ptaCurrentNode,testNextInput.getKey());
-						else
-							nextPtaExplorationNode=rejectNode;
-
-						updateCounters(testNextInput.getValue(),nextPtaExplorationNode,pc.rejectNode);
-					}
+					nextPtaNode = followWithRejectNodes(ptaCurrentNode,walkNextInputAndState.getKey());
 					
-					testExplorationBoundary.offer(testNextInput.getValue());ptaExplorationBoundary.offer(nextPtaExplorationNode);
+					// if we reach a reject node of a PTA, it does not mean that we can stop: there could be numerous walks
+					// which are not finished yet. Some of them may be accept-walks, others reject-walks, hence we have to follow
+					// them through to their ends. The PTA will stay in its rejectNode and we will just unwind walks until they reach
+					// their ends (walk.pta.get(walkNextInputAndState.getValue()).isEmpty())
+					if (walk.pta.get(walkNextInputAndState.getValue()).isEmpty())
+					{// The walk is finished.
+						updateCounters(walkNextInputAndState.getValue(),nextPtaNode);
+					}
 				}
+				else
+					if (walk.pta.get(walkNextInputAndState.getValue()).isEmpty() && !pta.get(nextPtaNode).isEmpty())
+					{// The walk is finished.
+						updateCounters(walkNextInputAndState.getValue(),nextPtaNode);
+					}
+
+					
+				testExplorationBoundary.offer(walkNextInputAndState.getValue());ptaExplorationBoundary.offer(nextPtaNode);
+			}
 		}
 		
 	}
@@ -158,6 +214,6 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 	 */
 	public PosNegPrecisionRecallNum getPosNegPrecisionRecallNum()
 	{
-		return new PosNegPrecisionRecallNum(pos_Ret, pos_Rel, (int)resultTN, neg_Ret, neg_Rel, (int)resultTP);
+		return new PosNegPrecisionRecallNum(pos_Ret, pos_Rel, resultTP, neg_Ret, neg_Rel, resultTN);
 	}
 }

@@ -34,17 +34,18 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 {
 	int counter = 0;
 
-	public ClusteringTrackerDecorator(Learner learner){
+	public ClusteringTrackerDecorator(Learner learner)
+	{
 		super(learner);
 	}
-
 	
-	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) {
+	@Override
+	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
+	{
 		statechum.analysis.learning.util.ScoreMatrixOutput.writeMatrix(graph, "stage"+Integer.toString(counter));
 		counter++;
 		return decoratedLearner.ChooseStatePairs(graph);
 	}
-	
 	
 	@Override
 	public LearnerGraph learnMachine(Collection<List<String>> sPlus,  Collection<List<String>> sMinus){
@@ -59,49 +60,57 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 		return result;
 	}
 
+	@Override
 	public String getResult()
 	{
 		return decoratedLearner.getResult();
 	}
 
+	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) {
 		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
 	}
 
+	@Override
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 
+	@Override
 	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.RecomputeQuestions(pair, original, temp);
 	}
 
 
+	@Override
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) {
 		return decoratedLearner.MergeAndDeterminize(original, pair);
 	}
 
 
+	@Override
 	public void Restart(RestartLearningEnum mode) {
 		decoratedLearner.Restart(mode);
 	}
 
 
+	@Override
 	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
 		return decoratedLearner.init(plus, minus);
 	}
 	
+	@Override
 	public LearnerGraph init(PTASequenceEngine en, int plus, int minus) {
 		return decoratedLearner.init(en, plus, minus);
 	}
 
-
+	@Override
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 
-
+	@Override
 	public boolean AddConstraints(LearnerGraph graph,LearnerGraph outcome,StringBuffer counterExampleHolder) {
 		return decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
 	}

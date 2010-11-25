@@ -391,7 +391,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph g, List<String> question, int responseForNoRestart, @SuppressWarnings("unused") List<Boolean> acceptedElements, Object[] options) 
+	@Override
+	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, @SuppressWarnings("unused") List<String> question, @SuppressWarnings("unused") int responseForNoRestart, @SuppressWarnings("unused") List<Boolean> acceptedElements, @SuppressWarnings("unused") Object[] options) 
 	{
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(StatechumXML.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;
@@ -405,6 +406,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param graph estimated graph
 	 * @return loaded values from XML.
 	 */
+	@Override
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 	{
 		org.w3c.dom.NodeList Pairs = currentElement.getChildNodes();
@@ -431,7 +433,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp)
+	@Override
+	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
 	{
 		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_QUESTIONS.name());
 	}
@@ -443,7 +446,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param temp estimated value.
 	 * @return loaded from XML.
 	 */
-	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp)
+	@Override
+	public List<List<String>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
 	{
 		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_MOREQUESTIONS.name());
 	}
@@ -483,7 +487,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param pair the pair to be merged. Loaded from XML file.
 	 * @return graph loaded from XML file.
 	 */
-	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
+	@Override
+	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") StatePair pair) 
 	{
 		Element graphNode = getElement(StatechumXML.gdGD.toString());
 		if (graphNode == null) graphNode = getElement(StatechumXML.graphmlNodeNameNS.toString());
@@ -495,13 +500,15 @@ public class LearnerSimulator extends ProgressDecorator
 	 * 
 	 * @param mode value loaded from XML.
 	 */
-	public void Restart(RestartLearningEnum mode) 
+	@Override
+	public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) 
 	{// Does nothing in the simulator. 
 	}
 
 	/** We deliberately avoid storing this so as to be able to change 
 	 * the format of diagnostics without having to regenerate test data. 
 	 */
+	@Override
 	public String getResult() 
 	{
 		return null;
@@ -513,7 +520,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param plus value loaded from XML
 	 * @param minus value loaded from XML
 	 */
-	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus) 
+	@Override
+	public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus, @SuppressWarnings("unused") Collection<List<String>> minus) 
 	{
 		InitialData initial = readInitialData(currentElement);// wastefully load the element once again - does not matter because this is done very infrequently
 		return initial.graph;
@@ -522,6 +530,7 @@ public class LearnerSimulator extends ProgressDecorator
 	/** Since it is a simulator, only the return value is loaded from XML and whatever is 
 	 * passed in is estimated.
 	 */
+	@Override
 	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, LearnerGraph outcome, @SuppressWarnings("unused") StringBuffer counterExampleHolder) 
 	{
 		AbstractLearnerGraph.copyGraphs(series.readGraph(currentElement),outcome);
@@ -533,6 +542,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * by the automaton. For this reason, we only store the corresponding collections and the 
 	 * expected sizes in the xml. If called, this method will throw unsupported exception.
 	 */
+	@Override
 	public LearnerGraph init(@SuppressWarnings("unused") PTASequenceEngine engine, 
 			@SuppressWarnings("unused")	int plusSize, 
 			@SuppressWarnings("unused")	int minusSize) 
@@ -548,6 +558,8 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param accepted loaded from XML.
 	 * @param newColour loaded from XML.
 	 */
+	@SuppressWarnings("unused")
+	@Override
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind, 
 			List<String> sequence, boolean accepted, JUConstants newColour) 
 	{// Does nothing in the simulator. 		

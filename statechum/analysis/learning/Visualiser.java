@@ -168,6 +168,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 1L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
 		        try {
 		        	if (propName != null)
@@ -193,6 +194,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 2L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 		    		reloadLayout(false);
@@ -202,6 +204,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 3L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph > 0)
@@ -212,6 +215,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 4L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				globalConfig.saveFrame(Visualiser.this, propName);
@@ -222,6 +226,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 5L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused")	ActionEvent e) 
 			{
 				setVisible(false);dispose();
@@ -238,6 +243,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 6L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				Visualiser.syncValue.set(false);
@@ -251,6 +257,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 7L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.PICKING);
@@ -262,6 +269,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 8L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				((XMLModalGraphMouse)viewer.getGraphMouse()).setMode(ModalGraphMouse.Mode.TRANSFORMING);
@@ -273,6 +281,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 9L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph > 0)
@@ -286,6 +295,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			/** Serial number. */
 			private static final long serialVersionUID = 10L;
 
+			@Override 
 			public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) 
 			{
 				if (currentGraph < graphs.size()-1)
@@ -304,16 +314,19 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new KeyListener() {
 
+			@Override 
 			public void keyPressed(KeyEvent arg0) {
 				Action act = keyToActionMap.get(arg0.getKeyCode());
 				if (act != null)
 					act.actionPerformed(null);
 			}
 
+			@Override 
 			public void keyReleased(@SuppressWarnings("unused") KeyEvent arg0) 
 			{// this method is intentionally left blank - keypresses/releases are handled by the keyPressed method.
 			}
 
+			@Override 
 			public void keyTyped(@SuppressWarnings("unused") KeyEvent key) 
 			{// this method is intentionally left blank - keypresses/releases are handled by the keyPressed method.
 			}
@@ -332,11 +345,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         viewer.addMouseListener(this);
         popupMenu = new JPopupMenu();
         JMenuItem item = new JMenuItem("pick");item.addActionListener(new ActionListener(){
+        	@Override 
 			public void actionPerformed(ActionEvent e) {
 				pickAction.actionPerformed(e);
 			}
         });popupMenu.add(item);
         item = new JMenuItem("transform");item.addActionListener(new ActionListener(){
+        	@Override 
 			public void actionPerformed(ActionEvent e) {
 				transformAction.actionPerformed(e);
 			}
@@ -523,11 +538,13 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	 * graph changed, it is enough to replace the layout to update the graph. */
 	protected boolean wasInitialised = false;
 		
+	@Override 
 	public void run()
 	{
 		reloadLayout(true);
 	}
 
+	@Override 
 	public void update(@SuppressWarnings("unused") final Observable s, Object arg){
 		if (arg instanceof AbstractLearnerGraph)
 		{
@@ -617,6 +634,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	private static PluggableRenderer labelEdges(Graph graph,PluggableRenderer render){
 		final EdgeColour paintChooser = new EdgeColour(graph);
 		EdgeStringer stringer = new EdgeStringer(){
+			@Override 
             public String getLabel(ArchetypeEdge e) {
             	String result = "";
 
@@ -641,6 +659,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         };
         render.setEdgeStringer(stringer);
         render.setEdgePaintFunction(new AbstractEdgePaintFunction() {
+        	@Override 
 			public Paint getDrawPaint(Edge e) {
 				Color result = paintChooser.getPickedColour(e);
 				return result != null?result:Color.BLACK;
@@ -655,6 +674,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	                new ConstantVertexAspectRatioFunction(1.0f));
 		}
 		
+		@Override 
 		public Shape getShape(Vertex v) {
 			JUConstants c = (JUConstants)v.getUserDatum(JUConstants.COLOUR);
 
@@ -678,6 +698,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			picked = p;
 		}
 		
+		@Override 
 		public Paint getDrawPaint(Vertex v) {
 			if (v.getUserDatum(JUConstants.HIGHLIGHT) != null)
 				return Color.MAGENTA;
@@ -685,6 +706,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			return Color.BLACK;
 		}
 
+		@Override 
 		public Paint getFillPaint(Vertex v) {
 			Color col = Color.BLACK;
 			
@@ -776,6 +798,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			{
 				SwingUtilities.invokeAndWait(new Runnable() 
 				{
+					@Override 
 					public void run()
 					{
 						if (upperGraphViz != null)
@@ -921,25 +944,28 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 	    }
 	}
 
-
+	@Override 
 	public void mouseClicked(@SuppressWarnings("unused") MouseEvent e) {
 		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
+	@Override 
 	public void mouseEntered(@SuppressWarnings("unused") MouseEvent e) {
 		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
+	@Override 
 	public void mouseExited(@SuppressWarnings("unused") MouseEvent e) {
 		// this particular mouse operation is not handled - see mousePressed/mouseReleased
 	}
 
 	// The following is from http://java.sun.com/docs/books/tutorial/uiswing/components/menu.html#popup
-	
+	@Override 
 	public void mousePressed(MouseEvent e) {
 		maybeShowPopup(e);
 	}
 
+	@Override 
 	public void mouseReleased(MouseEvent e) 
 	{
 		maybeShowPopup(e);

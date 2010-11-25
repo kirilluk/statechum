@@ -226,7 +226,7 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addRelabelling(VertexID.parseID("Q"), VertexID.parseID("U"));
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() {
 			patcher.addRelabelling(VertexID.parseID("S"), VertexID.parseID("S"));
 		}},IllegalArgumentException.class,"does not exist");
 	}
@@ -238,7 +238,7 @@ public class TestGD {
 		LearnerGraph gr = new LearnerGraph(buildGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a"), Configuration.getDefaultConfiguration());
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addRelabelling(VertexID.parseID("T"), VertexID.parseID("Q"));
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { @Override public void run() {
 			patcher.relabel(new LearnerGraph(Configuration.getDefaultConfiguration()));
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -597,7 +597,7 @@ public class TestGD {
 	@Test
 	public final void testEmpty1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(createDoc().createElement("junk"),"whatever",false,true);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
@@ -605,7 +605,7 @@ public class TestGD {
 	@Test
 	public final void testEmpty2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(createDoc().createElement("junk"),"whatever",true,true);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
@@ -613,7 +613,7 @@ public class TestGD {
 	@Test
 	public final void testNoElem1()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(createDoc().createElement(StatechumXML.gdGD.toString()),"whatever",false,true);
 		}},IllegalArgumentException.class,"no element");
 	}
@@ -621,7 +621,7 @@ public class TestGD {
 	@Test
 	public final void testNoElem2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(createDoc().createElement(StatechumXML.gdGD.toString()),"whatever",true,true);
 		}},IllegalArgumentException.class,"no element");
 	}
@@ -636,7 +636,7 @@ public class TestGD {
 		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
 		top.appendChild(subElement);
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
 		}},IllegalArgumentException.class,"no nodes");
 	}
@@ -658,7 +658,7 @@ public class TestGD {
 		final Element top = doc.createElement(StatechumXML.gdGD.toString()),subElement=doc.createElement(graphholder);
 		top.appendChild(subElement);subElement.appendChild(doc.createTextNode("junk"));
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
 		}},IllegalArgumentException.class,"no nodes");
 	}
@@ -696,7 +696,7 @@ public class TestGD {
 		subElement.appendChild(doc.createElement("anotherelement"));
 		subElement.appendChild(doc.createTextNode("junk"));
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
 		}},IllegalArgumentException.class,"more than one node");
 	}
@@ -712,7 +712,7 @@ public class TestGD {
 		subElement.appendChild(doc.createElement("anotherelement"));
 		subElement.appendChild(doc.createTextNode("junk"));
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,true,true);
 		}},IllegalArgumentException.class,"more than one node");
 	}
@@ -739,7 +739,7 @@ public class TestGD {
 		subElement.appendChild(graphElem);
 		top.appendChild(doc.createElement(graphholder));
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,false,true);
 		}},IllegalArgumentException.class,"duplicate holder");
 	}
@@ -754,7 +754,7 @@ public class TestGD {
 		subElement.appendChild(graphElem);
 		top.appendChild(doc.createElement(graphholder));
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			GD.ChangesRecorder.getGraphElement(top,graphholder,true,true);
 		}},IllegalArgumentException.class,"duplicate holder");
 	}
@@ -821,7 +821,7 @@ public class TestGD {
 		patcher.addTransition(graph.findVertex("B"), "c", graph.findVertex("B"));
 		patcher.removeTransition(graph.findVertex("A"), "a", graph.findVertex("B"));
 		patcher.addTransition(graph.findVertex("A"), "q", graph.findVertex("B"));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			patcher.writeGD(createDoc());}},
 		IllegalArgumentException.class,"init state is was not defined");
 	}

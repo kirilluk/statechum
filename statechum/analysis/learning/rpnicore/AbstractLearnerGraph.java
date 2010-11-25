@@ -361,7 +361,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		for(CmpVertex vert:transitionMatrix.keySet())
 			if (whatToConsider == null || whatToConsider.stateToConsider(vert))
 			{
-				if (intToVertexMap != null) intToVertexMap[num]=vert;// populate an inverse map
+				intToVertexMap[num]=vert;// populate an inverse map
 				vertToIntMap.put(vert, num++);// populate the forward map
 			}
 		assert num == size;
@@ -658,6 +658,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
+	@SuppressWarnings("rawtypes")
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -747,8 +748,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		pairCompatibility.removeFromIncompatibles(A, B);
 	}	
 
-	public void setInit(CmpVertex init) {
-		this.init = init;
+	public void setInit(CmpVertex initVertex) {
+		this.init = initVertex;
 	}
 
 	public CmpVertex getInit() {
@@ -851,6 +852,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		/**
 		 * @see java.lang.Object#equals(java.lang.Object)
 		 */
+		@SuppressWarnings("rawtypes")
 		@Override
 		public boolean equals(Object obj) {
 			if (obj == null) return false;

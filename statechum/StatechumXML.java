@@ -84,10 +84,12 @@ public enum StatechumXML
 		
 		return new NodeList() {
 
+			@Override 
 			public int getLength() {
 				return finalCounter;
 			}
 
+			@Override 
 			public Node item(int index) {
 				if (index == 0)
 					return finalNodeA;// the first element if available

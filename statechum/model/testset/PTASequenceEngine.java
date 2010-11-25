@@ -65,7 +65,7 @@ public class PTASequenceEngine
 		/** Constructor for reject nodes. */
 		Node() 
 		{ 
-			ID = negativeNodeID;fsmState=null;
+			ID = negativeNodeID--;fsmState=null;
 		}
 
 		/** Constructor for accept nodes. */
@@ -94,7 +94,7 @@ public class PTASequenceEngine
 		/** The ID of this node, positive for accept nodes, negative for reject ones. */
 		private final int ID;
 		/** The FSM state this object corresponds. */
-		private final Object fsmState;
+		protected final Object fsmState;
 
 		/* (non-Javadoc)
 		 * @see java.lang.Object#hashCode()
@@ -422,9 +422,35 @@ public class PTASequenceEngine
 			return false;// reached a reject state but not the end of the sequence
 
 		return !checkLeaf || 
-			pta.get(currentNode).isEmpty();
+			pta.get(currentNode).isEmpty();// this statement is true if currentNode is the leaf (no outgoing transitions) 
 	}
 
+	/** When adding a sequence to a collection of sequences in random walk generation, 
+	 * it is necessary to ensure that no existing sequence is a prefix of the one to be added. This method is used to check this.
+	 * It is basically a revamp of the <em>containsSequence</em> method.
+	 *  
+	 *  @param inputSequence the sequence to check
+	 */ 
+	public boolean extendsLeaf(List<String> inputSequence)
+	{
+		PTASequenceEngine.Node currentNode = init;
+		Iterator<String> seqIt = inputSequence.iterator();
+		while(seqIt.hasNext() && currentNode.isAccept())
+		{
+			Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
+			String input = seqIt.next();
+			if (row.containsKey(input))
+				currentNode = row.get(input);
+			else
+				// no transition with the current input, if this is a leaf node the current sequence will extend it.
+				return currentNode != init && row.isEmpty();
+		}
+		if (seqIt.hasNext())
+			return true;// reached a reject state but not the end of the sequence; the reject node is definitely a leaf.
+		
+		return false;// check if the current node is a leaf one
+	}
+	
 	/** Turns this PTA into a set of sequences and returns this set. */
 	public Collection<List<String>> getDataORIG()
 	{
@@ -667,6 +693,7 @@ public class PTASequenceEngine
 	/** A predicate which always returns true. */
 	public static final FilterPredicate truePred = new FilterPredicate()
 	{
+		@Override 
 		public boolean shouldBeReturned(@SuppressWarnings("unused") Object name) {
 			return true;
 		}
@@ -677,6 +704,7 @@ public class PTASequenceEngine
 	{
 		return new FilterPredicate()
 		{
+			@Override 
 			public boolean shouldBeReturned(Object name) {
 				return fsm.shouldBeReturned(name);
 			}

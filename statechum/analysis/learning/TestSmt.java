@@ -99,7 +99,7 @@ public class TestSmt {
 	public void testYices_error1()
 	{
 		
-		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
 			Smt smt = new Smt();smt.loadData("(define x::int)\n(assert (A> x 1))");
 		}}, IllegalArgumentException.class,"Undefined name \"A>\"");
 	}
@@ -116,7 +116,7 @@ public class TestSmt {
 	@Test
 	public void testYices_error2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() throws NumberFormatException {
+		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
 			Smt smt = new Smt();smt.loadData("(define x::bool)\n(assert (> x 1))");
 		}}, IllegalArgumentException.class,"argument is not a numeral");
 	}

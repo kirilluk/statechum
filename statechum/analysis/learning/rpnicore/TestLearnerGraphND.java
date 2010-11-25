@@ -165,7 +165,7 @@ public class TestLearnerGraphND {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a"),config);
 		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
 	}
@@ -175,7 +175,7 @@ public class TestLearnerGraphND {
 	public final void testbuildDeterministicGraph_fail2()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
 	}
@@ -186,7 +186,7 @@ public class TestLearnerGraphND {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
 		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph();
 		}}, IncompatibleStatesException.class,"");
 	}
@@ -224,7 +224,7 @@ public class TestLearnerGraphND {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph(complexgraphND,"testbuildDeterministicGraphComplexND"),Configuration.getDefaultConfiguration());
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("junk"), graph.config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph(junkVertex);
 		}}, IllegalArgumentException.class,"the supplied state");
 		
@@ -236,7 +236,7 @@ public class TestLearnerGraphND {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(Configuration.getDefaultConfiguration());graph.initEmpty();
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("junk"), graph.config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			graph.pathroutines.buildDeterministicGraph(junkVertex);
 		}}, IllegalArgumentException.class,"non-null");
 		

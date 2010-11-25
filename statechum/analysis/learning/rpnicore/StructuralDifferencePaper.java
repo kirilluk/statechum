@@ -86,8 +86,8 @@ public class StructuralDifferencePaper {
 				edsm = new LearnerGraph(buildGraph("a-initialise->b-connect->c-login->d-storefile->e-changedirectory->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedirectory->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","edsm"),config)
 				;
 				//"A-initialise->B-connect->C-login->D-setfiletype->D-retrievefile->D-delete->D-storefile->D-makedir->D-listfiles->D-changedirectory->E-listnames->D\nE-listfiles->D-appendfile->F-setfiletype->H-rename->D-rename->F-logout->G-disconnect->I\nD-logout->G",	"correct"),config);
-		LearnerGraphND 
-			markov = new LearnerGraphND(buildGraph(markovString,"markov"),config);
+		//LearnerGraphND 
+		//	markov = new LearnerGraphND(buildGraph(markovString,"markov"),config);
 		/*
 		Visualiser.updateFrame(cvsGraph, null);
 		Visualiser.updateFrame(edsm, null);
@@ -102,6 +102,7 @@ public class StructuralDifferencePaper {
 
 		System.out.println(generator.getAllSequences(0).getData(new FilterPredicate()
 		{
+			@Override
 			public boolean shouldBeReturned(Object name) {
 				return !generator.getAllSequences(0).getFSM().shouldBeReturned(name);
 			}

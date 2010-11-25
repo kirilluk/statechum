@@ -324,7 +324,7 @@ public class TestGraphConstructionWithDifferentConf {
 		new LearnerGraph(g,config);// without the vertex being added, everything should be fine.
 		g.addVertex(v);// add the vertex
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new LearnerGraph(g,config);// now getGraphData should choke.
 		}},IllegalArgumentException.class,expectedExceptionString);
 	}
@@ -381,7 +381,7 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public void testGraphConstructionFail6() 
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new LearnerGraph(new DirectedSparseGraph(),config);			
 		}},IllegalArgumentException.class,"missing initial");
 	}
@@ -415,7 +415,7 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testGraphConstruction_nondet_1b()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			new LearnerGraph(buildGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a"),Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,"non-determinism");
 	}

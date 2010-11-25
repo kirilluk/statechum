@@ -191,6 +191,7 @@ public class LabelRepresentation
 			return name;
 		}
 
+		@Override 
 		public int compareTo(LowLevelFunction o) {
 			return name.compareTo(o.name);
 		}
@@ -587,6 +588,7 @@ public class LabelRepresentation
 		final StringBuffer additionalVariables = new StringBuffer(),additionalDeclarations = new StringBuffer();
 		protected final Map<LowLevelFunction,Collection<String>> variablesUsedForArgs = new TreeMap<LowLevelFunction,Collection<String>>();
 		
+		@Override 
 		public void reset()
 		{
 			additionalVariables.setLength(0);additionalDeclarations.setLength(0);
@@ -601,6 +603,7 @@ public class LabelRepresentation
 			useKind = kind;reset();
 		}
 		
+		@Override 
 		public String HandleLowLevelFunction(String functionName,List<String> args) 
 		{
 			String result = null;
@@ -686,6 +689,7 @@ public class LabelRepresentation
 			return result;
 		}
 		
+		@Override 
 		public CompositionOfFunctions getComposition(String text)
 		{
 			return new CompositionOfFunctions(text,additionalDeclarations.toString(),additionalVariables.toString(),variablesUsedForArgs);
@@ -1333,7 +1337,6 @@ public class LabelRepresentation
 				
 				while(operationIterator.hasNext())
 				{
-					CmpVertex previousState = currentState;
 					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
 
 					populateVarsUsedForArgs(currentIO, JUConstants.intUNKNOWN, abstractState.stateNumber);
@@ -1366,7 +1369,6 @@ public class LabelRepresentation
 				 // because the last element of a trace should be unsatisfiable when taken together with the last
 				 // but one abstract state. This last element may be internally unsatisfiable, hence we'd like not
 				 // to introduce unsatisfiable constraints on arguments this may bring.
-					CmpVertex previousState = currentState;
 					currentState = gr.transitionMatrix.get(currentState).get(currentLabel.getName());
 
 					populateVarsUsedForArgs(currentIO, JUConstants.intUNKNOWN, abstractState.stateNumber);

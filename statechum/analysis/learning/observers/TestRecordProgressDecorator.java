@@ -307,7 +307,7 @@ public class TestRecordProgressDecorator {
 	@Test
 	public final void testWriteSequences_fail2() {
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.expectNextElement("U");
 		}},IllegalArgumentException.class,"encountered");
 	}
@@ -330,7 +330,7 @@ public class TestRecordProgressDecorator {
 	/** Wrong tag when doing readSequenceList */
 	@Test
 	public final void testWriteSequences_fail3() {
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
 			ProgressDecorator.readSequenceList(loader.expectNextElement("TT"),"someData");
 		}},IllegalArgumentException.class,"expecting to load a list of sequences");
@@ -351,7 +351,7 @@ public class TestRecordProgressDecorator {
 		dumper.close();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
 		}},IllegalArgumentException.class,"expecting to load a list with name ");
 	}
@@ -442,7 +442,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
 		final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -458,7 +458,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
 		final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -473,7 +473,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		
 		final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -488,7 +488,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 	
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, null);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -503,7 +503,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 	
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, null);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -518,7 +518,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 	
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, null);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -533,7 +533,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 		
 		final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"B"}));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -549,7 +549,7 @@ public class TestRecordProgressDecorator {
 		A=dumper.doc.createElement("C");dumper.topElement.appendChild(A);
 		
 		final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}},IllegalArgumentException.class,"found unexpected elements");
 	}

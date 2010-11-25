@@ -189,8 +189,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		Graph original = (Graph)model.copy();
 		Vertex q = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
 		Vertex qDash = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
-		pair = new OrigStatePair(q,qDash);
-		DirectedSparseGraph temp = merge((DirectedSparseGraph)original, pair);
+		
+		DirectedSparseGraph temp = merge((DirectedSparseGraph)original, new OrigStatePair(q,qDash));
 		OrigStatePair mergable = findMergablePair(temp);
 		while(mergable!=null){
 			temp=merge(temp, mergable);
@@ -445,7 +445,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		}
 		for(Vertex v:endVertices)
 		{
-			List l = p.getPath(r, v);
+			List<Edge> l = p.getPath(r, v);
 			if(!l.isEmpty())
 				setOfPaths.addAll(getPaths(l));
 		}

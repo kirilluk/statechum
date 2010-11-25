@@ -436,6 +436,10 @@ public class Configuration implements Cloneable
 		result = prime * result + smtGraphRangeConsistencyCheck.hashCode();
 		result = prime * result + (prefixClosed?  1231 : 1237);
 		result = prime * result + gdScoreComputation.hashCode();
+		result = prime * result + gdScoreComputationAlgorithm.hashCode();
+		result = prime * result + gdScoreComputationAlgorithm_TestSet_ExtraStates;
+		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
+		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_ExtraLength;
 		
 		return result;
 	}
@@ -550,6 +554,14 @@ public class Configuration implements Cloneable
 		if (prefixClosed != other.prefixClosed)
 			return false;
 		if (gdScoreComputation != other.gdScoreComputation)
+			return false;
+		if (gdScoreComputationAlgorithm != other.gdScoreComputationAlgorithm)
+			return false;
+		if (gdScoreComputationAlgorithm_TestSet_ExtraStates != other.gdScoreComputationAlgorithm_TestSet_ExtraStates)
+			return false;
+		if (gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences != other.gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences)
+			return false;
+		if (gdScoreComputationAlgorithm_RandomWalk_ExtraLength != other.gdScoreComputationAlgorithm_RandomWalk_ExtraLength)
 			return false;
 		
 		return true;
@@ -678,7 +690,7 @@ public class Configuration implements Cloneable
 	{
 		randomPathAttemptFudgeThreshold = thr;
 	}
-
+	
 	protected boolean generateTextOutput = false;
 	protected boolean generateDotOutput = false;
 	
@@ -732,21 +744,97 @@ public class Configuration implements Cloneable
 	}
 	
 	/** Scores of state pairs can be computed in different ways in GD, the enumeration below reflects the choices.
+	 * <ul>
+	 * <li><em>GD_RH</em> means that a system of equations has to be solved using the scores 
+	 * as the right-hand side as well as k values. </li>
+	 * <li><em>GD_DIRECT</em> here scores are used directly, which is the same as double the scores 
+	 * obtained with RH and k=0, but since there is no need to solve equations the performance is a lot better.
+	 * <li>
+	 * </ul>
 	 */
-	public enum GDScoreComputationEnum { GD_BCR, GD_LINEAR_RH_BCR, GD_LINEAR_RH_OUTGOINGINCOMING };
+	public enum GDScoreComputationEnum { GD_RH, GD_DIRECT };
 
-	protected GDScoreComputationEnum gdScoreComputation = GDScoreComputationEnum.GD_LINEAR_RH_OUTGOINGINCOMING;
-	
+	protected GDScoreComputationEnum gdScoreComputation = GDScoreComputationEnum.GD_RH;
+
 	public GDScoreComputationEnum getGdScoreComputation()
 	{
 		return gdScoreComputation;
 	}
-	
+
 	public void setGdScoreComputation(GDScoreComputationEnum value)
 	{
 		gdScoreComputation = value;
 	}
+
+	/** Scoring algorithm to use, 
+	 * <ul>
+	 * <li><em>SCORE_TESTSET</em> do BCR based on a test set generated with W method with k=gdScoreComputationAlgorithm_TestSet_ExtraStates.</li>
+	 * <li><em>SCORE_RANDOMPATHS</em> use random walk with parameters gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences gdScoreComputationAlgorithm_RandomWalk_ExtraLength.</li>
+	 * <li><em>SCORE_LINEAR</em> count matched transitions.</li>
+	 * </ul>
+	 */
+	public enum GDScoreComputationAlgorithmEnum { SCORE_TESTSET, SCORE_RANDOMPATHS, SCORE_LINEAR };
 	
+	protected GDScoreComputationAlgorithmEnum gdScoreComputationAlgorithm = GDScoreComputationAlgorithmEnum.SCORE_LINEAR;
+
+	public GDScoreComputationAlgorithmEnum getGdScoreComputationAlgorithm()
+	{
+		return gdScoreComputationAlgorithm;
+	}
+	
+	public void setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum value)
+	{
+		gdScoreComputationAlgorithm = value;
+	}
+	
+	/** When scores are generated using SCORE_TESTSET (via W method), this number indicates how many extra 
+	 * states are to use in test generation.
+	 */
+	protected int gdScoreComputationAlgorithm_TestSet_ExtraStates;
+	
+	public int getGdScoreComputationAlgorithm_TestSet_ExtraStates()
+	{
+		return gdScoreComputationAlgorithm_TestSet_ExtraStates;
+	}
+	
+	public void setGdScoreComputationAlgorithm_TestSet_ExtraStates(int value)
+	{
+		if (value < 0) throw new IllegalArgumentException("should be non-negative");
+		gdScoreComputationAlgorithm_TestSet_ExtraStates = value;
+	}
+	
+	/** When scores are generated using Random walks, this number reflects the number of sequences to generate.
+	 * The generated sequences will be split equally into positive and negative sequences.
+	 */
+	protected int gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
+	
+	public int getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences()
+	{
+		return gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
+	}
+	
+	public void setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(int value)
+	{
+		if (value < 0) throw new IllegalArgumentException("should be non-negative");
+		gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences = value;
+	}
+
+	/** The length of sequences generated with random walks is a diameter of a graph plus a constant supplied using
+	 * the variable below. 
+	 */
+	protected int gdScoreComputationAlgorithm_RandomWalk_ExtraLength=0;
+	
+	public int getGdScoreComputationAlgorithm_RandomWalk_ExtraLength()
+	{
+		return gdScoreComputationAlgorithm_RandomWalk_ExtraLength;
+	}
+	
+	public void setGdScoreComputationAlgorithm_RandomWalk_ExtraLength(int value)
+	{
+		if (value < 0) throw new IllegalArgumentException("should be non-negative");
+		gdScoreComputationAlgorithm_RandomWalk_ExtraLength = value;
+	}
+
 	/** Considering all pairs of states, we need to determine those of 
 	 * them which are over a specific threshold,
 	 * defined as top so many percent (expressed as a fraction, so top 5% is 0.05).
@@ -1161,7 +1249,7 @@ public class Configuration implements Cloneable
 		}
 		catch(Exception e)
 		{
-			throwUnchecked("failed to load value of "+var.getName(),e);
+			throwUnchecked("failed to load value of "+(var == null?"UNKNOWN":var.getName()),e);
 		}		
 	}
 }

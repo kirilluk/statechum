@@ -697,7 +697,7 @@ public class TestFSMAlgo {
 	
 	public final void checkForCorrectException(final int [][]tTable, final int []vFrom, String exceptionString)
 	{
-		statechum.Helper.checkForCorrectException(new whatToRun() { public void run() {
+		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			LearnerGraph.convertTableToFSMStructure(tTable, vFrom, -1	,config);
 		}}, IllegalArgumentException.class,exceptionString);
 	}

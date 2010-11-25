@@ -51,8 +51,31 @@ public class RandomPathGenerator {
 	 * @param random the random number generator.
 	 * @param extra the length of paths will be diameter plus this value.
 	 * @param initial the state to start the traversal with. null means use the initial state of <em>graph</em>.
+	 * @param alphabet in some cases we would want to generate walks using a different alphabet than the one visible in a graph. 
+	 * For instance, if we take a single state of a graph, only a portion of the whole 
+	 * graph will be accessible and this will limit visible alphabet while the alphabet for the whole has to be used.
+	 * Alphabet obtained from the supplied graph if <em>null</em>.
 	 */ 
-	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial) {
+	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial) 
+	{
+		this(graph,random,extra,initial,null);
+	}
+	
+	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
+	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
+	 * to java's Random being non-serialisable.
+	 *  
+	 * @param baseGraph the graph to operate on
+	 * @param random the random number generator.
+	 * @param extra the length of paths will be diameter plus this value.
+	 * @param initial the state to start the traversal with. null means use the initial state of <em>graph</em>.
+	 * @param alphabet in some cases we would want to generate walks using a different alphabet than the one visible in a graph. 
+	 * For instance, if we take a single state of a graph, only a portion of the whole 
+	 * graph will be accessible and this will limit visible alphabet while the alphabet for the whole has to be used.
+	 * Alphabet obtained from the supplied graph if <em>null</em>.
+	 */ 
+	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial,Set<String> alphabetArg) 
+	{
 		g = graph;randomNumberGenerator = random;
 		if (initial != null) 
 		{ 
@@ -63,8 +86,16 @@ public class RandomPathGenerator {
 		
 		transitions.clear();inputsRejected.clear();
 		/** The alphabet of the graph. */
-		Set<String> alphabet = g.pathroutines.computeAlphabet();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+		Set<String> alphabet = null;
+		if (alphabetArg == null)
+			alphabet = g.pathroutines.computeAlphabet();
+		else
+		{// check that the supplied actual alphabet includes the one in the graph 
+			Set<String> origAlphabet = g.pathroutines.computeAlphabet();
+			origAlphabet.removeAll(alphabetArg);if(!origAlphabet.isEmpty()) throw new IllegalArgumentException("the supplied alphabet does not include the one of the graph, "+origAlphabet+" elements are new to the graph");
+			alphabet=alphabetArg;
+		}
+ 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			ArrayList<Entry<String,CmpVertex>> row = new ArrayList<Entry<String,CmpVertex>>();row.addAll(entry.getValue().entrySet());
 			transitions.put(entry.getKey(), row);
@@ -121,8 +152,7 @@ public class RandomPathGenerator {
 		}
 	}
 	
-	protected PTASequenceSet allSequences = null,
-		extraSequences = null;
+	protected PTASequenceSet allSequences = null,extraSequences = null;
 	
 	/** Generates a random walk through the graph. Since it attempts to add elements to a graph
 	 * in the course of checking whether they belong to it, it should be used to add
@@ -133,9 +163,9 @@ public class RandomPathGenerator {
 	 * @param walkLength the length of a walk. 
 	 * @param prefixLen the length of the path to check for existence in a PTA. This is 
 	 * useful for generation of negative paths such that for each such path,
-	 * where a positive prefix is unique in a PTA. 
+	 * a positive prefix of it is unique in a PTA. 
 	 * @param positive whether to generate a positive walk.
-	 * @param allSequences contains all sequences generated.
+	 * The member collection <em>allSequences</em> contains all sequences generated so far.
 	 * @return the path computed. Throws IllegalArgument exception if arguments are wrong. 
 	 * Returns null if the requested number of paths cannot be computed (because graph does not 
 	 * have enough transitions).
@@ -144,7 +174,7 @@ public class RandomPathGenerator {
 	{
 		if (walkLength < 1) 
 			throw new IllegalArgumentException("cannot generate paths with length less than one");
-		if (prefixLen < 1 || prefixLen > walkLength)
+		if (prefixLen < 0 || prefixLen > walkLength)
 			throw new IllegalArgumentException("invalid prefix length");
 		
 		int generationAttempt = 0;
@@ -184,7 +214,7 @@ public class RandomPathGenerator {
 			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
 				return null;
 		}
-		while(path.size() < walkLength || allSequences.contains(path.subList(0, prefixLen)));
+		while(prefixLen > 0 && (path.size() < walkLength || allSequences.contains(path.subList(0, prefixLen))));
 		return path;
 	}
 	
@@ -196,6 +226,7 @@ public class RandomPathGenerator {
 			filter=percent;
 		}
 		
+		@Override
 		public boolean shouldBeReturned(Object name) {
 			return ((StateName)name).percent <= filter;
 		}
@@ -210,6 +241,7 @@ public class RandomPathGenerator {
 			filter=percent;
 		}
 		
+		@Override
 		public boolean shouldBeReturned(Object name) {
 			return ((StateName)name).percent == filter;
 		}
@@ -269,7 +301,9 @@ public class RandomPathGenerator {
 	}
 
 	/** Generates positive and negative paths where negatives are just 
-	 * positives with an extra element added at the end. 
+	 * positives with an extra element added at the end.
+	 * If the requested length of sequences is 1, no positives are generated.
+	 *  
 	 * Data added is split into a number of parts, with a specific 
 	 * number of sequences per chunk.
 	 * 
@@ -279,8 +313,8 @@ public class RandomPathGenerator {
 	 */
 	public void generatePosNeg(int numberPerChunk, int chunks)
 	{
-		if (pathLength < 2)
-			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
+		if (pathLength < 1)
+			throw new IllegalArgumentException("Cannot generate paths with length less than 1");
 		if (numberPerChunk % 2 != 0)
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
 		chunksGenerated = 0;
@@ -288,10 +322,14 @@ public class RandomPathGenerator {
 		int distribution [] = new int[seqNumber];
 		RandomLengthGenerator rnd = new RandomLengthGenerator(){
 
+			@Override
 			public int getLength() {
-				return randomNumberGenerator.nextInt(pathLength-1)+2;// the shortest length is 2
+				if (pathLength > 1)
+					return randomNumberGenerator.nextInt(pathLength-1)+2;// the shortest length is 2
+				return 1;
 			}
 
+			@Override
 			public int getPrefixLength(int len) {
 				return len-1;
 			}
@@ -311,9 +349,15 @@ public class RandomPathGenerator {
 			tag = negatives[i % chunks];
 			//System.out.println("generating for chunk "+tag+" with length "+distribution[i]);
 			List<String> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
+			if (path == null)
+				throw new IllegalArgumentException("failed to generate a negative"+
+						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
+						g.config.getRandomPathAttemptFudgeThreshold()+" times");
 			allSequences.add(path);
 			tag = positives[i % chunks];
-			extraSequences.add(path.subList(0, rnd.getPrefixLength(path.size())));// all positives go there
+			int prefixLength = rnd.getPrefixLength(path.size());
+			if (prefixLength > 0)
+				extraSequences.add(path.subList(0, rnd.getPrefixLength(path.size())));// all positives go there
 		}
 		chunksGenerated = chunks;
 	}
@@ -339,7 +383,6 @@ public class RandomPathGenerator {
 		tag = new StateName(0,false);
 		allSequences = new PTASequenceSet(new PercentLabelledPTA());extraSequences = new PTASequenceSet(new PercentLabelledPTA());
 	}
-	
 	/** Generates random positive and negative paths. 
 	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
 	 * 
@@ -348,8 +391,20 @@ public class RandomPathGenerator {
 	 */
 	public void generateRandomPosNeg(int numberPerChunk, int chunks)
 	{
-		if (pathLength < 2)
-			throw new IllegalArgumentException("Cannot generate paths with length of less than 2");
+		generateRandomPosNeg(numberPerChunk,chunks,true);
+	}
+	
+	/** Generates random positive and negative paths. 
+	 * Data added is split into a number of parts, with a specific number of sequences per chunk.
+	 * 
+	 * @param numberPerChunk number of sequences per chunk.
+	 * @param chunks the number of chunks to generate.
+	 * @param exceptionOnFailure whether to throw an exception if paths cannot be generated.  
+	 */
+	public void generateRandomPosNeg(int numberPerChunk, int chunks, boolean exceptionOnFailure)
+	{
+		if (pathLength < 1)
+			throw new IllegalArgumentException("Cannot generate paths with length of less than 1");
 		if (numberPerChunk % 2 != 0)
 			throw new IllegalArgumentException("Number of sequences per chunk must be even");
 		chunksGenerated = 0;
@@ -358,10 +413,12 @@ public class RandomPathGenerator {
 		int distribution [] = new int[seqNumber];
 		RandomLengthGenerator rnd = new RandomLengthGenerator(){
 
+			@Override
 			public int getLength() {
 				return randomNumberGenerator.nextInt(pathLength)+1;
 			}
 
+			@Override
 			public int getPrefixLength(int len) {
 				return len;
 			}
@@ -379,9 +436,27 @@ public class RandomPathGenerator {
 		for(int i=seqNumber-1;i>=0;--i)
 		{
 			tag = negatives[i % chunks];
-			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,false));
+			List<String> path = null;
+			
+			path = generateRandomWalkWithFudge(distribution[i],rnd,false);
+			if (path != null)
+				allSequences.add(path);
+			else
+				if (exceptionOnFailure)
+					throw new IllegalArgumentException("failed to generate a negative"+
+						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
+						g.config.getRandomPathAttemptFudgeThreshold()+" times");
+
 			tag = positives[i % chunks];
-			allSequences.add(generateRandomWalkWithFudge(distribution[i],rnd,true));
+			
+			path=generateRandomWalkWithFudge(distribution[i],rnd,true);
+			if (path != null)
+				allSequences.add(path);
+			else
+				if (exceptionOnFailure)
+					throw new IllegalArgumentException("failed to generate a positive"+
+						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
+						g.config.getRandomPathAttemptFudgeThreshold()+" times");
 		}
 		chunksGenerated = chunks;
 	}
@@ -396,56 +471,31 @@ public class RandomPathGenerator {
 		return fudgeDetails;
 	}
 	
-	/** Generates a walk, but if none can be produced for a given seq length, 
+	/** Generates a walk, but if none can be produced for a given sequence length, 
 	 * attempts to randomly choose a different length.
 	 */
 	List<String> generateRandomWalkWithFudge(int origWalkLength, RandomLengthGenerator rnd,boolean positive)
 	{
 		List<String> path = generateRandomWalk(origWalkLength, rnd.getPrefixLength(origWalkLength), positive);
 		if (path != null)
+		{
+			assert !allSequences.containsAsLeaf(path);assert !extraSequences.containsAsLeaf(path);
 			return path;
-
+		}
 		for(int i=1;i<g.config.getRandomPathAttemptFudgeThreshold();++i)
 		{
 			int revisedWalkLength = rnd.getLength();
 			path = generateRandomWalk(revisedWalkLength, rnd.getPrefixLength(revisedWalkLength), positive);
 			if (path != null)
 			{
-				boolean notPrefix = verifyNoPrefixOf(path, allSequences, rnd) &&
-					verifyNoPrefixOf(path, extraSequences, rnd);
-
+				boolean notPrefix = !allSequences.extendsLeaf(path) && !extraSequences.extendsLeaf(path);
 				fudgeDetails.add(origWalkLength+","+rnd.getPrefixLength(origWalkLength)+" "+(positive?"positive":"negative")+"->"+revisedWalkLength+","+rnd.getPrefixLength(revisedWalkLength)+
 						" "+(notPrefix?"done":"ATTEMPT FAILED"));
 				if (notPrefix)
 					return path;
 			}
 		}
-		
-		throw new IllegalArgumentException("failed to generate a "+(positive?"positive":"negative")+
-				" path of length "+origWalkLength+" (prefix length "+rnd.getPrefixLength(origWalkLength)+") after even after trying to fudge it "+
-				g.config.getRandomPathAttemptFudgeThreshold()+" times");
+		return null;
 	}
 	
-	/** Checks that the path supplied does not have a prefix currently in the collection supplied.
-	 * 
-	 * @param path path to check
-	 * @param engine the collection
-	 * @param rnd used to determine how long prefix to look for
-	 * @return true if there is no prefix leading to a leaf in the collection.
-	 */
-	private static boolean verifyNoPrefixOf(List<String> path,PTASequenceSet engine,RandomLengthGenerator rnd)
-	{
-		boolean notPrefix = true;
-		int pathPrefixLen=rnd.getPrefixLength(path.size())-1;
-		for(;
-			pathPrefixLen>0 && !engine.contains(path.subList(0, pathPrefixLen));
-			--pathPrefixLen);
-		if (pathPrefixLen > 0)
-		{// there is a sequence path.subList(0, pathPrefixLen) in our PTA, check that
-		 // the end of it is not a tail node.
-			notPrefix = !engine.containsAsLeaf(path.subList(0, pathPrefixLen));
-		}
-		
-		return notPrefix;
-	}
 }

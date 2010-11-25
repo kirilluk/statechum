@@ -53,7 +53,7 @@ import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
 @RunWith(Parameterized.class)
 public class TestWMethodUniversal 
 {
-	private boolean prefixClosed;
+	boolean prefixClosed;
 	
 	public TestWMethodUniversal(boolean closed)
 	{
@@ -242,12 +242,13 @@ public class TestWMethodUniversal
 	{
 		final LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2"),config);
 		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
 		}},IllegalArgumentException.class,"equivalent states cannot be incompatible");
 	}
 	
 	public class EmptyPermutator implements FsmPermutator {
+		@Override 
 		public ArrayList<Pair<CmpVertex, String>> getPermutation(
 				Collection<Pair<CmpVertex, String>> from) {
 			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());
@@ -264,6 +265,7 @@ public class TestWMethodUniversal
 			rnd = new Random(randomArg);
 		}
 		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
+		@Override 
 		public ArrayList<Pair<CmpVertex, String>> getPermutation(
 				Collection<Pair<CmpVertex, String>> from) {
 			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());

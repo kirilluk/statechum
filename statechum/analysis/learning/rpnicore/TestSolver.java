@@ -128,12 +128,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"zero-sized problem");		
@@ -149,12 +149,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
@@ -171,12 +171,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"too few");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"too few");		
@@ -192,12 +192,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"Ap[0] should be 0");		
@@ -213,12 +213,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
@@ -234,12 +234,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
@@ -255,12 +255,12 @@ public class TestSolver {
 		final double x[] = new double[b.length];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
@@ -276,12 +276,12 @@ public class TestSolver {
 		final double x[] = new double[b.length+6];
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LSolver.extsolve(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				new LSolver(Ap, Ai, Ax, b, x);
 			}
 		}, IllegalArgumentException.class,"inconsistent dimension");		
@@ -298,13 +298,13 @@ public class TestSolver {
 		for(int i=0;i<solver.j_b.length;++i) x.setQuick(i, solver.j_b[i]);
 		
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				solver.solveExternally();
 			}
 		}, IllegalArgumentException.class,"singular");		
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				LUDecompositionQuick coltSolver = new LUDecompositionQuick();
 				coltSolver.decompose(matrix);coltSolver.setLU(matrix);
 				coltSolver.solve(x);
@@ -312,7 +312,7 @@ public class TestSolver {
 		}, IllegalArgumentException.class,"singular");		
 
 		checkForCorrectException(new whatToRun() {
-			public void run() throws NumberFormatException {
+			public @Override void run() throws NumberFormatException {
 				for(int i=0;i<testMatrix.rows();++i) solver.j_x[i]=0;
 				solver.solveUsingColt();
 			}
@@ -351,6 +351,7 @@ public class TestSolver {
 		DoubleFunction randomGenerator = new DoubleFunction() {
 			private final Random rnd = new Random(0);
 			
+			@Override 
 			public double apply(@SuppressWarnings("unused")	double argument) {
 				return rnd.nextDouble()*10;
 			}

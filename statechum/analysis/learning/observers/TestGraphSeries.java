@@ -277,7 +277,7 @@ public class TestGraphSeries {
 		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(StatechumXML.gdGD.toString(), grElement2.getNodeName());
 		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(AbstractPersistence.endl(dumper.doc));
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(grElement2);
 		}},IllegalArgumentException.class,"write-only");
 	}
@@ -296,7 +296,7 @@ public class TestGraphSeries {
 		
 		series.reset();
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(grElement2);
 		}},IllegalArgumentException.class,"write-only");
 	}
@@ -316,7 +316,7 @@ public class TestGraphSeries {
 		graph = series.readGraph(elem);
 		Assert.assertNull(WMethod.checkM_and_colours(graph, graphA,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.writeGraph(graphA);
 		}},IllegalArgumentException.class,"read-only");
 		
@@ -339,7 +339,7 @@ public class TestGraphSeries {
 		
 		series.reset();
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.writeGraph(graphA);
 		}},IllegalArgumentException.class,"read-only");
 		
@@ -353,7 +353,7 @@ public class TestGraphSeries {
 		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = new GraphSeries(renumberConfig);
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(AbstractPersistence.endl(dumper.doc));
 		}},IllegalArgumentException.class,"loadGraph was passed a non-element");
 	}
@@ -366,7 +366,7 @@ public class TestGraphSeries {
 		final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,renumberConfig,false);
 		final GraphSeries series = new GraphSeries(renumberConfig);
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			series.readGraph(dumper.doc.createElement(TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"expected either graph or GD");
 	}

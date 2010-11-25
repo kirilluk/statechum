@@ -44,7 +44,6 @@ import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -889,7 +888,8 @@ public class Transform
 	{
 		Collection<LearnerGraph> ifthenAutomata = new LinkedList<LearnerGraph>();
 		LTL_to_ba converter = new LTL_to_ba(config);
-		if (converter.ltlToBA(ltl, graph, true))
+		if (converter.ltlToBA(ltl, graph, true,
+				GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)))
 			try {
 				LearnerGraph ltlAutomaton = Transform.ltlToIfThenAutomaton(converter.getLTLgraph().pathroutines.buildDeterministicGraph());
 				ltlAutomaton.setName("LTL");
@@ -1055,18 +1055,18 @@ public class Transform
 	
 	public static double QuanteKoschkeDifference(LearnerGraph A, LearnerGraph B)
 	{
-		LearnerGraph automaton = null;
+		LearnerGraph automatonReduced = null;
 		try {
-			automaton = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(A,A.config),B).pathroutines.buildDeterministicGraph();
+			automatonReduced = LearnerGraphND.UniteTransitionMatrices(new LearnerGraphND(A,A.config),B).pathroutines.buildDeterministicGraph();
 		} catch (IncompatibleStatesException e) {
 			Helper.throwUnchecked("failed to build a deterministic version of a union", e);
 		}
-		automaton = automaton.paths.reduce();
+		automatonReduced = automatonReduced.paths.reduce();
 		//Visualiser.updateFrame(A, B);
 		//Visualiser.updateFrame(automaton, null);
-		TraversalStatistics UA= countSharedTransitions(automaton, A), UB = countSharedTransitions(automaton, B);
-		double DuA = ((double)UA.Nx+UA.Tx)/(UA.matched+automaton.pathroutines.countEdges()),
-			DuB = ((double)UB.Nx+UB.Tx)/(UB.matched+automaton.pathroutines.countEdges());
+		TraversalStatistics UA= countSharedTransitions(automatonReduced, A), UB = countSharedTransitions(automatonReduced, B);
+		double DuA = ((double)UA.Nx+UA.Tx)/(UA.matched+automatonReduced.pathroutines.countEdges()),
+			DuB = ((double)UB.Nx+UB.Tx)/(UB.matched+automatonReduced.pathroutines.countEdges());
 		
 		return (DuA+DuB)/2;
 	}

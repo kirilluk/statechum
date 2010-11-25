@@ -43,15 +43,18 @@ public class MachineOracleDecorator extends LearnerDecorator {
 		this.target=argTarget;
 	}
 
+	@Override 
 	public boolean AddConstraints(LearnerGraph graph, LearnerGraph outcome, StringBuffer counterExampleHolder) {
 		return decoratedLearner.AddConstraints(graph,outcome,counterExampleHolder);
 	}
 
+	@Override 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
 			List<String> sequence, boolean accepted, JUConstants newColour) {
 			decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 
+	@Override 
 	public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph graph,
 			List<String> question, @SuppressWarnings("unused") int expectedAccept, 
 			@SuppressWarnings("unused") List<Boolean> acceptedElements,
@@ -61,43 +64,49 @@ public class MachineOracleDecorator extends LearnerDecorator {
 		return new Pair<Integer, String>(answer,null);
 	}
 
+	@Override 
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
 	{
 		return decoratedLearner.ChooseStatePairs(graph);
 	}
 
+	@Override 
 	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 
+	@Override 
 	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
 		return decoratedLearner.RecomputeQuestions(pair, original, temp);
 	}
 
+	@Override 
 	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair) 
 	{
 		return decoratedLearner.MergeAndDeterminize(original, pair);
 	}
 
+	@Override 
 	public void Restart(RestartLearningEnum mode) {
 		restarts++;
 		decoratedLearner.Restart(mode);
 
 	}
 
+	@Override 
 	public String getResult() {
 		return decoratedLearner.getResult()+","+questions+","+restarts;
 	}
 
-	public LearnerGraph init(Collection<List<String>> plus,
-			Collection<List<String>> minus) {
+	@Override 
+	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
 		return decoratedLearner.init(plus,minus);
 	}
 
-	public LearnerGraph init(PTASequenceEngine engine, int plusSize,
-			int minusSize) {
+	@Override 
+	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) {
 		return decoratedLearner.init(engine,plusSize,minusSize);
 	}
 

@@ -222,12 +222,19 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 */
 public class LSolver 
 {
-	public int j_Ap[];
-	public int[] j_Ai;
-	public double []j_Ax;
-	public double j_b[]; 
+	public int j_Ap[] = null;
+	public int[] j_Ai = null;
+	public double []j_Ax = null;
+	public double j_b[] = null; 
 	public final double j_x[];
 	
+	/** This one is a dummy constructor for the case where no solving is needed. */
+	protected LSolver(int size)
+	{
+		j_x=new double[size];
+	}
+	
+	/** Constructs an instance of this class and checks that arguments are valid. */
 	public LSolver(int Ap[], int[] Ai, double []Ax, double b[], double x[])
 	{
 		j_Ap=Ap;j_Ai=Ai;j_Ax=Ax;j_b=b;j_x=x;

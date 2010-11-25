@@ -57,17 +57,17 @@ public abstract class RPNILearner extends Observable implements Learner {
 	}
 	
 	/** Initialises this learner. */
-	abstract public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus);
+	abstract @Override public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus);
 
 	/** Initialises this learner. */
-	abstract public LearnerGraph init(PTASequenceEngine en, int plus, int minus);
+	abstract @Override public LearnerGraph init(PTASequenceEngine en, int plus, int minus);
 
-	public LearnerGraph learnMachine(PTASequenceEngine en, int plusSize, int minusSize) 
+	public @Override LearnerGraph learnMachine(PTASequenceEngine en, int plusSize, int minusSize) 
 	{
 		init(en, plusSize, minusSize);return learnMachine();
 	}
 	
-	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus)
+	public @Override LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus)
 	{
 		topLevelListener.init(plus,minus);return learnMachine();
 	}
@@ -80,7 +80,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	 * 
 	 * @param top new top of the stack of listeners.
 	 */
-	public void setTopLevelListener(Learner top)
+	public @Override void setTopLevelListener(Learner top)
 	{
 		topLevelListener = top;
 	}
@@ -181,6 +181,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	public final static String QUESTION_SPIN = "<spin>"; 
 	public final static String QUESTION_USER = "<USER>"; 
 	
+	@Override 
 	public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) 
 	{// this method is used to let observers know what is going on, the actual restarts are handled by the main learner routine.
 	}
@@ -202,6 +203,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted. 
 	 */
+	@Override 
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,final List<String> question, final int expectedForNoRestart, 
 			final List<Boolean> consistentFacts, final Object [] moreOptions)
 	{
@@ -215,7 +217,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 		else
 			try {
 				SwingUtilities.invokeAndWait(new Runnable() {
-					public void run() {
+					public @Override void run() {
 						final Object[] options = new Object[1+moreOptions.length];
 						
 						// A click on an element means a reject for that element and accept to all
@@ -270,7 +272,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 						    }
 						});
 						jop.addPropertyChangeListener(new PropertyChangeListener() {
-					        public void propertyChange(PropertyChangeEvent e) {
+					        public @Override void propertyChange(PropertyChangeEvent e) {
 					            String prop = e.getPropertyName();
 					            
 								Object value = e.getNewValue();
@@ -308,7 +310,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 					    });
 						javaList.addListSelectionListener(new ListSelectionListener() {
 	
-							public void valueChanged(ListSelectionEvent e) {
+							public @Override void valueChanged(ListSelectionEvent e) {
 								if (dialog.isVisible() && e.getSource() == javaList &&
 										!e.getValueIsAdjusting() && !javaList.isSelectionEmpty()
 									)

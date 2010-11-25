@@ -75,7 +75,7 @@ public class InfVertexHelper {
 	 * @param graph graph to add new state to
 	 * @return resulting state.
 	 */
-	public static CmpVertex nextState(CmpVertex vertex,Map<String,CmpVertex> transitions, String input,LearnerGraph graph)
+	public static CmpVertex nextState(@SuppressWarnings("unused") CmpVertex vertex,Map<String,CmpVertex> transitions, String input,LearnerGraph graph)
 	{
 		CmpVertex target = transitions.get(input);
 		if (target != null && target.getColour() == JUConstants.INF_AMBER)

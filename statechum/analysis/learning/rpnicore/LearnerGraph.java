@@ -48,10 +48,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	/** Represents a slightly different view of this machine and used in W set generation. */
 	public abstract class FSMImplementation implements FSMAbstraction
 	{
+		@Override
 		public Object getInitState() {
 			return getInit();
 		}
 	
+		@Override
 		public Object getNextState(Object currentState, String input) 
 		{
 			CmpVertex result = null;
@@ -61,6 +63,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			return result;
 		}
 	
+		@Override
 		public boolean isAccept(Object currentState) 
 		{
 			if (currentState == null)
@@ -71,12 +74,14 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		}
 
 		/** Whether a sequence ending at a given vertex should be returned as a result of getData(). */
+		@Override
 		abstract public boolean shouldBeReturned(Object elem);
 
 		/** This method should not be called.
 		 * 
 		 * @see statechum.model.testset.PTASequenceEngine.FSMAbstraction#setAccept(java.lang.Object, boolean)
 		 */
+		@Override
 		public void setAccept(@SuppressWarnings("unused") Object currentState, @SuppressWarnings("unused") boolean value) 
 		{
 			throw new UnsupportedOperationException("this method should not be called");
@@ -126,10 +131,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		{// nothing to initialise here
 		}
 		
+		@Override
 		public Object getInitState() {
 			return red;
 		}
 	
+		@Override
 		public Object getNextState(Object currentState, String input) 
 		{
 			CmpVertex result = null;
@@ -163,16 +170,19 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			return result;
 		}
 	
+		@Override
 		public boolean isAccept(@SuppressWarnings("unused")	Object currentState)
 		{
 			return true;
 		}
 
+		@Override
 		public boolean shouldBeReturned(Object elem) 
 		{
 			return nonExistingVertices.contains(elem);
 		}
 
+		@Override
 		public void setAccept(Object currentState, boolean value) 
 		{
 			CmpVertex vert = (CmpVertex)currentState;
@@ -370,69 +380,85 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{
 		return new Collection<CmpVertex>() {
 
+			@Override
 			public boolean add(@SuppressWarnings("unused") CmpVertex e) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public boolean addAll(@SuppressWarnings("unused") Collection<? extends CmpVertex> c) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public void clear() {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public boolean contains(Object o) {
 				return targ.equals(o);
 			}
 
+			@Override
 			public boolean containsAll(@SuppressWarnings("unused") Collection<?> c) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public boolean isEmpty() {
 				return false;
 			}
 
+			@Override
 			public Iterator<CmpVertex> iterator() {
 				return new Iterator<CmpVertex>()
 				{
 					boolean elementReturned = false;
+					@Override
 					public boolean hasNext() {
 						return !elementReturned;
 					}
 	
+					@Override
 					public CmpVertex next() {
 						assert hasNext();elementReturned = true;
 						return targ;
 					}
 	
+					@Override
 					public void remove() {
 						throw new UnsupportedOperationException("remove cannot be performed.");
 					}
 				};				
 			}
 
+			@Override
 			public boolean remove(@SuppressWarnings("unused") Object o) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public int size() {
 				return 1;
 			}
 
+			@Override
 			public Object[] toArray() {
 				throw new UnsupportedOperationException("should not be used");
 			}
 
+			@Override
 			public <T> T[] toArray(@SuppressWarnings("unused") T[] a) {
 				throw new UnsupportedOperationException("should not be used");
 			}

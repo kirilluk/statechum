@@ -328,7 +328,8 @@ final public class DeterministicDirectedSparseGraph {
 	 * The extension of the vertex where all operations are ID-based, for
 	 * performance.
 	 */
-	public final static class DeterministicVertex extends DirectedSparseVertex implements Comparable<CmpVertex>, CmpVertex {
+	public final static class DeterministicVertex extends DirectedSparseVertex implements CmpVertex 
+	{
 		private VertexID vertexID = null;
 
 		private int hashCode = super.hashCode();
@@ -497,6 +498,7 @@ final public class DeterministicDirectedSparseGraph {
 		 * rejects should appear earlier/later, the <i>nextID</i> method
 		 * will generate the appropriate number. 
 		 */
+		@Override 
 		public int compareTo(CmpVertex o) {
 			assert o != null;
 /*			if (!(o instanceof CmpVertex))
@@ -525,26 +527,30 @@ final public class DeterministicDirectedSparseGraph {
 			
 			return vertexID.equals(other.getID());
 		}
-		
+
 		public VertexID getID() {
 			return vertexID;
 		}
 
+		@Override 
 		public boolean isAccept() {
 			return DeterministicDirectedSparseGraph.isAccept(this);
 		}
 
+		@Override 
 		public void setAccept(boolean accept) 
 		{
 			removeUserDatum(JUConstants.ACCEPTED);
 			addUserDatum(JUConstants.ACCEPTED, accept, UserData.SHARED);
 		}
 
+		@Override 
 		public JUConstants getColour() 
 		{
 			return (JUConstants)getUserDatum(JUConstants.COLOUR);
 		}
 
+		@Override 
 		public void setColour(JUConstants c) 
 		{
 			if (c != null && c != JUConstants.RED && c != JUConstants.BLUE && c != JUConstants.AMBER && c != JUConstants.GRAY && c != JUConstants.INF_AMBER)
@@ -555,12 +561,14 @@ final public class DeterministicDirectedSparseGraph {
 				addUserDatum(JUConstants.COLOUR, c, UserData.SHARED);
 		}
 
+		@Override 
 		public void setHighlight(boolean hightlight) {
 			removeUserDatum(JUConstants.HIGHLIGHT);
 			if (hightlight)
 				addUserDatum(JUConstants.HIGHLIGHT, true, UserData.SHARED);
 		}
 
+		@Override 
 		public boolean isHighlight() {
 			Object highlight = getUserDatum(JUConstants.HIGHLIGHT);
 			if (highlight == null)
@@ -569,6 +577,7 @@ final public class DeterministicDirectedSparseGraph {
 			return (Boolean)highlight;
 		}
 
+		@Override 
 		public int getDepth() {
 			Object depthObject = getUserDatum(JUConstants.DEPTH);
 			if (depthObject == null)
@@ -576,10 +585,12 @@ final public class DeterministicDirectedSparseGraph {
 			return ((Integer)depthObject).intValue();
 		}
 
+		@Override 
 		public VertexID getOrigState() {
 			return (VertexID)getUserDatum(JUConstants.ORIGSTATE);
 		}
 
+		@Override 
 		public void setDepth(int argDepth)
 		{
 			removeUserDatum(JUConstants.DEPTH);
@@ -587,6 +598,7 @@ final public class DeterministicDirectedSparseGraph {
 				addUserDatum(JUConstants.DEPTH, argDepth, UserData.SHARED);
 		}
 
+		@Override 
 		public void setOrigState(VertexID newState) {
 			removeUserDatum(JUConstants.ORIGSTATE);
 			if (newState != null)

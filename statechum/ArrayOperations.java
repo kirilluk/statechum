@@ -90,7 +90,12 @@ public class ArrayOperations {
 	 */
       public String getName() { return "End"; }
 
-      /** The test class <code>testIO</code> holds an instance of EndOfSequence which is very
+    @Override
+	public int hashCode() {
+		return super.hashCode();
+	}
+
+	/** The test class <code>testIO</code> holds an instance of EndOfSequence which is very
        * useful to end tests with; there is no need to create a new instance of EndOfSequence
        * whenever such an instance is needed.
        *
@@ -362,7 +367,7 @@ public class ArrayOperations {
     	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
     	Collections.sort(result, new Comparator<List<String>>() {
 
-			public int compare(List<String> o1, List<String> o2) {
+			public @Override int compare(List<String> o1, List<String> o2) {
 				int len1 = o1.size(),len2 = o2.size();
 				if (len1 < len2) return -1;else if (len1 > len2) return 1;
 				Iterator<String> it1 = o1.iterator(),it2 = o2.iterator();

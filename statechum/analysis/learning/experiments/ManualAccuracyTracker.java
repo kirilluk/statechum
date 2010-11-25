@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
-import statechum.Configuration;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.util.OutputUtil;
@@ -75,7 +74,7 @@ public class ManualAccuracyTracker extends QSMTool {
 			PTASequenceEngine.FilterPredicate posPredicate = samples.getFSM_filterPredicate();
 			PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
 				FilterPredicate origFilter = samples.getFSM_filterPredicate();
-				public boolean shouldBeReturned(Object name) {
+				public @Override boolean shouldBeReturned(Object name) {
 					return !origFilter.shouldBeReturned(name);
 				}
 			};
@@ -115,7 +114,7 @@ public class ManualAccuracyTracker extends QSMTool {
 				System.out.println();
 			}
 			*/
-			LearnerGraph learned = autoAns.learnMachine();
+			//LearnerGraph learned = autoAns.learnMachine();
 			//statechum.analysis.learning.util.OutputUtil.generateDotOutput(learned.pathroutines.getGraph());
 			System.out.println(atd.getResult());
 			

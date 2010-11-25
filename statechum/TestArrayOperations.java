@@ -506,7 +506,8 @@ public class TestArrayOperations {
 	  {
 	    class comp implements Comparator<Object>
 	    {
-	        public int compare( Object cmp_what, Object cmp_with )
+	        @Override
+			public int compare( Object cmp_what, Object cmp_with )
 	        {
 	          if ( cmp_what == null || cmp_with == null ||
 	               ! ( cmp_what instanceof Object[] ) || ! ( cmp_with instanceof Object[] ) )
@@ -544,6 +545,11 @@ public class TestArrayOperations {
 	        {
 	          return this == obj;
 	        }
+
+			@Override
+			public int hashCode() {
+				return super.hashCode();
+			}
 	      } // class comp
 
 	    TreeSet<Object[]> first = new TreeSet<Object[]>(new comp()), second = new TreeSet<Object[]>(new comp());

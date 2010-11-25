@@ -107,7 +107,7 @@ public class SpinUtil {
 		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
 		counterList.addAll(counters);
 		Collections.sort(counterList, new Comparator<List<String>>() {
-            public int compare(List<String> s1, List<String> s2) {
+            public @Override int compare(List<String> s1, List<String> s2) {
                  if (s1.size() < s2.size()) {
                     return -1;
                 }
@@ -173,7 +173,7 @@ public class SpinUtil {
 		SpinResult sr = new SpinResult();
 		List<String[]> cmdArray = new ArrayList<String[]>();
 		for(File f:new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)).listFiles(new FileFilter(){
-			public boolean accept(File pathName) {
+			public @Override boolean accept(File pathName) {
 				return pathName.canRead() && pathName.isFile() &&
 				pathName.getAbsolutePath().endsWith(".trail");
 			}}))
@@ -254,7 +254,7 @@ public class SpinUtil {
 	
 	public class TrailFileFilter implements FilenameFilter 
 	{ 
-	   public boolean accept(@SuppressWarnings("unused") java.io.File f, java.lang.String g) 
+	   public @Override boolean accept(@SuppressWarnings("unused") java.io.File f, java.lang.String g) 
 	    { 
 	       return (g.indexOf(".trail") != -1);
 	   } 
@@ -372,24 +372,24 @@ public class SpinUtil {
 		}
 	}
 
-	private static void generateDefines(Map<String, Integer> functionMap) {
+	private static void generateDefines(Map<String, Integer> functionMapArg) {
 
-		for (String key : functionMap.keySet()) {
+		for (String key : functionMapArg.keySet()) {
 			defines = defines.concat("#define " + key + "\t" + "(input == "
-					+ functionMap.get(key) + ")\n");
+					+ functionMapArg.get(key) + ")\n");
 		}
 	}
 
 
-	private static void printLegend(StringWriter sw,
-			Map<String, Integer> functionMap) {
-		Iterator<String> keyIt = functionMap.keySet().iterator();
-		sw.write("\n/*");
+	private static void printLegend(StringWriter swArg,
+			Map<String, Integer> functionMapArg) {
+		Iterator<String> keyIt = functionMapArg.keySet().iterator();
+		swArg.write("\n/*");
 		while (keyIt.hasNext()) {
 			String key = keyIt.next();
-			sw.write("\n" + key + " - " + functionMap.get(key));
+			swArg.write("\n" + key + " - " + functionMapArg.get(key));
 		}
-		sw.write("\n*/");
+		swArg.write("\n*/");
 	}
 	
 	private static List<String> getCounterExample(int i){
@@ -439,7 +439,7 @@ public class SpinUtil {
 	}
 
 	private static void setup(DirectedSparseGraph g,
-			Map<String, Integer> stateMap, Map<String, Integer> functionMap) {
+			Map<String, Integer> stateMap, Map<String, Integer> functionMapArg) {
 		sw = new StringWriter();
 		DirectedSparseVertex v = (DirectedSparseVertex) DeterministicDirectedSparseGraph
 				.findInitial(g);

@@ -46,7 +46,8 @@ public class ClassMethodDefsHandler extends DefaultHandler implements Serializab
 		objectsToClasses = new HashMap<Integer, Integer>();
 	}
 	
-	public void startElement(String uri, String localName, String qName, Attributes attributes){
+	@Override 
+	public void startElement(@SuppressWarnings("unused") String uri, @SuppressWarnings("unused") String localName, String qName, Attributes attributes){
 		if(qName.equals("classDef")){
 			Integer id = Integer.valueOf(attributes.getValue("classId"));
 			String name = attributes.getValue("name");

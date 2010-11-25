@@ -59,7 +59,7 @@ public class IterativeEvaluatorExperiment {
 			int sampleSize = (graph.getStateNumber()*4);
 			RandomPathGenerator rpg = new RandomPathGenerator(graph, new Random(100),5,null);// the seed for Random should be the same for each file
 			rpg.generateRandomPosNeg(sampleSize, 2);  
-			Collection<List<String>> tests = graph.wmethod.getFullTestSet(1);
+			//Collection<List<String>> tests = graph.wmethod.getFullTestSet(1);
 			config.setDebugMode(true);
 			config.setAskQuestions(true);
 			config.setSpeculativeQuestionAsking(true);

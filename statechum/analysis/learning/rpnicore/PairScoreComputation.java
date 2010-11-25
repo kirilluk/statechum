@@ -43,7 +43,9 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.StateBasedRandom;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -324,6 +326,7 @@ public class PairScoreComputation {
 			super(st,v);
 		}
 		
+		@Override
 		public int compareTo(StringVertexPair o) {
 			//return firstElem.compareTo(o.firstElem);
 			return super.compareTo(o);
@@ -562,11 +565,25 @@ public class PairScoreComputation {
 	 * @param ThreadNumber the number of CPUs to use
 	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
 	 * @param filter determines the states to filter out.
+	 * @param randomWalkGenerator random number generator to be used in walk generation.
 	 */
 	public void chooseStatePairs_internal(double threshold, double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, StatesToConsider filter)
+			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
 	{
 		GDLearnerGraph ndGraph = new GDLearnerGraph(coregraph, filter, false);
+		switch(coregraph.config.getGdScoreComputationAlgorithm())
+		{
+		case SCORE_RANDOMPATHS:
+		case SCORE_TESTSET:
+			// build (1) deterministic machines for each state and (2) walks from each state. 
+			ndGraph.computeWalkSequences(randomWalkGenerator, ThreadNumber);
+			break;
+		case SCORE_LINEAR:
+			break;
+		default:
+			throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
+		}
+		
 		final int [] incompatiblePairs = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=GDLearnerGraph.PAIR_OK;
 		final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,ThreadNumber);
 		LSolver solver = ndGraph.buildMatrix_internal(incompatiblePairs, pairsNumber, ThreadNumber,ddrh);
@@ -594,12 +611,13 @@ public class PairScoreComputation {
 	 * @param ThreadNumber the number of CPUs to use
 	 * @param ddrh class to compute diagonal and right-hand side in state comparisons
 	 * @param filter determines the states to filter out.
+	 * @param randomWalkGenerator random number generator to be used in walk generation.
 	 * @return
 	 */
 	public Stack<PairScore> chooseStatePairs_filtered(double threshold, double scale, int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, StatesToConsider filter)
+			final Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh, StatesToConsider filter, StateBasedRandom randomWalkGenerator)
 	{
-		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter);
+		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
 		return coregraph.pairscores.getSortedPairsAndScoresStackFromUnsorted();
 	}
 
@@ -616,9 +634,9 @@ public class PairScoreComputation {
 	 * @return
 	 */
 	public Stack<PairScore> chooseStatePairs(final double threshold, final double scale, final int ThreadNumber, 
-			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter)
+			final Class<? extends DetermineDiagonalAndRightHandSide> ddrh, final StatesToConsider filter,StateBasedRandom randomWalkGenerator)
 	{
-		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter);
+		chooseStatePairs_internal(threshold, scale, ThreadNumber, ddrh, filter,randomWalkGenerator);
 		if (threshold <= 0)
 		{
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<HandleRow<CmpVertex>>();
@@ -628,10 +646,12 @@ public class PairScoreComputation {
 				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
 				handlerList.add(new HandleRow<CmpVertex>()
 				{
+					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
 					}
 	
+					@Override
 					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
 					{
 						// Now iterate through states

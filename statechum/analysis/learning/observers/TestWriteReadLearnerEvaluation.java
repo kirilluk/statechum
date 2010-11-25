@@ -214,7 +214,7 @@ public class TestWriteReadLearnerEvaluation {
 	public final void testLearnerEvaluation3()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_EVALUATIONDATA).getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"expecting to load learner evaluation data");
 	}
@@ -232,7 +232,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"missing graph");
 	}	
@@ -249,7 +249,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate graph");
 	}	
@@ -267,7 +267,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"missing test set");
 	}	
@@ -287,7 +287,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate test set");
 	}	
@@ -303,7 +303,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate configuration");
 	}	
@@ -319,7 +319,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate label details");
 	}	

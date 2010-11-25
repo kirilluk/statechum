@@ -42,7 +42,7 @@ public enum JUConstants {
 	{
 		ACCEPT, // vertex is an accept one
 		REJECT, // vertex is reject
-		NONE // unknown - it could be either of the above.
+		NOLABEL // unknown - it could be either of the above.
 	}
 	
 	public enum PAIRCOMPATIBILITY

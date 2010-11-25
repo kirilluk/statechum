@@ -31,7 +31,6 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
-import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
 
 /** Demonstrates how vertices and edges can be labelled.
  * 

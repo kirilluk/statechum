@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.OPERATION;
@@ -139,7 +140,7 @@ public class TestLTL_to_ba
 	public final void testFindInitialState_fail1()
 	{
 		final LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("Avertex-a->Bvertex-b->Cvertex", "testFindInitialState1"),config);
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			graph.findInitialState("Q");
 		}}, IllegalArgumentException.class,"absent initial state");
 	}
@@ -157,7 +158,7 @@ public class TestLTL_to_ba
 	public final void testLTL_ba_fail1()
 	{
 		final String text=LTL_to_ba.baError+":";
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"syntax");
 	}
@@ -166,7 +167,7 @@ public class TestLTL_to_ba
 	public final void testLTL_ba_fail2()
 	{
 		final String text="this is a test\nError:";
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"failed to lex");
 	}
@@ -175,7 +176,7 @@ public class TestLTL_to_ba
 	public final void testLTL_ba_fail3()
 	{
 		final String text="/* some text */";
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"failed to find the start of automaton");
 	}
@@ -186,7 +187,7 @@ public class TestLTL_to_ba
 		final String text="never { /* (G((close)-> X((load) R !((save) || (edit) || (close))))) */\n\n\n"+
 		"junk"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"failed to lex");
 	}
@@ -198,7 +199,7 @@ public class TestLTL_to_ba
 		"some_state : \n"+
 		"some_state : \n"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"expected if");
 	}
@@ -213,7 +214,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"more_state:\n"+"text:"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"expected if");
 	}
@@ -228,7 +229,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"more_state:\njunk\n"+"text:"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"failed to lex starting from \"junk");
 	}
@@ -245,7 +246,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"more_state:\nskip;\n"+"text:"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"failed to lex starting from \";");
 	}
@@ -259,7 +260,7 @@ public class TestLTL_to_ba
 		":: (a) -> goto state\n"+
 		"if"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"unexpected lexTRANSITION");
 	}
@@ -273,7 +274,7 @@ public class TestLTL_to_ba
 		":: (a) -> goto state\n"+
 		"another:"
 		;
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.parse(text);
 		}},IllegalArgumentException.class,"unexpected lexTRANSITION");
 	}
@@ -289,7 +290,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testLabelInterpretation_fail2()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretInputLabel("d");
 		}},IllegalArgumentException.class,"unrecognised label");
 	}
@@ -485,11 +486,11 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr12a()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("");
 		}},IllegalArgumentException.class,"unexpected end");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.computeAlphabet("");
 		}},IllegalArgumentException.class,"unexpected end");
 	}
@@ -498,11 +499,11 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr12b()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("()");
 		}},IllegalArgumentException.class,"unexpected end");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.computeAlphabet("()");
 		}},IllegalArgumentException.class,"unexpected end");
 	}
@@ -511,11 +512,11 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr12c()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("b && (!())");
 		}},IllegalArgumentException.class,"unexpected end");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.computeAlphabet("b && (!())");
 		}},IllegalArgumentException.class,"unexpected end");
 	}
@@ -582,11 +583,11 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr20()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a | b");
 		}},IllegalArgumentException.class,"failed to lex ");
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.computeAlphabet("a | b");
 		}},IllegalArgumentException.class,"failed to lex ");
 	}
@@ -595,7 +596,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr21()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || || b");
 		}},IllegalArgumentException.class,"expected word ");
 		
@@ -606,7 +607,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr22()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || && b");
 		}},IllegalArgumentException.class,"expected word ");
 
@@ -617,7 +618,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr23a()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || b c ");
 		}},IllegalArgumentException.class,"expected binary operation ");
 
@@ -628,7 +629,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr23b()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || b (c) ");
 		}},IllegalArgumentException.class,"expected binary operation ");
 
@@ -639,7 +640,7 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr23c()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || b !(c) ");
 		}},IllegalArgumentException.class,"expected binary operation ");
 
@@ -650,11 +651,11 @@ public class TestLTL_to_ba
 	@Test
 	public final void testExpr24()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ba.interpretString("a || b)");
 		}},IllegalArgumentException.class,"extra tokens at the end ");
 
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkOutcome(new String[]{"a","b"},ba.computeAlphabet("a || b)"));
 		}},IllegalArgumentException.class,"extra tokens at the end ");
 	}
@@ -762,7 +763,7 @@ public class TestLTL_to_ba
 		"fi;\n"+
 		"state_b: if :: (a) -> goto state_b fi;"+
 		"}\n";
-		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException {
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
 		}},IllegalArgumentException.class,"absent initial state");
 	}
@@ -956,7 +957,7 @@ public class TestLTL_to_ba
 		"accept_G: if\n"+
 		":: (a) -> goto accept_B\n"+
 		"fi;}\n";
-		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException { 
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException { 
 			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
 		}},IncompatibleStatesException.class,"cannot add state");
 	}
@@ -992,7 +993,7 @@ public class TestLTL_to_ba
 		"accept_G: if\n"+
 		":: (a) -> goto reject_B\n"+
 		"fi;}\n";
-		checkForCorrectException(new whatToRun() { public void run() throws IncompatibleStatesException { 
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException { 
 			ba.parse(text);ba.matrixFromLTL.pathroutines.buildDeterministicGraph();
 		}},IncompatibleStatesException.class,"cannot add state");
 	}
@@ -1017,13 +1018,32 @@ public class TestLTL_to_ba
 				"			}\n");
 		Assert.assertNull(WMethod.checkM(actual,expectedFromASEExample));
 	}
+
+	/** This one is an integration test of ltl2ba. First test : cannot run ltl2ba. */
+	@Test
+	public final void testLTL_integration_cannotrun()
+	{
+		
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			try
+			{
+				
+				ba.runLTL2BA("&","junk");
+			}
+			finally
+			{
+				
+			}
+		}},IllegalArgumentException.class,"failed to run ltl2ba");
+	}
 	
+
 	/** This one is an integration test of ltl2ba. First test : syntax error. */
 	@Test
 	public final void testLTL_integration_syntax()
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
-			ba.runLTL2BA("&");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ba.runLTL2BA("&",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		}},IllegalArgumentException.class,"syntax");
 	}
 	
@@ -1035,7 +1055,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph expected = new LearnerGraph(config);expected.getInit().setAccept(false);
-		ba.runLTL2BA("false");
+		ba.runLTL2BA("false",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		Assert.assertNull(WMethod.checkM(expected,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}
 	
@@ -1046,7 +1066,7 @@ public class TestLTL_to_ba
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
-		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
+		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		Assert.assertNull(WMethod.checkM(expectedFromASEExample,ba.matrixFromLTL.pathroutines.buildDeterministicGraph()));
 	}
 	
@@ -1057,7 +1077,7 @@ public class TestLTL_to_ba
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
-		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))");
+		ba.runLTL2BA("([]((close)-> X((load) V !((save) || (edit) || (close)))))",GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(ba.matrixFromLTL.config);
 		AbstractPathRoutines.completeMatrix(ba.matrixFromLTL.pathroutines.buildDeterministicGraph(),result);
 		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph(
@@ -1075,8 +1095,8 @@ public class TestLTL_to_ba
 	{
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close","open"}));
-		checkForCorrectException(new whatToRun() { public void run() {
-			ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([](close-><>open))"}),null,false);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([](close-><>open))"}),null,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		}},IllegalArgumentException.class,"not all states are accept");
 	}
 
@@ -1122,7 +1142,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(FsmParser.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1136,7 +1156,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(FsmParser.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1152,7 +1172,7 @@ public class TestLTL_to_ba
 		ba=new LTL_to_ba(config);ba.alphabet = new HashSet<String>();
 		ba.alphabet.addAll(Arrays.asList(new String[]{"load","save","edit","close"}));
 		LearnerGraph whatToAugment = new LearnerGraph(FsmParser.buildGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem"),config);
-		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false);
+		ba.ltlToBA(Arrays.asList(new String[]{QSMTool.cmdLTL+" ([]((close)-> X((load) V !((save) || (edit) || (close)))))"}),whatToAugment,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba), expected  = automatonLoadedFromLTL(ba);
 		Assert.assertNull(WMethod.checkM(uniteAndDeterminise(new LearnerGraph(Configuration.getDefaultConfiguration()),automatonLoadedFromLTL),expected));

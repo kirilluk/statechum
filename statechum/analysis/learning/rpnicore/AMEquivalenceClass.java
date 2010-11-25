@@ -235,6 +235,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		outgoingTransitions.addAll(newOutgoingTransitions);newOutgoingTransitions = null;
 	}
 	
+	@Override 
 	public int compareTo(AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> o) {
 		return ClassNumber - o.ClassNumber;
 	}

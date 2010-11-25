@@ -163,7 +163,7 @@ public final class TestGraphConstruction
 		List<CmpVertex> A=Arrays.asList(new CmpVertex[]{new StringVertex("A")}),
 			B=Arrays.asList(new CmpVertex[]{new StringVertex("B")});
 		trans.put("a", A);trans.put("b", A);trans.put("c", B);
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			createLabelToStateMap(Arrays.asList(new String[] {"b","e"}), new StringVertex("A"),trans);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -175,7 +175,7 @@ public final class TestGraphConstruction
 	@Test 
 	public final void testCreateLabelToStateMap9() // test for correct detection of nondeterminism
 	{
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			createLabelToStateMap(Arrays.asList(new String[] {"b","b"}), new StringVertex("A"),null);
 		}},IllegalArgumentException.class,"duplicate");
 	}
@@ -280,7 +280,7 @@ public final class TestGraphConstruction
 		final CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C = new StringVertex("C");
 		final LearnerGraph graph = new LearnerGraph(confString);
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			convertRowToDet(graph,createLabelToStateMap(Arrays.asList(new String[] {"a","b"}),B,createLabelToStateMap(Arrays.asList(new String[] {"a"}),C,null)), null,A);
 		}},IllegalArgumentException.class,"non-deterministic");
 	}
@@ -292,7 +292,7 @@ public final class TestGraphConstruction
 		final CmpVertex A = new StringVertex("A");
 		final LearnerGraph graph = new LearnerGraph(confString);
 		
-		checkForCorrectException(new whatToRun() { public void run() {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			Map<String,List<CmpVertex>> nondetRow = new TreeMap<String,List<CmpVertex>>();nondetRow.put("a", new LinkedList<CmpVertex>());
 			convertRowToDet(graph,nondetRow, null,A);
 		}},IllegalArgumentException.class,"non-deterministic");
@@ -444,7 +444,7 @@ public final class TestGraphConstruction
 	@Test 
 	public void testGraphConstruction_fail()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public void run() {
+		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			buildGraph("A = THEN ==B","testGraphConstruction_fail");
 		}},IllegalArgumentException.class,"unknown vertex");
 	}

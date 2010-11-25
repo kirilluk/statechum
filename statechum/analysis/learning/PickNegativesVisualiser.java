@@ -85,6 +85,7 @@ public class PickNegativesVisualiser extends Visualiser {
     {
 	   	learnerThread = new Thread(new Runnable()
 		{
+	   		@Override 
 			public void run()
 			{
 				if (conf.ifthenSequences != null)
@@ -134,6 +135,7 @@ public class PickNegativesVisualiser extends Visualiser {
 			this.negLTL = argNegLTL;
 		}
 		
+		@Override 
 		public void run() {
 			synchronized (PickNegativesVisualiser.this) { 
 				// to make sure that even if a user clicks on the edge multiple times, 
@@ -163,6 +165,7 @@ public class PickNegativesVisualiser extends Visualiser {
 			}
 		}
 
+		@Override 
 		public synchronized void threadStarted() {
 			learnerStarted = true;
 			notify();
@@ -210,7 +213,7 @@ public class PickNegativesVisualiser extends Visualiser {
 		System.out.println(selectedValue);
 		return (List<String>)selectedValue;
 	}
-	
+	/*
 	private List<String> pickNegativeStringsOrLTL(Edge selected){
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
@@ -233,6 +236,6 @@ public class PickNegativesVisualiser extends Visualiser {
 		System.out.println(selectedValue);
 		return (List<String>)selectedValue;
 	}
-	
+	*/
 
 }

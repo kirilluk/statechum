@@ -34,12 +34,14 @@ import cern.colt.bitvector.BitVector;
 import cern.colt.function.IntComparator;
 
 import statechum.Configuration;
+import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
+import statechum.analysis.learning.rpnicore.GDLearnerGraph.StateBasedRandom;
 
 public class TestLinear {
 
@@ -63,6 +65,7 @@ public class TestLinear {
 			System.arraycopy(buf, 0, tmpBuf, 0, buf.length);		
 			cern.colt.Sorting.quickSort(tmpBuf, 0, buf.length, new IntComparator() {
 
+				@Override
 				public int compare(int o1, int o2) {
 					++cnt;
 					return o1-o2;
@@ -168,10 +171,12 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
+				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
 				}
 	
+				@Override
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
@@ -205,10 +210,12 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
+				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
 				}
 	
+				@Override
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
@@ -243,10 +250,12 @@ public class TestLinear {
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
+				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
 				}
 	
+				@Override
 				public void handleEntry(@SuppressWarnings("unused") Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo) 
 				{
 					Integer newValue = threadToRowNumber.get(threadNo);
@@ -325,6 +334,8 @@ public class TestLinear {
 		Assert.assertFalse(GDLearnerGraph.intersects(A, B));
 	}
 	
+	public static final double epsilon=1e-8;
+	
 	/** A helper to call matches on both permutations of states to check if the result is the same.
 	 * 
 	 * @param gr graph to consider
@@ -338,13 +349,13 @@ public class TestLinear {
 		matcher.compute(gr.findVertex(A),gr.findVertex(B),
 				matrixND.transitionMatrix.get(gr.findVertex(A)),matrixND.transitionMatrix.get(gr.findVertex(B)));
 
-		int rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
+		double rightHand = matcher.getRightHandSide(), diag = matcher.getDiagonal();
 		// Now check that matcher is stateless by computing the same in the reverse order.
 		matcher.compute(gr.findVertex(B),gr.findVertex(A),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
-		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand);
-		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag);
+		Assert.assertEquals("right-hand side",matcher.getRightHandSide(),rightHand,epsilon);
+		Assert.assertEquals("right-hand side",matcher.getDiagonal(),diag,epsilon);
 		
 		// Now copy the matcher and do another computation, with A and B reversed.
 		DetermineDiagonalAndRightHandSide anotherMather = null;
@@ -356,8 +367,8 @@ public class TestLinear {
 		anotherMather.compute(gr.findVertex(B),gr.findVertex(A),
 				matrixND.transitionMatrix.get(gr.findVertex(B)),matrixND.transitionMatrix.get(gr.findVertex(A)));
 
-		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand);
-		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag);
+		Assert.assertEquals("right-hand side",anotherMather.getRightHandSide(),rightHand,epsilon);
+		Assert.assertEquals("right-hand side",anotherMather.getDiagonal(),diag,epsilon);
 	}
 	
 	@Test
@@ -367,7 +378,7 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
-		Assert.assertEquals(2,matcher.getRightHandSide());
+		Assert.assertEquals(2,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -377,7 +388,7 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","A");
-		Assert.assertEquals(3,matcher.getRightHandSide());
+		Assert.assertEquals(3,matcher.getRightHandSide(),epsilon);
 	}
 
 	/** States with incompatible children will get a reduced score. */
@@ -390,11 +401,11 @@ public class TestLinear {
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"A","Q");
 		// A and Q have 3 outgoing transitions, 2 are matched.
 		// target pair B1-S has a score of 0, B-R has a score of -1.
-		Assert.assertEquals(2,matcher.getRightHandSide());
-		Assert.assertEquals(3*2,matcher.getDiagonal());
+		Assert.assertEquals(2,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(3*2,matcher.getDiagonal(),epsilon);
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"B","R");
-		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide());
-		Assert.assertEquals(1*2,matcher.getDiagonal());
+		Assert.assertEquals(PAIR_INCOMPATIBLE,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(1*2,matcher.getDiagonal(),epsilon);
 	}
 
 	/** Directly incompatible states. */
@@ -405,8 +416,8 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreNone, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default(); 
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher ,"A","B");
-		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide()*2);
-		Assert.assertEquals(3*2,matcher.getDiagonal());
+		Assert.assertEquals(matcher.getDiagonal()*PAIR_INCOMPATIBLE,matcher.getRightHandSide()*2,epsilon);
+		Assert.assertEquals(3*2,matcher.getDiagonal(),epsilon);
 	}
 
 	@Test
@@ -420,8 +431,8 @@ public class TestLinear {
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
 		// the score for the first pair is -1, for another one it is 1, hence the outcome is zero
-		Assert.assertEquals(2,matcher.getRightHandSide());
-		Assert.assertEquals(3*2,matcher.getDiagonal());
+		Assert.assertEquals(2,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(3*2,matcher.getDiagonal(),epsilon);
 	}
 	
 	@Test
@@ -435,8 +446,8 @@ public class TestLinear {
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
-		Assert.assertEquals(3,matcher.getRightHandSide());
-		Assert.assertEquals(3*2,matcher.getDiagonal());
+		Assert.assertEquals(3,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(3*2,matcher.getDiagonal(),epsilon);
 	}
 	@Test
 	public final void testCountMatchingOutgoing3e()
@@ -448,7 +459,7 @@ public class TestLinear {
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 2 matched.
-		Assert.assertEquals(1,matcher.getRightHandSide());
+		Assert.assertEquals(1,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -462,7 +473,7 @@ public class TestLinear {
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
 		// A and Q have 3 outgoing and 3 matched.
 		// the score for the first pair is -1, for the other ones it is 1, hence the outcome is 1
-		Assert.assertEquals(2,matcher.getRightHandSide());
+		Assert.assertEquals(2,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -473,7 +484,7 @@ public class TestLinear {
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		// 3 outgoing and 2 matching reject, but we count them as positives
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
-		Assert.assertEquals(2,matcher.getRightHandSide());
+		Assert.assertEquals(2,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -485,7 +496,7 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","Q");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -495,9 +506,9 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","C");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"S","C");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 	}
 
 	@Test
@@ -509,9 +520,9 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","C");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"S","C");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 	}
 
 
@@ -522,7 +533,7 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","R");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 	}
 	
 	@Test
@@ -533,14 +544,14 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_highlight();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"A","R");
-		Assert.assertEquals(0,matcher.getRightHandSide());
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
 	}
 	
 	/** These are tests how the matcher handles a case of non-deterministism. 
 	 * Accomplished by building a normal graph and then running the matcher
-	 * on the inverse of it (I cannot build a non-determinstic graph directly
+	 * on the inverse of it (I cannot build a non-deterministic graph directly
 	 * because LearnerGraph has to be deterministic and I do not wish to
-	 * manually build the non-determinstic transition matrix). 
+	 * manually build a non-deterministic transition matrix). 
 	 */
 	@Test
 	public final void testCountMatchingOutgoing_nd1()
@@ -549,8 +560,8 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
-		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(8*2,matcher.getDiagonal());
+		Assert.assertEquals(8,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(8*2,matcher.getDiagonal(),epsilon);
 	}
 	
 	@Test
@@ -561,8 +572,8 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
-		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(9*2,matcher.getDiagonal());
+		Assert.assertEquals(8,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(9*2,matcher.getDiagonal(),epsilon);
 	}
 	
 	@Test
@@ -575,8 +586,8 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
-		Assert.assertEquals(8,matcher.getRightHandSide());
-		Assert.assertEquals(10*2,matcher.getDiagonal());
+		Assert.assertEquals(8,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(10*2,matcher.getDiagonal(),epsilon);
 	}
 	
 	@Test
@@ -588,8 +599,8 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
-		Assert.assertEquals(10,matcher.getRightHandSide());
-		Assert.assertEquals(11*2,matcher.getDiagonal());
+		Assert.assertEquals(10,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(11*2,matcher.getDiagonal(),epsilon);
 	}
 	
 	@Test
@@ -598,14 +609,88 @@ public class TestLinear {
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph("A1-a->C\nA2-a->C\nA3-a->C<-b-G\nB1-a->D<-a-B2\nE-b->D<-b-F\n"
 				+"N-c->C<-f-U\n"
 				+"N-a->C\nS-r->D", "testCountMatchingOutgoing_nd3b"), Configuration.getDefaultConfiguration());
+		//Visualiser.updateFrame(gr, null);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, false);
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_default();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixInverse, matcher,"C","D");
-		Assert.assertEquals(10,matcher.getRightHandSide());
-		Assert.assertEquals(13*2,matcher.getDiagonal());
+		Assert.assertEquals(10,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(13*2,matcher.getDiagonal(),epsilon);
 	}
 	
+	final String NDGraph = "D-f->D-c->C-b->B-a->A\nF-d->F-b->E-a->A\nH-e->H-c->G-b->E";
 	
+	@Test
+	public final void testCount_computeGraphs()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(2);
+		config.setGdScoreComputationAlgorithm_RandomWalk_ExtraLength(0);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph(NDGraph, "testCount_computeGraphs"), config);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
+		//Visualiser.updateFrame(ndGraph.matrixInverse, null);
+		//RandomPathGenerator.diameter(ndGraph.matrixInverse);
+		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("A-a->BE-b->CFG-d->F-d->F / CFG-c->DH-f->D-f->D / DH-e->H-e->H","testCount_computeGraphs_A"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("A"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("B-b->C-c->D-f->D","testCount_computeGraphs_B"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("B"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("C-c->D-f->D","testCount_computeGraphs_C"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("C"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("D-f->D","testCount_computeGraphs_D"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("D"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("E-b->FG-d->F-d->F / FG-c->H-e->H","testCount_computeGraphs_E"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("E"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("G-c->H-e->H","testCount_computeGraphs_G"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("G"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("H-e->H","testCount_computeGraphs_H"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("H"))).graph));
+		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("F-d->F","testCount_computeGraphs_F"),config), 
+				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("F"))).graph));
+	}
+	
+	@Test
+	public final void testCount_computeBCR_Walks()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(2);
+		config.setGdScoreComputationAlgorithm_RandomWalk_ExtraLength(0);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph(NDGraph, "testCount_computeGraphs"), config);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
+		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_BCR();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"C","D");
+		Assert.assertEquals(0,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(2*2,matcher.getDiagonal(),epsilon);
+
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"E","B");
+		Assert.assertEquals(0.5,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(2*2,matcher.getDiagonal(),epsilon);
+
+	}
+
+	@Test
+	public final void testCount_computeBCR_TestSet()
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
+		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph(NDGraph, "testCount_computeGraphs"), config);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
+		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		
+		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_BCR();
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"C","D");
+		Assert.assertEquals(1./3.,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(2*2,matcher.getDiagonal(),epsilon);
+
+		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"E","B");
+		Assert.assertEquals(1,matcher.getRightHandSide(),epsilon);
+		Assert.assertEquals(2*2,matcher.getDiagonal(),epsilon);
+	}
+
 	/** Adds reject vertices with names starting with a given prefix, and 
 	 * the suffix sequentially increasing 0..number.
 	 * The first reject vertex is just the prefix, to add a single state 

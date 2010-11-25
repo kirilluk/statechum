@@ -347,6 +347,7 @@ public class ExperimentRunner
 			return learnerName; 
 		}
 		
+		@Override 
 		public String call()
 		{
 			// first, check if we need to do anything (i.e. data file exists and shows a successful completion. */
@@ -821,7 +822,8 @@ public class ExperimentRunner
 			String []expArgs = new String[args.length-1];System.arraycopy(args, 1, expArgs, 0, args.length-1);
 			if (exp.isForked())
 			{
-				Thread heartbeatThread = new Thread(new Runnable() { 
+				Thread heartbeatThread = new Thread(new Runnable() {
+					@Override 
 					public void run() 
 					{
 						// after processing has started and did not generate an exception, we need
@@ -1153,14 +1155,17 @@ public class ExperimentRunner
 			    		dumpStreams(jvm,timeBetweenHearbeats,new HandleProcessIO() {
 			    			final java.io.OutputStream in = jvm.getOutputStream();
 
+			    			@Override 
 			    			public void OnHeartBeat() throws IOException {
 								in.write('\n');in.flush();// send heartbeat. If a process has terminated, this will fail, but we would have already absorbed all its output.
 			    			}
 
+			    			@Override 
 			    			public void StdErr(StringBuffer b) {
 			    				System.err.print(b.toString());
 			    			}
 
+			    			@Override 
 			    			public void StdOut(StringBuffer b) {
 			    				System.out.print(b.toString());
 			    			}});

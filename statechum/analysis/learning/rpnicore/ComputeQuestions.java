@@ -33,7 +33,6 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
 import statechum.model.testset.PTASequenceEngine;
@@ -92,6 +91,7 @@ public class ComputeQuestions {
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:learnt.learnerCache.getMergedStates())
 			qConstructor.addQuestionsForState(eq, original, learnt, pairToMerge, 
 					learnt.learnerCache.stateLearnt,new MergeData(){
+				@Override 
 				public SequenceSet getPathsToBlue() 
 				{
 					SequenceSet toBlue = engine.new SequenceSet();
@@ -99,6 +99,7 @@ public class ComputeQuestions {
 					return toBlue;
 				}
 
+				@Override 
 				public SequenceSet getPathsToRed() 
 				{
 					SequenceSet toRed = engine.new SequenceSet();
@@ -106,6 +107,7 @@ public class ComputeQuestions {
 					return toRed;
 				}
 
+				@Override 
 				public SequenceSet getPathsToLearnt() 
 				{
 					SequenceSet toLearnt = engine.new SequenceSet();
@@ -124,6 +126,7 @@ public class ComputeQuestions {
 		private PTASequenceEngine engine = null;
 		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
 		
+		@Override 
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
 			engine = new PTASequenceEngine();
@@ -131,6 +134,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
+		@Override 
 		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, CmpVertex stateLearnt,
@@ -177,6 +181,7 @@ public class ComputeQuestions {
 		private PTASequenceEngine engine = null;
 		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
 
+		@Override 
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
 			engine = new PTASequenceEngine();
@@ -184,6 +189,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
+		@Override 
 		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				StatePair pairOrig, CmpVertex stateLearnt,
@@ -221,6 +227,7 @@ public class ComputeQuestions {
 		private PTASequenceEngine engine = null;
 		private Map<CmpVertex,PTASequenceEngine.SequenceSet> fanout = null;
 
+		@Override 
 		public PTASequenceEngine constructEngine(LearnerGraph original, @SuppressWarnings("unused") LearnerGraph learnt) 
 		{
 			engine = new PTASequenceEngine();
@@ -228,6 +235,7 @@ public class ComputeQuestions {
 			return engine;
 		}
 
+		@Override 
 		public void addQuestionsForState(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> state, 
 				LearnerGraph original, LearnerGraph learnt, 
 				@SuppressWarnings("unused") StatePair pairOrig, @SuppressWarnings("unused") CmpVertex stateLearnt,

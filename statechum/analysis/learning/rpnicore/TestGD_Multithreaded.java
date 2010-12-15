@@ -144,7 +144,7 @@ public class TestGD_Multithreaded {
 		gd.init(graphA, graphB, threadNumber,Configuration.getDefaultConfiguration());
 		Assert.assertTrue(gd.identifyKeyPairs());
 		ChangesRecorder recorder = new ChangesRecorder(null);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 		//printListOfPairs(gd,allKeyPairs);
 		for(Entry<CmpVertex,CmpVertex> pair:gd.aTOb.entrySet())
 		{
@@ -192,7 +192,7 @@ public class TestGD_Multithreaded {
 		//printListOfPairs(gd, gd.currentWave);
 		//printListOfPairs(gd, gd.frontWave);
 		ChangesRecorder recorder = new ChangesRecorder(null);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 		//printListOfPairs(gd, allKeyPairs);
 		Assert.assertEquals(expectedMatchedPairs,gd.aTOb.size());
 		LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
@@ -565,7 +565,7 @@ public class TestGD_Multithreaded {
 			gd.init(grA, grB, threadNumber,config);
 			gd.identifyKeyPairs();
 			ChangesRecorder recorder = new ChangesRecorder(null);
-			gd.makeSteps(recorder);
+			gd.makeSteps();gd.computeDifference(recorder);
 			Assert.assertEquals(expectedMatchedPairs,gd.aTOb.size());
 			LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
 			ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
@@ -665,7 +665,7 @@ public class TestGD_Multithreaded {
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 		//Visualiser.updateFrame(grA, grB);
 		Assert.assertEquals(expectedSizeOfATOb,gd.aTOb.size());
 		Assert.assertEquals(expectedSizeOfDuplicates,gd.duplicates.size()); 
@@ -766,7 +766,7 @@ public class TestGD_Multithreaded {
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 		return gd;
 	}
 	
@@ -822,7 +822,7 @@ public class TestGD_Multithreaded {
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesDisplay display = new ChangesDisplay(null);
 		ChangesRecorder recorder = new ChangesRecorder(display);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 		
 		boolean foundA = false;
 		for(Entry<CmpVertex,CmpVertex> entry:gd.aTOb.entrySet()) 

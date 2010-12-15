@@ -52,7 +52,7 @@ public class TestGD_ExistingGraphsND {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
-	protected final int threadNumber;
+	protected final int threadNumber, pairsToAdd;
 
 	Configuration config = null;
 
@@ -72,8 +72,9 @@ public class TestGD_ExistingGraphsND {
 		
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 			for(int threadNo=1;threadNo<8;++threadNo)
-				for(double ratio:new double[]{0.5,0.68,0.9,-1})
-					result.add(new Object[]{new Integer(threadNo), ratio,
+				for(int pairs:new int[]{0,10,100})
+					for(double ratio:new double[]{0.5,0.68,0.9,-1})
+						result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
 							files[fileNum].getAbsolutePath(), 
 							files[(fileNum+1)%files.length].getAbsolutePath(),
 							files[(fileNum+2)%files.length].getAbsolutePath(),
@@ -92,14 +93,14 @@ public class TestGD_ExistingGraphsND {
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphsND(int th, double ratio, String fileA, String fileB, String fileC, String fileD)
+	public TestGD_ExistingGraphsND(int th, int pairs, double ratio, String fileA, String fileB, String fileC, String fileD)
 	{
-		threadNumber = th;fileNameA=fileA;fileNameB=fileB;fileNameC=fileC;fileNameD=fileD;low_to_high_ratio=ratio;
+		threadNumber = th;fileNameA=fileA;fileNameB=fileB;fileNameC=fileC;fileNameD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
-	public static String parametersToString(Integer th, Double ratio, String fileA, String fileB, String fileC, String fileD)
+	public static String parametersToString(Integer th, Integer pairs, Double ratio, String fileA, String fileB, String fileC, String fileD)
 	{
-		return "threads: "+th+" ratio: "+ratio+", "+fileA+"+"+fileB+" v.s. "+fileC+"+"+fileD;
+		return "threads: "+th+", extra pairs: "+pairs+" ratio: "+ratio+", "+fileA+"+"+fileB+" v.s. "+fileC+"+"+fileD;
 	}
 	
 	@Before
@@ -168,7 +169,13 @@ public class TestGD_ExistingGraphsND {
 				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);addColourAndTransitionsRandomly(graph, new Random(0));
 			}
 			ChangesRecorder patcher = new ChangesRecorder(null);
-			gd.computeGD(grA, grB, threadNumber, patcher,config);
+			//gd.computeGD(grA, grB, threadNumber, patcher,config);
+			gd.init(grA, grB, threadNumber,config);
+			gd.identifyKeyPairs();
+			TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
+			gd.makeSteps();
+			gd.computeDifference(patcher);
+
 			LearnerGraphND outcome = new LearnerGraphND(config);
 			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));

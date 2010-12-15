@@ -21,9 +21,13 @@ package statechum.analysis.learning.rpnicore;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,6 +42,7 @@ import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
@@ -51,7 +56,7 @@ public class TestGD_ExistingGraphs {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
-	protected final int threadNumber;
+	protected final int threadNumber, pairsToAdd;
 
 	Configuration config = null;
 
@@ -72,7 +77,8 @@ public class TestGD_ExistingGraphs {
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 			for(int threadNo=1;threadNo<8;++threadNo)
 				for(double ratio:new double[]{0.5,0.68,0.9,-1})
-					result.add(new Object[]{new Integer(threadNo), ratio,
+					for(int pairs:new int[]{0,5,10})
+						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,
 							files[fileNum].getAbsolutePath(), 
 							files[(fileNum+1)%files.length].getAbsolutePath()
 							});
@@ -89,14 +95,14 @@ public class TestGD_ExistingGraphs {
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphs(int th, double ratio, String fileA, String fileB)
+	public TestGD_ExistingGraphs(int th, int pairs,double ratio, String fileA, String fileB)
 	{
-		threadNumber = th;fileNameA=fileA;fileNameB=fileB;low_to_high_ratio=ratio;
+		threadNumber = th;fileNameA=fileA;fileNameB=fileB;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
-	public static String parametersToString(Integer th, Double ratio, String fileA, String fileB)
+	public static String parametersToString(Integer th, Integer pairs, Double ratio, String fileA, String fileB)
 	{
-		return "threads: "+th+" ratio: "+ratio+", "+fileA+" v.s. "+fileB;
+		return "threads: "+th+", extra pairs: "+pairs+", ratio: "+ratio+", "+fileA+" v.s. "+fileB;
 	}
 	
 	@Before
@@ -140,6 +146,25 @@ public class TestGD_ExistingGraphs {
 		}
 	}
 	
+	static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void addPairsRandomly(final GD<TARGET_TYPE,TARGET_TYPE,CACHE_TYPE,CACHE_TYPE> gd, int pairsToAdd)
+	{
+		Set<CmpVertex> usedA = new TreeSet<CmpVertex>(), usedB = new TreeSet<CmpVertex>();
+		usedA.addAll(gd.statesOfA);usedB.addAll(gd.statesOfB);
+		for(PairScore ps:gd.frontWave)
+		{
+			usedA.remove(ps.firstElem);usedB.remove(ps.secondElem);
+		}
+		if (usedA.isEmpty() || usedB.isEmpty()) return;
+		ArrayList<CmpVertex> usedA_array=new ArrayList<CmpVertex>(usedA),usedB_array=new ArrayList<CmpVertex>(usedB);
+		Random rnd=new Random(0);
+		Iterator<Integer> 
+			itA=TestGD.chooseRandomly(rnd, usedA_array.size(), pairsToAdd).iterator(),
+			itB=TestGD.chooseRandomly(rnd, usedB_array.size(), pairsToAdd).iterator();
+		for(int cnt=0;cnt<pairsToAdd;++cnt)
+			gd.frontWave.add(new PairScore(usedA_array.get(itA.next()), usedB_array.get(itB.next()), 1, 0));
+	}
+	
+	
 	public final void runPatch(String fileA, String fileB)
 	{
 		try
@@ -150,7 +175,14 @@ public class TestGD_ExistingGraphs {
 			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph);addColourAndIncompatiblesRandomly(graph, new Random(0));
 			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder patcher = new ChangesRecorder(null);
-			gd.computeGD(grA, grB, threadNumber, patcher,config);
+			//gd.computeGD(grA, grB, threadNumber, patcher,config);
+			
+			gd.init(grA, grB, threadNumber,config);
+			gd.identifyKeyPairs();
+			addPairsRandomly(gd,pairsToAdd);
+			gd.makeSteps();
+			gd.computeDifference(patcher);
+
 			ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));
 			Assert.assertEquals(testDetails(),grB.getStateNumber(),graph.getStateNumber());

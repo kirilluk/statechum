@@ -20,9 +20,15 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.StatechumXML;
@@ -902,6 +908,94 @@ public class TestGD {
 		expected= java.util.Arrays.asList(new PairScore[]{B,D,C,A,E});
 		GD.sortWave(wave);
 		Assert.assertEquals(expected,wave);
+	}
+
+	/** Creates a sorted array of increasing random numbers between 0 and <em>upTo</em>.
+	 *  
+	 * @param rd random number generator
+	 * @param upTo up the largest+1 number in the array to return
+	 * @param count how many elements to create
+	 * @return array of random numbers
+	 */
+	public static List<Integer> chooseRandomly(Random rd,int upTo,int count)
+	{
+		if (upTo < count || upTo < 0) 
+			throw new IllegalArgumentException("cannot generate more than "+upTo+" numbers, "+count+" requested");
+		boolean [] numbersChosen = new boolean[upTo];Arrays.fill(numbersChosen, false);
+		List<Integer> result = new ArrayList<Integer>(count);
+		for(int randomNum=0;randomNum<count;++randomNum) 
+		{
+			int nextRnd = rd.nextInt(upTo-randomNum);
+			int nextPosition = 0,i=0;while(numbersChosen[nextPosition]) nextPosition++;
+			// at this point, numbersChosen[nextPosition]=false			
+			while(i<nextRnd)
+			{
+				++i;++nextPosition;
+				while(numbersChosen[nextPosition]) nextPosition++;
+				// at this point, numbersChosen[nextPosition]=false
+			}
+			// at every iteration, the loop steps past the last hole and 
+			numbersChosen[nextPosition]=true;result.add(nextPosition);
+		}
+		
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+		{
+			Set<Integer> data = new TreeSet<Integer>();data.addAll(result);
+			assert data.size() == count;
+		}
+		
+		return result;
+	}
+	
+	@Test
+	public final void testChooseRandomly1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			chooseRandomly(null,4,5);}},
+		IllegalArgumentException.class,"cannot generate more");
+	}
+	
+	@Test
+	public final void testChooseRandomly2()
+	{
+		Assert.assertTrue(chooseRandomly(new Random(0),0,0).isEmpty());
+	}	
+	
+	@Test
+	public final void testChooseRandomly3()
+	{
+		Assert.assertTrue(chooseRandomly(new Random(0),4,0).isEmpty());
+	}	
+	
+	@Test
+	public final void testChooseRandomly4()
+	{
+		Assert.assertEquals(Arrays.asList(new Integer[]{0}), chooseRandomly(new Random(0),1,1));
+	}	
+
+	@Test
+	public final void testChooseRandomly5()
+	{
+		Set<Integer> expected=new TreeSet<Integer>();expected.add(1);
+		Assert.assertEquals(Arrays.asList(new Integer[]{1}), chooseRandomly(new Random(0),2,1));
+	}	
+	
+	@Test
+	public final void testChooseRandomly6()
+	{
+		Assert.assertEquals(Arrays.asList(new Integer[]{5,1,4,0,2}), chooseRandomly(new Random(10),8,5));
+	}
+	
+	@Test
+	public final void testChooseRandomly7()
+	{
+		Assert.assertEquals(Arrays.asList(new Integer[]{3,1,0,2,4}), chooseRandomly(new Random(10),5,5));
+	}
+
+	@Test
+	public final void testChooseRandomly8()
+	{
+		Assert.assertEquals(Arrays.asList(new Integer[]{73,47,64,70,14}), chooseRandomly(new Random(10),80,5));
 	}
 /*
 	@Test

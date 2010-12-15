@@ -144,7 +144,7 @@ public class TestGD_MultipleCasesOfRenaming {
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
-		gd.makeSteps(recorder);
+		gd.makeSteps();gd.computeDifference(recorder);
 
 		Assert.assertEquals(2,gd.aTOb.size());
 		Set<CmpVertex> keyPairsLeft = new TreeSet<CmpVertex>(),keyPairsRight = new TreeSet<CmpVertex>();

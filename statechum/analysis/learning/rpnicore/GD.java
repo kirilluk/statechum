@@ -159,6 +159,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	}
 	
 	/** Compares the supplied two graphs.
+	 * Important: the code in this method is also replicated in <em>runPatch</em> of <em>TestGD_ExistingGraphs</em> because 
+	 * chosen pairs may have to be messed up for the purpose of testing. 
 	 * 
 	 * @param a first graph
 	 * @param b second graph
@@ -171,7 +173,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		init(a, b, threads,config);
 		identifyKeyPairs();
-		makeSteps(patcher);
+		makeSteps();computeDifference(patcher);
 	}
 	
 	/** Describes primitive mutations which can be carried out on a graph. */
@@ -237,12 +239,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void setInitial(CmpVertex vertex);
 	}
 	
-	/** Expands the set of key pairs and computes the outcome. 
-	 * 
-	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
-	 * to the second one. It can then be stored in XML if necessary.
+	/** Contains an inverse of the <em>frontwave</em> map. */
+	Map<CmpVertex,CmpVertex> newToOrig = null;
+	
+	/** Expands the set of key pairs.
 	 */
-	protected void makeSteps(final PatchGraph graphToPatch)
+	protected void makeSteps()
 	{
 		// Now we make steps. Data used:
 		//
@@ -253,7 +255,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// frontWave is the wavefront from which we are exploring grCombined in
 		// search of these candidates for key pairs.
 		aTOb.clear();
-		final Map<CmpVertex,CmpVertex> newToOrig = new TreeMap<CmpVertex,CmpVertex>();
+		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		do
 		{
 			currentWave.clear();
@@ -279,7 +281,16 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				}
 		}
 		while(!frontWave.isEmpty());
-
+	
+	}
+	
+	/** Expands the set of key pairs and computes the outcome. 
+	 * 
+	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
+	 * to the second one. It can then be stored in XML if necessary.
+	 */
+	protected void computeDifference(final PatchGraph graphToPatch)
+	{
 		// Now find out which states need adding to A and check that we can actually do this
 		// without name clashes.
 		// The problem is that newBtoOrig maps states of the B part of grCombined
@@ -1544,8 +1555,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
 			new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(outcome,gdConfig,null);
 		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = new TreeMap<String,Map<String,Map<String,Color>>>();
-		
-		makeSteps(new PatchGraph() {
+		makeSteps();
+		computeDifference(new PatchGraph() {
 			/** Annotates the supplied transition with a specific label and colour. 
 			 * 
 			 * @param from source state

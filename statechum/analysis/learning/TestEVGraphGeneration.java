@@ -134,10 +134,4 @@ public class TestEVGraphGeneration {
 		Visualiser.disposeFrame();
 	}	
 
-	
-	/** In order to be able to use old junit runner. */
-	public static junit.framework.Test suite()
-	{
-		return new JUnit4TestAdapter(TestEVGraphGeneration.class);
-	}
 }

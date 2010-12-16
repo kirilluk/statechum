@@ -1,49 +1,64 @@
 <!-- based on http://ant.apache.org/manual/ -->
 <project name="XMachineTool" default="test" basedir=".">
     <description>
-        Builds the project and runs it on a series of data files
+        Builds the project and runs tests on it.
     </description>
   <!-- set global properties for this build -->
-  <property name="src" location="."/>
-  <property name="bin" location="bin"/>
+  <property name="root" location="../"/>
+  <property name="junit_statechum" location="${root}/junit-statechum"/>
+  <property name="junit_statechum_src" location="${junit_statechum}/src"/>
+  <property name="junit_statechum_bin" location="${junit_statechum}/bin"/>
+  <property name="statechum_src" location="."/>
+  <property name="statechum_bin" location="bin"/>
 
-    <path id="classpath.main">
+    <path id="classpath.lib">
       <fileset dir="lib">
         <include name="**/*.jar"/>
+      	<exclude name="**/junit-4.4.jar"/> 
       </fileset>
     </path>
 
-    <path id="classpath.full">
-      <path refid="classpath.main"/>
-      <pathelement location="lib/junit-4.4.jar"/>
+    <path id="classpath.statechum">
+      <path refid="classpath.lib"/>
+      <pathelement location="${junit_statechum_bin}"/>
+      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
     </path>
 
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
     <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${bin}"/>
+    <mkdir dir="${junit_statechum_bin}"/>
+    <mkdir dir="${statechum_bin}"/>
   </target>
 
-  <target name="compile" depends="init"
-        description="compile the source " >
-    <!-- Compile the java code from ${src} into ${bin} -->
-    <javac srcdir="${src}" destdir="${bin}">
+  <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
+ 	<javac srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
        <classpath refid="classpath.full" />
     </javac>
-  </target>
+  </target>  	
+  	
+  <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       <classpath refid="classpath.full" />
+    </javac>
+   </target>
 
-  <target name="test" depends="compile" description="run unit tests">
-       <junit  fork="on" maxmemory="1024m" forkmode="once" printsummary="yes" haltonfailure="yes">
+  <target name="test" depends="compileStatechum" description="run unit tests">
+       <junit  fork="on" maxmemory="1500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>
     	<jvmarg value="-XX:+CITime"/>
-    	<jvmarg value="-Djava.library.path=linear/.libs"/>
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+       	<sysproperty key="threadnum" value="4"/>
 
-       <classpath>
-         <path refid="classpath.full" />
-         <pathelement location="${bin}"/>
+       	<classpath>
+         	<path refid="classpath.statechum" />
+         	<pathelement location="${statechum_bin}"/>
          </classpath>
        	
        	<formatter type="plain"/>

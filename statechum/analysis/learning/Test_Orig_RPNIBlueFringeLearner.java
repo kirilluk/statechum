@@ -40,7 +40,6 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
 import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
@@ -220,7 +219,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			@SuppressWarnings("unused") int plus, 
 			@SuppressWarnings("unused") int minus) 
 	{
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -228,7 +227,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			@SuppressWarnings("unused") int plus, 
 			@SuppressWarnings("unused") int minus) 
 	{
-		throw new NotImplementedException();
+		throw new UnsupportedOperationException();
 	}
 
 	/** This one is a very old implementation of the learner, kept for some regression testing 

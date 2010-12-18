@@ -10,18 +10,19 @@
   <property name="junit_statechum_bin" location="${junit_statechum}/bin"/>
   <property name="statechum_src" location="."/>
   <property name="statechum_bin" location="bin"/>
+  <property name="ant.build.javac.source" value="1.6"/>
 
     <path id="classpath.lib">
       <fileset dir="lib">
         <include name="**/*.jar"/>
       	<exclude name="**/junit-4.4.jar"/> 
       </fileset>
+      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
     </path>
 
     <path id="classpath.statechum">
       <path refid="classpath.lib"/>
       <pathelement location="${junit_statechum_bin}"/>
-      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
     </path>
 
   <target name="init">
@@ -33,15 +34,16 @@
   </target>
 
   <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
- 	<javac srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
-       <classpath refid="classpath.full" />
-    </javac>
+ 	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
+		<classpath refid="classpath.lib" />
+    	</javac>
   </target>  	
   	
   <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
     <!-- Compile the java code from ${src} into ${bin} -->
-    <javac srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
-       <classpath refid="classpath.full" />
+    <javac fork="on" srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       	<classpath refid="classpath.statechum" /> 
+	<!-- <compilerarg value="-Xlint:unchecked"/> -->
     </javac>
    </target>
 

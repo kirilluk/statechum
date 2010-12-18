@@ -547,7 +547,7 @@ public class PTASequenceEngine
 		}
 		return result.toString();
 	}
-	
+
 	public static enum DebugDataValues { 
 		LEAF("leaf"), INNER("inner"), sequenceReturned("returned"), sequenceTrashed("trashed");
 		
@@ -571,7 +571,7 @@ public class PTASequenceEngine
 			return result.toString();
 		}
 	}
-		
+
 	/** Returns a representation of nodes held in the supplied set.
 	 * Important: do not change the returned data unless you are prepared to modify tests
 	 * relying on it, such as testComputePathsSBetween1.

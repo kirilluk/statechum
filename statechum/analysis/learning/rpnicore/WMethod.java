@@ -1066,10 +1066,10 @@ public class WMethod {
 		assert stateExpectedArg != null && stateActualArg != null;
 		LearnerGraph expected = null, actual = null;
 		CmpVertex stateActual = null, stateExpected = null;
-
-		if (expectedArg instanceof LearnerGraph && actualArg instanceof LearnerGraph)
+		Object expectedArgObject = expectedArg,actualArgObject = actualArg;
+		if ( expectedArgObject instanceof LearnerGraph && actualArgObject instanceof LearnerGraph)
 		{// deterministic case
-			expected = (LearnerGraph)expectedArg;actual = (LearnerGraph)actualArg;stateActual = stateActualArg;stateExpected = stateExpectedArg;
+			expected = (LearnerGraph)expectedArgObject;actual = (LearnerGraph)actualArgObject;stateActual = stateActualArg;stateExpected = stateExpectedArg;
 		}
 		else
 		{// non-deterministic case

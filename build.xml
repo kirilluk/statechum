@@ -17,12 +17,12 @@
         <include name="**/*.jar"/>
       	<exclude name="**/junit-4.4.jar"/> 
       </fileset>
-      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
     </path>
 
     <path id="classpath.statechum">
       <path refid="classpath.lib"/>
       <pathelement location="${junit_statechum_bin}"/>
+      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
     </path>
 
   <target name="init">
@@ -35,7 +35,11 @@
 
   <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
  	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
-		<classpath refid="classpath.lib" />
+		<classpath>
+			<path refid="classpath.lib"/>
+      			<pathelement location="${root}/lib/junit-4.8.2.jar"/>
+		</classpath>
+
     	</javac>
   </target>  	
   	
@@ -48,11 +52,11 @@
    </target>
 
   <target name="test" depends="compileStatechum" description="run unit tests">
-       <junit  fork="on" maxmemory="1500m" forkmode="once" printsummary="yes" haltonfailure="yes">
+       <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>
-    	<jvmarg value="-XX:+CITime"/>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
        	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
        	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
@@ -77,9 +81,8 @@
        
   </target>
 
-  <target name="clean"
-        description="clean up" >
-    <!-- Delete the ${bin} directory tree -->
-    <delete dir="${bin}/statechum"/>
+  <target name="clean" description="clean up" >
+    <delete dir="${statechum_bin}/statechum"/>
+    <delete dir="${junit_statechum_bin}"/>
   </target>
 </project>

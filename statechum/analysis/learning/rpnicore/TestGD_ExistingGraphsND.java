@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Map.Entry;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,7 +35,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Helper;
-import statechum.JUConstants;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -68,23 +65,29 @@ public class TestGD_ExistingGraphsND {
 			public boolean accept(@SuppressWarnings("unused") File dir, String name) 
 			{
 				return name.startsWith("N_");
-			}});
+		}});
 		
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 			for(int threadNo=1;threadNo<8;++threadNo)
-				for(int pairs:new int[]{0,10,100})
+			{
+				File
+					fileA1 = files[fileNum], 
+					fileA2 = files[(fileNum+1)%files.length],
+					fileB1 = files[(fileNum+2)%files.length],
+					fileB2 = files[(fileNum+3)%files.length];
+				
+				boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
+				if (!fallback)
 					for(double ratio:new double[]{0.5,0.68,0.9,-1})
+						for(int pairs:new int[]{0,10,100})
 						result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
-							files[fileNum].getAbsolutePath(), 
-							files[(fileNum+1)%files.length].getAbsolutePath(),
-							files[(fileNum+2)%files.length].getAbsolutePath(),
-							files[(fileNum+3)%files.length].getAbsolutePath()
+								fileA1,fileA2,fileB1,fileB2
 							});
-		
+			}
 		return result;
 	}
 
-	final String fileNameA,fileNameB,fileNameC,fileNameD;
+	final File graphA,graphB,graphC,graphD;
 	
 	/** Positive value is the ratio of low-to-high above which key pairs are considered ok;
 	 * negative value means that we set <em>setGdMaxNumberOfStatesInCrossProduct</em>
@@ -93,59 +96,29 @@ public class TestGD_ExistingGraphsND {
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphsND(int th, int pairs, double ratio, String fileA, String fileB, String fileC, String fileD)
+	public TestGD_ExistingGraphsND(int th, int pairs, double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
-		threadNumber = th;fileNameA=fileA;fileNameB=fileB;fileNameC=fileC;fileNameD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
+		threadNumber = th;graphA=fileA;graphB=fileB;graphC=fileC;graphD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
 	
-	public static String parametersToString(Integer th, Integer pairs, Double ratio, String fileA, String fileB, String fileC, String fileD)
+	public static String parametersToString(Integer th, Integer pairs, Double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
-		return "threads: "+th+", extra pairs: "+pairs+" ratio: "+ratio+", "+fileA+"+"+fileB+" v.s. "+fileC+"+"+fileD;
+		return "threads: "+th+", extra pairs: "+pairs+" ratio: "+ratio+", "+fileA.getName()+"+"+fileB.getName()+" v.s. "+fileC.getName()+"+"+fileD.getName();
 	}
 	
 	@Before
 	public final void beforeTest()
 	{
-		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();
-		config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
-		config.setGdKeyPairThreshold(.75);
-		if (low_to_high_ratio > 0)
-			config.setGdLowToHighRatio(low_to_high_ratio);
-		else
-		{
-			config.setGdLowToHighRatio(0.5);
-			config.setGdMaxNumberOfStatesInCrossProduct(10);
-		}
-		config.setAttenuationK(0.95);
+		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();config=TestGD_ExistingGraphs.computeConfig(low_to_high_ratio);
 	}
 	
 	protected String testDetails()
 	{
-		return fileNameA+"+"+fileNameB+"-"+fileNameC+"+"+fileNameD+" ["+threadNumber+" threads] ";
-	}
-	
-	private void addColourAndTransitionsRandomly(LearnerGraphND gr,Random amberRnd)
-	{
-		for(int i=0;i<gr.getStateNumber()/3;++i)
-		{
-			gr.pathroutines.pickRandomState(amberRnd).setColour(JUConstants.AMBER);
-			gr.pathroutines.pickRandomState(amberRnd).setColour(JUConstants.BLUE);
-		}
-		
-		for(int i=0;i<gr.getStateNumber()/3;++i)
-		{
-			CmpVertex a = gr.pathroutines.pickRandomState(amberRnd), b = gr.pathroutines.pickRandomState(amberRnd);
-			Map<String,List<CmpVertex>> targets = gr.transitionMatrix.get(a);
-			if (targets != null)
-			{
-				Entry<String,List<CmpVertex>> entry=targets.entrySet().iterator().next();
-				if (!gr.getTargets(entry.getValue()).contains(b)) gr.getTargets(entry.getValue()).add(b);
-			}
-		}
+		return graphA+"+"+graphB+"-"+graphC+"+"+graphD+" ["+threadNumber+" threads] ";
 	}
 	
 	/** This one assembles a non-deterministic version of the graphs and checks that things still work. */
-	public final void runNDPatch(String fileA1, String fileA2, String fileB1, String fileB2)
+	public final void runNDPatch(File fileA1, File fileA2, File fileB1, File fileB2)
 	{
 		try
 		{
@@ -153,20 +126,20 @@ public class TestGD_ExistingGraphsND {
 			{
 				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
 				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
-				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);addColourAndTransitionsRandomly(grA, new Random(0));
+				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 			}
 			
 			{
 				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1);
 				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2);
-				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);addColourAndTransitionsRandomly(grB, new Random(1));
+				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 			}
 			
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			{
 				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
 				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2);
-				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);addColourAndTransitionsRandomly(graph, new Random(0));
+				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(graph, new Random(0));
 			}
 			ChangesRecorder patcher = new ChangesRecorder(null);
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
@@ -196,14 +169,14 @@ public class TestGD_ExistingGraphsND {
 	public final void testGD_AB_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
 	public final void testGD_BA_linearRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 	
 	@Test
@@ -211,7 +184,7 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
@@ -219,7 +192,7 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 	
 	@Test
@@ -227,7 +200,7 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
@@ -235,35 +208,35 @@ public class TestGD_ExistingGraphsND {
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 	
 	@Test
 	public final void testGD_AB_testsetRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
 	public final void testGD_BA_testsetRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 	
 	@Test
 	public final void testGD_AB_testset()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runNDPatch(fileNameA, fileNameB, fileNameC, fileNameD);
+		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
 	public final void testGD_BA_testset()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runNDPatch(fileNameC, fileNameD, fileNameA, fileNameB);
+		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 
 }

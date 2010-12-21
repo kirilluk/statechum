@@ -52,11 +52,14 @@
    </target>
 
   <target name="test" depends="compileStatechum" description="run unit tests">
+  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
        <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>
     	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-Xdebug" />
+       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" />
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
        	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
        	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>

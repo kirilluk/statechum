@@ -1298,7 +1298,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 
 		if (argConfig.getGdScoreComputation() == GDScoreComputationEnum.GD_RH &&
 			(grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 || 
-					statesOfA.size()*statesOfB.size() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct()))
+					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct()))
 				fallbackToInitialPair = true;
 
 		Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh = null;
@@ -1322,8 +1322,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{// we are here only if the full matrix has to be built and it will be too big to solve it in the usual way
 			if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() > 0 && // only warn if not forced.
 					Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
-				System.out.println("Cannot use Linear since the number of states in a cross-product is "+
-						((double)statesOfA.size()*statesOfB.size()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
+				System.out.println("Cannot use Linear since the number of states is "+
+						((double)forward.getStateNumber()/grCombined.config.getGdMaxNumberOfStatesInCrossProduct())+
 						" times over the limit");
 		}
 		else

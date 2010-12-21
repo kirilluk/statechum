@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -336,5 +337,17 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		}
 	}
 
-
+		/** Loads a graph from a supplied file.
+		 *  
+		 * @param from where to load from
+		 * @param result graph into which to copy the loaded graph (we are generic hence cannot create an instance ourselves).
+		 * The configuration of this graph determines types of nodes created, such as whether they are Jung nodes or Strings.
+		 * @return created graph.
+		*/
+		public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+			AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> loadGraph(File fileToLoad,
+					AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> result) throws IOException
+		{
+			return loadGraph(fileToLoad.getAbsolutePath(),result);
+		}
 }

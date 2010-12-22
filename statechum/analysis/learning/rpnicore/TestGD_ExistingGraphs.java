@@ -85,12 +85,13 @@ public class TestGD_ExistingGraphs {
 					fileA=files[fileNum], 
 					fileB=files[(fileNum+1)%files.length];
 				boolean fallback = detectFallbackToInitialPair(fileA, null, fileB, null);
-				if (!fallback)
-						for(double ratio:new double[]{0.5,0.68,0.9,-1})
-							for(int pairs:new int[]{0,5,40})
-								result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
-				else
-					result.add(new Object[]{new Integer(threadNo), new Integer(0),0,fileA,fileB});
+				Assert.assertFalse(fallback);// our test files are too small not to fit in memory
+				for(double ratio:new double[]{0.5,0.68,0.9})
+					for(int pairs:new int[]{0,5,40})
+						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
+
+				// -1. should be floating-point number otherwise it is turned into Integer and our parametersToString fails to match the resulting list of values.
+				result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA,fileB});
 			}
 		return result;
 	}
@@ -223,6 +224,7 @@ public class TestGD_ExistingGraphs {
 		try
 		{
 			Configuration config=computeConfig(0.75);
+			
 			LearnerGraphND grA = null, grB = null;
 			{
 				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1);
@@ -270,6 +272,7 @@ public class TestGD_ExistingGraphs {
 			gd.init(grA, grB, threadNumber,config);
 			gd.identifyKeyPairs();
 			if (!gd.fallbackToInitialPair) addPairsRandomly(gd,pairsToAdd);
+			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
 			gd.makeSteps();
 			gd.computeDifference(patcher);
 

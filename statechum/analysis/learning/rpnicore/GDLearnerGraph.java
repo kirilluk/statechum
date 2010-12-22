@@ -489,6 +489,7 @@ public class GDLearnerGraph
 				// No per-thread initialisation is needed.
 			}
 
+			/** This set is different for different threads hence no need to acquire/release locks. */
 			Set<Integer> sourceData = new TreeSet<Integer>();
 
 			/** Used to detect non-consecutive state pair numbers - in this case an internal error should be reported. */
@@ -809,7 +810,7 @@ public class GDLearnerGraph
 	/** This one is potentially capable to give a specific sequence of pseudo-random numbers
 	 * for a supplied pair of states. This is important when testing with multiple threads which
 	 * might run through pairs of states in a different order but the choice of random walks
-	 * affects bcr and easily affects scores if we choose few walk sequences.
+	 * affects BCR and easily affects scores if we choose few walk sequences.
 	 */
 	public static class StateBasedRandom
 	{
@@ -839,14 +840,19 @@ public class GDLearnerGraph
 	{
 		stateToCorrespondingGraph = new TreeMap<CmpVertex,GraphAndWalk>();
 		//final AtomicInteger totalSeq = new AtomicInteger();
+		final Map<CmpVertex,GraphAndWalk> workerMap[]=new Map[ThreadNumber];
 		
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
-		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
+		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
+		{
+			workerMap[threadCnt] = new TreeMap<CmpVertex,GraphAndWalk>();
+		
 			handlerList.add(new HandleRow<List<CmpVertex>>()
 			{
+				Map<CmpVertex,GraphAndWalk> stateToGraph = null;
 				@Override
-				public void init(@SuppressWarnings("unused") int threadNo) {
-					// No per-thread initialisation is needed.
+				public void init(int threadNo) {
+					stateToGraph = workerMap[threadNo];
 				}
 	
 				@Override
@@ -886,10 +892,15 @@ public class GDLearnerGraph
 						break;// do nothing in this case.
 					}
 					//totalSeq.addAndGet(graphwalk.testSequences.getData(PTASequenceEngine.truePred).size());
-					stateToCorrespondingGraph.put(state,graphwalk);
+					stateToGraph.put(state,graphwalk);
 				}
 			});
+		}
 		GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, matrixForward.transitionMatrix,new LearnerGraphND.ignoreNoneClass(), GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,matrixForward.getStateNumber()));
+		
+		// Now collect the results
+		for(int th=0;th<ThreadNumber;++th) stateToCorrespondingGraph.putAll(workerMap[th]);
+		assert stateToCorrespondingGraph.size() == matrixForward.getStateNumber();
 		//System.out.println("total number of seq: "+totalSeq.get());
 	}
 

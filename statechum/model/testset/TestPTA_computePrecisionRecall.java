@@ -23,11 +23,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -40,8 +35,6 @@ import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.TestLinear;
-import statechum.analysis.learning.rpnicore.LearnerGraph.FSMImplementation;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
@@ -526,9 +519,9 @@ public class TestPTA_computePrecisionRecall {
 		
 		// Third, we compare precision/recall computed in two different ways
 		
-		assertEquals("pos precision",bruteForcePR.getPosprecision(), actualPR.getPosprecision(),TestLinear.epsilon);
-		assertEquals("pos recall",bruteForcePR.getPosrecall(), actualPR.getPosrecall(),TestLinear.epsilon);
-		assertEquals("neg precision",bruteForcePR.getNegprecision(), actualPR.getNegprecision(),TestLinear.epsilon);
-		assertEquals("neg recall",bruteForcePR.getNegrecall(), actualPR.getNegrecall(),TestLinear.epsilon);
+		assertEquals("pos precision",bruteForcePR.getPosprecision(), actualPR.getPosprecision(),Configuration.fpAccuracy);
+		assertEquals("pos recall",bruteForcePR.getPosrecall(), actualPR.getPosrecall(),Configuration.fpAccuracy);
+		assertEquals("neg precision",bruteForcePR.getNegprecision(), actualPR.getNegprecision(),Configuration.fpAccuracy);
+		assertEquals("neg recall",bruteForcePR.getNegrecall(), actualPR.getNegrecall(),Configuration.fpAccuracy);
 	}
 }

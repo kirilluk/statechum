@@ -50,7 +50,7 @@ public class TestArrayOperations {
 	   */
 	  public static void checkFloatsEqual( String errMsg, double a, double b )
 	  {
-	    if ( Math.abs( a - b ) > 1e-5 )
+	    if ( Math.abs( a - b ) > Configuration.fpAccuracy )
 	      fail( errMsg + ": " + a + " v.s. " + b );
 	  }
 

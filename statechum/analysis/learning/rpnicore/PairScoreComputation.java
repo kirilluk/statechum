@@ -677,6 +677,7 @@ public class PairScoreComputation {
 			}
 			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, coregraph.transitionMatrix,LearnerGraphND.ignoreNone,
 					GDLearnerGraph.partitionWorkLoadTriangular(ThreadNumber,coregraph.transitionMatrix.size()));
+			// now collect the results of processing
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
 				coregraph.pairsAndScores.addAll(resultsPerThread[threadCnt]);
 		}

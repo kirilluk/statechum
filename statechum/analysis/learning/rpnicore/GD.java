@@ -49,7 +49,6 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.StatechumXML;
-import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
@@ -1296,9 +1295,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		forward = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,false);
 		inverse = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,true);
 
-		if (argConfig.getGdScoreComputation() == GDScoreComputationEnum.GD_RH &&
-			(grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 || 
-					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct()))
+		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 || 
+					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 				fallbackToInitialPair = true;
 
 		Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh = null;
@@ -1357,8 +1355,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					}
 				});
 			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-				@Override
-				public boolean stateToConsider(CmpVertex vert) {
+				@Override public boolean stateToConsider(CmpVertex vert) {
 					return statesOfA.contains(vert);
 				}
 			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
@@ -1409,12 +1406,17 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		else
 		{// normal processing
 			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
-			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
+			final ArrayList<PairScore> wavePerThread[] = new ArrayList[ThreadNumber];
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
+			{
+				wavePerThread[threadCnt] = new ArrayList<PairScore>(java.lang.Math.max(statesOfA.size(),statesOfB.size()));
 				handlerList.add(new HandleRow<List<CmpVertex>>()
 				{
+					ArrayList<PairScore> wave = null;
+					
 					@Override
-					public void init(@SuppressWarnings("unused") int threadNo) {
-						// No per-thread initialisation is needed.						
+					public void init(int threadNo) {
+						wave = wavePerThread[threadNo];						
 					}
 	
 					@Override
@@ -1438,17 +1440,19 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 								if (score > scoreLow) scoreLow = score;
 						}
 						assert highState != null;
-						
-						currentWave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
+						wave.add(new PairScore(entryA.getKey(),highState,(int)(multiplier*scoreHigh),(int)(multiplier*scoreLow)));
 					}
 				});
+			}
 			GDLearnerGraph.performRowTasks(handlerList, ThreadNumber, grCombined.transitionMatrix,new StatesToConsider() {
-				@Override
-				public boolean stateToConsider(CmpVertex vert) {
+				@Override public boolean stateToConsider(CmpVertex vert) {
 					return statesOfA.contains(vert);
 				}
 			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
-	
+			
+			// now collect the results of processing
+			for(int th=0;th<ThreadNumber;++th) currentWave.addAll(wavePerThread[th]);
+			
 			// now we find so many percent of top values.
 			int topScore = 0;// to make sure that if we only get negative pairs, no key states will be detected.
 			sortWave(currentWave);

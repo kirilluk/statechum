@@ -27,6 +27,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.Configuration;
+
 import cern.colt.function.DoubleFunction;
 import cern.colt.matrix.DoubleFactory1D;
 import cern.colt.matrix.DoubleFactory2D;
@@ -112,7 +114,7 @@ public class TestSolverRandomly {
 		if (!singular)
 		{
 			for(int i=0;i<matrix.rows();++i)
-				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),TestSolver.comparisonAccuracy);
+				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),Configuration.fpAccuracy);
 			TestSolver.verifyAxb(matrix,solver.toDoubleMatrix1D(),vector);
 		}
 		
@@ -132,7 +134,7 @@ public class TestSolverRandomly {
 		if (!singular)
 		{
 			for(int i=0;i<matrix.rows();++i)
-				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),TestSolver.comparisonAccuracy);
+				Assert.assertEquals(solver.j_x[i], vector.getQuick(i),Configuration.fpAccuracy);
 			TestSolver.verifyAxb(solver);
 		}
 	}

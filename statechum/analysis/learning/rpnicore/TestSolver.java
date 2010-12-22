@@ -27,6 +27,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.Configuration;
+
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 import cern.colt.function.DoubleFunction;
@@ -39,8 +41,6 @@ import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.linalg.LUDecompositionQuick;
 
 public class TestSolver {
-	public static final double comparisonAccuracy = 1e-10;
-	
 	protected DoubleMatrix2D testMatrix = null;
 	
 	/** Checks that the supplied arguments satisfy the <em>Ax=b</em> equation. 
@@ -51,7 +51,7 @@ public class TestSolver {
 	 */
 	public static final void verifyAxb(DoubleMatrix2D A, DoubleMatrix1D b, DoubleMatrix1D x)
 	{
-		DoubleMatrix1D result = A.zMult(x, b);for(int i=0;i<b.size();++i) Assert.assertEquals(b.getQuick(i),result.getQuick(i),comparisonAccuracy);
+		DoubleMatrix1D result = A.zMult(x, b);for(int i=0;i<b.size();++i) Assert.assertEquals(b.getQuick(i),result.getQuick(i),Configuration.fpAccuracy);
 	}
 	
 	/** Checks that the supplied arguments satisfy the <em>Ax=b</em> equation. 
@@ -99,7 +99,7 @@ public class TestSolver {
 		// Test 1
 		s.solveExternally();
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, s.j_x[i],comparisonAccuracy);
+			Assert.assertEquals(i+1, s.j_x[i],Configuration.fpAccuracy);
 		verifyAxb(s);
 		
 		// Test 2
@@ -107,14 +107,14 @@ public class TestSolver {
 		solver.decompose(testMatrix);solver.setLU(testMatrix);
 		solver.solve(x);
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, x.getQuick(i),comparisonAccuracy);
+			Assert.assertEquals(i+1, x.getQuick(i),Configuration.fpAccuracy);
 		verifyAxb(s);
 
 		// Test 3
 		for(int i=0;i<testMatrix.rows();++i) s.j_x[i]=0;
 		s.solveUsingColt();
 		for(int i=0;i<testMatrix.rows();++i)
-			Assert.assertEquals(i+1, s.j_x[i],comparisonAccuracy);
+			Assert.assertEquals(i+1, s.j_x[i],Configuration.fpAccuracy);
 		verifyAxb(s);
 	}
 	
@@ -338,7 +338,7 @@ public class TestSolver {
 		Assert.assertArrayEquals(new int[] {0, 2, 5, 9, 10, 12}, s.j_Ap);
 		Assert.assertArrayEquals(new int[] {0,  1,  0,   2,  4,  1,  2,  3,   4,  2,  1,  4}, s.j_Ai);
 		for(int i=0;i<s.j_Ap.length;++i)
-			Assert.assertEquals(new double[]{2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.}[i], s.j_Ax[i],comparisonAccuracy);
+			Assert.assertEquals(new double[]{2., 3., 3., -1., 4., 4., -3., 1., 2., 2., 6., 1.}[i], s.j_Ax[i],Configuration.fpAccuracy);
 		
 		DoubleMatrix2D mat = s.toDoubleMatrix2D();
 		Assert.assertEquals(testMatrix, mat);
@@ -384,7 +384,7 @@ public class TestSolver {
 		tmFinished = new Date().getTime();
 		System.out.println(" time taken: "+((double)tmFinished-tmStarted)/1000);		
 		for(int i=0;i<matrix.rows();++i)
-			Assert.assertEquals(solver.j_x[i], vector.getQuick(i),comparisonAccuracy);
+			Assert.assertEquals(solver.j_x[i], vector.getQuick(i),Configuration.fpAccuracy);
 		verifyAxb(solver);
 	}
 
@@ -463,7 +463,7 @@ public class TestSolver {
 				{
 					if (CoordX.getQuick(i) == CoordY.getQuick(i))
 					{
-						Assert.assertEquals(1, values.getQuick(i),comparisonAccuracy);diagElements++;
+						Assert.assertEquals(1, values.getQuick(i),Configuration.fpAccuracy);diagElements++;
 					}
 					else nondiagElements++;
 				}

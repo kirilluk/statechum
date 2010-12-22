@@ -22,6 +22,7 @@ import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -506,7 +507,7 @@ public class TestLinearWithMultipleThreads {
 	/** Uses computePairCompatibilityScore_general to identify incompatible pairs of states. */
 	protected static Set<StatePair> buildSetOfIncompatiblePairsSlowly(final LearnerGraph gr,int ThreadNumber)
 	{
-		final Set<StatePair> result = new LinkedHashSet<StatePair>();
+		final Set<StatePair> result = Collections.synchronizedSet(new LinkedHashSet<StatePair>());
 		final StatesToConsider filter = LearnerGraphND.ignoreRejectStates;
 		final GDLearnerGraph ndGraph = new GDLearnerGraph(gr,filter, false);
 		List<GDLearnerGraph.HandleRow<List<CmpVertex>>> handlerList = new LinkedList<GDLearnerGraph.HandleRow<List<CmpVertex>>>();
@@ -533,10 +534,9 @@ public class TestLinearWithMultipleThreads {
 					{
 						StatePair currentPair = new StatePair(entryA.getKey(),stateB.getKey());
 						if (gr.pairscores.computePairCompatibilityScore_general(currentPair, new LinkedList<AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>()) < 0)
-							synchronized(result)
-							{
-								result.add(currentPair);
-							}
+						{// result is constructed as a synchronized set
+							result.add(currentPair);
+						}
 					}						
 					if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
 				}// iterating through states (stateB)

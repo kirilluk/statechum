@@ -37,16 +37,17 @@
  	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
 		<classpath>
 			<path refid="classpath.lib"/>
-      			<pathelement location="${root}/lib/junit-4.8.2.jar"/>
+   			<pathelement location="${root}/lib/junit-4.8.2.jar"/>
 		</classpath>
-
+    	<compilerarg value="-g" />
     	</javac>
   </target>  	
   	
   <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
     <!-- Compile the java code from ${src} into ${bin} -->
     <javac fork="on" srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
-       	<classpath refid="classpath.statechum" /> 
+       	<classpath refid="classpath.statechum" />
+    	<compilerarg value="-g" />
 	<!-- <compilerarg value="-Xlint:unchecked"/> -->
     </javac>
    </target>

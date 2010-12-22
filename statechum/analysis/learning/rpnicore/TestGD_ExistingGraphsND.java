@@ -77,12 +77,13 @@ public class TestGD_ExistingGraphsND {
 					fileB2 = files[(fileNum+3)%files.length];
 				
 				boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
-				if (!fallback)
-					for(double ratio:new double[]{0.5,0.68,0.9,-1})
-						for(int pairs:new int[]{0,10,100})
-						result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
-								fileA1,fileA2,fileB1,fileB2
-							});
+				Assert.assertFalse(fallback);// our test files are too small not to fit in memory
+				for(double ratio:new double[]{0.5,0.68,0.9})
+					for(int pairs:new int[]{0,10,100})
+					result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
+							fileA1,fileA2,fileB1,fileB2
+						});
+				result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA1,fileA2,fileB1,fileB2});
 			}
 		return result;
 	}
@@ -145,7 +146,8 @@ public class TestGD_ExistingGraphsND {
 			//gd.computeGD(grA, grB, threadNumber, patcher,config);
 			gd.init(grA, grB, threadNumber,config);
 			gd.identifyKeyPairs();
-			TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
+			if (!gd.fallbackToInitialPair) TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
+			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
 			gd.makeSteps();
 			gd.computeDifference(patcher);
 

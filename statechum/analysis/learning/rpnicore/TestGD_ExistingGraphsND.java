@@ -21,6 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,11 +54,12 @@ public class TestGD_ExistingGraphsND {
 
 	Configuration config = null;
 
+	public static final String testFilePath = "resources/TestGraphs/75-6/";
+
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		final String testFilePath = "resources/TestGraphs/75-6/";
 		File path = new File(testFilePath);assert path.isDirectory();
 		File files [] = path.listFiles(new FilenameFilter()
 		{
@@ -66,28 +68,39 @@ public class TestGD_ExistingGraphsND {
 			{
 				return name.startsWith("N_");
 		}});
-		
+		Arrays.sort(files);
+
+		// N_1320.xml+N_502.xml v.s. N_2070.xml+N_2232.xml takes a long while.
+		addFilesToCollection(new File(testFilePath+"N_1320.xml"),new File(testFilePath+"N_502.xml"),
+				new File(testFilePath+"N_2070.xml"),new File(testFilePath+"N_2232.xml"),result);
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
-			for(int threadNo=1;threadNo<8;++threadNo)
-			{
-				File
-					fileA1 = files[fileNum], 
-					fileA2 = files[(fileNum+1)%files.length],
-					fileB1 = files[(fileNum+2)%files.length],
-					fileB2 = files[(fileNum+3)%files.length];
-				
-				boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
-				Assert.assertFalse(fallback);// our test files are too small not to fit in memory
-				for(double ratio:new double[]{0.5,0.68,0.9})
-					for(int pairs:new int[]{0,10,100})
-					result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
-							fileA1,fileA2,fileB1,fileB2
-						});
-				result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA1,fileA2,fileB1,fileB2});
-			}
+		{
+			File
+				fileA1 = files[fileNum], 
+				fileA2 = files[(fileNum+1)%files.length],
+				fileB1 = files[(fileNum+2)%files.length],
+				fileB2 = files[(fileNum+3)%files.length];
+			
+			addFilesToCollection(fileA1, fileA2, fileB1, fileB2, result);
+		}
 		return result;
 	}
 
+	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result)
+	{
+		for(int threadNo=1;threadNo<8;++threadNo)
+		{
+			boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
+			Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
+			for(double ratio:new double[]{0.5,0.68,0.9})
+				for(int pairs:new int[]{0,10,100})
+				result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
+						fileA1,fileA2,fileB1,fileB2
+					});
+			result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA1,fileA2,fileB1,fileB2});
+		}
+	}
+	
 	final File graphA,graphB,graphC,graphD;
 	
 	/** Positive value is the ratio of low-to-high above which key pairs are considered ok;
@@ -241,4 +254,13 @@ public class TestGD_ExistingGraphsND {
 		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 
+	
+	public static void main(String aa[])
+	{
+		TestGD_ExistingGraphsND tester = new TestGD_ExistingGraphsND(2, 0, 0.68, new File(testFilePath+"N_1320.xml"),new File(testFilePath+"N_502.xml"),
+				new File(testFilePath+"N_2070.xml"),new File(testFilePath+"N_2232.xml"));
+		tester.beforeTest();
+		tester.config.setEquivalentStatesAllowedForW(true);
+		tester.testGD_AB_testset();
+	}
 }

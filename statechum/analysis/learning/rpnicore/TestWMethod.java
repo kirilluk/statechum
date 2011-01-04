@@ -33,9 +33,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import junit.framework.Assert;
-import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -48,6 +48,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -634,7 +635,7 @@ public class TestWMethod {
 						{
 							DifferentFSMException exception = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
 							if (exception == null)
-							{
+							{// failure tracing
 								fsm.config.setPrefixClosed(true);
 								DifferentFSMException ex = WMethod.checkM(fsm,eA,fsm,eB,WMethod.VERTEX_COMPARISON_KIND.NONE);
 								System.out.println("B: "+fsm.transitionMatrix.get(fsm.findVertex("B"))+" ; D:  "+fsm.transitionMatrix.get(fsm.findVertex("D")));
@@ -656,15 +657,36 @@ public class TestWMethod {
 		testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
 	}
 	
+	public static void testWsetConstructionWithEquivalentStates(LearnerGraph fsm, boolean prefixClosed,Set<Pair<CmpVertex,CmpVertex>> equivalentVertices)
+	{
+		fsm.config.setPrefixClosed(prefixClosed);
+		fsm.config.setEquivalentStatesAllowedForW(false);
+		Set<List<String>> computedWset = new TreeSet<List<String>>(); 
+		try
+		{
+			computedWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+			fail("exception not thrown");
+		}
+		catch(EquivalentStatesException e)
+		{// exception is expected here
+			checkEquivalentStatesException(e,fsm);
+		}
+
+		fsm.config.setEquivalentStatesAllowedForW(true);
+		Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+		fsm.wmethod.checkW_is_corrent(wset,prefixClosed,equivalentVertices);// we are not checking for W reduction here since space-saving way to compute W
+		
+	}
+
 	public static void testWsetconstruction(LearnerGraph fsm, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
 	{
 		fsm.config.setPrefixClosed(prefixClosed);
-		Set<List<String>> origWset = new HashSet<List<String>>(); 
+		Set<List<String>> origWset = new HashSet<List<String>>();// This cannot be a TreeSet because lists store in it may not always implement Comparable (this is the case for LinkedList).
 		try
 		{
 			origWset.addAll(WMethod.computeWSetOrig(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(origWset,prefixClosed);			
+			fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);			
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -676,7 +698,7 @@ public class TestWMethod {
 		{
 			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset,prefixClosed);// we are not checking for W reduction here since space-saving way to compute W
+			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
 			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep 
@@ -693,7 +715,7 @@ public class TestWMethod {
 		{
 			Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedw(fsm));
 			Assert.assertEquals(false, equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset,prefixClosed);
+			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);
 			int reduction = origWset.size() - wset.size();
 			Assert.assertTrue(reduction >= 0 || !reductionExpected);
 		}
@@ -1181,6 +1203,60 @@ public class TestWMethod {
 			assertTrue("the two test generators return different values, old returns "+
 					actualA+" and the new one - "+actualB,
 			actualA.equals(actualB));
+	}
+	
+	@Test
+	public final void testEquivalentStates1()
+	{
+		LearnerGraph fsmWW = new LearnerGraph(buildGraph(
+				"A-a->B-b->C-b->B", "testEquivalentStates1"),config);
+		Set<Pair<CmpVertex,CmpVertex>> equiv=new TreeSet<Pair<CmpVertex,CmpVertex>>();
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
+		testWsetConstructionWithEquivalentStates(fsmWW,true,equiv);
+		
+	}
+	
+	@Test
+	public final void testEquivalentStates2()
+	{
+		LearnerGraph fsmWW = new LearnerGraph(buildGraph(
+				"A-a->B-b-#C / B-c->B / D-b-#E", "testEquivalentStates2"),config);
+		Set<Pair<CmpVertex,CmpVertex>> equiv=new TreeSet<Pair<CmpVertex,CmpVertex>>();
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("E"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("D"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("E"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("D")),fsmWW.findVertex(VertexID.parseID("E"))));
+		testWsetConstructionWithEquivalentStates(fsmWW,true,equiv);
+		
+	}
+	
+	@Test
+	public final void testEquivalentStates3()
+	{
+		LearnerGraph fsmWW = new LearnerGraph(buildGraph(
+				"A-a->B-b-#C / D-b-#E", "testEquivalentStates3"),config);
+		Set<Pair<CmpVertex,CmpVertex>> equiv=new TreeSet<Pair<CmpVertex,CmpVertex>>();
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("C"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("E"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("D"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("E"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("D")),fsmWW.findVertex(VertexID.parseID("E"))));
+		testWsetConstructionWithEquivalentStates(fsmWW,true,equiv);
+		
+	}
+	
+	@Test
+	public final void testEquivalentStates4()
+	{
+		LearnerGraph fsmWW = new LearnerGraph(buildGraph(
+				"A-a->B-b-#C / D-b-#E", "testEquivalentStates3"),config);
+		Set<Pair<CmpVertex,CmpVertex>> equiv=new TreeSet<Pair<CmpVertex,CmpVertex>>();
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("B")),fsmWW.findVertex(VertexID.parseID("D"))));
+		equiv.add(new Pair<CmpVertex,CmpVertex>(fsmWW.findVertex(VertexID.parseID("C")),fsmWW.findVertex(VertexID.parseID("E"))));
+		testWsetConstructionWithEquivalentStates(fsmWW,false,equiv);
 	}
 	
 	@Test

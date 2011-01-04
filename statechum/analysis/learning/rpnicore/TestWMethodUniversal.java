@@ -29,7 +29,6 @@ import java.util.Random;
 import java.util.Set;
 
 import junit.framework.Assert;
-import junit.framework.JUnit4TestAdapter;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -297,10 +296,10 @@ public class TestWMethodUniversal
 		Assert.assertNull(WMethod.checkM(fsm,permFsm));
 		
 		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
-		fsm.wmethod.checkW_is_corrent(newWset,prefixClosed);
-		fsm.wmethod.checkW_is_corrent(origWset,prefixClosed);
-		permFsm.wmethod.checkW_is_corrent(newWset,prefixClosed);
-		permFsm.wmethod.checkW_is_corrent(origWset,prefixClosed);
+		fsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);
+		fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);
+		permFsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);
+		permFsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);
 		
 		Assert.assertTrue(origWset.equals(newWset));
 	}

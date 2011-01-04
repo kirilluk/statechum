@@ -389,6 +389,9 @@ public class WMethod {
 	
 	/** Computes a characterising set, regardless of the presence of unreachable states.
 	 * <br>
+	 * IMPORTANT: this is not maintained particularly well and has no support for ignoring 
+	 * pairs of states which are equivalent (except for those equivalent to the sink state). 
+	 * <br>
 	 * Since we do not know in advance whether there are any states behaviourally-equivalent to a sink state
 	 * (and there could be a few of them, connected in a ring), a sink state is explicitly added.
 	 * @param fsm the machine to process
@@ -497,7 +500,9 @@ public class WMethod {
 
 		List<List<String>> result = new LinkedList<List<String>>();
 		assert statesEquivalentToSink > 0: "missing equivalence class associated with sink state";
-		if (statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+2-statesEquivalentToSink )
+		if ( (statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+2-statesEquivalentToSink) 
+			|| fsm.config.getEquivalentStatesAllowedForW()
+			)
 		{
 			boolean sinkAsRealState =  !fsm.config.isPrefixClosed() && statesEquivalentToSink == 1;
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
@@ -589,26 +594,35 @@ public class WMethod {
 	 */
 	public static Collection<List<String>> computeWSet_reducedmemory(LearnerGraph fsmOrig) throws EquivalentStatesException
 	{
+		final int W_NOPREV=-1, W_INDIST=-2;
+		
 		Configuration copyConfig = fsmOrig.config.copy();copyConfig.setLearnerCloneGraph(false);
 		LearnerGraph fsm = new LearnerGraph(fsmOrig,copyConfig);
 		CmpVertex sink = generateSinkState(fsm);fsm.transitionMatrix.put(sink, fsm.createNewRow());
 		Map<CmpVertex,Integer> equivalenceClasses = new LinkedHashMap<CmpVertex,Integer>(), newEquivClasses = new LinkedHashMap<CmpVertex,Integer>();
+		
+		// Since this one associates maps to number, make it Hash set so that fewer computations have to be performed.
 		Map<Map<String,Integer>,Integer> sortedRows = new HashMap<Map<String,Integer>,Integer>();
 		int WNext[] = new int[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
-		String WChar[] = new String[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];for(int i=0;i < WNext.length;++i) { WChar[i]=null;WNext[i]=-1; }
+		String WChar[] = new String[fsm.transitionMatrix.size()*(fsm.transitionMatrix.size()+1)/2];
 		final Map<String,AtomicInteger> distinguishingLabels = new HashMap<String,AtomicInteger>();
-		for(CmpVertex state:fsm.transitionMatrix.keySet()) 
-			equivalenceClasses.put(state, state.isAccept()?1:0);
 		
-		for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
+		for(CmpVertex stateA:fsm.transitionMatrix.keySet())
 		{
-			Map<CmpVertex,List<String>> row = new HashMap<CmpVertex,List<String>>();
-
+			boolean stateAaccept = stateA.isAccept();
+			equivalenceClasses.put(stateA, stateAaccept?1:0);
 			Iterator<Entry<CmpVertex,Integer>> stateB_It = equivalenceClasses.entrySet().iterator();
 			while(stateB_It.hasNext())
 			{
-				Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-				row.put(stateB.getKey(), new LinkedList<String>());
+				Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA)) break; // we only process a triangular subset.
+				int index = fsm.wmethod.vertexToInt(stateA,stateB.getKey());
+				WChar[index] = null;
+				if (stateAaccept == stateB.getKey().isAccept())
+					WNext[index]=W_INDIST;// where two states have the same acceptance conditions, 
+					// they cannot be distinguished at this stage.
+				else
+					WNext[index]=W_NOPREV;// an empty sequence distinguishes between the two, 
+					// the fact that seq is empty is due to WChar[index] being null.
 			}
 		}
 
@@ -622,13 +636,18 @@ public class WMethod {
 			int sinkEqClass = equivalenceClasses.get(sink);
 			for(CmpVertex stateA:equivalenceClasses.keySet())
 			{
+				// This one is a vector associating names of inputs to equivalence classes of target states
 				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
 				Map<String,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
 					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
 						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
-						if (targetEqClass != sinkEqClass) // filter out all transitions to sink
+						if (targetEqClass != sinkEqClass) // filter out all transitions to sink - this is important because otherwise
+							// vectors  for two reject-states with transitions to a sink state (equivalence class 0)
+							// { a->0, b->0 } and { a->0 } look superficially different even though they
+							// both denote states accepting an empty language.
+							// Note that, any real sink states would belong to the same equivalce class as our sink state. 
 							map.put(labelstate.getKey(), targetEqClass);
 					}
 				
@@ -636,11 +655,13 @@ public class WMethod {
 				if (map.looksLikeSink()) statesEquivalentToSink++;
 				if (!sortedRows.containsKey(map))
 				{
-					equivalenceClassNumber++;
 					sortedRows.put(map,equivalenceClassNumber);newEquivClasses.put(stateA, equivalenceClassNumber);
+					equivalenceClassNumber++;
 				}
 				else
 					newEquivClasses.put(stateA, sortedRows.get(map));
+				
+				//System.out.println("state "+stateA+" has a map of "+map+" and a number "+sortedRows.get(map));
 			}
 
 
@@ -675,6 +696,7 @@ public class WMethod {
 			ArrayList<String> labelList = new ArrayList<String>(distinguishingLabels.size());labelList.addAll(0, distinguishingLabels.keySet());
 			Collections.sort(labelList, new Comparator<String>(){
 
+				@Override
 				public int compare(String o1, String o2) {
 					int diffInNumberOfdistStates = -distinguishingLabels.get(o1).get() + distinguishingLabels.get(o2).get();
 					if (diffInNumberOfdistStates != 0) return diffInNumberOfdistStates;
@@ -689,7 +711,7 @@ public class WMethod {
 				while(stateB_It.hasNext())
 				{
 					Entry<CmpVertex,Integer> stateB = stateB_It.next();if (stateB.getKey().equals(stateA.getKey())) break; // we only process a triangular subset.
-				
+				//System.out.println("looking at "+stateA.getKey()+", "+stateB.getKey()+" eq classes: "+stateA.getValue()+", "+stateB.getValue());
 					if (stateA.getValue().equals(stateB.getValue()) &&
 							!newEquivClasses.get(stateA.getKey()).equals(newEquivClasses.get(stateB.getKey())))
 					{// the two states used to be in the same equivalence class, now they are in different ones, hence we populate the matrix.
@@ -724,8 +746,11 @@ public class WMethod {
 		// If statesEquivalentToSink is 1, oldEquivalenceClassNumber == fsm.transitionMatrix.size()
 		// for 2, oldEquivalenceClassNumber == fsm.transitionMatrix.size()-1
 		
-		if (statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+1-statesEquivalentToSink )
+		if ((statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+1-statesEquivalentToSink )
+				|| fsm.config.getEquivalentStatesAllowedForW())
 		{
+			// This one means that we only consider our artificial sink state as a real state
+			// if there is no graph state which accepts an empty language.
 			boolean sinkAsRealState =  !fsm.config.isPrefixClosed() && statesEquivalentToSink == 1;
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
 				if (sinkAsRealState || stateA.getKey() != sink)
@@ -738,13 +763,20 @@ public class WMethod {
 						{
 							LinkedList<String> seq = new LinkedList<String>();
 							int index = fsm.wmethod.vertexToInt(stateA.getKey(),stateB.getKey());
-							while(index >= 0)
-							{
+							assert index >= 0;
+							if (WNext[index]!=W_INDIST)
+							{// stateA and stateB have been separated.
+								
 								String elementToAdd = WChar[index];
-								if (elementToAdd != null) seq.add(elementToAdd);else assert WNext[index] < 0 : "empty element not at end of sequence";
-								index=WNext[index];
+								while(elementToAdd != null)
+								{
+									seq.add(elementToAdd);
+									index=WNext[index];
+									elementToAdd = WChar[index];
+								}
+								assert WNext[index] == W_NOPREV : "empty element not at end of sequence";
+								result.add(seq);
 							}
-							result.add(seq);
 						}
 					}
 				}			
@@ -759,6 +791,10 @@ public class WMethod {
 	/** Computes a characterising set, assuming that there are no unreachable states (with unreachable states, 
 	 * it will take a bit longer to perform the computation). 
 	 * Additionally, it attempts to reduce the size of W.
+	 * <br>
+	 * This one only works if every pair of states is distinguishable because it starts by assigning empty seq to all
+	 * pairs and then extending them - there is no provision to mark pairs as indistinguishable since empty sequence
+	 * separates an accept from a reject-state.
 	 * 
 	 * @param fsm the machine to process
 	 * @param alphabet
@@ -900,7 +936,8 @@ public class WMethod {
 
 		Collection<List<String>> result = new HashSet<List<String>>();
 		assert statesEquivalentToSink > 0: "missing equivalence class associated with sink state";
-		if (statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+2-statesEquivalentToSink )
+		if ((statesEquivalentToSink <= 2 && oldEquivalenceClassNumber == fsm.transitionMatrix.size()+2-statesEquivalentToSink )
+			|| fsm.config.getEquivalentStatesAllowedForW())
 		{
 			boolean sinkAsRealState =  !fsm.config.isPrefixClosed() && statesEquivalentToSink == 1;
 			for(Entry<CmpVertex,Integer> stateA:equivalenceClasses.entrySet())
@@ -1228,24 +1265,33 @@ public class WMethod {
 		return A.equals(B);
 	}
 
-	/** Given an FSM and a W set, checks if it is a valid W set and throws if not.
+	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
 	 * 
-	 * @param fsm the machine
 	 * @param wset the set to check validity of.
+	 * @param prefixClosed whether we are talking of prefix-closed languages
+	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
 	 */
-	public void checkW_is_corrent(Collection<List<String>> wset, boolean prefixClosed)
+	public void checkW_is_corrent(Collection<List<String>> wset, boolean prefixClosed, Set<Pair<CmpVertex,CmpVertex>> equivalentVertices)
 	{
-		String result = checkW_is_corrent_boolean(wset,prefixClosed);
+		String result = checkW_is_corrent_boolean(wset,prefixClosed,equivalentVertices);
 		if (result != null)
 			fail(result);
 	}
 	
-	public String checkW_is_corrent_boolean(Collection<List<String>> wset, boolean prefixClosed)
+	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
+	 * 
+	 * @param wset the set to check validity of.
+	 * @param prefixClosed whether we are talking of prefix-closed languages
+	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
+	 */
+	public String checkW_is_corrent_boolean(Collection<List<String>> wset, boolean prefixClosed, Set<Pair<CmpVertex,CmpVertex>> equivalentVertices)
 	{
 		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
 		{
 			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
-				if (stateA != stateB)
+				if (stateA != stateB && (equivalentVertices == null || 
+						(!equivalentVertices.contains(new Pair<CmpVertex,CmpVertex>(stateA, stateB)) &&
+						 !equivalentVertices.contains(new Pair<CmpVertex,CmpVertex>(stateB, stateA)))))
 				{
 					boolean foundString = false;
 					Iterator<List<String>> pathIt = wset.iterator();

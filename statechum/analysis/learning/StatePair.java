@@ -20,7 +20,7 @@ package statechum.analysis.learning;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
-public class StatePair extends Pair<CmpVertex,CmpVertex> implements Comparable<StatePair> 
+public class StatePair extends Pair<CmpVertex,CmpVertex>
 {
 	
 	public StatePair(CmpVertex blue, CmpVertex red){

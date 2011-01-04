@@ -319,19 +319,13 @@ public class PairScoreComputation {
 		return score;
 	}
 
-	static public class StringVertexPair extends Pair<String,CmpVertex> implements Comparable<StringVertexPair>
+	static public class StringVertexPair extends Pair<String,CmpVertex> 
 	{
 		public StringVertexPair(String st,CmpVertex v)
 		{
 			super(st,v);
 		}
-		
-		@Override
-		public int compareTo(StringVertexPair o) {
-			//return firstElem.compareTo(o.firstElem);
-			return super.compareTo(o);
-		}
-		
+				
 		@Override
 		public String toString()
 		{

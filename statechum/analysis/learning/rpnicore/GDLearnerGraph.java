@@ -839,7 +839,7 @@ public class GDLearnerGraph
 	public void computeWalkSequences(final StateBasedRandom randomGenerator,int ThreadNumber)
 	{
 		stateToCorrespondingGraph = new TreeMap<CmpVertex,GraphAndWalk>();
-		//final AtomicInteger totalSeq = new AtomicInteger();
+		//final AtomicInteger totalStates = new AtomicInteger();
 		final Map<CmpVertex,GraphAndWalk> workerMap[]=new Map[ThreadNumber];
 		
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
@@ -862,6 +862,7 @@ public class GDLearnerGraph
 					
 					try {
 						deterministicGraph = matrixForward.pathroutines.buildDeterministicGraph(entryA.getKey());
+						//totalStates.addAndGet(deterministicGraph.getStateNumber());
 					} catch (IncompatibleStatesException e) {
 						Helper.throwUnchecked("failed to build a deterministic graph due to inconsistent state labelling starting from state "+entryA.getKey(), e);
 					}
@@ -887,6 +888,7 @@ public class GDLearnerGraph
 						break;
 					case SCORE_TESTSET:
 						graphwalk=new GraphAndWalk(deterministicGraph,deterministicGraph.wmethod.computeNewTestSet(state, config.getGdScoreComputationAlgorithm_TestSet_ExtraStates()));
+						deterministicGraph.learnerCache.invalidate();// reduce memory footprint.
 						break;
 					default:
 						break;// do nothing in this case.
@@ -901,7 +903,6 @@ public class GDLearnerGraph
 		// Now collect the results
 		for(int th=0;th<ThreadNumber;++th) stateToCorrespondingGraph.putAll(workerMap[th]);
 		assert stateToCorrespondingGraph.size() == matrixForward.getStateNumber();
-		//System.out.println("total number of seq: "+totalSeq.get());
 	}
 
 	public class DDRH_BCR extends DetermineDiagonalAndRightHandSide

@@ -309,8 +309,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// now we got duplicate states in terms of states of A and B, but duplicates are in terms of renamed states of B in grCombined, hence convert it.
 		duplicates.clear();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
 
-		//System.out.println("duplicates, AB = "+duplicatesAB+" and in terms of grCombined: "+duplicates);
-
 		if (!duplicates.isEmpty())
 		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+duplicates+" are shared between A and B");
@@ -1306,7 +1304,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		case SCORE_TESTSET:
 			// build (1) deterministic machines for each state and (2) walks from each state. 
 			int seed = 80;
-			forward.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);inverse.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
+			forward.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
+			inverse.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
 			ddrh = DDRH_BCR.class;
 			break;
 		case SCORE_LINEAR:

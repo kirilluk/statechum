@@ -27,7 +27,7 @@ package statechum;
  * @param <A>
  * @param <B>
  */
-public class Pair<A extends Comparable<A>,B extends Comparable<B>> {
+public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Comparable<Pair<A,B>> {
 	public final A firstElem;
 	public final B secondElem;
 	

@@ -227,7 +227,7 @@ public class Transform
 				LearnerGraph newGraph = new LearnerGraph(coregraph,coregraph.config);
 				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
 				newGraph.transitionMatrix.get(currState).put(label, currState);
-				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet,true);
+				String description = newGraph.wmethod.checkW_is_corrent_boolean(wSet,true,null);
 				boolean changed = (description != null);
 /*
 				for(Entry<CmpVertex,Map<String,CmpVertex>> state:graph.transitionMatrix.entrySet())

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -77,7 +78,8 @@ public class TestGD_ExistingGraphs {
 				return name.startsWith("N_");
 			}
 		});
-		
+		Arrays.sort(files);
+
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 			for(int threadNo=1;threadNo<8;++threadNo)
 			{
@@ -85,7 +87,7 @@ public class TestGD_ExistingGraphs {
 					fileA=files[fileNum], 
 					fileB=files[(fileNum+1)%files.length];
 				boolean fallback = detectFallbackToInitialPair(fileA, null, fileB, null);
-				Assert.assertFalse(fallback);// our test files are too small not to fit in memory
+				Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
 				for(double ratio:new double[]{0.5,0.68,0.9})
 					for(int pairs:new int[]{0,5,40})
 						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
@@ -129,7 +131,7 @@ public class TestGD_ExistingGraphs {
 			config.setGdLowToHighRatio(0.5);
 			config.setGdMaxNumberOfStatesInCrossProduct(10);
 		}
-		config.setAttenuationK(0.95);
+		config.setAttenuationK(0.95);config.setEquivalentStatesAllowedForW(true);
 		return config;
 	}
 	
@@ -188,7 +190,7 @@ public class TestGD_ExistingGraphs {
 	{
 		Set<CmpVertex> usedA = new TreeSet<CmpVertex>(), usedB = new TreeSet<CmpVertex>();
 		usedA.addAll(gd.statesOfA);usedB.addAll(gd.statesOfB);
-		for(PairScore ps:gd.frontWave)
+		for(PairScore ps:gd.frontWave) // first, we remove all states already used as key pairs from the set of states we can choose from. 
 		{
 			usedA.remove(ps.firstElem);usedB.remove(ps.secondElem);
 		}

@@ -25,7 +25,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
  * is provided because this class is not exclusively used for learning, but in other
  * cases when I need to associate two scores to states, such as in GD. 
  */
-public class PairScore extends StatePair implements Comparable<StatePair>
+public class PairScore extends StatePair
 {
 	private final int score, compatibilityScore;
 

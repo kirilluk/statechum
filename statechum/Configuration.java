@@ -296,6 +296,21 @@ public class Configuration implements Cloneable
 		prefixClosed = closed;
 	}
 	
+	/** Whether we should make an attempt to generate a semi-W set in the presence of equivalent states.
+	 * Very useful where a test set aims to simply generate thorough walks.
+	 */
+	protected boolean equivalentStatesAllowedForW = false;
+	
+	public boolean getEquivalentStatesAllowedForW()
+	{
+		return equivalentStatesAllowedForW;
+	}
+	
+	public void setEquivalentStatesAllowedForW(boolean equiv)
+	{
+		equivalentStatesAllowedForW = equiv;
+	}
+	
 	@Override
 	public Object clone() {
 		try {
@@ -440,6 +455,7 @@ public class Configuration implements Cloneable
 		result = prime * result + gdScoreComputationAlgorithm_TestSet_ExtraStates;
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_ExtraLength;
+		result = prime * result + (equivalentStatesAllowedForW? 1231 : 1237);
 		
 		return result;
 	}
@@ -562,6 +578,8 @@ public class Configuration implements Cloneable
 		if (gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences != other.gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences)
 			return false;
 		if (gdScoreComputationAlgorithm_RandomWalk_ExtraLength != other.gdScoreComputationAlgorithm_RandomWalk_ExtraLength)
+			return false;
+		if (equivalentStatesAllowedForW != other.equivalentStatesAllowedForW)
 			return false;
 		
 		return true;

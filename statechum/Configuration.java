@@ -460,7 +460,7 @@ public class Configuration implements Cloneable
 		return result;
 	}
 
-	public static final double fpAccuracy = 1e-15; 
+	public static final double fpAccuracy = 1e-8; 
 	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#equals(java.lang.Object)

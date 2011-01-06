@@ -204,7 +204,6 @@ public class RPNIUniversalLearner extends RPNILearner
 		{
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-
 			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
 			Collection<List<String>> questions = new LinkedList<List<String>>();
 			int score = pair.getScore();

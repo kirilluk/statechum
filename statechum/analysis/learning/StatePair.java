@@ -43,7 +43,4 @@ public class StatePair extends Pair<CmpVertex,CmpVertex>
 		return "[ "+((getQ() == null)?"NULL":getQ().getID().toString())+origFirst+", "+((getR() == null)?"NULL":getR().getID().toString())+origSecond+" ]";
 	}
 
-	public int compareTo(StatePair o) {
-		return super.compareTo(o);
-	}
 }

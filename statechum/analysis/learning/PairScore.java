@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning;
 
+import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 /** Important: although compatibility score is recorded and reported, it is ignored in 
@@ -57,11 +58,12 @@ public class PairScore extends StatePair
 	 * we'd like to sort them in the order of decreasing score, so that 
 	 * the first one will have the highest score etc.
 	 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
-	 * 
+	 * <br>
+	 * Note the type of argument: it has to be a supertype since we're overriding Pair's <em>compareTo</em> method.
 	 * @param b the state pair to compare to.
 	 */
 	@Override
-	public int compareTo(StatePair b){
+	public int compareTo(Pair<CmpVertex,CmpVertex> b){
 		PairScore pB = (PairScore)b;
 		if (score != pB.score)
 			return score < pB.score? -1:1;

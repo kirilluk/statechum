@@ -18,9 +18,7 @@
 
 package statechum;
 
-/** A generic superclass for all pairs. Cannot implement Comparable because 
- * Comparable has to be implemented with different generic 
- * parameters by derived classes.
+/** A generic superclass for all pairs. 
  * 
  * @author kirr
  *

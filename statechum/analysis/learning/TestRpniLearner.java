@@ -137,11 +137,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		//l.setCertaintyThreshold(5);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 		LearnerGraph learntStructureA = new LearnerGraph(l.learnMachine(buildSet(plus), buildSet(minus)),expected.config);
-
 		// Now do the same with ptasets instead of real sets
 		PTASequenceSet plusPTA = new PTASequenceSet();plusPTA.addAll(buildSet(plus));PTASequenceSet minusPTA = new PTASequenceSet();minusPTA.addAll(buildSet(minus));
 		LearnerGraph learntStructureB = new LearnerGraph(l.learnMachine(plusPTA, minusPTA),expected.config);
-		//Visualiser.updateFrame(learntStructureA, expected);
 		Assert.assertNull(WMethod.checkM(learntStructureA, learntStructureB));
 		LearnerGraph learntMachineNoRejects = new LearnerGraph(expected.config);
 		AbstractPathRoutines.removeRejectStates(learntStructureA,learntMachineNoRejects);

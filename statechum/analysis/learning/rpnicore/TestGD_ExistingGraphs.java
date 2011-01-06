@@ -79,9 +79,8 @@ public class TestGD_ExistingGraphs {
 			}
 		});
 		Arrays.sort(files);
-
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
-			for(int threadNo=1;threadNo<8;++threadNo)
+			for(int threadNo:new int[]{1,2,4,8})
 			{
 				File 
 					fileA=files[fileNum], 
@@ -89,7 +88,7 @@ public class TestGD_ExistingGraphs {
 				boolean fallback = detectFallbackToInitialPair(fileA, null, fileB, null);
 				Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
 				for(double ratio:new double[]{0.5,0.68,0.9})
-					for(int pairs:new int[]{0,5,40})
+					for(int pairs:new int[]{0,40})
 						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
 
 				// -1. should be floating-point number otherwise it is turned into Integer and our parametersToString fails to match the resulting list of values.

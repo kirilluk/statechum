@@ -88,12 +88,12 @@ public class TestGD_ExistingGraphsND {
 
 	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result)
 	{
-		for(int threadNo=1;threadNo<8;++threadNo)
+		for(int threadNo:new int[]{1,2,4,8})
 		{
 			boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
 			Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
 			for(double ratio:new double[]{0.5,0.68,0.9})
-				for(int pairs:new int[]{0,10,100})
+				for(int pairs:new int[]{0,100})
 				result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
 						fileA1,fileA2,fileB1,fileB2
 					});

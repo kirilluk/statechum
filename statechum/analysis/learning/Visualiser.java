@@ -54,6 +54,9 @@ import javax.swing.*;
  * 
  * Sample JVM arguments (if configuration file does not exist it will be created when configuration is saved):
  * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs -Xmx3500m
+ *
+ * Sample JVM arguments for a Mac:
+ * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs:smt/.libs -Xmx3500m -Djava.awt.headless=true -DLTL2BA=/usr/local/soft/ltl2ba-1.1/bin/ltl2ba
  * 
  * JVM arguments for auto-answering queries:
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs -Xmx1500m -DVIZ_AUTOFILENAME=resources/aseQuestionsAndAnswers

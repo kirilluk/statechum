@@ -141,6 +141,18 @@ public class GlobalConfiguration {
 			windowCoords = new HashMap<String, WindowPosition>();
 		if (properties == null)
 			properties = new Properties();
+		boolean valuesSet = false,firstValue=true;
+		for(G_PROPERTIES prop:G_PROPERTIES.values())
+		{
+			String name = prop.name(),value=null;try { value=System.getProperty(name); } catch (Exception ex) {}// ignore exception if cannot extract a value
+			if (value != null)
+			{// new value set via command-line
+				if (firstValue) firstValue=false;else System.out.print(',');
+				System.out.print(name+"="+value);
+				properties.setProperty(name,value);valuesSet=true;
+			}
+		}
+		if (valuesSet) System.out.println();
 	}
 
 	/** Retrieves the name of the file to load configuration information from/store it to.

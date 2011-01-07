@@ -46,7 +46,7 @@ import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
  *
  */
 @RunWith(Parameterized.class)
-public class TestGD_ExistingGraphsND {
+public class TestGD_ExistingGraphsNDTestSet {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
@@ -88,12 +88,12 @@ public class TestGD_ExistingGraphsND {
 
 	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result)
 	{
-		for(int threadNo:new int[]{1,2,4,8})
+		for(int threadNo:new int[]{1,8})
 		{
 			boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
 			Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
-			for(double ratio:new double[]{0.5,0.68,0.9})
-				for(int pairs:new int[]{0,100})
+			for(double ratio:new double[]{0.5,0.9})
+				for(int pairs:new int[]{0})
 				result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
 						fileA1,fileA2,fileB1,fileB2
 					});
@@ -110,7 +110,7 @@ public class TestGD_ExistingGraphsND {
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphsND(int th, int pairs, double ratio, File fileA, File fileB, File fileC, File fileD)
+	public TestGD_ExistingGraphsNDTestSet(int th, int pairs, double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
 		threadNumber = th;graphA=fileA;graphB=fileB;graphC=fileC;graphD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
@@ -181,48 +181,25 @@ public class TestGD_ExistingGraphsND {
 	}
 
 	@Test
-	public final void testGD_AB_linearRH()
+	public final void testGD_AB_testsetRH()
 	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
 	@Test
-	public final void testGD_BA_linearRH()
+	public final void testGD_AB_testset()
 	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
-		runNDPatch(graphC, graphD, graphA, graphB);
-	}
-	
-	@Test
-	public final void testGD_AB_walkRH()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 		runNDPatch(graphA, graphB, graphC, graphD);
 	}
 	
-	@Test
-	public final void testGD_BA_walkRH()
+	public static void main(String aa[])
 	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphC, graphD, graphA, graphB);
-	}
-	
-	@Test
-	public final void testGD_AB_walk()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphA, graphB, graphC, graphD);
-	}
-	
-	@Test
-	public final void testGD_BA_walk()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphC, graphD, graphA, graphB);
+		TestGD_ExistingGraphsNDTestSet tester = new TestGD_ExistingGraphsNDTestSet(2, 0, 0.68, new File(testFilePath+"N_1320.xml"),new File(testFilePath+"N_502.xml"),
+				new File(testFilePath+"N_2070.xml"),new File(testFilePath+"N_2232.xml"));
+		tester.beforeTest();
+		tester.config.setEquivalentStatesAllowedForW(true);
+		tester.testGD_AB_testset();
 	}
 }

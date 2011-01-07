@@ -335,34 +335,6 @@ public class TestGD_ExistingGraphs {
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
 		runPatch(graphB, graphA);
 	}
-	
-	@Test
-	public final void testGD_AB_testsetRH()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runPatch(graphA, graphB);
-	}
-	
-	@Test
-	public final void testGD_BA_testsetRH()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runPatch(graphB, graphA);
-	}
-	
-	@Test
-	public final void testGD_AB_testset()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runPatch(graphA, graphB);
-	}
-	
-	@Test
-	public final void testGD_BA_testset()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		runPatch(graphB, graphA);
-	}
 
 	@Test
 	public final void testGD_AA()

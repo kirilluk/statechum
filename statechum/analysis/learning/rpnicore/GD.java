@@ -19,11 +19,13 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.awt.Color;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1304,7 +1306,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		case SCORE_TESTSET:
 			// build (1) deterministic machines for each state and (2) walks from each state. 
 			int seed = 80;
+			TestDiagnostics.getDiagnostics().setStatus("started on walk forward "+DateFormat.getTimeInstance().format(new Date()));
 			forward.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
+			TestDiagnostics.getDiagnostics().setStatus("started on walk inverse "+DateFormat.getTimeInstance().format(new Date()));
 			inverse.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
 			ddrh = DDRH_BCR.class;
 			break;
@@ -1314,6 +1318,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		default:
 			throw new IllegalArgumentException("computation algorithm "+argConfig.getGdScoreComputationAlgorithm()+" is not currently supported");
 		}
+
+		TestDiagnostics.getDiagnostics().setStatus("finished building walks "+DateFormat.getTimeInstance().format(new Date()));
 
 		if (fallbackToInitialPair)
 		{// we are here only if the full matrix has to be built and it will be too big to solve it in the usual way
@@ -1360,25 +1366,32 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			}, GDLearnerGraph.partitionWorkLoadLinear(ThreadNumber,statesOfA.size()));
 			final int numberOfPairs = GDLearnerGraph.numberNonNegativeElements(pairScores);
 			assert numberOfPairs == statesOfA.size()*statesOfB.size();
-			
+			TestDiagnostics.getDiagnostics().setStatus("started building matrix forward "+DateFormat.getTimeInstance().format(new Date()));
+
 			// Now the system of equations will be built and solved. The only exception is where 
 			// argConfig.getGdScoreComputation() == GDScoreComputationEnum.GD_DIRECT in which case
 			// the solver returned will be a dummy with b[] part copied to the x one.
 			{
 				LSolver solverForward = forward.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,ddrh);
+				TestDiagnostics.getDiagnostics().setStatus("finished building matrix forward "+DateFormat.getTimeInstance().format(new Date()));
+				forward.stateToCorrespondingGraph = null;// deallocate memory
 				//System.out.println(forward.dumpEquations(solverForward, pairScores, newBToOrig));
 				solverForward.solve();
 				solverForward.freeAllButResult();// deallocate memory before creating a large array.
 				scoresForward = solverForward.j_x;
 			}
 
+			TestDiagnostics.getDiagnostics().setStatus("started building matrix inverse "+DateFormat.getTimeInstance().format(new Date()));
 			{
 				LSolver solverInverse = inverse.buildMatrix_internal(pairScores, numberOfPairs, ThreadNumber,ddrh);
 				//System.out.println(inverse.dumpEquations(solverInverse, pairScores, newBToOrig));
+				TestDiagnostics.getDiagnostics().setStatus("finished building matrix inverse "+DateFormat.getTimeInstance().format(new Date()));
+				inverse.stateToCorrespondingGraph = null;// deallocate memory
 				solverInverse.solve();
 				solverInverse.freeAllButResult();// deallocate memory before creating a large array.
 				scoresInverse = solverInverse.j_x;
 			}
+			TestDiagnostics.getDiagnostics().setStatus("finished with the inverse solver"+DateFormat.getTimeInstance().format(new Date()));
 		}
 
 	}

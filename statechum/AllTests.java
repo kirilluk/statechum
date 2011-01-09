@@ -112,7 +112,7 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
 		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsUsingTestSet.class,
 		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class,
-		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDTestSet.class,
+		statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet.class,
 		statechum.apps.TestVisualDemo.class
 		})
 	public static class LinearTests {// all tests are included in the annotation.

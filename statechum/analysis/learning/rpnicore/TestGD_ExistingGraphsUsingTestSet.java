@@ -34,10 +34,12 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
@@ -58,6 +60,7 @@ public class TestGD_ExistingGraphsUsingTestSet {
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
+		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// this dummy forces the load of configuration if not already loaded, hence progress indicator does not interleave with "configuration loaded" messages.
 		Collection<Object []> result = new LinkedList<Object []>();
 		final String testFilePath = "resources/TestGraphs/75-6/";
 		File path = new File(testFilePath);assert path.isDirectory();
@@ -70,21 +73,28 @@ public class TestGD_ExistingGraphsUsingTestSet {
 			}
 		});
 		Arrays.sort(files);
+		int threads[] = new int[]{1,8};
+		TestGD.ProgressIndicator progress = new TestGD.ProgressIndicator("eT:", files.length*threads.length);
+
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
-			for(int threadNo:new int[]{1,8})
+		{
+			File 
+			fileA=files[fileNum], 
+			fileB=files[(fileNum+1)%files.length];
+			boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA, null, fileB, null);
+			Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
+
+			for(int threadNo:threads)
 			{
-				File 
-					fileA=files[fileNum], 
-					fileB=files[(fileNum+1)%files.length];
-				boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA, null, fileB, null);
-				Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
 				for(double ratio:new double[]{0.3,0.9})
 					for(int pairs:new int[]{0})
 						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
 
 				// -1. should be floating-point number otherwise it is turned into Integer and our parametersToString fails to match the resulting list of values.
 				result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA,fileB});
+				progress.next();
 			}
+		}
 		return result;
 	}
 

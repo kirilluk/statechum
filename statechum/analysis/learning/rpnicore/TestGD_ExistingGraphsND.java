@@ -35,10 +35,13 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
 /**
@@ -59,6 +62,7 @@ public class TestGD_ExistingGraphsND {
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
+		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// this dummy forces the load of configuration if not already loaded, hence progress indicator does not interleave with "configuration loaded" messages.
 		Collection<Object []> result = new LinkedList<Object []>();
 		File path = new File(testFilePath);assert path.isDirectory();
 		File files [] = path.listFiles(new FilenameFilter()
@@ -69,10 +73,12 @@ public class TestGD_ExistingGraphsND {
 				return name.startsWith("N_");
 		}});
 		Arrays.sort(files);
+		int threads[]=new int[]{1,8};
+		TestGD.ProgressIndicator progress = new TestGD.ProgressIndicator("eND:", (files.length+1)*threads.length);
 
 		// N_1320.xml+N_502.xml v.s. N_2070.xml+N_2232.xml takes a long while.
 		addFilesToCollection(new File(testFilePath+"N_1320.xml"),new File(testFilePath+"N_502.xml"),
-				new File(testFilePath+"N_2070.xml"),new File(testFilePath+"N_2232.xml"),result);
+				new File(testFilePath+"N_2070.xml"),new File(testFilePath+"N_2232.xml"),result,threads,progress);
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 		{
 			File
@@ -81,23 +87,37 @@ public class TestGD_ExistingGraphsND {
 				fileB1 = files[(fileNum+2)%files.length],
 				fileB2 = files[(fileNum+3)%files.length];
 			
-			addFilesToCollection(fileA1, fileA2, fileB1, fileB2, result);
+			addFilesToCollection(fileA1, fileA2, fileB1, fileB2, result,threads,progress);
 		}
 		return result;
 	}
 
-	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result)
+	/**
+	 * Adds a series of tests to a collection of tests.
+	 * 
+	 * @param fileA1 first half of the graphA
+	 * @param fileA2 second half of A
+	 * @param fileB1 first half of B
+	 * @param fileB2 second half of B
+	 * @param result where to add tests
+	 * @param threads thread values to use
+	 * @param progress progress indicator to use
+	 */
+	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result,int [] threads, TestGD.ProgressIndicator progress)
 	{
-		for(int threadNo:new int[]{1,2,4,8})
+		boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
+		Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
+
+		for(int threadNo:threads)
 		{
-			boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
-			Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
-			for(double ratio:new double[]{0.5,0.68,0.9})
+			for(double ratio:new double[]{0.6,0.9})
 				for(int pairs:new int[]{0,100})
 				result.add(new Object[]{new Integer(threadNo), new Integer(pairs), ratio,
 						fileA1,fileA2,fileB1,fileB2
 					});
 			result.add(new Object[]{new Integer(threadNo), new Integer(0),-1.,fileA1,fileA2,fileB1,fileB2});
+
+			progress.next();
 		}
 	}
 	
@@ -203,26 +223,10 @@ public class TestGD_ExistingGraphsND {
 	}
 	
 	@Test
-	public final void testGD_BA_walkRH()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphC, graphD, graphA, graphB);
-	}
-	
-	@Test
 	public final void testGD_AB_walk()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
 		runNDPatch(graphA, graphB, graphC, graphD);
-	}
-	
-	@Test
-	public final void testGD_BA_walk()
-	{
-		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
-		runNDPatch(graphC, graphD, graphA, graphB);
 	}
 }

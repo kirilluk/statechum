@@ -841,7 +841,7 @@ public class GDLearnerGraph
 		stateToCorrespondingGraph = new TreeMap<CmpVertex,GraphAndWalk>();
 		//final AtomicInteger totalStates = new AtomicInteger();
 		final Map<CmpVertex,GraphAndWalk> workerMap[]=new Map[ThreadNumber];
-		
+ 
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
 		{
@@ -855,9 +855,12 @@ public class GDLearnerGraph
 					stateToGraph = workerMap[threadNo];
 				}
 	
+				int cnt=0;
+				
 				@Override
 				public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
 				{
+					++cnt;TestDiagnostics.getDiagnostics().setStatus("starting on state "+(100.*cnt/matrixForward.getStateNumber()));
 					LearnerGraph deterministicGraph = new LearnerGraph(config);
 					
 					try {
@@ -889,6 +892,7 @@ public class GDLearnerGraph
 					case SCORE_TESTSET:
 						graphwalk=new GraphAndWalk(deterministicGraph,deterministicGraph.wmethod.computeNewTestSet(state, config.getGdScoreComputationAlgorithm_TestSet_ExtraStates()));
 						deterministicGraph.learnerCache.invalidate();// reduce memory footprint.
+						
 						break;
 					default:
 						break;// do nothing in this case.

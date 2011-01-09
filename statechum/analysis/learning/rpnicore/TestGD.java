@@ -1017,4 +1017,138 @@ public class TestGD {
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
 */
+	
+	public static class ProgressIndicator
+	{
+		private int cnt=0,p=1;
+		private final int total;
+
+		public ProgressIndicator(String nameArg,int t)
+		{
+			total = t;
+			// if total <=0, little will be displayed, I presume this is ok.
+			System.out.print("["+nameArg+" ");
+			if (total <= 0) 
+			{
+				end();p=10;// the assignment to p is for testing
+			}
+		}
+		
+		public void next()
+		{
+			if (cnt < total)
+			{// ignore invalid use
+				++cnt;
+				
+				while(cnt > total*p/10)
+				{
+					++p;System.out.print(".");
+				}
+				if (cnt == total) end();
+			}
+		}
+		
+		private void end()
+		{
+			System.out.print("] ");
+		}
+		
+		/** For testing only. */
+		int getP()
+		{
+			return p;
+		}
+	}
+	
+	@Test
+	public final void testProgressIndicator1()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",-1);
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator2()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",0);
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator3()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",1);
+		Assert.assertEquals(1, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator4()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",2);
+		Assert.assertEquals(1, pr.getP());
+		pr.next();
+		Assert.assertEquals(5, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator5()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",3);
+		Assert.assertEquals(1, pr.getP());
+		pr.next();
+		Assert.assertEquals(4, pr.getP());
+		pr.next();
+		Assert.assertEquals(7, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator6()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",10);
+		Assert.assertEquals(1, pr.getP());
+		for(int i=0;i<10;++i)
+		{
+			pr.next();
+			Assert.assertEquals(i+1, pr.getP());
+		}
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+		pr.next();
+		Assert.assertEquals(10, pr.getP());
+	}
+	
+	@Test
+	public final void testProgressIndicator7()
+	{
+		ProgressIndicator pr = new ProgressIndicator("A",15);
+		Assert.assertEquals(1, pr.getP());
+		pr.next();
+		Assert.assertEquals(1, pr.getP());
+		pr.next();
+		Assert.assertEquals(2, pr.getP());
+	}
+	
+
 }

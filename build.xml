@@ -65,7 +65,7 @@
        	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
        	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
        	<sysproperty key="threadnum" value="4"/>
-		<sysproperty key="com.sun.management.jmxremote" />
+		<sysproperty key="com.sun.management.jmxremote" value="" />
        	<classpath>
          	<path refid="classpath.statechum" />
          	<pathelement location="${statechum_bin}"/>
@@ -84,6 +84,29 @@
        </junit>
        
   </target>
+	
+	 <target name="diag" depends="compileStatechum" description="run unit tests">
+	  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
+		<assertions>
+	        	<enable/>
+	      	</assertions>
+	    	<!-- <jvmarg value="-XX:+CITime"/> -->
+	       	<jvmarg value="-Xdebug" />
+	       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" />
+	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+	       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+	       	<sysproperty key="threadnum" value="4"/>
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+	       	<classpath>
+	         	<path refid="classpath.statechum" />
+	         	<pathelement location="${statechum_bin}"/>
+	         </classpath>
+	       </java>
+	       
+	  </target>
+
 
   <target name="clean" description="clean up" >
     <delete dir="${statechum_bin}/statechum"/>

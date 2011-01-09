@@ -72,7 +72,7 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 				return name.startsWith("N_");
 		}});
 		Arrays.sort(files);
-		int threads[]=new int[]{1,8};
+		int threads[]=new int[]{8};
 		TestGD.ProgressIndicator progress = new TestGD.ProgressIndicator("eNDT:", (files.length+1)*threads.length);
 
 		// N_1320.xml+N_502.xml v.s. N_2070.xml+N_2232.xml takes a long while.
@@ -197,14 +197,14 @@ public class TestGD_ExistingGraphsNDUsingTestSet {
 			Helper.throwUnchecked("failed to load a file", ex);
 		}
 	}
-
+/*
 	@Test
 	public final void testGD_AB_testsetRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 		runNDPatch(graphA, graphB, graphC, graphD);
 	}
-	
+*/	
 	@Test
 	public final void testGD_AB_testset()
 	{

@@ -54,7 +54,7 @@
 
   <target name="test" depends="compileStatechum" description="run unit tests">
   	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
-       <junit  fork="on" maxmemory="8192m" forkmode="once" printsummary="yes" haltonfailure="yes">
+       <junit  fork="on" maxmemory="16384m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>

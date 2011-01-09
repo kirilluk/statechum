@@ -83,7 +83,7 @@ public class TestGD_ExistingGraphs {
 		});
 		Arrays.sort(files);
 		int threads[]=new int[]{1,8};
-		TestGD.ProgressIndicator progress = new TestGD.ProgressIndicator("e", files.length*threads.length);
+		TestGD.ProgressIndicator progress = new TestGD.ProgressIndicator("e:", files.length*threads.length);
 		
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
 		{

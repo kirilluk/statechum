@@ -43,7 +43,7 @@ public class ScoreMatrixOutput {
 	
 	
 	public static void writeMatrix(LearnerGraph gr, String name){
-		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(new Random(1)));
+		Stack<PairScore> pairScores = gr.pairscores.chooseStatePairs(GDLearnerGraph.PAIR_INCOMPATIBLE*2,10,1,null,LearnerGraphND.ignoreNone, new StateBasedRandom(1));
 		ArrayList<StringVertex> vertexList = new ArrayList<StringVertex>();
 		DirectedSparseGraph dsg = gr.pathroutines.getGraph();
 		vertexList.addAll(dsg.getVertices());

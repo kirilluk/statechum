@@ -628,7 +628,7 @@ public class TestLinear {
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
 		//Visualiser.updateFrame(ndGraph.matrixInverse, null);
 		//RandomPathGenerator.diameter(ndGraph.matrixInverse);
-		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		ndGraph.computeWalkSequences(new StateBasedRandom(80), 1);
 		
 		Assert.assertNull(WMethod.checkM(new LearnerGraph(FsmParser.buildGraph("A-a->BE-b->CFG-d->F-d->F / CFG-c->DH-f->D-f->D / DH-e->H-e->H","testCount_computeGraphs_A"),config), 
 				ndGraph.stateToCorrespondingGraph.get(gr.findVertex(VertexID.parseID("A"))).graph));
@@ -653,21 +653,21 @@ public class TestLinear {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(2);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(200);
 		config.setGdScoreComputationAlgorithm_RandomWalk_ExtraLength(0);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(4);
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph(NDGraph, "testCount_computeGraphs"), config);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
-		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		ndGraph.computeWalkSequences(new StateBasedRandom(80), 1);
 		
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_BCR();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"C","D");
-		Assert.assertEquals(0,matcher.getRightHandSide(),Configuration.fpAccuracy);
+		Assert.assertEquals(4.76190476190,matcher.getRightHandSide(),Configuration.fpAccuracy);
 		Assert.assertEquals(2*2,matcher.getDiagonal(),Configuration.fpAccuracy);
 
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"E","B");
-		Assert.assertEquals(0.5,matcher.getRightHandSide(),Configuration.fpAccuracy);
+		Assert.assertEquals(6.374807987711213,matcher.getRightHandSide(),Configuration.fpAccuracy);
 		Assert.assertEquals(2*2,matcher.getDiagonal(),Configuration.fpAccuracy);
-
 	}
 
 	@Test
@@ -677,15 +677,15 @@ public class TestLinear {
 		config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 		LearnerGraph gr=new LearnerGraph(FsmParser.buildGraph(NDGraph, "testCount_computeGraphs"), config);
 		GDLearnerGraph ndGraph = new GDLearnerGraph(gr,LearnerGraphND.ignoreRejectStates, true);
-		ndGraph.computeWalkSequences(new StateBasedRandom(new Random(80)), 1);
+		ndGraph.computeWalkSequences(new StateBasedRandom(80), 1);
 		
 		DetermineDiagonalAndRightHandSide matcher = ndGraph.new DDRH_BCR();
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"C","D");
-		Assert.assertEquals(1./3.,matcher.getRightHandSide(),Configuration.fpAccuracy);
+		Assert.assertEquals(100./3.,matcher.getRightHandSide(),Configuration.fpAccuracy);
 		Assert.assertEquals(2*2,matcher.getDiagonal(),Configuration.fpAccuracy);
 
 		getMatcherValue(gr,ndGraph,ndGraph.matrixForward, matcher,"E","B");
-		Assert.assertEquals(1,matcher.getRightHandSide(),Configuration.fpAccuracy);
+		Assert.assertEquals(100,matcher.getRightHandSide(),Configuration.fpAccuracy);
 		Assert.assertEquals(2*2,matcher.getDiagonal(),Configuration.fpAccuracy);
 	}
 

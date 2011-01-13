@@ -28,23 +28,26 @@ public class PairQualityExperiment {
 		configA.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
 		configA.setGdFailOnDuplicateNames(false);
 		configA.setGdLowToHighRatio(0.9);
-		configA.setGdPropagateDet(true);
+		configA.setAttenuationK(0.95);
+		//configA.setGdPropagateDet(true);
 		
 		configB.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
 		configB.setGdFailOnDuplicateNames(false);
-		configB.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		configB.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(400);
 		configB.setGdScoreComputationAlgorithm_RandomWalk_PathLength(10);
-		configB.setGdLowToHighRatio(0.1);
-		configB.setGdPropagateDet(true);
+		configA.setAttenuationK(0.95);
+		configB.setGdLowToHighRatio(0.9);
+		//configB.setGdPropagateDet(true);
 		
 		System.out.print(name+" ");
 		
 		for(Configuration cnf:new Configuration[]{configA,configB})
 		{
-			//GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = ;
 			gd.init(grA, grB, threadNumber,cnf);
 			gd.identifyKeyPairs();int keyPairs = gd.frontWave.size();
+			//TestGD.printListOfPairs(gd.frontWave, gd.newBToOrig);
 			gd.makeSteps();
+			changesCounter.reset();
 			gd.computeDifference(changesCounter);
 			System.out.print(keyPairs+" ("+changesCounter.detailsToString()+") ");
 		}

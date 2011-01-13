@@ -804,7 +804,7 @@ public class TestLinearWithMultipleThreads {
 	{
 		public NonRandomRandom() 
 		{
-			super(null);
+			super(0);
 		}
 		
 		@Override
@@ -827,14 +827,13 @@ public class TestLinearWithMultipleThreads {
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,ThreadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),3,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("B"),1,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("B"),2,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("B"),125,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
 		}));
-		System.out.println(pairsSet);
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -851,14 +850,13 @@ public class TestLinearWithMultipleThreads {
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,ThreadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),3,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("B"),1,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("B"),2,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("C"),1,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("C"),1,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("B"),162,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("C"),125,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("C"),125,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
 		}));
-		System.out.println(pairsSet);
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -875,14 +873,13 @@ public class TestLinearWithMultipleThreads {
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,ThreadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),5,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("B"),2,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("B"),5,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("C"),2,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("C"),2,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("C"),250,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("C"),250,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
 		}));
-		System.out.println(pairsSet);
 		Assert.assertEquals(expected, pairsSet);
 	}	
 
@@ -899,14 +896,13 @@ public class TestLinearWithMultipleThreads {
 		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,ThreadNumber,DDRH_BCR.class,
 				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore[]{
-				new PairScore(gr.findVertex("A"),gr.findVertex("A"),5,1),
-				new PairScore(gr.findVertex("A"),gr.findVertex("B"),2,1),
-				new PairScore(gr.findVertex("B"),gr.findVertex("B"),5,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
+				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
+				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("C"),0,1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),0,1)
 		}));
-		System.out.println(pairsSet);
 		Assert.assertEquals(expected, pairsSet);
 	}	
 

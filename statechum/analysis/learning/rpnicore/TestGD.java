@@ -878,7 +878,7 @@ public class TestGD {
 	 * @param listOfPairs pairs to display
 	 * @param renaming renaming to apply, not used if null
 	 */
-	protected static void aprintListOfPairs(List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> renaming)
+	protected static void printListOfPairs(List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> renaming)
 	{
 		System.out.print("[ ");
 		for(PairScore pair:listOfPairs)

@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -133,11 +132,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	/** States which are not matched between the two graphs but have shared names between the two graphs
 	 * and thus have to be renamed.
 	 */
-	final Set<CmpVertex> duplicates = new TreeSet<CmpVertex>();
+	Set<CmpVertex> duplicates = null;
 	
 	/** Maps key states of A to the corresponding ones in the B part of grCombined. */
-	final Map<CmpVertex,CmpVertex> aTOb = new TreeMap<CmpVertex,CmpVertex>();// this is a replica of the key pair waves, needed for aTOb.get()
-	
+	Map<CmpVertex,CmpVertex> aTOb = null;// this is a replica of the key pair waves, needed for aTOb.get()
+
 	/** Number of threads to use in a computation. */
 	int ThreadNumber = 0;
 	
@@ -255,7 +254,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		//
 		// frontWave is the wavefront from which we are exploring grCombined in
 		// search of these candidates for key pairs.
-		aTOb.clear();
+		aTOb= new TreeMap<CmpVertex,CmpVertex>();
+		
 		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		do
 		{
@@ -324,7 +324,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		duplicatesAB.addAll(aTOb.keySet());duplicatesAB.retainAll(newBToOrig.values());// throws away all states not in B, such as states in A's key pairs which are not in B and hence cannot be duplicates
 		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet()) duplicatesAB.remove(newBToOrig.get(entry.getValue()));// throws all states of B which are B's key pairs - these are paired with A and hence cannot be conflicting.
 		// now we got duplicate states in terms of states of A and B, but duplicates are in terms of renamed states of B in grCombined, hence convert it.
-		duplicates.clear();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
+		duplicates = new TreeSet<CmpVertex>();for(CmpVertex vertex:duplicatesAB) duplicates.add(origToNewB.get(vertex));
 
 		if (!duplicates.isEmpty())
 		{// duplicates state names found, hence use the unique names the corresponding states were given in grCombined (given via addToGraph)
@@ -958,6 +958,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		private final int transitionsInA,transitionsInB;
 		private final String nameA, nameB;
 
+		public void reset()
+		{
+			added = 0;removed = 0;
+		}
+		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
 
@@ -1322,9 +1327,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			// build (1) deterministic machines for each state and (2) walks from each state. 
 			int seed = 80;
 			TestDiagnostics.getDiagnostics().setStatus("started on walk forward "+DateFormat.getTimeInstance().format(new Date()));
-			forward.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
+			forward.computeWalkSequences(new StateBasedRandom(seed), threads);
 			TestDiagnostics.getDiagnostics().setStatus("started on walk inverse "+DateFormat.getTimeInstance().format(new Date()));
-			inverse.computeWalkSequences(new StateBasedRandom(new Random(seed)), threads);
+			inverse.computeWalkSequences(new StateBasedRandom(seed), threads);
 			ddrh = DDRH_BCR.class;
 			break;
 		case SCORE_LINEAR:
@@ -1489,6 +1494,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
 			}
 			final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
+			//System.out.println("top score: "+topScore+", threshold "+threshold);
 
 			// Key pairs added to the collection.
 			for(PairScore pair:currentWave)

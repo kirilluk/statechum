@@ -814,17 +814,22 @@ public class GDLearnerGraph
 	 */
 	public static class StateBasedRandom
 	{
-		private Random rnd = null;
+		private Map<CmpVertex,Random> rnd = new TreeMap<CmpVertex,Random>();
+		private final int seed;
 		
-		public StateBasedRandom(Random r)
+		public StateBasedRandom(int s)
 		{
-			rnd=r;
+			seed = s;
 		}
 		
-		@SuppressWarnings("unused")
 		public Random getRandom(CmpVertex A) 
 		{
-			return rnd;
+			Random r = rnd.get(A);
+			if (r == null)
+			{
+				r=new Random(seed);rnd.put(A, r);
+			}
+			return r;
 		}
 	}
 	
@@ -885,7 +890,8 @@ public class GDLearnerGraph
 
 							RandomPathGenerator randomPaths = new RandomPathGenerator(deterministicGraph,randomGenerator.getRandom(entryA.getKey()),
 									extraLength+config.getGdScoreComputationAlgorithm_RandomWalk_ExtraLength(),state,matrixForward.pathroutines.computeAlphabet());
-							randomPaths.setPathLength(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
+							if (config.getGdScoreComputationAlgorithm_RandomWalk_PathLength() > 0)
+								randomPaths.setPathLength(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
 							randomPaths.generateRandomPosNeg(config.getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(), 1,false);
 							graphwalk=new GraphAndWalk(deterministicGraph,randomPaths.getAllSequences(0));
 						}
@@ -970,10 +976,11 @@ public class GDLearnerGraph
 					if (testSequencesA != null) precRec.crossWith(testSequencesA);
 					bcrB=precRec.getBCR();
 				}
+				double multiplier = 100.;
 				if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH)
-					rightHandSide = (bcrA+bcrB)*totalOutgoing/2.;
+					rightHandSide = multiplier*(bcrA+bcrB)*totalOutgoing/2.;
 				else
-					rightHandSide = (bcrA+bcrB)/2.;
+					rightHandSide = multiplier*(bcrA+bcrB)/2.;
 				//System.out.println("computed bcr: "+bcrA+" "+bcrB+" outcome is "+rightHandSide);
 			}// if (incompatible)
 		}

@@ -843,8 +843,10 @@ public class Configuration implements Cloneable
 		gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences = value;
 	}
 
-	/** Sets the length of paths generated for random walks. */
-	protected int gdScoreComputationAlgorithm_RandomWalk_PathLength=10;
+	/** Sets the length of paths generated for random walks. 
+	 * If this value is zero or negative, uses graph diameter plus the <em>extra length</em> value.  
+	 */
+	protected int gdScoreComputationAlgorithm_RandomWalk_PathLength=-1;
 	
 	public int getGdScoreComputationAlgorithm_RandomWalk_PathLength()
 	{
@@ -876,7 +878,7 @@ public class Configuration implements Cloneable
 	/** Where graphs are deterministic, a single key pair can easily be propagated without a need to use
 	 * scores. 
 	 */
-	protected boolean gdPropagateDet = true;
+	protected boolean gdPropagateDet = false;
 	
 	public boolean getGdPropagateDet()
 	{

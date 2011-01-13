@@ -725,6 +725,7 @@ public class TestGD_Multithreaded {
 		AbstractLearnerGraph<List<CmpVertex>,LearnerGraphNDCachedData> copyOfA = grA.copy(cloneConfig), copyOfB = grB.copy(cloneConfig);
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
+		//TestGD.printListOfPairs(gd.frontWave, gd.newBToOrig);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps();gd.computeDifference(recorder);
 		//Visualiser.updateFrame(grA, grB);

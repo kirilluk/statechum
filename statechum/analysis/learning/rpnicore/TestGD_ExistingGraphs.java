@@ -316,10 +316,31 @@ public class TestGD_ExistingGraphs {
 	}
 	
 	@Test
+	public final void testGD_BA_linearRH_noPropagate()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_LINEAR);
+		config.setGdPropagateDet(false);
+		runPatch(graphB, graphA);
+	}
+	
+	final int NumberOfSequences=50,PathLength=10;
+	
+	@Test
 	public final void testGD_AB_walkRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
+		runPatch(graphA, graphB);
+	}
+	
+	@Test
+	public final void testGD_AB_walkRH_noPropagate()
+	{
+		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
+		config.setGdPropagateDet(false);
 		runPatch(graphA, graphB);
 	}
 	
@@ -327,7 +348,8 @@ public class TestGD_ExistingGraphs {
 	public final void testGD_BA_walkRH()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_RH);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
 		runPatch(graphB, graphA);
 	}
 	
@@ -335,7 +357,8 @@ public class TestGD_ExistingGraphs {
 	public final void testGD_AB_walk()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
 		runPatch(graphA, graphB);
 	}
 	
@@ -343,7 +366,8 @@ public class TestGD_ExistingGraphs {
 	public final void testGD_BA_walk()
 	{
 		config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_RANDOMPATHS);
-		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(100);
+		config.setGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(NumberOfSequences);
+		config.setGdScoreComputationAlgorithm_RandomWalk_PathLength(PathLength);
 		runPatch(graphB, graphA);
 	}
 

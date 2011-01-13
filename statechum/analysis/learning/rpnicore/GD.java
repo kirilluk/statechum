@@ -259,20 +259,35 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		newToOrig = new TreeMap<CmpVertex,CmpVertex>();
 		do
 		{
+			// we start with a wave, see if determinism can be used to extend it
+			if (grCombined.config.getGdPropagateDet())
+				propagateDet(forward.matrixForward,inverse.matrixForward);
+
+			// After extension via determinism, update the supporting collections
+			// It is a rather wasteful to do it for a full collection here, would've been better
+			// to do this every time new pair is added but in real terms, this part consumes little
+			// time so it stays for the time being.
+			for(PairScore pair:frontWave) 
+			{
+				CmpVertex origState=pair.getQ(),newState=pair.getR();
+
+				newToOrig.put(newState,origState);// since we now know 
+				// which state of A pair.getQ() of combined corresponds to, change the mapping.
+				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
+				assert AbstractLearnerGraph.checkCompatible(origState,newState,grCombined.pairCompatibility);
+
+				aTOb.put(origState,newState);
+				statesInKeyPairs.add(origState);statesInKeyPairs.add(newState);
+				assert aTOb.size() == aTOb.values().size() : " duplicate right-hand side in key pairs";
+			}
+			
+			// compute the new front from the existing out, the outcome is in currentWave
 			currentWave.clear();
 			populateCurrentWave(forward.matrixForward);
 			if (!fallbackToInitialPair) populateCurrentWave(inverse.matrixForward);
 			sortWave(currentWave);
-			for(PairScore pair:frontWave) 
-			{
-				newToOrig.put(pair.getR(),pair.getQ());// since we now know 
-				// which state of A pair.getQ() of combined corresponds to, change the mapping.
-				// addTransitions(grCombined,statesOfB,added,cloneConfig) relies on this change.
-				assert AbstractLearnerGraph.checkCompatible(pair.getQ(),pair.getR(),grCombined.pairCompatibility);
-
-				aTOb.put(pair.getQ(),pair.getR());
-			}
-			assert aTOb.size() == aTOb.values().size() : " duplicate right-hand side in key pairs";
+			
+			// now we need to walk through the tentative pairs in currentWave and select relevant ones to add to frontWave
 			frontWave.clear();
 			for(PairScore pair:currentWave)
 				if (!statesInKeyPairs.contains(pair.getQ()) && !statesInKeyPairs.contains(pair.getR()) &&  // we can only consider a new pair if it does not share any states with existing key pairs
@@ -284,7 +299,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		while(!frontWave.isEmpty());
 	
 	}
-	
+
 	/** Expands the set of key pairs and computes the outcome. 
 	 * 
 	 * @param graphToPatch this will be provided with changes necessary to transform the first graph
@@ -1519,13 +1534,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		for(PairScore pair:frontWave)
 		{
-			for(Entry<String,List<CmpVertex>> targetA:matrixND.transitionMatrix.get(pair.getQ()).entrySet())
+			for(Entry<String,List<CmpVertex>> targetCollectionA:matrixND.transitionMatrix.get(pair.getQ()).entrySet())
 			{
-				List<CmpVertex> targetB = matrixND.transitionMatrix.get(pair.getR()).get(targetA.getKey());
-				if (targetB != null)
+				List<CmpVertex> targetCollectionB = matrixND.transitionMatrix.get(pair.getR()).get(targetCollectionA.getKey());
+				if (targetCollectionB != null)
 				{// matched pair, now iterate over target states
-					for(CmpVertex targetStateA:targetA.getValue())
-						for(CmpVertex targetStateB:targetB)
+					for(CmpVertex targetStateA:targetCollectionA.getValue())
+						for(CmpVertex targetStateB:targetCollectionB)
 							if (!statesInKeyPairs.contains(targetStateA) && !statesInKeyPairs.contains(targetStateB))
 							{
 								double score = 0;
@@ -1542,6 +1557,96 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 	}
 
+	/** Where two graphs are deterministic, whenever two states are matched, one does not have to look one step
+	 *  ahead - propagation can be performed recursively and one would expect everything to match well. 
+	 *  This is useful because backward match is usually non-deterministic
+	 *  so we have to make guesses, hence a potential for error.
+	 *
+	 * @param matrixForward the (non-deterministic) matrix forward
+	 * @param matrixInverse the (non-deterministic) matrix inverse
+	 */
+	protected void propagateDet(LearnerGraphND matrixForward,LearnerGraphND matrixInverse)
+	{
+		boolean stateAdded = false;
+		
+		// on each iteration, new pairs are generated and only these will need to be iterated over in the following iteration.
+		List<PairScore> newWaveA = new LinkedList<PairScore>(), newWaveB = new LinkedList<PairScore>();
+		
+		// When we start, we have to iterate over all the existing pairs and in subsequent iterations - over all the newly-added ones.
+		List<PairScore> waveToProcess = frontWave, waveToAppendTo = newWaveA;
+		currentWave.clear();
+
+		do
+		{
+			waveToAppendTo.clear();stateAdded = false;
+			for(PairScore pair:waveToProcess)
+			{
+				// forward
+				for(Entry<String,List<CmpVertex>> targetCollectionA:matrixForward.transitionMatrix.get(pair.getQ()).entrySet())
+					if (targetCollectionA.getValue().size() == 1)
+					{
+						CmpVertex targetA = targetCollectionA.getValue().get(0); 
+						
+						List<CmpVertex> targetCollectionB = matrixForward.transitionMatrix.get(pair.getR()).get(targetCollectionA.getKey());
+						if (targetCollectionB != null && targetCollectionB.size() == 1)
+						{// matched deterministic pair
+							CmpVertex targetB = targetCollectionB.get(0);
+							PairScore newPair = checkAndAddIfPairIsMatched(targetA, targetB);
+							if (newPair != null) 
+							{
+								waveToAppendTo.add(newPair);
+								stateAdded = true;// this means we need to iterate in order to recursively process the next pair 
+							}
+						}
+					}
+				// inverse
+				for(Entry<String,List<CmpVertex>> targetCollectionA:matrixInverse.transitionMatrix.get(pair.getQ()).entrySet())
+					if (targetCollectionA.getValue().size() == 1)
+					{
+						CmpVertex targetA = targetCollectionA.getValue().get(0); 
+						
+						List<CmpVertex> targetCollectionB = matrixInverse.transitionMatrix.get(pair.getR()).get(targetCollectionA.getKey());
+						if (targetCollectionB != null && targetCollectionB.size() == 1)
+						{// matched deterministic pair
+							CmpVertex targetB = targetCollectionB.get(0);
+							PairScore newPair = checkAndAddIfPairIsMatched(targetA, targetB);
+							if (newPair != null) 
+							{
+								waveToAppendTo.add(newPair);
+								stateAdded = true;// this means we need to iterate in order to recursively process the next pair 
+							}
+						}
+					}
+			}
+			if (waveToAppendTo == newWaveA)
+			{
+				waveToProcess = newWaveA;waveToAppendTo = newWaveB;
+			}
+			else
+			{
+				waveToProcess = newWaveB;waveToAppendTo = newWaveA;
+			}
+				
+		}
+		while(stateAdded);
+		
+		// at this point, currentWave contains all the new pairs, add them to the main wave
+		frontWave.addAll(currentWave);currentWave.clear();
+	}
+	
+	private PairScore checkAndAddIfPairIsMatched(CmpVertex targetA, CmpVertex targetB)
+	{
+		PairScore result = null;
+		if (!statesInKeyPairs.contains(targetA) && !statesInKeyPairs.contains(targetB) &&
+				AbstractLearnerGraph.checkCompatible(targetA, targetB, grCombined.pairCompatibility))
+		{
+			PairScore newPair = new PairScore(targetA,targetB,Integer.MAX_VALUE,0);
+			statesInKeyPairs.add(targetA);statesInKeyPairs.add(targetB);
+			currentWave.add(newPair);result = newPair;
+		}
+		return result;
+	}
+	
 	/** Adds the supplied prefix to vertex ID provided. */
 	static void renameVertex(VertexID currID, String prefix,Map<VertexID,VertexID> oldVerticesToNew)
 	{

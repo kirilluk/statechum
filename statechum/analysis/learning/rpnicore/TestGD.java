@@ -875,13 +875,23 @@ public class TestGD {
 	/** Displays the supplied list of pairs, converting names of states
 	 * from the notation of the combined graph to their original names. 
 	 * 
-	 * @param listOfPairs
+	 * @param listOfPairs pairs to display
+	 * @param renaming renaming to apply, not used if null
 	 */
-	protected static void printListOfPairs(List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> newToOrig)
+	protected static void aprintListOfPairs(List<PairScore> listOfPairs,java.util.Map<CmpVertex,CmpVertex> renaming)
 	{
 		System.out.print("[ ");
-		for(PairScore pair:listOfPairs) System.out.print(
-				new PairScore(newToOrig.get(pair.getQ()),newToOrig.get(pair.getR()),pair.getScore(),pair.getAnotherScore())+" ");
+		for(PairScore pair:listOfPairs)
+		{
+			CmpVertex q=pair.getQ(),r=pair.getR();
+			if (renaming != null)
+			{
+				CmpVertex newQ=renaming.get(q),newR=renaming.get(r);
+				if (newQ != null) q=newQ;if (newR != null) r=newR;
+			}
+			System.out.print(new PairScore(q,r,pair.getScore(),pair.getAnotherScore())+" ");
+		}
+				
 		System.out.println("]");
 	}
 	

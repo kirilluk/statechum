@@ -141,8 +141,10 @@ public class TestGD_Multithreaded {
 				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-		gd.init(graphA, graphB, threadNumber,Configuration.getDefaultConfiguration());
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(true);
+		gd.init(graphA, graphB, threadNumber,config);
 		Assert.assertTrue(gd.identifyKeyPairs());
+		//TestGD.printListOfPairs(gd.frontWave, gd.newToOrig);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps();gd.computeDifference(recorder);
 		//printListOfPairs(gd,allKeyPairs);
@@ -153,6 +155,65 @@ public class TestGD_Multithreaded {
 		}
 	}
 
+	/** Same as above but without deterministic propagation. */
+	@Test
+	public final void testMakeSteps2()
+	{
+		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
+				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
+				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
+
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(false);
+		gd.init(graphA, graphB, threadNumber,config);
+		Assert.assertTrue(gd.identifyKeyPairs());
+		//TestGD.printListOfPairs(gd.frontWave, gd.newToOrig);
+		ChangesRecorder recorder = new ChangesRecorder(null);
+		gd.makeSteps();gd.computeDifference(recorder);
+		//printListOfPairs(gd,allKeyPairs);
+		for(Entry<CmpVertex,CmpVertex> pair:gd.aTOb.entrySet())
+		{
+			CmpVertex A=pair.getKey(), B=gd.newBToOrig.get(pair.getValue());
+			Assert.assertEquals(B.getID().toString(),"@"+A.getID().toString());
+		}
+	}
+
+	/** Same as above, with deterministic propagation but much fewer key pairs - I only keep one of interest and 
+	 * deterministic propagation should generate all the remaining pairs. */
+	@Test
+	public final void testMakeSteps3()
+	{
+		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
+				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
+				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
+
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(true);
+		gd.init(graphA, graphB, threadNumber,config);
+		Assert.assertTrue(gd.identifyKeyPairs());
+		gd.currentWave.clear();gd.statesInKeyPairs.clear();
+		for(PairScore pair:gd.frontWave) 
+			if (pair.getQ().getID().equals(VertexID.parseID("B"))) 
+			{ 
+				gd.currentWave.add(pair);gd.statesInKeyPairs.add(pair.getQ());gd.statesInKeyPairs.add(pair.getR());
+			}
+		gd.frontWave.clear();gd.frontWave.addAll(gd.currentWave);gd.currentWave.clear();
+		Assert.assertEquals(1,gd.frontWave.size());// we should only have one pair
+
+		gd.propagateDet(gd.forward.matrixForward,gd.inverse.matrixForward);
+		Assert.assertEquals(5,gd.frontWave.size());// now all states of the first graph should be matched
+		Assert.assertEquals(5,graphA.getStateNumber());
+		for(PairScore pair:gd.frontWave)
+		{
+			CmpVertex A=pair.getQ(), B=gd.newBToOrig.get(pair.getR());
+			Assert.assertEquals(B.getID().toString(),"@"+A.getID().toString());
+		}
+		
+	}
+
+	
 	/** Tests GD on the supplied two graphs
 	 * 
 	 * @param graphA first graph

@@ -35,7 +35,7 @@ public class RandomPathGenerator {
 	
 	final protected LearnerGraph g;
 	final CmpVertex initialState;
-	final int pathLength;
+	int pathLength;
 	final Random randomNumberGenerator;
 	
 	/** An array representation of the transition matrix of the graph, needed for fast computation of random walks. */
@@ -106,6 +106,12 @@ public class RandomPathGenerator {
 			inputsRejected.put(entry.getKey(), rejects);
 		}
 		initAllSequences();
+	}
+	
+	public void setPathLength(int value)
+	{
+		if (value <= 0) throw new IllegalArgumentException("path length has to be positive");
+		pathLength = value;
 	}
 	
 	public static int diameter(LearnerGraph graph)

@@ -456,6 +456,8 @@ public class Configuration implements Cloneable
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_ExtraLength;
 		result = prime * result + (equivalentStatesAllowedForW? 1231 : 1237);
+		result = prime * result + (gdPropagateDet? 1231 : 1237);
+		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_PathLength;
 		
 		return result;
 	}
@@ -580,6 +582,10 @@ public class Configuration implements Cloneable
 		if (gdScoreComputationAlgorithm_RandomWalk_ExtraLength != other.gdScoreComputationAlgorithm_RandomWalk_ExtraLength)
 			return false;
 		if (equivalentStatesAllowedForW != other.equivalentStatesAllowedForW)
+			return false;
+		if (gdPropagateDet != other.gdPropagateDet)
+			return false;
+		if (gdScoreComputationAlgorithm_RandomWalk_PathLength != other.gdScoreComputationAlgorithm_RandomWalk_PathLength)
 			return false;
 		
 		return true;
@@ -824,7 +830,7 @@ public class Configuration implements Cloneable
 	/** When scores are generated using Random walks, this number reflects the number of sequences to generate.
 	 * The generated sequences will be split equally into positive and negative sequences.
 	 */
-	protected int gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences;
+	protected int gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences=20;
 	
 	public int getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences()
 	{
@@ -837,6 +843,20 @@ public class Configuration implements Cloneable
 		gdScoreComputationAlgorithm_RandomWalk_NumberOfSequences = value;
 	}
 
+	/** Sets the length of paths generated for random walks. */
+	protected int gdScoreComputationAlgorithm_RandomWalk_PathLength=10;
+	
+	public int getGdScoreComputationAlgorithm_RandomWalk_PathLength()
+	{
+		return gdScoreComputationAlgorithm_RandomWalk_PathLength;
+	}
+
+	public void setGdScoreComputationAlgorithm_RandomWalk_PathLength(int value)
+	{
+		gdScoreComputationAlgorithm_RandomWalk_PathLength = value;
+	}
+
+	
 	/** The length of sequences generated with random walks is a diameter of a graph plus a constant supplied using
 	 * the variable below. 
 	 */
@@ -853,6 +873,21 @@ public class Configuration implements Cloneable
 		gdScoreComputationAlgorithm_RandomWalk_ExtraLength = value;
 	}
 
+	/** Where graphs are deterministic, a single key pair can easily be propagated without a need to use
+	 * scores. 
+	 */
+	protected boolean gdPropagateDet = true;
+	
+	public boolean getGdPropagateDet()
+	{
+		return gdPropagateDet;
+	}
+	
+	public void setGdPropagateDet(boolean newValue)
+	{
+		gdPropagateDet = newValue;
+	}
+	
 	/** Considering all pairs of states, we need to determine those of 
 	 * them which are over a specific threshold,
 	 * defined as top so many percent (expressed as a fraction, so top 5% is 0.05).

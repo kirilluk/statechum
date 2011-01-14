@@ -95,7 +95,7 @@ public class TestGD_ExistingGraphs {
 
 			for(int threadNo:threads)
 			{
-				for(double ratio:new double[]{0.3,0.6,0.9})
+				for(double ratio:new double[]{0.6,0.9})
 					for(int pairs:new int[]{0,40})
 						result.add(new Object[]{new Integer(threadNo), new Integer(pairs),ratio,fileA,fileB});
 

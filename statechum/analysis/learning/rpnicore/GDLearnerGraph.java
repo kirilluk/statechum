@@ -822,7 +822,7 @@ public class GDLearnerGraph
 			seed = s;
 		}
 		
-		public Random getRandom(CmpVertex A) 
+		public synchronized Random getRandom(CmpVertex A) 
 		{
 			Random r = rnd.get(A);
 			if (r == null)

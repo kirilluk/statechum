@@ -41,7 +41,6 @@ import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 
 /**

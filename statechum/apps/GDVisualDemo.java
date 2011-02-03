@@ -37,7 +37,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
  * @author kirr
  *
  */
-public class GDVisualDemo 
+public class GDVisualDemo
 {
 	public static DirectedSparseGraph obtainDifferenceGraph(String graphA, String graphB,int counter,boolean display)
 	{

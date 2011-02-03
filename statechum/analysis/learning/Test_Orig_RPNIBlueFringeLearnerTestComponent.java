@@ -120,7 +120,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			
 			possibleMerges = chooseStatePairs(model, sPlus, sMinus);
 		}
-		updateGraph(new LearnerGraph(model,Configuration.getDefaultConfiguration()));
+		updateGraph(new LearnerGraph(model,Configuration.getDefaultConfiguration()),null);
 		return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 	}
 	

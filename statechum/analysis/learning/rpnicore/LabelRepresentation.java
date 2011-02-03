@@ -1488,7 +1488,7 @@ public class LabelRepresentation
 					{// the transition to the last node cannot be taken.
 						if (currentLabel.pre != null)
 						{
-							// now we need to add a condition that p => ¬pre next
+							// now we need to add a condition that p => !pre next
 							lemmas.append(commentForTransition+entry.getKey()+"("+(prevState.stateNumber)+")-"+currentLabel.getName()+"-#"+
 									transition.getValue()+"("+currentStateNumber+")");lemmas.append(ENDL);
 									

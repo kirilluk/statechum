@@ -43,12 +43,15 @@ import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
-public class QSMTool 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+
+public class QSMTool
 {
 	protected int k = -1;
 	
@@ -72,7 +75,10 @@ public class QSMTool
 			{
 				try 
 				{
-					Visualiser.updateFrame(PathRoutines.convertPairAssociationsToTransitions(Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph()), tool.learnerInitConfiguration.config), null);
+                                    LearnerGraph graph = Transform.ltlToIfThenAutomaton(ba.getLTLgraph().pathroutines.buildDeterministicGraph());
+                                    DirectedSparseGraph gr = graph.pathroutines.getGraph();
+                                    PathRoutines.convertPairAssociationsToTransitions(gr, graph, tool.learnerInitConfiguration.config);
+					Visualiser.updateFrame(gr, null);
 				} catch (IncompatibleStatesException e) {
 					e.printStackTrace();
 				}
@@ -103,8 +109,11 @@ public class QSMTool
 		{
 			in = new BufferedReader(inputData);
 			String fileString;
-			while ((fileString = in.readLine()) != null)
+			while ((fileString = in.readLine()) != null) {
+                            if(!((fileString.equals("- "))||(fileString.equals("+ ")))) {
 				process(fileString);
+                            }
+                        }
 			if (learnerInitConfiguration.labelDetails != null)
 				learnerInitConfiguration.labelDetails.parseCollection(dataDescription);		
 		} catch (IOException e) {

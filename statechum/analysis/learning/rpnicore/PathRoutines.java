@@ -894,14 +894,15 @@ public class PathRoutines {
 	 * equivalence of graphs for testing, it seems reasonable to replace all such associations with real
 	 * transitions and run the usual procedure of checking.
 	 * <p>
-	 * This method performs such a conversion.
-	 * 
+	 * This method performs such a conversion, adding the associations to the <em>whereTo</em> graph.
+	 *
+         * @param whereTo where to add the associations
 	 * @param graph graph
 	 * @param config
 	 * @return
 	 */
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>
-		DirectedSparseGraph convertPairAssociationsToTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
+		void convertPairAssociationsToTransitions(DirectedSparseGraph whereTo,AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config)
 	{
 		Set<String> alphabet = graph.pathroutines.computeAlphabet();
 		
@@ -958,10 +959,7 @@ public class PathRoutines {
 				}
 		}
 		
-		DirectedSparseGraph gr = result.pathroutines.getGraph();
-		
-		gr.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
-		return gr;
+		whereTo.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
 	}
 
 	/** Returns a minimal version of this graph. */

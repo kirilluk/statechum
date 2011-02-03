@@ -31,12 +31,20 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import statechum.JUConstants;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
+
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 
 public abstract class RPNILearner extends Observable implements Learner {
 	protected final Configuration config;
@@ -110,13 +118,31 @@ public abstract class RPNILearner extends Observable implements Learner {
 	 * setChanged()
 	 * </pre>
 	 * @param g the graph to display in the associated view
+         * @param hardFacts the graph from which the current one was built
 	 */
-	public void updateGraph(LearnerGraph g)
+	public void updateGraph(LearnerGraph g, LearnerGraph hardFacts)
 	{
 		setChanged();
 		if (config.getDebugMode())
 		{
-			notifyObservers(PathRoutines.convertPairAssociationsToTransitions(g,g.config));
+                    DirectedSparseGraph gr = g.pathroutines.getGraph();
+                    PathRoutines.convertPairAssociationsToTransitions(gr,g,g.config);
+                    if (hardFacts != null)
+                    {
+                        Map<CmpVertex,LinkedList<String>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
+                        for(Object vert:gr.getVertices())
+                            if (vert instanceof DeterministicVertex)
+                            {
+                                DeterministicVertex v=(DeterministicVertex)vert;
+                                VertexID orig = (VertexID)v.getUserDatum(JUConstants.ORIGSTATE);
+                                if (orig != null)
+                                {
+                                    
+                                    v.addUserDatum(JUConstants.PATH, vertToPath.get(hardFacts.findVertex(orig)), UserData.SHARED);
+                                }
+                            }
+                    }
+                    notifyObservers(gr);
 		}
 	}
 	

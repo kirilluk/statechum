@@ -41,7 +41,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	private static final long serialVersionUID = 4842027206398108774L;
 	
 	/** This one does the learning. */
-	RPNILearner innerLearner =  null;
+	protected RPNILearner innerLearner =  null;
 		
 	protected SplitFrame split = null;
 	

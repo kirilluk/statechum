@@ -15,14 +15,14 @@
     <path id="classpath.lib">
       <fileset dir="lib">
         <include name="**/*.jar"/>
-      	<exclude name="**/junit-4.4.jar"/> 
+<!--      	<exclude name="**/junit-4.4.jar"/>  -->
       </fileset>
     </path>
 
     <path id="classpath.statechum">
       <path refid="classpath.lib"/>
       <pathelement location="${junit_statechum_bin}"/>
-      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
+<!--      <pathelement location="${root}/trunk/lib/junit-4.8.2.jar"/> -->
     </path>
 
   <target name="init">
@@ -37,7 +37,7 @@
  	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
 		<classpath>
 			<path refid="classpath.lib"/>
-   			<pathelement location="${root}/lib/junit-4.8.2.jar"/>
+   			<pathelement location="${root}/trunk/lib/junit-4.8.2.jar"/>
 		</classpath>
     	<compilerarg value="-g" />
     	</javac>
@@ -54,7 +54,7 @@
 
   <target name="test" depends="compileStatechum" description="run unit tests">
   	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
-       <junit  fork="on" maxmemory="16384m" forkmode="once" printsummary="yes" haltonfailure="yes">
+       <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>

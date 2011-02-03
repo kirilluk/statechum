@@ -122,7 +122,7 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		}
 		//DirectedSparseGraph result = tentativeAutomaton.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(tentativeAutomaton);
+		updateGraph(tentativeAutomaton, null);
 		return tentativeAutomaton;
 	}
 }

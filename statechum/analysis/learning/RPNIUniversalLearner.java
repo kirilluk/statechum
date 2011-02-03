@@ -199,7 +199,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
 		JUConstants colourToAugmentWith = tentativeAutomaton.config.getUseAmber()? JUConstants.AMBER:null;
-		updateGraph(tentativeAutomaton);
+		updateGraph(tentativeAutomaton,ptaHardFacts);
 		while (!possibleMerges.isEmpty()) 
 		{
 			iterations++;
@@ -247,14 +247,14 @@ public class RPNIUniversalLearner extends RPNILearner
 			{
 				temp.setName(learntGraphName+"_"+iterations);
 				//LearnerGraph updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, tentativeAutomaton, temp);
-				//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual);
+				//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual,ptaHardFacts);
 
 				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 				questionIt = questions.iterator();
 				if (questionIt.hasNext())
 				{
 					pair.firstElem.setHighlight(true);pair.secondElem.setHighlight(true);
-					updateGraph(tentativeAutomaton);pair.firstElem.setHighlight(false);pair.secondElem.setHighlight(false);
+					updateGraph(tentativeAutomaton,ptaHardFacts);pair.firstElem.setHighlight(false);pair.secondElem.setHighlight(false);
 				}
 			}
 			
@@ -461,7 +461,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		}
 		
 		assert !config.getUseAmber() || currentNonAmber == ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
-		updateGraph(tentativeAutomaton);
+		updateGraph(tentativeAutomaton,ptaHardFacts);
 		return tentativeAutomaton;
 	}
 

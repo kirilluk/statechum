@@ -961,7 +961,8 @@ final public class TestAugmentUsingIFTHEN
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B / P-b->Q-c->R / ", "testConversionOfAssociationsToTransitions1a"), config);
-		DirectedSparseGraph graphAfterConversion = PathRoutines.convertPairAssociationsToTransitions(graph, config);
+                DirectedSparseGraph graphAfterConversion = graph.pathroutines.getGraph();
+                PathRoutines.convertPairAssociationsToTransitions(graphAfterConversion,graph, config);
 		graph.pairCompatibility.compatibility.clear();
 		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
 		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B / P-b->Q-c->R / ",
@@ -976,7 +977,8 @@ final public class TestAugmentUsingIFTHEN
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B / P-b->Q-c->R / A==THEN==P / B=INCOMPATIBLE=Q=MERGED=R", "testConversionOfAssociationsToTransitions2a"), config);
-		DirectedSparseGraph graphAfterConversion = PathRoutines.convertPairAssociationsToTransitions(graph, config);
+                DirectedSparseGraph graphAfterConversion = graph.pathroutines.getGraph();
+		PathRoutines.convertPairAssociationsToTransitions(graphAfterConversion,graph, config);
 		graph.pairCompatibility.compatibility.clear();
 		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
 		WMethod.checkM_and_colours(new LearnerGraph(FsmParser.buildGraph("A-a->B / P-b->Q-c->R / "+

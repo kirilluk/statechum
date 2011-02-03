@@ -2,10 +2,20 @@
 -export([cover_map/3,cover_map/4,map_intersect/2,map_exclude/2,cover_map_to_file/5]).
 
 cover_map_to_file(Module, Function, Prefix, Suffix, FileName) ->
-    {_Status, Map} = cover_map(Module, Function, Prefix, Suffix),
+    {_Status, Map} = cover_map_html(Module, Function, Prefix, Suffix, FileName),
     {ok, IODevice} = file:open(FileName, [write]),
     io:format(IODevice, "~p", [Map]),
     file:close(IODevice).
+
+cover_map_html(Module, Function, [], Suffix, FileName) ->
+    cover:compile(Module),
+    {Pid, Ref} = spawn_monitor(Module, Function, [Suffix]),
+    ProcStatus = tracer:await_end(Pid, Ref),
+    demonitor(Ref),
+    cover:analyse_to_file(Module, FileName, []),
+    cover:analyse_to_file(Module, FileName ++ ".html", [html]),
+    {ProcStatus, create_map(FileName)}.
+
 
 cover_map(Module, Function, [], Suffix) ->
     cover:compile(Module),

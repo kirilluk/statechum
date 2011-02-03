@@ -2,8 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
-package analysis.learning;
+package analysis.Erlang;
 
 import java.util.ArrayList;
 
@@ -11,22 +10,20 @@ import java.util.ArrayList;
  *
  * @author ramsay
  */
-public class ErlangCoverageMap {
+public class ErlangCoverageMapCombination {
 
- 
-    public ArrayList<ErlangCoverageMaplet> map;
+    public ArrayList<ErlangCoverageCombinedMaplet> map;
 
-    public ErlangCoverageMap() {
-        map = new ArrayList<ErlangCoverageMaplet>();
+    public ErlangCoverageMapCombination() {
+        map = new ArrayList<ErlangCoverageCombinedMaplet>();
     }
 
     @Override
     public String toString() {
         String result = "";
-        for(ErlangCoverageMaplet m:map) {
+        for (ErlangCoverageCombinedMaplet m : map) {
             result += m.toString() + ",";
         }
         return result;
     }
-
 }

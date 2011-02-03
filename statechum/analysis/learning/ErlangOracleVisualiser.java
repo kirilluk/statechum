@@ -4,8 +4,10 @@
  */
 package statechum.analysis.learning;
 
-import analysis.learning.ErlangCoverageMap;
-import analysis.learning.ErlangCoverageMaplet;
+import analysis.Erlang.ErlangCoverageFileFrame;
+import analysis.Erlang.ErlangCoverageMap;
+import analysis.Erlang.ErlangCoverageMapCombination;
+import analysis.Erlang.ErlangCoverageMaplet;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
@@ -23,9 +25,7 @@ import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
 import javax.swing.*;
 import java.awt.event.*;
-import java.util.Collection;
-import java.util.List;
-import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import java.io.IOException;
 
 /**
  *
@@ -55,6 +55,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.CoverageCompareMode;
+                ErlangOracleVisualiser.lastmap = null;
             }
         });
         popupMenu.add(item);
@@ -98,13 +99,34 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
     public static Object[] previousPicked = null;
     public static Object[] previousSelected = null;
+    public static ErlangCoverageMap lastmap = null;
+    public static File lastCoverFile = null;
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
         if (mode == CoverageMode) {
             coverageSelection();
-        }
+        } else if (mode == CoverageCompareMode) {
+            if ((lastmap == null)||(previousPicked == null)) {
+                coverageSelection();
+            } else {
+                ErlangCoverageMap map1 = lastmap;
+                File file1 = lastCoverFile;
+                coverageSelection();
+                // Display
 
+                ErlangCoverageMapCombination intersection = map1.intersection(lastmap);
+                System.out.println("Intersection: " + intersection);
+                try {
+                    ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + file1.getCanonicalFile(), "First");
+                    ErlangCoverageFileFrame frame2 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Second");
+                } catch (IOException f) {
+                    ;
+                }
+                lastmap = null;
+                lastCoverFile = null;
+            }
+        }
     }
 
     protected void coverageSelection() {
@@ -133,8 +155,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
             Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
             Vertex end = (Vertex) vs[0];
-            ErlangCoverageMap map = execErlangSuffixCoverageMapFinder(start.getUserDatum(JUConstants.PATH).toString(), end.getUserDatum(JUConstants.PATH).toString());
-            System.out.println("Trace suffix coverage map: " + map.toString());
+            lastmap = execErlangSuffixCoverageMapFinder(start.getUserDatum(JUConstants.PATH).toString(), end.getUserDatum(JUConstants.PATH).toString());
+            System.out.println("Trace suffix coverage map: " + lastmap.toString());
             Object[] merge = new Object[ErlangOracleVisualiser.previousPicked.length + vs.length];
             System.arraycopy(ErlangOracleVisualiser.previousPicked, 0, merge, 0, ErlangOracleVisualiser.previousPicked.length);
             System.arraycopy(vs, 0, merge, ErlangOracleVisualiser.previousPicked.length, vs.length);
@@ -149,8 +171,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         prefix = prefix.replaceAll(", ", ",");
         suffix = suffix.replaceAll(", ", ",");
         try {
-            String mapfile = "coveragemap" + prefix.hashCode() + suffix.hashCode() + ".map";
+            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0,4) + Integer.toString(suffix.hashCode()).substring(0,4)  + ".map";
             String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + mapfile;
+            System.out.println("Using coverage results file: " + mapfile);
             //System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
             Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -165,6 +188,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
             //System.out.println("Traces file:");
             File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
+            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
             input = new BufferedReader(new FileReader(f));
 
             while ((line = input.readLine()) != null) {

@@ -25,6 +25,7 @@ import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
 import javax.swing.*;
 import java.awt.event.*;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -106,8 +107,16 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
         if (mode == CoverageMode) {
             coverageSelection();
+            try {
+                if(lastCoverFile != null) {
+                    ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Coverage");
+                    lastCoverFile = null;
+                }
+            } catch (IOException f) {
+                ;
+            }
         } else if (mode == CoverageCompareMode) {
-            if ((lastmap == null)||(previousPicked == null)) {
+            if ((lastmap == null) || (previousPicked == null)) {
                 coverageSelection();
             } else {
                 ErlangCoverageMap map1 = lastmap;
@@ -171,7 +180,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         prefix = prefix.replaceAll(", ", ",");
         suffix = suffix.replaceAll(", ", ",");
         try {
-            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0,4) + Integer.toString(suffix.hashCode()).substring(0,4)  + ".map";
+            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
             String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + mapfile;
             System.out.println("Using coverage results file: " + mapfile);
             //System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
@@ -180,7 +189,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             //System.out.println("Process output:");
             String line;
             while ((line = input.readLine()) != null) {
-                //System.out.println(line);
+                System.out.println(line);
             }
             input.close();
 
@@ -188,7 +197,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
             //System.out.println("Traces file:");
             File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
-            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
+            try {
             input = new BufferedReader(new FileReader(f));
 
             while ((line = input.readLine()) != null) {
@@ -204,6 +213,10 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
             input.close();
             f.delete();
+            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
+            } catch (FileNotFoundException e) {
+                System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

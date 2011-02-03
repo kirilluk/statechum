@@ -154,7 +154,7 @@ check_for_trace(IODevice, Trace) ->
 generate_input_set(_, 0) ->
     [];
 generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(1000)) | generate_input_set(Aleph, N-1)].
+    [gen_random_string(Aleph, random:uniform(100)) | generate_input_set(Aleph, N-1)].
 
 gen_random_string(_Aleph, 0) ->
     [];

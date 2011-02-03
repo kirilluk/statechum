@@ -14,7 +14,20 @@ cover_map_html(Module, Function, [], Suffix, FileName) ->
     demonitor(Ref),
     cover:analyse_to_file(Module, FileName, []),
     cover:analyse_to_file(Module, FileName ++ ".html", [html]),
-    {ProcStatus, create_map(FileName)}.
+    {ProcStatus, create_map(FileName)};
+
+cover_map_html(Module, Function, Prefix, Suffix, FileName) ->
+    {PStatus, PrefixMap} = cover_map_html(Module, Function, Prefix, FileName),
+    case PStatus of
+	ok ->
+	    {FStatus, FullMap} = cover_map_html(Module, Function, Prefix ++ Suffix, FileName),
+	    {FStatus, map_subtract(PrefixMap, FullMap)};
+	failed ->
+	    {PStatus, []}
+    end.
+
+cover_map_html(Module, Function, Suffix, FileName) ->
+    cover_map_html(Module, Function, [], Suffix, FileName).
 
 
 cover_map(Module, Function, [], Suffix) ->

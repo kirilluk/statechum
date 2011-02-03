@@ -32,14 +32,8 @@ public class ErlangCoverageFileFrame extends JFrame {
             JLabel c = new JLabel("There was an error opening " + f);
             this.setContentPane(c);
         }
-        addWindowListener(new WindowAdapter() {
-
-            @Override
-            public void windowClosing(WindowEvent e) {
-                (new File(f)).delete();
-            }
-        });
         this.pack();
         this.setVisible(true);
+        (new File(f)).delete();
     }
 }

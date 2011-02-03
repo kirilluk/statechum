@@ -22,6 +22,6 @@ public class ErlangCoverageCombinedMaplet {
 
     @Override
     public String toString() {
-        return "{line " + line + " x " + count1 + ", " + count2 + "}";
+        return "{" + line + " x " + count1 + "," + count2 + "}";
     }
 }

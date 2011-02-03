@@ -126,6 +126,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
                 ErlangCoverageMapCombination intersection = map1.intersection(lastmap);
                 System.out.println("Intersection: " + intersection);
+                ErlangCoverageMap disjunction = lastmap.disjunction(map1);
+                System.out.println("Disjunction: " + disjunction);
                 try {
                     ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + file1.getCanonicalFile(), "First");
                     ErlangCoverageFileFrame frame2 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Second");

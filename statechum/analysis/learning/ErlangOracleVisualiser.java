@@ -4,10 +4,10 @@
  */
 package statechum.analysis.learning;
 
-import analysis.Erlang.ErlangCoverageFileFrame;
-import analysis.Erlang.ErlangCoverageMap;
-import analysis.Erlang.ErlangCoverageMapCombination;
-import analysis.Erlang.ErlangCoverageMaplet;
+import statechum.analysis.Erlang.ErlangCoverageFileFrame;
+import statechum.analysis.Erlang.ErlangCoverageMap;
+import statechum.analysis.Erlang.ErlangCoverageMapCombination;
+import statechum.analysis.Erlang.ErlangCoverageMaplet;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
@@ -34,7 +34,11 @@ import java.io.IOException;
  */
 public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
-    public static final int CoverageMode = 1;
+    /**
+	 * ID for serialization
+	 */
+	private static final long serialVersionUID = -6159624335802103334L;
+	public static final int CoverageMode = 1;
     public static final int CoverageCompareMode = 2;
     public static int mode = 1;
 
@@ -45,7 +49,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         item.addActionListener(new ActionListener() {
 
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.CoverageMode;
             }
         });
@@ -54,7 +58,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         item.addActionListener(new ActionListener() {
 
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.CoverageCompareMode;
                 ErlangOracleVisualiser.lastmap = null;
             }
@@ -176,11 +180,11 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         }
     }
 
-    protected ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefix, String suffix) {
+    protected ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefixArg, String suffixArg) {
         ErlangCoverageMap result = new ErlangCoverageMap();
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
-        prefix = prefix.replaceAll(", ", ",");
-        suffix = suffix.replaceAll(", ", ",");
+        String prefix = prefixArg.replaceAll(", ", ",");
+        String suffix = suffixArg.replaceAll(", ", ",");
         try {
             String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
             String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + mapfile;

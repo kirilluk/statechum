@@ -3,12 +3,17 @@
  * and open the template in the editor.
  */
 
-package analysis.Erlang;
+package statechum.analysis.Erlang;
 
 /**
  *
  * @author ramsay
  */
 public class ErlangCoverageMapletNotFoundException extends Exception {
+
+	/**
+	 * ID for serialization
+	 */
+	private static final long serialVersionUID = 1670281005151640778L;
 
 }

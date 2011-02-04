@@ -1427,6 +1427,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		statesInKeyPairs = new HashSet<CmpVertex>();
 		frontWave = new LinkedList<PairScore>();
 		PairScore topPair = null;
+		int threshold=0;
 		
 		// If we have to fall back to a pair of initial states, there is no point doing any
 		// of the computation below.
@@ -1493,7 +1494,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				topPair = currentWave.iterator().next();
 				topScore = topPair.getScore(); // this is done here to avoid cache problems when updating the same variable on multiple threads.
 			}
-			final int threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
+			threshold = (int)(topScore*(1.-grCombined.config.getGdKeyPairThreshold()));
 			//System.out.println("top score: "+topScore+", threshold "+threshold);
 
 			// Key pairs added to the collection.
@@ -1516,7 +1517,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			{// at least we've got a pair with a score over zero.
 				if (!fallbackToInitialPair &&
 						Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
-					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, using "+topPair);
+					System.out.println("Linear failed to find perfect candidiates for an initial set of key pairs, scores in ["+topPair.getScore()+","+threshold+"], ratio "+grCombined.config.getGdLowToHighRatio()+", hence using "+topPair);
 				frontWave.add(topPair);statesInKeyPairs.add(topPair.getQ());statesInKeyPairs.add(topPair.getR());
 			}
 			else

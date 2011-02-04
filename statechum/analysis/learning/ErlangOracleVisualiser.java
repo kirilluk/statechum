@@ -4,10 +4,7 @@
  */
 package statechum.analysis.learning;
 
-import statechum.analysis.Erlang.ErlangCoverageFileFrame;
-import statechum.analysis.Erlang.ErlangCoverageMap;
-import statechum.analysis.Erlang.ErlangCoverageMapCombination;
-import statechum.analysis.Erlang.ErlangCoverageMaplet;
+import statechum.analysis.Erlang.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
@@ -27,6 +24,7 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import statechum.analysis.Erlang.ErlangCoverageMapletNotFoundException;
 
 /**
  *
@@ -35,10 +33,10 @@ import java.io.IOException;
 public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     /**
-	 * ID for serialization
-	 */
-	private static final long serialVersionUID = -6159624335802103334L;
-	public static final int CoverageMode = 1;
+     * ID for serialization
+     */
+    private static final long serialVersionUID = -6159624335802103334L;
+    public static final int CoverageMode = 1;
     public static final int CoverageCompareMode = 2;
     public static int mode = 1;
 
@@ -112,7 +110,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         if (mode == CoverageMode) {
             coverageSelection();
             try {
-                if(lastCoverFile != null) {
+                if (lastCoverFile != null) {
                     ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Coverage");
                     lastCoverFile = null;
                 }
@@ -132,12 +130,17 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 System.out.println("Intersection: " + intersection);
                 ErlangCoverageMap disjunction = lastmap.disjunction(map1);
                 System.out.println("Disjunction: " + disjunction);
+                String colorful = traceColorise(map1, lastmap);
+                ErlangCoverageStringFrame frameS = new ErlangCoverageStringFrame(colorful, "Trace comparison");
+                /*
                 try {
-                    ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + file1.getCanonicalFile(), "First");
-                    ErlangCoverageFileFrame frame2 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Second");
+                ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + file1.getCanonicalFile(), "First");
+                ErlangCoverageFileFrame frame2 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Second");
                 } catch (IOException f) {
-                    ;
+                ;
                 }
+                 *
+                 */
                 lastmap = null;
                 lastCoverFile = null;
             }
@@ -204,22 +207,22 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             //System.out.println("Traces file:");
             File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
             try {
-            input = new BufferedReader(new FileReader(f));
+                input = new BufferedReader(new FileReader(f));
 
-            while ((line = input.readLine()) != null) {
-                //System.out.println(line);
-                String[] elems = line.split("\\{");
-                for (String e : elems) {
-                    if (!e.contains("[")) {
-                        e = e.replaceAll("\\}.*", "");
-                        String[] vals = e.split(",");
-                        result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
+                while ((line = input.readLine()) != null) {
+                    //System.out.println(line);
+                    String[] elems = line.split("\\{");
+                    for (String e : elems) {
+                        if (!e.contains("[")) {
+                            e = e.replaceAll("\\}.*", "");
+                            String[] vals = e.split(",");
+                            result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
+                        }
                     }
                 }
-            }
-            input.close();
-            f.delete();
-            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
+                input.close();
+                f.delete();
+                lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
             } catch (FileNotFoundException e) {
                 System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
             }
@@ -228,5 +231,45 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         }
 
         return result;
+    }
+
+    protected String traceColorise(ErlangCoverageMap map1, ErlangCoverageMap map2) {
+        String result = "<html><body><pre>";
+
+        String sourceFile = ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.erlangModule + ".erl";
+        try {
+            BufferedReader input = new BufferedReader(new FileReader(sourceFile));
+            int linenum = 0;
+            String line = null;
+            while ((line = input.readLine()) != null) {
+                linenum++;
+                int m1, m2;
+                try {
+                    m1 = map1.findLine(linenum);
+                } catch (ErlangCoverageMapletNotFoundException e) {
+                    m1 = 0;
+                }
+                try {
+                    m2 = map2.findLine(linenum);
+                } catch (ErlangCoverageMapletNotFoundException e) {
+                    m2 = 0;
+                }
+                result += "<font color=";
+                if ((m1 > 0) && (m2 == 0)) {
+                    result += "\"red\"";
+                } else if ((m1 == 0) && (m2 > 0)) {
+                    result += "\"blue\"";
+                } else if ((m1 > 0) && (m2 > 0)) {
+                    result += "\"#ff00ff\"";
+                } else {
+                    result += "\"#aaaaaa\"";
+                }
+                result += ">" + linenum + ":&nbsp;" + line + "</font>\n";
+            }
+            input.close();
+        } catch (IOException e) {
+            System.out.println("Couldn't open " + sourceFile);
+        }
+        return result + "</pre></body></html>";
     }
 }

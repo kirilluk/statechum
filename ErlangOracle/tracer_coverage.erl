@@ -43,7 +43,7 @@ cover_map(Module, Function, Prefix, Suffix) ->
     {PStatus, PrefixMap} = cover_map(Module, Function, Prefix),
     case PStatus of
 	ok ->
-	    {FStatus, FullMap} = cover_map(Module, Function, Prefix ++ Suffix),
+	    {FStatus, FullMap} = cover_map(Module, Function, Suffix),
 	    {FStatus, map_subtract(PrefixMap, FullMap)};
 	failed ->
 	    {PStatus, []}

@@ -127,19 +127,20 @@ public abstract class RPNILearner extends Observable implements Learner {
 		{
                     DirectedSparseGraph gr = g.pathroutines.getGraph();
                     PathRoutines.convertPairAssociationsToTransitions(gr,g,g.config);
-                    if (hardFacts != null)
+                    Map<VertexID,Collection<VertexID>> mergedToHard = g.getCache().getMergedToHardFacts();
+                    if (hardFacts != null && mergedToHard != null)
                     {
                         Map<CmpVertex,LinkedList<String>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
                         for(Object vert:gr.getVertices())
                             if (vert instanceof DeterministicVertex)
                             {
                                 DeterministicVertex v=(DeterministicVertex)vert;
-                                VertexID orig = (VertexID)v.getUserDatum(JUConstants.ORIGSTATE);
-                                if (orig != null)
+                                Collection<LinkedList<String>> result = new LinkedList<LinkedList<String>>();
+                                for(VertexID hard:mergedToHard.get(v.getID()))
                                 {
-                                    
-                                    v.addUserDatum(JUConstants.PATH, vertToPath.get(hardFacts.findVertex(orig)), UserData.SHARED);
+                                    result.add(vertToPath.get(hardFacts.findVertex(hard)));
                                 }
+                                v.addUserDatum(JUConstants.PATH, result, UserData.SHARED);
                             }
                     }
                     notifyObservers(gr);

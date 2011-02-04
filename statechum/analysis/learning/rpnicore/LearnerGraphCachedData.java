@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
 
@@ -47,7 +48,15 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	{
 		mergedStates = eqClasses;
 	}
-	
+
+        /** A collection associating merged states to hard facts-states they came from. */
+        protected Map<VertexID,Collection<VertexID>> mergedToHardFacts;
+
+        public Map<VertexID,Collection<VertexID>> getMergedToHardFacts()
+        {
+            return mergedToHardFacts;
+        }
+
 	/** The maximal score which can be returned by score computation routines. 
 	 */
 	protected int maxScore = -1;

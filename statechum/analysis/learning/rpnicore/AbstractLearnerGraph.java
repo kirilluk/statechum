@@ -60,7 +60,12 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	}
 
 	final CACHE_TYPE learnerCache = createCache();
-	
+
+        public CACHE_TYPE getCache()
+        {
+            return learnerCache;
+        }
+
 	/** Creates the cache. Should be overridden by subclasses to create instances of an appropriate type. */
 	abstract public CACHE_TYPE createCache();
 	

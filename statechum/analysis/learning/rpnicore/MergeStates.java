@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 import statechum.Configuration;
@@ -33,6 +34,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.analysis.learning.StatePair;
 import edu.uci.ics.jung.graph.Edge;
@@ -91,11 +93,22 @@ public class MergeStates {
 		
 		// Build a map from old vertices to the corresponding equivalence classes
 		Map<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew = new HashMap<CmpVertex,AMEquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+                Map<VertexID,Collection<VertexID>> mergedToHard = new TreeMap<VertexID,Collection<VertexID>>();
 		for(AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:mergedVertices)
 		{
 			eqClass.constructMergedVertex(configHolder,false,true);
+                        Collection<VertexID> hardVertices = new LinkedList<VertexID>();mergedToHard.put(eqClass.getMergedVertex().getID(), hardVertices);
 			for(CmpVertex v:eqClass.getStates())
-				origToNew.put(v, eqClass);
+                        {
+                            origToNew.put(v, eqClass);
+                            Map<VertexID,Collection<VertexID>> hardOrig = original.learnerCache.getMergedToHardFacts();
+                            if (hardOrig != null)
+                            {
+                                hardVertices.addAll(hardOrig.get(v.getID()));
+                            }
+                            else
+                                hardVertices.add(v.getID());
+                        }
 		}
 		result.setInit(origToNew.get(original.getInit()).getMergedVertex());
 		result.vertNegativeID = original.vertNegativeID;result.vertPositiveID=original.vertPositiveID;
@@ -127,7 +140,7 @@ public class MergeStates {
 				}	
 		}
 		AMEquivalenceClass.populateCompatible(result, mergedVertices);
-		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);
+		result.learnerCache.invalidate();result.learnerCache.setMergedStates(mergedVertices);result.learnerCache.mergedToHardFacts=mergedToHard;
 		if (redVertex != null)
 			result.learnerCache.stateLearnt=origToNew.get(redVertex).getMergedVertex();
 		return result;

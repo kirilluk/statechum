@@ -13,7 +13,7 @@ cover_map_html(Module, Function, [], Suffix, FileName) ->
     ProcStatus = tracer:await_end(Pid, Ref),
     demonitor(Ref),
     cover:analyse_to_file(Module, FileName, []),
-    cover:analyse_to_file(Module, FileName ++ ".html", [html]),
+    %%cover:analyse_to_file(Module, FileName ++ ".html", [html]),
     {ProcStatus, create_map(FileName)};
 
 cover_map_html(Module, Function, Prefix, Suffix, FileName) ->

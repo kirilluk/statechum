@@ -154,7 +154,7 @@ check_for_trace(IODevice, Trace) ->
 generate_input_set(_, 0) ->
     [];
 generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(100)) | generate_input_set(Aleph, N-1)].
+    [gen_random_string(Aleph, random:uniform(10)) | generate_input_set(Aleph, N-1)].
 
 gen_random_string(_Aleph, 0) ->
     [];
@@ -162,7 +162,7 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 1000),
+    InputSet = generate_input_set(Alphabet, 400),
     create_traces_file(Module, Function, InputSet, OutFile).
 
 create_traces(_Module, _Function, [], _OutFile) ->

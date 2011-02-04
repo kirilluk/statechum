@@ -20,7 +20,7 @@ cover_map_html(Module, Function, Prefix, Suffix, FileName) ->
     {PStatus, PrefixMap} = cover_map_html(Module, Function, Prefix, FileName),
     case PStatus of
 	ok ->
-	    {FStatus, FullMap} = cover_map_html(Module, Function, Prefix ++ Suffix, FileName),
+	    {FStatus, FullMap} = cover_map_html(Module, Function, Suffix, FileName),
 	    {FStatus, map_subtract(PrefixMap, FullMap)};
 	failed ->
 	    {PStatus, []}

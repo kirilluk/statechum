@@ -118,7 +118,7 @@ public class ErlangQSMOracle extends QSMTool {
                 String[] toks = line.split("=>");
 
                 String index = toks[0].trim();
-                System.out.println("Loading coverage map for " + index);
+                //System.out.println("Loading coverage map for " + index);
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);
                 /*

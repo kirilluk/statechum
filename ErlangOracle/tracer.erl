@@ -162,7 +162,7 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 10),
+    InputSet = generate_input_set(Alphabet, 1000),
     create_traces_file(Module, Function, InputSet, OutFile).
 
 create_traces(_Module, _Function, [], _OutFile) ->

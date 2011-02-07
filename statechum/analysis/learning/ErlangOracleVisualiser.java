@@ -232,15 +232,18 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     protected ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefixArg, String suffixArg) {
-        ErlangCoverageMap result = new ErlangCoverageMap();
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
         String prefix = prefixArg.replaceAll(", ", ",");
         String suffix = suffixArg.replaceAll(", ", ",");
-        try {
-            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
-            String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + mapfile;
-            System.out.println("Using coverage results file: " + mapfile);
+
+        // First, lets see if the coverage is already on file...
+        ErlangCoverageMap result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
+        if (result == null) {
+            // Calculate the coverage, append the result to the coverage map file
+            String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + ErlangQSMOracle.tracesFile + ".covermap";
+            System.out.println("Using coverage results file: " + ErlangQSMOracle.tracesFile + ".covermap");
             System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
+            try {
             Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
             //System.out.println("Process output:");
@@ -252,32 +255,54 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
             p.waitFor();
 
-            //System.out.println("Traces file:");
-            File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
-            try {
-                input = new BufferedReader(new FileReader(f));
+            } catch(IOException e) {
+                e.printStackTrace();
+            } catch(InterruptedException e) {
+                ;
+            }
+            // Reload the coverage map file
+            ErlangQSMOracle.loadCoverageMaps();
+            // Now, retrieve the result
+            result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
 
-                while ((line = input.readLine()) != null) {
-                    //System.out.println(line);
-                    String[] elems = line.split("\\{");
-                    for (String e : elems) {
-                        if (!e.contains("[")) {
-                            e = e.replaceAll("\\}.*", "");
-                            String[] vals = e.split(",");
-                            result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
+            if (result == null) {
+                throw new RuntimeException("Failed to determine coverage map for " + prefix + "-" + suffix);
+            }
+
+            /*
+            try {
+                result = new ErlangCoverageMap();
+
+                String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
+
+                //System.out.println("Traces file:");
+                File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
+                try {
+                    input = new BufferedReader(new FileReader(f));
+
+                    while ((line = input.readLine()) != null) {
+                        //System.out.println(line);
+                        String[] elems = line.split("\\{");
+                        for (String e : elems) {
+                            if (!e.contains("[")) {
+                                e = e.replaceAll("\\}.*", "");
+                                String[] vals = e.split(",");
+                                result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
+                            }
                         }
                     }
+                    input.close();
+                    f.delete();
+                    lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
+                } catch (FileNotFoundException e) {
+                    System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
                 }
-                input.close();
-                f.delete();
-                lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
-            } catch (FileNotFoundException e) {
-                System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+             *
+             */
         }
-
         return result;
     }
 

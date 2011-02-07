@@ -162,11 +162,11 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 400),
+    InputSet = generate_input_set(Alphabet, 10),
     create_traces_file(Module, Function, InputSet, OutFile).
 
 create_traces(_Module, _Function, [], _OutFile) ->
-    [];
+    {[], []};
 create_traces(Module, Function, [I | InputSet], OutFile) ->
     {Status, Trace, TraceString} = first_failure(Module, Function, I, OutFile),
     case Status of
@@ -175,14 +175,23 @@ create_traces(Module, Function, [I | InputSet], OutFile) ->
 	ok ->
 	    NewInputSet = InputSet
     end,
-    [TraceString | create_traces(Module, Function, NewInputSet, OutFile)].
+    {RTraces, RStrings} = create_traces(Module, Function, NewInputSet, OutFile),
+    {[Trace | RTraces], [TraceString | RStrings]}.
 
 create_traces_file(Module, Function, InputSet, OutFile) ->
-    Traces = create_traces(Module, Function, InputSet, OutFile),
+    {Traces, TraceStrings} = create_traces(Module, Function, InputSet, OutFile),
     %%write_traces([io_lib:format("# Used Input Set ~p", [InputSet]) | Traces], OutFile, write).
-    write_traces(Traces, OutFile, write).
+    write_traces(TraceStrings, OutFile, write),
+    write_all_coverage(Module, Function, Traces, OutFile).
 
 gen_max_coverage_traces(Module, Function, Alphabet, OutFile) ->  
     {_Model, InputSet} = inferer2:infer(Module, Function, Alphabet, 4),
     create_traces_file(Module, Function, InputSet, OutFile).
     
+write_all_coverage(_Module, _Function, [], _OutFile) ->
+    ok;
+write_all_coverage(Module, Function, [T | Traces], OutFile) ->
+    io:format("coverage for ~p appended to ~p~n", [T, OutFile ++ ".covermap"]),
+    tracer_coverage:cover_map_to_file(Module, Function, [], T, OutFile ++ ".covermap", append),
+    write_all_coverage(Module, Function, Traces, OutFile).
+

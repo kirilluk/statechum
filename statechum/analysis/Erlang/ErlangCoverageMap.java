@@ -14,6 +14,10 @@ public class ErlangCoverageMap {
 
     public ArrayList<ErlangCoverageMaplet> map;
 
+    public void add(int line, int count) {
+        map.add(new ErlangCoverageMaplet(line, count));
+    }
+
     public ErlangCoverageMap() {
         map = new ArrayList<ErlangCoverageMaplet>();
     }
@@ -43,7 +47,7 @@ public class ErlangCoverageMap {
     public void remove(int line) {
         ArrayList<ErlangCoverageMaplet> removes = new ArrayList<ErlangCoverageMaplet>();
         for (ErlangCoverageMaplet m : map) {
-            if(m.line == line) {
+            if (m.line == line) {
                 removes.add(m);
             }
         }

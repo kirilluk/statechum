@@ -1,5 +1,11 @@
 -module(tracer_coverage).
--export([cover_map/3,cover_map/4,map_intersect/2,map_exclude/2,cover_map_to_file/5]).
+-export([cover_map/3,cover_map/4,map_intersect/2,map_exclude/2,cover_map_to_file/5,cover_map_to_file/6]).
+
+cover_map_to_file(Module, Function, Prefix, Suffix, FileName, append) ->
+    {_Status, Map} = cover_map_html(Module, Function, Prefix, Suffix, FileName ++ ".tmp"),
+    {ok, IODevice} = file:open(FileName, [append]),
+    io:format(IODevice, "~w-~w => ~w~n", [Prefix, Suffix, Map]),
+    file:close(IODevice).
 
 cover_map_to_file(Module, Function, Prefix, Suffix, FileName) ->
     {_Status, Map} = cover_map_html(Module, Function, Prefix, Suffix, FileName),

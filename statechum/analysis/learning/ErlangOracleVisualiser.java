@@ -104,24 +104,21 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public static Object[] previousPicked = null;
     public static Object[] previousSelected = null;
     public static ErlangCoverageMap lastmap = null;
-    public static File lastCoverFile = null;
     public static String lastTrace = null;
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
         if (mode == CoverageMode) {
             coverageSelection();
-            if (lastCoverFile != null) {
-                //ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), lastTrace);
+            if (lastmap != null) {
                 ErlangCoverageStringFrame frameS = new ErlangCoverageStringFrame(traceColorise(lastmap, new ErlangCoverageMap()), lastTrace);
-                lastCoverFile = null;
+                lastmap = null;
             }
         } else if (mode == CoverageCompareMode) {
             if ((lastmap == null) || (previousPicked == null)) {
                 coverageSelection();
             } else {
                 ErlangCoverageMap map1 = lastmap;
-                File file1 = lastCoverFile;
                 String trace1 = lastTrace;
                 coverageSelection();
                 // Display
@@ -132,27 +129,13 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 System.out.println("Disjunction: " + disjunction);
                 String colorful = traceColorise(map1, lastmap);
                 ErlangCoverageStringFrame frameS = new ErlangCoverageStringFrame(colorful, trace1 + " vs " + lastTrace);
-                /*
-                try {
-                ErlangCoverageFileFrame frame1 = new ErlangCoverageFileFrame("file://" + file1.getCanonicalFile(), "First");
-                ErlangCoverageFileFrame frame2 = new ErlangCoverageFileFrame("file://" + lastCoverFile.getCanonicalFile(), "Second");
-                } catch (IOException f) {
-                ;
-                }
-                 *
-                 */
                 lastmap = null;
-                lastCoverFile = null;
             }
         }
     }
 
     protected void coverageSelection() {
         Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
-        for (Object v : vs) {
-            Collection<LinkedList<String>> paths = (Collection<LinkedList<String>>) ((Vertex) v).getUserDatum(JUConstants.PATH);
-            //System.out.println(paths);
-        }
         if ((ErlangOracleVisualiser.previousPicked == null) && (vs.length > 0)) {
             ErlangOracleVisualiser.previousPicked = vs;
         } else if (vs.length == 0) {
@@ -178,8 +161,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
             Vertex end = (Vertex) vs[0];
             // We need to select a start and end trace such that the start trace is a prefix of the end trace...
-            String startTrace = "";
-            String endTrace = "";
+            String startTrace = null;
+            String endTrace = null;
             boolean found = false;
             for (Collection<String> st : ((LinkedList<LinkedList<String>>) start.getUserDatum(JUConstants.PATH))) {
                 for (Collection<String> et : ((LinkedList<LinkedList<String>>) end.getUserDatum(JUConstants.PATH))) {
@@ -194,9 +177,13 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     break;
                 }
             }
-            lastTrace = startTrace.toString() + "-" + endTrace.toString();
-            lastmap = execErlangSuffixCoverageMapFinder(startTrace, endTrace);
-            System.out.println("Trace suffix coverage map: " + lastmap.toString());
+            if ((startTrace == null) || (endTrace == null)) {
+                System.out.println("No traces found for these endpoints");
+            } else {
+                lastTrace = startTrace.toString() + "-" + endTrace.toString();
+                lastmap = execErlangSuffixCoverageMapFinder(startTrace, endTrace);
+                System.out.println("Trace suffix coverage map: " + lastmap.toString());
+            }
             Object[] merge = new Object[ErlangOracleVisualiser.previousPicked.length + vs.length];
             System.arraycopy(ErlangOracleVisualiser.previousPicked, 0, merge, 0, ErlangOracleVisualiser.previousPicked.length);
             System.arraycopy(vs, 0, merge, ErlangOracleVisualiser.previousPicked.length, vs.length);
@@ -231,7 +218,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result + "]";
     }
 
-    protected ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefixArg, String suffixArg) {
+    public static ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefixArg, String suffixArg) {
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
         String prefix = prefixArg.replaceAll(", ", ",");
         String suffix = suffixArg.replaceAll(", ", ",");
@@ -244,20 +231,20 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             System.out.println("Using coverage results file: " + ErlangQSMOracle.tracesFile + ".covermap");
             System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
             try {
-            Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
-            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            //System.out.println("Process output:");
-            String line;
-            while ((line = input.readLine()) != null) {
-                //System.out.println(line);
-            }
-            input.close();
+                Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
+                BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                //System.out.println("Process output:");
+                String line;
+                while ((line = input.readLine()) != null) {
+                    //System.out.println(line);
+                }
+                input.close();
 
-            p.waitFor();
+                p.waitFor();
 
-            } catch(IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 ;
             }
             // Reload the coverage map file
@@ -271,34 +258,34 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
             /*
             try {
-                result = new ErlangCoverageMap();
+            result = new ErlangCoverageMap();
 
-                String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
+            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
 
-                //System.out.println("Traces file:");
-                File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
-                try {
-                    input = new BufferedReader(new FileReader(f));
+            //System.out.println("Traces file:");
+            File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
+            try {
+            input = new BufferedReader(new FileReader(f));
 
-                    while ((line = input.readLine()) != null) {
-                        //System.out.println(line);
-                        String[] elems = line.split("\\{");
-                        for (String e : elems) {
-                            if (!e.contains("[")) {
-                                e = e.replaceAll("\\}.*", "");
-                                String[] vals = e.split(",");
-                                result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
-                            }
-                        }
-                    }
-                    input.close();
-                    f.delete();
-                    lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
-                } catch (FileNotFoundException e) {
-                    System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
-                }
+            while ((line = input.readLine()) != null) {
+            //System.out.println(line);
+            String[] elems = line.split("\\{");
+            for (String e : elems) {
+            if (!e.contains("[")) {
+            e = e.replaceAll("\\}.*", "");
+            String[] vals = e.split(",");
+            result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
+            }
+            }
+            }
+            input.close();
+            f.delete();
+            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
+            } catch (FileNotFoundException e) {
+            System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
+            }
             } catch (Exception e) {
-                e.printStackTrace();
+            e.printStackTrace();
             }
              *
              */

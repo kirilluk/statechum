@@ -5,36 +5,46 @@
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
 first_failure(Module, Function, Trace, Remains, OutFile) ->
     TraceString = lists:foldl(fun(Elem, Acc) -> Acc ++ " " ++ atom_to_list(Elem) end, "", Trace),
-    case check_file_for_trace(OutFile, TraceString) of
+    {Status, CoverMap} = try_trace(Module, Function, Trace),
+    append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => ~w", [Trace, CoverMap])),
+    case Status of
+	failed ->
+	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
 	ok ->
+	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
 		[] ->
 		    ok;
 		_List ->
 		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile)
-	    end;
-	failed ->
-	    ok;
-	not_found ->
-	    {Status, CoverMap} = try_trace(Module, Function, Trace),
-	    append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => ~w", [Trace, CoverMap])),
-	    case Status of
-		failed ->
-		    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
-		ok ->
-		    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
-		    case Remains of
-			[] ->
-			    ok;
-			_List ->
-			    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile)
-		    end
 	    end
     end.
 
 %% The public face of first failure....
 first_failure(Module, Function, Trace, OutFile) ->
-    first_failure(Module, Function, [], Trace, OutFile).
+    %% First, lets make sure we don't already have a negative prefix
+    %% If there is a positive prefix we can move on from that..
+    {Status, Prefix} = find_prefix(OutFile, Trace),
+    %%io:format("{~p, ~p}~n", [Status, Prefix]),
+    case Status of
+	ok ->
+	    %% Positive prefix
+	    if ((length(Prefix)+1) > length(Trace)) ->
+		    %% Nothing further to add...
+		    ok;
+	       true ->
+		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
+		    %%io:format("Extending from ~p with ~p~n", [NewPrefix, Suffix]),
+		    first_failure(Module, Function, NewPrefix, Suffix, OutFile)
+	    end;
+	failed ->
+	    %% Negative prefix, nothing to do
+	    ok;
+	not_found ->
+	    %% No data - do a complete run
+	    %%io:format("Not data for ~p~n", [Trace]),
+	    first_failure(Module, Function, [], Trace, OutFile)
+    end.
 
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
@@ -105,10 +115,23 @@ check_lines(IODevice, TraceString) ->
     end.
 
 
+find_prefix(OutFile, []) ->
+    {check_file_for_trace(OutFile, ""), []};
+find_prefix(OutFile, Trace) ->
+    TraceString = lists:foldl(fun(Elem, Acc) -> Acc ++ " " ++ atom_to_list(Elem) end, "", Trace),
+    case check_file_for_trace(OutFile, TraceString) of
+	not_found ->
+	    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),
+	    find_prefix(OutFile, Prefix);
+	Status ->
+	    {Status, Trace}
+    end.
+
+
 generate_input_set(_, 0) ->
     [];
 generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(200)) | generate_input_set(Aleph, N-1)].
+    [gen_random_string(Aleph, random:uniform(500)) | generate_input_set(Aleph, N-1)].
 
 gen_random_string(_Aleph, 0) ->
     [];
@@ -116,14 +139,14 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 100),
+    InputSet = generate_input_set(Alphabet, 20),
     try_all_traces(Module, Function, InputSet, OutFile).
 
 
 try_all_traces(_Module, _Function, [], _OutFile) ->
     ok;
 try_all_traces(Module, Function, [T | Traces], OutFile) ->
-    first_failure(Module, Function, [], T, OutFile),
+    first_failure(Module, Function, T, OutFile),
     try_all_traces(Module, Function, Traces, OutFile).
 
 %%

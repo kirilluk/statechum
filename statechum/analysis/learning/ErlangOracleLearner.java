@@ -43,56 +43,85 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     }
 
     protected int execErlang(String erlString) {
-        String outFile = "question" + erlString.hashCode() + ".out";
+        //String outFile = "question" + erlString.hashCode() + ".out";
 
-        File f = new File(ErlangQSMOracle.ErlangFolder + "/" + outFile);
-        boolean accept = true;
-        int count = AbstractOracle.USER_ACCEPTED;
+        //File f = new File(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
 
+        int failure = -2;
         try {
-            String line;
-            BufferedReader input;
-            while (f.exists()) {
-                System.out.println("Waiting for a separate instance of the question " + outFile);
-                Thread.sleep(1000);
+            // Lets see if QSM is being silly and we already know the answer...
+            failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, erlString);
+            if (failure == -2) {
+                // We didn't find the answer in the existing traces file so lets extend it
+                BufferedReader input;
+                //System.out.println("Evaluating " + outFile);
+                //String erlCmd = "erl -eval 'tracer:trace(" + erlangModule + ", " + erlangFunction + ", " + erlString + ", \"" + outFile + "\"),halt().'";
+                String erlCmd = "./erlscript.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + erlString + " " + ErlangQSMOracle.tracesFile;
+                System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
+                Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
+                input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                //System.out.println("Process output:");
+                String line;
+                while ((line = input.readLine()) != null) {
+                    //System.out.println(line);
+                }
+                input.close();
+                int exit = p.waitFor();
+                //System.out.println("Exit value: " + exit);
+
+                //f.delete();
+                //ErlangQSMOracle.loadCoverageMaps(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap");
+                ErlangQSMOracle.loadCoverageMaps();
+                //(new File(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap")).delete();
+
+                failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, erlString);
+                // We really should have found the answer now...
             }
-            //System.out.println("Evaluating " + outFile);
-            //String erlCmd = "erl -eval 'tracer:trace(" + erlangModule + ", " + erlangFunction + ", " + erlString + ", \"" + outFile + "\"),halt().'";
-            String erlCmd = "./erlscript.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + erlString + " " + outFile;
-            //System.out.println("Running " + erlCmd + " in folder " + ErlangFolder);
-            Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
-            input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            //System.out.println("Process output:");
-            int exit = p.waitFor();
-            while ((line = input.readLine()) != null) {
-                //System.out.println(line);
-            }
-            input.close();
-            //System.out.println("Exit value: " + exit);
-            input = new BufferedReader(new FileReader(ErlangQSMOracle.ErlangFolder + "/" + outFile));
-            //System.out.println("Output file:");
-            while ((line = input.readLine()) != null) {
-                if (line.substring(0, 1).equals("-")) {
-                    accept = false;
+        } catch (Exception err) {
+            err.printStackTrace();
+        }
+        if (failure == -1) {
+            return AbstractOracle.USER_ACCEPTED;
+        } else if (failure == -2) {
+            throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + erlString + ")...");
+        } else {
+            return failure;
+        }
+
+    }
+
+    /** Returns -1 if the string is shown as accepted, returns -2 if it is not found, and returns the point at which it is rejected otherwise */
+    protected int firstFailure(String file, String erlString) throws IOException {
+        BufferedReader input = new BufferedReader(new FileReader(file));
+        //System.out.println("Output file:");
+        // Convert erlang string into traces string
+        // i.e. "[a,b,c]" becomes "a b c"
+        String searchString = erlString.replaceAll(",", " ").substring(1, erlString.length() - 1);
+        String line;
+        int count = -2;
+        while ((line = input.readLine()) != null) {
+            String traceString = line.substring(1).trim();
+            if (line.substring(0, 1).equals("-")) {
+                if (searchString.startsWith(traceString)) {
+                    // This line represents a rejection of a prefix of our question...
                     count = -1;
-                    StringTokenizer st = new StringTokenizer(line.substring(1));
+                    StringTokenizer st = new StringTokenizer(traceString);
                     while (st.hasMoreTokens()) {
                         count++;
                         String t = st.nextToken();
                     }
+                    break;
                 }
-                //System.out.println(line);
+            } else {
+                if (traceString.equals(searchString)) {
+                    // This is an accept line for our string.
+                    count = -1;
+                    break;
+                }
             }
-            input.close();
-            f.delete();
-        } catch (Exception err) {
-            err.printStackTrace();
         }
-        if (accept) {
-            return AbstractOracle.USER_ACCEPTED;
-        } else {
-            return count;
-        }
-
+        //System.out.println(line);
+        input.close();
+        return count;
     }
 }

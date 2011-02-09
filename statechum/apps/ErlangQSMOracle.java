@@ -5,10 +5,6 @@
 package statechum.apps;
 
 import java.io.*;
-import java.lang.String;
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.analysis.Erlang.ErlangCoverageMap;
@@ -29,6 +25,7 @@ public class ErlangQSMOracle extends QSMTool {
     public static String erlangFunction;
     public static String erlangAlphabet;
     public static String tracesFile;
+    public static String covermapFile;
     public static String ErlangFolder = "ErlangOracle";
     // This map stores coverage maps in the form (Prefix, Suffix) -> Coverage
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
@@ -41,11 +38,12 @@ public class ErlangQSMOracle extends QSMTool {
         erlangModule = args[1];
         erlangFunction = args[2];
         tracesFile = args[0];
+        covermapFile = tracesFile + ".covermap";
         erlangAlphabet = args[3];
 
         // Clear the files...
         (new File(ErlangFolder, tracesFile)).delete();
-        (new File(ErlangFolder, tracesFile + ".covermap")).delete();
+        (new File(ErlangFolder, covermapFile)).delete();
 
         createInitTraces();
         loadCoverageMaps();
@@ -80,16 +78,21 @@ public class ErlangQSMOracle extends QSMTool {
         try {
             String erlCmd = "./erlinittraces.sh " + erlangModule + " " + erlangFunction + " " + erlangAlphabet + " " + tracesFile;
             //String erlCmd = "erl -eval 'tracer:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"),halt().'\n";
-            //System.out.println("Running " + erlCmd + " in folder " + ErlangFolder);
+            System.out.println("Running " + erlCmd + " in folder " + ErlangFolder);
             Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangFolder));
             System.out.println("Creating init traces...");
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
             //System.out.println("Process output:");
             String line;
+            while ((line = error.readLine()) != null) {
+                System.out.println("Error: " + line);
+            }
             while ((line = input.readLine()) != null) {
-                //System.out.println(line);
+                System.out.println(line);
             }
             input.close();
+            error.close();
 
             p.waitFor();
 
@@ -108,9 +111,13 @@ public class ErlangQSMOracle extends QSMTool {
 
     public static void loadCoverageMaps() {
         coverageMaps = new TreeMap<String, ErlangCoverageMap>();
-        System.out.println("Loading coverage maps...");
+        loadCoverageMaps(ErlangFolder + "/" + covermapFile);
+    }
+
+    public static void loadCoverageMaps(String filename) {
+        System.out.println("Loading coverage maps from " + filename + "...");
         try {
-            BufferedReader input = new BufferedReader(new FileReader(ErlangFolder + "/" + tracesFile + ".covermap"));
+            BufferedReader input = new BufferedReader(new FileReader(filename));
             //System.out.println("Process output:");
             String line;
             while ((line = input.readLine()) != null) {
@@ -121,29 +128,17 @@ public class ErlangQSMOracle extends QSMTool {
                 //System.out.println("Loading coverage map for " + index);
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);
-                /*
-                String[] traces = toks[0].split("\\]-\\[");
-                String prefix = (traces[0].trim()).substring(1);
-                String suffix = traces[1].trim();
-                suffix = suffix.substring(0, suffix.length() - 1);
-          
-                Collection<String>[] index = (Collection<String>[]) Array.newInstance(Collection.class, 2);
-                index[0] = Arrays.asList(prefix.split(","));
-                index[1] = Arrays.asList(suffix.split(","));
-
-                 *
-                 */
 
                 // Create the parsed coverage map object
                 ErlangCoverageMap mapObject = new ErlangCoverageMap();
                 String[] maplets = (map.trim()).split("\\},\\{");
                 // Trim the {} off the first and last items...
                 maplets[0] = maplets[0].substring(1);
-                maplets[maplets.length - 1] = maplets[maplets.length - 1].substring(0,maplets[maplets.length - 1].length() - 1);
-                for(String m: maplets) {
+                maplets[maplets.length - 1] = maplets[maplets.length - 1].substring(0, maplets[maplets.length - 1].length() - 1);
+                for (String m : maplets) {
                     // Maplets have the form {line, count} but should be missing the {} from the way we split the string.
                     String[] parts = m.split(",");
-                    mapObject.add(Integer.parseInt(parts[0]),Integer.parseInt(parts[1]));
+                    mapObject.add(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
                 }
 
                 coverageMaps.put(index, mapObject);
@@ -151,7 +146,7 @@ public class ErlangQSMOracle extends QSMTool {
             input.close();
             //System.out.println("Coverage maps:\n" + coverageMaps.toString());
         } catch (FileNotFoundException e) {
-            System.out.println("Couldn't open coverage map file " + tracesFile + ".covermap");
+            System.out.println("Couldn't open coverage map file " + filename);
         } catch (IOException e) {
             e.printStackTrace();
         }

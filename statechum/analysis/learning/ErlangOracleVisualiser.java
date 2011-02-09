@@ -223,74 +223,22 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         String prefix = prefixArg.replaceAll(", ", ",");
         String suffix = suffixArg.replaceAll(", ", ",");
 
-        // First, lets see if the coverage is already on file...
+        // Lookup coverage map in the coverage collection...
         ErlangCoverageMap result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
-        if (result == null) {
-            // Calculate the coverage, append the result to the coverage map file
-            String erlCmd = "./erlcovermap.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + prefix + " " + suffix + " " + ErlangQSMOracle.tracesFile + ".covermap";
-            System.out.println("Using coverage results file: " + ErlangQSMOracle.tracesFile + ".covermap");
-            System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
-            try {
-                Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
-                BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                //System.out.println("Process output:");
-                String line;
-                while ((line = input.readLine()) != null) {
-                    //System.out.println(line);
-                }
-                input.close();
-
-                p.waitFor();
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                ;
+        if (result != null) {
+            return result;
+        } else {
+            // Calculate coverage data...
+            ErlangCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get("[]-" + prefix);
+            ErlangCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get("[]-" + suffix);
+            if(prefixMap == null) {
+                throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
             }
-            // Reload the coverage map file
-            ErlangQSMOracle.loadCoverageMaps();
-            // Now, retrieve the result
-            result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
-
-            if (result == null) {
-                throw new RuntimeException("Failed to determine coverage map for " + prefix + "-" + suffix);
+            if(suffixMap == null) {
+                throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
             }
-
-            /*
-            try {
-            result = new ErlangCoverageMap();
-
-            String mapfile = "map" + Integer.toString(prefix.hashCode()).substring(0, 4) + Integer.toString(suffix.hashCode()).substring(0, 4) + ".map";
-
-            //System.out.println("Traces file:");
-            File f = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile);
-            try {
-            input = new BufferedReader(new FileReader(f));
-
-            while ((line = input.readLine()) != null) {
-            //System.out.println(line);
-            String[] elems = line.split("\\{");
-            for (String e : elems) {
-            if (!e.contains("[")) {
-            e = e.replaceAll("\\}.*", "");
-            String[] vals = e.split(",");
-            result.map.add(new ErlangCoverageMaplet(Integer.parseInt(vals[0]), Integer.parseInt(vals[1])));
-            }
-            }
-            }
-            input.close();
-            f.delete();
-            lastCoverFile = new File(ErlangQSMOracle.ErlangFolder + "/" + mapfile + ".html");
-            } catch (FileNotFoundException e) {
-            System.out.println("Hmmmmmm, impossible trace ...(" + prefix + "," + suffix + ")");
-            }
-            } catch (Exception e) {
-            e.printStackTrace();
-            }
-             *
-             */
+            return suffixMap.subtract(prefixMap);
         }
-        return result;
     }
 
     protected String traceColorise(ErlangCoverageMap map1, ErlangCoverageMap map2) {

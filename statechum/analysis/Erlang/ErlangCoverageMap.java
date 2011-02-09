@@ -55,6 +55,25 @@ public class ErlangCoverageMap {
 
     }
 
+    public ErlangCoverageMap subtract(ErlangCoverageMap map2) {
+        ErlangCoverageMap result = new ErlangCoverageMap();
+
+        for (ErlangCoverageMaplet m : map) {
+            try {
+                int c2 = map2.findLine(m.line);
+                int count = m.count - c2;
+                if (count > 0) {
+                    result.add(m.line, count);
+                }
+            } catch (ErlangCoverageMapletNotFoundException e) {
+                // Not found in the subtraction so add it all
+                result.add(m.line, m.count);
+            }
+        }
+
+        return result;
+    }
+
     public ErlangCoverageMap disjunction(ErlangCoverageMap map2) {
         ErlangCoverageMap result = new ErlangCoverageMap(this);
 

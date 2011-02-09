@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package statechum.analysis.Erlang;
+package statechum.analysis.CodeCoverage;
 
 import java.util.ArrayList;
 
@@ -10,18 +10,18 @@ import java.util.ArrayList;
  *
  * @author ramsay
  */
-public class ErlangCoverageMapCombination {
+public class CodeCoverageMapCombination {
 
-    public ArrayList<ErlangCoverageCombinedMaplet> map;
+    public ArrayList<CodeCoverageCombinedMaplet> map;
 
-    public ErlangCoverageMapCombination() {
-        map = new ArrayList<ErlangCoverageCombinedMaplet>();
+    public CodeCoverageMapCombination() {
+        map = new ArrayList<CodeCoverageCombinedMaplet>();
     }
 
     @Override
     public String toString() {
         String result = "";
-        for (ErlangCoverageCombinedMaplet m : map) {
+        for (CodeCoverageCombinedMaplet m : map) {
             result += m.toString() + ",";
         }
         return result;

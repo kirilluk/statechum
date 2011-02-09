@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package statechum.analysis.Erlang;
+package statechum.analysis.CodeCoverage;
 
 import java.awt.Dimension;
 import java.io.File;
@@ -15,14 +15,14 @@ import javax.swing.ScrollPaneConstants;
  *
  * @author ramsay
  */
-public class ErlangCoverageStringFrame extends JFrame {
+public class CodeCoverageStringFrame extends JFrame {
 
     /**
      * ID for serialization
      */
     private static final long serialVersionUID = -236003125488674238L;
 
-    public ErlangCoverageStringFrame(final String f, String name) {
+    public CodeCoverageStringFrame(final String f, String name) {
         super(name);
         JEditorPane htmlPane = new JEditorPane("text/html", f);
         htmlPane.setEditable(false);

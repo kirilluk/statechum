@@ -7,7 +7,7 @@ package statechum.apps;
 import java.io.*;
 import java.util.Map;
 import java.util.TreeMap;
-import statechum.analysis.Erlang.ErlangCoverageMap;
+import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
 import statechum.analysis.learning.*;
 
@@ -31,7 +31,7 @@ public class ErlangQSMOracle extends QSMTool {
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
     // e.g. "[]-[a,b,c]" or "[a,b]-[c,d,e]"
-    public static Map<String, ErlangCoverageMap> coverageMaps;
+    public static Map<String, CodeCoverageMap> coverageMaps;
 
     public static void main(String[] args) {
         // Generate some basic traces to get QSM started
@@ -110,7 +110,7 @@ public class ErlangQSMOracle extends QSMTool {
     }
 
     public static void loadCoverageMaps() {
-        coverageMaps = new TreeMap<String, ErlangCoverageMap>();
+        coverageMaps = new TreeMap<String, CodeCoverageMap>();
         loadCoverageMaps(ErlangFolder + "/" + covermapFile);
     }
 
@@ -118,7 +118,6 @@ public class ErlangQSMOracle extends QSMTool {
         System.out.println("Loading coverage maps from " + filename + "...");
         try {
             BufferedReader input = new BufferedReader(new FileReader(filename));
-            //System.out.println("Process output:");
             String line;
             while ((line = input.readLine()) != null) {
                 // This assumes a format of [prefix]-[suffix] => [Coverage map]
@@ -130,7 +129,7 @@ public class ErlangQSMOracle extends QSMTool {
                 map = map.substring(1, map.length() - 1);
 
                 // Create the parsed coverage map object
-                ErlangCoverageMap mapObject = new ErlangCoverageMap();
+                CodeCoverageMap mapObject = new CodeCoverageMap();
                 String[] maplets = (map.trim()).split("\\},\\{");
                 // Trim the {} off the first and last items...
                 maplets[0] = maplets[0].substring(1);

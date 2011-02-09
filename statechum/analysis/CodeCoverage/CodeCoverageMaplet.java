@@ -2,18 +2,18 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package statechum.analysis.Erlang;
+package statechum.analysis.CodeCoverage;
 
 /**
  *
  * @author ramsay
  */
-public class ErlangCoverageMaplet {
+public class CodeCoverageMaplet {
 
     public int line;
     public int count;
 
-    public ErlangCoverageMaplet(int l, int c) {
+    public CodeCoverageMaplet(int l, int c) {
         line = l;
         count = c;
     }

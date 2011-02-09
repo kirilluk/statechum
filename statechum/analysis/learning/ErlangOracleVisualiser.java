@@ -4,14 +4,12 @@
  */
 package statechum.analysis.learning;
 
-import statechum.analysis.Erlang.*;
+import statechum.analysis.CodeCoverage.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import edu.uci.ics.jung.utils.UserData;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
-import java.io.InputStreamReader;
 import statechum.JUConstants;
 
 import statechum.analysis.learning.observers.AutoAnswers;
@@ -23,9 +21,8 @@ import statechum.apps.ErlangQSMOracle;
 import javax.swing.*;
 import java.awt.event.*;
 import java.util.*;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import statechum.analysis.Erlang.ErlangCoverageMapletNotFoundException;
+import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
 
 /**
  *
@@ -103,7 +100,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
     public static Object[] previousPicked = null;
     public static Object[] previousSelected = null;
-    public static ErlangCoverageMap lastmap = null;
+    public static CodeCoverageMap lastmap = null;
     public static String lastTrace = null;
 
     @Override
@@ -111,24 +108,24 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         if (mode == CoverageMode) {
             coverageSelection();
             if (lastmap != null) {
-                ErlangCoverageStringFrame frameS = new ErlangCoverageStringFrame(traceColorise(lastmap, new ErlangCoverageMap()), lastTrace);
+                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(lastmap, new CodeCoverageMap()), lastTrace);
                 lastmap = null;
             }
         } else if (mode == CoverageCompareMode) {
             if ((lastmap == null) || (previousPicked == null)) {
                 coverageSelection();
             } else {
-                ErlangCoverageMap map1 = lastmap;
+                CodeCoverageMap map1 = lastmap;
                 String trace1 = lastTrace;
                 coverageSelection();
                 // Display
 
-                ErlangCoverageMapCombination intersection = map1.intersection(lastmap);
+                CodeCoverageMapCombination intersection = map1.intersection(lastmap);
                 System.out.println("Intersection: " + intersection);
-                ErlangCoverageMap disjunction = lastmap.disjunction(map1);
+                CodeCoverageMap disjunction = lastmap.disjunction(map1);
                 System.out.println("Disjunction: " + disjunction);
                 String colorful = traceColorise(map1, lastmap);
-                ErlangCoverageStringFrame frameS = new ErlangCoverageStringFrame(colorful, trace1 + " vs " + lastTrace);
+                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(colorful, trace1 + " vs " + lastTrace);
                 lastmap = null;
             }
         }
@@ -160,28 +157,14 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
             Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
             Vertex end = (Vertex) vs[0];
-            // We need to select a start and end trace such that the start trace is a prefix of the end trace...
-            String startTrace = null;
-            String endTrace = null;
-            boolean found = false;
-            for (Collection<String> st : ((LinkedList<LinkedList<String>>) start.getUserDatum(JUConstants.PATH))) {
-                for (Collection<String> et : ((LinkedList<LinkedList<String>>) end.getUserDatum(JUConstants.PATH))) {
-                    if (isPrefix(st, et)) {
-                        startTrace = toErlangList(st);
-                        endTrace = toErlangList(et);
-                        found = true;
-                        break;
-                    }
-                }
-                if (found) {
-                    break;
-                }
-            }
+            String[] tracePair = getPrefixSuffixPair(start, end);
+            String startTrace = tracePair[0];
+            String endTrace = tracePair[1];
             if ((startTrace == null) || (endTrace == null)) {
                 System.out.println("No traces found for these endpoints");
             } else {
                 lastTrace = startTrace.toString() + "-" + endTrace.toString();
-                lastmap = execErlangSuffixCoverageMapFinder(startTrace, endTrace);
+                lastmap = getCoverageMap(startTrace, endTrace);
                 System.out.println("Trace suffix coverage map: " + lastmap.toString());
             }
             Object[] merge = new Object[ErlangOracleVisualiser.previousPicked.length + vs.length];
@@ -192,7 +175,31 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         }
     }
 
-    protected boolean isPrefix(Collection<String> st, Collection<String> et) {
+    public static String[] getPrefixSuffixPair(Vertex start, Vertex end) {
+        // We need to select a start and end trace such that the start trace is a prefix of the end trace...
+        String startTrace = null;
+        String endTrace = null;
+        boolean found = false;
+        for (Collection<String> st : ((LinkedList<LinkedList<String>>) start.getUserDatum(JUConstants.PATH))) {
+            for (Collection<String> et : ((LinkedList<LinkedList<String>>) end.getUserDatum(JUConstants.PATH))) {
+                if (isPrefix(st, et)) {
+                    startTrace = toErlangList(st);
+                    endTrace = toErlangList(et);
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        String[] result = new String[2];
+        result[0] = startTrace;
+        result[1] = endTrace;
+        return result;
+    }
+
+    protected static boolean isPrefix(Collection<String> st, Collection<String> et) {
         Iterator<String> sit = st.iterator();
         Iterator<String> eit = et.iterator();
         while (sit.hasNext()) {
@@ -207,7 +214,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return true;
     }
 
-    protected String toErlangList(Collection<String> list) {
+    protected static String toErlangList(Collection<String> list) {
         String result = "[";
         for (String s : list) {
             if (!result.equals("[")) {
@@ -218,30 +225,30 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result + "]";
     }
 
-    public static ErlangCoverageMap execErlangSuffixCoverageMapFinder(String prefixArg, String suffixArg) {
+    public static CodeCoverageMap getCoverageMap(String prefixArg, String suffixArg) {
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
         String prefix = prefixArg.replaceAll(", ", ",");
         String suffix = suffixArg.replaceAll(", ", ",");
 
         // Lookup coverage map in the coverage collection...
-        ErlangCoverageMap result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
+        CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
         if (result != null) {
             return result;
         } else {
             // Calculate coverage data...
-            ErlangCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get("[]-" + prefix);
-            ErlangCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get("[]-" + suffix);
-            if(prefixMap == null) {
+            CodeCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get("[]-" + prefix);
+            CodeCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get("[]-" + suffix);
+            if (prefixMap == null) {
                 throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
             }
-            if(suffixMap == null) {
+            if (suffixMap == null) {
                 throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
             }
             return suffixMap.subtract(prefixMap);
         }
     }
 
-    protected String traceColorise(ErlangCoverageMap map1, ErlangCoverageMap map2) {
+    protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2) {
         String result = "<html><body><pre>";
 
         String sourceFile = ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.erlangModule + ".erl";
@@ -254,12 +261,12 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 int m1, m2;
                 try {
                     m1 = map1.findLine(linenum);
-                } catch (ErlangCoverageMapletNotFoundException e) {
+                } catch (CodeCoverageMapletNotFoundException e) {
                     m1 = 0;
                 }
                 try {
                     m2 = map2.findLine(linenum);
-                } catch (ErlangCoverageMapletNotFoundException e) {
+                } catch (CodeCoverageMapletNotFoundException e) {
                     m2 = 0;
                 }
                 result += "<font color=";

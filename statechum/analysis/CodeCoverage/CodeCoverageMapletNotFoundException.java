@@ -3,13 +3,13 @@
  * and open the template in the editor.
  */
 
-package statechum.analysis.Erlang;
+package statechum.analysis.CodeCoverage;
 
 /**
  *
  * @author ramsay
  */
-public class ErlangCoverageMapletNotFoundException extends Exception {
+public class CodeCoverageMapletNotFoundException extends Exception {
 
 	/**
 	 * ID for serialization

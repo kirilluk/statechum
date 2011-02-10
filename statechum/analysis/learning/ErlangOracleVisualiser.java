@@ -37,6 +37,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public static final int CoverageMode = 1;
     public static final int CoverageCompareMode = 2;
     public static final int AllSuffixesCoverageMode = 3;
+    public static final int AllSuffixesCompareMode = 4;
     public static int mode = 1;
 
     @Override
@@ -67,6 +68,16 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.AllSuffixesCoverageMode;
+                ErlangOracleVisualiser.lastmap = null;
+            }
+        });
+        popupMenu.add(item);
+        item = new JMenuItem("All suffixes coverage comparison");
+        item.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                ErlangOracleVisualiser.mode = ErlangOracleVisualiser.AllSuffixesCompareMode;
                 ErlangOracleVisualiser.lastmap = null;
             }
         });
@@ -116,16 +127,43 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
-        if(mode == AllSuffixesCoverageMode) {
+        if (mode == AllSuffixesCoverageMode) {
             Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
-            if(vs.length > 0) {
+            if (vs.length > 0) {
                 LinkedList<CodeCoverageMap> allMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
                 CodeCoverageMap sum = new CodeCoverageMap();
-                for(CodeCoverageMap m : allMaps) {
+                for (CodeCoverageMap m : allMaps) {
                     // This is nice and readable....
                     sum = sum.sum(m);
                 }
                 CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap()), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
+            }
+        } else if (mode == AllSuffixesCompareMode) {
+            Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
+            if (vs.length > 0) {
+                if (previousPicked == null) {
+                    previousPicked = vs;
+                } else {
+                    LinkedList<CodeCoverageMap> previousMaps = (LinkedList<CodeCoverageMap>) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.COVERAGE);
+                    CodeCoverageMap previousSum = new CodeCoverageMap();
+                    for (CodeCoverageMap m : previousMaps) {
+                        // This is nice and readable....
+                        previousSum = previousSum.sum(m);
+                    }
+                    LinkedList<CodeCoverageMap> thisMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
+                    CodeCoverageMap thisSum = new CodeCoverageMap();
+                    for (CodeCoverageMap m : thisMaps) {
+                        // This is nice and readable....
+                        thisSum = thisSum.sum(m);
+                    }
+                    String previousLabel = (String) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
+                    String thisLabel = (String) ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
+                    System.out.println(previousSum.toString() + " vs " + thisSum.toString());
+                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(previousSum, thisSum), previousLabel + " vs " + thisLabel);
+                    previousPicked = null;
+                }
+            } else {
+                previousPicked = null;
             }
         } else if (mode == CoverageMode) {
             coverageSelection();

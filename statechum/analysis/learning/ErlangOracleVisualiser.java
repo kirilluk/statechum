@@ -36,6 +36,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     private static final long serialVersionUID = -6159624335802103334L;
     public static final int CoverageMode = 1;
     public static final int CoverageCompareMode = 2;
+    public static final int AllSuffixesCoverageMode = 3;
     public static int mode = 1;
 
     @Override
@@ -56,6 +57,16 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.CoverageCompareMode;
+                ErlangOracleVisualiser.lastmap = null;
+            }
+        });
+        popupMenu.add(item);
+        item = new JMenuItem("All suffixes coverage");
+        item.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                ErlangOracleVisualiser.mode = ErlangOracleVisualiser.AllSuffixesCoverageMode;
                 ErlangOracleVisualiser.lastmap = null;
             }
         });
@@ -105,7 +116,18 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
-        if (mode == CoverageMode) {
+        if(mode == AllSuffixesCoverageMode) {
+            Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
+            if(vs.length > 0) {
+                LinkedList<CodeCoverageMap> allMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
+                CodeCoverageMap sum = new CodeCoverageMap();
+                for(CodeCoverageMap m : allMaps) {
+                    // This is nice and readable....
+                    sum = sum.sum(m);
+                }
+                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap()), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
+            }
+        } else if (mode == CoverageMode) {
             coverageSelection();
             if (lastmap != null) {
                 CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(lastmap, new CodeCoverageMap()), lastTrace);
@@ -176,12 +198,24 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     public static String[] getPrefixSuffixPair(Vertex start, Vertex end) {
+        return getPrefixSuffixPair(((Collection<LinkedList<String>>) start.getUserDatum(JUConstants.PATH)), ((Collection<LinkedList<String>>) end.getUserDatum(JUConstants.PATH)));
+    }
+
+    public static String[] getPrefixSuffixPair(Collection<LinkedList<String>> start, Vertex end) {
+        return getPrefixSuffixPair(start, ((Collection<LinkedList<String>>) end.getUserDatum(JUConstants.PATH)));
+    }
+
+    public static String[] getPrefixSuffixPair(Vertex start, Collection<LinkedList<String>> end) {
+        return getPrefixSuffixPair((Collection<LinkedList<String>>) start.getUserDatum(JUConstants.PATH), end);
+    }
+
+    public static String[] getPrefixSuffixPair(Collection<LinkedList<String>> start, Collection<LinkedList<String>> end) {
         // We need to select a start and end trace such that the start trace is a prefix of the end trace...
         String startTrace = null;
         String endTrace = null;
         boolean found = false;
-        for (Collection<String> st : ((LinkedList<LinkedList<String>>) start.getUserDatum(JUConstants.PATH))) {
-            for (Collection<String> et : ((LinkedList<LinkedList<String>>) end.getUserDatum(JUConstants.PATH))) {
+        for (Collection<String> st : start) {
+            for (Collection<String> et : end) {
                 if (isPrefix(st, et)) {
                     startTrace = toErlangList(st);
                     endTrace = toErlangList(et);

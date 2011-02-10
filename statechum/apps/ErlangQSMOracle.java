@@ -30,7 +30,7 @@ public class ErlangQSMOracle extends QSMTool {
     // This map stores coverage maps in the form (Prefix, Suffix) -> Coverage
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
-    // e.g. "[]-[a,b,c]" or "[a,b]-[c,d,e]"
+    // e.g. "[]-[a,b,c]" or "[a,b]-[a,b,c]"
     public static Map<String, CodeCoverageMap> coverageMaps;
 
     public static void main(String[] args) {

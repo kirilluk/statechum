@@ -74,6 +74,32 @@ public class CodeCoverageMap {
         return result;
     }
 
+    public CodeCoverageMap sum(CodeCoverageMap map2) {
+        CodeCoverageMap result = new CodeCoverageMap();
+
+        for (CodeCoverageMaplet m : map) {
+            try {
+                int c2 = map2.findLine(m.line);
+                int count = m.count + c2;
+                result.add(m.line, count);
+            } catch (CodeCoverageMapletNotFoundException e) {
+                // Not found in the argument so add our value
+                result.add(m.line, m.count);
+            }
+        }
+        // Add any that are missing...
+        for (CodeCoverageMaplet m : map2.map) {
+            try {
+                int c2 = this.findLine(m.line);
+            } catch (CodeCoverageMapletNotFoundException e) {
+                // Not found so add their value
+                result.add(m.line, m.count);
+            }
+        }
+
+        return result;
+    }
+
     public CodeCoverageMap disjunction(CodeCoverageMap map2) {
         CodeCoverageMap result = new CodeCoverageMap(this);
 

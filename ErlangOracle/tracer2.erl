@@ -131,7 +131,7 @@ find_prefix(OutFile, Trace) ->
 generate_input_set(_, 0) ->
     [];
 generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(500)) | generate_input_set(Aleph, N-1)].
+    [gen_random_string(Aleph, random:uniform(50)) | generate_input_set(Aleph, N-1)].
 
 gen_random_string(_Aleph, 0) ->
     [];

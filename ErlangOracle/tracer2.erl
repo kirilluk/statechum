@@ -4,7 +4,8 @@
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
 first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
-    TraceString = lists:foldl(fun(Elem, Acc) -> Acc ++ " " ++ atom_to_list(Elem) end, "", Trace),
+    io:format("Trying ~w:~w(~w) - ~p ~p ~p...~n", [Module, Function, Trace, Remains, OutFile, ModulesList]),
+    TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
     {Status, CoverMap} = try_trace(Module, Function, Trace, ModulesList),
     CoverMapString = map_to_string(CoverMap),
     append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => [~s]", [Trace, CoverMapString])),
@@ -15,6 +16,7 @@ first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
 	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
 		[] ->
+io:format("-----------------------------Done.~n"),
 		    ok;
 		_List ->
 		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
@@ -86,6 +88,7 @@ map_label(Label, [{Line, Count} | Map]) ->
     [{lists:flatten(io_lib:format("~w.~w", [Label, Line])), Count} | map_label(Label, Map)].
 
 append_to_file(FileName, String) ->
+    %%io:format("   ~s << ~s~n", [FileName, String]),
     {ok, IODevice} = file:open(FileName, [append]),
     io:format(IODevice, "~s~n", [String]),
     file:close(IODevice).
@@ -156,7 +159,7 @@ check_lines(IODevice, TraceString) ->
 find_prefix(OutFile, []) ->
     {check_file_for_trace(OutFile, ""), []};
 find_prefix(OutFile, Trace) ->
-    TraceString = lists:foldl(fun(Elem, Acc) -> Acc ++ " " ++ atom_to_list(Elem) end, "", Trace),
+    TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
     case check_file_for_trace(OutFile, TraceString) of
 	not_found ->
 	    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),
@@ -169,7 +172,7 @@ find_prefix(OutFile, Trace) ->
 generate_input_set(_, 0) ->
     [];
 generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(50)) | generate_input_set(Aleph, N-1)].
+    [gen_random_string(Aleph, random:uniform(5)) | generate_input_set(Aleph, N-1)].
 
 gen_random_string(_Aleph, 0) ->
     [];
@@ -177,14 +180,16 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 20),
+    InputSet = generate_input_set(Alphabet, 3),
     try_all_traces(Module, Function, InputSet, OutFile).
 
 
 try_all_traces(_Module, _Function, [], _OutFile) ->
     ok;
 try_all_traces(Module, Function, [T | Traces], OutFile) ->
+    io:format("Trying ~p:~p(~p)...~n", [Module, Function, T]),
     first_failure(Module, Function, T, OutFile),
+    io:format("Done ~p, Trying ~p~n", [T, Traces]),
     try_all_traces(Module, Function, Traces, OutFile).
 
 %%

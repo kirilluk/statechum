@@ -4,7 +4,7 @@
 testfun([]) ->
     ok;
 testfun([I | IP]) ->
-    io:format("1: ~p~n", [I]),
+%%    io:format("1: ~p~n", [I]),
     if (I > 42) ->
 	    testmod2:testfun2(I);
        (I == 37) ->

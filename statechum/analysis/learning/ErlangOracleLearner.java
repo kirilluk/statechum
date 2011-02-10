@@ -56,7 +56,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 BufferedReader input;
                 //System.out.println("Evaluating " + outFile);
                 //String erlCmd = "erl -eval 'tracer:trace(" + erlangModule + ", " + erlangFunction + ", " + erlString + ", \"" + outFile + "\"),halt().'";
-                String erlCmd = "./erlscript.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + erlString + " " + ErlangQSMOracle.tracesFile;
+                String erlCmd = "./erlscript.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + erlString + " " + ErlangQSMOracle.tracesFile + " " + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules);
                 System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
                 Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
                 input = new BufferedReader(new InputStreamReader(p.getInputStream()));

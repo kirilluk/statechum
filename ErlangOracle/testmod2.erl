@@ -4,7 +4,7 @@
 testfun2([]) ->
     ok;
 testfun2(I) ->
-    io:format("--2: ~p~n", [I]),
+%%    io:format("--2: ~p~n", [I]),
     if (I < 42) ->
 	    erlang:error("WIBBLE!");
        true ->

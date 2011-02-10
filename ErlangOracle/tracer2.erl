@@ -1,10 +1,9 @@
 -module(tracer2).
--export([first_failure/4, first_failure/5, gen_random_traces/4]).
+-export([first_failure/4, first_failure/5, gen_random_traces/4, gen_random_traces/5]).
 
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
 first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
-    io:format("Trying ~w:~w(~w) - ~p ~p ~p...~n", [Module, Function, Trace, Remains, OutFile, ModulesList]),
     TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
     {Status, CoverMap} = try_trace(Module, Function, Trace, ModulesList),
     CoverMapString = map_to_string(CoverMap),
@@ -16,7 +15,6 @@ first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
 	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
 		[] ->
-io:format("-----------------------------Done.~n"),
 		    ok;
 		_List ->
 		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
@@ -179,18 +177,18 @@ gen_random_string(_Aleph, 0) ->
 gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
+gen_random_traces(Module, Function, Alphabet, OutFile, ModuleList) ->
+    InputSet = generate_input_set(Alphabet, 20),
+    try_all_traces(Module, Function, InputSet, OutFile, ModuleList).
+
 gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    InputSet = generate_input_set(Alphabet, 3),
-    try_all_traces(Module, Function, InputSet, OutFile).
+    gen_random_traces(Module, Function, Alphabet, OutFile, [Module]).
 
-
-try_all_traces(_Module, _Function, [], _OutFile) ->
+try_all_traces(_Module, _Function, [], _OutFile, _ModuleList) ->
     ok;
-try_all_traces(Module, Function, [T | Traces], OutFile) ->
-    io:format("Trying ~p:~p(~p)...~n", [Module, Function, T]),
-    first_failure(Module, Function, T, OutFile),
-    io:format("Done ~p, Trying ~p~n", [T, Traces]),
-    try_all_traces(Module, Function, Traces, OutFile).
+try_all_traces(Module, Function, [T | Traces], OutFile, ModuleList) ->
+    first_failure(Module, Function, T, OutFile, ModuleList),
+    try_all_traces(Module, Function, Traces, OutFile, ModuleList).
 
 %%
 %% Coverage functions

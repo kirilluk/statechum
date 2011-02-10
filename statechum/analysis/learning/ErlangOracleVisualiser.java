@@ -289,7 +289,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return true;
     }
 
-    protected static String toErlangList(Collection<String> list) {
+    public static String toErlangList(Collection<String> list) {
         String result = "[";
         for (String s : list) {
             if (!result.equals("[")) {

@@ -85,7 +85,7 @@ public class ErlangQSMOracle extends QSMTool {
 
     public static void createInitTraces() {
         try {
-            String erlCmd = "./erlinittraces.sh " + erlangModule + " " + erlangFunction + " " + erlangAlphabet + " " + tracesFile;
+            String erlCmd = "./erlinittraces.sh " + erlangModule + " " + erlangFunction + " " + erlangAlphabet + " " + tracesFile + " " + ErlangOracleVisualiser.toErlangList(erlangModules);
             //String erlCmd = "erl -eval 'tracer:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"),halt().'\n";
             System.out.println("Running " + erlCmd + " in folder " + ErlangFolder);
             Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangFolder));

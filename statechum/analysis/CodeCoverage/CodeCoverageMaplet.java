@@ -10,10 +10,10 @@ package statechum.analysis.CodeCoverage;
  */
 public class CodeCoverageMaplet {
 
-    public int line;
+    public String line;
     public int count;
 
-    public CodeCoverageMaplet(int l, int c) {
+    public CodeCoverageMaplet(String l, int c) {
         line = l;
         count = c;
     }

@@ -1,12 +1,13 @@
 -module(tracer2).
--export([first_failure/4,gen_random_traces/4]).
+-export([first_failure/4, first_failure/5, gen_random_traces/4]).
 
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
-first_failure(Module, Function, Trace, Remains, OutFile) ->
+first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
     TraceString = lists:foldl(fun(Elem, Acc) -> Acc ++ " " ++ atom_to_list(Elem) end, "", Trace),
-    {Status, CoverMap} = try_trace(Module, Function, Trace),
-    append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => ~w", [Trace, CoverMap])),
+    {Status, CoverMap} = try_trace(Module, Function, Trace, ModulesList),
+    CoverMapString = map_to_string(CoverMap),
+    append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => [~s]", [Trace, CoverMapString])),
     case Status of
 	failed ->
 	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
@@ -16,12 +17,15 @@ first_failure(Module, Function, Trace, Remains, OutFile) ->
 		[] ->
 		    ok;
 		_List ->
-		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile)
+		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
 	    end
     end.
 
 %% The public face of first failure....
 first_failure(Module, Function, Trace, OutFile) ->
+    first_failure(Module, Function, Trace, OutFile, [Module]).
+
+first_failure(Module, Function, Trace, OutFile, ModulesList) ->
     %% First, lets make sure we don't already have a negative prefix
     %% If there is a positive prefix we can move on from that..
     {Status, Prefix} = find_prefix(OutFile, Trace),
@@ -35,7 +39,7 @@ first_failure(Module, Function, Trace, OutFile) ->
 	       true ->
 		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
 		    %%io:format("Extending from ~p with ~p~n", [NewPrefix, Suffix]),
-		    first_failure(Module, Function, NewPrefix, Suffix, OutFile)
+		    first_failure(Module, Function, NewPrefix, Suffix, OutFile, ModulesList)
 	    end;
 	failed ->
 	    %% Negative prefix, nothing to do
@@ -43,27 +47,61 @@ first_failure(Module, Function, Trace, OutFile) ->
 	not_found ->
 	    %% No data - do a complete run
 	    %%io:format("Not data for ~p~n", [Trace]),
-	    first_failure(Module, Function, [], Trace, OutFile)
+	    first_failure(Module, Function, [], Trace, OutFile, ModulesList)
     end.
 
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
-try_trace(Module, Function, Trace) ->
-    cover:compile(Module),
+try_trace(Module, Function, Trace, ModulesList) ->
+    compile_all(ModulesList),
     {Pid, Ref} = spawn_monitor(Module, Function, [Trace]),
     ProcStatus = await_end(Pid, Ref),
     demonitor(Ref),
-    cover:analyse_to_file(Module, "tmp.cover", []),
-    {ProcStatus, create_map("tmp.cover")}.
+    {ProcStatus, analyse_all(ModulesList)}.
 
 %%
 %% Helper functions
 %%
     
+compile_all([]) ->
+    ok;
+compile_all([M | ModulesList]) ->
+    cover:compile(M),
+    compile_all(ModulesList).
+
+analyse_all(ModulesList) ->
+    analyse_all(ModulesList, []).
+
+analyse_all([], Map) ->
+    Map;
+analyse_all([M | ModulesList], Map) ->
+    cover:analyse_to_file(M, "tmp.cover", []),
+    ThisMap = create_map("tmp.cover"),
+    analyse_all(ModulesList, map_label(M, ThisMap) ++ Map).
+
+%% Prepend the module name to the line numbers...
+map_label(_Label, []) ->
+    [];
+map_label(Label, [{Line, Count} | Map]) ->
+    [{lists:flatten(io_lib:format("~w.~w", [Label, Line])), Count} | map_label(Label, Map)].
+
 append_to_file(FileName, String) ->
     {ok, IODevice} = file:open(FileName, [append]),
     io:format(IODevice, "~s~n", [String]),
     file:close(IODevice).
+
+
+map_to_string([]) ->
+    "";
+map_to_string([{Line, Count} | Map]) ->
+    This = lists:flatten(io_lib:format("{~s,~w}", [Line, Count])),
+    Rest = map_to_string(Map),
+    case Rest of 
+	"" ->
+	    This;
+	_List ->
+	    This ++ "," ++ Rest
+    end.
 
 await_end(Pid, Ref) ->
     case lists:member(Pid, erlang:processes()) of

@@ -60,10 +60,10 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
                 Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
                 input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                System.out.println("Process output:");
+                //System.out.println("Process output:");
                 String line;
                 while ((line = input.readLine()) != null) {
-                    System.out.println(line);
+                    //System.out.println(line);
                 }
                 input.close();
                 int exit = p.waitFor();

@@ -14,7 +14,7 @@ public class CodeCoverageMap {
 
     public ArrayList<CodeCoverageMaplet> map;
 
-    public void add(int line, int count) {
+    public void add(String line, int count) {
         map.add(new CodeCoverageMaplet(line, count));
     }
 
@@ -35,19 +35,19 @@ public class CodeCoverageMap {
         return result;
     }
 
-    public int findLine(int l) throws CodeCoverageMapletNotFoundException {
+    public int findLine(String l) throws CodeCoverageMapletNotFoundException {
         for (CodeCoverageMaplet m : map) {
-            if (m.line == l) {
+            if (m.line.equals(l)) {
                 return m.count;
             }
         }
         throw new CodeCoverageMapletNotFoundException();
     }
 
-    public void remove(int line) {
+    public void remove(String line) {
         ArrayList<CodeCoverageMaplet> removes = new ArrayList<CodeCoverageMaplet>();
         for (CodeCoverageMaplet m : map) {
-            if (m.line == line) {
+            if (m.line.equals(line)) {
                 removes.add(m);
             }
         }

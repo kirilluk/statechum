@@ -158,7 +158,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     }
                     String previousLabel = (String) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
                     String thisLabel = (String) ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
-                    System.out.println(previousSum.toString() + " vs " + thisSum.toString());
+                    //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
                     CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(previousSum, thisSum), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
                 }
@@ -271,6 +271,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result;
     }
 
+    /*
+     * Determines whether st is a prefix of et.
+     */
     protected static boolean isPrefix(Collection<String> st, Collection<String> et) {
         Iterator<String> sit = st.iterator();
         Iterator<String> eit = et.iterator();
@@ -321,42 +324,46 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2) {
-        String result = "<html><body><pre>";
-
-        String sourceFile = ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.erlangModule + ".erl";
+        String result = "<html><body>";
+        String sourceFile = "";
         try {
-            BufferedReader input = new BufferedReader(new FileReader(sourceFile));
-            int linenum = 0;
-            String line = null;
-            while ((line = input.readLine()) != null) {
-                linenum++;
-                int m1, m2;
-                try {
-                    m1 = map1.findLine(linenum);
-                } catch (CodeCoverageMapletNotFoundException e) {
-                    m1 = 0;
+            for (String m : ErlangQSMOracle.erlangModules) {
+                result += "<h2>" + m + "</h2><pre>";
+                sourceFile = ErlangQSMOracle.ErlangFolder + "/" + m + ".erl";
+                BufferedReader input = new BufferedReader(new FileReader(sourceFile));
+                int linenum = 0;
+                String line = null;
+                while ((line = input.readLine()) != null) {
+                    linenum++;
+                    int m1, m2;
+                    try {
+                        m1 = map1.findLine(m + "." + linenum);
+                    } catch (CodeCoverageMapletNotFoundException e) {
+                        m1 = 0;
+                    }
+                    try {
+                        m2 = map2.findLine(m + "." + linenum);
+                    } catch (CodeCoverageMapletNotFoundException e) {
+                        m2 = 0;
+                    }
+                    result += "<font color=";
+                    if ((m1 > 0) && (m2 == 0)) {
+                        result += "\"red\"";
+                    } else if ((m1 == 0) && (m2 > 0)) {
+                        result += "\"blue\"";
+                    } else if ((m1 > 0) && (m2 > 0)) {
+                        result += "\"#ff00ff\"";
+                    } else {
+                        result += "\"#aaaaaa\"";
+                    }
+                    result += ">" + linenum + ":&nbsp;" + line + "</font>\n";
                 }
-                try {
-                    m2 = map2.findLine(linenum);
-                } catch (CodeCoverageMapletNotFoundException e) {
-                    m2 = 0;
-                }
-                result += "<font color=";
-                if ((m1 > 0) && (m2 == 0)) {
-                    result += "\"red\"";
-                } else if ((m1 == 0) && (m2 > 0)) {
-                    result += "\"blue\"";
-                } else if ((m1 > 0) && (m2 > 0)) {
-                    result += "\"#ff00ff\"";
-                } else {
-                    result += "\"#aaaaaa\"";
-                }
-                result += ">" + linenum + ":&nbsp;" + line + "</font>\n";
+                input.close();
+                result += "</pre>";
             }
-            input.close();
         } catch (IOException e) {
             System.out.println("Couldn't open " + sourceFile);
         }
-        return result + "</pre></body></html>";
+        return result + "</body></html>";
     }
 }

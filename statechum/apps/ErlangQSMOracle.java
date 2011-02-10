@@ -5,6 +5,8 @@
 package statechum.apps;
 
 import java.io.*;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
@@ -22,6 +24,7 @@ import statechum.analysis.learning.*;
 public class ErlangQSMOracle extends QSMTool {
 
     public static String erlangModule;
+    public static Collection<String> erlangModules;
     public static String erlangFunction;
     public static String erlangAlphabet;
     public static String tracesFile;
@@ -40,6 +43,12 @@ public class ErlangQSMOracle extends QSMTool {
         tracesFile = args[0];
         covermapFile = tracesFile + ".covermap";
         erlangAlphabet = args[3];
+
+        erlangModules = new LinkedList<String>();
+        erlangModules.add(erlangModule);
+        for(int i = 4; i < args.length; i++) {
+            erlangModules.add(args[i]);
+        }
 
         // Clear the files...
         (new File(ErlangFolder, tracesFile)).delete();
@@ -137,7 +146,7 @@ public class ErlangQSMOracle extends QSMTool {
                 for (String m : maplets) {
                     // Maplets have the form {line, count} but should be missing the {} from the way we split the string.
                     String[] parts = m.split(",");
-                    mapObject.add(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
+                    mapObject.add(parts[0], Integer.parseInt(parts[1]));
                 }
 
                 coverageMaps.put(index, mapObject);

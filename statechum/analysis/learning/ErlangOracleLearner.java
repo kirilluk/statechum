@@ -6,10 +6,17 @@ package statechum.analysis.learning;
 
 import java.util.*;
 import java.io.*;
+
 import statechum.apps.ErlangQSMOracle;
+import statechum.apps.QSMTool;
+
 import java.awt.Frame;
+
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
@@ -23,8 +30,63 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     }
 
     @Override
+	public LearnerGraph learnMachine()
+	{  
+    	try {
+    		erlangProcess = Runtime.getRuntime().exec(new String[]{"erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
+            int response = erlangProcess.getInputStream().read();
+            while(response != '\n' && response != -1) 
+            	response = erlangProcess.getInputStream().read();
+		} catch (IOException e) {
+			killErlang();
+			return null;
+		}
+    	
+    	LearnerGraph result = super.learnMachine();
+    	killErlang();
+    	return result;
+	}
+    
+    Process erlangProcess = null;
+    
+    protected void killErlang()
+    {
+		if (erlangProcess != null)
+		{    			
+			try {
+				erlangProcess.getOutputStream().write("halt().\n".getBytes());
+				erlangProcess.getOutputStream().flush();
+			} catch (IOException e1) {
+				statechum.Helper.throwUnchecked("failed to communicate with Erlang process", e1);  
+			}
+			ExperimentRunner.dumpStreams(erlangProcess,LTL_to_ba.timeBetweenHearbeats,new HandleProcessIO() {
+	
+				@Override
+				public void OnHeartBeat() {// no prodding is done for a short-running converter.
+				}
+	
+				@Override
+				public void StdErr(@SuppressWarnings("unused") StringBuffer b) {
+					//System.err.print(b.toString());
+				}
+	
+				@Override
+				public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
+					//System.err.print(b.toString());
+				}});
+			try { erlangProcess.waitFor(); } 
+			catch (InterruptedException e) 
+			{ 
+				statechum.Helper.throwUnchecked("wait for Erlang to terminate aborted", e);  
+			}
+			erlangProcess = null;
+		}
+    }
+    
+    @Override
     public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, final List<String> question, final int expectedForNoRestart,
-            final List<Boolean> consistentFacts, final Object[] moreOptions) {
+            final List<Boolean> consistentFacts, final Object[] moreOptions) 
+     {
 
         Iterator<String> it = question.iterator();
         //System.out.println("Question for " + erlangModule + ":" + erlangFunction + " is:");
@@ -35,92 +97,100 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             }
             erlList += it.next();
         }
-        erlList += "]";
-        int val = execErlang(erlList);
-        //System.out.println("Responding " + val);
-        // Second elem seems to be unused...
-        return new Pair<Integer, String>(val, null);
-    }
-
-    protected int execErlang(String erlString) {
-        //String outFile = "question" + erlString.hashCode() + ".out";
-
-        //File f = new File(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
-
-        int failure = -2;
-        try {
+       erlList += "]";
+       int failure = AbstractOracle.USER_CANCELLED;
+        try 
+        {
             // Lets see if QSM is being silly and we already know the answer...
-            failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, erlString);
-            if (failure == -2) {
+            failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, question);
+            if (failure == AbstractOracle.USER_TRACENOTFOUND) 
+            {
                 // We didn't find the answer in the existing traces file so lets extend it
-                BufferedReader input;
-                //System.out.println("Evaluating " + outFile);
-                //String erlCmd = "erl -eval 'tracer:trace(" + erlangModule + ", " + erlangFunction + ", " + erlString + ", \"" + outFile + "\"),halt().'";
-                String erlCmd = "./erlscript.sh " + ErlangQSMOracle.erlangModule + " " + ErlangQSMOracle.erlangFunction + " " + erlString + " " + ErlangQSMOracle.tracesFile + " " + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules);
-                System.out.println("Running " + erlCmd + " in folder " + ErlangQSMOracle.ErlangFolder);
-                Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangQSMOracle.ErlangFolder));
-                input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                //System.out.println("Process output:");
-                String line;
-                while ((line = input.readLine()) != null) {
-                    //System.out.println(line);
-                }
-                input.close();
-                int exit = p.waitFor();
-                //System.out.println("Exit value: " + exit);
-
-                //f.delete();
-                //ErlangQSMOracle.loadCoverageMaps(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap");
+                
+                String erlArgs = "tracer2:first_failure("+ ErlangQSMOracle.erlangModule + "," + ErlangQSMOracle.erlangFunction + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
+                //System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
+                erlangProcess.getOutputStream().write( erlArgs.getBytes() );
+                erlangProcess.getOutputStream().write( '.' );erlangProcess.getOutputStream().write( '\n' );
+                erlangProcess.getOutputStream().flush();
+                
+                // now wait for a response.
+                int response = erlangProcess.getInputStream().read();
+                while(response != '\n' && response != -1) 
+                	response = erlangProcess.getInputStream().read();
+                
+                if (response == -1)
+                	throw new IllegalArgumentException("end of input reached when reading Erlang output");
+                
+     				//ErlangQSMOracle.loadCoverageMaps(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap");
                 ErlangQSMOracle.loadCoverageMaps();
                 //(new File(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap")).delete();
 
-                failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, erlString);
+                failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, question);
                 // We really should have found the answer now...
+                if (failure == AbstractOracle.USER_TRACENOTFOUND)
+                    throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + question + ")...");
             }
-        } catch (Exception err) {
-            err.printStackTrace();
+        } catch (IOException err) {
+        	statechum.Helper.throwUnchecked("failed to run Erlang",err);
         }
-        if (failure == -1) {
-            return AbstractOracle.USER_ACCEPTED;
-        } else if (failure == -2) {
-            throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + erlString + ")...");
-        } else {
-            return failure;
-        }
-
+        return new Pair<Integer, String>(failure,null);
     }
 
+    
+    
+    /** Evaluates the supplied command in Erlang environment.
+     * @param  
+     */
+    public static void runErlang(String ErlangCommand) throws IOException, InterruptedException
+    {
+        Process erlangProcess = Runtime.getRuntime().exec(new String[]{"erl", "-eval",ErlangCommand+",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
+		ExperimentRunner.dumpStreams(erlangProcess,LTL_to_ba.timeBetweenHearbeats,new HandleProcessIO() {
+
+			@Override
+			public void OnHeartBeat() {// no prodding is done for a short-running converter.
+			}
+
+			@Override
+			public void StdErr(@SuppressWarnings("unused") StringBuffer b) {
+				//System.err.print(b.toString());
+			}
+
+			@Override
+			public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
+				
+			}});
+		erlangProcess.waitFor();
+    }
+    
     /** Returns -1 if the string is shown as accepted, returns -2 if it is not found, and returns the point at which it is rejected otherwise */
-    protected int firstFailure(String file, String erlString) throws IOException {
+    protected int firstFailure(String file, List<String> erlTrace) throws IOException 
+    {
         BufferedReader input = new BufferedReader(new FileReader(file));
-        //System.out.println("Output file:");
-        // Convert erlang string into traces string
-        // i.e. "[a,b,c]" becomes "a b c"
-        String searchString = erlString.replaceAll(",", " ").substring(1, erlString.length() - 1);
+
         String line;
-        int count = -2;
-        while ((line = input.readLine()) != null) {
+        int count = AbstractOracle.USER_TRACENOTFOUND;
+        while ((line = input.readLine()) != null && count == AbstractOracle.USER_TRACENOTFOUND) 
+        {
             String traceString = line.substring(1).trim();
+            List<String> traceFromFile = QSMTool.tokeniseInput(traceString);
             if (line.substring(0, 1).equals("-")) {
-                if (searchString.startsWith(traceString)) {
-                    // This line represents a rejection of a prefix of our question...
-                    count = -1;
-                    StringTokenizer st = new StringTokenizer(traceString);
-                    while (st.hasMoreTokens()) {
-                        count++;
-                        String t = st.nextToken();
-                    }
-                    break;
+            	if (traceFromFile.size() <= erlTrace.size() &&
+            			ErlangOracleVisualiser.isPrefix(traceFromFile,erlTrace))
+            	{
+            		count = traceFromFile.size()-1;
+            		break;
                 }
             } else {
-                if (traceString.equals(searchString)) {
+            	assert line.substring(0, 1).equals("+");
+            	
+                if (traceFromFile.size() >= erlTrace.size() && ErlangOracleVisualiser.isPrefix(erlTrace,traceFromFile)) 
+                {
                     // This is an accept line for our string.
-                    count = -1;
+                    count = AbstractOracle.USER_ACCEPTED;
                     break;
                 }
             }
         }
-        //System.out.println(line);
         input.close();
         return count;
     }

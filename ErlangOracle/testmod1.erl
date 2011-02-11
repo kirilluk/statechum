@@ -9,6 +9,8 @@ testfun([I | IP]) ->
 	    testmod2:testfun2(I);
        (I == 37) ->
 	    testmod2:testfun2(I + 19);
+	(I < 16) ->
+	    erlang:exit("Not allowed...");
        true ->
 	    testfun(IP)
     end.

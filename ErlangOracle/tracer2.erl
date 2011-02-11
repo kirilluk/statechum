@@ -12,10 +12,9 @@ first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
 	failed ->
 	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
 	ok ->
-	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
 		[] ->
-		    ok;
+	    		append_to_file(OutFile, io_lib:format("+ ~s", [TraceString]));
 		_List ->
 		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
 	    end
@@ -56,7 +55,7 @@ try_trace(Module, Function, Trace, ModulesList) ->
     compile_all(ModulesList),
     {Pid, Ref} = spawn_monitor(Module, Function, [Trace]),
     ProcStatus = await_end(Pid, Ref),
-    demonitor(Ref),
+    erlang:demonitor(Ref,[flush]),
     {ProcStatus, analyse_all(ModulesList)}.
 
 %%
@@ -166,11 +165,25 @@ find_prefix(OutFile, Trace) ->
 	    {Status, Trace}
     end.
 
+%% Generates an input set with no repeated sequences, 200 is the number of attempts to generate a sequence.
+%% The total number of seq will be lower than N if any attempt fails.
+generate_input_set(_, 0, ExistingSeqList) ->
+    ExistingSeqList;
+generate_input_set(Aleph, N, ExistingSeqList) ->
+ 	NewSeq = generate_input_set_N_attempts(Aleph, N, ExistingSeqList, 200),
+	if
+		length(NewSeq) > 0 -> generate_input_set(Aleph, N-1,[ NewSeq | ExistingSeqList ]);
+		true -> generate_input_set(Aleph, N-1,ExistingSeqList)
+	end.
 
-generate_input_set(_, 0) ->
-    [];
-generate_input_set(Aleph, N) ->
-    [gen_random_string(Aleph, random:uniform(5)) | generate_input_set(Aleph, N-1)].
+generate_input_set_N_attempts(Aleph, N, ExistingSeqList, Attempt) ->
+	NewSeq = gen_random_string(Aleph, random:uniform(5)),
+	AlreadyPresent = lists:member(NewSeq,ExistingSeqList),
+	if 
+		not AlreadyPresent -> NewSeq;
+		Attempt > 0 -> generate_input_set_N_attempts(Aleph, N, ExistingSeqList,Attempt-1);
+		true -> []
+	end.
 
 gen_random_string(_Aleph, 0) ->
     [];
@@ -178,7 +191,7 @@ gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
 gen_random_traces(Module, Function, Alphabet, OutFile, ModuleList) ->
-    InputSet = generate_input_set(Alphabet, 20),
+    InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
     try_all_traces(Module, Function, InputSet, OutFile, ModuleList).
 
 gen_random_traces(Module, Function, Alphabet, OutFile) ->

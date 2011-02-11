@@ -85,34 +85,21 @@ public class ErlangQSMOracle extends QSMTool {
 
     public static void createInitTraces() {
         try {
-            String erlCmd = "./erlinittraces.sh " + erlangModule + " " + erlangFunction + " " + erlangAlphabet + " " + tracesFile + " " + ErlangOracleVisualiser.toErlangList(erlangModules);
+            String erlArgs = "tracer2:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules)+")";
             //String erlCmd = "erl -eval 'tracer:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"),halt().'\n";
-            System.out.println("Running " + erlCmd + " in folder " + ErlangFolder);
-            Process p = Runtime.getRuntime().exec(erlCmd, null, new File(ErlangFolder));
-            System.out.println("Creating init traces...");
-            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-            //System.out.println("Process output:");
-            String line;
-            while ((line = error.readLine()) != null) {
-                System.out.println("Error: " + line);
-            }
-            while ((line = input.readLine()) != null) {
-                System.out.println(line);
-            }
-            input.close();
-            error.close();
-
-            p.waitFor();
-
+            //System.out.println("Creating init traces...");
+            //System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
+            //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
+            ErlangOracleLearner.runErlang(erlArgs);
+/*
             System.out.println("Traces file:");
-            input = new BufferedReader(new FileReader(ErlangQSMOracle.ErlangFolder + "/" + tracesFile));
-
+            BufferedReader input = new BufferedReader(new FileReader(ErlangQSMOracle.ErlangFolder + "/" + tracesFile));
+            String line = null;
             while ((line = input.readLine()) != null) {
                 System.out.println(line);
             }
             input.close();
-
+*/
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -124,9 +111,10 @@ public class ErlangQSMOracle extends QSMTool {
     }
 
     public static void loadCoverageMaps(String filename) {
-        System.out.println("Loading coverage maps from " + filename + "...");
+        //System.out.println("Loading coverage maps from " + filename + "...");
+        BufferedReader input = null;
         try {
-            BufferedReader input = new BufferedReader(new FileReader(filename));
+            input = new BufferedReader(new FileReader(filename));
             String line;
             while ((line = input.readLine()) != null) {
                 // This assumes a format of [prefix]-[suffix] => [Coverage map]
@@ -151,12 +139,15 @@ public class ErlangQSMOracle extends QSMTool {
 
                 coverageMaps.put(index, mapObject);
             }
-            input.close();
             //System.out.println("Coverage maps:\n" + coverageMaps.toString());
         } catch (FileNotFoundException e) {
             System.out.println("Couldn't open coverage map file " + filename);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        finally
+        {
+            if (input != null)	try { input.close(); } catch (IOException e) { /* ignore this */ }
         }
     }
 }

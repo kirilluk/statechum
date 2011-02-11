@@ -271,7 +271,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result;
     }
 
-    /*
+    /**
      * Determines whether st is a prefix of et.
      */
     protected static boolean isPrefix(Collection<String> st, Collection<String> et) {

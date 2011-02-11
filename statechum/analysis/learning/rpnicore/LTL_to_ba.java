@@ -121,7 +121,7 @@ public class LTL_to_ba {
 	}
 	
 	/** Refer to the description of dumpStreams in ExperimentRunner class for details on this. */
-	protected static int timeBetweenHearbeats=20;
+	public static final int timeBetweenHearbeats=20;
 
 	/** Concatenates LTL and checks for forbidden words. */
 	public static StringBuffer concatenateLTL(Collection<String> ltl)

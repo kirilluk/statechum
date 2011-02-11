@@ -243,7 +243,7 @@ public class QSMTool
 		cmdLowLevelFunction="func",
 		cmdShowLTL="showltl";
 	
-	private static List<String> tokeniseInput(String str)
+	public static List<String> tokeniseInput(String str)
 	{
 		StringTokenizer tokenizer = new StringTokenizer(str);
 		List<String> sequence = new ArrayList<String>();

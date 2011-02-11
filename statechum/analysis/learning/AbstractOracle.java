@@ -60,6 +60,9 @@ public interface AbstractOracle {
 	/** Default value for a dialog box. */
 	public static final int USER_WAITINGFORSELECTION = -1;
 
+	/** Trace could not be found. */
+	public static final int USER_TRACENOTFOUND = -8;
+	
 	/** Retrieves a stored answer. 
 	 * This can either be a number corresponding to accept/reject (in which case the string part should be null) or 
 	 * USER_LTL in the integer part and a string representation of an LTL formula.

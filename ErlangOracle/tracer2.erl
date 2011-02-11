@@ -12,9 +12,10 @@ first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
 	failed ->
 	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
 	ok ->
+	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
 		[] ->
-	    		append_to_file(OutFile, io_lib:format("+ ~s", [TraceString]));
+		    ok;
 		_List ->
 		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
 	    end
@@ -137,17 +138,24 @@ check_lines(IODevice, TraceString) ->
 	    not_found;
 	Line ->
 	    {StatString, LineString} = lists:split(2, Line),
-	    %% Strip the closing \n
-	    {TrueLineString, _Return} = lists:split(length(LineString)-1, LineString),
+	    %% Strip the closing " \n"
 	    if 
-		TrueLineString == TraceString -> 
+		(length(LineString) == 0) ->
+		    %% empty input line...
+		    TrueLineString = "";
+		true ->
+		    {TrueLineString, _Return} = lists:split(length(LineString)-1, LineString)
+	    end,
+	    %%io:format("Seeking \"~p\" in \"~p\" (~p)~n", [TraceString, TrueLineString, string:equal(TrueLineString, TraceString)]),	    
+	    case string:equal(TrueLineString, TraceString) of
+		true -> 
 		    if
 			StatString == "+ " ->
 			    ok;
 			true ->
 			    failed
 		    end;
-		true ->
+		false ->
 		    check_lines(IODevice, TraceString)
 	    end
     end.
@@ -156,7 +164,7 @@ check_lines(IODevice, TraceString) ->
 find_prefix(OutFile, []) ->
     {check_file_for_trace(OutFile, ""), []};
 find_prefix(OutFile, Trace) ->
-    TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
+    TraceString = lists:flatten(lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace)),
     case check_file_for_trace(OutFile, TraceString) of
 	not_found ->
 	    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),

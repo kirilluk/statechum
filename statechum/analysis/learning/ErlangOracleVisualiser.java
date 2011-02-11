@@ -136,7 +136,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     // This is nice and readable....
                     sum = sum.sum(m);
                 }
-                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap()), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
+                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
             }
         } else if (mode == AllSuffixesCompareMode) {
             Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
@@ -159,7 +159,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     String previousLabel = (String) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
                     String thisLabel = (String) ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
                     //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
-                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(previousSum, thisSum), previousLabel + " vs " + thisLabel);
+                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
                 }
             } else {
@@ -324,15 +324,22 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2) {
+        return traceColorise(map1, map2, true);
+    }
+
+    protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2, boolean hide) {
         String result = "<html><body>";
         String sourceFile = "";
         try {
             for (String m : ErlangQSMOracle.erlangModules) {
-                result += "<h2>" + m + "</h2><pre>";
+                //result += "<h2>" + m + "</h2>";
+                result += "<pre>";
                 sourceFile = ErlangQSMOracle.ErlangFolder + "/" + m + ".erl";
                 BufferedReader input = new BufferedReader(new FileReader(sourceFile));
                 int linenum = 0;
                 String line = null;
+                String prevLine = "";
+                boolean spacing = false;
                 while ((line = input.readLine()) != null) {
                     linenum++;
                     int m1, m2;
@@ -346,17 +353,36 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     } catch (CodeCoverageMapletNotFoundException e) {
                         m2 = 0;
                     }
-                    result += "<font color=";
-                    if ((m1 > 0) && (m2 == 0)) {
-                        result += "\"red\"";
-                    } else if ((m1 == 0) && (m2 > 0)) {
-                        result += "\"blue\"";
-                    } else if ((m1 > 0) && (m2 > 0)) {
-                        result += "\"#ff00ff\"";
+                    line = line.replace("<", "&lt;");
+                    line = line.replace(">", "&gt;");
+                    if ((m1 == 0) && (m2 == 0)) {
+                        if (hide) {
+                            if (!spacing) {
+                                result += "<font color=\"#aaaaaa\">" + linenum + ":&nbsp;" + line + "</font>\n";
+                                result += "<font color=\"#aaaaaa\">...</font>\n";
+                                spacing = true;
+                            }
+                        } else {
+                            result += "<font color=\"#aaaaaa\">" + linenum + ":&nbsp;" + line + "</font>\n";
+                        }
                     } else {
-                        result += "\"#aaaaaa\"";
+                        if (spacing) {
+                            result += "<font color=\"#aaaaaa\">...</font>\n";
+                            result += "<font color=\"#aaaaaa\">" + (linenum - 1) + ":&nbsp;" + prevLine + "</font>\n";
+
+                        }
+                        spacing = false;
+                        result += "<font color=";
+                        if ((m1 > 0) && (m2 == 0)) {
+                            result += "\"red\"";
+                        } else if ((m1 == 0) && (m2 > 0)) {
+                            result += "\"blue\"";
+                        } else {
+                            result += "\"#ff00ff\"";
+                        }
+                        result += ">" + linenum + ":&nbsp;" + line + "</font>\n";
                     }
-                    result += ">" + linenum + ":&nbsp;" + line + "</font>\n";
+                    prevLine = line;
                 }
                 input.close();
                 result += "</pre>";

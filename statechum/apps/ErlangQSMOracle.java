@@ -88,7 +88,7 @@ public class ErlangQSMOracle extends QSMTool {
             String erlArgs = "tracer2:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules)+")";
             //String erlCmd = "erl -eval 'tracer:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"),halt().'\n";
             //System.out.println("Creating init traces...");
-            //System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
+            System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
             //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
             ErlangOracleLearner.runErlang(erlArgs);
 /*

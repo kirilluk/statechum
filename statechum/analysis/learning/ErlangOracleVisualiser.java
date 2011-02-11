@@ -332,7 +332,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         String sourceFile = "";
         try {
             for (String m : ErlangQSMOracle.erlangModules) {
-                //result += "<h2>" + m + "</h2>";
+                result += "<h2>" + m + "</h2>";
                 result += "<pre>";
                 sourceFile = ErlangQSMOracle.ErlangFolder + "/" + m + ".erl";
                 BufferedReader input = new BufferedReader(new FileReader(sourceFile));

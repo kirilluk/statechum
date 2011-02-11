@@ -89,6 +89,7 @@ append_to_file(FileName, String) ->
     %%io:format("   ~s << ~s~n", [FileName, String]),
     {ok, IODevice} = file:open(FileName, [append]),
     io:format(IODevice, "~s~n", [String]),
+    file:sync(IODevice),
     file:close(IODevice).
 
 

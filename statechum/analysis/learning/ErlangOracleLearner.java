@@ -34,9 +34,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         try {
             erlangProcess = Runtime.getRuntime().exec(new String[]{"erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
             int response = erlangProcess.getInputStream().read();
-            while (response != '\n' && response != -1) {
+            while (response != '>' && response != -1) {
+                System.out.print((char)response);
                 response = erlangProcess.getInputStream().read();
             }
+            
         } catch (IOException e) {
             killErlang();
             return null;
@@ -112,6 +114,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 // now wait for a response.
                 int response = erlangProcess.getInputStream().read();
                 while (response != '\n' && response != -1) {
+                    System.out.print((char)response);
+                    response = erlangProcess.getInputStream().read();
+                }
+                while (response != '>' && response != -1) {
+                    System.out.print((char)response);
                     response = erlangProcess.getInputStream().read();
                 }
 

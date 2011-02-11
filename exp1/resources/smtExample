@@ -1,0 +1,7 @@
++ add add remove
+
+xm MEM0 PRE ( define m@N::nat )
+xm MEM0 POST (= m@N 0)
+xm add POST (= m@N (+ m@M 1))
+xm remove PRE (> m@M 0)
+xm remove POST (= m@N (- m@M 1))

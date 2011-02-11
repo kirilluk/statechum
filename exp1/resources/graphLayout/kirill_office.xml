@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.6.0_16" class="java.beans.XMLDecoder"> 
+ <object class="java.util.Properties"> 
+  <void method="put"> 
+   <string>LINEARWARNINGS</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
+   <string>SMTWARNINGS</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
+   <string>ASSERT</string> 
+   <string>true</string> 
+  </void> 
+ </object> 
+ <object class="java.util.HashMap"> 
+  <void method="put"> 
+   <string>LOWER</string> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>697</int> 
+      <int>341</int> 
+      <int>774</int> 
+      <int>622</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <string>UPPER</string> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>219</int> 
+      <int>22</int> 
+      <int>1045</int> 
+      <int>1073</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+ </object> 
+</java> 

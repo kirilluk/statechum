@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.6.0_10-rc2" class="java.beans.XMLDecoder"> 
+ <object class="java.util.TreeMap"> 
+  <void method="put"> 
+   <int>-114</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>287.5509948730469</double> 
+    </void> 
+    <void property="y"> 
+     <double>902.030517578125</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-113</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>432.9935607910156</double> 
+    </void> 
+    <void property="y"> 
+     <double>900.1265869140625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-112</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>564.6686401367188</double> 
+    </void> 
+    <void property="y"> 
+     <double>890.6847534179688</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-111</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>541.9268798828125</double> 
+    </void> 
+    <void property="y"> 
+     <double>689.9110717773438</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-110</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>650.6013793945312</double> 
+    </void> 
+    <void property="y"> 
+     <double>671.505615234375</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-109</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>162.23191833496094</double> 
+    </void> 
+    <void property="y"> 
+     <double>694.627197265625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-108</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>644.9876708984375</double> 
+    </void> 
+    <void property="y"> 
+     <double>563.7782592773438</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-107</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>503.6755065917969</double> 
+    </void> 
+    <void property="y"> 
+     <double>571.4232177734375</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-106</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>160.23744201660156</double> 
+    </void> 
+    <void property="y"> 
+     <double>572.6905517578125</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-105</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>636.18994140625</double> 
+    </void> 
+    <void property="y"> 
+     <double>441.70758056640625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-104</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>508.34039306640625</double> 
+    </void> 
+    <void property="y"> 
+     <double>470.78802490234375</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-103</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>376.27984619140625</double> 
+    </void> 
+    <void property="y"> 
+     <double>572.123291015625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-102</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>160.11863708496094</double> 
+    </void> 
+    <void property="y"> 
+     <double>474.061279296875</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-101</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>361.021484375</double> 
+    </void> 
+    <void property="y"> 
+     <double>387.8592224121094</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-100</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>353.9729309082031</double> 
+    </void> 
+    <void property="y"> 
+     <double>249.72671508789062</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-99</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>346.87158203125</double> 
+    </void> 
+    <void property="y"> 
+     <double>140.29351806640625</double> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>-98</int> 
+   <object class="statechum.analysis.learning.Visualiser$DoublePair"> 
+    <void property="x"> 
+     <double>348.4778747558594</double> 
+    </void> 
+    <void property="y"> 
+     <double>34.49922180175781</double> 
+    </void> 
+   </object> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <object class="statechum.analysis.learning.Visualiser$XMLAffineTransformSerialised"> 
+  <void property="m"> 
+   <array class="double" length="6"> 
+    <void index="0"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="3"> 
+     <double>1.0</double> 
+    </void> 
+    <void index="4"> 
+     <double>0.4545455530655147</double> 
+    </void> 
+    <void index="5"> 
+     <double>2.3636368759406636</double> 
+    </void> 
+   </array> 
+  </void> 
+ </object> 
+ <float>1.1</float> 
+ <float>0.9090909</float> 
+</java> 

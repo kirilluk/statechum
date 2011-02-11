@@ -1,0 +1,12 @@
+active
++ figure_tool figure_tool set_position set_dimensions set_dimensions set_dimensions set_dimensions
++ figure_tool set_position set_dimensions set_dimensions set_dimensions figure_tool figure_tool set_position set_dimensions set_dimensions set_dimensions text_tool set_position edit finalize_textbox
++ text_tool text_tool set_position edit
++ text_tool set_position edit finalize_textbox text_tool
++ text_tool text_tool figure_tool text_tool set_position edit finalize_textbox
+ltl ![]((text_tool) -> X((figure_tool) V (!set_dimensions)))
+#ltl  !(((figure_tool) || (text_tool)) V (!set_position)))
+# ![]((set_position)->X((edit) || (set_dimensions)))
+# ((figure_tool) || (text_tool)) V (!set_position))
+#![]((figure_tool) || (text_tool)) V (!set_position))
+# !((set_position) V (!edit))

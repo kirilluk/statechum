@@ -1,0 +1,6 @@
+<USER> [fail_close, update, success_ctas_use_new_weather, failed_use_remove_pending, failed_use] <ltl> !((false)U(initialise))
+<USER> [initialise, update, success_ctas_use_new_weather, failed_use_remove_pending, failed_use] <ltl> !((initialise)->X(!update))
+<USER> [initialise, success_ctas_use_new_weather, failed_use_remove_pending, failed_use] <ltl> !((update)V(!failed_use_remove_pending))
+<USER> [initialise, fail_close, failed_use, failed_use_remove_pending] <ltl> ![]((fail_close)->X(update))
+<USER> [initialise, failed_use, failed_use_remove_pending] <ltl> ![]((initialise)->X((success_ctas_use_new_weather)||(fail_close)))
+<USER> [initialise, success_ctas_use_new_weather, check_updates, failed_use_remove_pending] <ltl> ![](((check_updates)->X((check_updates)||(update))))

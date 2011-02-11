@@ -1,0 +1,9 @@
++ open edit save edit save
++ open edit edit edit
+- edit
+
+config useSpin false
+config howManyStatesToAddFromIFTHEN 1
+config useConstraints true
+ifthenFSM demoIFTHEN I-!edit->I-edit->B-edit->B-!edit->I / T-open-#W / T-edit->V / T-save->U / B==THEN == T 
+ifthenFSM demoIFTHEN2 I-!save->I-save->B-save->B-!save->I / T-open->U-edit->V-save->X / B==THEN == T

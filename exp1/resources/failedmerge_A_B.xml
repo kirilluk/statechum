@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><gml:graphml xmlns:gml="http://graphml.graphdrawing.org/xmlns/graphml"><graph edgedefault="directed" xmlns="gml">
+<node VERTEX="A" id="A"/>
+<node VERTEX="B" id="B"/>
+<node COLOUR="RED" VERTEX="Initial S" id="S"/>
+<node VERTEX="A1" id="A1"/>
+<node VERTEX="A2" id="A2"/>
+<node VERTEX="A3" id="A3"/>
+<node VERTEX="A4" id="A4"/>
+<node VERTEX="A5" id="A5"/>
+<node VERTEX="B1" id="B1"/>
+<node VERTEX="B2" id="B2"/>
+<node VERTEX="B3" id="B3"/>
+<node VERTEX="B4" id="B4"/>
+<node VERTEX="B5" id="B5"/>
+<node VERTEX="BB1" id="BB1"/>
+<node VERTEX="BB2" id="BB2"/>
+<node VERTEX="BB3" id="BB3"/>
+<node VERTEX="BB4" id="BB4"/>
+<node VERTEX="BC6" id="BC6"/>
+<node VERTEX="BC7" id="BC7"/>
+<node ACCEPTED="false" VERTEX="BC8" id="BC8"/>
+<node VERTEX="BD1" id="BD1"/>
+<node VERTEX="BD2" id="BD2"/>
+<node VERTEX="BD3" id="BD3"/>
+<node VERTEX="BD4" id="BD4"/>
+<node VERTEX="BD5" id="BD5"/>
+<edge EDGE="a" directed="true" source="A" target="A1"/>
+<edge EDGE="b" directed="true" source="A" target="A2"/>
+<edge EDGE="c" directed="true" source="A" target="A2"/>
+<edge EDGE="d" directed="true" source="A" target="B"/>
+<edge EDGE="a" directed="true" source="B" target="BD1"/>
+<edge EDGE="b" directed="true" source="B" target="BB1"/>
+<edge EDGE="c" directed="true" source="B" target="B1"/>
+<edge EDGE="p" directed="true" source="S" target="A"/>
+<edge EDGE="a" directed="true" source="A1" target="A3"/>
+<edge EDGE="b" directed="true" source="A2" target="A3"/>
+<edge EDGE="c" directed="true" source="A2" target="A3"/>
+<edge EDGE="a" directed="true" source="A3" target="A5"/>
+<edge EDGE="b" directed="true" source="A3" target="A4"/>
+<edge EDGE="b" directed="true" source="B1" target="B2"/>
+<edge EDGE="c" directed="true" source="B1" target="BC6"/>
+<edge EDGE="a" directed="true" source="B2" target="B3"/>
+<edge EDGE="b" directed="true" source="B3" target="B4"/>
+<edge EDGE="d" directed="true" source="B4" target="B5"/>
+<edge EDGE="b" directed="true" source="BB1" target="BB2"/>
+<edge EDGE="b" directed="true" source="BB2" target="BB3"/>
+<edge EDGE="f" directed="true" source="BB3" target="BB4"/>
+<edge EDGE="b" directed="true" source="BC6" target="BC7"/>
+<edge EDGE="f" directed="true" source="BC7" target="BC8"/>
+<edge EDGE="a" directed="true" source="BD1" target="BD2"/>
+<edge EDGE="a" directed="true" source="BD2" target="BD3"/>
+<edge EDGE="b" directed="true" source="BD3" target="BD4"/>
+<edge EDGE="c" directed="true" source="BD4" target="BD5"/>
+</graph></gml:graphml>

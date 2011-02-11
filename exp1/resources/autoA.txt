@@ -1,0 +1,16 @@
+<USER> [load, load] <yes>
+<USER> [edit] <no> at position 0, element edit
+<USER> [load, edit, edit, edit] <yes>
+<USER> [load, edit, edit, save, load] <yes>
+<USER> [load, load, load] <yes>
+<USER> [load, load, edit, close, close] <no> at position 4, element close
+<USER> [load, load, edit, edit, save] <yes>
+<USER> [load, load, edit, save, load] <yes>
+<USER> [load, edit, edit, edit, save, close] <yes>
+<USER> [load, load, edit, save, edit, close] <yes>
+<USER> [load, edit, edit, edit, edit] <yes>
+<USER> [load, edit, edit, edit, save, edit] <yes>
+<USER> [load, edit, edit, edit, save, load, save] <no> at position 6, element save
+<USER> [load, load, load, load] <yes>
+<USER> [load, load, load, edit, edit] <yes>
+<USER> [load, load, load, edit, save] <yes>

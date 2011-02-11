@@ -1,0 +1,115 @@
+<!-- based on http://ant.apache.org/manual/ -->
+<project name="XMachineTool" default="test" basedir=".">
+    <description>
+        Builds the project and runs tests on it.
+    </description>
+  <!-- set global properties for this build -->
+  <property name="root" location="../"/>
+  <property name="junit_statechum" location="${root}/junit-statechum"/>
+  <property name="junit_statechum_src" location="${junit_statechum}/src"/>
+  <property name="junit_statechum_bin" location="${junit_statechum}/bin"/>
+  <property name="statechum_src" location="."/>
+  <property name="statechum_bin" location="bin"/>
+  <property name="ant.build.javac.source" value="1.6"/>
+
+    <path id="classpath.lib">
+      <fileset dir="lib">
+        <include name="**/*.jar"/>
+      	<exclude name="**/junit-4.4.jar"/> 
+      </fileset>
+    </path>
+
+    <path id="classpath.statechum">
+      <path refid="classpath.lib"/>
+      <pathelement location="${junit_statechum_bin}"/>
+      <pathelement location="${root}/lib/junit-4.8.2.jar"/>
+    </path>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${junit_statechum_bin}"/>
+    <mkdir dir="${statechum_bin}"/>
+  </target>
+
+  <target name="compileJunitStatechum" depends="init" description="compile JUnit-statechum source " >
+ 	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${junit_statechum_bin}">
+		<classpath>
+			<path refid="classpath.lib"/>
+   			<pathelement location="${root}/lib/junit-4.8.2.jar"/>
+		</classpath>
+    	<compilerarg value="-g" />
+    	</javac>
+  </target>  	
+  	
+  <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac fork="on" srcdir="${statechum_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       	<classpath refid="classpath.statechum" />
+    	<compilerarg value="-g" />
+	<!-- <compilerarg value="-Xlint:unchecked"/> -->
+    </javac>
+   </target>
+
+  <target name="test" depends="compileStatechum" description="run unit tests">
+  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+       <junit  fork="on" maxmemory="16384m" forkmode="once" printsummary="yes" haltonfailure="yes">
+		<assertions>
+        	<enable/>
+      	</assertions>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-Xdebug" />
+       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+       	<sysproperty key="threadnum" value="4"/>
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<classpath>
+         	<path refid="classpath.statechum" />
+         	<pathelement location="${statechum_bin}"/>
+         </classpath>
+       	
+       	<formatter type="plain"/>
+       	<!--       	
+  <batchtest>
+    <fileset dir="${src}">
+      <include name="**/Test*.java"/>
+    </fileset>
+  </batchtest>
+  -->
+       	<test name="statechum.AllTests" />
+       	
+       </junit>
+       
+  </target>
+	
+	 <target name="diag" depends="compileStatechum" description="run unit tests">
+	  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
+		<assertions>
+	        	<enable/>
+	      	</assertions>
+	    	<!-- <jvmarg value="-XX:+CITime"/> -->
+	       	<!-- jvmarg value="-Xdebug" />
+	       	<jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n" /> -->
+	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+	       	<sysproperty key="VIZ_CONFIG" value="kirill_office"/>
+	       	<sysproperty key="threadnum" value="4"/>
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+	       	<classpath>
+	         	<path refid="classpath.statechum" />
+	         	<pathelement location="${statechum_bin}"/>
+	         </classpath>
+	       </java>
+	       
+	  </target>
+
+
+  <target name="clean" description="clean up" >
+    <delete dir="${statechum_bin}/statechum"/>
+    <delete dir="${junit_statechum_bin}"/>
+  </target>
+</project>

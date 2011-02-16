@@ -127,6 +127,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
+        if(e.getButton() != e.BUTTON1) {
+            return;
+        }
         if (mode == AllSuffixesCoverageMode) {
             Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
             if (vs.length > 0) {

@@ -22,7 +22,7 @@ import statechum.analysis.learning.*;
  * @author ramsay
  */
 public class ErlangQSMOracle extends QSMTool {
-
+    
     public static String erlangModule;
     public static Collection<String> erlangModules;
     public static String erlangFunction;

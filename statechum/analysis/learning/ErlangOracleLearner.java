@@ -35,10 +35,10 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             erlangProcess = Runtime.getRuntime().exec(new String[]{"erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
             int response = erlangProcess.getInputStream().read();
             while (response != '>' && response != -1) {
-                System.out.print((char)response);
+                System.out.print((char) response);
                 response = erlangProcess.getInputStream().read();
             }
-            
+
         } catch (IOException e) {
             killErlang();
             return null;
@@ -88,7 +88,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             final List<Boolean> consistentFacts, final Object[] moreOptions) {
 
         Iterator<String> it = question.iterator();
-        //System.out.println("Question for " + erlangModule + ":" + erlangFunction + " is:");
+        //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
         String erlList = "[";
         while (it.hasNext()) {
             if (!erlList.equals("[")) {
@@ -104,8 +104,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             if (failure == AbstractOracle.USER_TRACENOTFOUND) {
                 // We didn't find the answer in the existing traces file so lets extend it
 
-                String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangModule + "," + ErlangQSMOracle.erlangFunction + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
-                //System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
+                String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + ErlangQSMOracle.initArgs + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
+                System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
                 erlangProcess.getOutputStream().write(erlArgs.getBytes());
                 erlangProcess.getOutputStream().write('.');
                 erlangProcess.getOutputStream().write('\n');
@@ -114,11 +114,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 // now wait for a response.
                 int response = erlangProcess.getInputStream().read();
                 while (response != '\n' && response != -1) {
-                    System.out.print((char)response);
+                    System.out.print((char) response);
                     response = erlangProcess.getInputStream().read();
                 }
                 while (response != '>' && response != -1) {
-                    System.out.print((char)response);
+                    System.out.print((char) response);
                     response = erlangProcess.getInputStream().read();
                 }
 
@@ -162,11 +162,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
             @Override
             public void StdErr(@SuppressWarnings("unused") StringBuffer b) {
-                //System.err.print(b.toString());
+                System.err.print(b.toString());
             }
 
             @Override
             public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
+                System.out.print(b.toString());
             }
         });
         erlangProcess.waitFor();

@@ -22,14 +22,17 @@ import statechum.analysis.learning.*;
  * @author ramsay
  */
 public class ErlangQSMOracle extends QSMTool {
-    
+
     public static String erlangModule;
     public static Collection<String> erlangModules;
-    public static String erlangFunction;
+    public static String erlangWrapperModule;
     public static String erlangAlphabet;
     public static String tracesFile;
     public static String covermapFile;
     public static String ErlangFolder = "ErlangOracle";
+    // Mode can be "basic" or "otp". OTP will use the OTP wrappers to infer stuff about an OTP behaviour module
+    public static String mode = "basic";
+    public static String initArgs;
     // This map stores coverage maps in the form (Prefix, Suffix) -> Coverage
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
@@ -39,17 +42,21 @@ public class ErlangQSMOracle extends QSMTool {
     public static void main(String[] args) {
         // Generate some basic traces to get QSM started
         erlangModule = args[1];
-        erlangFunction = args[2];
+        erlangWrapperModule = args[2];
         tracesFile = args[0];
         covermapFile = tracesFile + ".covermap";
         erlangAlphabet = args[3];
 
         erlangModules = new LinkedList<String>();
-        erlangModules.add(erlangModule);
-        for(int i = 4; i < args.length; i++) {
+        //erlangModules.add(erlangModule);
+        for (int i = 4; i < args.length; i++) {
             erlangModules.add(args[i]);
         }
+        startInference();
 
+    }
+
+    public static void startInference() {
         // Clear the files...
         (new File(ErlangFolder, tracesFile)).delete();
         (new File(ErlangFolder, covermapFile)).delete();
@@ -60,6 +67,7 @@ public class ErlangQSMOracle extends QSMTool {
         ErlangQSMOracle tool = new ErlangQSMOracle();
         tool.loadConfig(ErlangFolder + "/" + tracesFile);
         tool.runExperiment();
+
     }
 
     @Override
@@ -85,21 +93,12 @@ public class ErlangQSMOracle extends QSMTool {
 
     public static void createInitTraces() {
         try {
-            String erlArgs = "tracer2:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules)+")";
-            //String erlCmd = "erl -eval 'tracer:gen_random_traces(" + erlangModule + "," + erlangFunction + "," + erlangAlphabet + ",\"" + tracesFile + "\"),halt().'\n";
-            //System.out.println("Creating init traces...");
+            String erlArgs;
+            erlArgs = "tracer2:gen_random_traces(" + erlangWrapperModule + "," + erlangModule + "," + initArgs + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules) + ")";
+
             System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
             //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
             ErlangOracleLearner.runErlang(erlArgs);
-/*
-            System.out.println("Traces file:");
-            BufferedReader input = new BufferedReader(new FileReader(ErlangQSMOracle.ErlangFolder + "/" + tracesFile));
-            String line = null;
-            while ((line = input.readLine()) != null) {
-                System.out.println(line);
-            }
-            input.close();
-*/
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -144,10 +143,12 @@ public class ErlangQSMOracle extends QSMTool {
             System.out.println("Couldn't open coverage map file " + filename);
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        finally
-        {
-            if (input != null)	try { input.close(); } catch (IOException e) { /* ignore this */ }
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) { /* ignore this */ }
+            }
         }
     }
 }

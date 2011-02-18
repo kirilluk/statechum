@@ -127,19 +127,23 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
-        if(e.getButton() != e.BUTTON1) {
+        if (e.getButton() != e.BUTTON1) {
             return;
         }
         if (mode == AllSuffixesCoverageMode) {
             Object[] vs = viewer.getPickedState().getPickedVertices().toArray();
             if (vs.length > 0) {
                 LinkedList<CodeCoverageMap> allMaps = (LinkedList<CodeCoverageMap>) ((Vertex) vs[0]).getUserDatum(JUConstants.COVERAGE);
-                CodeCoverageMap sum = new CodeCoverageMap();
-                for (CodeCoverageMap m : allMaps) {
-                    // This is nice and readable....
-                    sum = sum.sum(m);
+                if (allMaps == null) {
+                    System.out.println("No coverage data");
+                } else {
+                    CodeCoverageMap sum = new CodeCoverageMap();
+                    for (CodeCoverageMap m : allMaps) {
+                        // This is nice and readable....
+                        sum = sum.sum(m);
+                    }
+                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
                 }
-                CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
             }
         } else if (mode == AllSuffixesCompareMode) {
             Object[] vs = viewer.getPickedState().getPickedVertices().toArray();

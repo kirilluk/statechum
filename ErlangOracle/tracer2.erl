@@ -1,11 +1,11 @@
 -module(tracer2).
--export([first_failure/4, first_failure/5, gen_random_traces/4, gen_random_traces/5]).
+-export([first_failure/5, first_failure/6, gen_random_traces/5, gen_random_traces/6]).
 
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
-first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
+first_failure(WrapperModule, Module, Args, Trace, Remains, OutFile, ModulesList) ->
     TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
-    {Status, CoverMap} = try_trace(Module, Function, Trace, ModulesList),
+    {Status, CoverMap} = try_trace(WrapperModule, Module, Args, Trace, ModulesList),
     CoverMapString = map_to_string(CoverMap),
     append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => [~s]", [Trace, CoverMapString])),
     case Status of
@@ -17,19 +17,19 @@ first_failure(Module, Function, Trace, Remains, OutFile, ModulesList) ->
 		[] ->
 		    ok;
 		_List ->
-		    first_failure(Module, Function, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
+		    first_failure(WrapperModule, Module, Args, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
 	    end
     end.
 
 %% The public face of first failure....
-first_failure(Module, Function, Trace, OutFile) ->
-    first_failure(Module, Function, Trace, OutFile, [Module]).
+first_failure(WrapperModule, Module, Args, Trace, OutFile) ->
+    first_failure(WrapperModule, Module, Args, Trace, OutFile, [Module]).
 
-first_failure(Module, Function, Trace, OutFile, ModulesList) ->
+first_failure(WrapperModule, Module, Args, Trace, OutFile, ModulesList) ->
     %% First, lets make sure we don't already have a negative prefix
     %% If there is a positive prefix we can move on from that..
     {Status, Prefix} = find_prefix(OutFile, Trace),
-    %%io:format("{~p, ~p}~n", [Status, Prefix]),
+    io:format("{~p, ~p}~n", [Status, Prefix]),
     case Status of
 	ok ->
 	    %% Positive prefix
@@ -39,22 +39,23 @@ first_failure(Module, Function, Trace, OutFile, ModulesList) ->
 	       true ->
 		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
 		    %%io:format("Extending from ~p with ~p~n", [NewPrefix, Suffix]),
-		    first_failure(Module, Function, NewPrefix, Suffix, OutFile, ModulesList)
+		    first_failure(WrapperModule, Module, Args, NewPrefix, Suffix, OutFile, ModulesList)
 	    end;
 	failed ->
 	    %% Negative prefix, nothing to do
 	    ok;
 	not_found ->
 	    %% No data - do a complete run
-	    %%io:format("Not data for ~p~n", [Trace]),
-	    first_failure(Module, Function, [], Trace, OutFile, ModulesList)
+	    io:format("No data for ~p~n", [Trace]),
+	    first_failure(WrapperModule, Module, Args, [], Trace, OutFile, ModulesList)
     end.
 
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
-try_trace(Module, Function, Trace, ModulesList) ->
+try_trace(WrapperModule, Module, Args, Trace, ModulesList) ->
+    io:format("Trying ~p:exec_call_trace(~p, ~p, ~p)...~n", [WrapperModule, Module, Args, Trace]),
     compile_all(ModulesList),
-    {Pid, Ref} = spawn_monitor(Module, Function, [Trace]),
+    {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Args, Trace]),
     ProcStatus = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
     {ProcStatus, analyse_all(ModulesList)}.
@@ -199,18 +200,18 @@ gen_random_string(_Aleph, 0) ->
 gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
-gen_random_traces(Module, Function, Alphabet, OutFile, ModuleList) ->
+gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
     InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
-    try_all_traces(Module, Function, InputSet, OutFile, ModuleList).
+    try_all_traces(WrapperModule, Module, InitArgs, InputSet, OutFile, ModuleList).
 
-gen_random_traces(Module, Function, Alphabet, OutFile) ->
-    gen_random_traces(Module, Function, Alphabet, OutFile, [Module]).
+gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile) ->
+    gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, [Module]).
 
-try_all_traces(_Module, _Function, [], _OutFile, _ModuleList) ->
+try_all_traces(_WrapperModule, _Module, _InitArgs, [], _OutFile, _ModuleList) ->
     ok;
-try_all_traces(Module, Function, [T | Traces], OutFile, ModuleList) ->
-    first_failure(Module, Function, T, OutFile, ModuleList),
-    try_all_traces(Module, Function, Traces, OutFile, ModuleList).
+try_all_traces(WrapperModule, Module, InitArgs, [T | Traces], OutFile, ModuleList) ->
+    first_failure(WrapperModule, Module, InitArgs, T, OutFile, ModuleList),
+    try_all_traces(WrapperModule, Module, InitArgs, Traces, OutFile, ModuleList).
 
 %%
 %% Coverage functions

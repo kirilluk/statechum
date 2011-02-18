@@ -331,7 +331,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2) {
-        return traceColorise(map1, map2, true);
+        return traceColorise(map1, map2, false);
     }
 
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2, boolean hide) {

@@ -3,7 +3,11 @@
 
 -behaviour(gen_server).
 
-init(_Args) ->
+init(hello) ->
+    {ok, xyz1};
+init([wibble | _List]) ->
+    {ok, xyz2};
+init(_arg) ->
     {ok, xyz1}.
 
 handle_call(Event, State) ->
@@ -13,6 +17,8 @@ handle_call(xyz, _From, xyz1) ->
     {reply, wibbling, xyz2};
 handle_call(xyz, _From, xyz2) ->
     {noreply, xyz1};
+handle_call([abc | _List], _From, xyz2) ->
+    {reply, listing, xyz1};
 handle_call(_, _From, _) ->
     erlang:exit("NOT XYZ!!!!!").
 

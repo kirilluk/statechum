@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import statechum.analysis.Erlang.Signatures.FuncSignature;
 
 /**
  *
@@ -17,11 +18,12 @@ import java.util.*;
 public abstract class OTPBehaviour {
 
     public String name;
+    protected ErlangModule parent;
     protected Map<String, String> patterns;
     protected Collection<String> alphabet;
     protected Collection<String> dependencies;
     // FIXME these are currently undetermined...
-    public String initArgs;
+    public Collection<String> initArgs;
     protected static final String[] stdmodsarray = {"erlang",
         "gen_server",
         "gen_fsm",
@@ -88,18 +90,29 @@ public abstract class OTPBehaviour {
         }
     }
 
-    public void loadInitArgs(File f) throws IOException {
-        BufferedReader input = new BufferedReader(new FileReader(f));
-        String line = "";
-        while ((line = input.readLine()) != null) {
-            line = line.trim();
-// FIXME possible multiple init patterns?
-            if (line.startsWith("init(")) {
-                line = line.substring(5, line.lastIndexOf(")"));
-                String arg = extractArg(line, input);
-                initArgs = arg;
-            }
+    public void setModule(ErlangModule mod) {
+        parent = mod;
+    }
 
+    public void loadInitArgs() {
+        initArgs = new ArrayList<String>();
+        FuncSignature initSig = parent.sigs.get("init");
+        if (initSig != null) {
+            for (String a : initSig.instantiateAllArgs()) {
+                initArgs.add("{init, " + a + "}");
+            }
+        }
+    }
+
+    public void loadAlphabet() {
+        for (String p : patterns.keySet()) {
+            FuncSignature sig = parent.sigs.get(p);
+            if (sig != null) {
+                for (String a : sig.instantiateAllArgs()) {
+                    // I THINK we always want the first arg from these...
+                    alphabet.add("{" + patterns.get(p) + ", " + a.split(",")[0] + "}");
+                }
+            }
         }
     }
 
@@ -153,7 +166,7 @@ public abstract class OTPBehaviour {
 
     public String wibblifiy(String statement) {
         statement = statement.trim();
-        if(statement.length() < 1) {
+        if (statement.length() < 1) {
             return statement;
         }
         String firstchar = statement.substring(0, 1);

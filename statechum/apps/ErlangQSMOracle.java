@@ -124,18 +124,20 @@ public class ErlangQSMOracle extends QSMTool {
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);
 
-                // Create the parsed coverage map object
                 CodeCoverageMap mapObject = new CodeCoverageMap();
-                String[] maplets = (map.trim()).split("\\},\\{");
-                // Trim the {} off the first and last items...
-                maplets[0] = maplets[0].substring(1);
-                maplets[maplets.length - 1] = maplets[maplets.length - 1].substring(0, maplets[maplets.length - 1].length() - 1);
-                for (String m : maplets) {
-                    // Maplets have the form {line, count} but should be missing the {} from the way we split the string.
-                    String[] parts = m.split(",");
-                    mapObject.add(parts[0], Integer.parseInt(parts[1]));
-                }
+                if (map.length() > 0) {
+                    // Create the parsed coverage map object
+                    String[] maplets = (map.trim()).split("\\},\\{");
+                    // Trim the {} off the first and last items...
+                    maplets[0] = maplets[0].substring(1);
+                    maplets[maplets.length - 1] = maplets[maplets.length - 1].substring(0, maplets[maplets.length - 1].length() - 1);
+                    for (String m : maplets) {
+                        // Maplets have the form {line, count} but should be missing the {} from the way we split the string.
+                        String[] parts = m.split(",");
+                        mapObject.add(parts[0], Integer.parseInt(parts[1]));
+                    }
 
+                }
                 coverageMaps.put(index, mapObject);
             }
             //System.out.println("Coverage maps:\n" + coverageMaps.toString());

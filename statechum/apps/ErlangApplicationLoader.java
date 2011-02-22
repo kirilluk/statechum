@@ -184,7 +184,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void dumpProcessOutput(Process p) {
+    public static void dumpProcessOutput(Process p) {
         ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
 
             @Override
@@ -233,25 +233,28 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_beginButtonActionPerformed
         // Copy in our generic stubs...
         try {
+            for (File f : folder.listFiles()) {
+                int dot = f.getName().lastIndexOf(".");
+                if (dot >= 0) {
+                    if (f.getName().substring(dot).equals(".erl")) {
+                        dumpProcessOutput(Runtime.getRuntime().exec("erlc +debug_info " + f.getName(), null, folder));
+                        //dumpProcessOutput(Runtime.getRuntime().exec("dialyzer --build_plt " + f.getName().replace(".erl", ".beam"), null, folder));
+                        //dumpProcessOutput(Runtime.getRuntime().exec("typer " + f.getName(), null, folder));
+                    }
+                }
+            }
             File ErlangFolder = new File("ErlangOracle");
             for (File f : ErlangFolder.listFiles()) {
                 int dot = f.getName().lastIndexOf(".");
                 if (dot >= 0) {
                     if (f.getName().substring(dot).equals(".erl")) {
                         fileCopy(f, folder);
+                        dumpProcessOutput(Runtime.getRuntime().exec("erlc +debug_info " + f.getName(), null, folder));
                     }
                 }
             }
             //dumpProcessOutput(Runtime.getRuntime().exec("ls " + (new File("ErlangOracle")).getAbsolutePath() + "/*.beam " + folder.getCanonicalPath() + "/", null, null));
-            for (File f : folder.listFiles()) {
-                int dot = f.getName().lastIndexOf(".");
-                if (dot >= 0) {
-                    if (f.getName().substring(dot).equals(".erl")) {
-                        System.out.println("Running " + "erlc " + f.getName() + " in folder " + folder.toString());
-                        dumpProcessOutput(Runtime.getRuntime().exec("erlc " + f.getName(), null, folder));
-                    }
-                }
-            }
+
             for (Object s : modules.getSelectedValues()) {
                 ErlangModule m = (ErlangModule) s;
                 // Create an Erlang QSM jobby for the selected behaviours...
@@ -262,15 +265,19 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                     }
                     otherModules += mm.name;
                 }
+                try {
                 ErlangOracleRunner runner = new ErlangOracleRunner(folder.getCanonicalPath(), m, otherModules);
                 Thread t = new Thread(runner);
                 t.run();
-                while(t.isAlive()) {
+                while (t.isAlive()) {
                     try {
-                    Thread.sleep(500);
+                        Thread.sleep(500);
                     } catch (InterruptedException e) {
                         ;
                     }
+                }
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
                 }
             }
             for (File f : ErlangFolder.listFiles()) {

@@ -1,8 +1,8 @@
 -module(gen_event_wrapper).
--export([exec_call_trace/3]).
+-export([exec_call_trace/2]).
 
 %% Yes, this is a crazy signature. It lets us use the standard version of tracer2 on these modules that need InitArgs
-exec_call_trace(Module, InitArgs, Trace) ->
+exec_call_trace(Module, [{init, InitArgs} | Trace]) ->
     io:format("Executing gen_event:start_link({local, ~p}).~n", [Module]),
     {ok, Pid} = gen_event:start_link({local, Module}),
     ok = gen_event:add_handler(Module, Module, InitArgs),

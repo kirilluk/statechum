@@ -21,6 +21,10 @@ public class ErlangAppReader {
         MODULES, REGISTERED, NORMAL
     };
 
+    protected static void typifyFolder(File f) {
+        
+    }
+
     public static ErlangApp readFolder(File folder) {
         try {
         ErlangApp result = new ErlangApp();

@@ -104,7 +104,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             if (failure == AbstractOracle.USER_TRACENOTFOUND) {
                 // We didn't find the answer in the existing traces file so lets extend it
 
-                String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + ErlangQSMOracle.initArgs + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
+                String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
                 System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
                 erlangProcess.getOutputStream().write(erlArgs.getBytes());
                 erlangProcess.getOutputStream().write('.');

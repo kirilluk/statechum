@@ -1,11 +1,11 @@
 -module(tracer2).
--export([first_failure/5, first_failure/6, gen_random_traces/5, gen_random_traces/6]).
+-export([first_failure/4, first_failure/5, gen_random_traces/5, gen_random_traces/6]).
 
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
-first_failure(WrapperModule, Module, Args, Trace, Remains, OutFile, ModulesList) ->
+first_failure(WrapperModule, Module, Trace, Remains, OutFile, ModulesList) ->
     TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
-    {Status, CoverMap} = try_trace(WrapperModule, Module, Args, Trace, ModulesList),
+    {Status, CoverMap} = try_trace(WrapperModule, Module, Trace, ModulesList),
     CoverMapString = map_to_string(CoverMap),
     append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => [~s]", [Trace, CoverMapString])),
     case Status of
@@ -17,15 +17,15 @@ first_failure(WrapperModule, Module, Args, Trace, Remains, OutFile, ModulesList)
 		[] ->
 		    ok;
 		_List ->
-		    first_failure(WrapperModule, Module, Args, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
+		    first_failure(WrapperModule, Module, Trace ++ [hd(Remains)], tl(Remains), OutFile, ModulesList)
 	    end
     end.
 
 %% The public face of first failure....
-first_failure(WrapperModule, Module, Args, Trace, OutFile) ->
-    first_failure(WrapperModule, Module, Args, Trace, OutFile, [Module]).
+first_failure(WrapperModule, Module, Trace, OutFile) ->
+    first_failure(WrapperModule, Module, Trace, OutFile, [Module]).
 
-first_failure(WrapperModule, Module, Args, Trace, OutFile, ModulesList) ->
+first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
     %% First, lets make sure we don't already have a negative prefix
     %% If there is a positive prefix we can move on from that..
     {Status, Prefix} = find_prefix(OutFile, Trace),
@@ -39,7 +39,7 @@ first_failure(WrapperModule, Module, Args, Trace, OutFile, ModulesList) ->
 	       true ->
 		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
 		    %%io:format("Extending from ~p with ~p~n", [NewPrefix, Suffix]),
-		    first_failure(WrapperModule, Module, Args, NewPrefix, Suffix, OutFile, ModulesList)
+		    first_failure(WrapperModule, Module, NewPrefix, Suffix, OutFile, ModulesList)
 	    end;
 	failed ->
 	    %% Negative prefix, nothing to do
@@ -47,15 +47,16 @@ first_failure(WrapperModule, Module, Args, Trace, OutFile, ModulesList) ->
 	not_found ->
 	    %% No data - do a complete run
 	    io:format("No data for ~p~n", [Trace]),
-	    first_failure(WrapperModule, Module, Args, [], Trace, OutFile, ModulesList)
+	    %% The first elem should be the init elem, so we need at least that...
+	    first_failure(WrapperModule, Module, [hd(Trace)], Trace, OutFile, ModulesList)
     end.
 
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
-try_trace(WrapperModule, Module, Args, Trace, ModulesList) ->
-    io:format("Trying ~p:exec_call_trace(~p, ~p, ~p)...~n", [WrapperModule, Module, Args, Trace]),
+try_trace(WrapperModule, Module, Trace, ModulesList) ->
+    io:format("Trying ~p:exec_call_trace(~p, ~p)...~n", [WrapperModule, Module, Trace]),
     compile_all(ModulesList),
-    {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Args, Trace]),
+    {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace]),
     ProcStatus = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
     {ProcStatus, analyse_all(ModulesList)}.
@@ -200,18 +201,27 @@ gen_random_string(_Aleph, 0) ->
 gen_random_string(Aleph, N) ->
      [lists:nth(random:uniform(length(Aleph)), Aleph) | gen_random_string(Aleph, N-1)]. 
 
+%% We require at least one init argument...
+add_init_heads([], _InputSet) -> 
+    [];
+add_init_heads([Arg | InitArgs], InputSet) ->
+    lists:map(fun(Elem) -> [Arg | Elem] end, InputSet) ++ add_init_heads(InitArgs, InputSet).
+
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
     InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
-    try_all_traces(WrapperModule, Module, InitArgs, InputSet, OutFile, ModuleList).
+    %% InitArgs now contains a list of different possible init args in the form {init, Arg}
+    %% We should give QSM a  headstart and try all the traces will all possible initialisations...
+    InputSetInited = add_init_heads(InitArgs, InputSet),
+    try_all_traces(WrapperModule, Module, InputSetInited, OutFile, ModuleList).
 
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile) ->
     gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, [Module]).
 
-try_all_traces(_WrapperModule, _Module, _InitArgs, [], _OutFile, _ModuleList) ->
+try_all_traces(_WrapperModule, _Module, [], _OutFile, _ModuleList) ->
     ok;
-try_all_traces(WrapperModule, Module, InitArgs, [T | Traces], OutFile, ModuleList) ->
-    first_failure(WrapperModule, Module, InitArgs, T, OutFile, ModuleList),
-    try_all_traces(WrapperModule, Module, InitArgs, Traces, OutFile, ModuleList).
+try_all_traces(WrapperModule, Module, [T | Traces], OutFile, ModuleList) ->
+    first_failure(WrapperModule, Module, T, OutFile, ModuleList),
+    try_all_traces(WrapperModule, Module, Traces, OutFile, ModuleList).
 
 %%
 %% Coverage functions

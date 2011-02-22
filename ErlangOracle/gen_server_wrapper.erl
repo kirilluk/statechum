@@ -1,8 +1,8 @@
 -module(gen_server_wrapper).
--export([exec_call_trace/3]).
+-export([exec_call_trace/2]).
 
 %% Yes, this is a crazy signature. It lets us use the standard version of tracer2 on these modules that need InitArgs
-exec_call_trace(Module, InitArgs, Trace) ->
+exec_call_trace(Module, [{init, InitArgs} | Trace]) ->
     io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
     {ok, Pid} = gen_server:start_link({local, mod_under_test}, Module, InitArgs, []),
     %%Module:init(InitArgs),

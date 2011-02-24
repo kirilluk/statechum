@@ -4,10 +4,11 @@
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
 first_failure(WrapperModule, Module, Trace, Remains, OutFile, ModulesList) ->
-    TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace),
-    {Status, CoverMap} = try_trace(WrapperModule, Module, Trace, ModulesList),
+    {Status, CoverMap, OpTrace} = try_trace(WrapperModule, Module, Trace, ModulesList),
+    io:format("~w ---->>>> ~w~n", [Trace, OpTrace]),
+    TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", OpTrace),
     CoverMapString = map_to_string(CoverMap),
-    append_to_file(OutFile ++ ".covermap", io_lib:format("[]-~w => [~s]", [Trace, CoverMapString])),
+    append_to_file(OutFile ++ ".covermap", io_lib:format("~w => [~s]", [OpTrace, CoverMapString])),
     case Status of
 	failed ->
 	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
@@ -48,23 +49,43 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 	    %% No data - do a complete run
 	    io:format("No data for ~p~n", [Trace]),
 	    %% The first elem should be the init elem, so we need at least that...
-	    first_failure(WrapperModule, Module, [hd(Trace)], Trace, OutFile, ModulesList)
+	    %%first_failure(WrapperModule, Module, [hd(Trace)], Trace, OutFile, ModulesList)
+	    first_failure(WrapperModule, Module, [], Trace, OutFile, ModulesList)
     end.
 
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
 try_trace(WrapperModule, Module, Trace, ModulesList) ->
-    io:format("Trying ~p:exec_call_trace(~p, ~p)...~n", [WrapperModule, Module, Trace]),
+    io:format("Trying ~p:exec_call_trace(~p, ~p, ~p)...~n", [WrapperModule, Module, Trace, self()]),
     compile_all(ModulesList),
-    {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace]),
-    ProcStatus = await_end(Pid, Ref),
+    {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace, self()]),
+    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
-    {ProcStatus, analyse_all(ModulesList)}.
-
+    OPTrace = flushOPTrace(PartialOPTrace, Pid),
+    case ProcStatus of
+	ok ->
+	    {ProcStatus, analyse_all(ModulesList), OPTrace};
+	failed ->
+	    if
+		length(OPTrace) < length(Trace) ->
+		    FullOPTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)];
+		true ->
+		    FullOPTrace = OPTrace
+	    end,
+	    {ProcStatus, analyse_all(ModulesList), FullOPTrace}
+    end.
 %%
 %% Helper functions
 %%
     
+flushOPTrace(OPTrace, Pid) ->
+    receive
+	{Pid, output, OP} ->
+	    flushOPTrace(OPTrace ++ [OP], Pid)
+    after 1000 ->
+	    OPTrace
+    end.
+		 
 compile_all([]) ->
     ok;
 compile_all([M | ModulesList]) ->
@@ -108,19 +129,24 @@ map_to_string([{Line, Count} | Map]) ->
     end.
 
 await_end(Pid, Ref) ->
+    await_end(Pid, Ref, []).
+
+await_end(Pid, Ref, OpTrace) ->
     case lists:member(Pid, erlang:processes()) of
 	false ->
-	    ok;
+	    {ok, OpTrace};
 	true ->
 	    receive
-		{'DOWN', Ref, _, _, normal} ->
-		    ok;
+		{'DOWN', Ref, _X, _Y, normal} ->
+		    {ok, OpTrace};
 		{'EXIT', Ref, _X, _Y, _Status} ->
-		    failed;
+		    {failed, OpTrace};
 		{'DOWN', Ref, _X, _Y, _Status} ->
-		    failed
+		    {failed, OpTrace};
+		{Pid, output, OP} ->
+		    await_end(Pid, Ref, OpTrace ++ [OP])
 	    after 100 ->
-		      await_end(Pid, Ref)
+		      await_end(Pid, Ref, OpTrace)
 	    end
     end.
 
@@ -165,6 +191,7 @@ check_lines(IODevice, TraceString) ->
 
 
 find_prefix(OutFile, []) ->
+%%    {ok, []};
     {check_file_for_trace(OutFile, ""), []};
 find_prefix(OutFile, Trace) ->
     TraceString = lists:flatten(lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace)),
@@ -181,14 +208,14 @@ find_prefix(OutFile, Trace) ->
 generate_input_set(_, 0, ExistingSeqList) ->
     ExistingSeqList;
 generate_input_set(Aleph, N, ExistingSeqList) ->
- 	NewSeq = generate_input_set_N_attempts(Aleph, N, ExistingSeqList, 200),
+ 	NewSeq = generate_input_set_N_attempts(Aleph, N, ExistingSeqList, 5),
 	if
 		length(NewSeq) > 0 -> generate_input_set(Aleph, N-1,[ NewSeq | ExistingSeqList ]);
 		true -> generate_input_set(Aleph, N-1,ExistingSeqList)
 	end.
 
 generate_input_set_N_attempts(Aleph, N, ExistingSeqList, Attempt) ->
-	NewSeq = gen_random_string(Aleph, random:uniform(5)),
+	NewSeq = gen_random_string(Aleph, random:uniform(10)),
 	AlreadyPresent = lists:member(NewSeq,ExistingSeqList),
 	if 
 		not AlreadyPresent -> NewSeq;

@@ -16,16 +16,23 @@ handle_call(Event, State) ->
 handle_call(xyz, _From, xyz1) ->
     {reply, wibbling, xyz2};
 handle_call(xyz, _From, xyz2) ->
-    {noreply, xyz1};
+    {reply, wobbling, xyz3};
+handle_call(xyz, _From, xyz3) ->
+    {reply, here_kirill, xyz1};
 handle_call([abc | _List], _From, xyz2) ->
     {reply, listing, xyz1};
 handle_call(_, _From, _) ->
     erlang:exit("NOT XYZ!!!!!").
 
-handle_cast(Event, State) ->
-    handle_cast(Event, xyz, State).
+handle_cast(stop, State) ->
+    {stop, "Terminating", State};
+handle_cast(_Event, State) ->
+    {stop, "Errr, not wibbling much!", State}.
 
+%% Deliberately broken in state xyz2
 handle_cast(xyz, _From, State) ->
+    {noreply, State};
+handle_cast(xyz3, _From, State) ->
     {noreply, State};
 handle_cast(_, _From, State) ->
     {stop, "Errr, not wibbling much!", State}.

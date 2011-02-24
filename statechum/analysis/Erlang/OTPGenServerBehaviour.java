@@ -1,5 +1,7 @@
 package statechum.analysis.Erlang;
 
+import statechum.Pair;
+
 /**
  *
  * @author ramsay
@@ -9,9 +11,9 @@ public class OTPGenServerBehaviour extends OTPBehaviour {
     public OTPGenServerBehaviour() {
         super();
         name = "gen_server";
-        patterns.put("handle_cast", "cast");
-        patterns.put("handle_call", "call");
-        patterns.put("handle_info", "info");
+        patterns.put("handle_cast", new Pair<String,Boolean>("cast", Boolean.FALSE));
+        patterns.put("handle_call", new Pair<String,Boolean>("call", Boolean.TRUE));
+        patterns.put("handle_info", new Pair<String,Boolean>("info", Boolean.FALSE));
 
     }
 }

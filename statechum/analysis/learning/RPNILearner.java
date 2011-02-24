@@ -17,8 +17,6 @@
  */
 package statechum.analysis.learning;
 
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import java.awt.Frame;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -46,6 +44,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
 public abstract class RPNILearner extends Observable implements Learner {
@@ -142,19 +141,19 @@ public abstract class RPNILearner extends Observable implements Learner {
                     if (vert instanceof DeterministicVertex) {
                         DeterministicVertex v = (DeterministicVertex) vert;
                         LinkedList<CodeCoverageMap> coverage = new LinkedList<CodeCoverageMap>();
-                        Collection<LinkedList<String>> allPrefixTraces = new LinkedList<LinkedList<String>>();
+                        Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
                         for (VertexID hard : mergedToHard.get(v.getID())) {
-                            LinkedList<String> path = vertToPath.get(hardFacts.findVertex(hard));
+                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
                             allPrefixTraces.add(path);
                             // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
                             CmpVertex hardv = hardFacts.findVertex(hard);
-                            Collection<LinkedList<String>> paths = getPaths(path, hardv, hardFacts);
-                            for (LinkedList<String> p : paths) {
+                            Collection<Trace> paths = getPaths(path, hardv, hardFacts);
+                            for (Trace p : paths) {
                                 //System.out.println("Generating coverage for " + path + "-" + p);
-                                Collection<LinkedList<String>> onlyPath = new LinkedList<LinkedList<String>>();
+                                Collection<Trace> onlyPath = new LinkedList<Trace>();
                                 onlyPath.add(p);
-                                String[] prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
-                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix[0], prefixSuffix[1]);
+                                Pair<Trace, Trace> prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
+                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix.firstElem, prefixSuffix.secondElem);
                                 //System.out.println("Generated coverage " + prefixSuffix[0] + "-" + prefixSuffix[1] + ": " + map.toString());
                                 coverage.add(map);
                             }
@@ -171,15 +170,15 @@ public abstract class RPNILearner extends Observable implements Learner {
         }
     }
 
-    protected Collection<LinkedList<String>> getPaths(LinkedList<String> prefix, CmpVertex v, LearnerGraph hardFacts) {
-        Collection<LinkedList<String>> result = new LinkedList<LinkedList<String>>();
+    protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
+        Collection<Trace> result = new LinkedList<Trace>();
 
         Map<String, CmpVertex> edges = hardFacts.getTransitionMatrix().get(v);
         if (edges.isEmpty()) {
             result.add(prefix);
         } else {
             for (Map.Entry<String, CmpVertex> e : edges.entrySet()) {
-                LinkedList<String> newPath = (LinkedList<String>) prefix.clone();
+                Trace newPath = (Trace) prefix.clone();
                 newPath.add(e.getKey());
                 result.addAll(getPaths(newPath, e.getValue(), hardFacts));
             }

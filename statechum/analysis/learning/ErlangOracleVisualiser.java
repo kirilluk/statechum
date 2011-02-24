@@ -22,6 +22,8 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
+import statechum.Pair;
+import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
 
 /**
@@ -38,7 +40,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public static final int CoverageCompareMode = 2;
     public static final int AllSuffixesCoverageMode = 3;
     public static final int AllSuffixesCompareMode = 4;
-    public static int mode = 1;
+    public static final int NoCoverage = 5;
+    public static int mode = 5;
 
     @Override
     public void construct(Graph g) {
@@ -78,6 +81,16 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 ErlangOracleVisualiser.mode = ErlangOracleVisualiser.AllSuffixesCompareMode;
+                ErlangOracleVisualiser.lastmap = null;
+            }
+        });
+        popupMenu.add(item);
+        item = new JMenuItem("No coverage display");
+        item.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                ErlangOracleVisualiser.mode = ErlangOracleVisualiser.NoCoverage;
                 ErlangOracleVisualiser.lastmap = null;
             }
         });
@@ -127,7 +140,10 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
 
     @Override
     public void mouseReleased(@SuppressWarnings("unused") MouseEvent e) {
-        if (e.getButton() != e.BUTTON1) {
+        if (e.getButton() != MouseEvent.BUTTON1) {
+            return;
+        }
+        if(mode == NoCoverage) {
             return;
         }
         if (mode == AllSuffixesCoverageMode) {
@@ -224,9 +240,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
             Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
             Vertex end = (Vertex) vs[0];
-            String[] tracePair = getPrefixSuffixPair(start, end);
-            String startTrace = tracePair[0];
-            String endTrace = tracePair[1];
+            Pair<Trace,Trace> tracePair = getPrefixSuffixPair(start, end);
+            Trace startTrace = tracePair.firstElem;
+            Trace endTrace = tracePair.secondElem;
             if ((startTrace == null) || (endTrace == null)) {
                 System.out.println("No traces found for these endpoints");
             } else {
@@ -242,28 +258,28 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         }
     }
 
-    public static String[] getPrefixSuffixPair(Vertex start, Vertex end) {
-        return getPrefixSuffixPair(((Collection<LinkedList<String>>) start.getUserDatum(JUConstants.PATH)), ((Collection<LinkedList<String>>) end.getUserDatum(JUConstants.PATH)));
+    public static Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Vertex end) {
+        return getPrefixSuffixPair(((Collection<Trace>) start.getUserDatum(JUConstants.PATH)), ((Collection<Trace>) end.getUserDatum(JUConstants.PATH)));
     }
 
-    public static String[] getPrefixSuffixPair(Collection<LinkedList<String>> start, Vertex end) {
-        return getPrefixSuffixPair(start, ((Collection<LinkedList<String>>) end.getUserDatum(JUConstants.PATH)));
+    public static Pair<Trace, Trace> getPrefixSuffixPair(Collection<Trace> start, Vertex end) {
+        return getPrefixSuffixPair(start, ((Collection<Trace>) end.getUserDatum(JUConstants.PATH)));
     }
 
-    public static String[] getPrefixSuffixPair(Vertex start, Collection<LinkedList<String>> end) {
-        return getPrefixSuffixPair((Collection<LinkedList<String>>) start.getUserDatum(JUConstants.PATH), end);
+    public static Pair<Trace, Trace> getPrefixSuffixPair(Vertex start, Collection<Trace> end) {
+        return getPrefixSuffixPair((Collection<Trace>) start.getUserDatum(JUConstants.PATH), end);
     }
 
-    public static String[] getPrefixSuffixPair(Collection<LinkedList<String>> start, Collection<LinkedList<String>> end) {
+    public static Pair<Trace, Trace> getPrefixSuffixPair(Collection<Trace> start, Collection<Trace> end) {
         // We need to select a start and end trace such that the start trace is a prefix of the end trace...
-        String startTrace = null;
-        String endTrace = null;
+        Trace startTrace = null;
+        Trace endTrace = null;
         boolean found = false;
-        for (Collection<String> st : start) {
-            for (Collection<String> et : end) {
-                if (isPrefix(st, et)) {
-                    startTrace = toErlangList(st);
-                    endTrace = toErlangList(et);
+        for (Trace st : start) {
+            for (Trace et : end) {
+                if(st.isPrefix(et)) {
+                    startTrace = st;
+                    endTrace = et;
                     found = true;
                     break;
                 }
@@ -272,29 +288,10 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                 break;
             }
         }
-        String[] result = new String[2];
-        result[0] = startTrace;
-        result[1] = endTrace;
+        Pair<Trace, Trace> result = new Pair<Trace, Trace>(startTrace, endTrace);
         return result;
     }
-
-    /**
-     * Determines whether st is a prefix of et.
-     */
-    protected static boolean isPrefix(Collection<String> st, Collection<String> et) {
-        Iterator<String> sit = st.iterator();
-        Iterator<String> eit = et.iterator();
-        while (sit.hasNext()) {
-            if (eit.hasNext()) {
-                if (!sit.next().equals(eit.next())) {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
+ 
 
     public static String toErlangList(Collection<String> list) {
         String result = "[";
@@ -307,24 +304,40 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result + "]";
     }
 
-    public static CodeCoverageMap getCoverageMap(String prefixArg, String suffixArg) {
+    public static CodeCoverageMap getCoverageMap(Trace prefixArg, Trace suffixArg) {
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
-        String prefix = prefixArg.replaceAll(", ", ",");
-        String suffix = suffixArg.replaceAll(", ", ",");
+        Trace prefix = prefixArg.replaceAll(", ", ",");
+        Trace suffix = suffixArg.replaceAll(", ", ",");
 
         // Lookup coverage map in the coverage collection...
-        CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(prefix + "-" + suffix);
+        CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(prefix, suffix));
         if (result != null) {
             return result;
         } else {
             // Calculate coverage data...
-            CodeCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get("[]-" + prefix);
-            CodeCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get("[]-" + suffix);
+            CodeCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(new Trace(), prefix));
+            CodeCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(new Trace(), suffix));
             if (prefixMap == null) {
-                throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
+                // Try with wildcard matching...
+                for (Pair<Trace, Trace> s : ErlangQSMOracle.coverageMaps.keySet()) {
+                    if (Trace.matchWithWildcard(prefix, s.secondElem)) {
+                        prefixMap = ErlangQSMOracle.coverageMaps.get(s);
+                    }
+                }
+                if (prefixMap == null) {
+                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
+                }
             }
             if (suffixMap == null) {
-                throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
+                // Try with wildcard matching...
+                for (Pair<Trace, Trace> s : ErlangQSMOracle.coverageMaps.keySet()) {
+                    if (Trace.matchWithWildcard(suffix, s.secondElem)) {
+                        suffixMap = ErlangQSMOracle.coverageMaps.get(s);
+                    }
+                }
+                if (suffixMap == null) {
+                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + suffix + "!!");
+                }
             }
             return suffixMap.subtract(prefixMap);
         }

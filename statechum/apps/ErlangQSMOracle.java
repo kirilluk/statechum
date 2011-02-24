@@ -9,6 +9,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
+import statechum.Pair;
+import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
 import statechum.analysis.learning.*;
@@ -37,7 +39,7 @@ public class ErlangQSMOracle extends QSMTool {
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
     // e.g. "[]-[a,b,c]" or "[a,b]-[a,b,c]"
-    public static Map<String, CodeCoverageMap> coverageMaps;
+    public static Map<Pair<Trace, Trace>, CodeCoverageMap> coverageMaps;
 
     public static void main(String[] args) {
         // Generate some basic traces to get QSM started
@@ -105,7 +107,7 @@ public class ErlangQSMOracle extends QSMTool {
     }
 
     public static void loadCoverageMaps() {
-        coverageMaps = new TreeMap<String, CodeCoverageMap>();
+        coverageMaps = new TreeMap<Pair<Trace, Trace>, CodeCoverageMap>();
         loadCoverageMaps(ErlangFolder + "/" + covermapFile);
     }
 
@@ -116,10 +118,10 @@ public class ErlangQSMOracle extends QSMTool {
             input = new BufferedReader(new FileReader(filename));
             String line;
             while ((line = input.readLine()) != null) {
-                // This assumes a format of [prefix]-[suffix] => [Coverage map]
+                // This assumes a format of [Trace] => [Coverage map]
                 String[] toks = line.split("=>");
 
-                String index = toks[0].trim();
+                Pair<Trace,Trace> index = new Pair<Trace,Trace>(new Trace(), new Trace(toks[0].trim()));
                 //System.out.println("Loading coverage map for " + index);
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);

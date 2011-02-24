@@ -1,34 +1,51 @@
 -module(gen_server_wrapper).
--export([exec_call_trace/2]).
+-export([exec_call_trace/3]).
 
-%% Yes, this is a crazy signature. It lets us use the standard version of tracer2 on these modules that need InitArgs
-exec_call_trace(Module, [{init, InitArgs} | Trace]) ->
-    io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
+exec_call_trace(Module, [{init, InitArgs} | Trace], OpProc) ->
+    %%io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
     {ok, Pid} = gen_server:start_link({local, mod_under_test}, Module, InitArgs, []),
     %%Module:init(InitArgs),
-    Output = call_trace({mod_under_test, Pid}, Trace, []),
+    OpProc ! {self(), output, {init, InitArgs}},
+    ok = call_trace({mod_under_test, Pid}, Trace, OpProc),
     %%Module:terminate(stop, who_cares_state),
-    gen_server:cast(Pid, stop),
-    Output.
+    gen_server:cast(mod_under_test, stop);
+    %%OpProc ! {self(), output, stop};
+exec_call_trace(_Module, [], _OpProc) ->
+    ok;
+exec_call_trace(_Module, _TraceNoInitArgs, _OpProc) ->
+    erlang:error("Trace with no init!").
 
-call_trace(_ModulePid, [], Output) ->
-    Output;
-call_trace({Module, Pid}, [{call, T} | Trace], Output) ->
-io:format("Executing gen_server:call(~p, ~p, 500)).~n", [Module, T]),
+call_trace(_ModulePid, [], _OpProc) ->
+    ok;
+%% This will accept any Output but records it in the written trace
+call_trace({Module, Pid}, [{call, T, '*'} | Trace], OpProc) ->
     OP = gen_server:call(Module, T, 500),
-    call_trace({Module, Pid}, Trace, [OP | Output]);
-call_trace({Module, Pid}, [{info, T} | Trace], Output) ->
+    OpProc ! {self(), output, {call, T, OP}},
+    call_trace({Module, Pid}, Trace, OpProc);
+%% This deliberately unifies the provided Output value with that presented. 
+%% It will throw a bad match exception if the system doesnt provide the right output
+call_trace({Module, Pid}, [{call, T, OP} | Trace], OpProc) ->
+    OP = gen_server:call(Module, T, 500),
+    OpProc ! {self(), output, {call, T, OP}},
+    call_trace({Module, Pid}, Trace, OpProc);
+call_trace({Module, Pid}, [{call, T} | Trace], OpProc) ->
+    _OP = gen_server:call(Module, T, 500),
+    OpProc ! {self(), output, {call, T}},
+    call_trace({Module, Pid}, Trace, OpProc);
+call_trace({Module, Pid}, [{info, T} | Trace],OpProc) ->
     Pid ! T,
     receive 
 	Msg ->
-	    OP = Msg
+	    _OP = Msg
     after 500 ->
-	    OP = {timeout, T}
+	    _OP = {timeout, T}
     end,
-    call_trace({Module, Pid}, Trace, [OP | Output]);
-call_trace({Module, Pid}, [{cast, T} | Trace], Output) ->
-    OP = gen_server:cast(Module, T),
-    call_trace({Module, Pid}, Trace, [OP | Output]).
+    OpProc ! {self(), output, {info, T}},
+    call_trace({Module, Pid}, Trace, OpProc);
+call_trace({Module, Pid}, [{cast, T} | Trace], OpProc) ->
+    _OP = gen_server:cast(Module, T),
+    OpProc ! {self(), output, {cast, T}},
+    call_trace({Module, Pid}, Trace, OpProc).
 
 
 

@@ -185,6 +185,65 @@ public class TestLoadAnswers {
 		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+" junk\n\n[valid string] <no> at position 7,\n"));
 	}
 	
+	@Test
+	public void testLoadAnswersIgnore1() throws IOException 
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] "+RPNILearner.QUESTION_IGNORE+"\n"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+	}
+	
+	@Test
+	public void testLoadAnswersIgnore2() throws IOException 
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_IGNORE+"   \n"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+	}
+	
+	/** Junk after the trace to be ignored. */
+	@Test(expected = IllegalArgumentException.class)
+	public void testLoadAnswersIgnoreFailure1() throws IOException 
+	{
+		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] <ignore> at position 5, junk\n"));
+	}
+	
+	@Test
+	public void testLoadAnswersIncompatible1() throws IOException 
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_INCOMPATIBLE+" nodeA nodeB  \n"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB  "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+	}
+	
+	/** Missing text of the pair. */
+	@Test(expected = IllegalArgumentException.class)
+	public void testLoadAnswersIncompatibleFail1() throws IOException 
+	{
+		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_INCOMPATIBLE+"\n"));
+	}
+
+	@Test
+	public void testLoadAnswersNewTrace1() throws IOException 
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB  \n"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB  "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+	}
+	
+	/** Missing text of the trace. */
+	@Test(expected = IllegalArgumentException.class)
+	public void testLoadAnswersNewTraceFail1() throws IOException 
+	{
+		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_NEWTRACE+"\n"));
+	}
 	
 	@Test
 	public void testLoadAnswers6() throws IOException
@@ -199,8 +258,12 @@ public class TestLoadAnswers {
 				+RPNILearner.QUESTION_SPIN+" this junk should be ignored\n"
 				+""+RPNILearner.QUESTION_USER+"[teststr, p, more] <yes> junk\n"
 				+""+RPNILearner.QUESTION_USER+" [ difficult second one] <ltl> some ltl 2\n"
+
+				+""+RPNILearner.QUESTION_USER+" [some, trace] "+RPNILearner.QUESTION_INCOMPATIBLE+" elem1 elem2\n"
+				+""+RPNILearner.QUESTION_USER+" [trace, A] "+RPNILearner.QUESTION_IGNORE+"\n"
+				+""+RPNILearner.QUESTION_USER+" [trace, B] "+RPNILearner.QUESTION_NEWTRACE+" + a b c \n"
 		));
-		Assert.assertEquals(7,sa.getCount());
+		Assert.assertEquals(10,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
 		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
@@ -209,5 +272,9 @@ public class TestLoadAnswers {
 		Assert.assertEquals(null, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(Arrays.asList(new String[]{" difficult one"})));
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(Arrays.asList(new String[]{" difficult second one"})));
+		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"elem1 elem2"), sa.getAnswer(Arrays.asList(new String[]{"some","trace"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"trace","A"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ a b c "), sa.getAnswer(Arrays.asList(new String[]{"trace","B"})));		
 	}
 }

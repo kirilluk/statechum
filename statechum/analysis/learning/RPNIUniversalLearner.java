@@ -281,25 +281,69 @@ public class RPNIUniversalLearner extends RPNILearner
 					
 					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, 
 							tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,
-									acceptedElements, 
-							new Object[] { "LTL","IFTHEN","IGNORE QUESTION","MARK AS INCOMPATIBLE"});
+									acceptedElements, pair,
+							new Object[] { "LTL","IFTHEN","IGNORE QUESTION","MARK AS INCOMPATIBLE","Add trace"});
 				}
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED) 
 				{
-					System.err.println("CANCELLED");
+					System.out.println("CANCELLED");
 					return null;
 				}
 				else
 				if (answer.firstElem == AbstractOracle.USER_IGNORED)
 				{// do nothing
 					restartLearning = RestartLearningEnum.restartNONE;
-					System.err.println("<ignore> "+question);
 				}
 				else
 				if (answer.firstElem == AbstractOracle.USER_INCOMPATIBLE)
 				{
+					/* When autoanswers says that a particular pair is incompatible, <em>StoredAnswers</em> the answer refers to the current
+					 * question, but we have to return a pair which is incompatible. Although strange, it is not really surprising - the whole 
+					 * AutoAnswers framework aims to automate debugging hence we are expected to go through the same sequence of questions
+					 * over and over again - it is enough to validate that we do not deviate and hence all that is necessary is to check that 
+					 * the current pair to be merged is the same as the one recorded as incompatible when an answer was recorded.
+					 */
+
 					tentativeAutomaton.addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
 					restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
+				}
+				else
+				if (answer.firstElem == AbstractOracle.USER_NEWTRACE)
+				{
+					String traceDescr = answer.secondElem;restartLearning = RestartLearningEnum.restartRECOMPUTEQUESTIONS;
+					boolean obtainedViaAuto = answer.secondElem != null;
+					if (traceDescr == null) traceDescr = JOptionPane.showInputDialog("New trace :");
+					if(traceDescr != null && traceDescr.length() != 0)
+					{
+						List<String> traceToAdd = null;
+						boolean positive = true;
+						if (QSMTool.isCmdWithArgs(traceDescr,QSMTool.cmdPositive))
+						{
+							positive = true;
+							traceToAdd = QSMTool.tokeniseInput(traceDescr.substring(QSMTool.cmdPositive.length()+1));
+						}
+						else if (QSMTool.isCmdWithArgs(traceDescr,QSMTool.cmdNegative))
+						{
+							positive = false;
+							traceToAdd = QSMTool.tokeniseInput(traceDescr.substring(QSMTool.cmdNegative.length()+1));
+						}
+						else
+							throw new IllegalArgumentException("trace not labelled as either positive or negative");
+					
+						StringBuffer traceString = new StringBuffer(positive?QSMTool.cmdPositive:QSMTool.cmdNegative);
+						traceString.append(' ');
+						boolean firstElem = true;
+						for(String elem:traceToAdd)
+						{
+							if (!firstElem) traceString.append(", ");else firstElem = false;
+							traceString.append(elem);
+						}
+						
+						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceString);
+						// The following will append a trace and check its consistency with the existing set of traces, choking if our path is inconsistent with hardfacts
+						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,traceToAdd, positive,colourToAugmentWith);
+						restartLearning = RestartLearningEnum.restartHARD;// force a full restart.
+					}
 				}
 				else
 				if (answer.firstElem == AbstractOracle.USER_ACCEPTED) 
@@ -373,7 +417,8 @@ public class RPNIUniversalLearner extends RPNILearner
 									System.out.println(errorMessage);
 								}
 							}
-							else{
+							else
+							{
 								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, tentativeAutomaton, config).toArray(new LearnerGraph[0]);
 								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 
@@ -518,7 +563,7 @@ public class RPNIUniversalLearner extends RPNILearner
 						List<Boolean> acceptedElements = null;
 						if (tentativeAutomaton.config.isUseConstraints())
 							acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
-						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(tentativeAutomaton,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,new Object [] {"Test"});
+						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(tentativeAutomaton,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,pair,new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");

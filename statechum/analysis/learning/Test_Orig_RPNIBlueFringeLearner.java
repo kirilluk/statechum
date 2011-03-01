@@ -260,7 +260,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 					List<String> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
 					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,
-							AbstractOracle.USER_CANCELLED,null,new Object[0]);// zero means "yes", everything else is "no"
+							AbstractOracle.USER_CANCELLED,null,null,new Object[0]);// zero means "yes", everything else is "no"
 					pair.getQ().removeUserDatum(JUConstants.HIGHLIGHT);
 					pair.getR().removeUserDatum(JUConstants.HIGHLIGHT);
 					if(response.firstElem == AbstractOracle.USER_ACCEPTED){

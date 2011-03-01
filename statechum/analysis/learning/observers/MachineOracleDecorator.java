@@ -58,6 +58,7 @@ public class MachineOracleDecorator extends LearnerDecorator {
 	public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph graph,
 			List<String> question, @SuppressWarnings("unused") int expectedAccept, 
 			@SuppressWarnings("unused") List<Boolean> acceptedElements,
+			@SuppressWarnings("unused") PairScore pairBeingMerged,
 			@SuppressWarnings("unused") Object[] options) {
 		questions++;
 		int answer = target.paths.tracePathPrefixClosed(question);

@@ -161,7 +161,7 @@ public class QSMTool
 		config.setDebugMode(true);
 	}
 	
-	private boolean isCmdWithArgs(String arg,String cmd)
+	public static boolean isCmdWithArgs(String arg,String cmd)
 	{
 		if (arg.equals(cmd))
 			throw new IllegalArgumentException("Argument required for command "+cmd);
@@ -176,7 +176,7 @@ public class QSMTool
 		if (isCmdWithArgs(fileString,cmdPositive))
 			sPlus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
 		else if (isCmdWithArgs(fileString,cmdNegative))
-			sMinus.add(tokeniseInput(fileString.substring(cmdPositive.length()+1)));
+			sMinus.add(tokeniseInput(fileString.substring(cmdNegative.length()+1)));
 		else if (isCmdWithArgs(fileString,cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON))
 		{
 			if (learnerInitConfiguration.ifthenSequences == null) learnerInitConfiguration.ifthenSequences=new TreeSet<String>();

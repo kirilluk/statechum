@@ -41,6 +41,7 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.WMethod;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -113,6 +114,7 @@ public class TestRecorderIntegration {
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
@@ -168,6 +170,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart, 
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
+							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
@@ -186,6 +189,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
+							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
@@ -198,6 +202,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused")	LearnerGraph model,
 							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
+							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);

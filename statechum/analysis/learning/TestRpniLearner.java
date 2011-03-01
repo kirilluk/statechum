@@ -126,6 +126,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);

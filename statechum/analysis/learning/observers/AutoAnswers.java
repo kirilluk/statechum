@@ -25,6 +25,7 @@ import java.util.List;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.StoredAnswers;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -76,7 +77,7 @@ public class AutoAnswers extends DummyLearner {
 	}
 	
 	@Override
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) 
 	{
 		if (ans == null) setAutoOracle(graph.config);
 		Pair<Integer,String> answer = null;
@@ -85,29 +86,54 @@ public class AutoAnswers extends DummyLearner {
 		{// first, attempt auto	
 			answer = ans.getAnswer(question);
 			howAnswerWasObtained = RPNILearner.QUESTION_AUTO;
+			
+			if (answer != null && answer.firstElem == AbstractOracle.USER_INCOMPATIBLE)
+			{// verify that the answer obtained is consistent with the request
+				String currentPairText = AutoAnswers.pairToString(pairBeingMerged);
+				if (answer.secondElem != null && !answer.secondElem.equals(currentPairText))
+					throw new IllegalArgumentException("Autoanswers recorded "+answer.secondElem+" as incompatible but the current pair is "+currentPairText);
+			}
 		}
 		
 		if (answer == null)
 		{// auto did not provide an answer, pass the question further
-			answer = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
+			answer = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 			howAnswerWasObtained = RPNILearner.QUESTION_USER;// we expect to be last in the chain, but do not really care.
 		}
 		
 		if (answer != null)
 		{
 			if (answer.firstElem >= 0)
-			// rejected
+				// rejected
 				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
 			else
-				if (answer.firstElem == AbstractOracle.USER_ACCEPTED)
-					System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
-				else
-					if (answer.firstElem == AbstractOracle.USER_LTL && answer.secondElem != null)
-						System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdLTL+"> "+answer.secondElem);
-					else
-						if (answer.firstElem == AbstractOracle.USER_IFTHEN && answer.secondElem != null)
-							System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdIFTHENAUTOMATON+"> "+answer.secondElem);
+			if (answer.firstElem == AbstractOracle.USER_ACCEPTED)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
+			else
+			if (answer.firstElem == AbstractOracle.USER_LTL && answer.secondElem != null)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdLTL+"> "+answer.secondElem);
+			else
+			if (answer.firstElem == AbstractOracle.USER_IFTHEN && answer.secondElem != null)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdIFTHENAUTOMATON+"> "+answer.secondElem);
+			else
+			if (answer.firstElem == AbstractOracle.USER_INCOMPATIBLE)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_INCOMPATIBLE+" "+pairToString(pairBeingMerged));
+			else
+			if (answer.firstElem == AbstractOracle.USER_IGNORED)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_IGNORE);
+			else
+			if (answer.firstElem == AbstractOracle.USER_NEWTRACE && answer.secondElem != null)
+				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+answer.secondElem);
+
 		}
 		return answer;
+	}
+	
+	/** Given a state pair, returns a string representing that pair - used to store/load a pair of incompatible elements. 
+	 * @param pair the pair to convert 
+	 */
+	public static String pairToString(PairScore pair)
+	{
+		return pair.firstElem.getID().toString()+" "+pair.secondElem.getID().toString();
 	}
 }

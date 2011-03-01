@@ -32,6 +32,7 @@ import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.PairScore;
 
 /** Tests that AutoAnswers works.
  * 
@@ -96,6 +97,7 @@ public class TestAutoAnswers {
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Assert.fail("all answers should have been provided by AutoAnswers, but got "+question);
@@ -141,6 +143,7 @@ public class TestAutoAnswers {
 					@SuppressWarnings("unused")	LearnerGraph model,
 					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Pair<Integer,String> result = semiUser.ans.getAnswer(question);
@@ -182,6 +185,7 @@ public class TestAutoAnswers {
 					@SuppressWarnings("unused")	LearnerGraph model,
 					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
 				Assert.fail("all answers should have been provided by AutoAnswers");
@@ -196,6 +200,76 @@ public class TestAutoAnswers {
 		AutoAnswers ans2 = new AutoAnswers(ans1);
 		ans2.loadAnswers(new StringReader(
 				partB
+		));
+		ans2.learnMachine(
+			buildSet(new String[][]{
+				new String[] { "c","b","p","e","e" },
+				new String[] { "c","a","a","b","p", "e" },
+				new String[] { "c","a","e","c" },
+				new String[] { "c","a","a","a","a","b","p" }}),
+			buildSet(new String[][]{
+				new String[] { "c", "a", "a", "b", "p", "a" },
+				new String[] { "c", "b", "p", "a" },
+				new String[] { "c", "c" },
+				new String[] { "b" },
+				new String[] { "a" }
+			}));
+	}
+	
+	@Test
+	public void testAuto3()
+	{
+		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
+		testConfig.setGdFailOnDuplicateNames(false);
+		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
+
+		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
+		{
+			@Override
+			public Pair<Integer,String> CheckWithEndUser(
+					@SuppressWarnings("unused")	LearnerGraph model,
+					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused") List<Boolean> acceptedElements,
+					@SuppressWarnings("unused") PairScore pairBeingMerged,
+					@SuppressWarnings("unused")	final Object [] moreOptions)
+			{
+				Assert.fail("all answers should have been provided by AutoAnswers");
+				return null;
+			}
+		};
+
+		AutoAnswers ans2 = new AutoAnswers(learner);
+		ans2.loadAnswers(new StringReader(
+				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"+
+				RPNILearner.QUESTION_USER+" [c, a, p, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
+				RPNILearner.QUESTION_USER+" [c, b, a, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
+				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" - c b a\n"+
+				RPNILearner.QUESTION_USER+" [p, a] <no> at position 0, element p\n"+
+				RPNILearner.QUESTION_USER+" [c, b, e, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [c, b, p, p] <no> at position 3, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [c, b, e, a] <no> at position 3, element a\n"+
+				RPNILearner.QUESTION_USER+" [c, b, e, p, a] <no> at position 3, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, a] <no> at position 1, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, e, a] <no> at position 2, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, e, b] <no> at position 2, element b\n"+
+				RPNILearner.QUESTION_USER+" [e, e, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [e, e, p] <no> at position 2, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, p, a] <no> at position 1, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, b] <no> at position 1, element b\n"+
+				RPNILearner.QUESTION_USER+" [e, c, c] <no> at position 2, element c\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, a] <no> at position 3, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, c, a, e, c] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, e, a] <no> at position 4, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, e, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, e, p] <no> at position 4, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, p, a] <no> at position 4, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, p, p] <no> at position 4, element p\n"+
+				RPNILearner.QUESTION_USER+" [e, c, b, p, e, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [e, c, a, a, b, p, a] <no> at position 6, element a\n"+
+				RPNILearner.QUESTION_USER+" [e, c, a, a, b, p, e] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [e, c, a, a, a, a, b, p] <yes>\n"+
+				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"
 		));
 		ans2.learnMachine(
 			buildSet(new String[][]{

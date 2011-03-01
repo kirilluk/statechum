@@ -85,8 +85,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     }
 
     @Override
-    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, final List<String> question, final int expectedForNoRestart,
-            final List<Boolean> consistentFacts, final Object[] moreOptions) {
+    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
+    		final List<String> question, 
+    		@SuppressWarnings("unused") final int expectedForNoRestart,
+            @SuppressWarnings("unused") final List<Boolean> consistentFacts, 
+            @SuppressWarnings("unused") final PairScore pairBeingMerged, 
+            @SuppressWarnings("unused") final Object[] moreOptions) 
+    {
 
         Iterator<String> it = question.iterator();
         //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");

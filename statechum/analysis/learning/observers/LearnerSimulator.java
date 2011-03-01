@@ -330,7 +330,7 @@ public class LearnerSimulator extends ProgressDecorator
 					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config),null);break;
 				case ELEM_ANSWER:
 					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
-					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null, null);
+					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null, null, null);
 					assert outcome == expectedReturnValue;// yes, this should be b
 					break;
 				case ELEM_PAIRS:
@@ -392,7 +392,12 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @return value loaded from XML
 	 */
 	@Override
-	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, @SuppressWarnings("unused") List<String> question, @SuppressWarnings("unused") int responseForNoRestart, @SuppressWarnings("unused") List<Boolean> acceptedElements, @SuppressWarnings("unused") Object[] options) 
+	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, 
+			@SuppressWarnings("unused") List<String> question, 
+			@SuppressWarnings("unused") int responseForNoRestart, 
+			@SuppressWarnings("unused") List<Boolean> acceptedElements, 
+			@SuppressWarnings("unused") PairScore pairBeingMerged,
+			@SuppressWarnings("unused") Object[] options) 
 	{
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(StatechumXML.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;

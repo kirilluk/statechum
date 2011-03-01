@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
@@ -83,6 +84,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
+						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);

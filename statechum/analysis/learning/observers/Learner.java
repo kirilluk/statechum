@@ -148,7 +148,7 @@ public interface Learner
 	 *  <br/>
 	 *  A value of null means that no check is performed.
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,List<Boolean> acceptedElements,Object [] options);
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,List<Boolean> acceptedElements,PairScore pairBeingMerged, Object [] options);
 	
 	/** Indicates that a restart has taken place.
 	 * 

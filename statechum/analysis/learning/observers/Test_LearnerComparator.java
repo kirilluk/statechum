@@ -269,17 +269,22 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @return value loaded from XML or computed by the learner.
 	 */
 	@Override 
-	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> argQuestion, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) 
+	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, 
+			List<String> argQuestion, 
+			int responseForNoRestart, 
+			List<Boolean> acceptedElements, 
+			PairScore pairBeingMerged,
+			Object[] options) 
 	{
 		Pair<Integer, String> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
-			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, options);
+			result = whatToCompareWith.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 			question = argQuestion;cPair = result;
 		}
 		else
-			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, options);
+			result = decoratedLearner.CheckWithEndUser(graph, argQuestion, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 
 		syncOnCallOf(KIND_OF_METHOD.M_CHECKWITHUSER);
 

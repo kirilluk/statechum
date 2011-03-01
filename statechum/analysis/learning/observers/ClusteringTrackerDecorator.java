@@ -67,8 +67,8 @@ public class ClusteringTrackerDecorator extends LearnerDecorator
 	}
 
 	@Override
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) {
-		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) {
+		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 	}
 
 	@Override

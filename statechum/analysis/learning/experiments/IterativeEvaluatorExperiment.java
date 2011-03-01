@@ -21,7 +21,6 @@ package statechum.analysis.learning.experiments;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.Collection;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -75,6 +74,7 @@ public class IterativeEvaluatorExperiment {
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
+						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused") final Object [] moreOptions)
 				{
 					questionNumber.addAndGet(1);

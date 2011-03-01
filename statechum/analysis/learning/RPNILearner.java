@@ -241,7 +241,10 @@ public abstract class RPNILearner extends Observable implements Learner {
     public final static String QUESTION_AUTO = "<auto>";
     public final static String QUESTION_SPIN = "<spin>";
     public final static String QUESTION_USER = "<USER>";
-
+    public final static String QUESTION_IGNORE = "<ignore>";
+    public final static String QUESTION_INCOMPATIBLE = "<incompatible>";
+    public final static String QUESTION_NEWTRACE = "<newtrace>";
+    
     @Override
     public void Restart(@SuppressWarnings("unused") RestartLearningEnum mode) {// this method is used to let observers know what is going on, the actual restarts are handled by the main learner routine.
     }
@@ -264,10 +267,13 @@ public abstract class RPNILearner extends Observable implements Learner {
      * Options are to be shown as choices in addition to yes/element_not_accepted.
      */
     @Override
-    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, final List<String> question, final int expectedForNoRestart,
-            final List<Boolean> consistentFacts, final Object[] moreOptions) {
-
-
+    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
+    		final List<String> question, 
+    		final int expectedForNoRestart,
+            final List<Boolean> consistentFacts, 
+            @SuppressWarnings("unused") final PairScore pairBeingMerged, 
+            final Object[] moreOptions) 
+    {
         final List<String> questionList = beautifyQuestionList(question);
         final AtomicInteger answer = new AtomicInteger(AbstractOracle.USER_WAITINGFORSELECTION);
         Integer outcome = PathRoutines.identifyTheOnlyChoice(consistentFacts);

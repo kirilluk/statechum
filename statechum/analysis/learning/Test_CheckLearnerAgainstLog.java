@@ -77,6 +77,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question,	@SuppressWarnings("unused") int answerForNoRestart, 
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
+						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
 					return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
@@ -189,6 +190,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
+						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
 						return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
@@ -228,6 +230,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused")	LearnerGraph model,
 						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
+						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 						{
 							return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);

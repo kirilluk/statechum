@@ -20,6 +20,7 @@ package statechum.analysis.learning.observers;
 import java.util.List;
 
 import statechum.Pair;
+import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /** Counts the number of hard/soft restarts and the number of questions asked.
@@ -57,9 +58,13 @@ public class QuestionAndRestartCounter extends DummyLearner
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, Object[] options) {
+			List<String> question, 
+			int responseForNoRestart, 
+			List<Boolean> acceptedElements, 
+			PairScore pairBeingMerged,
+			Object[] options) {
 		++questionCounter;
-		return super.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, options);
+		return super.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 	}
 	
 	/* (non-Javadoc)

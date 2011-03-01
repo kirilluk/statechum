@@ -56,12 +56,17 @@ public interface AbstractOracle {
 	 * an explicit counter-example by answering a question.
 	 */
 	public static final int USER_INCOMPATIBLE = -7;
+
+	/** Instead of answering a question, a user has supplied us with a new trace - this is useful if in the process of answering a question we have
+	 * discovered something substantially new such as a new element of an alphabet.
+	 */
+	public static final int USER_NEWTRACE = -8;
 	
 	/** Default value for a dialog box. */
 	public static final int USER_WAITINGFORSELECTION = -1;
 
 	/** Trace could not be found. */
-	public static final int USER_TRACENOTFOUND = -8;
+	public static final int USER_TRACENOTFOUND = -20;
 	
 	/** Retrieves a stored answer. 
 	 * This can either be a number corresponding to accept/reject (in which case the string part should be null) or 

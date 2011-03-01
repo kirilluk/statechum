@@ -5,11 +5,13 @@
 package statechum.apps;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.Pair;
+import statechum.PrefixTraceTree;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
@@ -35,11 +37,13 @@ public class ErlangQSMOracle extends QSMTool {
     // Mode can be "basic" or "otp". OTP will use the OTP wrappers to infer stuff about an OTP behaviour module
     public static String mode = "basic";
     public static String initArgs;
+    public static PrefixTraceTree ErlangTraces;
     // This map stores coverage maps in the form (Prefix, Suffix) -> Coverage
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
     // e.g. "[]-[a,b,c]" or "[a,b]-[a,b,c]"
     public static Map<Pair<Trace, Trace>, CodeCoverageMap> coverageMaps;
+    public static boolean coverageMapLock = false;
 
     public static void main(String[] args) {
         // Generate some basic traces to get QSM started
@@ -66,10 +70,15 @@ public class ErlangQSMOracle extends QSMTool {
         createInitTraces();
         loadCoverageMaps();
 
+        ErlangTraces = new PrefixTraceTree(ErlangFolder + "/" + tracesFile);
+        //System.out.println("Traces Tree:\n" + ErlangTraces.toString());
+
+        // Strip wildcard traces from the file...
+        wildCardStrip(ErlangFolder + "/" + tracesFile);
+
         ErlangQSMOracle tool = new ErlangQSMOracle();
         tool.loadConfig(ErlangFolder + "/" + tracesFile);
         tool.runExperiment();
-
     }
 
     @Override
@@ -93,6 +102,31 @@ public class ErlangQSMOracle extends QSMTool {
         //config.setQuestionPathUnionLimit(1);
     }
 
+    protected static void wildCardStrip(String filename) {
+        ArrayList<String> lines = new ArrayList<String>();
+                BufferedReader input = null;
+        try {
+            input = new BufferedReader(new FileReader(filename));
+            String line;
+            while ((line = input.readLine()) != null) {
+                if(line.indexOf("'*'") < 0) {
+                    lines.add(line);
+                }
+            }
+            input.close();
+            (new File(filename)).delete();
+            BufferedWriter out = new BufferedWriter(new FileWriter(filename));
+            for(String l : lines) {
+                out.write(l);
+                out.newLine();
+            }
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void createInitTraces() {
         try {
             String erlArgs;
@@ -112,6 +146,14 @@ public class ErlangQSMOracle extends QSMTool {
     }
 
     public static void loadCoverageMaps(String filename) {
+        while(coverageMapLock) {
+            try {
+            Thread.sleep(500);
+            } catch (InterruptedException e) {
+                ;
+            }
+        }
+        coverageMapLock = true;
         //System.out.println("Loading coverage maps from " + filename + "...");
         BufferedReader input = null;
         try {
@@ -121,8 +163,7 @@ public class ErlangQSMOracle extends QSMTool {
                 // This assumes a format of [Trace] => [Coverage map]
                 String[] toks = line.split("=>");
 
-                Pair<Trace,Trace> index = new Pair<Trace,Trace>(new Trace(), new Trace(toks[0].trim()));
-                //System.out.println("Loading coverage map for " + index);
+                Pair<Trace, Trace> index = new Pair<Trace, Trace>(new Trace(), new Trace(toks[0].trim()));
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);
 
@@ -141,6 +182,7 @@ public class ErlangQSMOracle extends QSMTool {
 
                 }
                 coverageMaps.put(index, mapObject);
+                //System.out.println("Loading coverage map for \"" + index.secondElem + "\" = " + coverageMaps.get(index) + " (" + (coverageMaps.get(index) == null) + ")");
             }
             //System.out.println("Coverage maps:\n" + coverageMaps.toString());
         } catch (FileNotFoundException e) {
@@ -154,5 +196,6 @@ public class ErlangQSMOracle extends QSMTool {
                 } catch (IOException e) { /* ignore this */ }
             }
         }
+        coverageMapLock = false;
     }
 }

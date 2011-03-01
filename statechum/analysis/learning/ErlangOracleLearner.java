@@ -16,6 +16,7 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.Pair;
+import statechum.PrefixTraceTree;
 import statechum.Trace;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -103,10 +104,23 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             erlList += it.next();
         }
         erlList += "]";
+        Trace qtrace = new Trace(question);
         int failure = AbstractOracle.USER_CANCELLED;
         try {
             // Lets see if QSM is being silly and we already know the answer...
-            failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
+
+            Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
+            if (prefix != null) {
+                if (prefix.negative) {
+                    failure = prefix.size()-1;
+                } else {
+                    if(Trace.matchWithWildcard(prefix, qtrace)) {
+                        failure = AbstractOracle.USER_ACCEPTED;
+                    }
+                }
+            }
+
+            //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
             if (failure != AbstractOracle.USER_ACCEPTED) {
                 // We didn't find the answer in the existing traces file so lets extend it
                 // OR we did find a negative answer but it might be based on a wildcard for the output, so lets try again anyway!
@@ -121,7 +135,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 int response = erlangProcess.getInputStream().read();
                 boolean finished = false;
                 while (response != -1 && !finished) {
-                    System.out.print((char) response);
+                    //System.out.print((char) response);
                     response = erlangProcess.getInputStream().read();
                     if (response == '>') {
                         // If we get a promt lets see if it just sits there for a while...
@@ -149,10 +163,25 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 ErlangQSMOracle.loadCoverageMaps();
                 //(new File(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap")).delete();
 
-                failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
+                ErlangQSMOracle.ErlangTraces = new PrefixTraceTree(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
+                //System.out.println("Traces Tree:\n" + ErlangQSMOracle.ErlangTraces.toString());
+
+                prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
+                if (prefix != null) {
+                    if (prefix.negative) {
+                        failure = prefix.size()-1;
+                    } else {
+                    if(Trace.matchWithWildcard(prefix, qtrace)) {
+                        failure = AbstractOracle.USER_ACCEPTED;
+                    }
+                }
+                }
+                //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
                 // We really should have found the answer now...
                 if (failure == AbstractOracle.USER_TRACENOTFOUND) {
                     throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + question + ")...");
+                } else {
+                    //System.out.println("Erlang says " + prefix.toString() + " (" + prefix.size() + ") vs " + question + " ==> " + failure);
                 }
             }
         } catch (IOException err) {
@@ -180,7 +209,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
             @Override
             public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
-                System.out.print(b.toString());
+                //System.out.print(b.toString());
             }
         });
         erlangProcess.waitFor();
@@ -188,7 +217,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
     /** Returns -1 if the string is shown as accepted, returns -2 if it is not found, and returns the point at which it is rejected otherwise */
     protected int firstFailure(String file, Trace erlTrace) throws IOException {
-        System.out.println("Seeking first failure for " + erlTrace);
+        //System.out.println("Seeking first failure for " + erlTrace);
         BufferedReader input = new BufferedReader(new FileReader(file));
 
         String line;
@@ -208,15 +237,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 if (traceFromFile.size() <= erlTrace.size()
                         && traceFromFile.isPrefix(erlTrace)) {
                     // We have to be careful not to pick a negative trace if there is a longer positive trace with a different instantiation of wildcards...
-                    //System.out.println("                        - " + traceFromFile);
-                    negativecount = traceFromFile.size() - 1;
+                    // We also want to find the LONGEST negative trace...
+                    if (traceFromFile.size() - 1 > negativecount) {
+                        //System.out.println("                        - " + traceFromFile);
+                        negativecount = traceFromFile.size() - 1;
+                    }
                     //break;
                 }
             } else {
                 assert line.substring(0, 1).equals("+");
 
                 if (traceFromFile.size() >= erlTrace.size() && traceFromFile.isPrefix(erlTrace)) {
-                    //System.out.println("                        + " + traceFromFile);
+                   // System.out.println("                        + " + traceFromFile);
 
                     // This is an accept line for our string.
                     count = AbstractOracle.USER_ACCEPTED;

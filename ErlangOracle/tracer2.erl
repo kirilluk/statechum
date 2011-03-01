@@ -29,17 +29,18 @@ first_failure(WrapperModule, Module, Trace, OutFile) ->
 first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
     %% First, lets make sure we don't already have a negative prefix
     %% If there is a positive prefix we can move on from that..
+    io:format("Seeking prefix for ~w~n", [Trace]),
     {Status, Prefix} = find_prefix(OutFile, Trace),
-    io:format("{~p, ~p}~n", [Status, Prefix]),
+    io:format("Prefix status: {~w, ~w}~n", [Status, Prefix]),
     case Status of
 	ok ->
 	    %% Positive prefix
-	    if ((length(Prefix)+1) > length(Trace)) ->
+	    if (length(Prefix) >= length(Trace)) ->
 		    %% Nothing further to add...
 		    ok;
 	       true ->
 		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
-		    %%io:format("Extending from ~p with ~p~n", [NewPrefix, Suffix]),
+		    io:format("Extending from ~w with ~w~n", [NewPrefix, Suffix]),
 		    first_failure(WrapperModule, Module, NewPrefix, Suffix, OutFile, ModulesList)
 	    end;
 	failed ->
@@ -47,7 +48,7 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 	    ok;
 	not_found ->
 	    %% No data - do a complete run
-	    io:format("No data for ~p~n", [Trace]),
+	    io:format("No data for ~w~n", [Trace]),
 	    %% The first elem should be the init elem, so we need at least that...
 	    %%first_failure(WrapperModule, Module, [hd(Trace)], Trace, OutFile, ModulesList)
 	    first_failure(WrapperModule, Module, [], Trace, OutFile, ModulesList)
@@ -56,7 +57,7 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
 try_trace(WrapperModule, Module, Trace, ModulesList) ->
-    io:format("Trying ~p:exec_call_trace(~p, ~p, ~p)...~n", [WrapperModule, Module, Trace, self()]),
+    io:format("Trying ~w:exec_call_trace(~w, ~w, ~w)...~n", [WrapperModule, Module, Trace, self()]),
     compile_all(ModulesList),
     {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace, self()]),
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
@@ -68,8 +69,10 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
 	failed ->
 	    if
 		length(OPTrace) < length(Trace) ->
+		    io:format("Adding ~p to the end...~n", [lists:nth(length(OPTrace)+1, Trace)]),
 		    FullOPTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)];
 		true ->
+		    io:format("Trace is already long enough (~p vs ~p)...~n", [length(OPTrace), length(Trace)]),
 		    FullOPTrace = OPTrace
 	    end,
 	    {ProcStatus, analyse_all(ModulesList), FullOPTrace}
@@ -150,18 +153,19 @@ await_end(Pid, Ref, OpTrace) ->
 	    end
     end.
 
-check_file_for_trace(FileName, TraceString) ->
+%% This returns all lines that match the trace, allowing for wildcard '*'...
+check_file_for_trace(FileName, Trace) ->
     {Status, IODevice} = file:open(FileName, [read]),
     case Status of 
 	ok ->
-	    ProcStatus = check_lines(IODevice, TraceString),
+	    ProcStatus = check_lines(IODevice, Trace),
 	    file:close(IODevice),
 	    ProcStatus;
 	_ ->
 	    not_found
     end.
 
-check_lines(IODevice, TraceString) ->
+check_lines(IODevice, Trace) ->
     case io:get_line(IODevice, "") of
 	eof ->
 	    not_found;
@@ -175,8 +179,36 @@ check_lines(IODevice, TraceString) ->
 		true ->
 		    {TrueLineString, _Return} = lists:split(length(LineString)-1, LineString)
 	    end,
-	    %%io:format("Seeking \"~p\" in \"~p\" (~p)~n", [TraceString, TrueLineString, string:equal(TrueLineString, TraceString)]),	    
-	    case string:equal(TrueLineString, TraceString) of
+	    %% TraceString = lists:flatten(lists:foldl(fun(Elem, Acc) -> io_lib:format("~w", [Acc, Elem]) end, "", Trace)),
+	    TraceString = lists:flatten(" " ++ string:join(lists:map(fun(Elem) -> io_lib:format("~p", [Elem]) end, Trace), " ")),
+	    Match = string:equal(TrueLineString, TraceString),
+	    case Match of 
+		true ->
+		    WCMatch = Match;
+		false ->
+		    %% Allow for Wildcards?
+		    case Trace of 
+			[] ->
+			    WCMatch = false;
+			_ ->
+			    case lists:last(Trace) of
+				{Method, Event, '*'} ->
+				    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),
+				    PrefixString = string:join(lists:map(fun(Elem) -> io_lib:format("~p", [Elem]) end, Prefix), " "),
+				    ShorterTraceString = lists:flatten(io_lib:format(" ~s {~p,~p,", [PrefixString, Method, Event])),
+				    case (string:len(TrueLineString) < string:len(ShorterTraceString)) of
+					true ->
+					    WCMatch = false;
+					false ->
+					    ShorterLineString = lists:sublist(TrueLineString, string:len(ShorterTraceString)),
+					    WCMatch = string:equal(ShorterLineString, ShorterTraceString)
+				    end;
+				_ ->
+				    WCMatch = false
+			    end
+		    end
+	    end,
+	    case WCMatch of
 		true -> 
 		    if
 			StatString == "+ " ->
@@ -185,7 +217,7 @@ check_lines(IODevice, TraceString) ->
 			    failed
 		    end;
 		false ->
-		    check_lines(IODevice, TraceString)
+		    check_lines(IODevice, Trace)
 	    end
     end.
 
@@ -194,11 +226,12 @@ find_prefix(OutFile, []) ->
 %%    {ok, []};
     {check_file_for_trace(OutFile, ""), []};
 find_prefix(OutFile, Trace) ->
-    TraceString = lists:flatten(lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", Trace)),
-    case check_file_for_trace(OutFile, TraceString) of
+    case check_file_for_trace(OutFile, Trace) of
 	not_found ->
 	    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),
-	    find_prefix(OutFile, Prefix);
+	    Response = find_prefix(OutFile, Prefix),
+	    io:format("~w~n", [Response]),
+	    Response;
 	Status ->
 	    {Status, Trace}
     end.
@@ -235,7 +268,7 @@ add_init_heads([Arg | InitArgs], InputSet) ->
     lists:map(fun(Elem) -> [Arg | Elem] end, InputSet) ++ add_init_heads(InitArgs, InputSet).
 
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
-    InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
+    InputSet = lists:sort(generate_input_set(Alphabet, 10, [])),
     %% InitArgs now contains a list of different possible init args in the form {init, Arg}
     %% We should give QSM a  headstart and try all the traces will all possible initialisations...
     InputSetInited = add_init_heads(InitArgs, InputSet),

@@ -61,6 +61,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         modules = new javax.swing.JList();
         jButton2 = new javax.swing.JButton();
+        jButton3 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -95,6 +96,13 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
             }
         });
 
+        jButton3.setText("Reload");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -103,19 +111,11 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                                .addComponent(jLabel4)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 802, Short.MAX_VALUE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jButton2)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(beginButton))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel1)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(appFile, javax.swing.GroupLayout.DEFAULT_SIZE, 809, Short.MAX_VALUE)))
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(appFile, javax.swing.GroupLayout.DEFAULT_SIZE, 720, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButton1))
                     .addGroup(layout.createSequentialGroup()
@@ -125,7 +125,15 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(startModuleArgs, javax.swing.GroupLayout.PREFERRED_SIZE, 211, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(startModule, javax.swing.GroupLayout.PREFERRED_SIZE, 211, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                            .addComponent(startModule, javax.swing.GroupLayout.PREFERRED_SIZE, 211, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel4)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 863, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                        .addComponent(jButton2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(beginButton)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -135,7 +143,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
                     .addComponent(appFile, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton1))
+                    .addComponent(jButton1)
+                    .addComponent(jButton3))
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
@@ -158,6 +167,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    protected File selectedFile;
+
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         JFileChooser chooser = new JFileChooser();
         chooser.setAcceptAllFileFilterUsed(false);
@@ -165,24 +176,29 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         int returnValue = chooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = chooser.getSelectedFile();
+            selectedFile = chooser.getSelectedFile();
             appFile.setText(selectedFile.getName());
-            if (selectedFile.getName().endsWith(".app")) {
-                folder = selectedFile.getParentFile();
-                app = ErlangAppReader.readAppFile(selectedFile.getName(), folder);
-            } else {
-                folder = selectedFile;
-                app = ErlangAppReader.readFolder(selectedFile);
-            }
-            startModule.setText(app.startModule);
-            startModuleArgs.setText(app.startModuleArgs);
-            DefaultListModel model = new DefaultListModel();
-            for (ErlangModule m : app.modules) {
-                model.addElement(m);
-            }
-            modules.setModel(model);
+            loadData();
         }
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    protected void loadData() {
+        if (selectedFile.getName().endsWith(".app")) {
+            folder = selectedFile.getParentFile();
+            app = ErlangAppReader.readAppFile(selectedFile.getName(), folder);
+        } else {
+            folder = selectedFile;
+            app = ErlangAppReader.readFolder(selectedFile);
+        }
+        startModule.setText(app.startModule);
+        startModuleArgs.setText(app.startModuleArgs);
+        DefaultListModel model = new DefaultListModel();
+        for (ErlangModule m : app.modules) {
+            model.addElement(m);
+        }
+        modules.setModel(model);
+
+    }
 
     public static void dumpProcessOutput(Process p) {
         ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
@@ -266,16 +282,16 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                     otherModules += mm.name;
                 }
                 try {
-                ErlangOracleRunner runner = new ErlangOracleRunner(folder.getCanonicalPath(), m, otherModules);
-                Thread t = new Thread(runner);
-                t.run();
-                while (t.isAlive()) {
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        ;
+                    ErlangOracleRunner runner = new ErlangOracleRunner(folder.getCanonicalPath(), m, otherModules);
+                    Thread t = new Thread(runner);
+                    t.run();
+                    while (t.isAlive()) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            ;
+                        }
                     }
-                }
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                 }
@@ -302,13 +318,12 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
             view.pack();
             view.setVisible(true);
 
-
-
-
-
-
         }
     }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        loadData();
+    }//GEN-LAST:event_jButton3ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -338,6 +353,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     private javax.swing.JButton beginButton;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
+    private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

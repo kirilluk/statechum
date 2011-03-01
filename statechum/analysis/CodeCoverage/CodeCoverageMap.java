@@ -32,7 +32,7 @@ public class CodeCoverageMap {
         for (CodeCoverageMaplet m : map) {
             result += m.toString() + ",";
         }
-        return result;
+        return "[" + result + "]";
     }
 
     public int findLine(String l) throws CodeCoverageMapletNotFoundException {

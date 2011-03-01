@@ -22,6 +22,7 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
+import java.util.Map.Entry;
 import statechum.Pair;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
@@ -143,7 +144,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         if (e.getButton() != MouseEvent.BUTTON1) {
             return;
         }
-        if(mode == NoCoverage) {
+        if (mode == NoCoverage) {
             return;
         }
         if (mode == AllSuffixesCoverageMode) {
@@ -240,7 +241,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
             Vertex start = (Vertex) ErlangOracleVisualiser.previousPicked[0];
             Vertex end = (Vertex) vs[0];
-            Pair<Trace,Trace> tracePair = getPrefixSuffixPair(start, end);
+            Pair<Trace, Trace> tracePair = getPrefixSuffixPair(start, end);
             Trace startTrace = tracePair.firstElem;
             Trace endTrace = tracePair.secondElem;
             if ((startTrace == null) || (endTrace == null)) {
@@ -277,7 +278,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         boolean found = false;
         for (Trace st : start) {
             for (Trace et : end) {
-                if(st.isPrefix(et)) {
+                if (st.isPrefix(et)) {
                     startTrace = st;
                     endTrace = et;
                     found = true;
@@ -291,7 +292,6 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         Pair<Trace, Trace> result = new Pair<Trace, Trace>(startTrace, endTrace);
         return result;
     }
- 
 
     public static String toErlangList(Collection<String> list) {
         String result = "[";
@@ -305,42 +305,57 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     }
 
     public static CodeCoverageMap getCoverageMap(Trace prefixArg, Trace suffixArg) {
+        while (ErlangQSMOracle.coverageMapLock) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                ;
+            }
+        }
+        ErlangQSMOracle.coverageMapLock = true;
+
         // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
         Trace prefix = prefixArg.replaceAll(", ", ",");
         Trace suffix = suffixArg.replaceAll(", ", ",");
 
         // Lookup coverage map in the coverage collection...
-        CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(prefix, suffix));
-        if (result != null) {
-            return result;
-        } else {
+        CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(new Pair<Trace, Trace>(prefix, suffix));
+        if (result == null) {
             // Calculate coverage data...
-            CodeCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(new Trace(), prefix));
-            CodeCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace,Trace>(new Trace(), suffix));
+            CodeCoverageMap prefixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace, Trace>(new Trace(), prefix));
+            CodeCoverageMap suffixMap = ErlangQSMOracle.coverageMaps.get(new Pair<Trace, Trace>(new Trace(), suffix));
             if (prefixMap == null) {
                 // Try with wildcard matching...
                 for (Pair<Trace, Trace> s : ErlangQSMOracle.coverageMaps.keySet()) {
+                    //System.out.print("Seeking \"" + prefix + "\" in \"" + s.secondElem + "\" == " + (prefix.equals(s.secondElem)));
                     if (Trace.matchWithWildcard(prefix, s.secondElem)) {
                         prefixMap = ErlangQSMOracle.coverageMaps.get(s);
+                        //System.out.println(" HIT! " + prefixMap);
+                        break;
                     }
+                    //System.out.println("");
                 }
                 if (prefixMap == null) {
-                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + prefix + "!!");
+                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + prefix + "!!");
                 }
             }
             if (suffixMap == null) {
                 // Try with wildcard matching...
                 for (Pair<Trace, Trace> s : ErlangQSMOracle.coverageMaps.keySet()) {
+                    //System.out.println("Seeking \"" + suffix + "\" in \"" + s.secondElem + "\"");
                     if (Trace.matchWithWildcard(suffix, s.secondElem)) {
+                        //System.out.println("HIT! " + s.secondElem + " ==>> " + ErlangQSMOracle.coverageMaps.get(s));
                         suffixMap = ErlangQSMOracle.coverageMaps.get(s);
                     }
                 }
                 if (suffixMap == null) {
-                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR []-" + suffix + "!!");
+                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + suffix + "!!");
                 }
             }
-            return suffixMap.subtract(prefixMap);
+            result = suffixMap.subtract(prefixMap);
         }
+        ErlangQSMOracle.coverageMapLock = false;
+        return result;
     }
 
     protected String traceColorise(CodeCoverageMap map1, CodeCoverageMap map2) {

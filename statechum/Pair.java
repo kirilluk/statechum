@@ -59,16 +59,21 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Co
 			return false;
 		final Pair<A,B> other = (Pair<A,B>) obj;
 		if (firstElem == null) {
-			if (other.firstElem != null)
+			if (other.firstElem != null) {
 				return false;
-		} else if (!firstElem.equals(other.firstElem))
+                        }
+		} else if (!firstElem.equals(other.firstElem)) {
 			return false;
+                }
 		if (secondElem == null) {
-			if (other.secondElem != null)
+			if (other.secondElem != null) {
 				return false;
-		} else if (!secondElem.equals(other.secondElem))
+                        }
+		} else if (!secondElem.equals(other.secondElem)) {
 			return false;
+                }
 		return true;
+
 	}
 
 	public int compareTo(Pair<A, B> o) {

@@ -15,13 +15,19 @@ import java.util.LinkedList;
 public class Trace implements Comparable<Trace> {
 
     LinkedList<String> trace;
+    public boolean negative;
 
     public Trace() {
-        trace = new LinkedList<String>();
+        this(new LinkedList<String>());
     }
 
     public Trace(Collection<String> c) {
+        this(c, false);
+    }
+
+    public Trace(Collection<String> c, boolean neg) {
         trace = new LinkedList<String>(c);
+        negative = neg;
     }
 
     protected String consumeErlangElem(StringBuffer sb) {
@@ -136,10 +142,10 @@ public class Trace implements Comparable<Trace> {
             if (this.equals((Trace) o)) {
                 return 0;
             } else {
-                return -1;
+                return this.toString().compareTo(o.toString());
             }
         } else {
-            return -1;
+            throw new RuntimeException("Trying to compare a Trace to something thats not a trace...");
         }
     }
 
@@ -158,7 +164,7 @@ public class Trace implements Comparable<Trace> {
 
     public boolean equals(Trace tr) {
         Iterator<String> it = trace.iterator();
-        Iterator<String> tit = trace.iterator();
+        Iterator<String> tit = tr.iterator();
         while (it.hasNext()) {
             if (!tit.hasNext()) {
                 return false;
@@ -173,6 +179,9 @@ public class Trace implements Comparable<Trace> {
     protected static String wildcard = "'*'";
 
     public static boolean matchWithWildcard(Trace x, Trace y) {
+        if(x.equals(y)) {
+            return true;
+        }
         Iterator<String> it = x.iterator();
         Iterator<String> tit = y.iterator();
         while (it.hasNext()) {
@@ -236,13 +245,14 @@ public class Trace implements Comparable<Trace> {
                     if (!oneWayWildcardMatch(enext, snext)) {
                         // If this IS the last element then we are allowed a wildcard at the end
                         // This SHOULD only happen for negative traces where the last event fails so the output cant be instantiated
-                        if(!sit.hasNext()) {
+                        if (!sit.hasNext()) {
                             //System.out.println("\t\t\tFinally: " + snext + " vs " + enext + " == " + oneWayWildcardMatch(snext, enext));
                             return oneWayWildcardMatch(snext, enext);
                         } else {
                             return false;
                         }
                     }
+
                 }
             } else {
                 return false;

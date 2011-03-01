@@ -102,7 +102,7 @@ public class MergeStates {
                         {
                             origToNew.put(v, eqClass);
                             Map<VertexID,Collection<VertexID>> hardOrig = original.learnerCache.getMergedToHardFacts();
-                            if (hardOrig != null)
+                            if (hardOrig != null && hardOrig.containsKey(v.getID()))
                             {
                                 hardVertices.addAll(hardOrig.get(v.getID()));
                             }

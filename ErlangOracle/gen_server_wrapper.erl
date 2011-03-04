@@ -22,12 +22,15 @@ call_trace({Module, Pid}, [{call, T, '*'} | Trace], OpProc) ->
     OP = gen_server:call(Module, T, 500),
     OpProc ! {self(), output, {call, T, OP}},
     call_trace({Module, Pid}, Trace, OpProc);
-%% This deliberately unifies the provided Output value with that presented. 
-%% It will throw a bad match exception if the system doesnt provide the right output
 call_trace({Module, Pid}, [{call, T, OP} | Trace], OpProc) ->
-    OP = gen_server:call(Module, T, 500),
-    OpProc ! {self(), output, {call, T, OP}},
-    call_trace({Module, Pid}, Trace, OpProc);
+    ThisOP = gen_server:call(Module, T, 500),
+    if (ThisOP =/= OP) ->
+	    OpProc ! {self(), output_mismatch, {call, T, ThisOP}},
+	    erlang:error("Output mismatch");
+      true ->
+	    OpProc ! {self(), output, {call, T, ThisOP}},
+	    call_trace({Module, Pid}, Trace, OpProc)
+    end;
 call_trace({Module, Pid}, [{call, T} | Trace], OpProc) ->
     _OP = gen_server:call(Module, T, 500),
     OpProc ! {self(), output, {call, T}},

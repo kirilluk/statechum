@@ -157,9 +157,26 @@ public class Trace implements Comparable<Trace> {
         return trace.indexOf(s);
     }
 
+    public String get(int index) {
+        return trace.get(index);
+    }
+
     @Override
     public String toString() {
         return trace.toString();
+    }
+
+    public String toTraceString() {
+        String result = "";
+        if (negative) {
+            result = "-";
+        } else {
+            result = "+";
+        }
+        for (String s : trace) {
+            result += " " + s;
+        }
+        return result;
     }
 
     public boolean equals(Trace tr) {
@@ -179,7 +196,7 @@ public class Trace implements Comparable<Trace> {
     protected static String wildcard = "'*'";
 
     public static boolean matchWithWildcard(Trace x, Trace y) {
-        if(x.equals(y)) {
+        if (x.equals(y)) {
             return true;
         }
         Iterator<String> it = x.iterator();

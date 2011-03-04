@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
+import statechum.analysis.Erlang.Signatures.FailedToParseException;
+import statechum.analysis.Erlang.Signatures.UnknownSignature;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
@@ -71,7 +73,12 @@ public class ErlangModule {
                 String buf = b.toString();
                 String spec = getFirstSpec(buf);
                 while (spec != null) {
-                    FuncSignature sig = Signature.parseSignatureSpec(spec);
+                    FuncSignature sig;
+                    try {
+                    sig = Signature.parseSignatureSpec(spec);
+                    } catch (FailedToParseException e) {
+                        sig = null;
+                    }
                     sigs.put(sig.funcName, sig);
                     buf = buf.substring(spec.length());
                     spec = getFirstSpec(buf);

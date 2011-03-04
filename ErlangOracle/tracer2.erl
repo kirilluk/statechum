@@ -5,13 +5,15 @@
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
 first_failure(WrapperModule, Module, Trace, Remains, OutFile, ModulesList) ->
     {Status, CoverMap, OpTrace} = try_trace(WrapperModule, Module, Trace, ModulesList),
-    io:format("~w ---->>>> ~w~n", [Trace, OpTrace]),
+    %%io:format("~w ---->>>> ~w~n", [Trace, OpTrace]),
     TraceString = lists:foldl(fun(Elem, Acc) -> io_lib:format("~s ~w", [Acc, Elem]) end, "", OpTrace),
     CoverMapString = map_to_string(CoverMap),
     append_to_file(OutFile ++ ".covermap", io_lib:format("~w => [~s]", [OpTrace, CoverMapString])),
     case Status of
 	failed ->
 	    append_to_file(OutFile, io_lib:format("- ~s", [TraceString]));
+	failed_but ->
+	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString]));
 	ok ->
 	    append_to_file(OutFile, io_lib:format("+ ~s", [TraceString])),
 	    case Remains of
@@ -29,9 +31,9 @@ first_failure(WrapperModule, Module, Trace, OutFile) ->
 first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
     %% First, lets make sure we don't already have a negative prefix
     %% If there is a positive prefix we can move on from that..
-    io:format("Seeking prefix for ~w~n", [Trace]),
+    %%io:format("Seeking prefix for ~w~n", [Trace]),
     {Status, Prefix} = find_prefix(OutFile, Trace),
-    io:format("Prefix status: {~w, ~w}~n", [Status, Prefix]),
+    %%io:format("Prefix status: {~w, ~w}~n", [Status, Prefix]),
     case Status of
 	ok ->
 	    %% Positive prefix
@@ -40,7 +42,7 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 		    ok;
 	       true ->
 		    {NewPrefix, Suffix} = lists:split(length(Prefix)+1, Trace),
-		    io:format("Extending from ~w with ~w~n", [NewPrefix, Suffix]),
+		    %%io:format("Extending from ~w with ~w~n", [NewPrefix, Suffix]),
 		    first_failure(WrapperModule, Module, NewPrefix, Suffix, OutFile, ModulesList)
 	    end;
 	failed ->
@@ -48,7 +50,7 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 	    ok;
 	not_found ->
 	    %% No data - do a complete run
-	    io:format("No data for ~w~n", [Trace]),
+	    %%io:format("No data for ~w~n", [Trace]),
 	    %% The first elem should be the init elem, so we need at least that...
 	    %%first_failure(WrapperModule, Module, [hd(Trace)], Trace, OutFile, ModulesList)
 	    first_failure(WrapperModule, Module, [], Trace, OutFile, ModulesList)
@@ -57,7 +59,7 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
 try_trace(WrapperModule, Module, Trace, ModulesList) ->
-    io:format("Trying ~w:exec_call_trace(~w, ~w, ~w)...~n", [WrapperModule, Module, Trace, self()]),
+    %%io:format("Trying ~w:exec_call_trace(~w, ~w, ~w)...~n", [WrapperModule, Module, Trace, self()]),
     compile_all(ModulesList),
     {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace, self()]),
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
@@ -66,13 +68,15 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
     case ProcStatus of
 	ok ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
+	faild_but ->
+	    {ProcStatus, analyse_all(ModulesList), OPTrace};
 	failed ->
 	    if
 		length(OPTrace) < length(Trace) ->
-		    io:format("Adding ~p to the end...~n", [lists:nth(length(OPTrace)+1, Trace)]),
+		    %%io:format("Adding ~p to the end...~n", [lists:nth(length(OPTrace)+1, Trace)]),
 		    FullOPTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)];
 		true ->
-		    io:format("Trace is already long enough (~p vs ~p)...~n", [length(OPTrace), length(Trace)]),
+		    %%io:format("Trace is already long enough (~p vs ~p)...~n", [length(OPTrace), length(Trace)]),
 		    FullOPTrace = OPTrace
 	    end,
 	    {ProcStatus, analyse_all(ModulesList), FullOPTrace}
@@ -147,7 +151,9 @@ await_end(Pid, Ref, OpTrace) ->
 		{'DOWN', Ref, _X, _Y, _Status} ->
 		    {failed, OpTrace};
 		{Pid, output, OP} ->
-		    await_end(Pid, Ref, OpTrace ++ [OP])
+		    await_end(Pid, Ref, OpTrace ++ [OP]);
+		{Pid, output_mismatch, OP} ->
+		    {failed_but, OpTrace ++ [OP]}
 	    after 100 ->
 		      await_end(Pid, Ref, OpTrace)
 	    end
@@ -230,7 +236,7 @@ find_prefix(OutFile, Trace) ->
 	not_found ->
 	    {Prefix, _Suffix} = lists:split(length(Trace)-1, Trace),
 	    Response = find_prefix(OutFile, Prefix),
-	    io:format("~w~n", [Response]),
+	    %%io:format("~w~n", [Response]),
 	    Response;
 	Status ->
 	    {Status, Trace}
@@ -248,7 +254,7 @@ generate_input_set(Aleph, N, ExistingSeqList) ->
 	end.
 
 generate_input_set_N_attempts(Aleph, N, ExistingSeqList, Attempt) ->
-	NewSeq = gen_random_string(Aleph, random:uniform(10)),
+	NewSeq = gen_random_string(Aleph, random:uniform(100)),
 	AlreadyPresent = lists:member(NewSeq,ExistingSeqList),
 	if 
 		not AlreadyPresent -> NewSeq;
@@ -268,7 +274,7 @@ add_init_heads([Arg | InitArgs], InputSet) ->
     lists:map(fun(Elem) -> [Arg | Elem] end, InputSet) ++ add_init_heads(InitArgs, InputSet).
 
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
-    InputSet = lists:sort(generate_input_set(Alphabet, 10, [])),
+    InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
     %% InitArgs now contains a list of different possible init args in the form {init, Arg}
     %% We should give QSM a  headstart and try all the traces will all possible initialisations...
     InputSetInited = add_init_heads(InitArgs, InputSet),

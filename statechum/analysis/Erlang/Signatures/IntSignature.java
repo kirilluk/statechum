@@ -11,8 +11,10 @@ package statechum.analysis.Erlang.Signatures;
 public class IntSignature extends Signature {
 
     public boolean negative = true;
+    public int lower;
+    public int upper;
 
     public String instantiate() {
-        return "1";
+        return "" + lower;
     }
 }

@@ -111,13 +111,56 @@ public abstract class OTPBehaviour {
             if (sig != null) {
                 for (String a : sig.instantiateAllArgs()) {
                     // I THINK we always want the first arg from these...
-                                        Pair<String, Boolean> pat = patterns.get(p);
-                    String op = "{" + pat.firstElem + ", " + a.split(",")[0];
-                    if(pat.secondElem.booleanValue()) {
-                        op += ", '*'";
+                    Pair<String, Boolean> pat = patterns.get(p);
+                    String op = "{" + pat.firstElem + ", ";
+                    String[] elems = a.split(",");
+                    if (pat.secondElem.booleanValue()) {
+
+                        if (a.indexOf("}") < 0) {
+                            op += elems[0];
+                        } else {
+                            if (a.indexOf(",") < a.indexOf("{")) {
+                                // its not in the first elem...
+                                op += elems[0];
+                            } else {
+                                int i = 0;
+                                // Find the end of the first elem...
+                                int cdepth = 0;
+                                int sdepth = 0;
+                                do {
+                                    int ptr = elems[i].indexOf("{");
+                                    while (ptr >= 0) {
+                                        cdepth++;
+                                        ptr = elems[i].indexOf("{", ptr+1);
+                                    }
+                                     ptr = elems[i].indexOf("[");
+                                    while (ptr >= 0) {
+                                        sdepth++;
+                                        ptr = elems[i].indexOf("{", ptr+1);
+                                    }
+                                     ptr = elems[i].indexOf("}");
+                                    while (ptr >= 0) {
+                                        cdepth--;
+                                        ptr = elems[i].indexOf("}", ptr+1);
+                                    }
+                                     ptr = elems[i].indexOf("]");
+                                    while (ptr >= 0) {
+                                        sdepth--;
+                                        ptr = elems[i].indexOf("]", ptr+1);
+                                    }
+
+                                    i++;
+                                } while ((sdepth > 0) || (cdepth > 0));
+                                for (int j = 0; j < i; j++) {
+                                    op += elems[j] + ", ";
+                                }
+                            }
+                            op += "'*'";
+                        }
+                        op += "}";
+                        alphabet.add(op);
+                        System.out.println("\t\t\t" + op);
                     }
-                    op +=  "}";
-                    alphabet.add(op);
                 }
             }
         }

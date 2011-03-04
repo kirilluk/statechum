@@ -40,6 +40,8 @@ public abstract class Signature {
     }
 
     protected static Signature parseSignature(StringBuffer specbuf) {
+        System.out.println(">>>> " + specbuf.toString());
+        System.out.flush();
         Signature sig;
         String spec = specbuf.toString();
         if (spec.startsWith("_")) {
@@ -49,11 +51,25 @@ public abstract class Signature {
             // Integer literal
             // Floats are not supported atm...
             String val = "";
-            while (specbuf.substring(0, 1).matches("[0-9]")) {
+            while ((specbuf.length() > 0) && (specbuf.substring(0, 1).matches("[0-9]"))) {
                 val += "" + specbuf.substring(0, 1);
                 specbuf.delete(0, 1);
             }
-            sig = new LiteralSignature(val);
+            // handle ranges...
+            if (specbuf.toString().startsWith("..")) {
+                sig = new IntSignature();
+                ((IntSignature) sig).lower = Integer.parseInt(val);
+                specbuf.delete(0, 2);
+                val = "";
+                while ((specbuf.length() > 0) && (specbuf.substring(0, 1).matches("[0-9]"))) {
+                    val += "" + specbuf.substring(0, 1);
+                    specbuf.delete(0, 1);
+                }
+                ((IntSignature) sig).upper = Integer.parseInt(val);
+
+            } else {
+                sig = new LiteralSignature(val);
+            }
         } else if (spec.startsWith("any()")) {
             specbuf.delete(0, 5);
             sig = new AnySignature();
@@ -67,6 +83,10 @@ public abstract class Signature {
         } else if (spec.startsWith("number()")) {
             specbuf.delete(0, 8);
             sig = new IntSignature();
+        } else if (spec.startsWith("pos_integer()")) {
+            specbuf.delete(0, 13);
+            sig = new IntSignature();
+            ((IntSignature) sig).negative = false;
         } else if (spec.startsWith("binary()")) {
             specbuf.delete(0, 8);
             sig = new BinarySignature();
@@ -158,10 +178,8 @@ public abstract class Signature {
                 bufTrimmer(specbuf);
                 if (specbuf.charAt(0) == '{') {
                     depth += 1;
-                    System.out.println("depth: " + depth);
                 } else if (specbuf.charAt(0) == '}') {
                     depth -= 1;
-                    System.out.println("depth: " + depth);
                 }
             }
             specbuf.delete(0, 1);
@@ -169,10 +187,45 @@ public abstract class Signature {
             sig = rsig;
         } else {
             // Something else...
-
+System.out.println(specbuf.toString());
             // FIXME
-            String uk = specbuf.substring(0, 1);
-            specbuf.delete(0, 1);
+            int end = specbuf.length();
+            if (specbuf.indexOf(" ") > 0) {
+                end = specbuf.indexOf(" ");
+            }
+            if ((specbuf.indexOf("]") < end) && (specbuf.indexOf("]") >= 0)) {
+                end = specbuf.indexOf("]");
+            }
+            if ((specbuf.indexOf("|") < end) && (specbuf.indexOf("|") >= 0)) {
+                end = specbuf.indexOf("|");
+            }
+            if ((specbuf.indexOf("}") < end) && (specbuf.indexOf("}") >= 0)) {
+                end = specbuf.indexOf("}");
+            }
+            if ((specbuf.indexOf(")") < end) && (specbuf.indexOf(")") >= 0)) {
+                end = specbuf.indexOf(")");
+            }
+            if ((specbuf.indexOf("(") < end) && (specbuf.indexOf("(") >= 0)) {
+                end = specbuf.indexOf("(");
+                int d = 1;
+                while ((d > 0)&&(end < specbuf.length())) {
+                    end++;
+                    if (specbuf.substring(end).startsWith(")")) {
+                        d--;
+                    } else if (specbuf.substring(end).startsWith("(")) {
+                        d++;
+                    }
+                    System.out.println(specbuf.substring(end) + " (depth: " + d + ")");
+                }
+            }
+
+
+            String uk = specbuf.substring(0, end);
+            specbuf.delete(0, end);
+            if (specbuf.toString().startsWith(")")) {
+                uk = uk + ")";
+                specbuf.delete(0, 1);
+            }
             sig = new UnknownSignature(uk);
         }
         bufTrimmer(specbuf);
@@ -206,16 +259,16 @@ public abstract class Signature {
         }
     }
 
-    public static FuncSignature parseSignatureSpec(String spec) {
+    public static FuncSignature parseSignatureSpec(String spec) throws FailedToParseException {
         spec = spec.trim();
         if (!spec.startsWith("-spec")) {
             throw new RuntimeException("Trying to parse a spec that isn't a spec...");
         }
         System.out.println(spec);
         String name = spec.substring(("-spec ").length(), spec.indexOf("("));
-        int argsEnd = spec.lastIndexOf(")", spec.indexOf("->"));
+        int argsEnd = spec.substring(0, spec.lastIndexOf("->")).lastIndexOf(")");
         String args = spec.substring(("-spec ").length() + name.length() + 1, argsEnd).trim();
-        String res = spec.substring(spec.indexOf("->") + 2).trim();
+        String res = spec.substring(spec.lastIndexOf("->") + 2).trim();
         FuncSignature result = new FuncSignature(name);
         System.out.println("Function: " + result.funcName);
         StringBuffer argbuf = new StringBuffer(args);
@@ -235,9 +288,14 @@ public abstract class Signature {
                     // Another arg...
                     argbuf.delete(0, 1);
                     bufTrimmer(argbuf);
+                } else if (argbuf.charAt(0) == ')') {
+                    // Finished...??
+                    argbuf.delete(0, 1);
+                    bufTrimmer(argbuf);
                 } else {
                     // Er, what?
-                    throw new RuntimeException("Unparsable char '" + argbuf.charAt(0) + "' on the front of " + argbuf.toString());
+                    throw new FailedToParseException("Unparsable char '" + argbuf.charAt(0) + "' on the front of " + argbuf.toString());
+                    
                 }
             }
         }

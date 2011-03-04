@@ -86,13 +86,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     }
 
     @Override
-    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
-    		final List<String> question, 
-    		@SuppressWarnings("unused") final int expectedForNoRestart,
-            @SuppressWarnings("unused") final List<Boolean> consistentFacts, 
-            @SuppressWarnings("unused") final PairScore pairBeingMerged, 
-            @SuppressWarnings("unused") final Object[] moreOptions) 
-    {
+    public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,
+            final List<String> question,
+            @SuppressWarnings("unused") final int expectedForNoRestart,
+            @SuppressWarnings("unused") final List<Boolean> consistentFacts,
+            @SuppressWarnings("unused") final PairScore pairBeingMerged,
+            @SuppressWarnings("unused") final Object[] moreOptions) {
 
         Iterator<String> it = question.iterator();
         //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
@@ -104,6 +103,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             erlList += it.next();
         }
         erlList += "]";
+        String prefixString = null;
         Trace qtrace = new Trace(question);
         int failure = AbstractOracle.USER_CANCELLED;
         try {
@@ -112,16 +112,24 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
             if (prefix != null) {
                 if (prefix.negative) {
-                    failure = prefix.size()-1;
+                    failure = prefix.size() - 1;
                 } else {
-                    if(Trace.matchWithWildcard(prefix, qtrace)) {
+                    if (Trace.matchWithWildcard(prefix, qtrace)) {
                         failure = AbstractOracle.USER_ACCEPTED;
+                    } else {
+                        // Positive prefix - try alternative output
+                        Pair<Integer, String> alt = altOutput(prefix, qtrace);
+                        if (alt != null) {
+                            failure = alt.firstElem;
+                            prefixString = alt.secondElem;
+                        }
+
                     }
                 }
             }
 
             //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
-            if (failure != AbstractOracle.USER_ACCEPTED) {
+            if (failure == AbstractOracle.USER_CANCELLED) {
                 // We didn't find the answer in the existing traces file so lets extend it
                 // OR we did find a negative answer but it might be based on a wildcard for the output, so lets try again anyway!
                 String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
@@ -165,30 +173,66 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
                 ErlangQSMOracle.ErlangTraces = new PrefixTraceTree(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
                 //System.out.println("Traces Tree:\n" + ErlangQSMOracle.ErlangTraces.toString());
-
+                //System.out.flush();
                 prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
                 if (prefix != null) {
                     if (prefix.negative) {
-                        failure = prefix.size()-1;
+                        failure = prefix.size() - 1;
                     } else {
-                    if(Trace.matchWithWildcard(prefix, qtrace)) {
-                        failure = AbstractOracle.USER_ACCEPTED;
+                        if (Trace.matchWithWildcard(prefix, qtrace)) {
+                            failure = AbstractOracle.USER_ACCEPTED;
+                        } else {
+                            // Positive prefix but not actual data....
+                            // Output alternative?
+                            Pair<Integer, String> alt = altOutput(prefix, qtrace);
+                            if (alt != null) {
+                                failure = alt.firstElem;
+                                prefixString = alt.secondElem;
+                            }
+                        }
                     }
-                }
                 }
                 //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
                 // We really should have found the answer now...
                 if (failure == AbstractOracle.USER_TRACENOTFOUND) {
                     throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + question + ")...");
                 } else {
-                    //System.out.println("Erlang says " + prefix.toString() + " (" + prefix.size() + ") vs " + question + " ==> " + failure);
+                    //System.out.println("Erlang says " + prefix.toString() + " (" + prefix.size() + " - " + prefix.negative + ") vs " + question + " ==> " + failure);
                 }
             }
         } catch (IOException err) {
             statechum.Helper.throwUnchecked("failed to run Erlang", err);
         }
-        System.out.println("<Erlang> " + question + " " + failure);
-        return new Pair<Integer, String>(failure, null);
+        System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
+        if (failure != AbstractOracle.USER_NEWTRACE) {
+            return new Pair<Integer, String>(failure, null);
+        } else {
+            return new Pair<Integer, String>(failure, prefixString);
+        }
+    }
+
+    protected static Pair<Integer, String> altOutput(Trace prefix, Trace qtrace) {
+        Pair<Integer, String> result = null;
+        if (prefix.size() < qtrace.size()) {
+            //System.out.println("Prefix found: " + prefix.toString());
+            String item = qtrace.get(prefix.size());
+            // Wildcard the output
+            item = item.replaceAll(",[^,}]*}$", ",'*'}");
+            Trace newPrefix = prefix.clone();
+            newPrefix.add(item);
+            //System.out.println("Trying " + newPrefix.toString());
+            Trace alt = ErlangQSMOracle.ErlangTraces.findPrefix(newPrefix);
+            if ((alt != null)&&(alt.size() > prefix.size())) {
+                qtrace.negative = true;
+                result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, alt.toTraceString() + "/" + qtrace.toTraceString());
+                //System.out.println("Got: " + prefixString);
+                //System.exit(1);
+            } else {
+                //System.out.println("Nope...");
+            }
+        }
+        return result;
+
     }
 
     /** Evaluates the supplied command in Erlang environment.
@@ -209,7 +253,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
             @Override
             public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
-                //System.out.print(b.toString());
+                System.out.print(b.toString());
             }
         });
         erlangProcess.waitFor();
@@ -248,7 +292,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                 assert line.substring(0, 1).equals("+");
 
                 if (traceFromFile.size() >= erlTrace.size() && traceFromFile.isPrefix(erlTrace)) {
-                   // System.out.println("                        + " + traceFromFile);
+                    // System.out.println("                        + " + traceFromFile);
 
                     // This is an accept line for our string.
                     count = AbstractOracle.USER_ACCEPTED;

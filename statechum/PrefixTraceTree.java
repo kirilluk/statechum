@@ -51,7 +51,7 @@ public class PrefixTraceTree {
                 } else {
                     traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
                 }
-                if(neg.equals("-")) {
+                if (neg.equals("-")) {
                     traceFromFile.negative = true;
                 }
                 this.add(traceFromFile);
@@ -94,11 +94,14 @@ public class PrefixTraceTree {
 
     public Trace findPrefix(Trace t) {
         if (this.isPrefix(t)) {
-            // Maybe out children are longer
+            //System.out.println(t.toString() + " >>> " + prefix.toString());
+            // Maybe our children are longer
             Trace best = prefix;
             for (PrefixTraceTree tr : children) {
                 Trace c = tr.findPrefix(t);
                 if (c != null) {
+                    //System.out.flush();
+                    //System.out.println(tr.prefix.toString() + " <<< " + c.toString());
                     if (c.size() > best.size()) {
                         best = c;
                     }
@@ -106,6 +109,7 @@ public class PrefixTraceTree {
             }
             return best;
         } else {
+            //System.out.println(t.toString() + " !!! " + prefix.toString());
             return null;
         }
     }

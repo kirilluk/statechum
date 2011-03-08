@@ -65,16 +65,6 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         ta.setText(ta.getText() + "</html>");
         dependencies.getViewport().removeAll();
         dependencies.getViewport().add(ta, BorderLayout.CENTER);
-        ta = new JLabel("<html>");
-        for(String a: mod.getInitVals()) {
-            if(!ta.getText().equals("<html>")) {
-                ta.setText(ta.getText() + "<br />");
-            }
-            ta.setText(ta.getText() + a);
-        }
-        ta.setText(ta.getText() + "</html>");
-        initVals.getViewport().removeAll();
-        initVals.getViewport().add(ta, BorderLayout.CENTER);
     }
 
     /** This method is called from within the constructor to
@@ -94,8 +84,6 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         alphabet = new javax.swing.JScrollPane();
         dependencies = new javax.swing.JScrollPane();
         jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
-        initArgs = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         initVals = new javax.swing.JScrollPane();
@@ -123,10 +111,6 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
         jLabel3.setText("Dependencies:");
 
-        jLabel4.setText("Init Args:");
-
-        initArgs.setText("jLabel2");
-
         jLabel5.setText("Module:");
 
         jLabel6.setText("Init values:");
@@ -139,16 +123,6 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(12, 12, 12)
-                        .addComponent(jLabel4)
-                        .addGap(18, 18, 18)
-                        .addComponent(initArgs, javax.swing.GroupLayout.PREFERRED_SIZE, 371, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(12, 12, 12)
-                        .addComponent(jLabel1)
-                        .addGap(6, 6, 6)
-                        .addComponent(behaviour, javax.swing.GroupLayout.PREFERRED_SIZE, 371, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -172,7 +146,12 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                                 .addComponent(jLabel5)
                                 .addGap(25, 25, 25)
                                 .addComponent(moduleName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 786, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 786, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel1)
+                        .addGap(6, 6, 6)
+                        .addComponent(behaviour, javax.swing.GroupLayout.PREFERRED_SIZE, 371, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -184,13 +163,9 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                     .addComponent(moduleName))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel4)
-                    .addComponent(initArgs))
-                .addGap(6, 6, 6)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1)
                     .addComponent(behaviour))
-                .addGap(6, 6, 6)
+                .addGap(27, 27, 27)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel6)
                     .addComponent(jLabel3))
@@ -231,13 +206,11 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
     private javax.swing.JScrollPane alphabet;
     private javax.swing.JLabel behaviour;
     private javax.swing.JScrollPane dependencies;
-    private javax.swing.JLabel initArgs;
     private javax.swing.JScrollPane initVals;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel moduleName;

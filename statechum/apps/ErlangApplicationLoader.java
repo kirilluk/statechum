@@ -249,6 +249,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_beginButtonActionPerformed
         // Copy in our generic stubs...
         try {
+            // Already compiled for TypEr?
+            /*
             for (File f : folder.listFiles()) {
                 int dot = f.getName().lastIndexOf(".");
                 if (dot >= 0) {
@@ -259,6 +261,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                     }
                 }
             }
+             * 
+             */
             File ErlangFolder = new File("ErlangOracle");
             for (File f : ErlangFolder.listFiles()) {
                 int dot = f.getName().lastIndexOf(".");

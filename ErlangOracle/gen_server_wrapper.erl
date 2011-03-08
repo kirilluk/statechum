@@ -13,10 +13,13 @@ exec_call_trace(Module, [{init, InitArgs} | Trace], OpProc) ->
 exec_call_trace(_Module, [], _OpProc) ->
     ok;
 exec_call_trace(_Module, _TraceNoInitArgs, _OpProc) ->
-    erlang:error("Trace with no init!").
+    erlang:exit("Trace with no init!").
 
 call_trace(_ModulePid, [], _OpProc) ->
     ok;
+%% Calling inits after initialisation is always bad...
+call_trace({_Module, _Pid}, [{init, _T} | _Trace], _OpProc) ->
+    erlang:exit("Init inside trace!");
 %% This will accept any Output but records it in the written trace
 call_trace({Module, Pid}, [{call, T, '*'} | Trace], OpProc) ->
     OP = gen_server:call(Module, T, 500),
@@ -26,7 +29,7 @@ call_trace({Module, Pid}, [{call, T, OP} | Trace], OpProc) ->
     ThisOP = gen_server:call(Module, T, 500),
     if (ThisOP =/= OP) ->
 	    OpProc ! {self(), output_mismatch, {call, T, ThisOP}},
-	    erlang:error("Output mismatch");
+	    erlang:exit("Output mismatch");
       true ->
 	    OpProc ! {self(), output, {call, T, ThisOP}},
 	    call_trace({Module, Pid}, Trace, OpProc)

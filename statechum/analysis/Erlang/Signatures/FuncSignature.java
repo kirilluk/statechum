@@ -17,10 +17,12 @@ public class FuncSignature {
 
     public String funcName = "";
     public Collection<ArrayList<Signature>> args;
+    public Collection<String> argInstances;
     public Signature result;
 
     public FuncSignature() {
         args = new ArrayList<ArrayList<Signature>>();
+        argInstances = new ArrayList<String>();
     }
 
     public FuncSignature(String n) {
@@ -81,7 +83,7 @@ public class FuncSignature {
         for (ArrayList<Signature> a : args) {
             res.addAll(instantiateListOfArgs(a));
         }
-
+        res.addAll(argInstances);
         return res;
     }
 }

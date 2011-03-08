@@ -37,8 +37,6 @@ public class ErlangOracleRunner implements Runnable {
         moduleName = m.name;
         functionName = m.behaviour.name + "_wrapper";
         Alphabet = m.behaviour.getAlphabetString();
-        //initArgs = m.behaviour.initArgs;
-        //FIXME trace handling of init...
         initArgs = "[";
         for(String a: m.behaviour.initArgs) {
             if(!initArgs.equals("[")) {

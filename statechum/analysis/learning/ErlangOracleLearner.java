@@ -188,11 +188,15 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                             if (alt != null) {
                                 failure = alt.firstElem;
                                 prefixString = alt.secondElem;
+                            } else {
+                                // We can't resolve this with output matching.
+                                // We should try actually asking Erlang...
+                                // failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, qtrace);
+                                System.out.println("Er, what?");
                             }
                         }
                     }
                 }
-                //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
                 // We really should have found the answer now...
                 if (failure == AbstractOracle.USER_TRACENOTFOUND) {
                     throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + question + ")...");
@@ -203,7 +207,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         } catch (IOException err) {
             statechum.Helper.throwUnchecked("failed to run Erlang", err);
         }
-        System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
+        //System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
         if (failure != AbstractOracle.USER_NEWTRACE) {
             return new Pair<Integer, String>(failure, null);
         } else {

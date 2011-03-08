@@ -40,8 +40,8 @@ public abstract class Signature {
     }
 
     protected static Signature parseSignature(StringBuffer specbuf) {
-        System.out.println(">>>> " + specbuf.toString());
-        System.out.flush();
+        //System.out.println(">>>> " + specbuf.toString());
+        //System.out.flush();
         Signature sig;
         String spec = specbuf.toString();
         if (spec.startsWith("_")) {
@@ -187,7 +187,7 @@ public abstract class Signature {
             sig = rsig;
         } else {
             // Something else...
-System.out.println(specbuf.toString());
+            //System.out.println(specbuf.toString());
             // FIXME
             int end = specbuf.length();
             if (specbuf.indexOf(" ") > 0) {
@@ -208,14 +208,14 @@ System.out.println(specbuf.toString());
             if ((specbuf.indexOf("(") < end) && (specbuf.indexOf("(") >= 0)) {
                 end = specbuf.indexOf("(");
                 int d = 1;
-                while ((d > 0)&&(end < specbuf.length())) {
+                while ((d > 0) && (end < specbuf.length())) {
                     end++;
                     if (specbuf.substring(end).startsWith(")")) {
                         d--;
                     } else if (specbuf.substring(end).startsWith("(")) {
                         d++;
                     }
-                    System.out.println(specbuf.substring(end) + " (depth: " + d + ")");
+                    //System.out.println(specbuf.substring(end) + " (depth: " + d + ")");
                 }
             }
 
@@ -295,13 +295,13 @@ System.out.println(specbuf.toString());
                 } else {
                     // Er, what?
                     throw new FailedToParseException("Unparsable char '" + argbuf.charAt(0) + "' on the front of " + argbuf.toString());
-                    
+
                 }
             }
         }
         result.args.add(argset);
         System.out.println("Args: " + result.instantiateAllArgs().size() + " possibilities");
-        /*
+        
         boolean firstline = true;
         for (String a : result.instantiateAllArgs()) {
         if (!firstline) {
@@ -313,8 +313,6 @@ System.out.println(specbuf.toString());
         }
         System.out.println("");
 
-         *
-         */
         StringBuffer resbuf = new StringBuffer(res);
         while (resbuf.length() > 0) {
             Signature a = parseSignature(resbuf);

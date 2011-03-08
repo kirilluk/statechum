@@ -65,17 +65,21 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
     OPTrace = flushOPTrace(PartialOPTrace, Pid),
+    %%io:format("~p >>>> ~p~n", [NewProcStatus, OPTrace]),
     case ProcStatus of
 	ok ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
 	faild_but ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
 	failed ->
+	    %%io:format("FAILED...~n"),
 	    if
 		length(OPTrace) < length(Trace) ->
+		    %% Failed on a function call. Last element not recorded
 		    %%io:format("Adding ~p to the end...~n", [lists:nth(length(OPTrace)+1, Trace)]),
 		    FullOPTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)];
 		true ->
+		    %% Failed on output?
 		    %%io:format("Trace is already long enough (~p vs ~p)...~n", [length(OPTrace), length(Trace)]),
 		    FullOPTrace = OPTrace
 	    end,
@@ -88,8 +92,11 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
 flushOPTrace(OPTrace, Pid) ->
     receive
 	{Pid, output, OP} ->
-	    flushOPTrace(OPTrace ++ [OP], Pid)
-    after 1000 ->
+	    flushOPTrace(OPTrace ++ [OP], Pid);
+	Msg ->
+	    io:format("UNHANDLED: ~p~n", [Msg]),
+	    flushOPTrace(OPTrace, Pid)
+    after 500 ->
 	    OPTrace
     end.
 		 
@@ -139,23 +146,26 @@ await_end(Pid, Ref) ->
     await_end(Pid, Ref, []).
 
 await_end(Pid, Ref, OpTrace) ->
-    case lists:member(Pid, erlang:processes()) of
-	false ->
+    receive
+	{'DOWN', Ref, _X, _Y, normal} ->
 	    {ok, OpTrace};
-	true ->
-	    receive
-		{'DOWN', Ref, _X, _Y, normal} ->
+	{'EXIT', Ref, _X, _Y, _Status} ->
+	    {failed, OpTrace};
+	{'DOWN', Ref, _X, _Y, _Status} ->
+	    {failed, OpTrace};
+	{Pid, output, OP} ->
+	    await_end(Pid, Ref, OpTrace ++ [OP]);
+	{Pid, output_mismatch, OP} ->
+	    {failed_but, OpTrace ++ [OP]};
+	{Pid, failed, OP} ->
+	    {failed, OpTrace ++ [OP]}
+    after 500 ->    
+	    case lists:member(Pid, erlang:processes()) of
+		false ->
+		    io:format("Scone...~n"),
 		    {ok, OpTrace};
-		{'EXIT', Ref, _X, _Y, _Status} ->
-		    {failed, OpTrace};
-		{'DOWN', Ref, _X, _Y, _Status} ->
-		    {failed, OpTrace};
-		{Pid, output, OP} ->
-		    await_end(Pid, Ref, OpTrace ++ [OP]);
-		{Pid, output_mismatch, OP} ->
-		    {failed_but, OpTrace ++ [OP]}
-	    after 100 ->
-		      await_end(Pid, Ref, OpTrace)
+		true ->	    
+		    await_end(Pid, Ref, OpTrace)
 	    end
     end.
 
@@ -286,6 +296,7 @@ gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile) ->
 try_all_traces(_WrapperModule, _Module, [], _OutFile, _ModuleList) ->
     ok;
 try_all_traces(WrapperModule, Module, [T | Traces], OutFile, ModuleList) ->
+    io:format("~w~n", [T]),
     first_failure(WrapperModule, Module, T, OutFile, ModuleList),
     try_all_traces(WrapperModule, Module, Traces, OutFile, ModuleList).
 

@@ -336,7 +336,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     //System.out.println("");
                 }
                 if (prefixMap == null) {
-                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + prefix + "!!");
+                    return new CodeCoverageMap();
+//                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + prefix + "!!");
                 }
             }
             if (suffixMap == null) {
@@ -349,7 +350,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     }
                 }
                 if (suffixMap == null) {
-                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + suffix + "!!");
+                    return new CodeCoverageMap();
+//                    throw new RuntimeException("ZOMG!!! NO COVERAGE DATA FOR " + suffix + "!!");
                 }
             }
             result = suffixMap.subtract(prefixMap);

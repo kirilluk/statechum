@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.analysis.Erlang.Signatures.FailedToParseException;
-import statechum.analysis.Erlang.Signatures.UnknownSignature;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
@@ -49,7 +48,8 @@ public class ErlangModule {
 
     }
 
-    public ErlangModule(File f) throws IOException {
+    public ErlangModule(final File f) throws IOException {
+        System.out.println("----------------  " + f.getName() + "  --------------------------");
         sigs = new TreeMap<String, FuncSignature>();
 
         // Compile and typecheck the module...
@@ -75,11 +75,12 @@ public class ErlangModule {
                 while (spec != null) {
                     FuncSignature sig;
                     try {
-                    sig = Signature.parseSignatureSpec(spec);
+                        sig = Signature.parseSignatureSpec(spec);
+                        sig.argInstances.addAll(seekUsages(sig.funcName, f));
+                        sigs.put(sig.funcName, sig);
                     } catch (FailedToParseException e) {
                         sig = null;
                     }
-                    sigs.put(sig.funcName, sig);
                     buf = buf.substring(spec.length());
                     spec = getFirstSpec(buf);
                 }
@@ -120,14 +121,47 @@ public class ErlangModule {
         behaviour.loadInitArgs();
         behaviour.loadAlphabet();
         behaviour.loadDependencies(f);
-        System.out.println("Module " + name + " init vals:");
-        if(sigs.get("init") == null) {
-            System.out.println("\tinit function not found.");
-        } else {
-        for (String s : sigs.get("init").instantiateAllArgs()) {
-            System.out.println("\t" + s);
+    }
+
+    private static Collection<String> seekUsages(String funcName, File f) {
+        Collection<String> result = new ArrayList<String>();
+
+        // Open the Erlang source files...
+        try {
+            BufferedReader input = new BufferedReader(new FileReader(f));
+            String line = "";
+            while ((line = input.readLine()) != null) {
+                // Look for calls to this func
+                int ptr = line.indexOf(funcName + "(");
+                while (ptr >= 0) {
+                    System.out.println("Got call to " + funcName + " on line \"" + line + "\"");
+                    int depth = 1;
+                    ptr += (funcName + "(").length();
+                    int start = ptr;
+                    while (depth > 0) {
+                        // Allow for () in the argstring itself...
+                        if (line.charAt(ptr) == '(') {
+                            depth++;
+                        } else if (line.charAt(ptr) == ')') {
+                            depth--;
+                        }
+                        ptr++;
+                    }
+                    ptr--;
+                    // Add to argument string to the result list
+                    result.add(line.substring(start, ptr));
+                    System.out.println("\t" + line.substring(start, ptr));
+                    line = line.substring(ptr);
+                    ptr = line.indexOf(funcName + "(");
+                    // Loop for more occurences on this line
+                }
+            }
+            input.close();
+        } catch (IOException e) {
+            ;
         }
-        }
+
+        return result;
     }
 
     public String getName() {
@@ -152,14 +186,4 @@ public class ErlangModule {
         return getName() + " [" + behaviour.toString() + "] (" + behaviour.dependencies.size() + " dependecies)";
     }
 
-    public Collection<String> getInitVals() {
-        ArrayList<String> res = new ArrayList<String>();
-        FuncSignature initSig = sigs.get("init");
-        if (initSig != null) {
-            for (String a : initSig.instantiateAllArgs()) {
-                res.add("{init, " + a + "}");
-            }
-        }
-        return res;
-    }
 }

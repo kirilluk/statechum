@@ -100,7 +100,13 @@ public abstract class OTPBehaviour {
         FuncSignature initSig = parent.sigs.get("init");
         if (initSig != null) {
             for (String a : initSig.instantiateAllArgs()) {
-                initArgs.add("{init, " + a + "}");
+                // Skip values with variables since we cant instantiate them...
+                if (!(a.matches("^[_A-Z].*") || a.matches(".* [_A-Z].*"))) {
+                    System.out.println("Init: " + a);
+                    initArgs.add("{init, " + a + "}");
+                } else {
+                    System.out.println("Excluding Init: " + a);
+                }
             }
         }
     }
@@ -114,52 +120,61 @@ public abstract class OTPBehaviour {
                     Pair<String, Boolean> pat = patterns.get(p);
                     String op = "{" + pat.firstElem + ", ";
                     String[] elems = a.split(",");
-                    if (pat.secondElem.booleanValue()) {
-
-                        if (a.indexOf("}") < 0) {
-                            op += elems[0];
+                    String second = "";
+                    second = "";
+                    if (a.indexOf("}") < 0) {
+                        second = elems[0];
+                    } else {
+                        if (a.indexOf(",") < a.indexOf("{")) {
+                            // its not in the first elem...
+                            second = elems[0];
                         } else {
-                            if (a.indexOf(",") < a.indexOf("{")) {
-                                // its not in the first elem...
-                                op += elems[0];
-                            } else {
-                                int i = 0;
-                                // Find the end of the first elem...
-                                int cdepth = 0;
-                                int sdepth = 0;
-                                do {
-                                    int ptr = elems[i].indexOf("{");
-                                    while (ptr >= 0) {
-                                        cdepth++;
-                                        ptr = elems[i].indexOf("{", ptr+1);
-                                    }
-                                     ptr = elems[i].indexOf("[");
-                                    while (ptr >= 0) {
-                                        sdepth++;
-                                        ptr = elems[i].indexOf("{", ptr+1);
-                                    }
-                                     ptr = elems[i].indexOf("}");
-                                    while (ptr >= 0) {
-                                        cdepth--;
-                                        ptr = elems[i].indexOf("}", ptr+1);
-                                    }
-                                     ptr = elems[i].indexOf("]");
-                                    while (ptr >= 0) {
-                                        sdepth--;
-                                        ptr = elems[i].indexOf("]", ptr+1);
-                                    }
-
-                                    i++;
-                                } while ((sdepth > 0) || (cdepth > 0));
-                                for (int j = 0; j < i; j++) {
-                                    op += elems[j] + ", ";
+                            int i = 0;
+                            // Find the end of the first elem...
+                            int cdepth = 0;
+                            int sdepth = 0;
+                            do {
+                                int ptr = elems[i].indexOf("{");
+                                while (ptr >= 0) {
+                                    cdepth++;
+                                    ptr = elems[i].indexOf("{", ptr + 1);
                                 }
+                                ptr = elems[i].indexOf("[");
+                                while (ptr >= 0) {
+                                    sdepth++;
+                                    ptr = elems[i].indexOf("{", ptr + 1);
+                                }
+                                ptr = elems[i].indexOf("}");
+                                while (ptr >= 0) {
+                                    cdepth--;
+                                    ptr = elems[i].indexOf("}", ptr + 1);
+                                }
+                                ptr = elems[i].indexOf("]");
+                                while (ptr >= 0) {
+                                    sdepth--;
+                                    ptr = elems[i].indexOf("]", ptr + 1);
+                                }
+
+                                i++;
+                            } while ((sdepth > 0) || (cdepth > 0));
+                            for (int j = 0; j < i; j++) {
+                                if(j > 0) {
+                                    second +=  ", ";
+                                }
+                                second += elems[j];
                             }
-                            op += "'*'";
                         }
-                        op += "}";
+                    }
+                        if (pat.secondElem.booleanValue()) {
+                            second += ", '*'";
+                        }
+                    op += second + "}";
+                    if (!(second.matches("^[_A-Z].*") || second.matches(".* [_A-Z].*"))) {
+                        System.out.println("Including " + op);
                         alphabet.add(op);
-                        System.out.println("\t\t\t" + op);
+                    } else {
+                        System.out.println("Skipping " + op);
+
                     }
                 }
             }

@@ -315,33 +315,44 @@ public class RPNIUniversalLearner extends RPNILearner
 					if (traceDescr == null) traceDescr = JOptionPane.showInputDialog("New trace :");
 					if(traceDescr != null && traceDescr.length() != 0)
 					{
-						List<String> traceToAdd = null;
-						boolean positive = true;
-						if (QSMTool.isCmdWithArgs(traceDescr,QSMTool.cmdPositive))
+						StringBuffer traceString = new StringBuffer();
+
+						StringTokenizer tokenizer = new StringTokenizer(traceDescr,"/");
+						while (tokenizer.hasMoreTokens())
 						{
-							positive = true;
-							traceToAdd = QSMTool.tokeniseInput(traceDescr.substring(QSMTool.cmdPositive.length()+1));
-						}
-						else if (QSMTool.isCmdWithArgs(traceDescr,QSMTool.cmdNegative))
-						{
-							positive = false;
-							traceToAdd = QSMTool.tokeniseInput(traceDescr.substring(QSMTool.cmdNegative.length()+1));
-						}
-						else
-							throw new IllegalArgumentException("trace not labelled as either positive or negative");
-					
-						StringBuffer traceString = new StringBuffer(positive?QSMTool.cmdPositive:QSMTool.cmdNegative);
-						traceString.append(' ');
-						boolean firstElem = true;
-						for(String elem:traceToAdd)
-						{
-							if (!firstElem) traceString.append(", ");else firstElem = false;
-							traceString.append(elem);
-						}
+							String newTrace = tokenizer.nextToken().trim();
+							if (newTrace.length() > 0)
+							{
+								List<String> traceToAdd = null;
+								boolean positive = true;
+								if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdPositive))
+								{
+									positive = true;
+									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdPositive.length()+1));
+								}
+								else if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdNegative))
+								{
+									positive = false;
+									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdNegative.length()+1));
+								}
+								else
+									throw new IllegalArgumentException("trace not labelled as either positive or negative");
 						
+								if (traceString.length() > 0) traceString.append(" / ");
+								traceString.append(positive?QSMTool.cmdPositive:QSMTool.cmdNegative);
+								traceString.append(' ');
+								boolean firstElem = true;
+								for(String elem:traceToAdd)
+								{
+									if (!firstElem) traceString.append(" ");else firstElem = false;
+									traceString.append(elem);
+								}
+								// The following will append a trace and check its consistency with the existing set of traces, choking if our path is inconsistent with hardfacts
+								topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,traceToAdd, positive,colourToAugmentWith);
+								
+							}
+						} // tokenizer
 						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceString);
-						// The following will append a trace and check its consistency with the existing set of traces, choking if our path is inconsistent with hardfacts
-						topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,traceToAdd, positive,colourToAugmentWith);
 						restartLearning = RestartLearningEnum.restartHARD;// force a full restart.
 					}
 				}
@@ -361,7 +372,8 @@ public class RPNIUniversalLearner extends RPNILearner
 							restartLearning = RestartLearningEnum.restartSOFT;
 						
 					}
-				} else 
+				} 
+				else 
 				if (answer.firstElem >= 0) 
 				{// The sequence has been rejected by a user
 					assert answer.firstElem < question.size();
@@ -432,10 +444,11 @@ public class RPNIUniversalLearner extends RPNILearner
 									String errorMessage = getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString());
 									if (obtainedLTLViaAuto) // cannot recover from autosetting, otherwise warn a user
 										throw new IllegalArgumentException(errorMessage);
-											// if not obtained via auto, complain
-								        	System.out.println(errorMessage);
+									// if not obtained via auto, complain
+						        	System.out.println(errorMessage);
 								} 
 							}
+
 							// the current set of constraints does not contradict hard facts, update them and restart learning.
 							ifthenAutomataAsText.add(answerType+" "+addedConstraint);
 							

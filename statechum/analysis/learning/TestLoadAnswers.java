@@ -238,6 +238,16 @@ public class TestLoadAnswers {
 		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
 	}
 	
+	@Test
+	public void testLoadAnswersNewTrace2() throws IOException 
+	{
+		StoredAnswers sa = new StoredAnswers();
+		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB // elemC elemA / \n"));
+		Assert.assertEquals(1,sa.getCount());
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB // elemC elemA / "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+	}
+	
 	/** Missing text of the trace. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersNewTraceFail1() throws IOException 

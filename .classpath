@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="bin" including="statechum/**/*.java" kind="src" path="exp1"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="lib" path="exp1/lib/colt.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/commons-collections-3.1.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/jltl2ba.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/jung-1.7.6.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/junit-4.4.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/sootclasses.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

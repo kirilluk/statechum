@@ -138,7 +138,13 @@ public class ErlangModule {
                     int depth = 1;
                     ptr += (funcName + "(").length();
                     int start = ptr;
-                    while (depth > 0) {
+                    while ((depth > 0)&&(ptr <= line.length())) {
+                        if((ptr == line.length())&&(depth > 0)) {
+                            String newLine = input.readLine();
+                            if(newLine != null) {
+                                line += newLine;
+                            }
+                        }
                         // Allow for () in the argstring itself...
                         if (line.charAt(ptr) == '(') {
                             depth++;

@@ -69,7 +69,7 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
     case ProcStatus of
 	ok ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
-	faild_but ->
+	failed_but ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
 	failed ->
 	    %%io:format("FAILED...~n"),
@@ -162,7 +162,7 @@ await_end(Pid, Ref, OpTrace) ->
     after 500 ->    
 	    case lists:member(Pid, erlang:processes()) of
 		false ->
-		    io:format("Scone...~n"),
+		    %%io:format("Scone...~n"),
 		    {ok, OpTrace};
 		true ->	    
 		    await_end(Pid, Ref, OpTrace)

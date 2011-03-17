@@ -11,6 +11,6 @@ package statechum.analysis.Erlang.Signatures;
 public class StringSignature extends Signature {
 
     public String instantiate() {
-        return "\"wibble\"";
+        return "'wibble'";
     }
 }

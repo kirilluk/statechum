@@ -101,7 +101,7 @@ public abstract class OTPBehaviour {
         if (initSig != null) {
             for (String a : initSig.instantiateAllArgs()) {
                 // Skip values with variables since we cant instantiate them...
-                if (!(a.matches("^[_A-Z].*") || a.matches(".* [_A-Z].*"))) {
+                if ((!(a.matches("^[_A-Z].*") || a.matches(".* [_A-Z].*")))&&(a.length() > 0)) {
                     System.out.println("Init: " + a);
                     initArgs.add("{init, " + a + "}");
                 } else {
@@ -158,16 +158,16 @@ public abstract class OTPBehaviour {
                                 i++;
                             } while ((sdepth > 0) || (cdepth > 0));
                             for (int j = 0; j < i; j++) {
-                                if(j > 0) {
-                                    second +=  ", ";
+                                if (j > 0) {
+                                    second += ", ";
                                 }
                                 second += elems[j];
                             }
                         }
                     }
-                        if (pat.secondElem.booleanValue()) {
-                            second += ", '*'";
-                        }
+                    if (pat.secondElem.booleanValue()) {
+                        second += ", '*'";
+                    }
                     op += second + "}";
                     if (!(second.matches("^[_A-Z].*") || second.matches(".* [_A-Z].*"))) {
                         System.out.println("Including " + op);

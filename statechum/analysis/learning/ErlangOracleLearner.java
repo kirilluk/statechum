@@ -207,7 +207,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         } catch (IOException err) {
             statechum.Helper.throwUnchecked("failed to run Erlang", err);
         }
-        //System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
+        System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
         if (failure != AbstractOracle.USER_NEWTRACE) {
             return new Pair<Integer, String>(failure, null);
         } else {

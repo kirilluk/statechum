@@ -10,12 +10,17 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
+import statechum.Configuration;
 import statechum.Pair;
 import statechum.PrefixTraceTree;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
 import statechum.analysis.learning.*;
+import statechum.analysis.learning.observers.AutoAnswers;
+import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
 
 /**
  *
@@ -25,7 +30,7 @@ import statechum.analysis.learning.*;
  *
  * @author ramsay
  */
-public class ErlangQSMOracle extends QSMTool {
+public class ErlangQSMOracle {
 
     public static String erlangModule;
     public static Collection<String> erlangModules;
@@ -76,26 +81,17 @@ public class ErlangQSMOracle extends QSMTool {
         // Strip wildcard traces from the file...
         wildCardStrip(ErlangFolder + "/" + tracesFile);
 
-        ErlangQSMOracle tool = new ErlangQSMOracle();
+        QSMTool tool = new QSMTool();
         tool.loadConfig(ErlangFolder + "/" + tracesFile);
-        tool.runExperiment();
-    }
 
-    @Override
-    public void runExperiment() {
-        setSimpleConfiguration(learnerInitConfiguration.config, active, k);
-        if (learnerInitConfiguration.ifthenSequences != null && !learnerInitConfiguration.ifthenSequences.isEmpty()) {
-            learnerInitConfiguration.config.setUseLTL(true);
-        }
-        if (learnerInitConfiguration.labelDetails != null) {
-            sPlus.addAll(learnerInitConfiguration.labelDetails.getSPlus());
-            sMinus.addAll(learnerInitConfiguration.labelDetails.getSMinus());
-        }
+        QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config, true, 0);
+        ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
         // This is the one line thats actually changed...
-        ErlangOracleVisualiser pnv = new ErlangOracleVisualiser();
-        pnv.construct(sPlus, sMinus, learnerInitConfiguration);
+  	ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration);
+	innerLearner.addObserver(viz);
+       	LearnerGraph graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
+	        	//if (graph != null)
 
-        pnv.startLearner(null);
         // new PickNegativesVisualiser(new
         // SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
         //config.setMinCertaintyThreshold(1);

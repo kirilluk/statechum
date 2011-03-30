@@ -107,15 +107,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         Trace qtrace = new Trace(question);
         int failure = AbstractOracle.USER_CANCELLED;
         try {
+            Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
             // Lets see if QSM is being silly and we already know the answer...
 
-            Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
-            if (prefix != null) {
+            if ((prefix != null) && (prefix.size() > 0)) {
                 if (prefix.negative) {
                     failure = prefix.size() - 1;
                 } else {
-                    if (Trace.matchWithWildcard(prefix, qtrace)) {
-                        failure = AbstractOracle.USER_ACCEPTED;
+                    if (prefix.equals(qtrace)) {
+                        throw new RuntimeException("Er, why are you asking? " + qtrace.toString() + " (" + prefix.toString() + ")");
+                        //failure = AbstractOracle.USER_ACCEPTED;
+                    }
+                    /*
                     } else {
                         // Positive prefix - try alternative output
                         Pair<Integer, String> alt = altOutput(prefix, qtrace);
@@ -125,8 +128,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                         }
 
                     }
+                     * 
+                     */
                 }
             }
+
 
             //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
             if (failure == AbstractOracle.USER_CANCELLED) {
@@ -179,7 +185,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                     if (prefix.negative) {
                         failure = prefix.size() - 1;
                     } else {
-                        if (Trace.matchWithWildcard(prefix, qtrace)) {
+                        if (prefix.equals(qtrace)) {
                             failure = AbstractOracle.USER_ACCEPTED;
                         } else {
                             // Positive prefix but not actual data....
@@ -189,10 +195,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                                 failure = alt.firstElem;
                                 prefixString = alt.secondElem;
                             } else {
-                                // We can't resolve this with output matching.
-                                // We should try actually asking Erlang...
-                                // failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, qtrace);
-                                System.out.println("Er, what?");
+                                System.out.println("Er, what?\n>>>" + prefix.toString() + "\n>>>" + qtrace.toString() + "\n");
                             }
                         }
                     }
@@ -224,9 +227,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             item = item.replaceAll(",[^,}]*}$", ",'*'}");
             Trace newPrefix = prefix.clone();
             newPrefix.add(item);
-            //System.out.println("Trying " + newPrefix.toString());
+            System.out.println("Trying " + newPrefix.toString());
             Trace alt = ErlangQSMOracle.ErlangTraces.findPrefix(newPrefix);
-            if ((alt != null)&&(alt.size() > prefix.size())) {
+            if ((alt != null) && (alt.size() > prefix.size())) {
                 qtrace.negative = true;
                 result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, alt.toTraceString() + "/" + qtrace.toTraceString());
                 //System.out.println("Got: " + prefixString);

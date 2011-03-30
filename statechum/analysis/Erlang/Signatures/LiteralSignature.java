@@ -17,6 +17,6 @@ public class LiteralSignature extends Signature {
     }
 
     public String instantiate() {
-        return "'" + value + "'";
+        return value;
     }
 }

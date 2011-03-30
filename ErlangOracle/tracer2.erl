@@ -65,7 +65,7 @@ try_trace(WrapperModule, Module, Trace, ModulesList) ->
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
     OPTrace = flushOPTrace(PartialOPTrace, Pid),
-    %%io:format("~p >>>> ~p~n", [NewProcStatus, OPTrace]),
+    io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
     case ProcStatus of
 	ok ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
@@ -284,7 +284,7 @@ add_init_heads([Arg | InitArgs], InputSet) ->
     lists:map(fun(Elem) -> [Arg | Elem] end, InputSet) ++ add_init_heads(InitArgs, InputSet).
 
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
-    InputSet = lists:sort(generate_input_set(Alphabet, 20, [])),
+    InputSet = lists:sort(generate_input_set(Alphabet, 12, [])),
     %% InitArgs now contains a list of different possible init args in the form {init, Arg}
     %% We should give QSM a  headstart and try all the traces will all possible initialisations...
     InputSetInited = add_init_heads(InitArgs, InputSet),

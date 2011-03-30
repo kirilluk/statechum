@@ -225,6 +225,7 @@ public class Trace implements Comparable<Trace> {
         // We now have to allow for wildcards in output specs
         // we are using the string "'*'" as the wildcard...
         int wildcardplace = x.indexOf(wildcard);
+        //System.out.println("\t" + x + " == " + wildcardplace);
         if (wildcardplace >= 0) {
             // We need to replace the wildcard with what we DID find...
             String pre = x.substring(0, wildcardplace);

@@ -1,9 +1,23 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 Ramsay Taylor and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 package statechum.analysis.Erlang;
 
+import statechum.GlobalConfiguration;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import java.io.BufferedReader;
@@ -13,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import statechum.analysis.Erlang.Signatures.FailedToParseException;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -48,15 +63,55 @@ public class ErlangModule {
 
     }
 
+    public static final String behaviourToken = "-behaviour(";
+    
+    /** Given the name of Erlang file, this method strips out the extension and returns the result.
+     * The name is supposed to be a valid file name.
+     * 
+     * @param fileName File name to remove the extension from
+     * @return stripped file name.
+     */
+    public static String getErlName(String fileName)
+    {
+    	if (fileName == null) return null;
+    	String trimmedName = fileName.trim();
+    	int pos = trimmedName.lastIndexOf('.');
+    	if (pos <= 0 || !trimmedName.substring(pos).equals(".erl"))
+    		return null;
+    	return trimmedName.substring(0, pos);
+    }
+    
+    /** Obtains a binary directory for an Erlang executable. */
+    public static String getErlangBin()
+    {
+    	String erlangBin = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME);
+    	if (erlangBin != null) erlangBin = erlangBin+File.separator+"bin"+File.separator;else erlangBin = "";
+    	return erlangBin;
+    }
+    
     public ErlangModule(final File f) throws IOException {
-        System.out.println("----------------  " + f.getName() + "  --------------------------");
+    	name = getErlName(f.getName());if (name == null) throw new IllegalArgumentException("invalid Erlang file name "+f.getName());
+        System.out.println("----------------  " + name + "  --------------------------");
         sigs = new TreeMap<String, FuncSignature>();
 
         // Compile and typecheck the module...
-        ErlangApplicationLoader.dumpProcessOutput(Runtime.getRuntime().exec("erlc +debug_info " + f.getName(), null, f.getParentFile()));
-        ErlangApplicationLoader.dumpProcessOutput(Runtime.getRuntime().exec("dialyzer --build_plt " + f.getName().replace(".erl", ".beam"), null, f.getParentFile()));
+        Process p = Runtime.getRuntime().exec(new String[]{getErlangBin()+"erlc","+debug_info",f.getName()}, null, f.getParentFile());
+        
+        ErlangApplicationLoader.dumpProcessOutputOnFailure("erlc",p);
+        final String pltFileName = f.getParentFile().getAbsolutePath()+File.separator+name+".plt";
+        // Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
+
+        Map<String,String> environment = System.getenv();
+        String [] envp = new String[environment.size()+1];int i=0;
+        for(Entry<String,String> entry:System.getenv().entrySet())
+        	envp[i++]=entry.getKey()+"="+entry.getValue();envp[i++]="HOME="+f.getParentFile().getAbsolutePath();
+
+        p=Runtime.getRuntime().exec(new String[]{getErlangBin()+"dialyzer","--build_plt","--output_plt",pltFileName,name+".beam"}, envp, f.getParentFile());
+        ErlangApplicationLoader.dumpProcessOutputOnFailure("dialyzer",p);
+
         // Receive the type info....
-        Process p = Runtime.getRuntime().exec("typer " + f.getName(), null, f.getParentFile());
+        p = Runtime.getRuntime().exec(new String[]{getErlangBin()+"typer","--plt",pltFileName,f.getName()}, null, f.getParentFile());
+    	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
         ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
 
             @Override
@@ -64,26 +119,13 @@ public class ErlangModule {
             }
 
             @Override
-            public void StdErr(@SuppressWarnings("unused") StringBuffer b) {
-                System.err.print(b.toString());
+            public void StdErr(StringBuffer b) {
+                err.append(b);
             }
 
             @Override
-            public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
-                String buf = b.toString();
-                String spec = getFirstSpec(buf);
-                while (spec != null) {
-                    FuncSignature sig;
-                    try {
-                        sig = Signature.parseSignatureSpec(spec);
-                        sig.argInstances.addAll(seekUsages(sig.funcName, f));
-                        sigs.put(sig.funcName, sig);
-                    } catch (FailedToParseException e) {
-                        sig = null;
-                    }
-                    buf = buf.substring(spec.length());
-                    spec = getFirstSpec(buf);
-                }
+            public void StdOut(StringBuffer b) {
+            	out.append(b);
             }
         });
         try {
@@ -91,22 +133,38 @@ public class ErlangModule {
         } catch (InterruptedException e) {
             ;
         }
+        if (p.exitValue() != 0)
+        	throw new IllegalArgumentException("Failure running "+name+"\n"+err+(err.length()>0?"\n":"")+out);
+
+        String buf = out.toString();
+        String spec = getFirstSpec(buf);
+        while (spec != null) {
+            FuncSignature sig;
+            try {
+                sig = Signature.parseSignatureSpec(spec);
+                sig.argInstances.addAll(seekUsages(sig.funcName, f));
+                sigs.put(sig.funcName, sig);
+            } catch (FailedToParseException e) {
+                sig = null;
+            }
+            buf = buf.substring(spec.length());
+            spec = getFirstSpec(buf);
+        }
 
         BufferedReader input = new BufferedReader(new FileReader(f));
-        name = f.getName().substring(0, f.getName().lastIndexOf('.'));
-        String line = "";
-        while ((line != null) && ((line.length() <= 11) || (!(line.substring(0, 11)).equals("-behaviour(")))) {
+        String line = input.readLine();
+        while (line != null && !line.startsWith(behaviourToken)) {
             //System.out.println("Skipping " + line);
             line = input.readLine();
         }
         behaviour = new OTPUnknownBehaviour();
         if (line != null) {
-            String bstring = line.substring(11, line.length() - 2);
-            if (bstring.equals("gen_server")) {
+            String bstring = line.substring(behaviourToken.length());
+            if (bstring.startsWith("gen_server")) {
                 behaviour = new OTPGenServerBehaviour();
-            } else if (bstring.equals("gen_event")) {
+            } else if (bstring.startsWith("gen_event")) {
                 behaviour = new OTPGenEventBehaviour();
-            } else if (bstring.equals("gen_fsm")) {
+            } else if (bstring.startsWith("gen_fsm")) {
                 behaviour = new OTPGenFSMBehaviour();
             }
         }

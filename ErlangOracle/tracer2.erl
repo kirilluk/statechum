@@ -288,7 +288,14 @@ gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList
     %% InitArgs now contains a list of different possible init args in the form {init, Arg}
     %% We should give QSM a  headstart and try all the traces will all possible initialisations...
     InputSetInited = add_init_heads(InitArgs, InputSet),
-    try_all_traces(WrapperModule, Module, InputSetInited, OutFile, ModuleList).
+    %% On Win32, string arguments are converted to atoms if used in an -eval, hence we have to explicitly convert them back
+    OutFileAsString = case is_atom(OutFile) of
+	true ->
+		atom_to_list(OutFile);
+	false ->
+		OutFile
+    end,
+    try_all_traces(WrapperModule, Module, InputSetInited, OutFileAsString, ModuleList).
 
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile) ->
     gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, [Module]).

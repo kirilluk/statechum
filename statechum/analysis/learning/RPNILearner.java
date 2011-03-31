@@ -33,6 +33,7 @@ import javax.swing.event.ListSelectionListener;
 import statechum.JUConstants;
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
@@ -159,17 +160,22 @@ public abstract class RPNILearner extends Observable implements Learner {
                             }
                         }
                         v.addUserDatum(JUConstants.PATH, allPrefixTraces, UserData.SHARED);
-
                         v.addUserDatum(JUConstants.COVERAGE, coverage, UserData.SHARED);
-
                     }
                 }
 
             }
+            gr.addUserDatum(JUConstants.LAYOUTOPTIONS, layoutOptions(), UserData.SHARED);
             notifyObservers(gr);
         }
     }
 
+    /** Determines the default options with which a graph should be displayed. */
+    protected LayoutOptions layoutOptions()
+    {
+    	return new LayoutOptions();
+    }
+        
     protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
         Collection<Trace> result = new LinkedList<Trace>();
 

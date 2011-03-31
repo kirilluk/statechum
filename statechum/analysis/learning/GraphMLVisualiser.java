@@ -41,7 +41,7 @@ public class GraphMLVisualiser extends Visualiser {
 		dg.getEdgeConstraints().clear();
 		dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);
 		GraphMLVisualiser gmlVis = new GraphMLVisualiser();
-		gmlVis.construct(dg);
+		gmlVis.construct(dg,null);
 	}
 
 }

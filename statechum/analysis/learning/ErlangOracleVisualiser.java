@@ -22,7 +22,6 @@ import javax.swing.*;
 import java.awt.event.*;
 import java.util.*;
 import java.io.IOException;
-import java.util.Map.Entry;
 import statechum.Pair;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMapletNotFoundException;
@@ -45,8 +44,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
     public static int mode = 5;
 
     @Override
-    public void construct(Graph g) {
-        super.construct(g);
+    public void construct(Graph g,LayoutOptions options) {
+        super.construct(g,options);
         JMenuItem item = new JMenuItem("Coverage");
         item.addActionListener(new ActionListener() {
 

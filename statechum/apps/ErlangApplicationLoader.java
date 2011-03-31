@@ -17,18 +17,22 @@ import java.io.FileWriter;
 import java.io.IOException;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
+import javax.swing.ListModel;
 import javax.swing.filechooser.FileFilter;
+
+import com.ericsson.otp.erlang.OtpEpmd;
+
 import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.analysis.learning.rpnicore.LTL_to_ba;
 
 /**
  *
  * @author ramsay
  */
+@SuppressWarnings("serial")
 public class ErlangApplicationLoader extends javax.swing.JFrame {
 
     protected ErlangApp app;
@@ -200,20 +204,26 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
     }
 
+    public static final int timeBetweenChecks = 500;
+    
+    /** Runs the supplied process and displays output and error streams on the console when the process has terminated.
+     * 
+     * @param p process to run.
+     */
     public static void dumpProcessOutput(Process p) {
-        ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
+        ExperimentRunner.dumpStreams(p, timeBetweenChecks, new HandleProcessIO() {
 
             @Override
             public void OnHeartBeat() {// no prodding is done for a short-running converter.
             }
 
             @Override
-            public void StdErr(@SuppressWarnings("unused") StringBuffer b) {
+            public void StdErr(StringBuffer b) {
                 System.err.print(b.toString());
             }
 
             @Override
-            public void StdOut(@SuppressWarnings("unused") StringBuffer b) {
+            public void StdOut(StringBuffer b) {
                 System.out.print(b.toString());
             }
         });
@@ -222,6 +232,39 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         } catch (InterruptedException e) {
             ;
         }
+    }
+
+    /** Runs the supplied process and returns output and error streams in an exception if the process
+     * returned a non-zero error code. Upon success, no output is produced.
+     * 
+     * @param p process to run.
+     */
+    public static void dumpProcessOutputOnFailure(String name,Process p) {
+    	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
+        ExperimentRunner.dumpStreams(p, timeBetweenChecks, new HandleProcessIO() {
+
+            @Override
+            public void OnHeartBeat() {// no prodding is done for a short-running converter.
+            }
+
+            @Override
+            public void StdErr(StringBuffer b) {
+                err.append(b);
+            }
+
+            @Override
+            public void StdOut(StringBuffer b) {
+                out.append(b);
+            }
+        });
+        try {
+            p.waitFor();
+        } catch (InterruptedException e) {
+            ;
+        }
+        
+        if (p.exitValue() != 0)
+        	throw new IllegalArgumentException("Failure running "+name+"\n"+err+(err.length()>0?"\n":"")+out);
     }
 
     private void fileCopy(File from, File folder) {
@@ -246,30 +289,43 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         }
     }
 
+    public static final File ErlangFolder = new File("ErlangOracle");
+    
+    /** Deletes all Erlang files in the supplied directory which are also present in the <i>ErlangFolder</i> directory. */
+    public static void zapErlFiles(File where)
+    {
+    	for(String str:new String[]{"test2.out","test2.out.covermap","erl_crash.dump",".dialyzer_plt","tmp.cover"})
+       	{
+    		File file = new File(where.getAbsolutePath() + File.separator + str);
+    		if (file.canRead() && !file.delete())
+    			throw new RuntimeException("failed to delete "+file.getAbsolutePath());
+    	}
+    		
+        for (File f : ErlangFolder.listFiles()) {
+        	String moduleName = ErlangModule.getErlName(f.getName());
+            if (moduleName != null) {
+            	for(String ext:new String[]{".erl",".beam",".plt"})
+            	{
+            		File file = new File(where.getAbsolutePath() + File.separator + moduleName+ext);
+            		if (file.canRead() && !file.delete())
+            			throw new RuntimeException("failed to delete "+file.getAbsolutePath());
+            	}
+            }
+        }
+    }
+    
     private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_beginButtonActionPerformed
         // Copy in our generic stubs...
+        
+    	zapErlFiles(folder);
         try {
-            // Already compiled for TypEr?
-            /*
-            for (File f : folder.listFiles()) {
-                int dot = f.getName().lastIndexOf(".");
-                if (dot >= 0) {
-                    if (f.getName().substring(dot).equals(".erl")) {
-                        dumpProcessOutput(Runtime.getRuntime().exec("erlc +debug_info " + f.getName(), null, folder));
-                        //dumpProcessOutput(Runtime.getRuntime().exec("dialyzer --build_plt " + f.getName().replace(".erl", ".beam"), null, folder));
-                        //dumpProcessOutput(Runtime.getRuntime().exec("typer " + f.getName(), null, folder));
-                    }
-                }
-            }
-             * 
-             */
-            File ErlangFolder = new File("ErlangOracle");
             for (File f : ErlangFolder.listFiles()) {
                 int dot = f.getName().lastIndexOf(".");
                 if (dot >= 0) {
-                    if (f.getName().substring(dot).equals(".erl")) {
+                    if (ErlangModule.getErlName(f.getName()) != null) {
                         fileCopy(f, folder);
-                        dumpProcessOutput(Runtime.getRuntime().exec("erlc +debug_info " + f.getName(), null, folder));
+                        Process p = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin()+"erlc","+debug_info",f.getName()}, null, folder);
+                        dumpProcessOutputOnFailure("erlc", p);
                     }
                 }
             }
@@ -287,7 +343,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                 }
                 try {
                     ErlangOracleRunner runner = new ErlangOracleRunner(folder.getCanonicalPath(), m, otherModules);
-                    Thread t = new Thread(runner);
+                    Thread t = new Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
                     t.run();
                     while (t.isAlive()) {
                         try {
@@ -298,15 +354,6 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                     }
                 } catch (RuntimeException e) {
                     e.printStackTrace();
-                }
-            }
-            for (File f : ErlangFolder.listFiles()) {
-                int dot = f.getName().lastIndexOf(".");
-                if (dot >= 0) {
-                    if (f.getName().substring(dot).equals(".erl")) {
-                        //System.out.println("########### deleting " + folder.getCanonicalPath() + "/" + f.getName());
-                        (new File(folder.getCanonicalPath() + "/" + f.getName())).delete();
-                    }
                 }
             }
 
@@ -333,24 +380,37 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-
-            public void run() {
-                new ErlangApplicationLoader().setVisible(true);
-
-
-
-
-
-
-            }
-        });
-
-
-
-
-
-
+    	if (args.length > 0)
+    	{// run the analysis directly
+    		
+    		ErlangApplicationLoader loader = new ErlangApplicationLoader();
+    		loader.selectedFile = new File(args[0]);
+    		ErlangApplicationLoader.zapErlFiles(loader.selectedFile);
+    		loader.loadData();
+    		
+    		if (loader.modules.getModel().getSize() != 1)
+    		{
+    			ListModel modules = loader.modules.getModel();
+    			StringBuffer tooManyException = new StringBuffer("more than a single module choice for app "+loader.selectedFile+"\n");
+    			for(int i=0;i<modules.getSize();++i)
+    			{
+    				tooManyException.append(modules.getElementAt(i));tooManyException.append('\n');
+    			}
+    			throw new IllegalArgumentException(tooManyException.toString());
+    		}
+    		loader.modules.setSelectedIndex(0);
+    		loader.beginButtonActionPerformed(null);
+    	}
+    	else
+    	{
+	        java.awt.EventQueue.invokeLater(new Runnable() {
+	
+	            @Override
+				public void run() {
+	                new ErlangApplicationLoader().setVisible(true);
+	            }
+	        });
+    	}
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel appFile;
@@ -370,7 +430,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
 
     class appFilter extends FileFilter {
 
-        public boolean accept(File f) {
+        @Override
+		public boolean accept(File f) {
             if (f.isDirectory()) {
                 return true;
             }
@@ -385,7 +446,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         }
 
         //The description of this filter
-        public String getDescription() {
+        @Override
+		public String getDescription() {
             return "Just .app files";
         }
     }

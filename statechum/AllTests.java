@@ -33,6 +33,7 @@ import org.junit.runners.Suite.SuiteClasses;
 	statechum.AllTests.LearnerTests.class,
 	statechum.AllTests.LinearTests.class,
 	statechum.AllTests.SmtTests.class,
+	statechum.AllTests.ErlangTests.class,
 	statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
 })
 public class AllTests {
@@ -127,5 +128,12 @@ public class AllTests {
 		statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestChecksInTwoContexts.class
 	})
 	public static class SmtTests {// all tests are included in the annotation.
+	}
+	
+	@RunWith(Suite.class)
+	@SuiteClasses({
+		statechum.analysis.Erlang.TestErlangModule.class
+	})
+	public static class ErlangTests{// all tests are included in the annotation.
 	}
 }

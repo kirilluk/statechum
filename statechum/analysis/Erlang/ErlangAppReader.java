@@ -21,23 +21,16 @@ public class ErlangAppReader {
         MODULES, REGISTERED, NORMAL
     };
 
-    protected static void typifyFolder(File f) {
-        
-    }
-
     public static ErlangApp readFolder(File folder) {
-        try {
-        ErlangApp result = new ErlangApp();
-        result.name = folder.getName();
-        for(File f: folder.listFiles()) {
-            int dot = f.getName().lastIndexOf(".");
-            if(dot >= 0) {
-                if(f.getName().substring(dot).equals(".erl")) {
-                    result.modules.add(new ErlangModule(f));
-                }
-            }
-        }
-        return result;
+        try 
+        {
+	        ErlangApp result = new ErlangApp();
+	        result.name = folder.getName();
+	        for(File f: folder.listFiles()) {
+	        	if (ErlangModule.getErlName(f.getName()) != null)
+	                result.modules.add(new ErlangModule(f));
+	        }
+	        return result;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

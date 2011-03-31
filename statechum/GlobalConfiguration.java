@@ -44,20 +44,21 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
  */
 public class GlobalConfiguration {
 	public enum G_PROPERTIES { // internal properties
-		ASSERT,// whether to display assert warnings. If this is set, a number of additional consistency checks are enabled.
-		TEMP, // temporary directory to use
-		LINEARWARNINGS,// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
-		SMTWARNINGS,// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
-		BUILDGRAPH, // whether to break if the name of a graph to build is equal to a value of this property
-		LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
-		, STOP // used to stop execution - a workaround re JUnit Eclipse bug on linux amd64.
+		ASSERT// whether to display assert warnings. If this is set, a number of additional consistency checks are enabled.
+		,TEMP // temporary directory to use
+		,LINEARWARNINGS// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
+		,SMTWARNINGS// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
+		,BUILDGRAPH // whether to break if the name of a graph to build is equal to a value of this property
+		,LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
+		,STOP // used to stop execution - a workaround re JUnit Eclipse bug on linux amd64.
 		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
 		,TIMEBETWEENHEARTBEATS // How often to check i/o streams and send heartbeat data.
 		,ASSERT_ENABLED // whether assertions are enabled - in this case some additional checks are carried out outside of assert statements
 		,VIZ_DIR// the path to visualisation-related information, such as graph layouts and configuration file.
 		,VIZ_CONFIG// the configuration file containing window positions and whether to display an assert-related warning.
 		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions.
-		, LTL2BA // path to LTL2BA executable, if null the default path will be used.
+		,LTL2BA // path to LTL2BA executable, if null the default path will be used.
+		,ERLANGHOME // path to the Erlang distribution directory 
 		;
 	}
 

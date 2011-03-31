@@ -35,7 +35,8 @@ public enum JUConstants {
 	JUNKVERTEX("junk"),// used for testing that searching for a property that does not exist returns a null vertex.
 	EDGE("edge"),VERTEX("vertex"), // used for labelling vertices
 	PATH("path"),// path in hard facts which leads to the current state
-        COVERAGE("coverage"),// Collection of Coverage maps for all possible paths from this state onwards
+    COVERAGE("coverage"),// Collection of Coverage maps for all possible paths from this state onwards
+    LAYOUTOPTIONS("layoutOptions") // settings affecting the preferred layout such as whether negative nodes are to be shown
 	;
 	private String stringRepresentation;
 	

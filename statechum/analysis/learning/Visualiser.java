@@ -36,6 +36,7 @@ import edu.uci.ics.jung.graph.decorators.*;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.WindowPosition;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -48,6 +49,8 @@ import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 
 import javax.swing.*;
+
+import org.apache.commons.collections.Predicate;
 
 /* Graph layout loading/saving including most of XMLPersistingLayout is from Jung source code. 
  * 
@@ -103,6 +106,14 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * graphs themselves, which is accomplished using this map.
      */
     protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
+    
+    protected static class LayoutOptions
+    {
+    	public boolean showNegatives = true;
+    }
+    
+    protected List<LayoutOptions> layoutOptions = new LinkedList<LayoutOptions>();
+    
     /** Current position in the above list. */
     protected int currentGraph;
     /**
@@ -141,7 +152,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     class WindowEventHandler extends WindowAdapter {
 
         @Override
-        public void windowClosing(WindowEvent evt) {
+        public void windowClosing(@SuppressWarnings("unused") WindowEvent evt) {
             
         }
     }
@@ -226,6 +237,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 globalConfig.saveConfiguration();
             }
         });
+        
         keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
 
             /** Serial number. */
@@ -308,9 +320,24 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 }
             }
         });
+        
+        keyToActionMap.put(KeyEvent.VK_F, new graphAction("negatives", "toggles negatives on or off") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 11L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+            	LayoutOptions options = layoutOptions.get(currentGraph);
+                if (options != null) {
+                	options.showNegatives = !options.showNegatives; 
+                    reloadLayout(false);
+                }
+            }
+        });
     }
 
-    public void construct(Graph g) {
+    public void construct(Graph g,LayoutOptions options) {
         if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT))) {
             System.err.println("Pass the -ea argument to JVM to enable assertions");
         }
@@ -337,10 +364,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             public void keyTyped(@SuppressWarnings("unused") KeyEvent key) {// this method is intentionally left blank - keypresses/releases are handled by the keyPressed method.
             }
         });
-        setSize(new Dimension(800, 600));
 
         viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
-                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g));
+                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
         viewer.setBackground(Color.WHITE);
         final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
         graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
@@ -381,7 +407,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         getContentPane().add(panel);
         pack();
         restoreLayout(true, currentGraph);
-        setBounds(globalConfig.loadFrame(propName).getRect());
+        WindowPosition framePosition = globalConfig.loadFrame(propName);
+        setSize(new Dimension(framePosition.getRect().width, framePosition.getRect().height));
+        setBounds(framePosition.getRect());
         setVisible(true);
     }
 
@@ -419,17 +447,19 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         assert graph != null;
         String title = (String) graph.getUserDatum(JUConstants.TITLE) + " (" + (currentGraph + 1) + "/" + graphs.size() + ")";
         if (!wasInitialised) {
-            construct(graph);
+            construct(graph,layoutOptions.get(currentGraph));
             setTitle(title);
             wasInitialised = true;
         } else {
             viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName != null ? new FRLayout(graph) : new KKLayout(graph)));
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
-            viewer.setRenderer(constructRenderer(graph));
+            viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
         }
+
     }
 
+    
     /** Loads the layout of the specific graph in the list.
      *
      *  @param whether to ignore loading errors.
@@ -529,10 +559,21 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         }
     }
 
-    protected static PluggableRenderer constructRenderer(Graph g) {
+    protected static PluggableRenderer constructRenderer(Graph g,final LayoutOptions options) {
         PluggableRenderer r = new PluggableRenderer();
         r = labelEdges(g, r);
         r = labelVertices(r, g);
+        if (options != null)
+	        r.setVertexIncludePredicate(new Predicate(){
+	        	@Override
+				public boolean evaluate(Object object)
+	        	{
+	        		if (options.showNegatives)
+	        			return true;
+	        		else
+	        			return DeterministicDirectedSparseGraph.isAccept((Vertex) object);
+	        	}
+	        });
         return r;
     }
     /** If the frame was not constructed, we have to construct instances of
@@ -548,13 +589,14 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     @Override
     public void update(@SuppressWarnings("unused") final Observable s, Object arg) {
         if (arg instanceof AbstractLearnerGraph) {
-            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());
+            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());layoutOptions.add(new LayoutOptions());
         } else if (arg instanceof DirectedSparseGraph) {
-            graphs.add((DirectedSparseGraph) arg);
+        	DirectedSparseGraph gr = (DirectedSparseGraph) arg;
+            graphs.add(gr);layoutOptions.add((LayoutOptions)gr.getUserDatum(JUConstants.LAYOUTOPTIONS));
         } else {
             System.err.println("Visualiser notified with unknown object " + arg);
         }
-
+        
         currentGraph = graphs.size() - 1;
         SwingUtilities.invokeLater(this);
     }
@@ -759,6 +801,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 e.printStackTrace();
             }
         }
+        
         r.setVertexStringer(labeller);
         r.setVertexShapeFunction(new VertexShape());
         r.setVertexPaintFunction(new VertexPaint(r));

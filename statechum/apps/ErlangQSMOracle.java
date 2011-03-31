@@ -10,17 +10,14 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
-import statechum.Configuration;
+import statechum.Helper;
 import statechum.Pair;
 import statechum.PrefixTraceTree;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 
 import statechum.analysis.learning.*;
-import statechum.analysis.learning.observers.AutoAnswers;
-import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
 
 /**
  *
@@ -63,11 +60,15 @@ public class ErlangQSMOracle {
         for (int i = 4; i < args.length; i++) {
             erlangModules.add(args[i]);
         }
-        startInference();
+        try {
+			startInference();
+		} catch (IOException e) {
+			Helper.throwUnchecked("failed to generate random traces",e);
+		}
 
     }
 
-    public static void startInference() {
+    public static void startInference() throws IOException {
         // Clear the files...
         (new File(ErlangFolder, tracesFile)).delete();
         (new File(ErlangFolder, covermapFile)).delete();
@@ -75,14 +76,14 @@ public class ErlangQSMOracle {
         createInitTraces();
         loadCoverageMaps();
 
-        ErlangTraces = new PrefixTraceTree(ErlangFolder + "/" + tracesFile);
+        ErlangTraces = new PrefixTraceTree(ErlangFolder + File.separator + tracesFile);
         //System.out.println("Traces Tree:\n" + ErlangTraces.toString());
 
         // Strip wildcard traces from the file...
-        wildCardStrip(ErlangFolder + "/" + tracesFile);
+        wildCardStrip(ErlangFolder + File.separator + tracesFile);
 
         QSMTool tool = new QSMTool();
-        tool.loadConfig(ErlangFolder + "/" + tracesFile);
+        tool.loadConfig(ErlangFolder + File.separator + tracesFile);
 
         QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config, true, 0);
         ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
@@ -123,17 +124,13 @@ public class ErlangQSMOracle {
         }
     }
 
-    public static void createInitTraces() {
-        try {
-            String erlArgs;
-            erlArgs = "tracer2:gen_random_traces(" + erlangWrapperModule + "," + erlangModule + "," + initArgs + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules) + ")";
+    public static void createInitTraces() throws IOException {
+        String erlArgs;
+        erlArgs = "tracer2:gen_random_traces(" + erlangWrapperModule + "," + erlangModule + "," + initArgs + "," + erlangAlphabet + ",\"" + tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(erlangModules) + ")";
 
-            System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
-            //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
-            ErlangOracleLearner.runErlang(erlArgs);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
+        //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
+        ErlangOracleLearner.runErlang(erlArgs);
     }
 
     public static void loadCoverageMaps() {

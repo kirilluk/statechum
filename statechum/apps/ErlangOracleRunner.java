@@ -4,7 +4,8 @@
  */
 package statechum.apps;
 
-import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
 import statechum.analysis.Erlang.ErlangModule;
 
 /**
@@ -21,6 +22,7 @@ public class ErlangOracleRunner implements Runnable {
     protected String mode = "basic";
     protected String initArgs = "";
     protected ErlangModule m;
+    protected Collection<String> alphaSet = new ArrayList<String>();
 
     public ErlangOracleRunner(String sf, String mn, String fn, String al, String om) {
         sourceFolder = sf;
@@ -37,6 +39,7 @@ public class ErlangOracleRunner implements Runnable {
         moduleName = m.name;
         functionName = m.behaviour.name + "_wrapper";
         Alphabet = m.behaviour.getAlphabetString();
+        alphaSet = m.behaviour.getAlphabet();
         initArgs = "[";
         for(String a: m.behaviour.initArgs) {
             if(!initArgs.equals("[")) {
@@ -51,6 +54,7 @@ public class ErlangOracleRunner implements Runnable {
         ErlangQSMOracle.ErlangFolder = sourceFolder;
         ErlangQSMOracle.mode = mode;
         ErlangQSMOracle.initArgs = initArgs;
+        ErlangQSMOracle.moduleAlphabet = alphaSet;
         ErlangQSMOracle.main(new String[]{"test2.out", moduleName, functionName, Alphabet, otherModules});
     }
 }

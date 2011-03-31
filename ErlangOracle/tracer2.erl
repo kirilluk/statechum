@@ -1,5 +1,5 @@
 -module(tracer2).
--export([first_failure/4, first_failure/5, gen_random_traces/5, gen_random_traces/6]).
+-export([first_failure/4, first_failure/5, gen_random_traces/5, gen_random_traces/6, gen_exhaust_traces/6]).
 
 %% Try Trace on Module:Function and report success or failure
 %% Trace result is appended to OutFile, coverage map is appended to OutFile.covermap
@@ -283,8 +283,16 @@ add_init_heads([], _InputSet) ->
 add_init_heads([Arg | InitArgs], InputSet) ->
     lists:map(fun(Elem) -> [Arg | Elem] end, InputSet) ++ add_init_heads(InitArgs, InputSet).
 
+gen_exhaust_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
+    InputSet = lists:map(fun(Elem) -> [Elem] end, Alphabet),
+    %% InitArgs now contains a list of different possible init args in the form {init, Arg}
+    %% We should give QSM a  headstart and try all the traces will all possible initialisations...
+    InputSetInited = add_init_heads(InitArgs, InputSet),
+    try_all_traces(WrapperModule, Module, InputSetInited, OutFile, ModuleList).
+
+
 gen_random_traces(WrapperModule, Module, InitArgs, Alphabet, OutFile, ModuleList) ->
-    InputSet = lists:sort(generate_input_set(Alphabet, 12, [])),
+    InputSet = lists:sort(generate_input_set(Alphabet, 15, [])),
     %% InitArgs now contains a list of different possible init args in the form {init, Arg}
     %% We should give QSM a  headstart and try all the traces will all possible initialisations...
     InputSetInited = add_init_heads(InitArgs, InputSet),

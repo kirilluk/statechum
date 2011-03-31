@@ -20,7 +20,6 @@ import javax.swing.JFileChooser;
 import javax.swing.ListModel;
 import javax.swing.filechooser.FileFilter;
 
-import com.ericsson.otp.erlang.OtpEpmd;
 
 import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
@@ -356,9 +355,10 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
                     e.printStackTrace();
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            zapErlFiles(folder);
         }
 
 }//GEN-LAST:event_beginButtonActionPerformed

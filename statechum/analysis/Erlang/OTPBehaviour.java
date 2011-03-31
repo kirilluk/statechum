@@ -171,7 +171,9 @@ public abstract class OTPBehaviour {
                     op += second + "}";
                     if (!(second.matches("^[_A-Z].*") || second.matches(".* [_A-Z].*"))) {
                         System.out.println("Including " + op);
-                        alphabet.add(op);
+                        if(!alphabet.contains(op)) {
+                            alphabet.add(op);
+                        }
                     } else {
                         System.out.println("Skipping " + op);
 

@@ -65,7 +65,8 @@ public class QSMTool
 	
 	public static void main(String[] args) 
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(args[0]);
+		QSMTool tool = new QSMTool();
+                tool.loadConfig(args[0]);
 		if (tool.showLTL)
 		{
 			Learner l = new RPNIUniversalLearner(null,tool.learnerInitConfiguration);

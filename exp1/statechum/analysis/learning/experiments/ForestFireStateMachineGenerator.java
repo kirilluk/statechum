@@ -39,6 +39,7 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.util.OutputUtil;
@@ -110,6 +111,7 @@ public class ForestFireStateMachineGenerator {
 				vertices.add(v);// permits v to be chosen as a target, creating self-loops
 				this.labelmap.put(v.getID(), v);
 				Set<DeterministicVertex> tried = new HashSet<DeterministicVertex>();
+				tried.add(v);
 				DeterministicVertex random = null;
 				do
 				{

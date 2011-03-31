@@ -42,7 +42,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	double parallel;
 	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, int seed)
 	{
-		super(forwards, backwards,argSelfloop,seed);this.parallel=argParallel;
+		super(forwards, backwards,argSelfloop,seed);this.parallel=(int)(1/argParallel);
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	

@@ -1,16 +1,20 @@
 package statechum.analysis.learning.experiments;
 
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
-public class Transition 
+
+public class Transition  
 {
-	public String from, to, label;
+	private CmpVertex from, to;
+	private String label;
 	
-	public Transition(String argFrom, String argTo, String argLabel)
+	public Transition(CmpVertex argFrom, CmpVertex argTo, String argLabel)
 	{
 		this.from = argFrom; this.to = argTo; this.label=argLabel;
 	}
 
-	public int compareTo(Transition compare) 
+	
+	public int compareTo(Object compare) 
 	{
 		return toString().compareTo(compare.toString());
 	}
@@ -27,14 +31,7 @@ public class Transition
 	
 	@Override
 	public boolean equals(Object o){
-		if(o instanceof Transition){
-			Transition compare = (Transition)o;
-			if (compare.from.equals(this.from)
-					&& compare.to.equals(this.to)
-					&& compare.label.equals(this.label))
-				return true;
-		}
-		return false;
+		return this.toString().equals(o.toString());
 	}
 	
 	@Override
@@ -42,21 +39,24 @@ public class Transition
 		return from + "-" + label+"->"+to;
 	}
 
-	public String getFrom() {
+	public CmpVertex getFrom() {
 		return from;
 	}
 
-	public void setFrom(String argFrom) {
+	public void setFrom(CmpVertex argFrom) {
 		this.from = argFrom;
 	}
 
-	public String getTo() {
+	public CmpVertex getTo() {
 		return to;
 	}
 
-	public void setTo(String argTo) {
+	public void setTo(CmpVertex argTo) {
 		this.to = argTo;
 	}
 	
+	public String getLabel(){
+		return this.label;
+	}
 	
 }

@@ -2,8 +2,11 @@ package statechum.analysis.learning.experiments;
 
 import java.util.Collection;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
@@ -13,6 +16,7 @@ import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.StringVertex;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -60,7 +64,8 @@ public class DiffExperiments {
 	
 	public void runExperiment(int initStates, boolean skip){
 		this.skipLanguage = skip;
-		for(int states=initStates;states<8000;states=states+50){
+		Random r = new Random(0);
+		for(int states=initStates;states<300;states=states+50){
 			int alphabet = states/2;
 			
 			MachineGenerator mg = new MachineGenerator(states, 40, states/6);
@@ -76,24 +81,29 @@ public class DiffExperiments {
 						counter++;
 						int mutations = mutationsPerStage * i;
 						LearnerGraphND from = mg.nextMachine(alphabet, counter);
-						//System.out.println(from.getTransitionMatrix().size());
-						LearnerGraphND mutating =  (LearnerGraphND)from.copy(config);
-						renameStates(mutating);
-						GraphMutator mutator = new GraphMutator(mutating,false);
+						LearnerGraphND graph = new LearnerGraphND(from.config);
+						copyStatesAndTransitions(from,graph);
+						GraphMutator mutator = new GraphMutator(graph,r);
+						
 						mutator.mutate(mutations);
-						//Visualiser.updateFrame(from, mutating);
-						worked = linearDiff(from,mutating, mutator,states/50,i-1,j);
+						//mutator.changeStateLabels(); //to avoid exception that from and to share same labels
+						
+						LearnerGraphND to = mutator.getMutated();
+						
+						//Visualiser.updateFrame(from, to);
+						
+						worked = linearDiff(from,to, mutator,states/50,i-1,j);
 						if(!worked)
 							continue;
 						LearnerGraph fromDet = mergeAndDeterminize(from);
-						LearnerGraph toDet = mergeAndDeterminize(mutating);
-						//Visualiser.updateFrame(fromDet, toDet);
+						LearnerGraph toDet = mergeAndDeterminize(to);
+						
 						if (!skip)
 							worked = languageDiff(fromDet,toDet,states, (int)states/50,i-1,j);
 					}
 				}
 				System.out.print("|");
-				System.out.print("["+getAverage(scoreStruct,states/50,i-1)+"]");
+				System.out.print("["+getAverage(accuracyStruct,states/50,i-1)+"]");
 			}
 			printList(scoreStruct[(int)states/50]);
 			System.out.println("Time-struct:");
@@ -122,14 +132,11 @@ public class DiffExperiments {
 		printAccuracyMatrix(this.performanceLang);*/
 	}
 	
-	
 
-	
-
-	private LearnerGraph mergeAndDeterminize(LearnerGraphND mutating) {
+	private LearnerGraph mergeAndDeterminize(LearnerGraphND from) {
 		LearnerGraph eval = null;
 		try {
-			eval = mutating.pathroutines.buildDeterministicGraph();
+			eval = from.pathroutines.buildDeterministicGraph();
 			eval = eval.paths.reduce();
 		} catch (IncompatibleStatesException e) {
 			// TODO Auto-generated catch block
@@ -159,17 +166,6 @@ public class DiffExperiments {
 			System.out.println();
 		}
 		System.out.println();
-		
-	}
-
-	private void renameStates(LearnerGraphND mutating) {
-		Set<CmpVertex> keySet = mutating.getTransitionMatrix().keySet();
-		for (CmpVertex cmpVertex : keySet) {
-			VertexID id = cmpVertex.getID();
-			String label = id.getStringId();
-			VertexID newID = new VertexID(label+"mut");
-			cmpVertex.setID(newID);
-		}
 		
 	}
 
@@ -301,6 +297,7 @@ public class DiffExperiments {
 		final long endTime;
 		try{
 			gd.computeGD(from, to, 2, cd, config);
+			
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -312,7 +309,7 @@ public class DiffExperiments {
 		final long duration = endTime - startTime;
 		Set<Transition> detectedDiff = cd.getDiff();
 		Set<Transition> mutations = mutator.getDiff();
-		mutations = removePrefixes(mutations);
+		appendSuffixes(detectedDiff);
 		double f = computeFMeasure(mutations, detectedDiff);
 		performanceStruct[col][row][x] = duration;
 		scoreStruct[col][row][x] = f;
@@ -330,32 +327,78 @@ public class DiffExperiments {
 		return true;
 	}
 	
-	private Set<Transition> removePrefixes(Set<Transition> mutations) {
+	private void appendSuffixes(Set<Transition> mutations) {
 		for (Transition transition : mutations) {
-			String label = transition.getFrom();
-			if(label.substring(label.length()-3, label.length()).equals("mut"))
-				transition.setFrom(label.substring(0,label.length()-3));
-			label = transition.getTo();
-			if(label.substring(label.length()-3, label.length()).equals("mut"))
-				transition.setTo(label.substring(0,label.length()-3));
+			CmpVertex from = transition.getFrom();
+			String fromLabel = makeLabel(from.getID().toString());
+			CmpVertex fromNew = new StringVertex(fromLabel);
+			CmpVertex to = transition.getTo();
+			String toLabel = makeLabel(to.getID().toString());
+			CmpVertex toNew = new StringVertex(toLabel);
+			transition.setFrom(fromNew);
+			transition.setTo(toNew);
 		}
-		return mutations;
+		
 	}
+	
+	private String makeLabel(String label){
+		if(label.startsWith("P"))
+			return label + "m";
+		else
+			return label;
+	}
+	
+	private void copyStatesAndTransitions(LearnerGraphND machine, LearnerGraphND graph) {
+		Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
+		graph.getTransitionMatrix().clear();
+		Set<CmpVertex> machineStates = machine.getTransitionMatrix().keySet();
+		for (CmpVertex cmpVertex : machineStates) { //copy all vertices
+			CmpVertex newVertex = graph.copyVertexUnderDifferentName(cmpVertex);
+			newVertex.setID(new VertexID(newVertex.getID().toString()+"m")); 
+			if(machine.getInit().equals(cmpVertex))
+				graph.setInit(newVertex);
+			machineVertexToGraphVertex.put(cmpVertex, newVertex);
+		}
+		for (CmpVertex cmpVertex : machineStates) { //copy all edges
+			Map<String, List<CmpVertex>> machineRow = machine.getTransitionMatrix().get(cmpVertex);
+			Map<String,List<CmpVertex>> graphRow = graph.createNewRow();
+			CmpVertex source = machineVertexToGraphVertex.get(cmpVertex);
+			Collection<String> outLabs = machineRow.keySet();
+			for (String label : outLabs) {
+				List<CmpVertex> to = machineRow.get(label);
+				List<CmpVertex> dests = new ArrayList<CmpVertex>();
+				for (CmpVertex destination : to) {
+					dests.add(machineVertexToGraphVertex.get(destination));
+				}
+				graphRow.put(label, dests);
+			}
+			graph.getTransitionMatrix().put(source, graphRow);
+		}
+	}
+
 
 	protected static double computeFMeasure(Set<Transition> from, Set<Transition> to){
 		double tp,tn,fp,fn;
-		Set<Transition> set = new HashSet<Transition>();
-		set.addAll(from);
-		set.retainAll(to);
+		Set<String> fromStrings = new HashSet<String>();
+		Set<String> toStrings = new HashSet<String>();
+		Set<String> set = new HashSet<String>();
+		for (Transition t : from) {
+			fromStrings.add(t.toString());
+		}
+		for (Transition t : to){
+			toStrings.add(t.toString());
+		}
+		set.addAll(fromStrings);
+		set.retainAll(toStrings);
 		tp = (double)set.size();
 		tn = 0.0;
 		set.clear();
-		set.addAll(to);
-		set.removeAll(from);
+		set.addAll(toStrings);
+		set.removeAll(fromStrings);
 		fp = (double)set.size();
 		set.clear();
-		set.addAll(from);
-		set.removeAll(to);
+		set.addAll(fromStrings);
+		set.removeAll(toStrings);
 		fn = (double)set.size();
 		
 		ConfusionMatrix conf = new ConfusionMatrix(tp, tn, fp, fn);
@@ -414,12 +457,15 @@ public class MachineGenerator{
 		
 		//0.31,0.385
 		public LearnerGraphND nextMachine(int alphabet, int seed){
-			LearnerGraphND machine = null;
+			LearnerGraph machine = null;
 			boolean found = false;
 			while(!found){
 				for(int i = 0; i< phase; i++){
-					ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.4,0.385,0.2,seed,alphabet);
+					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
+					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,seed);
+					
 					machine = gen.buildMachine(artificialTargetSize);
+					
 					int machineSize = machine.getStateNumber();
 					sizeSequence.add(machineSize);
 					if(Math.abs(machineSize - actualTargetSize)<=error){
@@ -430,8 +476,43 @@ public class MachineGenerator{
 				if(!found)
 					adjustArtificialTargetSize();
 			}
-			return machine;
+			return convertToLearnerGraphND(machine);
 		}
+
+		private LearnerGraphND convertToLearnerGraphND(LearnerGraph machine) {
+			LearnerGraphND graph = new LearnerGraphND(machine.config);
+			copyStatesAndTransitions(machine,graph);
+			return graph;
+		}
+		
+		private void copyStatesAndTransitions(LearnerGraph machine, LearnerGraphND graph) {
+			Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
+			graph.getTransitionMatrix().clear();
+			Set<CmpVertex> machineStates = machine.getTransitionMatrix().keySet();
+			for (CmpVertex cmpVertex : machineStates) { //copy all vertices
+				CmpVertex newVertex = graph.copyVertexUnderDifferentName(cmpVertex);
+				if(machine.getInit().equals(cmpVertex))
+					graph.setInit(newVertex);
+				machineVertexToGraphVertex.put(cmpVertex, newVertex);
+			}
+			for (CmpVertex cmpVertex : machineStates) { //copy all edges
+				Map<String, CmpVertex> machineRow = machine.getTransitionMatrix().get(cmpVertex);
+				Map<String,List<CmpVertex>> graphRow = graph.createNewRow();
+				CmpVertex source = machineVertexToGraphVertex.get(cmpVertex);
+				Collection<String> outLabs = machineRow.keySet();
+				for (String label : outLabs) {
+					CmpVertex to = machineRow.get(label);
+					List<CmpVertex> dests = new ArrayList<CmpVertex>();
+					dests.add(machineVertexToGraphVertex.get(to));
+					graphRow.put(label, dests);
+				}
+				graph.getTransitionMatrix().put(source, graphRow);
+			}
+		}
+		
+		
+
+		
 
 		private void adjustArtificialTargetSize() {
 			int difference = actualTargetSize - average(sizeSequence);

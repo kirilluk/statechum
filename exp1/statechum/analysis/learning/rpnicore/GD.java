@@ -904,14 +904,14 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void addTransition(CmpVertex from, String label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
 			result.append("added  : ");appendTransition(from, label, to);
-			diff.add(new Transition(from.getID().getStringId(),to.getID().getStringId(),label));
+			diff.add(new Transition(from,to,label));
 		}
 
 		@Override
 		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
 			if (next != null) next.removeTransition(from, label, to);
 			result.append("removed: ");appendTransition(from, label, to);
-			diff.add(new Transition(from.getID().getStringId(),to.getID().getStringId(),label));
+			diff.add(new Transition(from,to,label));
 		}
 		
 		@Override

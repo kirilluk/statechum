@@ -151,10 +151,10 @@ public class ForestFireNDStateMachineGenerator {
 	
 	protected void spread(CmpVertex v, CmpVertex ambassador)
 	{
-		int x = Distributions.nextGeometric(1-forwards,generator);
+		int x = Distributions.nextGeometric((1-forwards),generator);
 		
 		int y = Distributions.nextGeometric(1-backwards*forwards,generator);
-		
+		//System.out.println(x+","+y);
 		List<CmpVertex> selectedVertices = selectLinks(x,y,ambassador);
 		if(selectedVertices.isEmpty())
 			return;

@@ -7,6 +7,7 @@ package statechum.apps;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.TreeMap;
@@ -74,7 +75,6 @@ public class ErlangQSMOracle {
         // Clear the files...
         (new File(ErlangFolder, tracesFile)).delete();
         (new File(ErlangFolder, covermapFile)).delete();
-
         createInitTraces();
         loadCoverageMaps();
 
@@ -93,7 +93,10 @@ public class ErlangQSMOracle {
         ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration);
         innerLearner.addObserver(viz);
         LearnerGraph graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
-        if (graph != null) {
+        boolean complete = false;
+        int repeats = 0;
+        while ((graph != null) && (!complete) && (repeats < 1)) {
+            repeats++;
             Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix = graph.getTransitionMatrix();
             // Find (one of) the deepest node(s)
             CmpVertex deepest = null;
@@ -110,6 +113,9 @@ public class ErlangQSMOracle {
                 }
             }
             System.out.println("Deepest (" + maxDepth + ") == " + deepest);
+            // Get the path to this node
+            Collection<String> path = getPathTo(deepest, root, transitionMatrix, new ArrayList<CmpVertex>());
+            System.out.println("Path: " + path);
             // Get the alphabet
             Collection<String> alpha = new ArrayList<String>(moduleAlphabet);
             // Remove the elements that are examined for this node
@@ -118,16 +124,53 @@ public class ErlangQSMOracle {
                 alpha.remove(s);
             }
             System.out.println("Untried: " + alpha);
-            // Get the path to this node
-            Collection<String> path = getPathTo(deepest, root, transitionMatrix);
-            System.out.println("Path: " + path);
-            // Try all the others...
-            for (String s : alpha) {
-                ArrayList<String> trypath = new ArrayList<String>(path);
-                trypath.add(s);
-                System.out.println("Trying " + trypath);
-                // FIXME actually do it ....
-                // Run this trace in Erlang and add the result to the traces file
+            if (alpha.size() > 0) {
+                // Try all the others...
+                for (String s : alpha) {
+                    ArrayList<String> trypath = new ArrayList<String>(path);
+                    trypath.add(s);
+                    System.out.println("Trying " + trypath);
+                    // Run this trace in Erlang and add the result to the traces file
+                    Iterator<String> it = trypath.iterator();
+                    //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
+                    String erlList = "[";
+                    while (it.hasNext()) {
+                        if (!erlList.equals("[")) {
+                            erlList += ",";
+                        }
+                        erlList += it.next();
+                    }
+                    erlList += "]";
+                    String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
+                    System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
+                    innerLearner.erlangProcess.getOutputStream().write(erlArgs.getBytes());
+                    innerLearner.erlangProcess.getOutputStream().write('.');
+                    innerLearner.erlangProcess.getOutputStream().write('\n');
+                    innerLearner.erlangProcess.getOutputStream().flush();
+                }
+                System.out.println("##############################################################################");
+                // FIXME stupid file sync issue...
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    ;
+                }
+
+                ErlangQSMOracle.loadCoverageMaps();
+                ErlangQSMOracle.ErlangTraces = new PrefixTraceTree(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
+                // Strip wildcard traces from the file...
+                wildCardStrip(ErlangFolder + File.separator + tracesFile);
+                // For some reason this breaks if I re-use it...
+                // I'm sure kirill will have a nice way to cary on from where we left off...
+                innerLearner.killErlang();
+                tool = new QSMTool();
+                tool.loadConfig(ErlangFolder + File.separator + tracesFile);
+                QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config, true, 0);
+                innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration);
+                innerLearner.addObserver(viz);
+                graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
+            } else {
+                complete = true;
             }
         }
 
@@ -137,8 +180,7 @@ public class ErlangQSMOracle {
         //config.setQuestionPathUnionLimit(1);
     }
 
-    // Fixme - this cant be recurseive - needs to account for non-trivial cycles
-    protected static Collection<String> getPathTo(CmpVertex tgt, CmpVertex root, Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix) {
+    protected static Collection<String> getPathTo(CmpVertex tgt, CmpVertex root, Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix, Collection<CmpVertex> seenStates) {
         Map<String, CmpVertex> trans = transitionMatrix.get(root);
         for (String s : trans.keySet()) {
             CmpVertex dest = trans.get(s);
@@ -150,8 +192,10 @@ public class ErlangQSMOracle {
             } else {
                 // Maybe a recursive hit?...
                 // Cycles would be bad :)
-                if (dest != root) {
-                    Collection<String> subpath = getPathTo(tgt, dest, transitionMatrix);
+                if (!seenStates.contains(dest)) {
+                    ArrayList<CmpVertex> newSeen = new ArrayList<CmpVertex>(seenStates);
+                    newSeen.add(dest);
+                    Collection<String> subpath = getPathTo(tgt, dest, transitionMatrix, newSeen);
                     if (subpath != null) {
                         ArrayList<String> result = new ArrayList<String>();
                         result.add(s);
@@ -166,6 +210,7 @@ public class ErlangQSMOracle {
     }
 
     protected static void wildCardStrip(String filename) {
+        //System.out.println("Stripping wildcards from " + filename);
         ArrayList<String> lines = new ArrayList<String>();
         BufferedReader input = null;
         try {
@@ -174,6 +219,9 @@ public class ErlangQSMOracle {
             while ((line = input.readLine()) != null) {
                 if (line.indexOf("'*'") < 0) {
                     lines.add(line);
+                    //System.out.println("Keeping " + line);
+                } else {
+                    //System.out.println("Stripping " + line);
                 }
             }
             input.close();

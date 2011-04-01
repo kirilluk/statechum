@@ -293,7 +293,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     /** Deletes all Erlang files in the supplied directory which are also present in the <i>ErlangFolder</i> directory. */
     public static void zapErlFiles(File where)
     {
-    	for(String str:new String[]{"test2.out","test2.out.covermap","erl_crash.dump",".dialyzer_plt","tmp.cover"})
+        // Keeping these for debugging and interest: "test2.out","test2.out.covermap",
+    	for(String str:new String[]{"erl_crash.dump",".dialyzer_plt","tmp.cover"})
        	{
     		File file = new File(where.getAbsolutePath() + File.separator + str);
     		if (file.canRead() && !file.delete())
@@ -303,7 +304,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         for (File f : ErlangFolder.listFiles()) {
         	String moduleName = ErlangModule.getErlName(f.getName());
             if (moduleName != null) {
-            	for(String ext:new String[]{".erl",".beam",".plt"})
+                // Retain .beam for debugging
+            	for(String ext:new String[]{".erl",".plt"})
             	{
             		File file = new File(where.getAbsolutePath() + File.separator + moduleName+ext);
             		if (file.canRead() && !file.delete())

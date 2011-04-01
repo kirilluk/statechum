@@ -43,18 +43,21 @@ public class PrefixTraceTree {
             input = new BufferedReader(new FileReader(filename));
             String line;
             while ((line = input.readLine()) != null) {
-                String neg = line.substring(0, 1);
-                String traceString = line.substring(1).trim();
-                Trace traceFromFile;
-                if (traceString.equals("")) {
-                    traceFromFile = new Trace();
-                } else {
-                    traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
+                line = line.trim();
+                if (line.length() > 0) {
+                    String neg = line.substring(0, 1);
+                    String traceString = line.substring(1).trim();
+                    Trace traceFromFile;
+                    if (traceString.equals("")) {
+                        traceFromFile = new Trace();
+                    } else {
+                        traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
+                    }
+                    if (neg.equals("-")) {
+                        traceFromFile.negative = true;
+                    }
+                    this.add(traceFromFile);
                 }
-                if (neg.equals("-")) {
-                    traceFromFile.negative = true;
-                }
-                this.add(traceFromFile);
             }
         } catch (FileNotFoundException e) {
             System.out.println("Couldn't open trace file " + filename);
@@ -72,7 +75,7 @@ public class PrefixTraceTree {
     public void add(Trace t) {
         if (prefix.equals(t)) {
             // We really shouldn't get repeats...
-            System.out.println("******* Repeat " + t.toString() + " ********");
+            //System.out.println("******* Repeat " + t.toString() + " ********");
             return;
         } else {
             if (!this.isPrefix(t)) {

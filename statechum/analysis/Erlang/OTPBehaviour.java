@@ -165,6 +165,7 @@ public abstract class OTPBehaviour {
                             }
                         }
                     }
+
                     if (pat.secondElem.booleanValue()) {
                         second += ", '*'";
                     }

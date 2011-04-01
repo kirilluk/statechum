@@ -30,6 +30,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  */
 public class ErlangOracleLearner extends RPNIUniversalLearner {
 
+    public Process erlangProcess = null;
+
     public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) {
         super(parent, evalCnf);
     }
@@ -37,25 +39,26 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     @Override
     public LearnerGraph learnMachine() {
         try {
-            erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin()+"erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
-            int response = erlangProcess.getInputStream().read();
-            while (response != '>' && response != -1) {
-                System.out.print((char) response);
-                response = erlangProcess.getInputStream().read();
+            if (erlangProcess == null) {
+                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin() + "erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
+                int response = erlangProcess.getInputStream().read();
+                while (response != '>' && response != -1) {
+                    System.out.print((char) response);
+                    response = erlangProcess.getInputStream().read();
+                }
             }
-
         } catch (IOException e) {
             killErlang();
             return null;
         }
 
         LearnerGraph result = super.learnMachine();
-        killErlang();
+        // Retain erlangProcess for use on re-learns....
+        //killErlang();
         return result;
     }
-    Process erlangProcess = null;
 
-    protected void killErlang() {
+    public void killErlang() {
         if (erlangProcess != null) {
             try {
                 erlangProcess.getOutputStream().write("halt().\n".getBytes());
@@ -123,12 +126,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                     }
                     /*
                     } else {
-                        // Positive prefix - try alternative output
-                        Pair<Integer, String> alt = altOutput(prefix, qtrace);
-                        if (alt != null) {
-                            failure = alt.firstElem;
-                            prefixString = alt.secondElem;
-                        }
+                    // Positive prefix - try alternative output
+                    Pair<Integer, String> alt = altOutput(prefix, qtrace);
+                    if (alt != null) {
+                    failure = alt.firstElem;
+                    prefixString = alt.secondElem;
+                    }
 
                     }
                      * 
@@ -198,7 +201,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
                                 failure = alt.firstElem;
                                 prefixString = alt.secondElem;
                             } else {
-                                System.out.println("Er, what?\n>>>" + prefix.toString() + "\n>>>" + qtrace.toString() + "\n");
+                                throw new RuntimeException("Er, what?\n>question>>" + qtrace.toString() + "\n>prefix >>" + prefix.toString() + "\n");
                             }
                         }
                     }
@@ -230,12 +233,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             item = item.replaceAll(",[^,}]*}$", ",'*'}");
             Trace newPrefix = prefix.clone();
             newPrefix.add(item);
-            System.out.println("Trying " + newPrefix.toString());
+            //System.out.println("Trying " + newPrefix.toString());
             Trace alt = ErlangQSMOracle.ErlangTraces.findPrefix(newPrefix);
             if ((alt != null) && (alt.size() > prefix.size())) {
                 qtrace.negative = true;
                 result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, alt.toTraceString() + "/" + qtrace.toTraceString());
-                //System.out.println("Got: " + prefixString);
+                //System.out.println("Got: " + alt.toTraceString());
                 //System.exit(1);
             } else {
                 //System.out.println("Nope...");
@@ -249,7 +252,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
      * @param  
      */
     public static void runErlang(String ErlangCommand) throws IOException {
-        Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin()+"erl", "-eval", ErlangCommand + ",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
+        Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin() + "erl", "-eval", ErlangCommand + ",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
         ExperimentRunner.dumpStreams(erlangProcess, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
 
             @Override
@@ -267,11 +270,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             }
         });
         try {
-			erlangProcess.waitFor();
-		} catch (InterruptedException e) {
-			// assume we were expected to terminate
-			;
-		}
+            erlangProcess.waitFor();
+        } catch (InterruptedException e) {
+            // assume we were expected to terminate
+            ;
+        }
     }
 
     /** Returns -1 if the string is shown as accepted, returns -2 if it is not found, and returns the point at which it is rejected otherwise */
@@ -326,9 +329,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
     /** Determines the default options with which a graph should be displayed. */
     @Override
-	protected LayoutOptions layoutOptions()
-    {
-        LayoutOptions options = new LayoutOptions();options.showNegatives = false;
-    	return options;
+    protected LayoutOptions layoutOptions() {
+        LayoutOptions options = new LayoutOptions();
+        options.showNegatives = false;
+        return options;
     }
 }

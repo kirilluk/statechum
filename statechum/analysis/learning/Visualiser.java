@@ -343,9 +343,24 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         }
 
         //this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         this.addWindowListener(new WindowEventHandler());
-
+        this.addComponentListener(new ComponentListener() {
+			
+			@Override
+			public void componentShown(@SuppressWarnings("unused") ComponentEvent e) {}
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				if (viewer != null) viewer.getModel().getGraphLayout().resize(getSize());
+			}
+			
+			@Override
+			public void componentMoved(@SuppressWarnings("unused") ComponentEvent e) {}
+			
+			@Override
+			public void componentHidden(@SuppressWarnings("unused") ComponentEvent e) {}
+		});
         this.addKeyListener(new KeyListener() {
 
             @Override
@@ -365,15 +380,6 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             }
         });
 
-        viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
-                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
-        viewer.setBackground(Color.WHITE);
-        final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
-        graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
-        graphMouse.add(new PickingGraphMousePlugin());
-        viewer.setGraphMouse(graphMouse);
-        viewer.setPickSupport(new ShapePickSupport());
-        viewer.addMouseListener(this);
         popupMenu = new JPopupMenu();
         JMenuItem item = new JMenuItem("pick");
         item.addActionListener(new ActionListener() {
@@ -394,8 +400,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         });
         popupMenu.add(item);
 
-        final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
-
+ 
         // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
         Image icon = Toolkit.getDefaultToolkit().getImage("resources" + File.separator + "icon.jpg");
         if (icon != null) {
@@ -404,15 +409,28 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 
         setKeyBindings();
         //getContentPane().removeAll();
-        getContentPane().add(panel);
-        pack();
-        restoreLayout(true, currentGraph);
         WindowPosition framePosition = globalConfig.loadFrame(propName);
         setSize(new Dimension(framePosition.getRect().width, framePosition.getRect().height));
         setBounds(framePosition.getRect());
+
+        viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
+                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
+
+        viewer.setBackground(Color.WHITE);
+        final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
+        graphMouse.setMode(ModalGraphMouse.Mode.PICKING);
+        graphMouse.add(new PickingGraphMousePlugin());
+        viewer.setGraphMouse(graphMouse);
+        viewer.setPickSupport(new ShapePickSupport());
+        viewer.addMouseListener(this);viewer.setPreferredSize(getSize());
+        final GraphZoomScrollPane panel = new GraphZoomScrollPane(viewer);
+        getContentPane().add(panel);
+        pack();
+      
+        restoreLayout(true, currentGraph);
         setVisible(true);
     }
-
+    
     protected static class XMLModalGraphMouse extends DefaultModalGraphMouse {
 
         /** Restores parameters which are not recorded in the view/layout transforms, from the supplied XML stream
@@ -457,6 +475,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
         }
 
+        viewer.getModel().getGraphLayout().resize(getSize());
     }
 
     
@@ -932,6 +951,8 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             super(layout);
         }
 
+        
+        
         /** Almost verbatim from Jung source code.
          *
          * Saves all the vertex locations to a map - this is enough to rebuild the layout

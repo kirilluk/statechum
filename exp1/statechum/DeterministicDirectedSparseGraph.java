@@ -267,8 +267,6 @@ final public class DeterministicDirectedSparseGraph {
 		/** Returns an ID of this vertex. */
 		VertexID getID();
 		
-		void setID(VertexID id);
-		
 		/** Returns true if this is an accept vertex and false for a reject one. */
 		boolean isAccept();
 		/** Makes this state an accept/reject one. */
@@ -607,11 +605,6 @@ final public class DeterministicDirectedSparseGraph {
 				addUserDatum(JUConstants.ORIGSTATE, newState, UserData.SHARED);
 		}
 
-		@Override
-		public void setID(VertexID id) {
-			this.vertexID = id;
-			
-		}
 	}
 
 	public final static class DeterministicEdge extends DirectedSparseEdge {

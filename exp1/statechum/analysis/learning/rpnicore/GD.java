@@ -54,7 +54,6 @@ import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.experiments.Transition;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph.DDRH_BCR;
@@ -879,7 +878,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 */
 	public static final class ChangesDisplay implements PatchGraph
 	{
-		private Set<Transition> diff = new HashSet<Transition>();
 		private final StringBuffer result = new StringBuffer();
 		
 		/** Next instance of PatchGraph in a stack of observers. */
@@ -904,14 +902,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void addTransition(CmpVertex from, String label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
 			result.append("added  : ");appendTransition(from, label, to);
-			diff.add(new Transition(from,to,label));
 		}
 
 		@Override
 		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
 			if (next != null) next.removeTransition(from, label, to);
 			result.append("removed: ");appendTransition(from, label, to);
-			diff.add(new Transition(from,to,label));
 		}
 		
 		@Override
@@ -948,10 +944,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void addRelabelling(VertexID a, VertexID b) {
 			if (next != null) next.addRelabelling(a, b);
 			result.append("mapping: "+a+" - "+b);appendEndl();
-		}
-		
-		public Set<Transition>getDiff(){
-			return diff;
 		}
 	}
 	
@@ -1293,6 +1285,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
 	{
+		a.pathroutines.checkConsistency(a);
+		b.pathroutines.checkConsistency(b);
+		
 		ThreadNumber = threads;
 		Configuration cloneConfig = argConfig.copy();cloneConfig.setLearnerCloneGraph(true);// we need to clone attributes here because after key pair identification, attributes from graph B will be copied into vertices of A, otherwise these attributes may not make it into the patch.
 		grCombined = new LearnerGraphND(a,cloneConfig);// I cannot simply do Transform.addToGraph here because patch has to be relative to graph A.

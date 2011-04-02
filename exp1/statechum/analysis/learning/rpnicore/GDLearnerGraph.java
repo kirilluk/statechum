@@ -886,8 +886,10 @@ public class GDLearnerGraph
 							RandomPathGenerator randomPaths = new RandomPathGenerator(deterministicGraph,randomGenerator.getRandom(entryA.getKey()),
 									extraLength+config.getGdScoreComputationAlgorithm_RandomWalk_ExtraLength(),state,matrixForward.pathroutines.computeAlphabet());
 							randomPaths.setPathLength(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
+							System.out.println(config.getGdScoreComputationAlgorithm_RandomWalk_PathLength());
 							randomPaths.generateRandomPosNeg(config.getGdScoreComputationAlgorithm_RandomWalk_NumberOfSequences(), 1,false);
 							graphwalk=new GraphAndWalk(deterministicGraph,randomPaths.getAllSequences(0));
+							System.out.println("walks for state "+entryA.getKey()+"\n"+graphwalk.testSequences.getData(PTASequenceEngine.truePred));
 						}
 						break;
 					case SCORE_TESTSET:

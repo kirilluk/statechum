@@ -2,42 +2,41 @@ package statechum.analysis.learning.experiments;
 
 import java.util.Collection;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Vector;
+import java.util.TreeSet;
+
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
-import statechum.Configuration.GDScoreComputationAlgorithmEnum;
-import statechum.Configuration.GDScoreComputationEnum;
+import statechum.DeterministicDirectedSparseGraph;
+import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.StringVertex;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.GD;
-import statechum.analysis.learning.rpnicore.GD.ChangesDisplay;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
 import statechum.model.testset.PTASequenceEngine;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
-
+import statechum.analysis.learning.experiments.GraphMutator.ChangesRecorderAsCollectionOfTransitions;;
 
 public class DiffExperiments {
 	
 	
 	Configuration config = Configuration.getDefaultConfiguration();
 	boolean skipLanguage = false;
-	int exp;
+	final int experimentsPerMutationCategory, mutationStages = 5, graphComplexityMax = 6;
 	long[][][] performanceLang,performanceStruct; 
 	double[][][] accuracyRandLang, accuracyWLang, accuracyStruct, scoreStruct; 
 	
@@ -48,16 +47,16 @@ public class DiffExperiments {
 		
 	}
 	
-	public DiffExperiments(int experimentsPerCategory){
-		performanceLang = new long[100][5][experimentsPerCategory]; 
-		performanceStruct = new long[100][5][experimentsPerCategory]; 
+	public DiffExperiments(int experimentsPerCategoryArg){
+		experimentsPerMutationCategory = experimentsPerCategoryArg;
+		performanceLang = new long[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
+		performanceStruct = new long[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
 		
-		accuracyRandLang = new double[100][5][experimentsPerCategory]; 
-		accuracyWLang = new double[100][5][experimentsPerCategory];
-		accuracyStruct = new double[100][5][experimentsPerCategory];
+		accuracyRandLang = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
+		accuracyWLang = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory];
+		accuracyStruct = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory];
 		
-		scoreStruct = new double[100][5][experimentsPerCategory]; 
-		exp = experimentsPerCategory;
+		scoreStruct = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
 		//config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);
 		//config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 	}
@@ -65,54 +64,66 @@ public class DiffExperiments {
 	public void runExperiment(int initStates, boolean skip){
 		this.skipLanguage = skip;
 		Random r = new Random(0);
-		for(int states=initStates;states<300;states=states+50){
+		for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++){
+			int states=initStates+graphComplexity*50;
 			int alphabet = states/2;
 			
 			MachineGenerator mg = new MachineGenerator(states, 40, states/6);
 			int mutationsPerStage = (states/2) / 2;
 			System.out.print("\n"+states+": ");
-			for(int i = 1;i<6;i++){
-				for(int j=0;j<exp;j++){
+			for(int mutationStage = 0;mutationStage<mutationStages;mutationStage++){
+				for(int experiment=0;experiment<experimentsPerMutationCategory;experiment++){
 					int counter=0;
-					if(j%2==0)
+					if(experiment%2==0)
 						System.out.print(".");
 					boolean worked = false;
-					while(worked == false){
+					while(worked == false)
+					{
 						counter++;
-						int mutations = mutationsPerStage * i;
-						LearnerGraphND from = mg.nextMachine(alphabet, counter);
-						LearnerGraphND graph = new LearnerGraphND(from.config);
-						copyStatesAndTransitions(from,graph);
-						GraphMutator mutator = new GraphMutator(graph,r);
-						
+						int mutations = mutationsPerStage * (mutationStage+1);
+						LearnerGraphND origGraph = mg.nextMachine(alphabet, counter);
+						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
+							new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
 						mutator.mutate(mutations);
+						
 						//mutator.changeStateLabels(); //to avoid exception that from and to share same labels
 						
-						LearnerGraphND to = mutator.getMutated();
+						LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
+						Map<CmpVertex,CmpVertex> origToNew = copyStatesAndTransitions(origGraph,origAfterRenaming);
+						LearnerGraphND mutated = (LearnerGraphND)mutator.getMutated();
+						Set<Transition> appliedMutations = new HashSet<Transition>();
+						for(Transition tr:mutator.getDiff())
+						{
+							CmpVertex renamedFrom = origToNew.get(tr.getFrom());if (renamedFrom == null) renamedFrom = tr.getFrom();
+							CmpVertex renamedTo = origToNew.get(tr.getTo());if (renamedTo == null) renamedTo = tr.getTo();
+							appliedMutations.add(new Transition(renamedFrom,renamedTo,tr.getLabel()));
+						}
 						
-						//Visualiser.updateFrame(from, to);
-						
-						worked = linearDiff(from,to, mutator,states/50,i-1,j);
+						worked = linearDiff(origAfterRenaming,mutated, appliedMutations,graphComplexity,mutationStage,experiment);
 						if(!worked)
-							continue;
-						LearnerGraph fromDet = mergeAndDeterminize(from);
-						LearnerGraph toDet = mergeAndDeterminize(to);
-						
+							throw new RuntimeException();
+						LearnerGraph fromDet = null, toDet = null;
+						try {
+							fromDet = mergeAndDeterminize(origAfterRenaming);
+							toDet = mergeAndDeterminize(mutated);
+						} catch (IncompatibleStatesException e) {
+							Helper.throwUnchecked("failed to build a deterministic graph from a nondet one", e);
+						}
 						if (!skip)
-							worked = languageDiff(fromDet,toDet,states, (int)states/50,i-1,j);
+							worked = languageDiff(fromDet,toDet,states, graphComplexity,mutationStage,experiment);
 					}
 				}
 				System.out.print("|");
-				System.out.print("["+getAverage(accuracyStruct,states/50,i-1)+"]");
+				System.out.print("["+getAverage(accuracyStruct,graphComplexity,mutationStage)+"]");
 			}
-			printList(scoreStruct[(int)states/50]);
+			printList(scoreStruct[graphComplexity]);
 			System.out.println("Time-struct:");
-			printList(performanceStruct[(int)states/50]);
+			printList(performanceStruct[graphComplexity]);
 			if(!skip){
 				System.out.println("Time-lang:");
-				printList(performanceLang[(int)states/50]);
+				printList(performanceLang[graphComplexity]);
 				System.out.println("------");
-				printLangScores(this.accuracyRandLang[(int)states/50],this.accuracyWLang[(int)states/50],this.accuracyStruct[(int)states/50]);
+				printLangScores(this.accuracyRandLang[graphComplexity],this.accuracyWLang[graphComplexity],this.accuracyStruct[graphComplexity]);
 				System.out.println("------");
 			}
 		}
@@ -133,21 +144,16 @@ public class DiffExperiments {
 	}
 	
 
-	private LearnerGraph mergeAndDeterminize(LearnerGraphND from) {
+	private LearnerGraph mergeAndDeterminize(LearnerGraphND from) throws IncompatibleStatesException {
 		LearnerGraph eval = null;
-		try {
-			eval = from.pathroutines.buildDeterministicGraph();
-			eval = eval.paths.reduce();
-		} catch (IncompatibleStatesException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		eval = from.pathroutines.buildDeterministicGraph();
+		eval = eval.paths.reduce();
 		return eval;
 	}
 
 	private void printList(double[][] ds) {
 		System.out.println();
-		for(int j = 0; j<exp;j++){
+		for(int j = 0; j<experimentsPerMutationCategory;j++){
 			for(int i=0;i<ds.length;i++){
 				System.out.print(ds[i][j]+",");
 			}
@@ -159,7 +165,7 @@ public class DiffExperiments {
 	
 	private void printList(long[][] ls) {
 		System.out.println();
-		for(int j = 0; j<exp;j++){
+		for(int j = 0; j<experimentsPerMutationCategory;j++){
 			for(int i=0;i<ls.length;i++){
 				System.out.print(ls[i][j]+",");
 			}
@@ -171,9 +177,9 @@ public class DiffExperiments {
 
 	private void printLangScores(double[][][] accuracyRandLang2,
 			double[][][] accuracyWLang2, double[][][] accuracyStruct2) {
-		for(int i=0;i<5;i++){
-			for(int j=0;j<5;j++){
-				for(int k =0;k<exp;k++){
+		for(int i=0;i<mutationStages;i++){
+			for(int j=0;j<mutationStages;j++){
+				for(int k =0;k<experimentsPerMutationCategory;k++){
 					System.out.println(accuracyRandLang2[i][j][k]+","+accuracyWLang2[i][j][k]+","+accuracyStruct2[i][j][k]);
 				}
 			}
@@ -182,8 +188,8 @@ public class DiffExperiments {
 	}
 	
 	private void printLangScores(double[][] accuracyRandLang2, double[][] accuracyWLang2, double[][] accuracyStruct2) {
-		for(int j=0;j<5;j++){
-			for(int k =0;k<exp;k++){
+		for(int j=0;j<mutationStages;j++){
+			for(int k =0;k<experimentsPerMutationCategory;k++){
 				System.out.println(accuracyRandLang2[j][k]+","+accuracyWLang2[j][k]+","+accuracyStruct2[j][k]);
 			}
 		}
@@ -199,71 +205,45 @@ public class DiffExperiments {
 		//assert origAlphabet.equals(from.pathroutines.computeAlphabet());
 		final long startTime = System.nanoTime();
 		final long endTime;
-		Collection<List<String>> wMethod;
-		try{
-			wMethod = from.wmethod.getFullTestSet(1);
-		}
-		finally{
-			endTime = System.nanoTime();
-		}
+		Collection<List<String>> wMethod = from.wmethod.getFullTestSet(1);
+		endTime = System.nanoTime();
 		long wDuration = endTime - startTime;
-		Collection<List<String>> sequences =new HashSet<List<String>>();
+		Collection<List<String>> sequences =new TreeSet<List<String>>();
 		RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
-		try{
-			rpg.generatePosNeg((i+1)*states , 1);
-		}
-		catch(Exception e){
-			System.out.print("-");
-			return false;
-		}
-		final PTASequenceEngine samples = rpg.getAllSequences(0);
-		final PTASequenceEngine positive = rpg.getExtraSequences(0);
+		rpg.generatePosNeg((i+1)*states , 1);
 
-		PTASequenceEngine.FilterPredicate posPredicate =samples.getFSM_filterPredicate();
-			
-			
-		PTASequenceEngine.FilterPredicate negPredicate = new FilterPredicate() {
-			FilterPredicate origFilter = samples.getFSM_filterPredicate();
-			public boolean shouldBeReturned(Object name) {
-				return !origFilter.shouldBeReturned(name);
-			}
-		};
-
-		sequences.addAll(samples.getData(negPredicate));
-		sequences.addAll(positive.getData(posPredicate));
+		sequences.addAll(rpg.getAllSequences(0).getData(PTASequenceEngine.truePred));
+		sequences.addAll(rpg.getExtraSequences(0).getData(PTASequenceEngine.truePred));
 		compareLang(from, to, sequences, false,i,j,j2,0);
 		compareLang(from, to, wMethod, true,i,j,j2,wDuration);
 		return true;
 	}
 
 	private void compareLang(LearnerGraph from, LearnerGraph to,
-			Collection<List<String>> sequences, boolean w, int col, int row, int x, long time) {
+			Collection<List<String>> sequences, boolean useWset, int col, int row, int x, long time) 
+	{
 		
 		final long startTime = System.nanoTime();
 		final long endTime;
 		ConfusionMatrix result;
-		try{
 		result = classify(sequences, from,to);
-		}
-		finally{
-			endTime = System.nanoTime();
-		}
+		endTime = System.nanoTime();
 		final long duration = endTime - startTime;
-		if(!w){
+		if(!useWset){
 			accuracyRandLang[col][row][x] = result.fMeasure();
-			assert(!Double.isNaN(accuracyRandLang[col][row][x]));
+			assert !Double.isNaN(accuracyRandLang[col][row][x]);
 		}
 		else{
 			accuracyWLang[col][row][x] = result.fMeasure();
 			performanceLang[col][row][x] = duration+time;
-			assert(!Double.isNaN(accuracyWLang[col][row][x]));
+			assert !Double.isNaN(accuracyWLang[col][row][x]);
 		}
 		
 	}
 
 	private ConfusionMatrix classify(Collection<List<String>> sequences,
 			LearnerGraph from, LearnerGraph to) {
-		double tp=0; double tn = 0; double fp=0; double fn=0;
+		int tp=0, tn = 0, fp=0, fn=0;
 		boolean inTarget,inMutated;
 		for (List<String> list : sequences) {
 			CmpVertex fromState = from.paths.getVertex(list);
@@ -288,126 +268,106 @@ public class DiffExperiments {
 		return new ConfusionMatrix(tp,tn,fp,fn);
 	}
 
-	boolean linearDiff(AbstractLearnerGraph from, AbstractLearnerGraph to, GraphMutator mutator, int col, int row, int x)
+	private void displayDiff(LearnerGraphND from, LearnerGraphND to)
+	{
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
+			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		DirectedSparseGraph gr = gd.showGD(
+				from,to,
+				ExperimentRunner.getCpuNumber());
+		Visualiser.updateFrame(to,gr);
+	}
+	
+	boolean linearDiff(LearnerGraphND from, LearnerGraphND to, 
+			Set<Transition> expectedMutations,
+			int col, int row, int x)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>  rec3 = new ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>(from,to,null);
-		ChangesDisplay cd = new ChangesDisplay(rec3);
+		ChangesRecorderAsCollectionOfTransitions cd = new ChangesRecorderAsCollectionOfTransitions(rec3);
 		final long startTime = System.nanoTime();
-		final long endTime;
-		try{
-			gd.computeGD(from, to, 2, cd, config);
-			
-		}
-		catch(Exception e){
-			e.printStackTrace();
-			return false;
-		}
-		finally{
-			endTime = System.nanoTime();
-		}
+		gd.computeGD(from, to, ExperimentRunner.getCpuNumber(), cd, config);
+		final long endTime = System.nanoTime();
+		
+		//displayDiff(from,to);
 		final long duration = endTime - startTime;
 		Set<Transition> detectedDiff = cd.getDiff();
-		Set<Transition> mutations = mutator.getDiff();
-		appendSuffixes(detectedDiff);
-		double f = computeFMeasure(mutations, detectedDiff);
+		
+		if (!detectedDiff.equals(expectedMutations))
+		{
+			Set<Transition> set = new HashSet<Transition>();
+			
+			set.clear();set.addAll(expectedMutations);set.removeAll(detectedDiff);
+			System.out.println(set);System.out.println();
+			set.clear();set.addAll(detectedDiff);set.removeAll(expectedMutations);
+			System.out.println(set);System.out.println();
+			
+			System.out.println(expectedMutations);System.out.println();
+			System.out.println(detectedDiff);System.out.println();
+			displayDiff(from, to);
+			Visualiser.waitForKey();
+		}
+		
+		double f = computeFMeasure(expectedMutations, detectedDiff);
 		performanceStruct[col][row][x] = duration;
 		scoreStruct[col][row][x] = f;
-		//System.out.println(f);
-		//assert(performanceStruct[col][row][x]>0);
-		//assert(scoreStruct[col][row][x]>0);
-		double tp = from.pathroutines.countEdges()-rec3.getRemoved();
-		double fn = rec3.getRemoved();
-		double fp = rec3.getAdded();
-		double tn = 0.0;
+		int tp = from.pathroutines.countEdges()-rec3.getRemoved();
+		int fn = rec3.getRemoved();
+		int fp = rec3.getAdded();
+		int tn = 0;
 		ConfusionMatrix cn = new ConfusionMatrix(tp,tn,fp,fn);
 		accuracyStruct[col][row][x]=cn.fMeasure();		
-		//assert(accuracyStruct[col][row][x]>0);
-		System.gc();
 		return true;
 	}
 	
-	private void appendSuffixes(Set<Transition> mutations) {
-		for (Transition transition : mutations) {
-			CmpVertex from = transition.getFrom();
-			String fromLabel = makeLabel(from.getID().toString());
-			CmpVertex fromNew = new StringVertex(fromLabel);
-			CmpVertex to = transition.getTo();
-			String toLabel = makeLabel(to.getID().toString());
-			CmpVertex toNew = new StringVertex(toLabel);
-			transition.setFrom(fromNew);
-			transition.setTo(toNew);
-		}
-		
-	}
-	
-	private String makeLabel(String label){
-		if(label.startsWith("P"))
-			return label + "m";
-		else
-			return label;
-	}
-	
-	private void copyStatesAndTransitions(LearnerGraphND machine, LearnerGraphND graph) {
+	/** Renames vertices in the supplied graph - very useful if we are to compare visually how the outcome
+	 * is supposed to look like. In practice this is not necessary because GD will rename clashing vertices.
+	 * 
+	 * @param machineFrom machine which vertices to rename
+	 * @param graphTo where to store the result
+	 * @return the map from the original to the converted CmpVertices
+	 */
+	private Map<CmpVertex,CmpVertex> copyStatesAndTransitions(LearnerGraphND machineFrom, LearnerGraphND graphTo) {
 		Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
-		graph.getTransitionMatrix().clear();
-		Set<CmpVertex> machineStates = machine.getTransitionMatrix().keySet();
+		graphTo.getTransitionMatrix().clear();
+		Set<CmpVertex> machineStates = machineFrom.getTransitionMatrix().keySet();
 		for (CmpVertex cmpVertex : machineStates) { //copy all vertices
-			CmpVertex newVertex = graph.copyVertexUnderDifferentName(cmpVertex);
-			newVertex.setID(new VertexID(newVertex.getID().toString()+"m")); 
-			if(machine.getInit().equals(cmpVertex))
-				graph.setInit(newVertex);
+			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("o"+cmpVertex.getID().toString()), graphTo.config);
+			DeterministicDirectedSparseGraph.copyVertexData(cmpVertex, newVertex);
 			machineVertexToGraphVertex.put(cmpVertex, newVertex);
 		}
-		for (CmpVertex cmpVertex : machineStates) { //copy all edges
-			Map<String, List<CmpVertex>> machineRow = machine.getTransitionMatrix().get(cmpVertex);
-			Map<String,List<CmpVertex>> graphRow = graph.createNewRow();
-			CmpVertex source = machineVertexToGraphVertex.get(cmpVertex);
-			Collection<String> outLabs = machineRow.keySet();
-			for (String label : outLabs) {
-				List<CmpVertex> to = machineRow.get(label);
-				List<CmpVertex> dests = new ArrayList<CmpVertex>();
-				for (CmpVertex destination : to) {
-					dests.add(machineVertexToGraphVertex.get(destination));
-				}
-				graphRow.put(label, dests);
-			}
-			graph.getTransitionMatrix().put(source, graphRow);
-		}
+		graphTo.setInit(machineVertexToGraphVertex.get(machineFrom.getInit()));
+		AbstractLearnerGraph.addAndRelabelGraphs(machineFrom, machineVertexToGraphVertex, graphTo);
+		graphTo.setName("orig_"+machineFrom.getName());
+		graphTo.invalidateCache();return machineVertexToGraphVertex;
 	}
 
 
 	protected static double computeFMeasure(Set<Transition> from, Set<Transition> to){
-		double tp,tn,fp,fn;
-		Set<String> fromStrings = new HashSet<String>();
-		Set<String> toStrings = new HashSet<String>();
-		Set<String> set = new HashSet<String>();
-		for (Transition t : from) {
-			fromStrings.add(t.toString());
-		}
-		for (Transition t : to){
-			toStrings.add(t.toString());
-		}
-		set.addAll(fromStrings);
-		set.retainAll(toStrings);
-		tp = (double)set.size();
-		tn = 0.0;
+		int tp,tn,fp,fn;
+		Set<Transition> set = new HashSet<Transition>();
+
 		set.clear();
-		set.addAll(toStrings);
-		set.removeAll(fromStrings);
-		fp = (double)set.size();
+		set.addAll(from);
+		set.retainAll(to);
+		tp = set.size();
+		tn = 0;
 		set.clear();
-		set.addAll(fromStrings);
-		set.removeAll(toStrings);
-		fn = (double)set.size();
+		set.addAll(to);
+		set.removeAll(from);
+		fp = set.size();
+		set.clear();
+		set.addAll(from);
+		set.removeAll(to);
+		fn = set.size();
 		
 		ConfusionMatrix conf = new ConfusionMatrix(tp, tn, fp, fn);
 		return conf.fMeasure();
 	}
 	
 	private void printAccuracyMatrix(double[][][] toPrint){
-		for(int i=0;i<5;i++){
-			for(int j=0;j<5;j++){
+		for(int i=0;i<mutationStages;i++){
+			for(int j=0;j<mutationStages;j++){
 				double average = getAverage(toPrint,i,j);
 				System.out.print(average+",");
 			}
@@ -420,12 +380,12 @@ public class DiffExperiments {
 		for(int k =0;k<30;k++){
 			total = total + toPrint[i][j][k];
 		}
-		return total/exp;
+		return total/experimentsPerMutationCategory;
 	}
 	
 	private void printAccuracyMatrix(long[][][] toPrint){
-		for(int i=0;i<5;i++){
-			for(int j=0;j<5;j++){
+		for(int i=0;i<mutationStages;i++){
+			for(int j=0;j<mutationStages;j++){
 				long average = getAverage(toPrint,i,j);
 				System.out.print(average+",");
 			}
@@ -441,18 +401,18 @@ public class DiffExperiments {
 		return total/30;
 	}
 	
-public class MachineGenerator{
+	public static class MachineGenerator{
 		
-		private Vector<Integer> sizeSequence; 
-		private int actualTargetSize, artificialTargetSize, error, phase;
+		private final List<Integer> sizeSequence = new LinkedList<Integer>(); 
+		private final int actualTargetSize, error, phaseSize;
+		private int artificialTargetSize;
 
 		
-		public MachineGenerator(int target, int phase, int error){
-			this.phase = phase;
+		public MachineGenerator(int target, int phaseArg, int errorArg){
+			this.phaseSize = phaseArg;
 			this.actualTargetSize = target;
 			this.artificialTargetSize = target;
-			this.sizeSequence = new Vector<Integer>();
-			this.error = error;
+			this.error = errorArg;
 		}
 		
 		//0.31,0.385
@@ -460,76 +420,46 @@ public class MachineGenerator{
 			LearnerGraph machine = null;
 			boolean found = false;
 			while(!found){
-				for(int i = 0; i< phase; i++){
+				for(int i = 0; i< phaseSize; i++){
 					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
 					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,seed);
 					
 					machine = gen.buildMachine(artificialTargetSize);
-					
+					machine.setName("forestfire_"+alphabet);
 					int machineSize = machine.getStateNumber();
+					//System.out.println("generated states: "+machineSize);
 					sizeSequence.add(machineSize);
+					
+					if (Math.abs(machineSize - actualTargetSize) != 0)
+							throw new RuntimeException();
 					if(Math.abs(machineSize - actualTargetSize)<=error){
 						found = true;
 						break;
 					}
+						
 				}
 				if(!found)
 					adjustArtificialTargetSize();
 			}
-			return convertToLearnerGraphND(machine);
+			
+			LearnerGraphND outcome = new LearnerGraphND(machine.config);AbstractLearnerGraph.copyGraphs(machine,outcome);
+			return outcome;
 		}
-
-		private LearnerGraphND convertToLearnerGraphND(LearnerGraph machine) {
-			LearnerGraphND graph = new LearnerGraphND(machine.config);
-			copyStatesAndTransitions(machine,graph);
-			return graph;
-		}
-		
-		private void copyStatesAndTransitions(LearnerGraph machine, LearnerGraphND graph) {
-			Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
-			graph.getTransitionMatrix().clear();
-			Set<CmpVertex> machineStates = machine.getTransitionMatrix().keySet();
-			for (CmpVertex cmpVertex : machineStates) { //copy all vertices
-				CmpVertex newVertex = graph.copyVertexUnderDifferentName(cmpVertex);
-				if(machine.getInit().equals(cmpVertex))
-					graph.setInit(newVertex);
-				machineVertexToGraphVertex.put(cmpVertex, newVertex);
-			}
-			for (CmpVertex cmpVertex : machineStates) { //copy all edges
-				Map<String, CmpVertex> machineRow = machine.getTransitionMatrix().get(cmpVertex);
-				Map<String,List<CmpVertex>> graphRow = graph.createNewRow();
-				CmpVertex source = machineVertexToGraphVertex.get(cmpVertex);
-				Collection<String> outLabs = machineRow.keySet();
-				for (String label : outLabs) {
-					CmpVertex to = machineRow.get(label);
-					List<CmpVertex> dests = new ArrayList<CmpVertex>();
-					dests.add(machineVertexToGraphVertex.get(to));
-					graphRow.put(label, dests);
-				}
-				graph.getTransitionMatrix().put(source, graphRow);
-			}
-		}
-		
-		
-
-		
 
 		private void adjustArtificialTargetSize() {
 			int difference = actualTargetSize - average(sizeSequence);
 			artificialTargetSize = artificialTargetSize+difference;
-			sizeSequence = new Vector<Integer>();
+			sizeSequence.clear();
 		}
 
-		private int average(Vector<Integer> sizeSequence2) {
+		private int average(List<Integer> sizeSequence2) {
 			int total = 0;
 			for (Integer integer : sizeSequence2) {
 				total = total + integer;
 			}
 			return total / sizeSequence.size();
 		}
-		
 	
 	}
-
 
 }

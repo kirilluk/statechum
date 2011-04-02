@@ -13,7 +13,6 @@ public class Transition
 		this.from = argFrom; this.to = argTo; this.label=argLabel;
 	}
 
-	
 	public int compareTo(Object compare) 
 	{
 		return toString().compareTo(compare.toString());
@@ -31,7 +30,8 @@ public class Transition
 	
 	@Override
 	public boolean equals(Object o){
-		return this.toString().equals(o.toString());
+		Transition t = (Transition)o;
+		return from.equals(t.from) && to.equals(t.to) && label.equals(t.label);
 	}
 	
 	@Override

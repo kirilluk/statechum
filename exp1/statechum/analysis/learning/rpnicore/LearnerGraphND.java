@@ -327,6 +327,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
+	public
 	Collection<CmpVertex> getTargets(List<CmpVertex> targ) {
 		return targ;
 	}

@@ -145,9 +145,4 @@ final public class StringVertex implements CmpVertex {
 		origState = newState;
 	}
 
-	@Override
-	public void setID(VertexID id) {
-		this.vertexId = id;
-		
-	}
 }

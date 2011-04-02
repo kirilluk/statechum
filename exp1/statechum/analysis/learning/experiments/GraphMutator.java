@@ -1,334 +1,252 @@
 package statechum.analysis.learning.experiments;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-
-import edu.uci.ics.jung.graph.Edge;
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import statechum.Configuration;
 import statechum.JUConstants;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.GD.LearnerGraphMutator;
 import statechum.analysis.learning.rpnicore.GD.PatchGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 
 public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>  {
 
-	private LearnerGraphND mutating;
+	private AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> mutating;
 	private LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> mutator;
-	private Set<Transition> added = new HashSet<Transition>();
-	private Set<Transition> removed = new HashSet<Transition>();
-	private Map<CmpVertex, Map<String, List<CmpVertex>>> preds = new HashMap<CmpVertex,Map<String,List<CmpVertex>>>();
 	private Random r;
 	private int addedStates = 0;
+	private ChangesRecorderAsCollectionOfTransitions changesMade = new ChangesRecorderAsCollectionOfTransitions(null);
 	
-	public GraphMutator(LearnerGraphND mutating2, Random r){
-		this.r = r;
-		mutating = (LearnerGraphND) mutating2.copy(Configuration.getDefaultConfiguration());
-		Configuration conf = Configuration.getDefaultConfiguration();
-		mutator = new LearnerGraphMutator(mutating2.copy(conf), conf, null);
-		preds = computePreds(mutating.getTransitionMatrix());
-	}
-	
-	public void changeStateLabels(){
-		for (CmpVertex vertex : mutating.getTransitionMatrix().keySet()) {
-			VertexID id = vertex.getID();
-			vertex.setID(new VertexID(id.getStringId()+"mut"));
+	/** This class displays the requested changes.
+	 */
+	public static final class ChangesRecorderAsCollectionOfTransitions implements PatchGraph
+	{
+		private Set<Transition> diff = new HashSet<Transition>();
+		
+		/** Next instance of PatchGraph in a stack of observers. */
+		private final PatchGraph next;
+
+		public ChangesRecorderAsCollectionOfTransitions(PatchGraph nextInStack)
+		{
+			next = nextInStack;
+		}
+		
+		@Override
+		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+			if (next != null) next.addTransition(from, label, to);
+			diff.add(new Transition(from,to,label));
+		}
+
+		@Override
+		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+			Transition trToRemove = new Transition(from,to,label);
+			if (diff.contains(trToRemove))
+				throw new FailureToMutateException("newly-added transition cannot be removed by another mutation");
+			if (next != null) next.removeTransition(from, label, to);
+			
+			diff.add(new Transition(from,to,label));
+		}
+		
+		@Override
+		public String toString()
+		{
+			return diff.toString();
+		}
+		
+		@Override
+		public void setInitial(CmpVertex vertex) {
+			if (next != null) next.setInitial(vertex);
+		}
+
+		@Override
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value) {
+			if (next != null) next.addToCompatibility(a,b,value);
+		}
+
+		@Override
+		public void addVertex(CmpVertex vertex) {
+			if (next != null) next.addVertex(vertex);
+		}
+
+		@Override
+		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
+			if (next != null) next.removeFromCompatibility(a,b);
+		}
+
+		@Override
+		public void addRelabelling(VertexID a, VertexID b) {
+			if (next != null) next.addRelabelling(a, b);
+		}
+		
+		public Set<Transition>getDiff(){
+			return diff;
 		}
 	}
+
 	
-	
-	private void mutate(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> result){
-		mutator.removeDanglingStates();
-		mutator.relabel(result);
+	public GraphMutator(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> mutating2, Random rArg){
+		this.r = rArg;
+		mutating = mutating2.copy(mutating2.config.copy());
+		// it is important that the mutator above is asked first about the changes - 
+		// it should be able to veto removal of transitions which have previously been added
+		// or addition of those which were previously removed. 
+		mutator = new LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE>(mutating, mutating2.config.copy(), changesMade);
 	}
 	
-	public LearnerGraphND getMutated(){
+	public AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> getMutated(){
 		return mutating;
 	}
 	
 	public Set<Transition>getDiff() {
-		Set<Transition> returnSet = added;
-		returnSet.addAll(removed);
-		return returnSet;
+		return changesMade.getDiff();
 	}
 	
-	
-	
-	public void mutate(int mutations) {
-		try{
-			for(int i = 0; i< mutations;i++){
-				int choice = r.nextInt(4);
-				if(choice == 0)
-					addEdgeBetweenExistingStates();
-				else if(choice == 1)
-					addEdgeToNewState();
-				else if(choice == 2)
-					removeEdge();
-				else if(choice == 3)
-					removeState();
-				update();
+	public void mutate(int mutations) 
+	{
+		int mutationsDone = 0;
+		while(mutationsDone < mutations)
+		{
+			int choice = r.nextInt(4);
+			try
+			{
+				switch(choice)
+				{
+					case 0:addEdgeBetweenExistingStates();break;
+					case 1:addEdgeToNewState();break;
+					case 2:removeEdge();break;
+					case 3:removeState();break;
+					default:throw new IllegalArgumentException("loop index out of range for possible mutations");
+				}
+				mutating.pathroutines.checkConsistency(mutating);
+				mutationsDone++;// mutation successful
 			}
-			
-		}
-		catch(Exception e){
-			e.printStackTrace();
+			catch(FailureToMutateException e)
+			{// failed to mutate, the next iteration thru the loop will make another attempt.
+			}
 		}
 	}
 	
-	private void update() {
-		mutate((AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE>) mutating);
-		preds = computePreds(mutating.getTransitionMatrix());
-	}
-
-
 	protected CmpVertex selectRandomState(){
 		Set<CmpVertex> selectFrom = mutating.getTransitionMatrix().keySet();
-		return (CmpVertex)randomFromCollection(selectFrom);
+		return randomFromCollection(selectFrom);
 	}
 	
-	protected CmpVertex selectRandomStateWithOutEdges() throws Exception{
-		boolean found = false;
-		CmpVertex returnState = null;
-		Set<CmpVertex> states = new HashSet<CmpVertex>();
-		states.addAll(mutating.getTransitionMatrix().keySet());
-		while(found == false){
-			
-			returnState = (CmpVertex)randomFromCollection(states);
-			if(!mutating.getTransitionMatrix().get(returnState).isEmpty())
-				found = true;
-			else{
-				states.remove(returnState);
-				if(states.isEmpty())
-					throw new Exception("Could not find state with outgoing edge, graph must be corrupted");
-			}
-			
-		}
-		return returnState;
+	protected CmpVertex selectRandomStateWithOutEdges() 
+	{
+		Set<CmpVertex> states = new TreeSet<CmpVertex>();
+		for(CmpVertex vert:mutating.getTransitionMatrix().keySet())
+			if (!mutating.getTransitionMatrix().get(vert).isEmpty())
+				states.add(vert);
+		return randomFromCollection(states);
 	}
 	
 	protected CmpVertex selectRandomStateNotInit(){
-		Set<CmpVertex> selectFrom = new HashSet<CmpVertex>();
+		Set<CmpVertex> selectFrom = new TreeSet<CmpVertex>();
 		selectFrom.addAll(mutating.getTransitionMatrix().keySet());
 		selectFrom.remove(mutating.getInit());
-		return (CmpVertex)randomFromCollection(selectFrom);
+		return randomFromCollection(selectFrom);
 	}
 	
-	
-
-	/*
-	 * Will select random alphabet element, but will not return an element if it could
-	 * lead to non-determinism
-	 */
-	protected String randomLabel(Set<String> avoid){
-		Set<String> alphabet = mutating.pathroutines.computeAlphabet();
-		alphabet.removeAll(avoid);
-		return (String)randomFromCollection(alphabet);
-	}
-	
-	/*
+	/**
 	 * Will select random alphabet element, could lead to nondeterminism.
 	 */
 	protected String randomLabel(){
 		Set<String> alphabet = mutating.pathroutines.computeAlphabet();
-		return (String)randomFromCollection(alphabet);
+		return randomFromCollection(alphabet);
 	}
 	
 	protected String randomDeterministicLabel(CmpVertex v){
-		Set<String> labs = new HashSet<String>();
+		Set<String> labs = new TreeSet<String>();
 		labs.addAll(mutating.pathroutines.computeAlphabet());
 		labs.removeAll(buildAvoidSet(v));
-		return randomLabel(labs);
+		return randomFromCollection(labs);
+	}
+
+	public static class FailureToMutateException extends IllegalArgumentException
+	{
+		/**
+		 * serial ID
+		 */
+		private static final long serialVersionUID = -6536925107162966396L;
+		
+		public FailureToMutateException(String text)
+		{
+			super(text);
+		}
 	}
 	
-	protected Object randomFromCollection(Collection<?> set){
-		int size = set.size();
+	
+	@SuppressWarnings("unchecked")
+	protected <ELEM> ELEM randomFromCollection(Collection<ELEM> set)
+	{
+		int size = set.size();if (size < 1) throw new FailureToMutateException("collection to choose from is empty");
 		Object[] setArray = set.toArray();
-		return setArray[r.nextInt(size)];
+		return (ELEM)setArray[r.nextInt(size)];
+	}
+
+	protected Set<String> buildAvoidSet(CmpVertex from)
+	{
+		return mutating.getTransitionMatrix().get(from).keySet();
 	}
 	
 	
-	
-	protected Set<String> buildAvoidSet(CmpVertex from){
-		HashSet<String> avoid = new HashSet<String>();
-		avoid.addAll(mutating.getTransitionMatrix().get(from).keySet());
-		return avoid;
-	}
-	
-	
-	protected boolean addEdgeBetweenExistingStates(){
+	protected void addEdgeBetweenExistingStates()
+	{
 		CmpVertex from = selectRandomState();
 		CmpVertex to = selectRandomState();
-		try{
-			String label = null;
-			label = randomDeterministicLabel(from);
-			mutator.addTransition(from, label, to);
-			//mutating.addTransition(mutating.getTransitionMatrix().get(from), label, to);
-			added.add(new Transition(from, to, label));
-		}
-		catch(Exception e){
-			return false;
-		}
-		return true;
+		String label = randomDeterministicLabel(from);
+		mutator.addTransition(from, label, to);
 	}
 	
 	
-	protected boolean addEdgeToNewState(){
+	protected void addEdgeToNewState(){
 		CmpVertex from = selectRandomState();
-		CmpVertex to = selectRandomState();
-		try{
-			String label = null;
-			label = randomDeterministicLabel(from);
-			CmpVertex newV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("added"+addedStates++), Configuration.getDefaultConfiguration());
-			mutator.addVertex(newV);
-			String newLabel = randomLabel();
-			mutator.addTransition(from, newLabel, newV);
-			//mutating.addTransition(mutating.getTransitionMatrix().get(newV), newLabel, to);
-			
-			added.add(new Transition(from, newV, label));
-			added.add(new Transition(newV, to, newLabel));
-		}
-		catch(Exception e){
-			return false;
-		}
-		return true;
+		CmpVertex newV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("added_"+addedStates++), Configuration.getDefaultConfiguration());
+		mutator.addVertex(newV);
+		String newLabel = randomLabel();
+		mutator.addTransition(from, newLabel, newV);
 	}
 	
-	protected boolean removeEdge() throws Exception{
-		CmpVertex from = selectRandomStateWithOutEdges();
-		Map<String, List<CmpVertex>> row = mutating.getTransitionMatrix().get(from);
-		if(!row.keySet().isEmpty()){
-			String label = (String)randomFromCollection(row.keySet());
-			List<CmpVertex> dests = row.get(label);
-			CmpVertex dest = (CmpVertex)randomFromCollection(dests);
-			mutator.removeTransition(from, label, dest);
-			//mutating.removeTransition(row, label, to);
-			removed.add(new Transition(from, dest, label));
-			return true;
-		}
-		else
-			return false;
+	protected void removeEdge()
+	{
+		CmpVertex from = selectRandomStateWithOutEdges();// there are always transitions from the "from" state by construction.
+		Map<String, TARGET_A_TYPE> row = mutating.getTransitionMatrix().get(from);
+		String label = randomFromCollection(row.keySet());
+		Collection<CmpVertex> dests = mutating.getTargets(row.get(label));
+		CmpVertex dest = randomFromCollection(dests);
+		mutator.removeTransition(from, label, dest);
+		mutator.removeDanglingStates();// useful if we ended up removing all transitions from a state
 	}
 	
-	protected boolean removeState(){
+	protected void removeState(){
 		
 		int initSize = mutating.getStateNumber();
-		if(initSize<3){
-			return false;
-		}
-		CmpVertex remove = selectRandomStateNotInit();
-		Map<String, List<CmpVertex>> outgoing = mutating.getTransitionMatrix().get(remove);
-		if(outgoing!=null){
-			removeTransitions(constructOutgoingSet(remove,outgoing));
-		}
-		Map<String,List<CmpVertex>> incoming = preds.get(remove);
-		if(incoming!=null){
-			removeTransitions(constructIncomingSet(remove,incoming));
-		}
-		//mutating.getTransitionMatrix().remove(remove);
-		return true;
-	}
-	
-	
-
-	private Set<Transition> constructIncomingSet(CmpVertex remove, Map<String, List<CmpVertex>> outgoing) {
-		Set<Transition> removeSet = new HashSet<Transition>();
-		for (String label : outgoing.keySet()) {
-			List<CmpVertex> others = outgoing.get(label);
-			for (CmpVertex cmpVertex : others) {
-				removeSet.add(new Transition(cmpVertex,remove,label));
-				removed.add(new Transition(cmpVertex,remove,label));
-			}
-				
-		}
-		return removeSet;
-	}
-	
-	private Set<Transition> constructOutgoingSet(CmpVertex remove,Map<String, List<CmpVertex>> outgoing) {
-		Set<Transition> removeSet = new HashSet<Transition>();
-		for (String label : outgoing.keySet()) {
-			List<CmpVertex> others = outgoing.get(label);
-			for (CmpVertex cmpVertex : others) {
-				if(cmpVertex.equals(remove))
-					continue; //otherwise we will end up removing the same transition twice
-				removeSet.add(new Transition(remove,cmpVertex,label));
-				removed.add(new Transition(remove,cmpVertex,label));
-			}
-				
-		}
-		return removeSet;
-	}
-	
-	
-	private void removeTransitions(Set<Transition> rmTransitions) {
-		for (Transition cmpTrans : rmTransitions) {
-			CmpVertex from = cmpTrans.getFrom();
-			CmpVertex to = cmpTrans.getTo();
-			String label = cmpTrans.getLabel();	
-			mutator.removeTransition(from, label, to);
-			//mutating.removeTransition(mutating.getTransitionMatrix().get(from), label, to);
-		}
+		if(initSize<3) throw new FailureToMutateException("the number of states is less than 3");
 		
-	}
-	
-	
-	
-	
-
-	private Map<CmpVertex, Map<String,List<CmpVertex>>> computePreds(Map<CmpVertex, Map<String, List<CmpVertex>>> map) {
-		Map<CmpVertex, Map<String,List<CmpVertex>>> preds = new HashMap<CmpVertex,Map<String,List<CmpVertex>>>();
-		Set<CmpVertex> keys = map.keySet();
-		for (CmpVertex cmpVertex : keys) { //iterate through all vertices
-			Map<String, List<CmpVertex>> dests = map.get(cmpVertex);
-			Set<String> labels = dests.keySet();
-			for (String string : labels) { //for each vertex v iterate through its outgoing alphabet a
-				
-				List<CmpVertex> destinations = dests.get(string);
-				for (CmpVertex destination : destinations) { //for each alphabet member get destination d
-					Map<String,List<CmpVertex>> pred;
-					if(preds.get(destination)==null){ //if destination d does not have any stored predecessors
-						pred = new HashMap<String,List<CmpVertex>>();
-						pred.put(string, newListWithVertex(cmpVertex)); //add v, with label a
-					}
-					else{ //if destination d does have stored predecessors
-						pred = preds.get(destination); //get the existing list of predecessors pred
-						if(pred.get(string) == null){ //if there is no predecessor that reaches d with a
-							pred.put(string, newListWithVertex(cmpVertex)); // add it in its own list
-						}
-						else{ //otherwise
-							pred.get(string).add(cmpVertex); //add it to the existing list list
-						}
-					}
-					preds.put(destination, pred);
-				}
+		CmpVertex stateToRemove = selectRandomStateNotInit();
+		List<Transition> transitionsToRemove = new LinkedList<Transition>();
+		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:mutating.getTransitionMatrix().entrySet())
+		{
+			for(Entry<String,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
+			{
+				for(CmpVertex targetVertex:mutating.getTargets(rowEntry.getValue()))
+					if (entry.getKey() == stateToRemove || targetVertex == stateToRemove) transitionsToRemove.add(new Transition(entry.getKey(), targetVertex, rowEntry.getKey()));
 			}
 		}
-		return preds;
-	}
-
-	private List<CmpVertex> newListWithVertex(CmpVertex cmpVertex) {
-		List<CmpVertex> vertices = new ArrayList<CmpVertex>();
-		vertices.add(cmpVertex);
-		return vertices;
+		for(Transition tr:transitionsToRemove)
+			mutator.removeTransition(tr.getFrom(), tr.getLabel(), tr.getTo());
+		mutator.removeDanglingStates();
+		//mutating.getTransitionMatrix().remove(stateToRemove);
 	}
 	
 }

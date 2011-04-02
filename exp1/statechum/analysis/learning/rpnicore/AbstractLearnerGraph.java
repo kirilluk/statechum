@@ -61,6 +61,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 
 	final CACHE_TYPE learnerCache = createCache();
 	
+	public void invalidateCache()
+	{
+		learnerCache.invalidate();
+	}
+	
 	/** Creates the cache. Should be overridden by subclasses to create instances of an appropriate type. */
 	abstract public CACHE_TYPE createCache();
 	
@@ -378,7 +383,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public CmpVertex addVertex(CmpVertex prevState, boolean accepted, String input)
 	{
-		assert Thread.holdsLock(syncObj);
+		//assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
@@ -450,7 +455,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param targ targets
 	 * @return iterator for navigation through target states.
 	 */
-	abstract Collection<CmpVertex> getTargets(TARGET_TYPE targ);
+	public abstract Collection<CmpVertex> getTargets(TARGET_TYPE targ);
 	
 	/** Initialises this graph with a single-state PTA. */
 	public void initPTA()

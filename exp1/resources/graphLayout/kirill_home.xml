@@ -1,6 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.6.0_10-rc2" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_22" class="java.beans.XMLDecoder"> 
  <object class="java.util.Properties"> 
+  <void method="put"> 
+   <string>ASSERT_ENABLED</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
+   <string>VIZ_CONFIG</string> 
+   <string>kirill_home</string> 
+  </void> 
+  <void method="put"> 
+   <string>VIZ_DIR</string> 
+   <string>exp1/resources/graphLayout</string> 
+  </void> 
+  <void method="put"> 
+   <string>LTL2BA</string> 
+   <string>/usr/local/bin/ltl2ba</string> 
+  </void> 
+  <void method="put"> 
+   <string>BUILDGRAPH</string> 
+   <string>testNewLearner1b</string> 
+  </void> 
+  <void method="put"> 
+   <string>STOP</string> 
+   <string>testNewLearner_2_1aa</string> 
+  </void> 
+  <void method="put"> 
+   <string>ASSERT</string> 
+   <string>true</string> 
+  </void> 
   <void method="put"> 
    <string>GRAPHICS_MONITOR</string> 
    <string>1</string> 
@@ -10,23 +38,7 @@
    <string>true</string> 
   </void> 
   <void method="put"> 
-   <string>BUILDGRAPH</string> 
-   <string>testNewLearner1b</string> 
-  </void> 
-  <void method="put"> 
-   <string>ASSERT_ENABLED</string> 
-   <string>true</string> 
-  </void> 
-  <void method="put"> 
    <string>SMTWARNINGS</string> 
-   <string>true</string> 
-  </void> 
-  <void method="put"> 
-   <string>STOP</string> 
-   <string>testNewLearner_2_1aa</string> 
-  </void> 
-  <void method="put"> 
-   <string>ASSERT</string> 
    <string>true</string> 
   </void> 
  </object> 

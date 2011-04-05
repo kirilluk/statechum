@@ -243,6 +243,18 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	/** Contains an inverse of the <em>frontwave</em> map. */
 	Map<CmpVertex,CmpVertex> newToOrig = null;
 	
+	public void printWave(Collection<PairScore> wave)
+	{
+		boolean initial = true;
+		System.out.print("[");
+		for(PairScore elem:wave) 
+		{	
+			if (!initial) System.out.print(", ");else initial=false;
+			System.out.print(elem.getQ()+","+newBToOrig.get(elem.getR())+": "+elem.getScore());
+		}
+		System.out.println("]");
+	}
+	
 	/** Expands the set of key pairs.
 	 */
 	protected void makeSteps()
@@ -294,6 +306,22 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
+/*
+					if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+						for(PairScore similarPair:currentWave)
+							if ((similarPair.getQ().equals(pair.getQ()) || similarPair.getR().equals(pair.getR())) && !similarPair.equals(pair))
+							{
+								int minScore = Math.min(similarPair.getScore(),pair.getScore());
+								assert minScore >= 0;
+								if (minScore == 0)
+									System.out.println("Warning: for pairs "+pair+" and "+similarPair+" in the current wave min score is 0");
+								else
+								{
+								if (Math.abs(similarPair.getScore()-pair.getScore()) < minScore/2)
+									System.out.println("Warning: for pairs "+pair+" and "+similarPair+" there is very small difference in scores");
+								}								
+							}
+*/
 				}
 		}
 		while(!frontWave.isEmpty());
@@ -1799,9 +1827,18 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				renameVertex(pair.getKey().getID(),"(K "+pairscore.getScore()+","+pairscore.getAnotherScore()+"="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
 			}
 			else
-				renameVertex(pair.getKey().getID(),"(P="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
+			{
+				int scorePosition = pairScores[forward.vertexToIntNR(pair.getKey(),pair.getValue())];
+				double score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+				renameVertex(pair.getKey().getID(),"(P="+newBToOrig.get(pair.getValue()).getID()+","+score+")",oldVerticesToNew);
+			}
 		}
-		
+		for(CmpVertex stateA:statesOfA)
+			for(CmpVertex stateB:statesOfB)
+			{
+				int scorePosition = pairScores[forward.vertexToIntNR(stateA,stateB)];double score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+				System.out.println(stateA.toString()+","+newBToOrig.get(stateB).toString()+" : "+score);
+			}
 		Map<String,String> labelling = new TreeMap<String,String>();
 		for(Entry<VertexID,VertexID> entry:oldVerticesToNew.entrySet())
 			labelling.put(entry.getKey().toString(),entry.getValue().toString());

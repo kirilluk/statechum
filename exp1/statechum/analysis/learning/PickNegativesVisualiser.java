@@ -47,7 +47,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	
 	public PickNegativesVisualiser()
 	{
-		super(statechum.GlobalConfiguration.G_PROPERTIES.UPPER);
+		super(0);
 	}
 	
 	

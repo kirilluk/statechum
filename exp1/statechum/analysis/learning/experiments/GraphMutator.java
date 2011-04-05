@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import statechum.Configuration;
@@ -25,33 +26,46 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	private LearnerGraphMutator<TARGET_A_TYPE,CACHE_A_TYPE> mutator;
 	private Random r;
 	private int addedStates = 0;
-	private ChangesRecorderAsCollectionOfTransitions changesMade = new ChangesRecorderAsCollectionOfTransitions(null);
+	private ChangesRecorderAsCollectionOfTransitions changesMade = new ChangesRecorderAsCollectionOfTransitions(null,true);
 	
 	/** This class displays the requested changes.
 	 */
 	public static final class ChangesRecorderAsCollectionOfTransitions implements PatchGraph
 	{
+		
 		private Set<Transition> diff = new HashSet<Transition>();
+		
+		/** Whether seemingly duplicate mutations should be banned. */
+		private boolean checkForInvalidMutations;
 		
 		/** Next instance of PatchGraph in a stack of observers. */
 		private final PatchGraph next;
 
-		public ChangesRecorderAsCollectionOfTransitions(PatchGraph nextInStack)
+		public ChangesRecorderAsCollectionOfTransitions(PatchGraph nextInStack, boolean checkForInvalidMutationsArg)
 		{
-			next = nextInStack;
+			next = nextInStack;checkForInvalidMutations = checkForInvalidMutationsArg;
+		}
+		
+		public void checkSimilarTransition(CmpVertex from, String label, CmpVertex to)
+		{
+			if (!checkForInvalidMutations)
+				return;
+			Transition t = new Transition(from,to,label);
+			if (diff.contains(t))
+				throw new FailureToMutateException("mutation is too similar to an earlier one, requested "+t);
 		}
 		
 		@Override
 		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+			checkSimilarTransition(from, label, to);
 			if (next != null) next.addTransition(from, label, to);
+
 			diff.add(new Transition(from,to,label));
 		}
 
 		@Override
 		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
-			Transition trToRemove = new Transition(from,to,label);
-			if (diff.contains(trToRemove))
-				throw new FailureToMutateException("newly-added transition cannot be removed by another mutation");
+			checkSimilarTransition(from, label, to);
 			if (next != null) next.removeTransition(from, label, to);
 			
 			diff.add(new Transition(from,to,label));
@@ -121,14 +135,14 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 			{
 				switch(choice)
 				{
-					case 0:addEdgeBetweenExistingStates();break;
-					case 1:addEdgeToNewState();break;
-					case 2:removeEdge();break;
-					case 3:removeState();break;
+					case 0:addEdgeBetweenExistingStates();mutationsDone++;break;
+					case 1:mutationsDone+=addEdgeToNewState(mutations - mutationsDone);break;
+					case 2:removeEdge();mutationsDone++;break;
+					case 3:mutationsDone+=removeState(mutations - mutationsDone);break;
 					default:throw new IllegalArgumentException("loop index out of range for possible mutations");
 				}
 				mutating.pathroutines.checkConsistency(mutating);
-				mutationsDone++;// mutation successful
+				// mutation successful
 			}
 			catch(FailureToMutateException e)
 			{// failed to mutate, the next iteration thru the loop will make another attempt.
@@ -165,10 +179,10 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		return randomFromCollection(alphabet);
 	}
 	
-	protected String randomDeterministicLabel(CmpVertex v){
+	protected String randomLabel(CmpVertex v){
 		Set<String> labs = new TreeSet<String>();
 		labs.addAll(mutating.pathroutines.computeAlphabet());
-		labs.removeAll(buildAvoidSet(v));
+		//labs.removeAll(buildAvoidSet(v));
 		return randomFromCollection(labs);
 	}
 
@@ -204,17 +218,28 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 	{
 		CmpVertex from = selectRandomState();
 		CmpVertex to = selectRandomState();
-		String label = randomDeterministicLabel(from);
+		String label = randomLabel(from);
+		Map<String,TARGET_A_TYPE> targets = mutating.getTransitionMatrix().get(from);
+		
+		if (targets.containsKey(label))
+		{
+			for(CmpVertex tgt:mutating.getTargets(targets.get(label)))
+				if (to == tgt)
+					throw new FailureToMutateException("duplicate transition");
+		}
 		mutator.addTransition(from, label, to);
 	}
 	
 	
-	protected void addEdgeToNewState(){
+	protected int addEdgeToNewState(int mutationsWeCanAccommodate){
+		if (mutationsWeCanAccommodate < 2)
+			throw new FailureToMutateException("in order to add an edge, we have to be able to manage two mutations, only one is available");
 		CmpVertex from = selectRandomState();
 		CmpVertex newV = AbstractLearnerGraph.generateNewCmpVertex(new VertexID("added_"+addedStates++), Configuration.getDefaultConfiguration());
 		mutator.addVertex(newV);
 		String newLabel = randomLabel();
 		mutator.addTransition(from, newLabel, newV);
+		return 2;
 	}
 	
 	protected void removeEdge()
@@ -228,12 +253,8 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 		mutator.removeDanglingStates();// useful if we ended up removing all transitions from a state
 	}
 	
-	protected void removeState(){
-		
-		int initSize = mutating.getStateNumber();
-		if(initSize<3) throw new FailureToMutateException("the number of states is less than 3");
-		
-		CmpVertex stateToRemove = selectRandomStateNotInit();
+	protected List<Transition> computeWhichTransitionsToRemoveFor(CmpVertex stateToRemove)
+	{
 		List<Transition> transitionsToRemove = new LinkedList<Transition>();
 		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:mutating.getTransitionMatrix().entrySet())
 		{
@@ -243,10 +264,26 @@ public class GraphMutator<TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A
 					if (entry.getKey() == stateToRemove || targetVertex == stateToRemove) transitionsToRemove.add(new Transition(entry.getKey(), targetVertex, rowEntry.getKey()));
 			}
 		}
-		for(Transition tr:transitionsToRemove)
+		return transitionsToRemove;
+	}
+	
+	protected int removeState(int maxMutationsWeCanAccommodate){
+		
+		int initSize = mutating.getStateNumber();
+		if(initSize<3) throw new FailureToMutateException("the number of states is less than 3");
+		
+		Map<CmpVertex,List<Transition>> candidatesForRemoval = new TreeMap<CmpVertex,List<Transition>>();
+		for(CmpVertex vert:mutating.getTransitionMatrix().keySet())
+		{
+			List<Transition> mut = computeWhichTransitionsToRemoveFor(vert);
+			if (vert != mutating.getInit() && mut.size() < maxMutationsWeCanAccommodate)
+				candidatesForRemoval.put(vert,mut);
+		}
+		CmpVertex stateToRemove = randomFromCollection(candidatesForRemoval.keySet());
+		for(Transition tr:candidatesForRemoval.get(stateToRemove))
 			mutator.removeTransition(tr.getFrom(), tr.getLabel(), tr.getTo());
 		mutator.removeDanglingStates();
-		//mutating.getTransitionMatrix().remove(stateToRemove);
+		return candidatesForRemoval.get(stateToRemove).size()+1;
 	}
 	
 }

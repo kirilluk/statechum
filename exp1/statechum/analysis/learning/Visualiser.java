@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.uci.ics.jung.visualization.*;
@@ -107,7 +108,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      */
     protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
     
-    protected static class LayoutOptions
+    public static class LayoutOptions
     {
     	public boolean showNegatives = true;
     }
@@ -117,10 +118,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     /** Current position in the above list. */
     protected int currentGraph;
     /**
-     * The name under which to store window information. The default value is
-     * null which inhibits saving of a layout.
+     * The identifier under which to store window information. The default value is
+     * negative which inhibits saving of a layout.
      */
-    protected G_PROPERTIES propName = null;
+    protected int propName = -1;
+    
     /** A popup with Jung control choices. */
     JPopupMenu popupMenu;
     final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration();
@@ -131,7 +133,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * @param windowPropName
      *            the name under which to store configuration information.
      */
-    public Visualiser(G_PROPERTIES windowPropName) {
+    public Visualiser(int windowPropName) {
         super(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[GlobalConfiguration.getConfiguration().loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
         propName = windowPropName;
 
@@ -142,8 +144,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * layout.
      */
     public Visualiser() {
-        propName = null;
+        propName = -1;
     }
+    
     /** Key bindings. */
     Map<Integer, Action> keyToActionMap = new TreeMap<Integer, Action>();
     /** Actions to switch to picking/transform mode. */
@@ -184,7 +187,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 try {
-                    if (propName != null) {
+                    if (propName >= 0) {
                         String fileName = getLayoutFileName(graphs.get(currentGraph));
                         XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
                         Map<Integer, DoublePair> layout = ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist();
@@ -196,6 +199,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                         trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());
                         encoder.writeObject(trL);
                         ((XMLModalGraphMouse) viewer.getGraphMouse()).store(encoder);
+                        encoder.writeObject(layoutOptions);
                         encoder.close();
                     }
                 } catch (Exception e1) {
@@ -381,40 +385,30 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         });
 
         popupMenu = new JPopupMenu();
-        JMenuItem item = new JMenuItem("pick");
-        item.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pickAction.actionPerformed(e);
-            }
-        });
-        popupMenu.add(item);
-        item = new JMenuItem("transform");
-        item.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                transformAction.actionPerformed(e);
-            }
-        });
-        popupMenu.add(item);
-
- 
-        // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
+       // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
         Image icon = Toolkit.getDefaultToolkit().getImage("resources" + File.separator + "icon.jpg");
         if (icon != null) {
             setIconImage(icon);
         }
 
         setKeyBindings();
+        for(Entry<Integer,Action> ia:keyToActionMap.entrySet())
+        {
+        	JMenuItem menuitem = new JMenuItem(ia.getValue().getValue(Action.NAME).toString());
+        	menuitem.getAccessibleContext().setAccessibleDescription(ia.getValue().getValue(Action.SHORT_DESCRIPTION).toString());
+        	menuitem.setAccelerator(KeyStroke.getKeyStroke(
+        	        KeyEvent.VK_T, ActionEvent.ALT_MASK));//KeyStroke.getKeyStroke((char)ia.getKey().intValue()));
+        	menuitem.setAction(ia.getValue());
+        	popupMenu.add(menuitem);
+        
+        }
         //getContentPane().removeAll();
         WindowPosition framePosition = globalConfig.loadFrame(propName);
         setSize(new Dimension(framePosition.getRect().width, framePosition.getRect().height));
         setBounds(framePosition.getRect());
 
         viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
-                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
+                propName >= 0 ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
 
         viewer.setBackground(Color.WHITE);
         final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
@@ -469,7 +463,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             setTitle(title);
             wasInitialised = true;
         } else {
-            viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName != null ? new FRLayout(graph) : new KKLayout(graph)));
+            viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
@@ -487,7 +481,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     protected void restoreLayout(boolean ignoreErrors, int graphNumber) {
         try {
             String fileName = getLayoutFileName(graphs.get(graphNumber));
-            if (propName != null && (new File(fileName)).canRead()) {
+            if (propName >= 0 && (new File(fileName)).canRead()) {
                 XMLDecoder decoder = new XMLDecoder(new FileInputStream(fileName));
                 Map<Integer, DoublePair> map = (Map<Integer, DoublePair>) decoder.readObject();
                 ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
@@ -504,6 +498,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 viewer.getLayoutTransformer().concatenate(
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
                 ((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
+                layoutOptions = (List<LayoutOptions>)decoder.readObject();
                 decoder.close();
 
                 viewer.invalidate();
@@ -833,48 +828,44 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * </pre>
      * where <i>upper</i> and <i>lower</i> are the graphs to be displayed.
      */
-    static Visualiser upperGraphViz = null, lowerGraphViz = null;
+    static Visualiser graphWindow[] = new Visualiser[3];
 
     /** If a dialog box has to be displayed, it needs to know a reference frame. This method returns this frame, creating it if necessary.
      *
      * @return a Visualiser frame.
      */
     public static Visualiser getVisualiser() {
-        if (upperGraphViz == null) {
-            upperGraphViz = new Visualiser(G_PROPERTIES.UPPER);
+    	final int mainWindow = 0;
+        if (graphWindow[mainWindow] == null) {
+        	graphWindow[mainWindow] = new Visualiser(mainWindow);
         }
-        return upperGraphViz;
+        return graphWindow[mainWindow];
     }
 
     /** Removes the two windows displaying Jung graphs.
      */
     public static void disposeFrame() {
-        if (upperGraphViz != null && lowerGraphViz != null) {
-            try {
-                SwingUtilities.invokeAndWait(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        if (upperGraphViz != null) {
-                            upperGraphViz.setVisible(false);
-                            upperGraphViz.dispose();
-                            upperGraphViz = null;
-                        }
-                        if (lowerGraphViz != null) {
-                            lowerGraphViz.setVisible(false);
-                            lowerGraphViz.dispose();
-                            lowerGraphViz = null;
-                        }
-                    }
-                });
-            } catch (InterruptedException e) {
-                // cannot do much about this
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                // cannot do much about this
-                e.printStackTrace();
-            }
-        }
+	    try {
+	        SwingUtilities.invokeAndWait(new Runnable() {
+	
+	            @Override
+	            public void run() {
+	            	for(int i=0;i<graphWindow.length;++i)
+	            		if (graphWindow[i] != null)
+	                	{
+	                    	graphWindow[i].setVisible(false);
+	                    	graphWindow[i].dispose();
+	                    	graphWindow[i] = null;
+	                	}
+	            }
+	        });
+	    } catch (InterruptedException e) {
+	        // cannot do much about this
+	        e.printStackTrace();
+	    } catch (InvocationTargetException e) {
+	        // cannot do much about this
+	        e.printStackTrace();
+	    }
     }
 
     /** Displays twos graphs passed as arguments in the Jung window.
@@ -892,19 +883,20 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 throw new IllegalArgumentException("the first graph to display cannot be null");
             }
 
-            if (upperGraphViz == null) {
-                upperGraphViz = new Visualiser(G_PROPERTIES.UPPER);
-            }
-
-            upperGraphViz.update(null, upperGraph);
-            if (lowerGraph != null) {
-                if (lowerGraphViz == null) {
-                    lowerGraphViz = new Visualiser(G_PROPERTIES.LOWER);
-                }
-                lowerGraphViz.update(null, lowerGraph);
-            }
+            updateFrameWithPos(upperGraph, 0);
+            if (lowerGraph != null)
+            	updateFrameWithPos(lowerGraph, 1);
         }
     }
+    
+    public static void updateFrameWithPos(final Object graph, int windowid)
+    {
+        if (graphWindow[windowid] == null) {
+        	graphWindow[windowid] = new Visualiser(windowid);
+        }
+        graphWindow[windowid].update(null,graph);
+    }
+    
     /** Used to make it possible to single-step through graph transforms. */
     final static Object syncObject = new Object();
     /** Value to return to a thread which is waiting. */

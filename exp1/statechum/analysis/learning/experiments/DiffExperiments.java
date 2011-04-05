@@ -12,10 +12,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Helper;
+import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.Visualiser;
@@ -81,7 +83,7 @@ public class DiffExperiments {
 					{
 						counter++;
 						int mutations = mutationsPerStage * (mutationStage+1);
-						LearnerGraphND origGraph = mg.nextMachine(alphabet, counter);
+						LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment);
 						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
 							new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
 						mutator.mutate(mutations);
@@ -113,9 +115,9 @@ public class DiffExperiments {
 							worked = languageDiff(fromDet,toDet,states, graphComplexity,mutationStage,experiment);
 					}
 				}
-				System.out.print("|");
 				System.out.print("["+getAverage(accuracyStruct,graphComplexity,mutationStage)+"]");
 			}
+			/*
 			printList(scoreStruct[graphComplexity]);
 			System.out.println("Time-struct:");
 			printList(performanceStruct[graphComplexity]);
@@ -126,6 +128,7 @@ public class DiffExperiments {
 				printLangScores(this.accuracyRandLang[graphComplexity],this.accuracyWLang[graphComplexity],this.accuracyStruct[graphComplexity]);
 				System.out.println("------");
 			}
+			*/
 		}
 		/*System.out.println("\nSTRUCT SCORES");
 		printAccuracyMatrix(this.scoreStruct);
@@ -274,8 +277,10 @@ public class DiffExperiments {
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		DirectedSparseGraph gr = gd.showGD(
 				from,to,
-				ExperimentRunner.getCpuNumber());
-		Visualiser.updateFrame(to,gr);
+				ExperimentRunner.getCpuNumber());gr.setUserDatum(JUConstants.TITLE, "diff_"+from.getName(),UserData.SHARED);
+		Visualiser.updateFrameWithPos(from, 1);
+		Visualiser.updateFrameWithPos(to, 2);
+		Visualiser.updateFrameWithPos(gr, 0);
 	}
 	
 	boolean linearDiff(LearnerGraphND from, LearnerGraphND to, 
@@ -284,8 +289,11 @@ public class DiffExperiments {
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>  rec3 = new ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>(from,to,null);
-		ChangesRecorderAsCollectionOfTransitions cd = new ChangesRecorderAsCollectionOfTransitions(rec3);
+		ChangesRecorderAsCollectionOfTransitions cd = new ChangesRecorderAsCollectionOfTransitions(rec3,false);
 		final long startTime = System.nanoTime();
+		config.setGdKeyPairThreshold(0.5);
+		config.setGdLowToHighRatio(0.75);
+		config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 		gd.computeGD(from, to, ExperimentRunner.getCpuNumber(), cd, config);
 		final long endTime = System.nanoTime();
 		
@@ -293,21 +301,47 @@ public class DiffExperiments {
 		final long duration = endTime - startTime;
 		Set<Transition> detectedDiff = cd.getDiff();
 		
-		if (!detectedDiff.equals(expectedMutations))
+		// The observed difference can be below the expected one if we remove a transition making a state isolated
+		// and then add one with the same label to a new state - in this case the new state and the old one are matched
+		// but the mutator did not realise that this would be the case.
+		
+		// If the quality level of pairs to pick is set too high, in cases where a part of a graph is almost disconnected due to mutations
+		// it will not be matched to the corresponding part of the original graph because what would usually be a key pair may receive
+		// a relatively low score (compared to other well-matched pairs based on which the 50% threshold can be obtained).
+		
+		// If the quality level is low, we mis-match key pairs also leading to large patches.
+		/*
+		if (detectedDiff.size() < expectedMutations.size())
 		{
 			Set<Transition> set = new HashSet<Transition>();
 			
 			set.clear();set.addAll(expectedMutations);set.removeAll(detectedDiff);
-			System.out.println(set);System.out.println();
+			System.out.println("expected-detected = "+set);System.out.println();
 			set.clear();set.addAll(detectedDiff);set.removeAll(expectedMutations);
-			System.out.println(set);System.out.println();
+			System.out.println("detected-expected = "+set);System.out.println();
 			
-			System.out.println(expectedMutations);System.out.println();
-			System.out.println(detectedDiff);System.out.println();
+			System.out.println("expected = "+expectedMutations);System.out.println();
+			System.out.println("detected = "+detectedDiff);System.out.println();
 			displayDiff(from, to);
 			Visualiser.waitForKey();
+		}*/
+/*
+		if (detectedDiff.size() > expectedMutations.size() )
+		{
+			Set<Transition> set = new HashSet<Transition>();
+			
+			set.clear();set.addAll(expectedMutations);set.removeAll(detectedDiff);
+			System.out.println("expected-detected = "+set);System.out.println();
+			set.clear();set.addAll(detectedDiff);set.removeAll(expectedMutations);
+			System.out.println("detected-expected = "+set);System.out.println();
+			
+			System.out.println("expected = "+expectedMutations);System.out.println();
+			System.out.println("detected = "+detectedDiff);System.out.println();
+			//displayDiff(from, to);
+			//Visualiser.waitForKey();
 		}
-		
+*/
+/*
 		double f = computeFMeasure(expectedMutations, detectedDiff);
 		performanceStruct[col][row][x] = duration;
 		scoreStruct[col][row][x] = f;
@@ -316,7 +350,13 @@ public class DiffExperiments {
 		int fp = rec3.getAdded();
 		int tn = 0;
 		ConfusionMatrix cn = new ConfusionMatrix(tp,tn,fp,fn);
-		accuracyStruct[col][row][x]=cn.fMeasure();		
+		*/
+		if (detectedDiff.size() < expectedMutations.size())
+			accuracyStruct[col][row][x]=-1;// mutations mangled the graph too much
+		else
+			accuracyStruct[col][row][x]= ((double)detectedDiff.size())/expectedMutations.size();
+		//System.out.println(accuracyStruct[col][row][x]);
+			//cn.fMeasure();		
 		return true;
 	}
 	
@@ -376,11 +416,13 @@ public class DiffExperiments {
 	}
 
 	private double getAverage(double[][][] toPrint, int i, int j) {
-		double total = 0;
-		for(int k =0;k<30;k++){
-			total = total + toPrint[i][j][k];
-		}
-		return total/experimentsPerMutationCategory;
+		double total = 0,count=0;
+		for(int k =0;k<experimentsPerMutationCategory;k++)
+			if (toPrint[i][j][k] >= 0)
+			{
+				total = total + toPrint[i][j][k];count++;
+			}
+		return count > 0? total/count:0;
 	}
 	
 	private void printAccuracyMatrix(long[][][] toPrint){
@@ -395,10 +437,10 @@ public class DiffExperiments {
 
 	private long getAverage(long[][][] toPrint, int i, int j) {
 		long total = 0;
-		for(int k =0;k<30;k++){
+		for(int k =0;k<experimentsPerMutationCategory;k++){
 			total = total + toPrint[i][j][k];
 		}
-		return total/30;
+		return total/experimentsPerMutationCategory;
 	}
 	
 	public static class MachineGenerator{
@@ -416,16 +458,16 @@ public class DiffExperiments {
 		}
 		
 		//0.31,0.385
-		public LearnerGraphND nextMachine(int alphabet, int seed){
+		public LearnerGraphND nextMachine(int alphabet, int counter){
 			LearnerGraph machine = null;
 			boolean found = false;
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
 					//ForestFireNDStateMachineGenerator gen = new ForestFireNDStateMachineGenerator(0.365,0.3,0.2,seed,alphabet);
-					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,seed);
+					ForestFireLabelledStateMachineGenerator gen = new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter);
 					
 					machine = gen.buildMachine(artificialTargetSize);
-					machine.setName("forestfire_"+alphabet);
+					machine.setName("forestfire_"+counter);
 					int machineSize = machine.getStateNumber();
 					//System.out.println("generated states: "+machineSize);
 					sizeSequence.add(machineSize);

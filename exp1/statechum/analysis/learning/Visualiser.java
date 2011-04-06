@@ -64,6 +64,9 @@ import org.apache.commons.collections.Predicate;
  * 
  * JVM arguments for auto-answering queries:
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs -Xmx1500m -DVIZ_AUTOFILENAME=resources/aseQuestionsAndAnswers
+ *
+ * JVM arguments for DiffExperiments:
+ * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs;exp1/smt/.libs;"D:/R-2.12.2/library/rJava/jri"  -Xmx1500m
  * 
  * Updating Statechum web page:
  * 

@@ -1297,10 +1297,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 	}
 	
-	public List<PairScore> getAllScores(){
-		return allScores;
-	}
-	
 	protected boolean fallbackToInitialPair = false;
 	
 	/** Builds the data structures subsequently used in traversal.
@@ -1441,8 +1437,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 	}
-	
-	List<PairScore> allScores = new ArrayList<PairScore>();
 	
 	/** Goes through the result of linear and identifies candidates for key state pairs.
 	 * @return true if everything is ok, false if no perfect set of candidates was found.
@@ -1688,6 +1682,14 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		oldVerticesToNew.put(currID,newID);
 	}
 
+	public Map<CmpVertex,CmpVertex> getKeyPairs()
+	{
+		Map<CmpVertex,CmpVertex> result = new TreeMap<CmpVertex,CmpVertex>();
+		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
+			result.put(entry.getKey(),newBToOrig.get(entry.getValue()));
+		return result;
+	}
+	
 	/** This one is similar to applyGD but computes a union of the remove and added parts,
 	 *  very useful if I wish to visualise the difference between two graphs.
 	 *  <p>

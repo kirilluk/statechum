@@ -128,7 +128,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     
     /** A popup with Jung control choices. */
     JPopupMenu popupMenu;
-    final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration();
+
+    /** Global configuration. */
+    static final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration();
 
     /**
      * Public constructor
@@ -181,7 +183,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         }
     }
 
-    protected void setKeyBindings() {
+    protected void setVisualiserKeyBindings() {
         persistAction = new graphAction("saveLayout", "save the layout of the visible graph") {
 
             /** Serial number. */
@@ -230,49 +232,6 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 if (currentGraph > 0) {
                     restoreLayout(false, currentGraph - 1);
-                }
-            }
-        });
-        keyToActionMap.put(KeyEvent.VK_F4, new graphAction("saveWindows", "save the current position/size of graph windows") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 4L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                globalConfig.saveFrame(Visualiser.this, propName);
-                globalConfig.saveConfiguration();
-            }
-        });
-        
-        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 5L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                setVisible(false);
-                dispose();
-                Visualiser.syncValue.set(true);
-
-                System.exit(1);
-                /*
-                synchronized (Visualiser.syncObject) {
-                Visualiser.syncObject.notify();
-                }*/
-            }
-        });
-        keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 6L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                Visualiser.syncValue.set(false);
-                synchronized (Visualiser.syncObject) {
-                    Visualiser.syncObject.notify();
                 }
             }
         });
@@ -344,6 +303,60 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         });
     }
 
+    /** Creates key bindings used in all Statechum windows.
+     * 
+     * @param frame frame of the window
+     * @param windowID the identifier of the window in the config file - used to store/restore window positions
+     * @param keyToActionMap map to store key bindings in.
+     */
+    public static void setStateChumKeyBindings(final JFrame frame,final int windowID,Map<Integer, Action> keyToActionMap)
+    {
+        keyToActionMap.put(KeyEvent.VK_F4, new graphAction("saveWindows", "save the current position/size of graph windows") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 4L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                globalConfig.saveFrame(frame, windowID);
+                globalConfig.saveConfiguration();
+            }
+        });
+        
+        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 5L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                frame.setVisible(false);
+                frame.dispose();
+                Visualiser.syncValue.set(true);
+                DrawGraphs.end();
+                System.exit(1);
+                /*
+                synchronized (Visualiser.syncObject) {
+                Visualiser.syncObject.notify();
+                }*/
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 6L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                Visualiser.syncValue.set(false);
+                synchronized (Visualiser.syncObject) {
+                    Visualiser.syncObject.notify();
+                }
+            }
+        });
+
+    }
+    
     public void construct(Graph g,LayoutOptions options) {
         if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT))) {
             System.err.println("Pass the -ea argument to JVM to enable assertions");
@@ -394,21 +407,10 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             setIconImage(icon);
         }
 
-        setKeyBindings();
-        for(Entry<Integer,Action> ia:keyToActionMap.entrySet())
-        {
-        	JMenuItem menuitem = new JMenuItem(ia.getValue().getValue(Action.NAME).toString());
-        	menuitem.getAccessibleContext().setAccessibleDescription(ia.getValue().getValue(Action.SHORT_DESCRIPTION).toString());
-        	menuitem.setAccelerator(KeyStroke.getKeyStroke(
-        	        KeyEvent.VK_T, ActionEvent.ALT_MASK));//KeyStroke.getKeyStroke((char)ia.getKey().intValue()));
-        	menuitem.setAction(ia.getValue());
-        	popupMenu.add(menuitem);
-        
-        }
+        setVisualiserKeyBindings();setStateChumKeyBindings(this, propName, keyToActionMap);
+        updatePopupMenu(popupMenu,keyToActionMap);
         //getContentPane().removeAll();
         WindowPosition framePosition = globalConfig.loadFrame(propName);
-        setSize(new Dimension(framePosition.getRect().width, framePosition.getRect().height));
-        setBounds(framePosition.getRect());
 
         viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
                 propName >= 0 ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
@@ -425,7 +427,19 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         pack();
       
         restoreLayout(true, currentGraph);
+        setBounds(framePosition.getRect());
         setVisible(true);
+    }
+    
+    public static void updatePopupMenu(JPopupMenu popupMenu,Map<Integer, Action> keyToActionMap)
+    {
+        for(Entry<Integer,Action> ia:keyToActionMap.entrySet())
+        {
+        	ia.getValue().putValue(Action.ACCELERATOR_KEY,KeyStroke.getKeyStroke(ia.getKey(),0));
+        	JMenuItem menuitem = new JMenuItem(ia.getValue());
+        	popupMenu.add(menuitem);
+        }
+
     }
     
     protected static class XMLModalGraphMouse extends DefaultModalGraphMouse {

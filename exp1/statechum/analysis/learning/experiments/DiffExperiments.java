@@ -17,6 +17,7 @@
  */
 package statechum.analysis.learning.experiments;
 
+import java.io.File;
 import java.util.Collection;
 
 import java.util.HashMap;
@@ -38,6 +39,9 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Pair;
+import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -57,9 +61,6 @@ public class DiffExperiments {
 	Configuration config = Configuration.getDefaultConfiguration();
 	boolean skipLanguage = false;
 	final int experimentsPerMutationCategory, mutationStages = 5, graphComplexityMax = 6;
-	long[][][] performanceLang,performanceStruct; 
-	double[][][] accuracyRandLang, accuracyWLang, scoreStruct; 
-	ExperimentResult [][][]accuracyStruct;
 	
 	public static class ExperimentResult
 	{
@@ -67,6 +68,8 @@ public class DiffExperiments {
 		double obtainedToExpected = 0;
 		double mutationsToTransitions = 0;
 		public boolean experimentValid = false;
+		double accuracyW=0,accuracyRand=0;
+		public long durationGD,durationRand,durationW;
 
 		@Override
 		public String toString()
@@ -82,6 +85,8 @@ public class DiffExperiments {
 				mismatchedKeyPairs+=exp.mismatchedKeyPairs;
 				obtainedToExpected+=exp.obtainedToExpected;
 				mutationsToTransitions+=exp.mutationsToTransitions;
+				durationGD+=exp.durationGD;durationRand+=exp.durationRand;durationW+=exp.durationW;
+				accuracyW+=exp.accuracyW;accuracyRand+=exp.accuracyRand;
 			}
 		}
 		
@@ -91,37 +96,40 @@ public class DiffExperiments {
 			ExperimentResult result = new ExperimentResult();result.experimentValid = true;
 			result.mismatchedKeyPairs = mismatchedKeyPairs/count;result.obtainedToExpected=obtainedToExpected/count;
 			result.mutationsToTransitions=mutationsToTransitions/count;
+			result.durationGD = durationGD/count;result.durationRand = durationRand/count;result.durationW = durationW/count;
+			result.accuracyW = accuracyW/count;result.accuracyRand = accuracyRand/count;
 			return result;
 		}
 	}
 	
 	public static void main(String[] args){
-		DiffExperiments exp = new DiffExperiments(30);
-		exp.runExperiment(20, true);
-		DrawGraphs.end();
+		try
+		{
+			DiffExperiments exp = new DiffExperiments(30);
+			exp.runExperiment(20, true);
+		}
+		finally
+		{
+			DrawGraphs.end();
+		}
 	}
 	
 	public DiffExperiments(int experimentsPerCategoryArg){
 		experimentsPerMutationCategory = experimentsPerCategoryArg;
-		performanceLang = new long[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
-		performanceStruct = new long[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
-		
-		accuracyRandLang = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
-		accuracyWLang = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory];
-		accuracyStruct = new ExperimentResult[graphComplexityMax][mutationStages][experimentsPerMutationCategory];
-		
-		scoreStruct = new double[graphComplexityMax][mutationStages][experimentsPerMutationCategory]; 
 		//config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);
 		//config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
 		
 	}
-	
+		
 	public void runExperiment(int initStates, boolean skip){
+		DrawGraphs gr = new DrawGraphs();
 		this.skipLanguage = skip;
 		Random r = new Random(0);
 
-		List<List<Double>> arrayWithDiffResults = new LinkedList<List<Double>>(), arrayWithKeyPairsResults = new LinkedList<List<Double>>();
-		List<String> arrayWithResultNames = new LinkedList<String>();
+		
+		RGraph<Integer> gr_Diff_States = new RGraph<Integer>("States","Diff/Mutations",new File("diff_states.pdf"));
+		RGraph<Pair<Integer,Integer>> gr_MutationsToOriginal_StatesLevel = new RGraph<Pair<Integer,Integer>>("States,Mutation level","Mutations/Original Edges",new File("mutations_states.pdf"));
+		
 		for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
 		{
 			int states=initStates+graphComplexity*50;
@@ -132,24 +140,19 @@ public class DiffExperiments {
 			System.out.print("\n"+states+": ");
 			for(int mutationStage = 0;mutationStage<mutationStages;mutationStage++)
 			{
-				List<Double> diffValues = new LinkedList<Double>(),keyPairsValues = new LinkedList<Double>();
 				for(int experiment=0;experiment<experimentsPerMutationCategory;experiment++)
 				{
 					int counter=0;
 					if(experiment%2==0)
 						System.out.print(".");
-					ExperimentResult worked = null;
-					while(worked == null || !worked.experimentValid)
+					ExperimentResult outcome = new ExperimentResult();
+					while(!outcome.experimentValid)
 					{
 						counter++;
 						int mutations = mutationsPerStage * (mutationStage+1);
 						LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment);
-						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
-							new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
+						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
 						mutator.mutate(mutations);
-						
-						//mutator.changeStateLabels(); //to avoid exception that from and to share same labels
-						
 						LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
 						Map<CmpVertex,CmpVertex> origToNew = copyStatesAndTransitions(origGraph,origAfterRenaming);
 						LearnerGraphND mutated = (LearnerGraphND)mutator.getMutated();
@@ -160,11 +163,7 @@ public class DiffExperiments {
 							CmpVertex renamedTo = origToNew.get(tr.getTo());if (renamedTo == null) renamedTo = tr.getTo();
 							appliedMutations.add(new Transition(renamedFrom,renamedTo,tr.getLabel()));
 						}
-						
-						worked = linearDiff(origAfterRenaming,mutated, appliedMutations,graphComplexity,mutationStage,experiment);
-						if(!worked.experimentValid)
-							throw new RuntimeException();
-						diffValues.add(worked.obtainedToExpected);keyPairsValues.add(worked.mismatchedKeyPairs);
+						linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 						
 						if (!skip)
 						{
@@ -175,33 +174,29 @@ public class DiffExperiments {
 							} catch (IncompatibleStatesException e) {
 								Helper.throwUnchecked("failed to build a deterministic graph from a nondet one", e);
 							}
-							//worked = languageDiff(fromDet,toDet,states, graphComplexity,mutationStage,experiment);
+							languageDiff(fromDet,toDet,states, graphComplexity,outcome);
 						}
-						
+						outcome.experimentValid = true;
+
+						gr_Diff_States.add(states, outcome.obtainedToExpected);
+						gr_MutationsToOriginal_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.mutationsToTransitions);
 					}
+
+					// finished doing this mutation stage, update graphs
+					gr_Diff_States.drawInteractive(gr);gr_MutationsToOriginal_StatesLevel.drawInteractive(gr);					
 				}
-				ExperimentResult average = getAverage(accuracyStruct,graphComplexity,mutationStage);
-				arrayWithDiffResults.add(diffValues);arrayWithKeyPairsResults.add(keyPairsValues);
-				arrayWithResultNames.add(""+states+"-"+Math.round(100*average.mutationsToTransitions)+"%");
-				System.out.print("["+average+"]");
+				//ExperimentResult average = getAverage(accuracyStruct,graphComplexity,mutationStage);
+				//arrayWithDiffResults.add(diffValues);arrayWithKeyPairsResults.add(keyPairsValues);
+				//arrayWithResultNames.add(""+states+"-"+Math.round(100*average.mutationsToTransitions)+"%");
+				//System.out.print("["+average+"]");
+				
+				
+				//List<String> names=arrayWithResultNames.size()>1?arrayWithResultNames:null;
 			}
 			
-			/*
-			printList(scoreStruct[graphComplexity]);
-			System.out.println("Time-struct:");
-			printList(performanceStruct[graphComplexity]);
-			if(!skip){
-				System.out.println("Time-lang:");
-				printList(performanceLang[graphComplexity]);
-				System.out.println("------");
-				printLangScores(this.accuracyRandLang[graphComplexity],this.accuracyWLang[graphComplexity],this.accuracyStruct[graphComplexity]);
-				System.out.println("------");
-			}
-			*/
 		}
-		DrawGraphs gr = new DrawGraphs();
-		gr.drawBoxPlot(arrayWithDiffResults, arrayWithResultNames,"diffResults.pdf");
-		gr.drawBoxPlot(arrayWithKeyPairsResults, arrayWithResultNames,"keypairsResults.pdf");
+		gr_Diff_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
+		//Visualiser.waitForKey();
 		/*System.out.println("\nSTRUCT SCORES");
 		printAccuracyMatrix(this.scoreStruct);
 		System.out.println("ACCURACY STRUCT");
@@ -226,53 +221,62 @@ public class DiffExperiments {
 		return eval;
 	}
 
-	private boolean languageDiff(
-			LearnerGraph from,
-			LearnerGraph to,
-			int states,
-			int i, int j, int j2) {
+	private boolean languageDiff(LearnerGraph from,	LearnerGraph to,int states,int graphComplexity,ExperimentResult outcome) 
+	{
 		//Set<String> origAlphabet = to.pathroutines.computeAlphabet();
 		//assert origAlphabet.equals(from.pathroutines.computeAlphabet());
-		final long startTime = System.nanoTime();
-		final long endTime;
-		Collection<List<String>> wMethod = from.wmethod.getFullTestSet(1);
-		endTime = System.nanoTime();
-		long wDuration = endTime - startTime;
-		Collection<List<String>> sequences =new TreeSet<List<String>>();
-		RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
-		rpg.generatePosNeg((i+1)*states , 1);
-
-		sequences.addAll(rpg.getAllSequences(0).getData(PTASequenceEngine.truePred));
-		sequences.addAll(rpg.getExtraSequences(0).getData(PTASequenceEngine.truePred));
-		compareLang(from, to, sequences, false,i,j,j2,0);
-		compareLang(from, to, wMethod, true,i,j,j2,wDuration);
+		{
+			long startTime = System.nanoTime();
+			Collection<List<String>> wMethod = from.wmethod.getFullTestSet(1);
+			outcome.durationW = startTime - System.nanoTime();
+			Pair<Double,Long> wSeq=compareLang(from, to, wMethod);
+			outcome.durationW+=wSeq.secondElem;
+			outcome.accuracyW=wSeq.firstElem;
+		}
+		
+		{
+			Collection<List<String>> sequences =new TreeSet<List<String>>();
+			RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
+			long startTime = System.nanoTime();
+			rpg.generatePosNeg((graphComplexity+1)*states , 1);
+			outcome.durationRand = startTime - System.nanoTime();
+			sequences.addAll(rpg.getAllSequences(0).getData(PTASequenceEngine.truePred));
+			sequences.addAll(rpg.getExtraSequences(0).getData(PTASequenceEngine.truePred));
+			Pair<Double,Long> randSeq = compareLang(from, to, sequences);
+			outcome.durationRand+=randSeq.secondElem;
+			outcome.accuracyRand=randSeq.firstElem;
+		}
+		
 		return true;
 	}
 
-	private void compareLang(LearnerGraph from, LearnerGraph to,
-			Collection<List<String>> sequences, boolean useWset, int col, int row, int x, long time) 
+	/** Given two graphs and a test set, computes how well the sequences are accepted or rejected, returning
+	 * both the F measure and time consumed.
+	 * @param from
+	 * @param to
+	 * @param sequences
+	 * @param useWset
+	 * @param col
+	 * @param row
+	 * @param x
+	 * @return
+	 */
+	private Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to,
+			Collection<List<String>> sequences) 
 	{
 		
 		final long startTime = System.nanoTime();
 		final long endTime;
-		ConfusionMatrix result;
-		result = classify(sequences, from,to);
+		ConfusionMatrix matrix = classify(sequences, from,to);
 		endTime = System.nanoTime();
 		final long duration = endTime - startTime;
-		if(!useWset){
-			accuracyRandLang[col][row][x] = result.fMeasure();
-			assert !Double.isNaN(accuracyRandLang[col][row][x]);
-		}
-		else{
-			accuracyWLang[col][row][x] = result.fMeasure();
-			performanceLang[col][row][x] = duration+time;
-			assert !Double.isNaN(accuracyWLang[col][row][x]);
-		}
-		
+		double result = matrix.fMeasure();
+		assert !Double.isNaN(result);
+		return new Pair<Double,Long>(result,duration);
 	}
 
-	private ConfusionMatrix classify(Collection<List<String>> sequences,
-			LearnerGraph from, LearnerGraph to) {
+	private ConfusionMatrix classify(Collection<List<String>> sequences,LearnerGraph from, LearnerGraph to) 
+	{
 		int tp=0, tn = 0, fp=0, fn=0;
 		boolean inTarget,inMutated;
 		for (List<String> list : sequences) {
@@ -298,6 +302,7 @@ public class DiffExperiments {
 		return new ConfusionMatrix(tp,tn,fp,fn);
 	}
 
+	@SuppressWarnings("unused")
 	private void displayDiff(LearnerGraphND from, LearnerGraphND to)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
@@ -310,9 +315,7 @@ public class DiffExperiments {
 		Visualiser.updateFrameWithPos(gr, 0);
 	}
 	
-	ExperimentResult linearDiff(LearnerGraphND from, LearnerGraphND to, 
-			Set<Transition> expectedMutations,
-			int col, int row, int x)
+	void linearDiff(LearnerGraphND from, LearnerGraphND to, Set<Transition> expectedMutations, ExperimentResult outcome)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>  rec3 = new ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>(from,to,null);
@@ -325,12 +328,10 @@ public class DiffExperiments {
 		final long endTime = System.nanoTime();
 		
 		//displayDiff(from,to);
-		final long duration = endTime - startTime;
+		outcome.durationGD = endTime - startTime;
 		Set<Transition> detectedDiff = cd.getDiff();
 		
-		ExperimentResult outcome = new ExperimentResult();
 		outcome.experimentValid=true;outcome.mutationsToTransitions=((double)expectedMutations.size())/from.pathroutines.countEdges();
-		accuracyStruct[col][row][x]=outcome;
 		Map<CmpVertex,CmpVertex> keyPairs = gd.getKeyPairs();int mismatchedKeyPairs=0;
 		for(Entry<CmpVertex,CmpVertex> pair:keyPairs.entrySet())
 			if (!pair.getKey().getID().toString().equals("o"+pair.getValue().getID().toString()) && !pair.getValue().getID().toString().startsWith("added"))
@@ -390,7 +391,6 @@ public class DiffExperiments {
 
 		if (detectedDiff.size() < expectedMutations.size()) outcome.obtainedToExpected = 1;// mutations mangled the graph too much
 		else outcome.obtainedToExpected = ((double)detectedDiff.size())/expectedMutations.size();
-		return outcome;
 	}
 	
 	/** Renames vertices in the supplied graph - very useful if we are to compare visually how the outcome
@@ -438,12 +438,13 @@ public class DiffExperiments {
 		return conf.fMeasure();
 	}
 
-	private ExperimentResult getAverage(ExperimentResult[][][] toPrint, int i, int j) {
+	@SuppressWarnings("unused")
+	private ExperimentResult getAverage(List<ExperimentResult> toPrint) 
+	{
 		ExperimentResult average = new ExperimentResult();average.experimentValid = true;
 		int count=0;
-		for(int k =0;k<experimentsPerMutationCategory;k++)
+		for(ExperimentResult exp:toPrint)
 		{
-			ExperimentResult exp = toPrint[i][j][k];
 			if (exp.experimentValid)
 			{
 				average.add(exp);

@@ -107,4 +107,10 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Co
 		
 		return secondComp;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return firstElem.toString()+","+secondElem.toString();
+	}
 }

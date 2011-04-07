@@ -193,7 +193,10 @@ public class GlobalConfiguration {
 			// from http://java.sun.com/j2se/1.4.2/docs/api/index.html
 			Rectangle shape = gc.getBounds();
 			Rectangle rect = new Rectangle(new Rectangle(shape.x, shape.y,400,300));
+			if (rect.height > shape.height) rect.height=shape.height;if (rect.width > shape.width) rect.width=shape.width;
 			rect.y+=windowID*(rect.getHeight()+30);
+			int yLimit = shape.height-rect.height;if (rect.y>yLimit) rect.y=yLimit;
+			int xLimit = shape.width -rect.width ;if (rect.x>xLimit) rect.x=xLimit;
 			result = new WindowPosition(rect,deviceToUse);
 			windowCoords.put(windowID,result);
 		}

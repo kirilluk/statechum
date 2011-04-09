@@ -16,6 +16,29 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * Installation of RJava on Debian x86_64:
+ * As root:
+ * 
+ * R CMD javareconf
+ * 
+ * (it uses getsp.java also available in JavaGD distribution (getsp.java takes java.library.path and splits it into segments prefixed by -L ,
+ * on Debian it is stored in /usr/share/R/share/java/getsp.class )
+ * Note that R CMD config CC obtains C compiler for R, similar for other flags.
+ * 
+ * Then unpack JavaGD into /usr/local/src/JavaGD and then run
+ * 
+ * R CMD INSTALL JavaGD
+ * 
+ * from /usr/local/src, this builds and installs the package.
+ * 
+ * In a similar way, I can install rJava, but perhaps it is prudent to disable extra package loading via JRIBootstrap.java
+ * 
+ * During installation packages are placed in /usr/local/lib/R/site-library and I have to include /usr/local/lib/R/site-library/rJava/jri/ in java.library.path
+ * In addition, R_HOME has to be set to /usr/lib/R (in Eclipse Run configuration).
+ */
+
+
 // This file is based on rtest.java
 
 package statechum.analysis.learning;
@@ -37,7 +60,6 @@ import org.rosuda.JRI.Rengine;
 import statechum.Helper;
 
 public class DrawGraphs {
-	
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
 	 */
 	static boolean mainLoopRunning = false;
@@ -358,7 +380,7 @@ public class DrawGraphs {
 			String drawingCommand = getDrawingCommand();
 			assert collectionOfResults.size() > 0;
 			int ySize = 4;
-			int xSize = ySize*collectionOfResults.keySet().size()/6;if (xSize < ySize) xSize = ySize;
+			int xSize = ySize*collectionOfResults.keySet().size()/5;if (xSize < ySize) xSize = ySize;
 			gr.drawBoxPlot(drawingCommand, xSize,ySize,file);
 		}
 	}

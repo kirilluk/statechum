@@ -133,7 +133,7 @@ public class ForestFireStateMachineGenerator {
 		}
 	}
 	
-	protected LearnerGraph buildMachine(int size) 
+	public LearnerGraph buildMachine(int size) 
 	{
 		buildGraph(size);
 		Configuration conf = Configuration.getDefaultConfiguration();

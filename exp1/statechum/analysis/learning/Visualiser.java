@@ -66,7 +66,9 @@ import org.apache.commons.collections.Predicate;
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs -Xmx1500m -DVIZ_AUTOFILENAME=resources/aseQuestionsAndAnswers
  *
  * JVM arguments for DiffExperiments:
- * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs;exp1/smt/.libs;"D:/R-2.12.2/library/rJava/jri"  -Xmx1500m
+ * -ea -DVIZ_CONFIG=kirill_office -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs;exp1/smt/.libs;"D:/R-2.12.2/library/rJava/jri"  -Xmx1500m
+ * as above on Debian x86_64:
+ * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/usr/local/lib/R/site-library/rJava/jri -Xmx3500m
  * 
  * Updating Statechum web page:
  * 

@@ -17,7 +17,11 @@
  */
 
 /*
- * Installation of RJava on Debian x86_64:
+ * Installation of RJava and JavaGD on Debian x86_64:
+ * 
+ * (note: an alternative way to install javagd is from http://blog.binfalse.de/2011/02/talking-r-through-java/
+ *  which boils down to apt-get install r-cran-rjava )
+ * 
  * As root:
  * 
  * R CMD javareconf
@@ -36,6 +40,9 @@
  * 
  * During installation packages are placed in /usr/local/lib/R/site-library and I have to include /usr/local/lib/R/site-library/rJava/jri/ in java.library.path
  * In addition, R_HOME has to be set to /usr/lib/R (in Eclipse Run configuration).
+ * 
+ * In order to use bagplots, the following is needed,
+ * R CMD INSTALL aplpack
  */
 
 
@@ -45,6 +52,7 @@ package statechum.analysis.learning;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +176,8 @@ public class DrawGraphs {
 				public void run() { end();
 			    }
 			});
+			eval("library(aplpack)","loading BagPlot");
+
 		}
 	}
 	
@@ -245,6 +255,41 @@ public class DrawGraphs {
 		result.append(")");
 		return result.toString();
 	}
+	
+	/**
+	 * Formats a bag plotting command to R.
+	 * 
+	 * @param yData what to plot vertically
+	 * @param xData what to plot horizontally
+	 * @param otherAttrs additional attributes to set, null if not used.
+	 * @return The string to be sent to R for evaluation.
+	 */
+	protected static String bagPlotToString(List<List<Double>> yData,List<Double> xData, String otherAttrs)
+	{
+		if (yData.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
+		StringBuffer result = new StringBuffer();
+		result.append("bagplot(");
+		StringBuffer xAxisData = new StringBuffer();
+		Iterator<Double> xArgIterator = xData.iterator();
+		result.append("c(");xAxisData.append(",c(");
+		boolean startVector = true;
+		for(List<Double> yArg:yData)
+		{
+			Double xArg = xArgIterator.next();
+			for(Double elem:yArg)
+			{
+				if (!startVector) { result.append(",");xAxisData.append(','); } else startVector=false;
+				result.append(elem);xAxisData.append(xArg);
+			}
+		}
+		xAxisData.append(')');result.append(')');
+		result.append(xAxisData);
+		
+		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		result.append(")");
+		return result.toString();
+	}
 
 	boolean javaGDLoaded = false;
 	
@@ -288,28 +333,18 @@ public class DrawGraphs {
 		}
 	}
 	
-	/** Draws a box-plot given the data to plot and stores it in the given file.
-	 * 
-	 * @param data data from which to plot
-	 * @param names names to give to boxes
-	 * @param fileName where to store result.
-	 * @param otherAttrs additional attributes to the plotter, null if not used
-	 */
-	public void drawBoxPlot(List<List<Double>> data,List<String> names,File file,String otherAttrs)
-	{
-		drawBoxPlot(boxPlotToString(data, names,"green",otherAttrs),7,7,file);
-	}
-	
-	/** Draws a box-plot given the data to plot and stores it in the given file.
+
+	/** Draws a plot given the data to plot and stores it in the given file.
 	 * 
 	 * @param drawingCommand drawing command to pass to R
 	 * @param xDim horizontal size in inches, R default is 7.
 	 * @param yDim vertical size in inches, R default is 7.
 	 * @param fileName where to store result.
 	 */
-	public void drawBoxPlot(String drawingCommand,int xDim,int yDim,File file)
+	public void drawPlot(String drawingCommand,double xDim,double yDim,File file)
 	{
-		if (xDim < 1) throw new IllegalArgumentException("horizontal size too small");
+		if (xDim < 1) 
+			throw new IllegalArgumentException("horizontal size too small");
 		if (yDim < 1) throw new IllegalArgumentException("vertical size too small");
 		
 		if (file.exists() && file.delete() == false)
@@ -339,7 +374,7 @@ public class DrawGraphs {
 	 * 
 	 * @param <ELEM> type of elements for the X axis, veritical is always a Double
 	 */
-	public  static  class RGraph<ELEM>
+	public static abstract class RGraph<ELEM>
 	{
 		Map<ELEM,List<Double>> collectionOfResults = new TreeMap<ELEM,List<Double>>();
 		
@@ -359,6 +394,44 @@ public class DrawGraphs {
 		}
 		
 		/** Returns a command to draw a graph in R. */
+		abstract String getDrawingCommand();
+		
+		public void drawInteractive(DrawGraphs gr)
+		{
+			gr.drawInteractiveBoxPlot(getDrawingCommand(), file.getName());
+		}
+		
+		protected double xSize = -1;
+		
+		/** Sets the horizonal size of the plot, vertical size is always set to 4 inches. 
+		 * If no assignemnt is made, the size is guessed from the number of points on the drawing. 
+		 */ 
+		public void setXSize(double newSize)
+		{
+			xSize = newSize;
+		}
+		
+		public void drawPdf(DrawGraphs gr)
+		{
+			String drawingCommand = getDrawingCommand();
+			assert collectionOfResults.size() > 0;
+			double ySize = 4;
+			double horizSize = xSize;
+			if (xSize <=0)
+			{
+				horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			}
+			gr.drawPlot(drawingCommand, horizSize,ySize,file);
+		}
+	}
+	
+	public static class RBoxPlot<ELEM> extends RGraph<ELEM>
+	{
+		public RBoxPlot(String x, String y, File name) {
+			super(x, y, name);
+		}
+		
+		@Override
 		public String getDrawingCommand()
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
@@ -369,19 +442,25 @@ public class DrawGraphs {
 			}
 			return boxPlotToString(data, names.size()==1?null:names,"green","xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
 		}
-		
-		public void drawInteractive(DrawGraphs gr)
-		{
-			gr.drawInteractiveBoxPlot(getDrawingCommand(), file.getName());
+	}
+	
+	public static class RBagPlot extends RGraph<Double>
+	{
+		public RBagPlot(String x, String y, File name) {
+			super(x, y, name);
 		}
 		
-		public void drawPdf(DrawGraphs gr)
+		@Override
+		public String getDrawingCommand()
 		{
-			String drawingCommand = getDrawingCommand();
-			assert collectionOfResults.size() > 0;
-			int ySize = 4;
-			int xSize = ySize*collectionOfResults.keySet().size()/5;if (xSize < ySize) xSize = ySize;
-			gr.drawBoxPlot(drawingCommand, xSize,ySize,file);
+			List<List<Double>> data = new LinkedList<List<Double>>();
+			List<Double> names = new LinkedList<Double>();
+			for(Entry<Double,List<Double>> entry:collectionOfResults.entrySet())
+			{
+				data.add(entry.getValue());names.add(entry.getKey());
+			}
+			
+			return bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
 		}
 	}
 }

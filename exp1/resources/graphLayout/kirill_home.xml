@@ -6,12 +6,12 @@
    <string>true</string> 
   </void> 
   <void method="put"> 
-   <string>VIZ_CONFIG</string> 
-   <string>kirill_home</string> 
-  </void> 
-  <void method="put"> 
    <string>VIZ_DIR</string> 
    <string>exp1/resources/graphLayout</string> 
+  </void> 
+  <void method="put"> 
+   <string>VIZ_CONFIG</string> 
+   <string>kirill_home</string> 
   </void> 
   <void method="put"> 
    <string>LTL2BA</string> 
@@ -43,6 +43,54 @@
   </void> 
  </object> 
  <object class="java.util.HashMap"> 
+  <void method="put"> 
+   <int>102</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>1542</int> 
+      <int>384</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>100</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>11</int> 
+      <int>785</int> 
+      <int>1242</int> 
+      <int>406</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>101</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>7</int> 
+      <int>387</int> 
+      <int>1243</int> 
+      <int>397</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
+   </object> 
+  </void> 
   <void method="put"> 
    <string>LOWER</string> 
    <object class="statechum.GlobalConfiguration$WindowPosition"> 

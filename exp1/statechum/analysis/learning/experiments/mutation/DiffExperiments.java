@@ -22,6 +22,7 @@ import java.util.Collection;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,8 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -72,7 +74,7 @@ public class DiffExperiments {
 		try
 		{
 			DiffExperiments exp = new DiffExperiments(30);
-			exp.runExperiment(20, true);
+			exp.runExperiment(20, false);
 		}
 		finally
 		{
@@ -92,16 +94,24 @@ public class DiffExperiments {
 		this.skipLanguage = skip;
 		Random r = new Random(0);
 
-		RGraph<Integer> gr_Diff_States = new RGraph<Integer>("States","Diff/Mutations",new File("diff_states.pdf"));
-		RGraph<Pair<Integer,Integer>> gr_MutationsToOriginal_StatesLevel = new RGraph<Pair<Integer,Integer>>("States,Mutation level","Mutations/Original Edges",new File("mutations_states.pdf"));
-
-		double pairThreshold[] = new double[]{0.3,0.4,0.5,0.6,0.7}, lowToHigh[] = new double[]{0.4,0.5,0.6,0.7,0.8,0.9};
+		RBoxPlot<Integer> 
+			gr_Diff_States = new RBoxPlot<Integer>("States","Diff/Mutations",new File("diff_states.pdf")),
+			gr_W_States = new RBoxPlot<Integer>("States","Language-based f measure, using W",new File("w_states.pdf"));
+		RBoxPlot<Pair<Integer,Integer>> 
+			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Mutations/Original Edges",new File("mutations_states.pdf")),
+			gr_DiffGD_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","patch size",new File("diff_statesmutations.pdf")),
+			gr_DiffW_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Language-based f measure, using W",new File("w_statesmutations.pdf")),
+			gr_DiffRand_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Language-based f measure, using Rand",new File("rand_statesmutations.pdf"));
+		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf"));
+		//double pairThreshold[] = new double[]{0.5,0.6,0.7,0.8}, lowToHigh[] = new double[]{0.5};
 		/*
 		RGraph<Double> gr_Diff_thresholds[] = new RGraph[pairThreshold.length];
 		for(int i=0;i<pairThreshold.length;++i)
 			gr_Diff_thresholds[i]=new RGraph<Double>("low to High ratio","ratio of patch size to mutations",new File("diff_threshold_"+((int)(pairThreshold[i]*10))+".pdf"));
 		*/
-		RGraph<Pair<Double,Double>> gr_Diff_thresholds = new RGraph<Pair<Double,Double>>("Low to High ratio, Threshold","ratio of patch size to mutations",new File("diff_threshold.pdf"));
+		RBoxPlot<Pair<Double,Double>> gr_Diff_thresholds = new RBoxPlot<Pair<Double,Double>>("Low to High ratio, Threshold","ratio of patch size to mutations",new File("diff_threshold.pdf"));
+		RBoxPlot<Double> gr_Diff_k = new RBoxPlot<Double>("attenuation factor","ratio of patch size to mutations",new File("diff_attenuation.pdf"));
+		
 		for(int graphComplexity=graphComplexityMax-1;graphComplexity < graphComplexityMax;graphComplexity++)
 		{
 			int states=initStates+graphComplexity*50;
@@ -133,6 +143,19 @@ public class DiffExperiments {
 							appliedMutations.add(new Transition(renamedFrom,renamedTo,tr.getLabel()));
 						}
 						
+						/*
+						for(double k:new double[]{0,.2,.4,.6,.8,.95})
+						{
+							config.setAttenuationK(k);
+							config.setGdKeyPairThreshold(0.5);
+							config.setGdLowToHighRatio(0.7);
+							config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
+							linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
+							
+							gr_Diff_k.add(k, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+							
+						}*/
+						/*
 						for(int i=0;i<pairThreshold.length;++i)
 							for(double ratio:lowToHigh)
 							{
@@ -142,9 +165,10 @@ public class DiffExperiments {
 								linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 								
 								gr_Diff_thresholds.add(new Pair<Double,Double>(ratio,pairThreshold[i]), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
-							}
+							}*/
+						config.setAttenuationK(0.5);
 						config.setGdKeyPairThreshold(0.5);
-						config.setGdLowToHighRatio(0.75);
+						config.setGdLowToHighRatio(0.7);
 						config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 						linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 						
@@ -162,13 +186,22 @@ public class DiffExperiments {
 						outcome.experimentValid = true;
 						progress.next();
 						gr_Diff_States.add(states, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_W_States.add(states,outcome.getValue(DOUBLE_V.ACCURACY_W));
+						gr_DiffGD_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_DiffW_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.ACCURACY_W));
+						gr_DiffRand_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.ACCURACY_W));
 						gr_MutationsToOriginal_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS));
+						gr_Diff_MutationsToOriginal.add(outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 					}
 
-					// finished doing this mutation stage, update graphs
-					gr_Diff_States.drawInteractive(gr);gr_MutationsToOriginal_StatesLevel.drawInteractive(gr);					
-					gr_Diff_thresholds.drawInteractive(gr);
 				}
+				// finished doing this mutation stage, update graphs
+				gr_Diff_States.drawInteractive(gr);gr_MutationsToOriginal_StatesLevel.drawInteractive(gr);					
+				//gr_Diff_thresholds.drawInteractive(gr);
+				//gr_Diff_k.drawInteractive(gr);
+				gr_DiffGD_StatesLevel.drawInteractive(gr);gr_DiffW_StatesLevel.drawInteractive(gr);gr_DiffRand_StatesLevel.drawInteractive(gr);
+				gr_Diff_MutationsToOriginal.drawInteractive(gr);
+				gr_W_States.drawInteractive(gr);
 				//ExperimentResult average = getAverage(accuracyStruct,graphComplexity,mutationStage);
 				//arrayWithDiffResults.add(diffValues);arrayWithKeyPairsResults.add(keyPairsValues);
 				//arrayWithResultNames.add(""+states+"-"+Math.round(100*average.mutationsToTransitions)+"%");
@@ -179,8 +212,11 @@ public class DiffExperiments {
 			}
 
 		}
-		gr_Diff_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
-		gr_Diff_thresholds.drawPdf(gr);
+		gr_Diff_States.drawPdf(gr);gr_W_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
+		//gr_Diff_thresholds.drawPdf(gr);gr_Diff_k.drawPdf(gr);
+		gr_Diff_MutationsToOriginal.drawPdf(gr);
+		gr_DiffGD_StatesLevel.drawPdf(gr);gr_DiffW_StatesLevel.drawPdf(gr);gr_DiffRand_StatesLevel.drawPdf(gr);
+		
 		//Visualiser.waitForKey();
 		/*System.out.println("\nSTRUCT SCORES");
 		printAccuracyMatrix(this.scoreStruct);
@@ -220,7 +256,7 @@ public class DiffExperiments {
 		}
 		
 		{
-			Collection<List<String>> sequences =new TreeSet<List<String>>();
+			Collection<List<String>> sequences =new LinkedHashSet<List<String>>();
 			RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
 			long startTime = System.nanoTime();
 			rpg.generatePosNeg((graphComplexity+1)*states , 1);
@@ -237,14 +273,11 @@ public class DiffExperiments {
 
 	/** Given two graphs and a test set, computes how well the sequences are accepted or rejected, returning
 	 * both the F measure and time consumed.
-	 * @param from
-	 * @param to
-	 * @param sequences
-	 * @param useWset
-	 * @param col
-	 * @param row
-	 * @param x
-	 * @return
+	 * 
+	 * @param from the original graph
+	 * @param to mutated graph
+	 * @param sequences sequences to test with
+	 * @return a pair with the accuracy as the first element and time taken for the computation as the second one.
 	 */
 	private Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to,
 			Collection<List<String>> sequences) 

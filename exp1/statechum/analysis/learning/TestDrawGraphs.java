@@ -19,6 +19,8 @@ import org.junit.Test;
 
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.RBagPlot;
+import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
 public class TestDrawGraphs {
@@ -140,6 +142,54 @@ public class TestDrawGraphs {
 	}
 	public static final File testDir = new File("resources","__TestDrawGraphs__");
 
+	@Test
+	public void testBagPlotToStringFail1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.bagPlotToString(new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
+		}},IllegalArgumentException.class,"empty");
+	}
+	
+	@Test
+	public void testBagPlotToStringFail2()
+	{
+		final List<List<Double>> data = new LinkedList<List<Double>>();
+		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
+		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{6.7}),null);
+		}},IllegalArgumentException.class,"mismatch");
+	}
+
+	@Test
+	public void testBagPlotToString1a()
+	{
+		final List<List<Double>> data = new LinkedList<List<Double>>();
+		data.add(Arrays.asList(new Double[]{4.,5.}));
+		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		Assert.assertEquals("bagplot(c(4.0,5.0,7.0,8.0,3.0),c(7.0,7.0,8.3,8.3,8.3))",
+				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),null));
+	}
+
+	@Test
+	public void testBagPlotToString1b()
+	{
+		final List<List<Double>> data = new LinkedList<List<Double>>();
+		data.add(Arrays.asList(new Double[]{4.,5.}));
+		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		Assert.assertEquals("bagplot(c(4.0,5.0,7.0,8.0,3.0),c(7.0,7.0,8.3,8.3,8.3),someOther attrs)",
+				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
+	}
+
+	@Test
+	public void testBagPlotToString1()
+	{
+		final List<List<Double>> data = new LinkedList<List<Double>>();
+		data.add(Arrays.asList(new Double[]{4.,5.}));
+		Assert.assertEquals("bagplot(c(4.0,5.0),c(7.0,7.0),someOther attrs)",
+				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
+	}
+
 	@Before
 	public void before()
 	{
@@ -161,7 +211,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		File output = new File(testDir,"out.pdf");
-		gr.drawBoxPlot(data, Arrays.asList(new String[]{"graphA","graphB"}),output,null);
+		gr.drawPlot(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),"green",null),7,7,output);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", "aphA","aphB"});
@@ -180,29 +230,38 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testRunRealPlotFail1()
+	public void testPlotFail1()
 	{
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawBoxPlot("",0,1,output);
+			gr.drawPlot("",0,1,output);
 		}},IllegalArgumentException.class,"horizontal");
 	}
 	
 	@Test
-	public void testRunRealPlotFail2()
+	public void testPlotFail2()
 	{
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawBoxPlot("",1,0,output);
+			gr.drawPlot("",1,0,output);
 		}},IllegalArgumentException.class,"vertical");
 	}
 	
 	@Test
-	public void testGenerateGraphFail1()
+	public void testGenerateGraphFail1a()
 	{
-		final RGraph<String> g=new RGraph<String>("axisX", "axisY", new File("someName"));
+		final RGraph<String> g=new RBoxPlot<String>("axisX", "axisY", new File("someName"));
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			g.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
+	}
+	
+	@Test
+	public void testGenerateGraphFail1b()
+	{
+		final RGraph<Double> g=new RBagPlot("axisX", "axisY", new File("someName"));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			g.getDrawingCommand();
 		}},IllegalArgumentException.class,"empty");
@@ -212,26 +271,35 @@ public class TestDrawGraphs {
 	public void testGenerateGraphFail2()
 	{
 		final DrawGraphs gr = new DrawGraphs();
-		final RGraph<String> g=new RGraph<String>("axisX", "axisY", new File("someName"));
+		final RGraph<String> g=new RBoxPlot<String>("axisX", "axisY", new File("someName"));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			g.drawInteractive(gr);
 		}},IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
-	public void testGenerateGraph1()
+	public void testGenerateGraph1a()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RGraph<String>(X,Y, new File("someName"));
+		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.);
 		Assert.assertEquals("boxplot(c(34.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
 	@Test
-	public void testGenerateGraph2()
+	public void testGenerateGraph1b()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RGraph<String>(X,Y, new File("someName"));
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.add(4.5,34.);
+		Assert.assertEquals("bagplot(c(34.0),c(4.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testGenerateGraph2a()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
@@ -239,15 +307,38 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testGenerateGraph3()
+	public void testGenerateGraph2b()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RGraph<String>(X,Y, new File("someName"));
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.5,34.);
+		g.add(5.5,34.);
+		g.add(5.5,2.);
+		Assert.assertEquals("bagplot(c(34.0,34.0,2.0),c(5.5,5.5,5.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testGenerateGraph3a()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
 		g.add("two",2.);
 		Assert.assertEquals("boxplot(c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testGenerateGraph3b()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.5,34.);
+		g.add(5.5,34.);
+		g.add(5.5,2.);
+		g.add(7.5,2.);
+		Assert.assertEquals("bagplot(c(34.0,34.0,2.0,2.0),c(5.5,5.5,5.5,7.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
 }

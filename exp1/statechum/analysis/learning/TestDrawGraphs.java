@@ -167,7 +167,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
-		Assert.assertEquals("bagplot(c(4.0,5.0,7.0,8.0,3.0),c(7.0,7.0,8.3,8.3,8.3))",
+		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0))",
 				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),null));
 	}
 
@@ -177,7 +177,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
-		Assert.assertEquals("bagplot(c(4.0,5.0,7.0,8.0,3.0),c(7.0,7.0,8.3,8.3,8.3),someOther attrs)",
+		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0),someOther attrs)",
 				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
 	}
 
@@ -186,7 +186,7 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<List<Double>>();
 		data.add(Arrays.asList(new Double[]{4.,5.}));
-		Assert.assertEquals("bagplot(c(4.0,5.0),c(7.0,7.0),someOther attrs)",
+		Assert.assertEquals("bagplot(c(7.0,7.0),c(4.0,5.0),someOther attrs)",
 				DrawGraphs.bagPlotToString(data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
 	}
 
@@ -194,7 +194,7 @@ public class TestDrawGraphs {
 	public void before()
 	{
 		if (!testDir.isDirectory()) 
-			Assert.assertTrue(testDir.mkdir());
+			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
 	}
 
 	@After
@@ -292,7 +292,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
 		g.add(4.5,34.);
-		Assert.assertEquals("bagplot(c(34.0),c(4.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals("bagplot(c(4.5),c(34.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
 	@Test
@@ -314,7 +314,7 @@ public class TestDrawGraphs {
 		g.add(5.5,34.);
 		g.add(5.5,34.);
 		g.add(5.5,2.);
-		Assert.assertEquals("bagplot(c(34.0,34.0,2.0),c(5.5,5.5,5.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals("bagplot(c(5.5,5.5,5.5),c(34.0,34.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
 	@Test
@@ -338,7 +338,7 @@ public class TestDrawGraphs {
 		g.add(5.5,34.);
 		g.add(5.5,2.);
 		g.add(7.5,2.);
-		Assert.assertEquals("bagplot(c(34.0,34.0,2.0,2.0),c(5.5,5.5,5.5,7.5),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
 }

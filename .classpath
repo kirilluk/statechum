@@ -8,5 +8,7 @@
 	<classpathentry kind="lib" path="exp1/lib/jung-1.7.6.jar"/>
 	<classpathentry kind="lib" path="exp1/lib/junit-4.4.jar"/>
 	<classpathentry kind="lib" path="exp1/lib/sootclasses.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/javaGD.jar"/>
+	<classpathentry kind="lib" path="exp1/lib/JRI.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

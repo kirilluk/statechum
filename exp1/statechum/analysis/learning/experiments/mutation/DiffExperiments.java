@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeSet;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -96,23 +95,33 @@ public class DiffExperiments {
 
 		RBoxPlot<Integer> 
 			gr_Diff_States = new RBoxPlot<Integer>("States","Diff/Mutations",new File("diff_states.pdf")),
-			gr_W_States = new RBoxPlot<Integer>("States","Language-based f measure, using W",new File("w_states.pdf"));
+			gr_W_States = new RBoxPlot<Integer>("States","Language-based f measure, using W",new File("w_states.pdf")),
+			gr_Pairs_States = new RBoxPlot<Integer>("States","Key pairs: mismatched/total",new File("pairs_states.pdf")),
+			gr_TimeDiff_States = new RBoxPlot<Integer>("States","Time taken by PLTSDiff",new File("TimeDiff_states.pdf")),
+			gr_TimeW_States = new RBoxPlot<Integer>("States","Time taken by W",new File("TimeW_states.pdf")),
+			gr_TimeRand_States = new RBoxPlot<Integer>("States","Time taken by Rand",new File("TimeRand_states.pdf"));
 		RBoxPlot<Pair<Integer,Integer>> 
-			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Mutations/Original Edges",new File("mutations_states.pdf")),
-			gr_DiffGD_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","patch size",new File("diff_statesmutations.pdf")),
-			gr_DiffW_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Language-based f measure, using W",new File("w_statesmutations.pdf")),
-			gr_DiffRand_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("States,Mutation level","Language-based f measure, using Rand",new File("rand_statesmutations.pdf"));
-		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf"));
-		//double pairThreshold[] = new double[]{0.5,0.6,0.7,0.8}, lowToHigh[] = new double[]{0.5};
-		/*
-		RGraph<Double> gr_Diff_thresholds[] = new RGraph[pairThreshold.length];
-		for(int i=0;i<pairThreshold.length;++i)
-			gr_Diff_thresholds[i]=new RGraph<Double>("low to High ratio","ratio of patch size to mutations",new File("diff_threshold_"+((int)(pairThreshold[i]*10))+".pdf"));
-		*/
-		RBoxPlot<Pair<Double,Double>> gr_Diff_thresholds = new RBoxPlot<Pair<Double,Double>>("Low to High ratio, Threshold","ratio of patch size to mutations",new File("diff_threshold.pdf"));
+			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Mutations/Original Edges",new File("mutations_states.pdf")),
+			gr_DiffGD_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","patch size",new File("diff_statesmutations.pdf")),
+			gr_DiffW_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Language-based f measure, using W",new File("w_statesmutations.pdf")),
+			gr_DiffRand_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Language-based f measure, using Rand",new File("rand_statesmutations.pdf")),
+			gr_MismatchedPairs =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Mismatched key pairs",new File("pairs_statesmutations.pdf")),
+			gr_TimeDiff_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by PLTSDiff",new File("TimeDiff_statesmutations.pdf")),
+			gr_TimeW_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by W",new File("TimeW_statesmutations.pdf")),
+			gr_TimeRand_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by Random",new File("TimeRand_statesmutations.pdf"));
+		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf")),
+			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
+			gr_Rand_W = new RBagPlot("W f-measure","Rand f-measure",new File("rand_W.pdf")),
+			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Mutations/Original Edges",new File("diff_pairs.pdf"));
+		
+		// Useful values of the threshold
+		double pairThreshold[] = new double[]{0.2,0.4,0.6,0.8,0.95},lowToHigh[] = new double[]{0.2,0.4,0.6,0.8,0.95};
+		RBoxPlot<Double> gr_Diff_threshold = new RBoxPlot<Double>("Threshold values, Low to High ratio = 0.5","ratio of patch size to mutations",new File("diff_threshold.pdf")),
+			gr_Diff_lowtohigh = new RBoxPlot<Double>("Low to High values, threshold ratio = 0.7","ratio of patch size to mutations",new File("diff_lowtohigh.pdf"));
+		RBoxPlot<Pair<Double,Double>> gr_Diff_thresholdslowhigh = new RBoxPlot<Pair<Double,Double>>("Low to High ratio, Threshold","ratio of patch size to mutations",new File("diff_thresholdlowhigh.pdf"));
 		RBoxPlot<Double> gr_Diff_k = new RBoxPlot<Double>("attenuation factor","ratio of patch size to mutations",new File("diff_attenuation.pdf"));
 		
-		for(int graphComplexity=graphComplexityMax-1;graphComplexity < graphComplexityMax;graphComplexity++)
+		for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
 		{
 			int states=initStates+graphComplexity*50;
 			int alphabet = states/2;
@@ -143,32 +152,60 @@ public class DiffExperiments {
 							appliedMutations.add(new Transition(renamedFrom,renamedTo,tr.getLabel()));
 						}
 						
-						/*
-						for(double k:new double[]{0,.2,.4,.6,.8,.95})
+						final double perfectLowToHigh=0.7,perfectThreshold=0.5;
+						
+						// These experiments are only run for the maximal number of states
+						if (graphComplexity == graphComplexityMax-1)
 						{
-							config.setAttenuationK(k);
-							config.setGdKeyPairThreshold(0.5);
-							config.setGdLowToHighRatio(0.7);
-							config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
-							linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
-							
-							gr_Diff_k.add(k, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
-							
-						}*/
-						/*
-						for(int i=0;i<pairThreshold.length;++i)
-							for(double ratio:lowToHigh)
+							for(double k:new double[]{0,.2,.4,.6,.8,.95})
 							{
-								config.setGdKeyPairThreshold(pairThreshold[i]);
-								config.setGdLowToHighRatio(ratio);
+								config.setAttenuationK(k);
+								config.setGdKeyPairThreshold(0.5);
+								config.setGdLowToHighRatio(perfectLowToHigh);
 								config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 								linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 								
-								gr_Diff_thresholds.add(new Pair<Double,Double>(ratio,pairThreshold[i]), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
-							}*/
+								gr_Diff_k.add(k, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+								
+							}
+							
+							for(double threshold:new double[]{0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95})
+							{
+								config.setGdKeyPairThreshold(threshold);
+								config.setGdLowToHighRatio(perfectLowToHigh);
+								config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
+								linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
+								
+								gr_Diff_threshold.add(threshold, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+							}
+							
+							
+							
+							for(double lowtohigh:new double[]{0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95})
+							{
+								config.setGdKeyPairThreshold(perfectThreshold);
+								config.setGdLowToHighRatio(lowtohigh);
+								config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
+								linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
+								
+								gr_Diff_lowtohigh.add(lowtohigh, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+							}
+							
+							
+							for(int i=0;i<pairThreshold.length;++i)
+								for(double ratio:lowToHigh)
+								{
+									config.setGdKeyPairThreshold(pairThreshold[i]);
+									config.setGdLowToHighRatio(ratio);
+									config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
+									linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
+									
+									gr_Diff_thresholdslowhigh.add(new Pair<Double,Double>(ratio,pairThreshold[i]), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+								}
+						}
 						config.setAttenuationK(0.5);
-						config.setGdKeyPairThreshold(0.5);
-						config.setGdLowToHighRatio(0.7);
+						config.setGdKeyPairThreshold(perfectThreshold);
+						config.setGdLowToHighRatio(perfectLowToHigh);
 						config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 						linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 						
@@ -187,11 +224,29 @@ public class DiffExperiments {
 						progress.next();
 						gr_Diff_States.add(states, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_W_States.add(states,outcome.getValue(DOUBLE_V.ACCURACY_W));
-						gr_DiffGD_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
-						gr_DiffW_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.ACCURACY_W));
-						gr_DiffRand_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.ACCURACY_W));
-						gr_MutationsToOriginal_StatesLevel.add(new Pair<Integer,Integer>(states,mutationStage+1), outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS));
+						Pair<Integer,Integer> mutations_states = new Pair<Integer,Integer>(mutationStage+1,states);
+						Pair<Integer,Integer> states_mutations = new Pair<Integer,Integer>(states,mutationStage+1);
+						gr_DiffGD_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_DiffW_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.ACCURACY_W));
+						gr_DiffRand_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.ACCURACY_W));
+						gr_MutationsToOriginal_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS));
+						gr_DiffRand_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.ACCURACY_W));
+						gr_MismatchedPairs.add(states_mutations,outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS));
+						gr_Pairs_States.add(states,outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS));
+						
+						// Time taken
+						long ns = 1000000L;
+						gr_TimeDiff_StatesLevel.add(states_mutations, (double)(outcome.getValue(LONG_V.DURATION_GD)/ns));
+						gr_TimeW_StatesLevel.add(states_mutations, (double)(outcome.getValue(LONG_V.DURATION_W)/ns));
+						gr_TimeRand_StatesLevel.add(states_mutations, (double)(outcome.getValue(LONG_V.DURATION_RAND)/ns));
+						gr_TimeDiff_States.add(states,(double)(outcome.getValue(LONG_V.DURATION_GD)/ns));
+						gr_TimeW_States.add(states,(double)(outcome.getValue(LONG_V.DURATION_W)/ns));
+						gr_TimeRand_States.add(states,(double)(outcome.getValue(LONG_V.DURATION_RAND)/ns));
+						
 						gr_Diff_MutationsToOriginal.add(outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_Diff_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_Rand_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.ACCURACY_RAND));
+						gr_Diff_MismatchedPairs.add(outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS),outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS));
 					}
 
 				}
@@ -202,6 +257,15 @@ public class DiffExperiments {
 				gr_DiffGD_StatesLevel.drawInteractive(gr);gr_DiffW_StatesLevel.drawInteractive(gr);gr_DiffRand_StatesLevel.drawInteractive(gr);
 				gr_Diff_MutationsToOriginal.drawInteractive(gr);
 				gr_W_States.drawInteractive(gr);
+				
+				gr_Diff_W.drawInteractive(gr);
+				gr_Rand_W.drawInteractive(gr);
+				
+				//gr_TimeDiff_StatesLevel.drawInteractive(gr);gr_TimeW_StatesLevel.drawInteractive(gr);gr_TimeRand_StatesLevel.drawInteractive(gr);
+				//gr_MismatchedPairs.drawInteractive(gr);
+				gr_Pairs_States.drawInteractive(gr);gr_TimeDiff_States.drawInteractive(gr);gr_TimeRand_States.drawInteractive(gr);gr_TimeW_States.drawInteractive(gr);
+				gr_Diff_MismatchedPairs.drawInteractive(gr);
+				
 				//ExperimentResult average = getAverage(accuracyStruct,graphComplexity,mutationStage);
 				//arrayWithDiffResults.add(diffValues);arrayWithKeyPairsResults.add(keyPairsValues);
 				//arrayWithResultNames.add(""+states+"-"+Math.round(100*average.mutationsToTransitions)+"%");
@@ -213,25 +277,14 @@ public class DiffExperiments {
 
 		}
 		gr_Diff_States.drawPdf(gr);gr_W_States.drawPdf(gr);gr_MutationsToOriginal_StatesLevel.drawPdf(gr);
-		//gr_Diff_thresholds.drawPdf(gr);gr_Diff_k.drawPdf(gr);
+		gr_Diff_threshold.drawPdf(gr);gr_Diff_lowtohigh.drawPdf(gr);gr_Diff_thresholdslowhigh.drawPdf(gr);gr_Diff_k.drawPdf(gr);
 		gr_Diff_MutationsToOriginal.drawPdf(gr);
 		gr_DiffGD_StatesLevel.drawPdf(gr);gr_DiffW_StatesLevel.drawPdf(gr);gr_DiffRand_StatesLevel.drawPdf(gr);
+		gr_Diff_W.drawPdf(gr);gr_Rand_W.drawPdf(gr);
+		gr_MismatchedPairs.drawPdf(gr);gr_Diff_MismatchedPairs.drawPdf(gr);
 		
-		//Visualiser.waitForKey();
-		/*System.out.println("\nSTRUCT SCORES");
-		printAccuracyMatrix(this.scoreStruct);
-		System.out.println("ACCURACY STRUCT");
-		printAccuracyMatrix(this.accuracyStruct);
-		System.out.println("ACCURACY RANDOM");
-		printAccuracyMatrix(this.accuracyRandLang);
-		System.out.println("ACCURACY W");
-		printAccuracyMatrix(this.accuracyWLang);
-		System.out.println("RANDOM-W-STRUCTURE");
-		printLangScores(this.accuracyRandLang,this.accuracyWLang,this.accuracyStruct);
-		System.out.println("TIME STRUCT");
-		printAccuracyMatrix(this.performanceStruct);
-		System.out.println("TIME LANG");
-		printAccuracyMatrix(this.performanceLang);*/
+		gr_TimeDiff_StatesLevel.drawPdf(gr);gr_TimeW_StatesLevel.drawPdf(gr);gr_TimeRand_StatesLevel.drawPdf(gr);
+		gr_Pairs_States.drawPdf(gr);gr_TimeDiff_States.drawPdf(gr);gr_TimeRand_States.drawPdf(gr);gr_TimeW_States.drawPdf(gr);
 	}
 	
 
@@ -249,7 +302,7 @@ public class DiffExperiments {
 		{
 			long startTime = System.nanoTime();
 			Collection<List<String>> wMethod = from.wmethod.getFullTestSet(1);
-			outcome.setValue(LONG_V.DURATION_W,startTime - System.nanoTime());
+			outcome.setValue(LONG_V.DURATION_W,System.nanoTime()-startTime);
 			Pair<Double,Long> wSeq=compareLang(from, to, wMethod);
 			outcome.setValue(LONG_V.DURATION_W, outcome.getValue(LONG_V.DURATION_W)+wSeq.secondElem);
 			outcome.setValue(DOUBLE_V.ACCURACY_W, wSeq.firstElem);
@@ -260,7 +313,7 @@ public class DiffExperiments {
 			RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
 			long startTime = System.nanoTime();
 			rpg.generatePosNeg((graphComplexity+1)*states , 1);
-			outcome.setValue(LONG_V.DURATION_RAND,startTime - System.nanoTime());
+			outcome.setValue(LONG_V.DURATION_RAND,System.nanoTime()-startTime);
 			sequences.addAll(rpg.getAllSequences(0).getData(PTASequenceEngine.truePred));
 			sequences.addAll(rpg.getExtraSequences(0).getData(PTASequenceEngine.truePred));
 			Pair<Double,Long> randSeq = compareLang(from, to, sequences);
@@ -284,16 +337,14 @@ public class DiffExperiments {
 	{
 		
 		final long startTime = System.nanoTime();
-		final long endTime;
 		ConfusionMatrix matrix = classify(sequences, from,to);
-		endTime = System.nanoTime();
-		final long duration = endTime - startTime;
+		final long duration = System.nanoTime() - startTime;
 		double result = matrix.fMeasure();
 		assert !Double.isNaN(result);
 		return new Pair<Double,Long>(result,duration);
 	}
 
-	private ConfusionMatrix classify(Collection<List<String>> sequences,LearnerGraph from, LearnerGraph to) 
+	public static ConfusionMatrix classify(Collection<List<String>> sequences,LearnerGraph from, LearnerGraph to) 
 	{
 		int tp=0, tn = 0, fp=0, fn=0;
 		boolean inTarget,inMutated;

@@ -69,7 +69,10 @@ import org.apache.commons.collections.Predicate;
  * -ea -DVIZ_CONFIG=kirill_office -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs;exp1/smt/.libs;"D:/R-2.12.2/library/rJava/jri"  -Xmx1500m
  * as above on Debian x86_64:
  * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/usr/local/lib/R/site-library/rJava/jri -Xmx3500m
- * 
+ * R_HOME=/usr/lib/R
+ * as above on MacOS X 10.5.8,
+ * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/Library/Frameworks/R.framework/Versions/2.12/Resources/library/rJava/jri -Xmx3500m
+ * R_HOME=/Library/Frameworks/R.framework/Versions/2.12/Resources
  * Updating Statechum web page:
  * 
 (cd /home/groups/s/st/statechum; svn export --force http://statechum.svn.sourceforge.net/svnroot/statechum/XMachineTool/trunk/htdocs )

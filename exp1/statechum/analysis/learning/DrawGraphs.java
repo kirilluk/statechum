@@ -17,7 +17,7 @@
  */
 
 /*
- * Installation of RJava and JavaGD on Debian x86_64:
+ * Installation of RJava, JavaGD and aplpack on Debian x86_64:
  * 
  * (note: an alternative way to install javagd is from http://blog.binfalse.de/2011/02/talking-r-through-java/
  *  which boils down to apt-get install r-cran-rjava )
@@ -43,6 +43,11 @@
  * 
  * In order to use bagplots, the following is needed,
  * R CMD INSTALL aplpack
+ * 
+ * Installation of the above on MacOSX and Win32:
+ * 
+ * install.packages(c("JavaGD","rJava","aplpack"))
+ * On MacOS, tcltk is a special download which installs into /usr/local.
  */
 
 
@@ -270,21 +275,21 @@ public class DrawGraphs {
 		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
 		StringBuffer result = new StringBuffer();
 		result.append("bagplot(");
-		StringBuffer xAxisData = new StringBuffer();
+		StringBuffer yAxisData = new StringBuffer();
 		Iterator<Double> xArgIterator = xData.iterator();
-		result.append("c(");xAxisData.append(",c(");
+		result.append("c(");yAxisData.append(",c(");
 		boolean startVector = true;
 		for(List<Double> yArg:yData)
 		{
 			Double xArg = xArgIterator.next();
 			for(Double elem:yArg)
 			{
-				if (!startVector) { result.append(",");xAxisData.append(','); } else startVector=false;
-				result.append(elem);xAxisData.append(xArg);
+				if (!startVector) { yAxisData.append(",");result.append(','); } else startVector=false;
+				yAxisData.append(elem);result.append(xArg);
 			}
 		}
-		xAxisData.append(')');result.append(')');
-		result.append(xAxisData);
+		result.append(')');yAxisData.append(')');
+		result.append(yAxisData);
 		
 		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
@@ -299,7 +304,7 @@ public class DrawGraphs {
 	 * by running it all on the Swing thread (avoids a deadlock associated with resizing of the window
 	 * and us doing something to it at the same time on different threads).
 	 */
-	public void drawInteractiveBoxPlot(final String dataToPlot,final String title)
+	public void drawInteractivePlot(final String dataToPlot,final String title)
 	{
 		// First, load javaGD
 		if (!javaGDLoaded)
@@ -325,7 +330,7 @@ public class DrawGraphs {
 						RViewer.getGraph(title).init(devNum.asInt()-1);
 					}
 					eval("dev.set("+(RViewer.getGraph(title).getDeviceNumber()+1)+")","failed to do dev.set for "+title);
-					eval(dataToPlot,"failed to run boxplot");		
+					eval(dataToPlot,"failed to run plot "+dataToPlot);		
 				}
 			});
 		} catch (Exception e) {
@@ -344,8 +349,8 @@ public class DrawGraphs {
 	public void drawPlot(String drawingCommand,double xDim,double yDim,File file)
 	{
 		if (xDim < 1) 
-			throw new IllegalArgumentException("horizontal size too small");
-		if (yDim < 1) throw new IllegalArgumentException("vertical size too small");
+			throw new IllegalArgumentException("horizontal size ("+xDim+") too small");
+		if (yDim < 1) throw new IllegalArgumentException("vertical size ("+yDim+") too small");
 		
 		if (file.exists() && file.delete() == false)
 			throw new IllegalArgumentException("cannot delete file "+file.getAbsolutePath());
@@ -398,7 +403,7 @@ public class DrawGraphs {
 		
 		public void drawInteractive(DrawGraphs gr)
 		{
-			gr.drawInteractiveBoxPlot(getDrawingCommand(), file.getName());
+			gr.drawInteractivePlot(getDrawingCommand(), file.getName());
 		}
 		
 		protected double xSize = -1;
@@ -411,18 +416,19 @@ public class DrawGraphs {
 			xSize = newSize;
 		}
 		
+		double ySize = 4;
+
 		public void drawPdf(DrawGraphs gr)
 		{
 			String drawingCommand = getDrawingCommand();
 			assert collectionOfResults.size() > 0;
-			double ySize = 4;
 			double horizSize = xSize;
-			if (xSize <=0)
-			{
-				horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
-			}
+			if (horizSize <= 0) horizSize=computeHorizSize();
 			gr.drawPlot(drawingCommand, horizSize,ySize,file);
 		}
+		
+		/* Computes the horizontal size of the drawing. */
+		abstract protected double computeHorizSize();
 	}
 	
 	public static class RBoxPlot<ELEM> extends RGraph<ELEM>
@@ -441,6 +447,12 @@ public class DrawGraphs {
 				data.add(entry.getValue());names.add(entry.getKey().toString());
 			}
 			return boxPlotToString(data, names.size()==1?null:names,"green","xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			return horizSize;
 		}
 	}
 	
@@ -461,6 +473,11 @@ public class DrawGraphs {
 			}
 			
 			return bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
+		}
+
+		@Override
+		protected double computeHorizSize() {
+			return ySize;
 		}
 	}
 }

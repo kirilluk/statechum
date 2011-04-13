@@ -13,7 +13,7 @@ import statechum.apps.QSMTool;
 
 import java.awt.Frame;
 
-import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
@@ -40,7 +40,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     public LearnerGraph learnMachine() {
         try {
             if (erlangProcess == null) {
-                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin() + "erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
+                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
                 int response = erlangProcess.getInputStream().read();
                 while (response != '>' && response != -1) {
                     System.out.print((char) response);
@@ -252,7 +252,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
      * @param  
      */
     public static void runErlang(String ErlangCommand) throws IOException {
-        Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin() + "erl", "-eval", ErlangCommand + ",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
+        Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl", "-eval", ErlangCommand + ",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
         ExperimentRunner.dumpStreams(erlangProcess, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
 
             @Override

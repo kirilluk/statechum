@@ -1,26 +1,38 @@
+/* Copyright (c) 2011 Ramsay Taylor and Kirill Bogdanov
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ * 
+ * In order to run Erlang on Win32, the following VM args can be used:
+ * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path="linear/.libs;smt/.libs" -Xmx1500m -DERLANGHOME="D:\Program Files\erl5.8.2"
+ */
+
 package statechum.analysis.Erlang;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
-import com.ericsson.otp.erlang.OtpConnection;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangRef;
 import com.ericsson.otp.erlang.OtpErlangTuple;
-import com.ericsson.otp.erlang.OtpLocalNode;
 import com.ericsson.otp.erlang.OtpMbox;
-import com.ericsson.otp.erlang.OtpMsg;
 import com.ericsson.otp.erlang.OtpNode;
-import com.ericsson.otp.erlang.OtpPeer;
-import com.ericsson.otp.erlang.OtpSelf;
 
 import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.apps.ErlangApplicationLoader;
 import statechum.apps.ErlangQSMOracle;
 

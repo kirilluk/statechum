@@ -27,7 +27,7 @@ public class ErlangAppReader {
 	        ErlangApp result = new ErlangApp();
 	        result.name = folder.getName();
 	        for(File f: folder.listFiles()) {
-	        	if (ErlangModule.getErlName(f.getName()) != null)
+	        	if (ErlangRunner.getErlName(f.getName()) != null)
 	                result.modules.add(new ErlangModule(f));
 	        }
 	        return result;

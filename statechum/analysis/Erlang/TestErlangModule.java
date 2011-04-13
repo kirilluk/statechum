@@ -30,28 +30,28 @@ public class TestErlangModule {
 	@Test
 	public void testGetErlName1()
 	{
-		Assert.assertEquals("aa",ErlangModule.getErlName("aa.erl"));
-		Assert.assertEquals("aa",ErlangModule.getErlName("  aa.erl   "));
+		Assert.assertEquals("aa",ErlangRunner.getErlName("aa.erl"));
+		Assert.assertEquals("aa",ErlangRunner.getErlName("  aa.erl   "));
 	}
 
 	@Test
 	public void testGetErlName2()
 	{
-		Assert.assertEquals("aa/bb",ErlangModule.getErlName("  aa/bb.erl   "));
-		Assert.assertEquals("aa/bb...",ErlangModule.getErlName("  aa/bb....erl   "));
-		Assert.assertEquals("aa/bb.c.d",ErlangModule.getErlName("  aa/bb.c.d.erl   "));
-		Assert.assertEquals("aa/bb.c.d.erl",ErlangModule.getErlName("  aa/bb.c.d.erl.erl   "));
+		Assert.assertEquals("aa/bb",ErlangRunner.getErlName("  aa/bb.erl   "));
+		Assert.assertEquals("aa/bb...",ErlangRunner.getErlName("  aa/bb....erl   "));
+		Assert.assertEquals("aa/bb.c.d",ErlangRunner.getErlName("  aa/bb.c.d.erl   "));
+		Assert.assertEquals("aa/bb.c.d.erl",ErlangRunner.getErlName("  aa/bb.c.d.erl.erl   "));
 	}
 	
 	@Test
 	public void testGetErlNameFail()
 	{
-		Assert.assertNull(ErlangModule.getErlName(".erl"));
-		Assert.assertNull(ErlangModule.getErlName(null));
-		Assert.assertNull(ErlangModule.getErlName("aa.berl"));
-		Assert.assertNull(ErlangModule.getErlName("aa.berl"));
-		Assert.assertNull(ErlangModule.getErlName("aa.erl.tt"));
-		Assert.assertNull(ErlangModule.getErlName("aa"));
+		Assert.assertNull(ErlangRunner.getErlName(".erl"));
+		Assert.assertNull(ErlangRunner.getErlName(null));
+		Assert.assertNull(ErlangRunner.getErlName("aa.berl"));
+		Assert.assertNull(ErlangRunner.getErlName("aa.berl"));
+		Assert.assertNull(ErlangRunner.getErlName("aa.erl.tt"));
+		Assert.assertNull(ErlangRunner.getErlName("aa"));
 	}
 	
 	@Test

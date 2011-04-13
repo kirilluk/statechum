@@ -17,7 +17,6 @@
  */
 package statechum.analysis.Erlang;
 
-import statechum.GlobalConfiguration;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import java.io.BufferedReader;
@@ -62,42 +61,16 @@ public class ErlangModule {
         return buf.substring(specstart, buf.indexOf('\n', specstart));
 
     }
-
+    
     public static final String behaviourToken = "-behaviour(";
     
-    /** Given the name of Erlang file, this method strips out the extension and returns the result.
-     * The name is supposed to be a valid file name.
-     * 
-     * @param fileName File name to remove the extension from
-     * @return stripped file name.
-     */
-    public static String getErlName(String fileName)
-    {
-    	if (fileName == null) return null;
-    	String trimmedName = fileName.trim();
-    	int pos = trimmedName.lastIndexOf('.');
-    	if (pos <= 0 || !trimmedName.substring(pos).equals(".erl"))
-    		return null;
-    	return trimmedName.substring(0, pos);
-    }
-    
-    /** Obtains a binary directory for an Erlang executable. */
-    public static String getErlangBin()
-    {
-    	String erlangBin = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME);
-    	if (erlangBin != null) erlangBin = erlangBin+File.separator+"bin"+File.separator;else erlangBin = "";
-    	return erlangBin;
-    }
-    
     public ErlangModule(final File f) throws IOException {
-    	name = getErlName(f.getName());if (name == null) throw new IllegalArgumentException("invalid Erlang file name "+f.getName());
+    	name = ErlangRunner.getErlName(f.getName());if (name == null) throw new IllegalArgumentException("invalid Erlang file name "+f.getName());
         System.out.println("----------------  " + name + "  --------------------------");
         sigs = new TreeMap<String, FuncSignature>();
 
         // Compile and typecheck the module...
-        Process p = Runtime.getRuntime().exec(new String[]{getErlangBin()+"erlc","+debug_info",f.getName()}, null, f.getParentFile());
-        
-        ErlangApplicationLoader.dumpProcessOutputOnFailure("erlc",p);
+        ErlangRunner.compileErl(f);
         final String pltFileName = f.getParentFile().getAbsolutePath()+File.separator+name+".plt";
         // Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
 
@@ -106,11 +79,11 @@ public class ErlangModule {
         for(Entry<String,String> entry:System.getenv().entrySet())
         	envp[i++]=entry.getKey()+"="+entry.getValue();envp[i++]="HOME="+f.getParentFile().getAbsolutePath();
 
-        p=Runtime.getRuntime().exec(new String[]{getErlangBin()+"dialyzer","--build_plt","--output_plt",pltFileName,name+".beam"}, envp, f.getParentFile());
+        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"dialyzer","--build_plt","--output_plt",pltFileName,name+".beam"}, envp, f.getParentFile());
         ErlangApplicationLoader.dumpProcessOutputOnFailure("dialyzer",p);
 
         // Receive the type info....
-        p = Runtime.getRuntime().exec(new String[]{getErlangBin()+"typer","--plt",pltFileName,f.getName()}, null, f.getParentFile());
+        p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"typer","--plt",pltFileName,f.getName()}, null, f.getParentFile());
     	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
         ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
 

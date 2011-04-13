@@ -24,6 +24,7 @@ import javax.swing.filechooser.FileFilter;
 import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
@@ -302,7 +303,7 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     	}
     		
         for (File f : ErlangFolder.listFiles()) {
-        	String moduleName = ErlangModule.getErlName(f.getName());
+        	String moduleName = ErlangRunner.getErlName(f.getName());
             if (moduleName != null) {
                 // Retain .beam for debugging
             	for(String ext:new String[]{".erl",".plt"})
@@ -323,9 +324,9 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
             for (File f : ErlangFolder.listFiles()) {
                 int dot = f.getName().lastIndexOf(".");
                 if (dot >= 0) {
-                    if (ErlangModule.getErlName(f.getName()) != null) {
+                    if (ErlangRunner.getErlName(f.getName()) != null) {
                         fileCopy(f, folder);
-                        Process p = Runtime.getRuntime().exec(new String[]{ErlangModule.getErlangBin()+"erlc","+debug_info",f.getName()}, null, folder);
+                        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"erlc","+debug_info",f.getName()}, null, folder);
                         dumpProcessOutputOnFailure("erlc", p);
                     }
                 }

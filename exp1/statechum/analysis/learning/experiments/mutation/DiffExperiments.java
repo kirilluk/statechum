@@ -112,7 +112,7 @@ public class DiffExperiments {
 		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf")),
 			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
 			gr_Rand_W = new RBagPlot("W f-measure","Rand f-measure",new File("rand_W.pdf")),
-			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Mutations/Original Edges",new File("diff_pairs.pdf"));
+			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Diff/Mutations",new File("diff_pairs.pdf"));
 		
 		// Useful values of the threshold
 		double pairThreshold[] = new double[]{0.2,0.4,0.6,0.8,0.95},lowToHigh[] = new double[]{0.2,0.4,0.6,0.8,0.95};
@@ -246,7 +246,7 @@ public class DiffExperiments {
 						gr_Diff_MutationsToOriginal.add(outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_Diff_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_Rand_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.ACCURACY_RAND));
-						gr_Diff_MismatchedPairs.add(outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS),outcome.getValue(DOUBLE_V.MUTATIONS_TO_TRANSITIONS));
+						gr_Diff_MismatchedPairs.add(outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 					}
 
 				}

@@ -132,7 +132,8 @@ public class AllTests {
 	
 	@RunWith(Suite.class)
 	@SuiteClasses({
-		//statechum.analysis.Erlang.TestErlangModule.class
+		statechum.analysis.Erlang.TestErlangModule.class,
+		statechum.analysis.Erlang.TestErlangRunner.class
 	})
 	public static class ErlangTests{// all tests are included in the annotation.
 	}

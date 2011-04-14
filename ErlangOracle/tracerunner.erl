@@ -1,6 +1,22 @@
 %%% -------------------------------------------------------------------
 %%% Author  : kirr
 %%% Description : Runs traces on Erlang modules and reports results.
+%%% Copyright (c) 2011 The University of Sheffield
+%%% 
+%%% This file is part of StateChum
+%%% 
+%%% StateChum is free software: you can redistribute it and/or modify
+%%% it under the terms of the GNU General Public License as published by
+%%% the Free Software Foundation, either version 3 of the License, or
+%%% (at your option) any later version.
+%%% 
+%%% StateChum is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%% GNU General Public License for more details.
+%%% 
+%%% You should have received a copy of the GNU General Public License
+%%% along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 %%%
 %%% Created : 13 Apr 2011
 %%% -------------------------------------------------------------------
@@ -28,24 +44,35 @@
 %% External functions
 %% ====================================================================
 
-start([Node]) ->
+start(Args)->startRunner(strings_to_atoms(Args)).
+
+%% Production use
+startRunner([Node,tracerunner]) ->
 	{ ok, _Pid } = gen_server:start_link({local,tracecheckServer},tracerunner,[],[]),
-	NodeAsAtom = case is_atom(Node) of
-		true ->Node;
-		false ->list_to_atom(Node)
-    end,
- 	verifyNodeUp(NodeAsAtom).
+	verifyJavaUp(Node);
+
+%% For testing
+startRunner([Node,noserver])->verifyJavaUp(Node);
+startRunner([_Node,halt])->halt();
+startRunner([_Node,error])->erlang:error("startup error").
+
+strings_to_atoms([])->[];
+strings_to_atoms([Head|Tail])->
+    [case is_atom(Head) of
+		true ->Head;
+		false ->list_to_atom(Head)
+    end | strings_to_atoms(Tail)].
+
 
 %% Waits for the Java process to terminate and then shuts down the server.
-verifyNodeUp(Node) ->
+
+verifyJavaUp(Node) ->
 	timer:sleep(500),
 	case (net_adm:ping(Node)) of
-		pong -> verifyNodeUp(Node);
+		pong -> verifyJavaUp(Node);
 		pang -> erlang:halt() %% terminate node
 	end.
 	
-makeCall(Where,Arg) ->gen_server:call({tracecheckServer,Where},Arg).
-
 %% ====================================================================
 %% Server functions
 %% ====================================================================
@@ -73,9 +100,18 @@ init([]) ->
 %% --------------------------------------------------------------------
 handle_call({runTrace,Trace}, _From, State) ->
 	io:format("~w~n", [Trace]),
-    Reply = {ok,aa},
-    {reply, Reply, State};
+    	Reply = {ok,aa},
+    	{reply, Reply, State};
 
+%% Used for testing - does not produce a response.
+handle_call(timeout,_From, State) ->
+	{noreply, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo,[Head | Tail]},_From, State) ->
+	{reply, { Head, Tail }, State};
+
+%% Compiles all supplied modules
 handle_call({compile,[]}, _From, State) ->
 	{reply, ok, State};
 	

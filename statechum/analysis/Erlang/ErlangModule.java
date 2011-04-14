@@ -209,15 +209,6 @@ public class ErlangModule {
         }
     }
 
-    private String padRight(String s, int n) {
-        String result = s;
-        System.out.println(s + " (" + s.length() + " vs " + n + ")");
-        while (result.length() < n) {
-            result += " ";
-        }
-        return result;
-    }
-
     @Override
     public String toString() {
         return getName() + " [" + behaviour.toString() + "] (" + behaviour.dependencies.size() + " dependecies)";

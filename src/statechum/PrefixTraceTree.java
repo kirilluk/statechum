@@ -51,7 +51,9 @@ public class PrefixTraceTree {
                     if (traceString.equals("")) {
                         traceFromFile = new Trace();
                     } else {
-                        traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
+                        // FIXME needs Trace parser fix...
+                        //traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
+                        traceFromFile = new Trace();
                     }
                     if (neg.equals("-")) {
                         traceFromFile.negative = true;

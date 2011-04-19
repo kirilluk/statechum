@@ -140,10 +140,14 @@ public class TestExperimentRunner {
 	public final void beforeTest()
 	{
 		// clean the directories
-		testDir.deleteOnExit();deleteTestDirectories();
+		testDir.deleteOnExit();
+                deleteTestDirectories();
 		
-		Assert.assertFalse(testDir.isDirectory());Assert.assertFalse(testGraphsDir.isDirectory());
-		Assert.assertTrue(testDir.mkdir());Assert.assertTrue(testGraphsDir.mkdir());Assert.assertTrue(testOutputDir.mkdir());
+		Assert.assertFalse(testDir.isDirectory());
+                Assert.assertFalse(testGraphsDir.isDirectory());
+		Assert.assertTrue(testDir.mkdir());
+                Assert.assertTrue(testGraphsDir.mkdir());
+                Assert.assertTrue(testOutputDir.mkdir());
 		populateGraphs();
 		
 		multiExp = new ExperimentRunner();multiExp.graphsPerRunner=4;multiExp.setTimeBetweenHearbeats(heartbeatTestValue);

@@ -14,23 +14,24 @@ import java.util.LinkedList;
  */
 public class Trace implements Comparable<Trace> {
 
-    LinkedList<String> trace;
+    LinkedList<Label> trace;
     public boolean negative;
 
     public Trace() {
-        this(new LinkedList<String>());
+        this(new LinkedList<Label>());
     }
 
-    public Trace(Collection<String> c) {
+    public Trace(Collection<Label> c) {
         this(c, false);
     }
 
-    public Trace(Collection<String> c, boolean neg) {
-        trace = new LinkedList<String>(c);
+    public Trace(Collection<Label> c, boolean neg) {
+        trace = new LinkedList<Label>(c);
         negative = neg;
     }
 
-    protected String consumeErlangElem(StringBuffer sb) {
+    /* FIXME: needs replacing with a thing to parse and create ErlangLabel objects
+    protected Label consumeErlangElem(StringBuffer sb) {
         String elem = "";
         if (sb.charAt(0) == '{') {
             // Consume a tuple
@@ -92,12 +93,14 @@ public class Trace implements Comparable<Trace> {
         //System.out.println("Deep consumed " + elem);
         return elem;
     }
+    */
 
     /** Parse a trace from a string.
      * This expects a String of the form "[elem, elem, elem, ...]"
      * This is aware of Erlang style sub-sontainers like [] and {} and quotations...
      * @param t The String to be parsed
      */
+    /* FIXME needs parser upgrade
     public Trace(String t) {
         this();
         //System.out.println("Parsing " + t);
@@ -107,7 +110,7 @@ public class Trace implements Comparable<Trace> {
         }
         sb.deleteCharAt(0);
         while (sb.charAt(0) != ']') {
-            String elem = consumeErlangElem(sb);
+            Label elem = consumeErlangElem(sb);
             //System.out.println(elem);
             trace.add(elem);
             if (sb.charAt(0) == ',') {
@@ -115,13 +118,15 @@ public class Trace implements Comparable<Trace> {
             }
         }
     }
+     * 
+     */
 
     @Override
     public Trace clone() {
-        return new Trace((LinkedList<String>) trace.clone());
+        return new Trace((LinkedList<Label>) trace.clone());
     }
 
-    public void add(String s) {
+    public void add(Label s) {
         trace.add(s);
     }
 
@@ -131,7 +136,7 @@ public class Trace implements Comparable<Trace> {
 
     public Trace replaceAll(String x, String y) {
         Trace result = new Trace();
-        for (String s : trace) {
+        for (Label s : trace) {
             result.add(s.replaceAll(x, y));
         }
         return result;
@@ -149,15 +154,15 @@ public class Trace implements Comparable<Trace> {
         }
     }
 
-    public Iterator<String> iterator() {
+    public Iterator<Label> iterator() {
         return trace.iterator();
     }
 
-    public int indexOf(String s) {
+    public int indexOf(Label s) {
         return trace.indexOf(s);
     }
 
-    public String get(int index) {
+    public Label get(int index) {
         return trace.get(index);
     }
 
@@ -173,15 +178,15 @@ public class Trace implements Comparable<Trace> {
         } else {
             result = "+";
         }
-        for (String s : trace) {
-            result += " " + s;
+        for (Label s : trace) {
+            result += " " + s.toString();
         }
         return result;
     }
 
     public boolean equals(Trace tr) {
-        Iterator<String> it = trace.iterator();
-        Iterator<String> tit = tr.iterator();
+        Iterator<Label> it = trace.iterator();
+        Iterator<Label> tit = tr.iterator();
         while (it.hasNext()) {
             if (!tit.hasNext()) {
                 return false;
@@ -199,15 +204,15 @@ public class Trace implements Comparable<Trace> {
         if (x.equals(y)) {
             return true;
         }
-        Iterator<String> it = x.iterator();
-        Iterator<String> tit = y.iterator();
+        Iterator<Label> it = x.iterator();
+        Iterator<Label> tit = y.iterator();
         while (it.hasNext()) {
             if (!tit.hasNext()) {
                 return false;
             } else {
-                String xs = it.next();
-                String ys = tit.next();
-                if (!matchWithWildcard(xs, ys)) {
+                Label xs = it.next();
+                Label ys = tit.next();
+                if (!matchWithWildcard(xs.toString(), ys.toString())) {
                     return false;
                 }
             }
@@ -250,22 +255,22 @@ public class Trace implements Comparable<Trace> {
      * Determines whether this is a prefix of et.
      */
     public boolean isPrefix(Trace et) {
-        Iterator<String> sit = this.iterator();
-        Iterator<String> eit = et.iterator();
+        Iterator<Label> sit = this.iterator();
+        Iterator<Label> eit = et.iterator();
         while (sit.hasNext()) {
             if (eit.hasNext()) {
-                String snext = sit.next();
-                String enext = eit.next();
+                Label snext = sit.next();
+                Label enext = eit.next();
                 if (!snext.equals(enext)) {
                     // Lets try wildcard matching
                     // Prefixes will always be instantiated up until the last element...
                     //System.out.println("\t\t" + enext + " vs " + snext + " == " + oneWayWildcardMatch(enext, snext));
-                    if (!oneWayWildcardMatch(enext, snext)) {
+                    if (!oneWayWildcardMatch(enext.toString(), snext.toString())) {
                         // If this IS the last element then we are allowed a wildcard at the end
                         // This SHOULD only happen for negative traces where the last event fails so the output cant be instantiated
                         if (!sit.hasNext()) {
                             //System.out.println("\t\t\tFinally: " + snext + " vs " + enext + " == " + oneWayWildcardMatch(snext, enext));
-                            return oneWayWildcardMatch(snext, enext);
+                            return oneWayWildcardMatch(snext.toString(), enext.toString());
                         } else {
                             return false;
                         }

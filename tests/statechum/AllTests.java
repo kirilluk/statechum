@@ -30,8 +30,8 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.AllTests.BasicTests.class,
     statechum.AllTests.GraphTests.class,
     statechum.AllTests.LearnerTests.class,
-    statechum.AllTests.LinearTests.class,
-    statechum.AllTests.SmtTests.class,
+    //statechum.AllTests.LinearTests.class,
+    //statechum.AllTests.SmtTests.class,
     statechum.AllTests.ErlangTests.class,
     statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
 })
@@ -110,10 +110,10 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestGD.class,
         statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
         statechum.analysis.learning.rpnicore.TestGD_MultipleCasesOfRenaming.class,
-        statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
-        statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsUsingTestSet.class,
-        statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class,
-        statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet.class,
+        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
+        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsUsingTestSet.class,
+        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class,
+        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet.class,
         statechum.apps.TestVisualDemo.class
     })
     public static class LinearTests {// all tests are included in the annotation.

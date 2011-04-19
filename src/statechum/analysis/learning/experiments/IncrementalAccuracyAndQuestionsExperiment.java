@@ -19,6 +19,8 @@
 package statechum.analysis.learning.experiments;
 
 
+import statechum.model.testset.PTA_FSMStructure;
+import statechum.model.testset.PTA_computePrecisionRecall;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;

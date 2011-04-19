@@ -11,7 +11,6 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import org.junit.Test;
-import java.util.LinkedList;
 import org.junit.Assert;
 
 /**

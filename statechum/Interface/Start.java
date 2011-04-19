@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
-import statechum.apps.ErlangApplicationLoader;
+import statechum.analysis.Erlang.ErlangModule;
 
 /**
  *
@@ -105,7 +105,17 @@ public class Start extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        ErlangApplicationLoader.main(new String[0]);
+        JFileChooser chooser = new JFileChooser();
+        chooser.setAcceptAllFileFilterUsed(false);
+        int returnValue = chooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            try {
+                ErlangModuleViewer modview = new ErlangModuleViewer(new ErlangModule(chooser.getSelectedFile()));
+                modview.setVisible(true);
+            } catch (IOException ex) {
+                Logger.getLogger(Start.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }//GEN-LAST:event_jButton2ActionPerformed
 
     /**

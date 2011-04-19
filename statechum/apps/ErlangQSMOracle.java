@@ -4,11 +4,13 @@
  */
 package statechum.apps;
 
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -35,14 +37,18 @@ public class ErlangQSMOracle {
     public static Collection<String> erlangModules;
     public static String erlangWrapperModule;
     public static String erlangAlphabet;
-    public static Collection<String> moduleAlphabet;
+    public static Collection<OtpErlangTuple> moduleAlphabet;
     public static String tracesFile;
     public static String covermapFile;
-    public static String ErlangFolder = "ErlangOracle";
+    public static String ErlangFolder = "/home/ramsay/statechum/XMachineTool/trunk/ErlangOracle";
     // Mode can be "basic" or "otp". OTP will use the OTP wrappers to infer stuff about an OTP behaviour module
     public static String mode = "basic";
     public static String initArgs;
     public static PrefixTraceTree ErlangTraces;
+
+    // How many times should we try to expand the graph by extending the deepest node with the entire alphabet?
+    public static int exhaustTries = 0;
+
     // This map stores coverage maps in the form (Prefix, Suffix) -> Coverage
     // i.e. the coverage map calculated from the end of trace Prefix to the end of state Suffix
     // The Map is indexed by the string representation of the prefix and suffix separated by a '-', in Erlang form
@@ -71,12 +77,12 @@ public class ErlangQSMOracle {
 
     }
 
-    public static void startInference() throws IOException {
+    public static LearnerGraph startInference() throws IOException {
         // Clear the files...
-        (new File(ErlangFolder, tracesFile)).delete();
-        (new File(ErlangFolder, covermapFile)).delete();
-        createInitTraces();
-        loadCoverageMaps();
+        //(new File(ErlangFolder, tracesFile)).delete();
+        //(new File(ErlangFolder, covermapFile)).delete();
+        //createInitTraces();
+        //loadCoverageMaps();
 
         ErlangTraces = new PrefixTraceTree(ErlangFolder + File.separator + tracesFile);
         //System.out.println("Traces Tree:\n" + ErlangTraces.toString());
@@ -95,7 +101,7 @@ public class ErlangQSMOracle {
         LearnerGraph graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
         boolean complete = false;
         int repeats = 0;
-        while ((graph != null) && (!complete) && (repeats < 1)) {
+        while ((graph != null) && (!complete) && (repeats < exhaustTries)) {
             repeats++;
             Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix = graph.getTransitionMatrix();
             // Find (one of) the deepest node(s)
@@ -117,7 +123,7 @@ public class ErlangQSMOracle {
             Collection<String> path = getPathTo(deepest, root, transitionMatrix, new ArrayList<CmpVertex>());
             System.out.println("Path: " + path);
             // Get the alphabet
-            Collection<String> alpha = new ArrayList<String>(moduleAlphabet);
+            Collection<OtpErlangTuple> alpha = new ArrayList<OtpErlangTuple>(moduleAlphabet);
             // Remove the elements that are examined for this node
             for (String s : transitionMatrix.get(deepest).keySet()) {
                 System.out.println("\tTried: " + s);
@@ -126,9 +132,9 @@ public class ErlangQSMOracle {
             System.out.println("Untried: " + alpha);
             if (alpha.size() > 0) {
                 // Try all the others...
-                for (String s : alpha) {
+                for (OtpErlangTuple s : alpha) {
                     ArrayList<String> trypath = new ArrayList<String>(path);
-                    trypath.add(s);
+                    trypath.add(s.toString());
                     System.out.println("Trying " + trypath);
                     // Run this trace in Erlang and add the result to the traces file
                     Iterator<String> it = trypath.iterator();
@@ -178,6 +184,8 @@ public class ErlangQSMOracle {
         // SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
         //config.setMinCertaintyThreshold(1);
         //config.setQuestionPathUnionLimit(1);
+
+        return graph;
     }
 
     protected static Collection<String> getPathTo(CmpVertex tgt, CmpVertex root, Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix, Collection<CmpVertex> seenStates) {

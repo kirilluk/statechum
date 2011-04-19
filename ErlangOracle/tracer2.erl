@@ -59,14 +59,14 @@ first_failure(WrapperModule, Module, Trace, OutFile, ModulesList) ->
 %% Run the specified function with the specified Trace as input
 %% trap the resulting status and the code coverage
 try_trace(WrapperModule, Module, Trace, ModulesList) ->
-    %%io:format("Trying ~w:exec_call_trace(~w, ~w, ~w)...~n", [WrapperModule, Module, Trace, self()]),
+    %%io:format("Trying ~w:exec_call_trace(~w, ~w, ~w)...~n", [WrapperModule, Module, Trace, self()]), 
     compile_all(ModulesList),
     {Pid, Ref} = spawn_monitor(WrapperModule, exec_call_trace, [Module, Trace, self()]),
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
     OPTrace = flushOPTrace(PartialOPTrace, Pid),
     io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
-    case ProcStatus of
+   case ProcStatus of
 	ok ->
 	    {ProcStatus, analyse_all(ModulesList), OPTrace};
 	failed_but ->

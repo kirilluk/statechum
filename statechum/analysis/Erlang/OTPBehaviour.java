@@ -4,6 +4,7 @@
  */
 package statechum.analysis.Erlang;
 
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import statechum.Pair;
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,7 +22,7 @@ public abstract class OTPBehaviour {
     public String name;
     protected ErlangModule parent;
     protected Map<String, Pair<String, Boolean>> patterns;
-    protected Collection<String> alphabet;
+    protected List<OtpErlangTuple> alphabet;
     protected Collection<String> dependencies;
     // FIXME these are currently undetermined...
     public Collection<String> initArgs;
@@ -41,7 +42,7 @@ public abstract class OTPBehaviour {
 
     public OTPBehaviour() {
         name = "";
-        alphabet = new ArrayList<String>();
+        alphabet = new ArrayList<OtpErlangTuple>();
         patterns = new TreeMap<String, Pair<String, Boolean>>();
         dependencies = new ArrayList<String>();
     }
@@ -112,6 +113,7 @@ public abstract class OTPBehaviour {
     }
 
     public void loadAlphabet() {
+        /* FIXME replace with OTP objects and direct link to typer
         for (String p : patterns.keySet()) {
             FuncSignature sig = parent.sigs.get(p);
             if (sig != null) {
@@ -182,16 +184,18 @@ public abstract class OTPBehaviour {
                 }
             }
         }
+         * 
+         */
     }
 
-    public Collection<String> getAlphabet() {
+    public List<OtpErlangTuple> getAlphabet() {
         return alphabet;
     }
 
     public String getAlphabetString() {
         String result = "[";
         boolean first = true;
-        Iterator<String> it = alphabet.iterator();
+        Iterator<OtpErlangTuple> it = alphabet.iterator();
         while (it.hasNext()) {
             if (!first) {
                 result += ", ";

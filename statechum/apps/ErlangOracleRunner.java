@@ -4,8 +4,9 @@
  */
 package statechum.apps;
 
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import statechum.analysis.Erlang.ErlangModule;
 
 /**
@@ -22,7 +23,7 @@ public class ErlangOracleRunner implements Runnable {
     protected String mode = "basic";
     protected String initArgs = "";
     protected ErlangModule m;
-    protected Collection<String> alphaSet = new ArrayList<String>();
+    protected List<OtpErlangTuple> alphaSet = new ArrayList<OtpErlangTuple>();
 
     public ErlangOracleRunner(String sf, String mn, String fn, String al, String om) {
         sourceFolder = sf;

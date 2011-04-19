@@ -8,8 +8,9 @@
  *
  * Created on Feb 17, 2011, 9:37:59 AM
  */
-package statechum.apps;
+package statechum.Interface;
 
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.awt.BorderLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -32,7 +33,10 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     }
 
+    protected ErlangModule module;
+
     public void displayModule(ErlangModule mod) {
+        module = mod;
         moduleName.setText(mod.name);
         JLabel ta = new JLabel("<html>");
         for(String a: mod.behaviour.initArgs) {
@@ -46,11 +50,11 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         initVals.getViewport().add(ta, BorderLayout.CENTER);
         behaviour.setText(mod.behaviour.toString());
         ta = new JLabel("<html>");
-        for(String a: mod.behaviour.getAlphabet()) {
+        for(OtpErlangTuple a: mod.behaviour.getAlphabet()) {
             if(!ta.getText().equals("<html>")) {
                 ta.setText(ta.getText() + "<br />");
             }
-            ta.setText(ta.getText() + a);
+            ta.setText(ta.getText() + a.toString());
         }
         ta.setText(ta.getText() + "</html>");
         alphabet.getViewport().removeAll();
@@ -87,6 +91,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         initVals = new javax.swing.JScrollPane();
+        jButton2 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -117,6 +122,13 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
         initVals.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 
+        jButton2.setText("Use for trace generation");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -137,9 +149,6 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                         .addGap(12, 12, 12)
                         .addComponent(alphabet, javax.swing.GroupLayout.PREFERRED_SIZE, 786, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(725, 725, 725)
-                        .addComponent(jButton1))
-                    .addGroup(layout.createSequentialGroup()
                         .addGap(12, 12, 12)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                             .addGroup(layout.createSequentialGroup()
@@ -153,6 +162,12 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                         .addGap(6, 6, 6)
                         .addComponent(behaviour, javax.swing.GroupLayout.PREFERRED_SIZE, 371, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(533, Short.MAX_VALUE)
+                .addComponent(jButton2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jButton1)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -180,8 +195,10 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
                 .addComponent(jLabel2)
                 .addGap(6, 6, 6)
                 .addComponent(alphabet, javax.swing.GroupLayout.PREFERRED_SIZE, 278, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(6, 6, 6)
-                .addComponent(jButton1))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton1)
+                    .addComponent(jButton2)))
         );
 
         pack();
@@ -189,7 +206,16 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         this.setVisible(false);
+        this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        ErlangTraceGenerator gen = new ErlangTraceGenerator();
+        gen.setAlphabet(module.behaviour.getAlphabet());
+        gen.setVisible(true);
+        this.setVisible(false);
+        this.dispose();
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -208,6 +234,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
     private javax.swing.JScrollPane dependencies;
     private javax.swing.JScrollPane initVals;
     private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

@@ -4,6 +4,15 @@
  */
 package statechum.analysis.learning;
 
+import com.ericsson.otp.erlang.OtpConnection;
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangException;
+import com.ericsson.otp.erlang.OtpErlangExit;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
+import com.ericsson.otp.erlang.OtpMbox;
+import com.ericsson.otp.erlang.OtpNode;
 import java.util.*;
 import java.io.*;
 
@@ -12,6 +21,7 @@ import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
 
 import java.awt.Frame;
+import statechum.Helper;
 
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
@@ -30,7 +40,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  */
 public class ErlangOracleLearner extends RPNIUniversalLearner {
 
-    public Process erlangProcess = null;
+    // This is going to be a named node so it can only exist once 
+    public static Process erlangProcess = null;
 
     public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) {
         super(parent, evalCnf);
@@ -38,27 +49,44 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
     @Override
     public LearnerGraph learnMachine() {
-        try {
-            if (erlangProcess == null) {
-                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl"}, null, new File(ErlangQSMOracle.ErlangFolder));
-                int response = erlangProcess.getInputStream().read();
-                while (response != '>' && response != -1) {
-                    System.out.print((char) response);
-                    response = erlangProcess.getInputStream().read();
-                }
-            }
-        } catch (IOException e) {
-            killErlang();
+
+        erlangProcess = startErlang();
+        if (erlangProcess == null) {
             return null;
         }
-
         LearnerGraph result = super.learnMachine();
         // Retain erlangProcess for use on re-learns....
         //killErlang();
         return result;
     }
 
-    public void killErlang() {
+    public static Process startErlang() {
+        if (erlangProcess != null) {
+            return erlangProcess;
+        }
+        try {
+            erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl", "-sname", "tracernode"}, null, new File(ErlangQSMOracle.ErlangFolder));
+            int response = erlangProcess.getInputStream().read();
+            while (response != '>' && response != -1) {
+                System.out.print((char) response);
+                response = erlangProcess.getInputStream().read();
+            }
+            // Init the trace server....
+            String erlArgs = "tracer3:trace_server().\n";
+            System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
+            erlangProcess.getOutputStream().write(erlArgs.getBytes());
+            erlangProcess.getOutputStream().flush();
+
+        } catch (IOException e) {
+            if (erlangProcess != null) {
+                killErlang();
+            }
+            Helper.throwUnchecked("There was an error starting Erlang...", e);
+        }
+        return erlangProcess;
+    }
+
+    public static void killErlang() {
         if (erlangProcess != null) {
             try {
                 erlangProcess.getOutputStream().write("halt().\n".getBytes());
@@ -222,6 +250,50 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         } else {
             return new Pair<Integer, String>(failure, prefixString);
         }
+    }
+
+    public static OtpErlangTuple askErlang(String module, String wrapper, OtpErlangList question) {
+        if (erlangProcess == null) {
+            startErlang();
+        }
+        OtpErlangTuple result = null;
+        try {
+            OtpNode myNode = new OtpNode("statechum");
+            //OtpConnection connect = myNode.connect(new OtpPeer("tracernode"));
+            OtpMbox myMbox = myNode.createMbox("statechumbox");
+
+            OtpErlangTuple myMsg = new OtpErlangTuple(
+                    new OtpErlangObject[]{
+                        new OtpErlangAtom("first_failure"),
+                        new OtpErlangTuple(new OtpErlangObject[]{
+                            new OtpErlangAtom(module),
+                            new OtpErlangAtom(wrapper),
+                            question
+                        }),
+                        myMbox.self()
+                    });
+
+            System.out.println("trace_server@tracernode ! " + myMsg.toString());
+            myMbox.send("trace_server", "tracernode", myMsg);
+            try {
+                OtpErlangObject msg = myMbox.receive(1000);
+                if (msg == null) {
+                    Helper.throwUnchecked("Timed out waiting for tracer process", new RuntimeException(""));
+                } else if (msg instanceof OtpErlangTuple) {
+                    return (OtpErlangTuple) msg;
+                } else {
+                    Helper.throwUnchecked("Wrong type of message from the tracer process", new RuntimeException(msg.toString()));
+                }
+            } catch (OtpErlangException e) {
+                Helper.throwUnchecked("Erlang problem", e);
+            }
+
+
+            myNode.close();
+        } catch (IOException e) {
+            Helper.throwUnchecked("Error communicating with Erlang...", e);
+        }
+        return result;
     }
 
     protected static Pair<Integer, String> altOutput(Trace prefix, Trace qtrace) {

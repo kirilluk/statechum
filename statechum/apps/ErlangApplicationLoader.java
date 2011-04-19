@@ -10,6 +10,7 @@
  */
 package statechum.apps;
 
+import statechum.Interface.ErlangModuleViewer;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;

@@ -18,6 +18,8 @@
 
 package statechum.model.testset;
 
+import statechum.model.testset.PTA_FSMStructure;
+import statechum.model.testset.PTA_computePrecisionRecall;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -35,7 +37,9 @@ import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import static org.junit.Assert.assertEquals;

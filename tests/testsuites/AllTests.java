@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
-package statechum;
+package testsuites;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -27,12 +27,12 @@ import org.junit.runners.Suite.SuiteClasses;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    statechum.AllTests.BasicTests.class,
-    statechum.AllTests.GraphTests.class,
-    statechum.AllTests.LearnerTests.class,
-    statechum.AllTests.LinearTests.class,
-    statechum.AllTests.SmtTests.class,
-    statechum.AllTests.ErlangTests.class,
+    testsuites.AllTests.BasicTests.class,
+    testsuites.AllTests.GraphTests.class,
+    testsuites.AllTests.LearnerTests.class,
+    testsuites.AllTests.LinearTests.class,
+    testsuites.AllTests.SmtTests.class,
+    testsuites.AllTests.ErlangTests.class,
     statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
 })
 public class AllTests {
@@ -48,7 +48,7 @@ public class AllTests {
         statechum.analysis.learning.TestLoadAnswers.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.model.testset.TestPTA_computePrecisionRecall.class,
-        statechum.AllTests.ObserversTests.class
+        testsuites.AllTests.ObserversTests.class
     }) // commas after the last entry compile from within Eclipse but not from ant
     public static class LearnerTests {// all tests are included in the annotation.
     }
@@ -132,8 +132,8 @@ public class AllTests {
 
     @RunWith(Suite.class)
     @SuiteClasses({
-        statechum.analysis.Erlang.TestErlangModule.class,
-        statechum.analysis.Erlang.TestErlangRunner.class,
+        statechum.analysis.Erlang.ErlangModuleTest.class,
+        statechum.analysis.Erlang.ErlangRunnerTest.class,
         statechum.analysis.learning.TestErlangOracleLearner.class
     })
     public static class ErlangTests {// all tests are included in the annotation.

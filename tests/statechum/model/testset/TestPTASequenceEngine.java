@@ -18,6 +18,7 @@
 
 package statechum.model.testset;
 
+import statechum.model.testset.PTA_FSMStructure;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -43,7 +44,10 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
+import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.Node;
+import statechum.model.testset.PTASequenceEngine.Node;
+import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

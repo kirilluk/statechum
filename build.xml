@@ -8,7 +8,8 @@
   <property name="junit_statechum" location="${root}/junit-statechum"/>
   <property name="junit_statechum_src" location="${junit_statechum}/src"/>
   <property name="junit_statechum_bin" location="${junit_statechum}/bin"/>
-  <property name="statechum_src" location="."/>
+  <property name="statechum_src" location="src"/>
+  <property name="test_src" location="tests"/>
   <property name="statechum_bin" location="bin"/>
   <property name="ant.build.javac.source" value="1.6"/>
 
@@ -52,7 +53,16 @@
     </javac>
    </target>
 
-  <target name="test" depends="compileStatechum" description="run unit tests">
+  <target name="compileTests" depends="compileStatechum" description="compile Statechum tests " >
+    <!-- Compile the java code from ${src} into ${bin} -->
+    <javac fork="on" srcdir="${test_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+       	<classpath refid="classpath.statechum" />
+    	<compilerarg value="-g" />
+	<!-- <compilerarg value="-Xlint:unchecked"/> -->
+    </javac>
+   </target>
+
+  <target name="test" depends="compileTests" description="run unit tests">
   	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
        <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
@@ -85,7 +95,7 @@
        
   </target>
 
-   <target name="erlang-test" depends="compileStatechum" description="run Erlang unit tests">
+   <target name="erlang-test" depends="compileTests" description="run Erlang unit tests">
        <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>

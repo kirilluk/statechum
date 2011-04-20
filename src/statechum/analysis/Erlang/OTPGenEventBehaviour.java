@@ -12,8 +12,8 @@ import statechum.Pair;
  */
 public class OTPGenEventBehaviour extends OTPBehaviour {
 
-    public OTPGenEventBehaviour() {
-        super();
+    public OTPGenEventBehaviour(ErlangModule mod) {
+        super(mod);
         name = "gen_event";
         patterns.put("handle_event", new Pair<String,Boolean>("event", Boolean.FALSE));
         patterns.put("handle_call", new Pair<String,Boolean>("call", Boolean.FALSE));

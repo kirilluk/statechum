@@ -1,14 +1,29 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 package statechum.analysis.Erlang;
 
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import statechum.Pair;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
@@ -20,12 +35,11 @@ import statechum.analysis.Erlang.Signatures.FuncSignature;
 public abstract class OTPBehaviour {
 
     public String name;
-    protected ErlangModule parent;
+    final protected ErlangModule parent;
     protected Map<String, Pair<String, Boolean>> patterns;
     protected List<OtpErlangTuple> alphabet;
     protected Collection<String> dependencies;
-    // FIXME these are currently undetermined...
-    public Collection<String> initArgs;
+    public Collection<List<OtpErlangObject>> initArgs;
     protected static final String[] stdmodsarray = {"erlang",
         "gen_server",
         "gen_fsm",
@@ -40,65 +54,55 @@ public abstract class OTPBehaviour {
         "math"};
     protected static final ArrayList<String> stdModsList = new ArrayList<String>(Arrays.asList(stdmodsarray));
 
-    public OTPBehaviour() {
-        name = "";
-        alphabet = new ArrayList<OtpErlangTuple>();
+    public OTPBehaviour(ErlangModule mod) {
+    	name = null;parent = mod;
+    	alphabet = new LinkedList<OtpErlangTuple>();
         patterns = new TreeMap<String, Pair<String, Boolean>>();
-        dependencies = new ArrayList<String>();
+        dependencies = new LinkedList<String>();
     }
 
     @Override
     public String toString() {
-        if (name == null) {
-            return "";
-        } else {
-            return name;
-        }
+        return name;
     }
-
+    
+    public String getWrapperName()
+    {
+    	return name + "_wrapper";
+    }
+    
     public Collection<String> getDependencies() {
         return dependencies;
     }
 
-    public void loadDependencies(File f) throws IOException {
-        BufferedReader input = new BufferedReader(new FileReader(f));
-        String line = "";
-        while ((line = input.readLine()) != null) {
-            if (!line.trim().startsWith("%%")) {
-                // Hide any literal strings
-                line = line.replaceAll("\"[^\"]*\"", "");
-                while (line.indexOf(":") >= 0) {
-                    String mod = line.substring(0, line.indexOf(":") + 1);
-                    line = line.substring(line.indexOf(":") + 1);
-                    String inverse = mod.replaceAll("[a-zA-Z_0-9<]*:", "");
-                    mod = mod.replace(inverse, "");
-                    mod = mod.substring(0, mod.length() - 1);
-                    if (mod.length() < 2) {
-                        line = line.substring(line.indexOf(":") + 1);
-                    } else if (mod.indexOf('<') >= 0) {
-                        // This is a binary thingie, not a module...
-                        line = line.substring(line.indexOf(">>") + 2);
-                    } else if (mod.substring(0, 1).equals(mod.substring(0, 1).toUpperCase())) {
-                        // This is a variable module reference....
-                        // This may break all our dep tracking...
-                        line = line.substring(line.indexOf(":") + 1);
-                    } else {
-                        if (!stdModsList.contains(mod) && !dependencies.contains(mod)) {
-                            dependencies.add(mod);
-                        }
-                    }
-                }
+    /** Extracts dependencies of the supplied module, assuming the module has been successfully compiled and .beam file exists.
+     * 
+     * @param file the file of the module
+     * @throws IOException if this fails.
+     */
+    public void loadDependencies(File file)
+    {
+    	OtpErlangTuple response = ErlangRunner.getRunner().call(new OtpErlangObject[]{
+    			new OtpErlangAtom("dependencies"),
+    			new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM))},
+    			"Could not load dependencies of "+file.getName());
+
+    	OtpErlangList listOfDepTuples = (OtpErlangList)response.elementAt(1);// the first element is 'ok'
+    	for(OtpErlangObject tup:listOfDepTuples.elements())
+    	{
+    		String mod = ( (OtpErlangAtom) ((OtpErlangTuple)tup).elementAt(0)).atomValue();
+            if (!stdModsList.contains(mod) && !dependencies.contains(mod)) {
+               dependencies.add(mod);
             }
         }
     }
 
-    public void setModule(ErlangModule mod) {
-        parent = mod;
-    }
-
     public void loadInitArgs() {
-        initArgs = new ArrayList<String>();
-        FuncSignature initSig = parent.sigs.get("init");
+        initArgs = new LinkedList<List<OtpErlangObject>>();
+        FuncSignature initSig = parent.sigs.get(parent.getName()+":init/1");
+        if (initSig != null) // stopgap solution
+        	initArgs.addAll(initSig.instantiateAllArgs());
+        /*
         if (initSig != null) {
             for (String a : initSig.instantiateAllArgs()) {
                 // Skip values with variables since we cant instantiate them...
@@ -109,101 +113,22 @@ public abstract class OTPBehaviour {
                     System.out.println("Excluding Init: " + a);
                 }
             }
-        }
+        }*/
     }
 
     public void loadAlphabet() {
-        /* FIXME replace with OTP objects and direct link to typer
-        for (String p : patterns.keySet()) {
-            FuncSignature sig = parent.sigs.get(p);
-            if (sig != null) {
-                for (String a : sig.instantiateAllArgs()) {
-                    // I THINK we always want the first arg from these...
-                    Pair<String, Boolean> pat = patterns.get(p);
-                    String op = "{" + pat.firstElem + ", ";
-                    String[] elems = a.split(",");
-                    String second = "";
-                    second = "";
-                    if (a.indexOf("}") < 0) {
-                        second = elems[0];
-                    } else {
-                        if (a.indexOf(",") < a.indexOf("{")) {
-                            // its not in the first elem...
-                            second = elems[0];
-                        } else {
-                            int i = 0;
-                            // Find the end of the first elem...
-                            int cdepth = 0;
-                            int sdepth = 0;
-                            do {
-                                int ptr = elems[i].indexOf("{");
-                                while (ptr >= 0) {
-                                    cdepth++;
-                                    ptr = elems[i].indexOf("{", ptr + 1);
-                                }
-                                ptr = elems[i].indexOf("[");
-                                while (ptr >= 0) {
-                                    sdepth++;
-                                    ptr = elems[i].indexOf("{", ptr + 1);
-                                }
-                                ptr = elems[i].indexOf("}");
-                                while (ptr >= 0) {
-                                    cdepth--;
-                                    ptr = elems[i].indexOf("}", ptr + 1);
-                                }
-                                ptr = elems[i].indexOf("]");
-                                while (ptr >= 0) {
-                                    sdepth--;
-                                    ptr = elems[i].indexOf("]", ptr + 1);
-                                }
-
-                                i++;
-                            } while ((sdepth > 0) || (cdepth > 0));
-                            for (int j = 0; j < i; j++) {
-                                if (j > 0) {
-                                    second += ", ";
-                                }
-                                second += elems[j];
-                            }
-                        }
-                    }
-
-                    if (pat.secondElem.booleanValue()) {
-                        second += ", '*'";
-                    }
-                    op += second + "}";
-                    if (!(second.matches("^[_A-Z].*") || second.matches(".* [_A-Z].*"))) {
-                        System.out.println("Including " + op);
-                        if(!alphabet.contains(op)) {
-                            alphabet.add(op);
-                        }
-                    } else {
-                        System.out.println("Skipping " + op);
-
-                    }
-                }
-            }
-        }
-         * 
-         */
+    	for(FuncSignature sig:parent.sigs.values())
+    		if (patterns.keySet().contains(sig.getName())) 
+    		for(List<OtpErlangObject> funcArgs:sig.instantiateAllArgs())
+    		{
+    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+sig+" should take at least one argument");
+    			OtpErlangObject firstArg = funcArgs.get(0);
+    			alphabet.add(new ErlangLabel(sig,firstArg));
+    		}
     }
 
     public List<OtpErlangTuple> getAlphabet() {
         return alphabet;
     }
 
-    public String getAlphabetString() {
-        String result = "[";
-        boolean first = true;
-        Iterator<OtpErlangTuple> it = alphabet.iterator();
-        while (it.hasNext()) {
-            if (!first) {
-                result += ", ";
-            } else {
-                first = false;
-            }
-            result += it.next();
-        }
-        return result + "]";
-    }
 }

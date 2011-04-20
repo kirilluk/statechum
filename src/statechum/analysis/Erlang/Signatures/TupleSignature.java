@@ -1,11 +1,30 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  *
@@ -13,54 +32,80 @@ import java.util.Collection;
  */
 public class TupleSignature extends Signature {
 
-    public Collection<Signature> elems;
+    protected final List<Signature> elems;
 
-    public TupleSignature() {
+    /** Used by the old parser. */
+    public TupleSignature(List<Signature> e)
+    {
+    	elems = e;
+    }
+    
+    /** A tuple with an arbitrary number of elements of unknown types. */
+    public TupleSignature(OtpErlangList attributes) {
         super();
-        elems = new ArrayList<Signature>();
+		if (attributes.arity() != 0) throw new IllegalArgumentException("TupleSignature does not accept attributes");
+		int arity = 2;// arbitrary value
+        elems = new ArrayList<Signature>(arity);
+        for(int i=0;i<arity;++i) elems.add(wibbleSignature);
     }
 
-    public String instantiate() {
-        String elemString = "";
-        for (Signature e : elems) {
-            if (!elemString.equals("")) {
-                elemString += ",";
-            }
-            elemString += e.instantiate();
-        }
-        return "{" + elemString + "}";
+    /** A tuple with elements of known types. */
+    public TupleSignature(OtpErlangList attributes,OtpErlangList values) {
+        super();
+		if (attributes.arity() != 0) throw new IllegalArgumentException("TupleSignature does not accept attributes");
+/*		
+       int arity = 0;
+        for(OtpErlangObject obj:attributes.elements())
+        	if (obj instanceof OtpErlangInt) 
+        	{
+        		try {
+					arity = ((OtpErlangInt)obj).intValue();
+				} catch (OtpErlangRangeException e) {
+					Helper.throwUnchecked("Failed to convert the supplied value to integer", e);
+				}
+        	}
+        	else
+  				throw new IllegalArgumentException("Unknown attribute "+obj+" in the list of attributes for TupleSignature");
+*/      
+       	int arity = values.arity();
+        elems = new ArrayList<Signature>(arity);
+        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
     }
 
     @Override
-    public Collection<String> instantiateAllAlts() {
-        ArrayList<String> result = new ArrayList<String>();
+	public OtpErlangObject instantiate() {
+    	OtpErlangObject elements[] = new OtpErlangObject[elems.size()];
+    	int i=0;
+        for (Signature e : elems) {
+        	elements[i++] = e.instantiate();
+        }
+        return new OtpErlangTuple(elements);
+   }
 
-        if (elems.size() > 0) {
-            Signature head = elems.iterator().next();
-            Collection<String> headVals = head.instantiateAllAlts();
-            TupleSignature tail = new TupleSignature();
-            tail.elems = new ArrayList<Signature>(elems);
-            tail.elems.remove(head);
-            Collection<String> tailVals = tail.instantiateAllAlts();
-            for (String v : headVals) {
-                if (tailVals.size() > 0) {
-                    for (String t : tailVals) {
-                        if (!t.equals("{}")) {
-                        // Cut the {} off the sub tuple
-                            result.add("{" + v + "," + t.substring(1, t.length() - 1) + "}");
-                        } else {
-                            result.add("{" + v + "}");
-                        }
-                    }
-                } else {
-                    result.add("{" + v + "}");
-                }
+    @Override
+    public List<OtpErlangObject> instantiateAllAlts() {
+        List<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
+        for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(elems))
+        	result.add(new OtpErlangTuple(listOfValues.toArray(new OtpErlangObject[0])));
+        
+/* this was originally written to generate tuples, but I have since generalised it into computeCrossProduct
+    	List<Signature> tailElems = new LinkedList<Signature>(elems);
+        Signature head = tailElems.remove(0);
+        ListSignature tail = new ListSignature(tailElems);
+        List<OtpErlangObject> headVals = head.instantiateAllAlts();
+        List<OtpErlangObject> tailVals = tail.instantiateAllAlts();
+        assert !tailVals.isEmpty();
+        for (OtpErlangObject h : headVals) {
+            for (OtpErlangObject t : tailVals)
+            {
+            	OtpErlangObject tails[] = ((OtpErlangTuple)t).elements();
+            	OtpErlangObject product [] = new OtpErlangObject[1+tails.length];
+            	product[0]=h;System.arraycopy(tails, 0, product, 1, tails.length);
+            	result.add(new OtpErlangTuple(product));
             }
-        } else {
-            result.add("{}");
         }
 
-
+*/
         return result;
 
     }

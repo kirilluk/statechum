@@ -18,23 +18,23 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
-import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
-/**
+/** Empty type.
+ * 
+ * @author kirill
  *
- * @author ramsay
  */
-public class LiteralSignature extends Signature {
+public class NoneSignature extends Signature {
 
-    public String value;
-
-    public LiteralSignature(String v) {
-        value = v;
-    }
-
-    @Override
+	public NoneSignature()
+	{
+		super();
+	}
+	
+	@Override
 	public OtpErlangObject instantiate() {
-        return new OtpErlangAtom(value);
-    }
+		return null;
+	}
+
 }

@@ -18,25 +18,26 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
-import com.ericsson.otp.erlang.OtpErlangBoolean;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangRangeException;
 
-/**
- *
- * @author ramsay
- */
-public class BooleanSignature  extends Signature {
-
-	public BooleanSignature(OtpErlangList attributes)
+public class BitStringSignature extends Signature {
+	public final int Base,Unit;
+	
+	public BitStringSignature(OtpErlangList attributes,OtpErlangList values) throws OtpErlangRangeException
 	{
-		super();
-		if (attributes.arity() != 0) throw new IllegalArgumentException("BooleanSignature does not accept attributes");
-	}
+		if (attributes.arity() != 0) throw new IllegalArgumentException("BitStringSignature does not accept attributes");
 
+		if (values.arity() != 3) throw new IllegalArgumentException("invalid values "+values+" passed to BitStringSignature"); 
+		Base = ((OtpErlangLong) values.elementAt(0)).intValue();Unit =  ((OtpErlangLong) values.elementAt(1)).intValue();
+		if (!IntSignature.AntiStringAtom.equals(values.elementAt(2))) throw new IllegalArgumentException("The third element of list "+values+" should be an atom to stop it from becoming a string");
+	}
+	
 	@Override
 	public OtpErlangObject instantiate() {
-        return new OtpErlangBoolean(true);
-    }
+		return null;
+	}
 
 }

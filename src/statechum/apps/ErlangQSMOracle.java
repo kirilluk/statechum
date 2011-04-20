@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -40,7 +39,9 @@ public class ErlangQSMOracle {
     public static Collection<OtpErlangTuple> moduleAlphabet;
     public static String tracesFile;
     public static String covermapFile;
-    public static String ErlangFolder = "/home/ramsay/statechum/XMachineTool/trunk/ErlangOracle";
+    public static String ErlangFolder = "ErlangOracle";
+    public static String ErlangTyper = "lib/modified_typer";
+    
     // Mode can be "basic" or "otp". OTP will use the OTP wrappers to infer stuff about an OTP behaviour module
     public static String mode = "basic";
     public static String initArgs;
@@ -279,7 +280,7 @@ public class ErlangQSMOracle {
                 // This assumes a format of [Trace] => [Coverage map]
                 String[] toks = line.split("=>");
 
-                Pair<Trace, Trace> index = new Pair<Trace, Trace>(new Trace(), new Trace(toks[0].trim()));
+                Pair<Trace, Trace> index = new Pair<Trace, Trace>(new Trace(), Trace.fromString(toks[0].trim()));
                 String map = toks[1].trim();
                 map = map.substring(1, map.length() - 1);
 

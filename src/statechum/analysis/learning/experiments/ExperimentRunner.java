@@ -1025,8 +1025,7 @@ public class ExperimentRunner
 			}
 		}
 		catch(IOException e) { 
-			// failed to copy data from the stream. Dump to stderr but ignore otherwise.
-			e.printStackTrace();
+			// failed to copy data from the stream, most likely the process has already terminated.
 		}
 		
 		try
@@ -1045,8 +1044,7 @@ public class ExperimentRunner
 			}
 		}
 		catch(IOException e) { 
-			// failed to copy data from the stream. Dump to stderr but ignore otherwise.
-			e.printStackTrace();
+			// failed to copy data from the stream, most likely the process has already terminated.
 		}
 		if (outBuffer.length() > 0) handler.StdOut(outBuffer);
 		if (errBuffer.length() > 0) handler.StdOut(errBuffer);

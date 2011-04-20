@@ -1,4 +1,4 @@
-/* Copyright (c) 2011 Ramsay Taylor and Kirill Bogdanov
+/* Copyright (c) 2011 The University of Sheffield.
  * 
  * This file is part of StateChum
  * 
@@ -14,10 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 package statechum.analysis.Erlang;
 
-import statechum.analysis.Erlang.Signatures.Signature;
+import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,13 +27,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TreeMap;
-import statechum.analysis.Erlang.Signatures.FailedToParseException;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.analysis.learning.rpnicore.LTL_to_ba;
-import statechum.apps.ErlangApplicationLoader;
+
+import org.junit.Assert;
+
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
+import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  *
@@ -40,88 +43,51 @@ import statechum.apps.ErlangApplicationLoader;
  */
 public class ErlangModule {
 
+	
+	public File sourceFolder;
     public String name;
     public OTPBehaviour behaviour;
     public Map<String, FuncSignature> sigs;
 
     public ErlangModule() {
-        name = "";
+        name = null;
         sigs = new TreeMap<String, FuncSignature>();
     }
 
     public ErlangModule(String filename, File folder) throws IOException {
         this(new File(folder, filename));
     }
-
-    protected String getFirstSpec(String buf) {
-        int specstart = buf.indexOf("-spec");
-        if (specstart < 0) {
-            return null;
-        }
-        return buf.substring(specstart, buf.indexOf('\n', specstart));
-
-    }
     
     public static final String behaviourToken = "-behaviour(";
-    
-    public ErlangModule(final File f) throws IOException {
-    	name = ErlangRunner.getErlName(f.getName());if (name == null) throw new IllegalArgumentException("invalid Erlang file name "+f.getName());
+
+    public ErlangModule(final File f) throws IOException 
+    {
+    	name = ErlangRunner.getName(f,ERL.MOD);
+    	sourceFolder = f.getParentFile();
         System.out.println("----------------  " + name + "  --------------------------");
-        sigs = new TreeMap<String, FuncSignature>();
 
         // Compile and typecheck the module...
-        ErlangRunner.compileErl(f);
-        final String pltFileName = f.getParentFile().getAbsolutePath()+File.separator+name+".plt";
-        // Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
-
-        Map<String,String> environment = System.getenv();
-        String [] envp = new String[environment.size()+1];int i=0;
-        for(Entry<String,String> entry:System.getenv().entrySet())
-        	envp[i++]=entry.getKey()+"="+entry.getValue();envp[i++]="HOME="+f.getParentFile().getAbsolutePath();
-
-        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"dialyzer","--build_plt","--output_plt",pltFileName,name+".beam"}, envp, f.getParentFile());
-        ErlangApplicationLoader.dumpProcessOutputOnFailure("dialyzer",p);
-
-        // Receive the type info....
-        p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"typer","--plt",pltFileName,f.getName()}, null, f.getParentFile());
-    	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
-        ExperimentRunner.dumpStreams(p, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
-
-            @Override
-            public void OnHeartBeat() {// no prodding is done for a short-running converter.
-            }
-
-            @Override
-            public void StdErr(StringBuffer b) {
-                err.append(b);
-            }
-
-            @Override
-            public void StdOut(StringBuffer b) {
-            	out.append(b);
-            }
-        });
-        try {
-            p.waitFor();
-        } catch (InterruptedException e) {
-            ;
-        }
-        if (p.exitValue() != 0)
-        	throw new IllegalArgumentException("Failure running "+name+"\n"+err+(err.length()>0?"\n":"")+out);
-
-        String buf = out.toString();
-        String spec = getFirstSpec(buf);
-        while (spec != null) {
-            FuncSignature sig;
-            try {
-                sig = Signature.parseSignatureSpec(spec);
-                sig.argInstances.addAll(seekUsages(sig.funcName, f));
-                sigs.put(sig.funcName, sig);
-            } catch (FailedToParseException e) {
-                sig = null;
-            }
-            buf = buf.substring(spec.length());
-            spec = getFirstSpec(buf);
+        ErlangRunner.compileErl(f,ErlangRunner.getRunner());
+        sigs = new TreeMap<String, FuncSignature>();
+        
+		new File(ErlangRunner.getName(f, ERL.PLT)).delete();
+		OtpErlangTuple response = null;
+		 response = ErlangRunner.getRunner().call(
+				new OtpErlangObject[]{new OtpErlangAtom("typer"), 
+						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
+						new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
+						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
+						new OtpErlangAtom("types")
+					},
+				"Could not run typer");
+       OtpErlangList analysisResults = (OtpErlangList)response.elementAt(1);
+        Assert.assertEquals(1,analysisResults.arity());
+        OtpErlangTuple fileDetails = (OtpErlangTuple)analysisResults.elementAt(0);
+        OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
+        for(int i=0;i<typeInformation.arity();++i)
+        {
+        	FuncSignature s = new FuncSignature(typeInformation.elementAt(i));
+        	sigs.put(s.toString(), s);
         }
 
         BufferedReader input = new BufferedReader(new FileReader(f));
@@ -130,15 +96,15 @@ public class ErlangModule {
             //System.out.println("Skipping " + line);
             line = input.readLine();
         }
-        behaviour = new OTPUnknownBehaviour();
+        behaviour = new OTPUnknownBehaviour(this);
         if (line != null) {
             String bstring = line.substring(behaviourToken.length());
             if (bstring.startsWith("gen_server")) {
-                behaviour = new OTPGenServerBehaviour();
+                behaviour = new OTPGenServerBehaviour(this);
             } else if (bstring.startsWith("gen_event")) {
-                behaviour = new OTPGenEventBehaviour();
+                behaviour = new OTPGenEventBehaviour(this);
             } else if (bstring.startsWith("gen_fsm")) {
-                behaviour = new OTPGenFSMBehaviour();
+                behaviour = new OTPGenFSMBehaviour(this);
             }
         }
         input.close();
@@ -148,7 +114,6 @@ public class ErlangModule {
         behaviour.loadDependencies(f);
          * *
          */
-        behaviour.setModule(this);
         behaviour.loadInitArgs();
         behaviour.loadAlphabet();
         behaviour.loadDependencies(f);
@@ -160,7 +125,7 @@ public class ErlangModule {
         // Open the Erlang source files...
         try {
             BufferedReader input = new BufferedReader(new FileReader(f));
-            String line = "";
+            String line = null;
             while ((line = input.readLine()) != null) {
                 // Look for calls to this func
                 int ptr = line.indexOf(funcName + "(");
@@ -201,12 +166,10 @@ public class ErlangModule {
         return result;
     }
 
-    public String getName() {
-        if (name == null) {
-            return "";
-        } else {
-            return name;
-        }
+    public String getName() 
+    {
+    	assert name != null;
+        return name;
     }
 
     @Override

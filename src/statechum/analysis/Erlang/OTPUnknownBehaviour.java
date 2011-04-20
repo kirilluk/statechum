@@ -12,13 +12,13 @@ import java.io.File;
  */
 public class OTPUnknownBehaviour extends OTPBehaviour {
 
-    public OTPUnknownBehaviour() {
-        super();
+    public OTPUnknownBehaviour(ErlangModule mod) {
+        super(mod);
 
-        name = "";
+        name = "UNKNOWN";
     }
 
-    public void loadAlphabet(File f) {
+    public void loadAlphabet(@SuppressWarnings("unused") File f) {
         return;
     }
 }

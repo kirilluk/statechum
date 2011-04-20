@@ -7,6 +7,7 @@ package statechum;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  *
@@ -25,6 +26,18 @@ public class Trace implements Comparable<Trace> {
         this(c, false);
     }
 
+    @SuppressWarnings("unused")
+	public static Trace fromString(String s)
+    {
+    	throw new UnsupportedOperationException("cannot build a collection of traces from a string yet");
+    }
+    
+    @SuppressWarnings("unused")
+	public static Trace fromListOfStrings(List<String> s)
+    {
+    	throw new UnsupportedOperationException("cannot build a collection of traces from a collection of strings yet");
+    }
+    
     public Trace(Collection<Label> c, boolean neg) {
         trace = new LinkedList<Label>(c);
         negative = neg;
@@ -142,16 +155,10 @@ public class Trace implements Comparable<Trace> {
         return result;
     }
 
-    public int compareTo(Trace o) {
-        if (o instanceof Trace) {
-            if (this.equals((Trace) o)) {
-                return 0;
-            } else {
-                return this.toString().compareTo(o.toString());
-            }
-        } else {
-            throw new RuntimeException("Trying to compare a Trace to something thats not a trace...");
-        }
+    @Override
+	public int compareTo(Trace o) {
+    	// TODO: should not be done with toString()
+        return this.toString().compareTo(o.toString());
     }
 
     public Iterator<Label> iterator() {

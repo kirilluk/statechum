@@ -12,8 +12,8 @@ import statechum.Pair;
  */
 public class OTPGenFSMBehaviour extends OTPBehaviour {
 
-    public OTPGenFSMBehaviour() {
-        super();
+    public OTPGenFSMBehaviour(ErlangModule mod) {
+        super(mod);
         name = "gen_fsm";
         patterns.put("handle_event", new Pair<String,Boolean>("event", Boolean.FALSE));
         patterns.put("handle_sync_event", new Pair<String,Boolean>("sync", Boolean.FALSE));

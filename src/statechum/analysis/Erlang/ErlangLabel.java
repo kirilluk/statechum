@@ -5,8 +5,10 @@
 package statechum.analysis.Erlang;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import statechum.Label;
+import statechum.analysis.Erlang.Signatures.FuncSignature;
 
 /**
  *
@@ -14,33 +16,67 @@ import statechum.Label;
  */
 public class ErlangLabel extends OtpErlangTuple implements Label {
 
-    public final int arity;
+    /**
+	 * ID for serialization.
+	 */
+	private static final long serialVersionUID = 5192814547774363649L;
+	public final int arity;
 
-    public ErlangLabel(String operator, String input) {
-        super(new OtpErlangAtom[]{
-                    new OtpErlangAtom(operator),
-                    new OtpErlangAtom(input)
+    public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs) {
+        super(new OtpErlangObject[]{
+                    new OtpErlangAtom(operator.getQualifiedName()),
+                    inputArgs
                 });
-        arity = 2;
+        arity = 2;function = operator;input = inputArgs;expectedOutput=null;
+    }
+    
+	public final FuncSignature function;
+	public final OtpErlangObject input,expectedOutput;
+	
+	@Override
+	public String toString()
+	{
+		String result = function.toString()+"("+input+")";
+		if (expectedOutput != null)
+			result = result + " == "+expectedOutput;
+		return result;
+	}
+
+    public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
+        super(new OtpErlangObject[]{
+                    new OtpErlangAtom(operator.getQualifiedName()),
+                    inputArgs,
+                    expectedOutputArgs
+                });
+        arity = 3;function = operator;input = inputArgs;expectedOutput = expectedOutputArgs;
     }
 
-    public ErlangLabel(String operator, String input, String expectedOutput) {
-        super(new OtpErlangAtom[]{
-                    new OtpErlangAtom(operator),
-                    new OtpErlangAtom(input),
-                    new OtpErlangAtom(expectedOutput)
-                });
-        arity = 3;
-    }
-
-    public int compareTo(Label other) {
+    @Override
+	public int compareTo(Label other) {
         if (!(other instanceof ErlangLabel)) {
-            throw new RuntimeException("Comparing an ErlangLabel to something thats not an ErlangLabel");
-        } else {
-            return this.toString().compareTo(other.toString());
-        }
-    }
+            throw new IllegalArgumentException("Comparing an ErlangLabel to something thats not an ErlangLabel");
+        } 
+        
+        ErlangLabel otherLabel = (ErlangLabel)other;
+        
+        int outcome = arity-otherLabel.arity;
+        if (outcome != 0) return outcome;
+        outcome = function.toString().compareTo(otherLabel.toString());
+        if (outcome != 0) return outcome;
+        outcome = input.toString().compareTo(otherLabel.input.toString());
+        if (outcome != 0) return outcome;
 
+        String ourExpectedOutput = expectedOutput == null?"":expectedOutput.toString();
+        String otherExpectedOutput = otherLabel.expectedOutput == null?"":otherLabel.expectedOutput.toString();
+        return ourExpectedOutput.compareTo(otherExpectedOutput);
+    }
+    
+    @SuppressWarnings("unused")
+	@Override
+	public ErlangLabel replaceAll(String from, String to) {
+    	throw new UnsupportedOperationException("no idea how to do this on Erlang objects");
+    }
+/* No idea what this means, hence cannot fix
     public ErlangLabel replaceAll(String from, String to) {
         String[] resultContent = new String[arity];
         for (int i = 0; i < arity; i++) {
@@ -55,4 +91,52 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
         }
     }
+*/
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + arity;
+		result = prime * result
+				+ ((expectedOutput == null) ? 0 : expectedOutput.hashCode());
+		result = prime * result
+				+ ((function == null) ? 0 : function.hashCode());
+		result = prime * result + ((input == null) ? 0 : input.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof ErlangLabel))
+			return false;
+		ErlangLabel other = (ErlangLabel) obj;
+		if (arity != other.arity)
+			return false;
+		if (expectedOutput == null) {
+			if (other.expectedOutput != null)
+				return false;
+		} else if (!expectedOutput.equals(other.expectedOutput))
+			return false;
+		if (function == null) {
+			if (other.function != null)
+				return false;
+		} else if (!function.equals(other.function))
+			return false;
+		if (input == null) {
+			if (other.input != null)
+				return false;
+		} else if (!input.equals(other.input))
+			return false;
+		return true;
+	}
 }

@@ -1,8 +1,21 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
-
 /*
  * ErlangApplicationLoader.java
  *
@@ -12,9 +25,6 @@ package statechum.apps;
 
 import statechum.Interface.ErlangModuleViewer;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
@@ -26,8 +36,6 @@ import statechum.analysis.Erlang.ErlangApp;
 import statechum.analysis.Erlang.ErlangAppReader;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 
 /**
  *
@@ -187,112 +195,33 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    protected void loadData() {
-        if (selectedFile.getName().endsWith(".app")) {
-            folder = selectedFile.getParentFile();
-            app = ErlangAppReader.readAppFile(selectedFile.getName(), folder);
-        } else {
-            folder = selectedFile;
-            app = ErlangAppReader.readFolder(selectedFile);
-        }
-        startModule.setText(app.startModule);
-        startModuleArgs.setText(app.startModuleArgs);
-        DefaultListModel model = new DefaultListModel();
-        for (ErlangModule m : app.modules) {
-            model.addElement(m);
-        }
-        modules.setModel(model);
-
+    /** Loads a list of modules and returns true on success. */
+    protected boolean loadData() {
+    	try
+    	{
+	        if (selectedFile.getName().endsWith(".app")) {
+	            folder = selectedFile.getParentFile();
+	            app = ErlangAppReader.readAppFile(selectedFile.getName(), folder);
+	        } else {
+	            folder = selectedFile;
+	            app = ErlangAppReader.readFolder(selectedFile);
+	        }
+	        startModule.setText(app.startModule);
+	        startModuleArgs.setText(app.startModuleArgs);
+	        DefaultListModel model = new DefaultListModel();
+	        for (ErlangModule m : app.modules) {
+	            model.addElement(m);
+	        }
+	        modules.setModel(model);
+    	}
+    	catch(IOException e)
+    	{
+    		System.out.println("Failed to load application from "+selectedFile);return false;
+    	}
+    	return true;
     }
 
-    public static final int timeBetweenChecks = 500;
-    
-    /** Runs the supplied process and displays output and error streams on the console when the process has terminated.
-     * 
-     * @param p process to run.
-     */
-    public static void dumpProcessOutput(Process p) {
-        ExperimentRunner.dumpStreams(p, timeBetweenChecks, new HandleProcessIO() {
-
-            @Override
-            public void OnHeartBeat() {// no prodding is done for a short-running converter.
-            }
-
-            @Override
-            public void StdErr(StringBuffer b) {
-                System.err.print(b.toString());
-            }
-
-            @Override
-            public void StdOut(StringBuffer b) {
-                System.out.print(b.toString());
-            }
-        });
-        try {
-            p.waitFor();
-        } catch (InterruptedException e) {
-            ;
-        }
-    }
-
-    /** Runs the supplied process and returns output and error streams in an exception if the process
-     * returned a non-zero error code. Upon success, no output is produced.
-     * 
-     * @param p process to run.
-     */
-    public static void dumpProcessOutputOnFailure(String name,Process p) {
-    	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
-        ExperimentRunner.dumpStreams(p, timeBetweenChecks, new HandleProcessIO() {
-
-            @Override
-            public void OnHeartBeat() {// no prodding is done for a short-running converter.
-            }
-
-            @Override
-            public void StdErr(StringBuffer b) {
-                err.append(b);
-            }
-
-            @Override
-            public void StdOut(StringBuffer b) {
-                out.append(b);
-            }
-        });
-        try {
-            p.waitFor();
-        } catch (InterruptedException e) {
-            ;
-        }
-        
-        if (p.exitValue() != 0)
-        	throw new IllegalArgumentException("Failure running "+name+"\n"+err+(err.length()>0?"\n":"")+out);
-    }
-
-    private void fileCopy(File from, File folder) {
-        System.out.print("Copying " + from.toString() + " to " + folder.getAbsolutePath() + "/" + from.getName() + "...");
-
-        try {
-            FileReader in = new FileReader(from);
-            FileWriter out = new FileWriter(new File(folder.getAbsolutePath() + "/" + from.getName()));
-            int c;
-            int count = 0;
-            while ((c = in.read()) != -1) {
-                out.write(c);
-                count += 1;
-            }
-            System.out.println(count + " bytes");
-            in.close();
-            out.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static final File ErlangFolder = new File("ErlangOracle");
-    
-    /** Deletes all Erlang files in the supplied directory which are also present in the <i>ErlangFolder</i> directory. */
+    /** Deletes all auxiliary Erlang files in the supplied directory. */
     public static void zapErlFiles(File where)
     {
         // Keeping these for debugging and interest: "test2.out","test2.out.covermap",
@@ -303,61 +232,23 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     			throw new RuntimeException("failed to delete "+file.getAbsolutePath());
     	}
     		
-        for (File f : ErlangFolder.listFiles()) {
-        	String moduleName = ErlangRunner.getErlName(f.getName());
-            if (moduleName != null) {
-                // Retain .beam for debugging
-            	for(String ext:new String[]{".erl",".plt"})
-            	{
-            		File file = new File(where.getAbsolutePath() + File.separator + moduleName+ext);
-            		if (file.canRead() && !file.delete())
-            			throw new RuntimeException("failed to delete "+file.getAbsolutePath());
-            	}
-            }
-        }
-    }
+     }
     
-    private void beginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_beginButtonActionPerformed
-        // Copy in our generic stubs...
+    private void beginButtonActionPerformed(@SuppressWarnings("unused") java.awt.event.ActionEvent evt) {//GEN-FIRST:event_beginButtonActionPerformed
         
     	zapErlFiles(folder);
         try {
-            for (File f : ErlangFolder.listFiles()) {
-                int dot = f.getName().lastIndexOf(".");
-                if (dot >= 0) {
-                    if (ErlangRunner.getErlName(f.getName()) != null) {
-                        fileCopy(f, folder);
-                        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"erlc","+debug_info",f.getName()}, null, folder);
-                        dumpProcessOutputOnFailure("erlc", p);
-                    }
-                }
-            }
-            //dumpProcessOutput(Runtime.getRuntime().exec("ls " + (new File("ErlangOracle")).getAbsolutePath() + "/*.beam " + folder.getCanonicalPath() + "/", null, null));
+            for (File f : ErlangRunner.ErlangFolder.listFiles())
+                if (ErlangRunner.validName(f.getName()))
+                    ErlangRunner.compileErl(f,ErlangRunner.getRunner());
 
-            for (Object s : modules.getSelectedValues()) {
+            for (Object s : modules.getSelectedValues()) 
+            {
                 ErlangModule m = (ErlangModule) s;
                 // Create an Erlang QSM jobby for the selected behaviours...
-                String otherModules = "";
-                for (ErlangModule mm : app.modules) {
-                    if (!otherModules.equals("")) {
-                        otherModules += ",";
-                    }
-                    otherModules += mm.name;
-                }
-                try {
-                    ErlangOracleRunner runner = new ErlangOracleRunner(folder.getCanonicalPath(), m, otherModules);
-                    Thread t = new Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
-                    t.run();
-                    while (t.isAlive()) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException e) {
-                            ;
-                        }
-                    }
-                } catch (RuntimeException e) {
-                    e.printStackTrace();
-                }
+                ErlangOracleRunner runner = new ErlangOracleRunner(m, app.modules);
+                Thread t = new Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
+                t.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -390,9 +281,8 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
     		ErlangApplicationLoader loader = new ErlangApplicationLoader();
     		loader.selectedFile = new File(args[0]);
     		ErlangApplicationLoader.zapErlFiles(loader.selectedFile);
-    		loader.loadData();
     		
-    		if (loader.modules.getModel().getSize() != 1)
+    		if (loader.loadData() && loader.modules.getModel().getSize() != 1)
     		{
     			ListModel modules = loader.modules.getModel();
     			StringBuffer tooManyException = new StringBuffer("more than a single module choice for app "+loader.selectedFile+"\n");

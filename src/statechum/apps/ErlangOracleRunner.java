@@ -1,12 +1,24 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 package statechum.apps;
 
-import com.ericsson.otp.erlang.OtpErlangTuple;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import statechum.analysis.Erlang.ErlangModule;
 
 /**
@@ -15,47 +27,26 @@ import statechum.analysis.Erlang.ErlangModule;
  */
 public class ErlangOracleRunner implements Runnable {
 
-    protected String sourceFolder;
-    protected String moduleName;
-    protected String functionName;
-    protected String Alphabet;
-    protected String otherModules;
+	protected Collection<ErlangModule> otherModules;
+
     protected String mode = "basic";
-    protected String initArgs = "";
     protected ErlangModule m;
-    protected List<OtpErlangTuple> alphaSet = new ArrayList<OtpErlangTuple>();
+    protected ErlangModule module = null;
+    public ErlangOracleRunner(ErlangModule mod, Collection<ErlangModule> om) {
+    	module = mod;
 
-    public ErlangOracleRunner(String sf, String mn, String fn, String al, String om) {
-        sourceFolder = sf;
-        moduleName = mn;
-        functionName = fn;
-        Alphabet = al;
-        otherModules = om;
-    }
-
-    public ErlangOracleRunner(String sf, ErlangModule m, String om) {
-        sourceFolder = sf;
-        otherModules = om;
-        mode = "otp";
-        moduleName = m.name;
-        functionName = m.behaviour.name + "_wrapper";
-        Alphabet = m.behaviour.getAlphabetString();
-        alphaSet = m.behaviour.getAlphabet();
-        initArgs = "[";
-        for(String a: m.behaviour.initArgs) {
+        /*initArgs = "[";
+        for(String a:  module.behaviour.initArgs) {
             if(!initArgs.equals("[")) {
                 initArgs += ",";
             }
             initArgs += a;
         }
-        initArgs += "]";
+        initArgs += "]";*/
     }
 
     public void run() {
-        ErlangQSMOracle.ErlangFolder = sourceFolder;
         ErlangQSMOracle.mode = mode;
-        ErlangQSMOracle.initArgs = initArgs;
-        ErlangQSMOracle.moduleAlphabet = alphaSet;
-        ErlangQSMOracle.main(new String[]{"test2.out", moduleName, functionName, Alphabet, otherModules});
+        //ErlangQSMOracle.main(new String[]{"test2.out", moduleName, functionName, Alphabet, otherModules});
     }
 }

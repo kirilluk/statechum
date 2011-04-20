@@ -27,10 +27,15 @@ package statechum.analysis.Erlang;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangDecodeException;
 import com.ericsson.otp.erlang.OtpErlangExit;
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
@@ -38,7 +43,8 @@ import com.ericsson.otp.erlang.OtpNode;
 
 import statechum.GlobalConfiguration;
 import statechum.Helper;
-import statechum.apps.ErlangApplicationLoader;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.apps.ErlangQSMOracle;
 
 /** Manages the Erlang process running Erlang oracle. 
@@ -54,14 +60,57 @@ public class ErlangRunner
 	 * @param fileName File name to remove the extension from
 	 * @return stripped file name.
 	 */
-	public static String getErlName(String fileName)
+	protected static String getErlName(String fileName)
 	{
 		if (fileName == null) return null;
 		String trimmedName = fileName.trim();
 		int pos = trimmedName.lastIndexOf('.');
-		if (pos <= 0 || !trimmedName.substring(pos).equals(".erl"))
+		if (pos <= 0 || !trimmedName.substring(pos).equals(ERL.ERL.toString()))
 			return null;
 		return trimmedName.substring(0, pos);
+	}
+
+	public static boolean validName(String fileName)
+	{
+		return getErlName(fileName) != null;
+	}
+	
+	public static enum ERL
+	{
+		ERL(".erl",false),BEAM(".beam",false),PLT(".plt",false),MOD("",true),NOEXT("",false);
+		
+		private ERL(String textualName, boolean strip)
+		{
+			stringRepresentation = textualName;stripPath = strip;
+		}
+		
+		private final String stringRepresentation;
+		private final boolean stripPath;
+		
+		public boolean getStrip()
+		{
+			return stripPath;
+		}
+		
+		@Override
+		public String toString()
+		{
+			return stringRepresentation;
+		}
+	}
+	
+	/** Given a file name, converts it to the appropriate extension.
+	 * Throws IllegalArgumentException if this fails.
+	 *  @param file file to convert
+	 *  @param ext extension to add
+	 */
+	public static String getName(File file,ERL ext)
+	{
+		String nameToProcess = ext.getStrip()?file.getName():file.getAbsolutePath();
+		String moduleName = getErlName(nameToProcess);
+		if (moduleName == null) throw new IllegalArgumentException("Invalid module "+nameToProcess);
+		
+		return moduleName + ext.toString();
 	}
 
 	/** Obtains a binary directory for an Erlang executable. */
@@ -72,13 +121,95 @@ public class ErlangRunner
 		return erlangBin;
 	}
 
+	/** Erlang machine in which we run most stuff. */
     protected Process erlangProcess = null;
+    /** Monitors the above machine and dumps its out and err to the console. */
+    protected Thread stdDumper = null;
+    
     protected String traceRunnerNode,ourNode;
 
-    public static void compileErl(File whatToCompile) throws IOException  
+    protected static final ErlangRunner staticRunner = new ErlangRunner();
+    
+    /** Returns a static instance of this class. */
+    static public ErlangRunner getRunner() 
     {
-        Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"erlc","+debug_info",whatToCompile.getName()}, null, whatToCompile.getParentFile());
-        ErlangApplicationLoader.dumpProcessOutputOnFailure("erlc "+whatToCompile.getName(),p);
+    	return staticRunner;
+    }
+    
+    /** Compiles the supplied file into .beam if .erl has been modified after an existing .beam (date of last change is 0 if file does not exist).
+     * 
+     * @param whatToCompile file to compile
+     * @param useRunner ask Erlang compiler to perform the compile - no need to launch compiler as a separate process.
+     * @throws IOException if something goes wrong.
+     */
+    public static void compileErl(File whatToCompile, ErlangRunner useRunner) throws IOException  
+    {
+    	String erlFileName = getName(whatToCompile,ERL.ERL);
+    	File parentFile = whatToCompile.getParentFile();
+    	if (parentFile == null) throw new IllegalArgumentException("File does not have a parent directory "+whatToCompile);
+
+    	if (!whatToCompile.canRead()) throw new IOException("file "+erlFileName+" does not exist");
+        if (whatToCompile.lastModified() > new File(getName(whatToCompile,ERL.BEAM)).lastModified())
+        {
+        	if (useRunner == null)
+        	{
+		       Process p = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin()+"erlc","+debug_info",erlFileName}, null, parentFile);
+		       dumpProcessOutputOnFailure("erlc "+whatToCompile.getName(),p);
+        	}
+        	else
+        	{
+        		useRunner.call(new OtpErlangObject[]{new OtpErlangAtom("compile"),
+        				new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom(erlFileName)}),
+        				new OtpErlangAtom("erlc"),new OtpErlangAtom(parentFile.getAbsolutePath())
+        		},"cannot compile ");
+        	}
+        }
+    }
+    
+    public static final int timeBetweenChecks = 500;
+    
+    public static final File ErlangFolder = new File("ErlangOracle");
+    
+    /** Runs the supplied process and returns output and error streams in an exception if the process
+     * returned a non-zero error code. Upon success, no output is produced.
+     * 
+     * @param p process to run.
+     */
+    public static void dumpProcessOutputOnFailure(String name,Process p) {
+    	final StringBuffer err=new StringBuffer(),out=new StringBuffer(); 
+        ExperimentRunner.dumpStreams(p, timeBetweenChecks, new HandleProcessIO() {
+
+            @Override
+            public void OnHeartBeat() {// no prodding is done for a short-running converter.
+            }
+
+            @Override
+            public void StdErr(StringBuffer b) {
+                err.append(b);
+            }
+
+            @Override
+            public void StdOut(StringBuffer b) {
+                out.append(b);
+            }
+        });
+        try {
+            p.waitFor();
+        } catch (InterruptedException e) {
+            ;
+        }
+        
+        if (p.exitValue() != 0)
+        	throw new IllegalArgumentException("Failure running "+name+"\n"+err+(err.length()>0?"\n":"")+out);
+    }
+
+    /** How long to wait for a server to start. */
+    protected int serverTimeout = 10;
+    
+    /** Sets new timeout - very useful to increase it for testing. */
+    public void setTimeout(int time)
+    {
+    	serverTimeout = time;
     }
     
     /** Starts Erlang in the background,
@@ -96,21 +227,59 @@ public class ErlangRunner
             	traceRunnerNode="tracerunner"+uniqueID;ourNode = "java"+uniqueID;
             	// now we simply evaluate "halt()." which starts epmd if necessary and we can check along the way that we can run Erlang at all.
             	Process p=Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl","-eval","halt().","-sname",traceRunnerNode,"-noshell","-setcookie",uniqueID}, null, new File(ErlangQSMOracle.ErlangFolder));
-                ErlangApplicationLoader.dumpProcessOutputOnFailure("testing that Erlang can be run at all",p);
+                dumpProcessOutputOnFailure("testing that Erlang can be run at all",p);
                 
-                if (new File(ErlangQSMOracle.ErlangFolder,tracerunnerProgram).lastModified() > new File(ErlangQSMOracle.ErlangFolder,getErlName(tracerunnerProgram)+".beam").lastModified())
-                	compileErl(new File(ErlangQSMOracle.ErlangFolder,tracerunnerProgram));
-                
-                
+                // The compilation phase could a few seconds but only needs to be done once after installation of Statechum
+                compileErl(new File(ErlangQSMOracle.ErlangFolder,tracerunnerProgram),null);
+                for (File f : new File(ErlangQSMOracle.ErlangTyper).listFiles())
+                    if (ErlangRunner.validName(f.getName()))
+                        ErlangRunner.compileErl(f,null);
+
                 // Based on http://erlang.org/pipermail/erlang-questions/2010-March/050226.html
                 OtpNode self = new OtpNode(ourNode, uniqueID); // identify self
                 thisMbox = self.createMbox("thisMbox");
                 
-                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl","-run","tracerunner","start",ourNode,runnerMode,"-sname",traceRunnerNode,"-noshell","-setcookie",uniqueID}, null, new File(ErlangQSMOracle.ErlangFolder));
+                // Now build environment variables to ensure that dialyzer will find a directory to put its plt file in.
+                // This is actually an bug of dialyzer which manifests itself on Windows - 
+                // there is no need for dialyzer_options:build(Opts) to call dialyzer_plt:get_default_plt()
+                // before build_options(Opts, DefaultOpts1).
+    	        List<String> envpList = new LinkedList<String>();
+    	        for(Entry<String,String> entry:System.getenv().entrySet())
+    	        	if (!entry.getKey().equals("HOME"))
+    	        		envpList.add(entry.getKey()+"="+entry.getValue());
+    	        envpList.add("HOME="+new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath());
+    	         
+                erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl",
+                		"-pa",new File(ErlangQSMOracle.ErlangFolder).getAbsolutePath(),
+                		"-pa",new File(ErlangQSMOracle.ErlangTyper).getAbsolutePath(),// the easiest way to substitute our module in place of the original Erlang's one, otherwise I'd have to rely on tracerunner:compileAndLoad
+                		"-run","tracerunner","start",ourNode,runnerMode,"-sname",traceRunnerNode,"-noshell","-setcookie",uniqueID}, envpList.toArray(new String[0]), new File(ErlangQSMOracle.ErlangFolder));
+                stdDumper = new Thread(new Runnable() {
+					
+					@Override
+					public void run() {
+					       ExperimentRunner.dumpStreams(erlangProcess, timeBetweenChecks, new HandleProcessIO() {
+
+					            @Override
+					            public void OnHeartBeat() {// no prodding is done - we are being prodded by Erlang instead.
+					            }
+
+					            @Override
+					            public void StdErr(StringBuffer b) {
+					                System.out.print("[ERLANG] "+b.toString());
+					            }
+
+					            @Override
+					            public void StdOut(StringBuffer b) {
+					                System.out.print("[ERLERR] "+b.toString());
+					            }
+					        });
+					}
+				});
+                stdDumper.setDaemon(true);stdDumper.start();
                 if (delay > 0) Thread.sleep(delay);
                 // At this point, the process may have not yet started or already terminated, it is easy to find out which of the
                 // two has happened by doing
-                int timeout = 10;
+                int timeout = serverTimeout;
                 while(!self.ping(traceRunnerNode, 500) && timeout > 0)
                 {
                 	try
@@ -145,14 +314,39 @@ public class ErlangRunner
     /** The process on the Java side which communicates with Erlang process. */ 
     protected OtpMbox thisMbox = null;
     
+    public static final OtpErlangAtom okAtom = new OtpErlangAtom("ok");
+    
     /** Makes a call and waits for a response.
      * 
      * @param args components of the tuple to pass a server
-     * @return Response from the server.
+     * @return Response from the server so long as the server returns { ok, Response }. 
+     * Upon a failure {error, Failure }, an error message is thrown as RuntimeException with Failure included in it.
      */
-    public OtpErlangObject call(OtpErlangObject[]args)
+    public OtpErlangTuple call(OtpErlangObject[]args, String errorMessage)
     {
-    	return call(args,0);
+    	OtpErlangTuple result = null;
+    	OtpErlangObject response = call(args,0);
+    	
+    	if (response instanceof OtpErlangAtom)
+    	{
+    		if (!response.equals(okAtom)) 
+    			throw new RuntimeException(errorMessage+" : error "+response+" but the server did not say more");
+    		
+    		// success, but null response
+    	}
+    	else if (response instanceof OtpErlangTuple)
+    	{
+    		OtpErlangTuple decodedResponse = (OtpErlangTuple) response;
+    		if (decodedResponse.arity() == 0) throw new RuntimeException(errorMessage+" : unexpectedly short response (arity "+decodedResponse.arity()+") "+response);
+    		OtpErlangObject decodedResponseCode = decodedResponse.elementAt(0);
+    		if (!(decodedResponseCode instanceof OtpErlangAtom))
+    				throw new RuntimeException(errorMessage+" : unexpected type in response tuple "+decodedResponse);
+    		if (!decodedResponseCode.equals(okAtom)) throw new RuntimeException(errorMessage+" : error "+decodedResponse);
+    		result = decodedResponse;
+    	}
+    	else throw new RuntimeException(errorMessage+" : unexpected response type "+response);
+    	
+    	return result;
     }
     
    /** Makes a call and waits for a response for the specified duration, infinitely if timeout is zero.
@@ -185,7 +379,8 @@ public class ErlangRunner
     
     public void killErlang() 
     {
-        if (erlangProcess != null) {
+        if (erlangProcess != null) 
+        {
             erlangProcess.destroy();
             try {
                 erlangProcess.waitFor();
@@ -193,6 +388,13 @@ public class ErlangRunner
                 statechum.Helper.throwUnchecked("wait for Erlang to terminate aborted", e);
             }
             erlangProcess = null;ourBox = null;thisMbox = null;
+            stdDumper.interrupt();// if this one is sleeping, interrupt will wake it and it will terminate since Erlang is already no more ...
+            try {
+				stdDumper.join();
+			} catch (InterruptedException e) {
+				Helper.throwUnchecked("Interrupt waiting for erlang out/err dumper to terminate", e);
+			}// wait for that to happen.
+            stdDumper = null;
         }
     }
 

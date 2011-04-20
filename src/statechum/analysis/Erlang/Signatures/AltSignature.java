@@ -1,11 +1,29 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
  */
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
 
 /** This represents a set of alternative signatures.
  *
@@ -16,24 +34,33 @@ import java.util.Collection;
  */
 public class AltSignature extends Signature {
 
-    public Collection<Signature> elems;
+    public List<Signature> elems;
 
-    public AltSignature() {
-        elems = new ArrayList<Signature>();
+    /** Used by the old parser. */
+    public AltSignature(List<Signature> e) {
+    	elems = e;
+    }
+    
+    /** A tuple with elements of known types. */
+    public AltSignature(OtpErlangList attributes,OtpErlangList values) {
+        super();
+		if (attributes.arity() != 0) throw new IllegalArgumentException("AltSignature does not accept attributes");
+       	int arity = values.arity();
+        elems = new ArrayList<Signature>(arity);
+        for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
     }
 
     // Pick the first one...
-    public String instantiate() {
-        if (elems.size() <= 0) {
-            throw new RuntimeException("Instantiating an un-initialised AltSignature...");
-        } else {
-            return elems.iterator().next().instantiate();
-        }
+    @Override
+	public OtpErlangObject instantiate() {
+        if (elems.isEmpty()) return null;
+
+        return elems.get(0).instantiateAllAlts().get(0);
     }
 
     @Override
-    public Collection<String> instantiateAllAlts() {
-        ArrayList<String> result = new ArrayList<String>();
+    public List<OtpErlangObject> instantiateAllAlts() {
+    	LinkedList<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
         for(Signature s : elems) {
             result.addAll(s.instantiateAllAlts());
         }

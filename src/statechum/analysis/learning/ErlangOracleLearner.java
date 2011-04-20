@@ -1,13 +1,25 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ *
+*/
 package statechum.analysis.learning;
 
-import com.ericsson.otp.erlang.OtpConnection;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangException;
-import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -16,7 +28,6 @@ import com.ericsson.otp.erlang.OtpNode;
 import java.util.*;
 import java.io.*;
 
-import statechum.apps.ErlangApplicationLoader;
 import statechum.apps.ErlangQSMOracle;
 import statechum.apps.QSMTool;
 
@@ -28,10 +39,10 @@ import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.Label;
 import statechum.Pair;
 import statechum.PrefixTraceTree;
 import statechum.Trace;
-import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
@@ -94,7 +105,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             } catch (IOException e1) {
                 statechum.Helper.throwUnchecked("failed to communicate with Erlang process", e1);
             }
-            ExperimentRunner.dumpStreams(erlangProcess, ErlangApplicationLoader.timeBetweenChecks, new HandleProcessIO() {
+            ExperimentRunner.dumpStreams(erlangProcess, ErlangRunner.timeBetweenChecks, new HandleProcessIO() {
 
                 @Override
                 public void OnHeartBeat() {// no prodding is done for a short-running converter.
@@ -138,7 +149,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         }
         erlList += "]";
         String prefixString = null;
-        Trace qtrace = new Trace(question);
+        Trace qtrace = Trace.fromListOfStrings(question);
         int failure = AbstractOracle.USER_CANCELLED;
         try {
             Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
@@ -300,7 +311,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         Pair<Integer, String> result = null;
         if (prefix.size() < qtrace.size()) {
             //System.out.println("Prefix found: " + prefix.toString());
-            String item = qtrace.get(prefix.size());
+            Label item = qtrace.get(prefix.size());
             // Wildcard the output
             item = item.replaceAll(",[^,}]*}$", ",'*'}");
             Trace newPrefix = prefix.clone();
@@ -325,7 +336,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
      */
     public static void runErlang(String ErlangCommand) throws IOException {
         Process erlangProcess = Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl", "-eval", ErlangCommand + ",halt()."}, null, new File(ErlangQSMOracle.ErlangFolder));
-        ExperimentRunner.dumpStreams(erlangProcess, LTL_to_ba.timeBetweenHearbeats, new HandleProcessIO() {
+        ExperimentRunner.dumpStreams(erlangProcess, ErlangRunner.timeBetweenChecks, new HandleProcessIO() {
 
             @Override
             public void OnHeartBeat() {// no prodding is done for a short-running converter.
@@ -365,7 +376,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             if (traceString.equals("")) {
                 traceFromFile = new Trace();
             } else {
-                traceFromFile = new Trace(QSMTool.tokeniseInput(traceString));
+                traceFromFile = Trace.fromListOfStrings(QSMTool.tokeniseInput(traceString));
             }
             if (line.substring(0, 1).equals("-")) {
                 if (traceFromFile.size() <= erlTrace.size()

@@ -38,7 +38,7 @@ public enum JUConstants {
     COVERAGE("coverage"),// Collection of Coverage maps for all possible paths from this state onwards
     LAYOUTOPTIONS("layoutOptions") // settings affecting the preferred layout such as whether negative nodes are to be shown
 	;
-	private String stringRepresentation;
+	private final String stringRepresentation;
 	
 	public enum VERTEXLABEL
 	{

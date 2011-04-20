@@ -38,7 +38,7 @@
 %% when Java fails to respond.
 -export([start/1]).
 
--record(state, {}).
+-record(state, {processNum}).
 
 %% ====================================================================
 %% External functions
@@ -46,22 +46,24 @@
 
 start(Args)->startRunner(strings_to_atoms(Args)).
 
-%% Production use
-startRunner([Node,tracerunner]) ->
-	{ ok, _Pid } = gen_server:start_link({local,tracecheckServer},tracerunner,[],[]),
-	verifyJavaUp(Node);
-
 %% For testing
 startRunner([Node,noserver])->verifyJavaUp(Node);
 startRunner([_Node,halt])->halt();
-startRunner([_Node,error])->erlang:error("startup error").
+startRunner([_Node,error])->erlang:error("startup error");
 
-strings_to_atoms([])->[];
-strings_to_atoms([Head|Tail])->
-    [case is_atom(Head) of
-		true ->Head;
-		false ->list_to_atom(Head)
-    end | strings_to_atoms(Tail)].
+%% Production use
+startRunner([Node,Arg]) ->
+	{ ok, _Pid } = gen_server:start_link({local,tracecheckServer},tracerunner,[Arg],[]),
+	verifyJavaUp(Node).
+
+
+
+strings_to_atoms(List)->
+lists:map(fun(F) -> 
+	if 
+		is_atom(F) -> F;
+		true	-> list_to_atom(F)
+	end end,List).
 
 
 %% Waits for the Java process to terminate and then shuts down the server.
@@ -85,8 +87,16 @@ verifyJavaUp(Node) ->
 %%          ignore               |
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
-init([]) ->
-    {ok, #state{}}.
+init([Arg]) ->
+    {ok, #state{processNum=Arg}}.
+
+%% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
+%% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
+compileAndLoad(What,Path) ->
+	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary]),
+	ModuleName = filename:basename(What,".erl"),
+	code:purge(ModuleName),
+	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -103,23 +113,86 @@ handle_call({runTrace,Trace}, _From, State) ->
     	Reply = {ok,aa},
     	{reply, Reply, State};
 
+%% Runs analysis on the supplied files using a modified version of the typer
+%% Files is a list of files to process, 
+%% Plt is the name of the Plt file.
+handle_call({typer,FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
+	try	
+		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
+%%		io:format("~nOptions: ~p~n",[dialyzer_options:build(DialOpts)]),
+		_ListOfWarnings=dialyzer:run(DialOpts),
+		Outcome = typer:start(FilesErl,Plt,Outputmode),
+		{reply,{ok,Outcome}, State}
+	catch
+		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
+	end;
+	
+%% Compiles all supplied modules for Analyser
+handle_call({compile,[],cover}, _From, State) ->
+	{reply, ok, State};
+
+handle_call({compile,[M | OtherModules],cover}, From, State) ->
+	case(cover:compile(M)) of
+		{ok,_} -> handle_call({compile,OtherModules,cover}, From, State);
+		_ -> {reply, failed, State}
+	end;
+	
+%% Compiles modules into .beam files, Dir is where to put results, should exist.
+handle_call({compile,[],erlc,_Dir}, _From, State) ->
+	{reply, ok, State};
+	
+handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
+	case(compile:file(M,[verbose,debug_info,{outdir,Dir}])) of
+		{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
+		_ -> {reply, failedToCompile, State}
+	end;
+
+%% Extracts dependencies from the supplied module
+handle_call({dependencies,M}, _From, State) ->
+	case(beam_lib:chunks(M,[imports])) of
+		{ok,{_,[{imports,ImportList}]}} -> {reply, {ok,ImportList}, State};
+		_ -> {reply, failed, State}
+	end;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Test routines.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Used for testing - does not produce a response.
-handle_call(timeout,_From, State) ->
+handle_call(noreply,_From, State) ->
 	{noreply, State};
 
 %% Used for testing - produces a specific response.
 handle_call({echo,[Head | Tail]},_From, State) ->
-	{reply, { Head, Tail }, State};
+	{reply, { Head,State#state.processNum, Tail }, State};
 
-%% Compiles all supplied modules
-handle_call({compile,[]}, _From, State) ->
+%% Used for testing - produces a specific response.
+handle_call({echo2Tuple,aaa},_From, State) ->
+	{reply, { ok, aaa, bbb }, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2Notuple,aaa},_From, State) ->
 	{reply, ok, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2Error,aaa},_From, State) ->
+	{reply, error, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2ErrorMessage,aaa},_From, State) ->
+	{reply, {error,veryLongErrorMessage}, State};
 	
-handle_call({compile,[M | OtherModules]}, From, State) ->
-	case(cover:compile(M)) of
-		{ok,_} -> handle_call({compile,OtherModules}, From, State);
-		_ -> {reply, failed, State}
-	end.
+%% Used for testing - produces a specific response.
+handle_call({echo2WrongType,aaa},_From, State) ->
+	{reply, {[message]}, State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2List,aaa},_From, State) ->
+	{reply, [ok,message], State};
+
+%% Used for testing - produces a specific response.
+handle_call({echo2ShortTuple,aaa},_From, State) ->
+	{reply, {}, State}.
 	
 %% --------------------------------------------------------------------
 %% Function: handle_cast/2

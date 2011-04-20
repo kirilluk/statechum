@@ -8,8 +8,8 @@ import statechum.Pair;
  */
 public class OTPGenServerBehaviour extends OTPBehaviour {
 
-    public OTPGenServerBehaviour() {
-        super();
+    public OTPGenServerBehaviour(ErlangModule mod) {
+        super(mod);
         name = "gen_server";
         patterns.put("handle_cast", new Pair<String,Boolean>("cast", Boolean.FALSE));
         patterns.put("handle_call", new Pair<String,Boolean>("call", Boolean.TRUE));

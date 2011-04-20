@@ -4,8 +4,8 @@
  */
 package statechum.analysis.Erlang;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  *
@@ -23,7 +23,7 @@ public class ErlangApp {
         startModule = null;
         startModuleArgs = "[]";
         name = "";
-        modules = new ArrayList<ErlangModule>();
-        registered = new ArrayList<String>();
+        modules = new LinkedList<ErlangModule>();
+        registered = new LinkedList<String>();
     }
 }

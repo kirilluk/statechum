@@ -12340,7 +12340,7 @@ IFS=$as_save_IFS
   ;;
 esac
 fi
-_ACJNI_JAVAC=$ac_cv_path__ACJNI_JAVAC
+_ACJNI_JAVAC="/opt/sun-jdk-1.6.0.24/"
 if test -n "$_ACJNI_JAVAC"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $_ACJNI_JAVAC" >&5
 $as_echo "$_ACJNI_JAVAC" >&6; }

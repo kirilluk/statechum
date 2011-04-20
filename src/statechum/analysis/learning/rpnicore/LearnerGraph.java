@@ -40,6 +40,7 @@ import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import statechum.Label;
+import statechum.StringLabel;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -252,7 +253,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		initPTA();
 	}
 			
-	public CmpVertex getVertex(List<String> seq)
+	public CmpVertex getVertex(List<Label> seq)
 	{
 		return getVertex(getInit(),seq);
 	}
@@ -263,10 +264,10 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 * @param seq sequence of labels to follow
 	 * @return vertex reached, null if the supplied sequence does not exist.
 	 */
-	public CmpVertex getVertex(CmpVertex from, List<String> seq)
+	public CmpVertex getVertex(CmpVertex from, List<Label> seq)
 	{
 		CmpVertex result = from;
-		Iterator<String> seqIt = seq.iterator();
+		Iterator<Label> seqIt = seq.iterator();
 		while(seqIt.hasNext() && result != null)
 			result = transitionMatrix.get(result).get(seqIt.next());
 		
@@ -324,7 +325,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		int alphabetSize = tTable[vFrom[0]].length;
 		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
 		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=new StringVertex("S"+i);
-		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
+		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]=new StringLabel("i"+i);
 		LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		fsm.setInit(stateName[vFrom[0]]);
 		Set<CmpVertex> statesUsed = new HashSet<CmpVertex>();

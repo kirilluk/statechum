@@ -77,9 +77,9 @@ public class WMethod {
 	 * a fundamental test sequence and appends a the result to the <em>sequences</em> set 
 	 * if the fundamental test sequence is not a prefix of an existing sequence in that set.  
 	 */
-	public void appendSequence(PrefixFreeCollection sequences, List<String> path)
+	public void appendSequence(PrefixFreeCollection sequences, List<Label> path)
 	{
-		List<String> seq = coregraph.paths.truncateSequence(path);
+		List<Label> seq = coregraph.paths.truncateSequence(path);
 		sequences.addSequence(seq);
 	}
 	
@@ -278,7 +278,7 @@ public class WMethod {
 		}
 	}
 	
-	private static class TransitionRowEqClass extends HashMap<String,Integer>
+	private static class TransitionRowEqClass extends HashMap<Label,Integer>
 	{
 		private final boolean accept;
 		
@@ -347,23 +347,23 @@ public class WMethod {
 		 * @param what the row to compare with
 		 * @return a set of distinguishing inputs 
 		 */
-		public Set<String> computeDistinguishingLabel(TransitionRowEqClass what)
+		public Set<Label> computeDistinguishingLabel(TransitionRowEqClass what)
 		{
-			Set<String> distInputs = new HashSet<String>();
+			Set<Label> distInputs = new HashSet<Label>();
 			
-			Iterator<Entry<String,Integer>> mapAiter = entrySet().iterator();
+			Iterator<Entry<Label,Integer>> mapAiter = entrySet().iterator();
 			while(mapAiter.hasNext())
 			{
-				Entry<String,Integer> enA = mapAiter.next();
+				Entry<Label,Integer> enA = mapAiter.next();
 				Integer mapBvalue = what.get(enA.getKey());
 				if (!enA.getValue().equals(mapBvalue)) // different equivalence classes
 					distInputs.add(enA.getKey());
 			}
 			
-			Iterator<Entry<String,Integer>> mapBiter = what.entrySet().iterator();
+			Iterator<Entry<Label,Integer>> mapBiter = what.entrySet().iterator();
 			while(mapBiter.hasNext())
 			{
-				Entry<String,Integer> enB = mapBiter.next();
+				Entry<Label,Integer> enB = mapBiter.next();
 				Integer mapAvalue = get(enB.getKey());
 				if (!enB.getValue().equals(mapAvalue))
 					distInputs.add(enB.getKey());
@@ -592,7 +592,7 @@ public class WMethod {
 	 * @param alphabet
 	 * @return characterising set
 	 */
-	public static Collection<List<String>> computeWSet_reducedmemory(LearnerGraph fsmOrig) throws EquivalentStatesException
+	public static Collection<List<Label>> computeWSet_reducedmemory(LearnerGraph fsmOrig) throws EquivalentStatesException
 	{
 		final int W_NOPREV=-1, W_INDIST=-2;
 		
@@ -638,9 +638,9 @@ public class WMethod {
 			{
 				// This one is a vector associating names of inputs to equivalence classes of target states
 				TransitionRowEqClass map = new TransitionRowEqClass(stateA.isAccept());
-				Map<String,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
+				Map<Label,CmpVertex> labelNSmap = fsm.transitionMatrix.get(stateA);
 				if (labelNSmap != null)
-					for(Entry<String,CmpVertex> labelstate:labelNSmap.entrySet())
+					for(Entry<Label,CmpVertex> labelstate:labelNSmap.entrySet())
 					{
 						int targetEqClass = equivalenceClasses.get(labelstate.getValue());
 						if (targetEqClass != sinkEqClass) // filter out all transitions to sink - this is important because otherwise

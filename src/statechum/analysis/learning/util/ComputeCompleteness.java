@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
@@ -37,11 +38,11 @@ public class ComputeCompleteness {
 		Set<StateLabelPair> prescribed = new HashSet<StateLabelPair>();
 		Set<StateLabelPair> proscribed = new HashSet<StateLabelPair>();
 		Set<StateLabelPair> unknown = new HashSet<StateLabelPair>();
-		Set<String> alphabet = lg.pathroutines.computeAlphabet();
+		Set<Label> alphabet = lg.pathroutines.computeAlphabet();
 		for (CmpVertex v : lg.getTransitionMatrix().keySet()) {
 			if(!v.isAccept())
 				continue;
-			for (String label : alphabet) {
+			for (Label label : alphabet) {
 				StateLabelPair pair = new StateLabelPair(v,label);
 				ArrayList seq = new ArrayList();
 				seq.add(label);

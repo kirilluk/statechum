@@ -223,7 +223,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param label label of a transition
 		 * @param to target state
 		 */
-		public void addTransition(CmpVertex from,String label, CmpVertex to);
+		public void addTransition(CmpVertex from,Label label, CmpVertex to);
 
 		/** Removes a transition between the specified states. Throws
 		 * if a transition does not exist.
@@ -232,7 +232,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param label label of a transition
 		 * @param to target state
 		 */
-		public void removeTransition(CmpVertex from,String label, CmpVertex to);
+		public void removeTransition(CmpVertex from,Label label, CmpVertex to);
 		
 		/** Sets the initial state to the requested state.
 		 * @param vertex the state to become the initial state. 
@@ -350,13 +350,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			}
 
 			@Override
-			public void addTransition(CmpVertex from, String label, CmpVertex to) {
+			public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 				super.addTransition(from, label, to);
 				graphToPatch.addTransition(from, label, to);// propagate changes
 			}
 
 			@Override
-			public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+			public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 				super.removeTransition(from, label, to);
 				graphToPatch.removeTransition(from, label, to);
 			}
@@ -564,7 +564,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					
 					while(targetStatesIterator.hasNext())
 					{
-						Entry<String,List<CmpVertex>> target = targetStatesIterator.next();
+						Entry<Label,List<CmpVertex>> target = targetStatesIterator.next();
 						// transition not matched because some states are not known hence append it.
 						for(CmpVertex targetState:grCombined.getTargets(target.getValue()))
 							addTransition(origSource, target.getKey(),getOrig(targetState));
@@ -617,7 +617,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 		 */
 		@Override
-		public void addTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
+		public void addTransition(CmpVertex from, @SuppressWarnings("unused") Label label, CmpVertex to) {
 			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
 		}
 
@@ -625,7 +625,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 		 */
 		@Override
-		public void removeTransition(CmpVertex from, @SuppressWarnings("unused") String label, CmpVertex to) {
+		public void removeTransition(CmpVertex from, @SuppressWarnings("unused") Label label, CmpVertex to) {
 			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
 		}
 
@@ -734,7 +734,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param to target state
 		 */
 		@Override
-		public void addTransition(CmpVertex from, String input,CmpVertex to)
+		public void addTransition(CmpVertex from, Label input,CmpVertex to)
 		{
 			if (next != null) next.addTransition(from, input, to);
 			
@@ -755,11 +755,11 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		 * @param to expected target state. This is not really necessary but useful to ensure that whoever removes transitions knows what he/she is doing. 
 		 */
 		@Override
-		public void removeTransition(CmpVertex from, String input,CmpVertex to)
+		public void removeTransition(CmpVertex from, Label input,CmpVertex to)
 		{
 			if (next != null) next.removeTransition(from, input, to);
 			CmpVertex fromVert = addNewVertex(from), toVert = addNewVertex(to);
-			Map<String,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
+			Map<Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			if (!entry.containsKey(input))
 				throw new IllegalArgumentException("there is no transition from state "+fromVert+" with input "+input+" in graph "+graph);
 			if (!graph.getTargets(entry.get(input)).contains(toVert))
@@ -773,9 +773,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		public void removeDanglingStates()
 		{
 			Set<CmpVertex> statesInGraph = new TreeSet<CmpVertex>();
-			for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				if (entry.getValue().isEmpty()) statesInGraph.add(entry.getKey()); // add those with no outgoing
-			for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 				for(TARGET_TYPE targets:entry.getValue().values())
 					statesInGraph.removeAll(graph.getTargets(targets));// and remove those used as targets
 			statesInGraph.remove(graph.getInit());// initial state should stay
@@ -895,20 +895,27 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.append('\n');
 		}
 		
-		protected void appendTransition(CmpVertex from, String label, CmpVertex to)
+		protected void appendTransition(CmpVertex from, Label label, CmpVertex to)
 		{
-			result.append(from);result.append(" - ");result.append(label);result.append(" -> ");result.append(to);appendEndl();
+			result.append(from);
+                        result.append(" - ");
+                        result.append(label);
+                        result.append(" -> ");
+                        result.append(to);
+                        appendEndl();
 		}
 		@Override
-		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+		public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
-			result.append("added  : ");appendTransition(from, label, to);
+			result.append("added  : ");
+                        appendTransition(from, label, to);
 		}
 
 		@Override
-		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+		public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.removeTransition(from, label, to);
-			result.append("removed: ");appendTransition(from, label, to);
+			result.append("removed: ");
+                        appendTransition(from, label, to);
 		}
 		
 		@Override
@@ -975,7 +982,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 		
 		@Override
-		public void addTransition(CmpVertex from, String label,	CmpVertex to) 
+		public void addTransition(CmpVertex from, Label label,	CmpVertex to)
 		{
 			if (next != null) next.addTransition(from, label, to);
 			
@@ -983,7 +990,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 		@Override
-		public void removeTransition(CmpVertex from, String label,	CmpVertex to) 
+		public void removeTransition(CmpVertex from, Label label,	CmpVertex to)
 		{
 			if (next != null) next.removeTransition(from, label, to);
 			
@@ -1084,13 +1091,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 		
 		@Override
-		public void addTransition(CmpVertex from, String label, CmpVertex to) {
+		public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.addTransition(from, label, to);
 			addedPatcher.addTransition(from, label, to);
 		}
 
 		@Override
-		public void removeTransition(CmpVertex from, String label, CmpVertex to) {
+		public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 			if (next != null) next.removeTransition(from, label, to);
 			removedPatcher.addTransition(from, label, to);
 		}
@@ -1364,7 +1371,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					}
 	
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
 					{
 						// Now iterate through states
 						for(CmpVertex stateB:statesOfB)
@@ -1454,7 +1461,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					}
 	
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
 					{
 						double scoreHigh = -Double.MAX_VALUE,scoreLow = -Double.MAX_VALUE;
 						CmpVertex highState = null;
@@ -1718,7 +1725,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			}
 			
 			@Override
-			public void addTransition(CmpVertex from, String origLabel, CmpVertex to) 
+			public void addTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
 				String label = "ADD_"+origLabel;
 				mutator.addTransition(from, label, to);
@@ -1726,7 +1733,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			}
 
 			@Override
-			public void removeTransition(CmpVertex from, String origLabel, CmpVertex to) 
+			public void removeTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
 				String label = "REM_"+origLabel;
 				mutator.removeTransition(from, origLabel, to);// remove the original transition

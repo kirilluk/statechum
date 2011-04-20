@@ -65,7 +65,7 @@
 
   <target name="test" depends="compileTests" description="run unit tests">
   	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
-       <junit  fork="on" maxmemory="1000m" forkmode="once" printsummary="yes" haltonfailure="yes" dir="${test_dir}">
+       <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}">
 		<assertions>
         	<enable/>
       	</assertions>
@@ -82,7 +82,7 @@
          	<pathelement location="${statechum_bin}"/>
          </classpath>
        	
-       	<formatter type="plain"/>
+       	<formatter type="xml"/>
        	<!--       	
   <batchtest>
     <fileset dir="${src}">

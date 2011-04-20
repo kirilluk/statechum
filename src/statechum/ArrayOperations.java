@@ -190,6 +190,13 @@ public class ArrayOperations {
 		return result.toString();
 	}
 
+	public static String labelSeqToString(Collection<Label> seq)
+	{
+		boolean first = true;
+		StringBuffer result = new StringBuffer();
+                for(Label str:seq) { if (first) first=false;else result.append(separator);result.append(str); }
+		return result.toString();
+	}
     
     /** Multiplies elements of the given array, i.e.
      * every it considers an array to consist of arrays and multiplies these arrays.

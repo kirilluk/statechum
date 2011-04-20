@@ -237,7 +237,7 @@ public class GDLearnerGraph
 		 * @param threadNo the number of this thread- used when threads need to store 
 		 * results somewhere, so I create an array indexed by threadNo.
 		 */
-		public void handleEntry(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry, int threadNo);
+		public void handleEntry(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry, int threadNo);
 	}
 	
 	public static class Job<TARGET_TYPE> implements Callable<Integer>
@@ -245,13 +245,17 @@ public class GDLearnerGraph
 		private final int[]workLoad;
 		private final int threadNo;
 		private final HandleRow<TARGET_TYPE> handler;
-		private final Map<CmpVertex,Map<String,TARGET_TYPE>> matrix;
+		private final Map<CmpVertex,Map<Label,TARGET_TYPE>> matrix;
 		private final StatesToConsider filter;
 		
 		public Job(final int[]wLoad,int thNo,final HandleRow<TARGET_TYPE> h, 
-				Map<CmpVertex,Map<String,TARGET_TYPE>> m, StatesToConsider f)
+				Map<CmpVertex,Map<Label,TARGET_TYPE>> m, StatesToConsider f)
 		{
-			workLoad = wLoad;threadNo = thNo;handler=h;matrix=m;filter=f;
+			workLoad = wLoad;
+                        threadNo = thNo;
+                        handler=h;
+                        matrix=m;
+                        filter=f;
 		}
 		
 		@Override
@@ -262,16 +266,16 @@ public class GDLearnerGraph
 				handler.init(threadNo);
 				int currentRow = 0;
 				//Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixForward.entrySet().iterator();
-				Iterator<Entry<CmpVertex,Map<String,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> stateB_It = matrix.entrySet().iterator();
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo])
 				{
-					Entry<CmpVertex,Map<String,TARGET_TYPE>> entry = stateB_It.next();
+					Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry = stateB_It.next();
 					if (filter.stateToConsider(entry.getKey()))
 						++currentRow;// only increment the row number if we are at the state we should consider
 				}
 				while(stateB_It.hasNext() && currentRow < workLoad[threadNo+1])
 				{
-					Entry<CmpVertex,Map<String,TARGET_TYPE>> stateB = stateB_It.next();
+					Entry<CmpVertex,Map<Label,TARGET_TYPE>> stateB = stateB_It.next();
 					if (filter.stateToConsider(stateB.getKey()))
 					{
 						handler.handleEntry(stateB, threadNo);
@@ -354,7 +358,7 @@ public class GDLearnerGraph
 	 * @param workLoad the which rows to be processed by which threads.
 	  */
 	protected static <TARGET_TYPE> void performRowTasks(List<? extends HandleRow<TARGET_TYPE>> handlerList,int ThreadNumber, 
-			final Map<CmpVertex,Map<String, TARGET_TYPE>> matrix, final StatesToConsider filter,final int[]workLoad)
+			final Map<CmpVertex,Map<Label, TARGET_TYPE>> matrix, final StatesToConsider filter,final int[]workLoad)
 	{
 		//final int[]workLoad = partitionWorkLoad(ThreadNumber,matrix.size());
 		/** The runner of computational threads. */
@@ -498,7 +502,7 @@ public class GDLearnerGraph
 			int prevStatePairNumber =-1;
 
 			@Override
-			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
+			public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
 			{// we are never called with entryA which has been filtered out.
 				Collection<Entry<Label,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();// the "inverse" row
 				BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
@@ -642,7 +646,7 @@ public class GDLearnerGraph
 		 * based on state values. States are needed to ensure that (a) incompatible vertices get
 		 * appropriate scores and (b) to use alternative methods for computation of scores such as BCR.
 		 */
-		void compute(CmpVertex stateA, CmpVertex stateB, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB);
+		void compute(CmpVertex stateA, CmpVertex stateB, Map<Label,List<CmpVertex>> rowA, Map<Label,List<CmpVertex>> rowB);
 		/** Returns the diagonal value (before it is reduced by
 		 *  <em>coregraph.config.getAttenuationK()</em> for every single-transition loop).
 		 *  If value returned is zero, it is assumed to be one. 
@@ -698,12 +702,12 @@ public class GDLearnerGraph
 		 * appropriate scores and (b) to use alternative methods for computation of scores such as BCR.
 		 */
 		@Override
-		public void compute(CmpVertex stateA, CmpVertex stateB, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
+		public void compute(CmpVertex stateA, CmpVertex stateB, Map<Label,List<CmpVertex>> rowA, Map<Label,List<CmpVertex>> rowB)
 		{
 			boolean incompatible = !AbstractLearnerGraph.checkCompatible(stateA, stateB, pairCompatibility);
 			sharedSameHighlight = 0;sharedOutgoing = 0;totalOutgoing = 0;
 			
-			for(Entry<String,List<CmpVertex>> entry:rowA.entrySet())
+			for(Entry<Label,List<CmpVertex>> entry:rowA.entrySet())
 			{
 				List<CmpVertex> to_list=rowB.get(entry.getKey());
 				if (to_list != null)
@@ -719,7 +723,7 @@ public class GDLearnerGraph
 					totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 			}
 			
-			for(Entry<String,List<CmpVertex>> entry:rowB.entrySet())
+			for(Entry<Label,List<CmpVertex>> entry:rowB.entrySet())
 				if (!rowA.containsKey(entry.getKey())) totalOutgoing+=entry.getValue().size();// add the number of possible target states to the number of outgoing transitions
 
 			if (incompatible) 
@@ -865,7 +869,7 @@ public class GDLearnerGraph
 				int cnt=0;
 				
 				@Override
-				public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
+				public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo)
 				{
 					++cnt;TestDiagnostics.getDiagnostics().setStatus("starting on state "+(100.*cnt/matrixForward.getStateNumber()));
 					LearnerGraph deterministicGraph = new LearnerGraph(config);
@@ -935,7 +939,7 @@ public class GDLearnerGraph
 		}
 		
 		@Override
-		public void compute(CmpVertex stateA, CmpVertex stateB, Map<String,List<CmpVertex>> rowA, Map<String,List<CmpVertex>> rowB)
+		public void compute(CmpVertex stateA, CmpVertex stateB, Map<Label,List<CmpVertex>> rowA, Map<Label,List<CmpVertex>> rowB)
 		{
 			totalOutgoing = 0;
 			if (config.getGdScoreComputation() == GDScoreComputationEnum.GD_RH)
@@ -1128,7 +1132,7 @@ public class GDLearnerGraph
 			Set<Integer> sourceData = new TreeSet<Integer>();
 			
 			@Override
-			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, int threadNo)
+			public void handleEntry(Entry<CmpVertex, Map<Label, List<CmpVertex>>> entryA, int threadNo)
 			{
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];

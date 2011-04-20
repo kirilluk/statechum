@@ -40,7 +40,7 @@ public class PTASequenceEngine
 	FSMAbstraction fsm = null;
 	
 	/** The transition diagram of the pta stored in this object. Each node is an integer, negatives for reject, non-negatives for accept. */
-	protected final Map<PTASequenceEngine.Node,Map<String,PTASequenceEngine.Node>> pta = new HashMap<PTASequenceEngine.Node,Map<String,PTASequenceEngine.Node>>(); 
+	protected final Map<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>> pta = new HashMap<PTASequenceEngine.Node,Map<Label,PTASequenceEngine.Node>>();
 	
 	/** The global "counter" of nodes; this is not static to avoid racing problems associated with multiple threads
 	 * creating nodes, so that the same thread may end up with multiple nodes bearing the same ID. This may
@@ -179,8 +179,8 @@ public class PTASequenceEngine
 		else
 			init = rejectNode;
 		
-		pta.put(init,new LinkedHashMap<String,PTASequenceEngine.Node>());
-		pta.put(rejectNode,new LinkedHashMap<String,PTASequenceEngine.Node>());
+		pta.put(init,new LinkedHashMap<Label,PTASequenceEngine.Node>());
+		pta.put(rejectNode,new LinkedHashMap<Label,PTASequenceEngine.Node>());
 	}
 	
 	/** Represents a set of sequences using a PTA, backed by an underlying state machine, passed in at initialisation. */
@@ -268,15 +268,15 @@ public class PTASequenceEngine
 			return result;
 		}
 
-		public SequenceSet cross(Collection<List<String>> inputSequences)
+		public SequenceSet cross(Collection<List<Label>> inputSequences)
 		{
 			SequenceSet result = new SequenceSet();
 			
-			for(List<String> inputSequence:inputSequences)
+			for(List<Label> inputSequence:inputSequences)
 				for(PTASequenceEngine.Node node:ptaNodes)
 				{
 						PTASequenceEngine.Node currentNode = node;
-						Iterator<String> seqIt = inputSequence.iterator();
+						Iterator<Label> seqIt = inputSequence.iterator();
 						while(seqIt.hasNext() && currentNode.isAccept())
 							currentNode=followToNextNode(currentNode, seqIt.next());
 						
@@ -286,14 +286,14 @@ public class PTASequenceEngine
 			return result;
 		}
 
-		public SequenceSet crossWithSequence(List<String> inputSequence)
+		public SequenceSet crossWithSequence(List<Label> inputSequence)
 		{
 			SequenceSet result = new SequenceSet();
 			
 			for(PTASequenceEngine.Node node:ptaNodes)
 			{
 					PTASequenceEngine.Node currentNode = node;
-					Iterator<String> seqIt = inputSequence.iterator();
+					Iterator<Label> seqIt = inputSequence.iterator();
 					while(seqIt.hasNext() && currentNode.isAccept())
 						currentNode=followToNextNode(currentNode, seqIt.next());
 					
@@ -355,9 +355,9 @@ public class PTASequenceEngine
 		}
 	}
 	
-	protected PTASequenceEngine.Node followToNextNode(PTASequenceEngine.Node currentNode, String input)
+	protected PTASequenceEngine.Node followToNextNode(PTASequenceEngine.Node currentNode, Label input)
 	{
-		Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
+		Map<Label,PTASequenceEngine.Node> row = pta.get(currentNode);
 		PTASequenceEngine.Node nextCurrentNode = null;
 
 		if (row.containsKey(input))
@@ -374,7 +374,7 @@ public class PTASequenceEngine
 			else
 			{
 				PTASequenceEngine.Node nextNode = new Node(newState);
-				row.put(input, nextNode);pta.put(nextNode, new HashMap<String,PTASequenceEngine.Node>());
+				row.put(input, nextNode);pta.put(nextNode, new HashMap<Label,PTASequenceEngine.Node>());
 				nextCurrentNode = nextNode;
 			}
 		}
@@ -386,7 +386,7 @@ public class PTASequenceEngine
 	 * 
 	 * @param inputSequence the sequence to check the existence of.
 	 */
-	public boolean containsSequence(List<String> inputSequence)
+	public boolean containsSequence(List<Label> inputSequence)
 	{
 		return containsSequence(inputSequence,false);
 	}
@@ -396,7 +396,7 @@ public class PTASequenceEngine
 	 * 
 	 * @param inputSequence the sequence to check the existence of.
 	 */
-	public boolean containsAsLeaf(List<String> inputSequence)
+	public boolean containsAsLeaf(List<Label> inputSequence)
 	{
 		return containsSequence(inputSequence,true);
 	}
@@ -406,14 +406,14 @@ public class PTASequenceEngine
 	 * @param checkLeaf if false, only checks whether the current sequence exists,
 	 * if true, returns true if the current sequence leads to a leaf in this PTA. 
 	 */
-	private boolean containsSequence(List<String> inputSequence, boolean checkLeaf)
+	private boolean containsSequence(List<Label> inputSequence, boolean checkLeaf)
 	{
 		PTASequenceEngine.Node currentNode = init;if (!currentNode.isAccept()) throw new IllegalArgumentException("untested on empty graphs");
-		Iterator<String> seqIt = inputSequence.iterator();
+		Iterator<Label> seqIt = inputSequence.iterator();
 		while(seqIt.hasNext() && currentNode.isAccept())
 		{
-			Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
-			String input = seqIt.next();
+			Map<Label,PTASequenceEngine.Node> row = pta.get(currentNode);
+			Label input = seqIt.next();
 			if (row.containsKey(input))
 				currentNode = row.get(input);
 			else
@@ -432,14 +432,14 @@ public class PTASequenceEngine
 	 *  
 	 *  @param inputSequence the sequence to check
 	 */ 
-	public boolean extendsLeaf(List<String> inputSequence)
+	public boolean extendsLeaf(List<Label> inputSequence)
 	{
 		PTASequenceEngine.Node currentNode = init;
-		Iterator<String> seqIt = inputSequence.iterator();
+		Iterator<Label> seqIt = inputSequence.iterator();
 		while(seqIt.hasNext() && currentNode.isAccept())
 		{
-			Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
-			String input = seqIt.next();
+			Map<Label,PTASequenceEngine.Node> row = pta.get(currentNode);
+			Label input = seqIt.next();
 			if (row.containsKey(input))
 				currentNode = row.get(input);
 			else
@@ -453,16 +453,17 @@ public class PTASequenceEngine
 	}
 	
 	/** Turns this PTA into a set of sequences and returns this set. */
-	public Collection<List<String>> getDataORIG()
+	public Collection<List<Label>> getDataORIG()
 	{
-		Collection<List<String>> result = new LinkedList<List<String>>();
+		Collection<List<Label>> result = new LinkedList<List<Label>>();
 		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
-		Queue<List<String>> currentExplorationSequence = new LinkedList<List<String>>();// FIFO queue
-		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<String>());
+		Queue<List<Label>> currentExplorationSequence = new LinkedList<List<Label>>();// FIFO queue
+		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<Label>());
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Node currentVertex = currentExplorationBoundary.remove();List<String> currentSequence = currentExplorationSequence.remove();
-			Map<String,Node> row = pta.get(currentVertex);
+			Node currentVertex = currentExplorationBoundary.remove();
+                        List<Label> currentSequence = currentExplorationSequence.remove();
+			Map<Label,Node> row = pta.get(currentVertex);
 			if (row.isEmpty())
 			{
 				// the current node is the last on a path, hence we simply add the current sequence to the result
@@ -470,9 +471,9 @@ public class PTASequenceEngine
 					result.add(currentSequence);
 			}
 			else
-				for(Entry<String,Node> entry:row.entrySet())
+				for(Entry<Label,Node> entry:row.entrySet())
 				{
-					List<String> newSeq = new LinkedList<String>();newSeq.addAll(currentSequence);newSeq.add(entry.getKey());
+					List<Label> newSeq = new LinkedList<Label>();newSeq.addAll(currentSequence);newSeq.add(entry.getKey());
 					currentExplorationBoundary.offer(entry.getValue());currentExplorationSequence.offer(newSeq);
 				}
 		}
@@ -633,23 +634,26 @@ public class PTASequenceEngine
 	{
 		final Map<String,String> setToBeReturned = new HashMap<String,String>();
 		Queue<Node> currentExplorationBoundary = new LinkedList<Node>();// FIFO queue
-		Queue<List<String>> currentExplorationSequence = new LinkedList<List<String>>();// FIFO queue
-		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<String>());
+		Queue<List<Label>> currentExplorationSequence = new LinkedList<List<Label>>();// FIFO queue
+		currentExplorationBoundary.add(init);currentExplorationSequence.add(new LinkedList<Label>());
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
-			Node currentVertex = currentExplorationBoundary.remove();List<String> currentSequence = currentExplorationSequence.remove();
-			Map<String,Node> row = pta.get(currentVertex);
+			Node currentVertex = currentExplorationBoundary.remove();
+                        List<Label> currentSequence = currentExplorationSequence.remove();
+			Map<Label,Node> row = pta.get(currentVertex);
 			if ( (targetNodes == null && row.isEmpty()) ||
 					(targetNodes != null && targetNodes.contains(currentVertex)))
 			{// the current node is the last on a path, hence we simply add the current sequence to the result
-					setToBeReturned.put(ArrayOperations.seqToString(currentSequence),DebugDataValues.booleanToString(row.isEmpty(), fsm.shouldBeReturned(currentVertex.getState())));
+					setToBeReturned.put(ArrayOperations.labelSeqToString(currentSequence),DebugDataValues.booleanToString(row.isEmpty(), fsm.shouldBeReturned(currentVertex.getState())));
 			}
 			
 			if (!row.isEmpty()) // continue exploring if we can
-				for(Entry<String,Node> entry:row.entrySet())
+				for(Entry<Label,Node> entry:row.entrySet())
 				{
-					List<String> newSeq = new LinkedList<String>();newSeq.addAll(currentSequence);newSeq.add(entry.getKey());
+					List<Label> newSeq = new LinkedList<Label>();
+                                        newSeq.addAll(currentSequence);
+                                        newSeq.add(entry.getKey());
 					currentExplorationBoundary.offer(entry.getValue());currentExplorationSequence.offer(newSeq);
 				}
 		}
@@ -665,7 +669,7 @@ public class PTASequenceEngine
 		if (init == rejectNode)
 			return rejectReturned?1:0;
 		
-		for(Entry<Node, Map<String,Node>> entry:pta.entrySet())
+		for(Entry<Node, Map<Label,Node>> entry:pta.entrySet())
 			if (entry.getKey() != rejectNode)
 			{
 				if (entry.getValue().isEmpty())
@@ -676,7 +680,7 @@ public class PTASequenceEngine
 				else
 					if (rejectReturned)
 					{
-						for(Entry<String,Node> out:entry.getValue().entrySet())
+						for(Entry<Label,Node> out:entry.getValue().entrySet())
 							if (out.getValue() == rejectNode)
 								++result;
 					}
@@ -792,11 +796,11 @@ public class PTASequenceEngine
 		exploration.walkThroughAllPaths();
 
 		// Now, only need to copy the part of the original graph which does not refer to the reject-nodes.
-		for(Entry<Node, Map<String,Node>> entry:pta.entrySet())
+		for(Entry<Node, Map<Label,Node>> entry:pta.entrySet())
 			if (!nodesToTrash.contains(entry.getKey()) || entry.getKey() == init) // never throw away the init state
 			{// this node is not the one to be removed, hence add it, but filter the row to exclude elements referring to nodes to be removed.
-				Map<String,Node> row = new LinkedHashMap<String,Node>();
-				for(Entry<String,Node> rowEntry:entry.getValue().entrySet())
+				Map<Label,Node> row = new LinkedHashMap<Label,Node>();
+				for(Entry<Label,Node> rowEntry:entry.getValue().entrySet())
 					if (!nodesToTrash.contains(rowEntry.getValue()))
 						row.put(rowEntry.getKey(),rowEntry.getValue());
 				result.pta.put(entry.getKey(), row);

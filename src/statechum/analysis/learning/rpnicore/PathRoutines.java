@@ -236,9 +236,9 @@ public class PathRoutines {
 		return ;
 	}
 
-	public LearnerGraph augmentPTA(Collection<List<String>> strings, boolean accepted, boolean maximalAutomaton)
+	public LearnerGraph augmentPTA(Collection<List<Label>> strings, boolean accepted, boolean maximalAutomaton)
 	{
-		for(List<String> sequence:strings)
+		for(List<Label> sequence:strings)
 			augmentPTA(sequence, accepted,maximalAutomaton,null);
 		return coregraph;
 	}
@@ -534,8 +534,8 @@ public class PathRoutines {
 		// merging routines merge PTA states _into_ the original ones, thus preserving the red colour,
 		// those left with blue colour or without any have to be PTA parts. 
 		Map<CmpVertex,AtomicInteger> hasIncoming = new HashMap<CmpVertex,AtomicInteger>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:mergeResult.transitionMatrix.entrySet())
-			for(Entry<String,CmpVertex> targ:entry.getValue().entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:mergeResult.transitionMatrix.entrySet())
+			for(Entry<Label,CmpVertex> targ:entry.getValue().entrySet())
 			{
 				if (!hasIncoming.containsKey(targ.getValue()))
 					hasIncoming.put(targ.getValue(), new AtomicInteger(1));
@@ -577,7 +577,7 @@ public class PathRoutines {
 			while(!currentBoundary.isEmpty())
 			{
 				CmpVertex current = currentBoundary.remove();
-				for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(current).entrySet())
+				for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(current).entrySet())
 					if (!visitedStates.contains(input_and_target.getValue()))
 					{
 						visitedStates.add(input_and_target.getValue());
@@ -652,7 +652,7 @@ public class PathRoutines {
 		}
 	}
 
-	public int tracePathPrefixClosed(List<String> path)
+	public int tracePathPrefixClosed(List<Label> path)
 	{
 		return tracePath(path,coregraph.getInit(), true);
 	}
@@ -671,7 +671,7 @@ public class PathRoutines {
 	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
 	 * of the first non-existing element.
 	 */
-	public int tracePath(List<String> path, boolean prefixClosed)
+	public int tracePath(List<Label> path, boolean prefixClosed)
 	{
 		return tracePath(path,coregraph.getInit(), prefixClosed);
 	}
@@ -688,7 +688,7 @@ public class PathRoutines {
 	 * @return either RPNIBlueFringeLearner.USER_ACCEPTED or the number
 	 * of the first non-existing element.
 	 */
-	public int tracePath(List<String> path, CmpVertex startState, boolean prefixClosed)
+	public int tracePath(List<Label> path, CmpVertex startState, boolean prefixClosed)
 	{
 		CmpVertex current = startState;
 		if (current == null)
@@ -698,7 +698,7 @@ public class PathRoutines {
 
 		int pos = -1;
 		
-		for(String label:path)
+		for(Label label:path)
 		{
 			++pos;
 
@@ -877,10 +877,10 @@ public class PathRoutines {
 	 * 
 	 * @return truncated sequence
 	 */
-	public List<String> truncateSequence(List<String> path)
+	public List<Label> truncateSequence(List<Label> path)
 	{
 		int pos = tracePathPrefixClosed(path);
-		List<String> seq = path;
+		List<Label> seq = path;
 		assert pos == AbstractOracle.USER_ACCEPTED || pos < path.size();
 		if (pos >= 0)
 				seq = path.subList(0, pos+1);// up to a rejected position plus one
@@ -919,24 +919,26 @@ public class PathRoutines {
 			 */
 			private static final long serialVersionUID = 7920446745767201260L;
 
-			public void putAssociation(CmpVertex stateA, CmpVertex stateB, String label, Color color)
+			public void putAssociation(CmpVertex stateA, CmpVertex stateB, Label label, Color color)
 			{
 				putAssociation_internal(stateA, stateB, label, color);
 				putAssociation_internal(stateB, stateA, label, color);
 			}
 			
-			private void putAssociation_internal(CmpVertex stateFrom, CmpVertex stateTo, String label,Color color)
+			private void putAssociation_internal(CmpVertex stateFrom, CmpVertex stateTo, Label label,Color color)
 			{
 				String fromString = stateFrom.getID().toString();
 				Map<String,Map<String,Color>> lbl = get(fromString);
 				if (lbl == null)
 				{
-					lbl = new TreeMap<String,Map<String,Color>>();put(fromString, lbl);
+					lbl = new TreeMap<String,Map<String,Color>>();
+                                        put(fromString, lbl);
 				}
 				Map<String,Color> targetToColour = lbl.get(label);
 				if (targetToColour == null)
 				{// this is the first annotation for the specific target state
-					targetToColour = new TreeMap<String,Color>();lbl.put(label,targetToColour);
+					targetToColour = new TreeMap<String,Color>();
+                                        lbl.put(label,targetToColour);
 				}
 				
 				targetToColour.put(stateTo.getID().toString(),color);
@@ -951,7 +953,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
 				if (!rowsProcessed.contains(associations.getKey()))
 				{
-					String label =associationPrefix+associations.getValue().name();
+					Label label =associationPrefix+associations.getValue().name();
 					if (alphabet.contains(label))
 						throw new IllegalArgumentException("cannot use label "+label);
 

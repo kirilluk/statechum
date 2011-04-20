@@ -443,7 +443,7 @@ public class RandomPathGenerator {
 		for(int i=seqNumber-1;i>=0;--i)
 		{
 			tag = negatives[i % chunks];
-			List<String> path = null;
+			List<Label> path = null;
 			
 			path = generateRandomWalkWithFudge(distribution[i],rnd,false);
 			if (path != null)

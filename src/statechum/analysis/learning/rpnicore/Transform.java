@@ -202,9 +202,9 @@ public class Transform
 	public String checkWChanged()
 	{
 		String result = "";
-		Collection<List<String>> wSet = WMethod.computeWSet_reducedmemory(coregraph);
-		Set<String> Walphabet = new HashSet<String>();
-		for(List<String> wSeq:wSet)
+		Collection<List<Label>> wSet = WMethod.computeWSet_reducedmemory(coregraph);
+		Set<Label> Walphabet = new HashSet<Label>();
+		for(List<Label> wSeq:wSet)
 		{
 			if (wSeq.size() != 1)
 				throw new IllegalArgumentException("non-singleton W");
@@ -218,7 +218,9 @@ public class Transform
 		Map<Label,AtomicInteger> labelUsage = new HashMap<Label,AtomicInteger>();for(Label l:alphabet) labelUsage.put(l, new AtomicInteger());
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			Collection<String> newLabels = new HashSet<String>();newLabels.addAll(Walphabet);newLabels.removeAll(entry.getValue().keySet());
+			Collection<Label> newLabels = new HashSet<Label>();
+                        newLabels.addAll(Walphabet);
+                        newLabels.removeAll(entry.getValue().keySet());
 			int changesForThisState = 0;
 			
 			for(Label lbl:entry.getValue().keySet()) labelUsage.get(lbl).addAndGet(1);
@@ -252,7 +254,9 @@ public class Transform
 		double expectedNrOfChanges = wsize*2*fillFactor*(1-fillFactor)*Math.pow(fillFactor*fillFactor+(1-fillFactor)*(1-fillFactor), wsize-1)*
 			stateNumber*(stateNumber-1)/2;
 		result+="Distribution of labels: ";for(Entry<Label,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
-		result+="Distribution of elements of W: ";for(String wElem:Walphabet) result+=" "+labelUsage.get(wElem);result+="\n";
+		result+="Distribution of elements of W: ";
+                for(String wElem:Walphabet) result+=" "+labelUsage.get(wElem);
+                result+="\n";
 		return Math.abs(expectedNrOfChanges-changeNumber)/changeNumber+"\n"+result+"W size: "+wSet.size()+" W changes: "+changeNumber+ " out of "+total+" (expected "+average+"), \nfill factor is "+fillFactor+"\n "+
 			"Expected number of changes is: "+expectedNrOfChanges
 		;
@@ -308,7 +312,7 @@ public class Transform
 		if (statePair.firstElem.isAccept() == statePair.secondElem.isAccept())
 			currentExplorationBoundary.add(statePair);
 
-		Map<String,CmpVertex> emptyTargets = result.createNewRow();
+		Map<Label,CmpVertex> emptyTargets = result.createNewRow();
 		
 		while(!currentExplorationBoundary.isEmpty())
 		{
@@ -317,12 +321,12 @@ public class Transform
 			assert statePair.secondElem == null || from.transitionMatrix.containsKey(statePair.secondElem) : "state "+statePair.secondElem+" is not known to the second graph";
 			assert statePair.secondElem == null || statePair.firstElem.isAccept() == statePair.secondElem.isAccept() : "incompatible labelling of "+statePair;
 						
-			Map<String,CmpVertex> graphTargets = graph.transitionMatrix.get(statePair.firstElem), 
+			Map<Label,CmpVertex> graphTargets = graph.transitionMatrix.get(statePair.firstElem),
 				maxTargets = statePair.secondElem == null? emptyTargets:from.transitionMatrix.get(statePair.secondElem);
 			CmpVertex currentRepresentative = pairsToGraphStates.get(statePair);assert currentRepresentative != null;
-			for(Entry<String,CmpVertex> labelstate:graphTargets.entrySet())
+			for(Entry<Label,CmpVertex> labelstate:graphTargets.entrySet())
 			{
-				String label = labelstate.getKey();
+				Label label = labelstate.getKey();
 				CmpVertex graphState = labelstate.getValue();// the original one
 				CmpVertex maxState = maxTargets.get(label);
 
@@ -382,9 +386,9 @@ public class Transform
 				
 			}
 			
-			for(Entry<String,CmpVertex> labelstate:maxTargets.entrySet())
+			for(Entry<Label,CmpVertex> labelstate:maxTargets.entrySet())
 			{
-				String label = labelstate.getKey();
+				Label label = labelstate.getKey();
 				if (!graphTargets.containsKey(label) && !labelstate.getValue().isAccept())
 				{// a transition in a maximal automaton is not matched but leads to a reject-state hence direct to a reject-state adding it if necessary
 					CmpVertex newVert = pairsToGraphStates.get(new StatePair(null,labelstate.getValue()));
@@ -581,19 +585,19 @@ public class Transform
 	 * of unrolling the THEN parts in the <em>augmentFromIfThenAutomaton</em> method below and when marking paths
 	 * as answered by a user below.
 	 */
-	public boolean AugmentNonExistingMatrixWith(List<String> question, boolean accept)
+	public boolean AugmentNonExistingMatrixWith(List<Label> question, boolean accept)
 	{
 		PTASequenceEngine engine = coregraph.learnerCache.getQuestionsPTA();
 		if (engine == null)
 			throw new IllegalArgumentException("questions PTA has not been computed yet"); 
 
 		NonExistingPaths nonExisting = (NonExistingPaths) engine.getFSM();
-		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
+		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = nonExisting.getNonExistingTransitionMatrix();
 		CmpVertex currentState = coregraph.getInit();
 		nonExisting.getNonExistingVertices().remove(currentState);
-		for(String label:question)
+		for(Label label:question)
 		{
-			Map<String,CmpVertex> graphTargets = nonexistingMatrix.get(currentState);
+			Map<Label,CmpVertex> graphTargets = nonexistingMatrix.get(currentState);
 			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 				graphTargets = coregraph.transitionMatrix.get(currentState);
 			currentState = graphTargets.get(label);
@@ -851,15 +855,15 @@ public class Transform
 	{
 		LearnerGraph result = new LearnerGraph(ltl,ltl.config);
 		
-		Map<Set<String>,CmpVertex> rejectInputsToRejectGraph = new HashMap<Set<String>,CmpVertex>();
+		Map<Set<Label>,CmpVertex> rejectInputsToRejectGraph = new HashMap<Set<Label>,CmpVertex>();
 		
 		// first pass - computing an alphabet
-		Set<String> alphabet = result.learnerCache.getAlphabet();
-		Map<CmpVertex,Map<String,CmpVertex>> extraRows = ltl.createNewTransitionMatrix();
+		Set<Label> alphabet = result.learnerCache.getAlphabet();
+		Map<CmpVertex,Map<Label,CmpVertex>> extraRows = ltl.createNewTransitionMatrix();
 		// second pass - checking if any transitions need to be added and adding them.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 		{
-			Set<String> labelsRejected = new TreeSet<String>();
+			Set<Label> labelsRejected = new TreeSet<Label>();
 			labelsRejected.addAll(alphabet);labelsRejected.removeAll(entry.getValue().keySet());
 			if (!labelsRejected.isEmpty())
 			{
@@ -867,9 +871,9 @@ public class Transform
 				if (thenGraph == null)
 				{// create a THEN graph which rejects all transitions with inputs rejected from entry.getKey() state.
 					thenGraph = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(true), result.config);
-					Map<String,CmpVertex> row = result.createNewRow();
+					Map<Label,CmpVertex> row = result.createNewRow();
 					extraRows.put(thenGraph, row);
-					for(String rejectInput:labelsRejected)
+					for(Label rejectInput:labelsRejected)
 					{
 						CmpVertex rejectState = AbstractLearnerGraph.generateNewCmpVertex(result.nextID(false), result.config);
 						rejectState.setAccept(false);

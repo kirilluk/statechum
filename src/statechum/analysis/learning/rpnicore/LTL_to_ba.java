@@ -386,10 +386,10 @@ public class LTL_to_ba {
 	 * @param transitionLabel the SPIN label
 	 * @param targetState target state
 	 */
-	protected void addTransitionsBetweenStates(CmpVertex currentState, String transitionLabel, CmpVertex targetState)
+	protected void addTransitionsBetweenStates(CmpVertex currentState, Label transitionLabel, CmpVertex targetState)
 	{
 		Map<Label,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
-		for(String currLabel:interpretString(transitionLabel))
+		for(Label currLabel:interpretString(transitionLabel))
 		{
 			List<CmpVertex> targetList = row.get(currLabel);
 			if (targetList == null)
@@ -427,10 +427,10 @@ public class LTL_to_ba {
 	}
 	
 	/** Given a composite transition label, this method converts it into a corresponding set of labels. */
-	Set<String> interpretString(String data)
+	Set<Label> interpretString(Label data)
 	{
 		buildExprLexer(data+")");
-		Set<String> result = interpretExpression();
+		Set<Label> result = interpretExpression();
 		if (lexExpr.getMatchType() >=0)
 			throw new IllegalArgumentException("extra tokens at the end of expression");
 		return result;
@@ -481,7 +481,7 @@ public class LTL_to_ba {
 	}
 	
 	/** Given an expression with brackets, && and ||, this one interprets it as a set of labels. */
-	protected Set<String> interpretExpression()
+	protected Set<Label> interpretExpression()
 	{
 		int currentMatch = lexExpr.getMatchType();
 		if (currentMatch < 0 || currentMatch == exprClose)
@@ -489,7 +489,7 @@ public class LTL_to_ba {
 		
 		boolean expectWord = true;// this means that we are waiting for a word
 		
-		Set<String> currentValue = new TreeSet<String>();// the outcome of the left-hand side.
+		Set<Label> currentValue = new TreeSet<Label>();// the outcome of the left-hand side.
 
 		OPERATION currentOperation = OPERATION.ASSIGN;
 		while(currentMatch >= 0 && currentMatch != exprClose)
@@ -515,7 +515,7 @@ public class LTL_to_ba {
 			case exprNEG:
 				if (!expectWord)
 					throw new IllegalArgumentException("expected binary operation instead of "+lexExpr.getMatch());
-				Set<String> tmp = new TreeSet<String>();performOperation(tmp,OPERATION.NEG,interpretUnary());
+				Set<Label> tmp = new TreeSet<Label>();performOperation(tmp,OPERATION.NEG,interpretUnary());
 				performOperation(currentValue, currentOperation, tmp);
 				currentOperation = OPERATION.ASSIGN;expectWord = false;
 				break;
@@ -562,7 +562,7 @@ public class LTL_to_ba {
 	 * <em>null</em> means assignment of the right-hand side to the left-hand. 
 	 * @param right the right-hand side
 	 */
-	protected void performOperation(Set<String> left, OPERATION oper, Set<String> right)
+	protected void performOperation(Set<Label> left, OPERATION oper, Set<Label> right)
 	{
 		switch(oper)
 		{
@@ -586,12 +586,12 @@ public class LTL_to_ba {
 	 * @return result of interpretation.
 	 * 
 	 */
-	protected Set<String> interpretInputLabel(String label)
+	protected Set<Label> interpretInputLabel(Label label)
 	{
-		if (label.length() == 0)
+		if (label == null)
 			throw new IllegalArgumentException("empty label");
 		
-		Set<String> result = new TreeSet<String>();
+		Set<Label> result = new TreeSet<Label>();
 		
 		if (label.equals("1")) 
 			result.addAll(alphabet);

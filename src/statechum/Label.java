@@ -11,6 +11,5 @@ package statechum;
  */
 public interface Label extends Comparable<Label> {
 
-    abstract Label replaceAll(String from, String to);
 
 }

@@ -148,6 +148,7 @@ public class Trace implements Comparable<Trace> {
         return trace.size();
     }
 
+    /*
     public Trace replaceAll(String x, String y) {
         Trace result = new Trace();
         for (Label s : trace) {
@@ -156,6 +157,8 @@ public class Trace implements Comparable<Trace> {
         return result;
     }
 
+     * 
+     */
     @Override
 	public int compareTo(Trace o) {
     	// TODO: should not be done with toString()

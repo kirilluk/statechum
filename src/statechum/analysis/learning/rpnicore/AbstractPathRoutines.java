@@ -504,7 +504,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, Label PrefixNew)
 	{
 		int NrToKeep = argNrToKeep;
-		Map<String,String> fromTo = new TreeMap<String,String>();
+		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
 		int newLabelCnt = 0;
 		Map<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
 		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
@@ -670,7 +670,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		result.setInit(initial.getMergedVertex());
 		Queue<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
 
-		Map<String,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<String,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
+		Map<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> inputToTargetClass = new HashMap<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>();
 		currentExplorationBoundary.add(initial);equivalenceClasses.put(initial.getStates(),initial);
 		while(!currentExplorationBoundary.isEmpty())
 		{// Unlike PairScoreComputation, here all target states are merged in one go. This is why it does not seem to
@@ -701,7 +701,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			// Now I need to iterate through those new classes and
 			// 1. update the transition diagram.
 			// 2. append those I've not yet seen to the exploration stack.
-			for(Entry<String,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
+			for(Entry<Label,AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>> transition:inputToTargetClass.entrySet())
 			{
 				AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> realTargetState = equivalenceClasses.get(transition.getValue().getStates());
 				if (realTargetState == null)

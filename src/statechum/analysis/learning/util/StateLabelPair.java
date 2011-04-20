@@ -4,12 +4,13 @@
 package statechum.analysis.learning.util;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 
 class StateLabelPair{
 	CmpVertex vertex=null;
-	String label = null;
+	Label label = null;
 	
-	public StateLabelPair(CmpVertex vertex, String label) {
+	public StateLabelPair(CmpVertex vertex, Label label) {
 		this.vertex = vertex;
 		this.label=label;
 	}

@@ -1173,9 +1173,9 @@ public class LabelRepresentation
 			{// based on computeShortPathsToAllStates in AbstractPathRoutines
 				CmpVertex currentState = fringe.remove();
 				Collection<AbstractState> currentAbstractStates=newVertexToEqClass.get(currentState);
-				Map<String,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
+				Map<statechum.Label,CmpVertex> targets = coregraph.transitionMatrix.get(currentState);
 				if(targets != null && !targets.isEmpty())
-					for(Entry<String,CmpVertex> labelstate:targets.entrySet())
+					for(Entry<statechum.Label,CmpVertex> labelstate:targets.entrySet())
 					{
 						CmpVertex target = labelstate.getValue();
 						if (!statesInFringe.contains(target) && target.isAccept()) // TODO: to check that everything else will work ok with rejects ignored, as they should be.
@@ -1593,7 +1593,7 @@ public class LabelRepresentation
 					if (entry.getKey().isAccept() != checkSatisfiability(!usingLowLevelFunctions?state.variableDeclarations:"",state.abstractState))
 						return new IllegalArgumentException("state "+entry.getKey()+" has an abstract state inconsistent with the accept condition");
 
-			for(Entry<String,CmpVertex> transition:graph.transitionMatrix.get(entry.getKey()).entrySet())
+			for(Entry<statechum.Label,CmpVertex> transition:graph.transitionMatrix.get(entry.getKey()).entrySet())
 			{
 				Label label = labelMapFinal.get(transition.getKey());
 				if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.TRANSITIONSFROMALLORNONE ||
@@ -1619,7 +1619,7 @@ public class LabelRepresentation
 							if (whatToCheck.getSmtGraphDomainConsistencyCheck() == SMTGRAPHDOMAINCONSISTENCYCHECK.TRANSITIONSFROMALLORNONE &&
 									transition.getValue().isAccept())
 							{// for each transition we may need to check that the xmachine is deterministic.
-								for(Entry<String,CmpVertex> otherTransition:graph.transitionMatrix.get(entry.getKey()).entrySet())
+								for(Entry<statechum.Label,CmpVertex> otherTransition:graph.transitionMatrix.get(entry.getKey()).entrySet())
 									if (otherTransition != transition && otherTransition.getValue().isAccept())
 									{
 										StringBuffer variableBuffer = new StringBuffer();

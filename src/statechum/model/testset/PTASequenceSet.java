@@ -23,10 +23,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import statechum.Label;
 
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
-public class PTASequenceSet extends PrefixFreeCollection implements Set<List<String>>
+public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Label>>
 {
 	protected PTASequenceEngine engine = new PTASequenceEngine();
 	protected PTASequenceEngine.SequenceSet initSet;
@@ -52,16 +53,16 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 	}
 	
 	@Override
-	public boolean add(List<String> o) {
+	public boolean add(List<Label> o) {
 		initSet.crossWithSequence(o);empty = false;
 		return true;
 	}
 	
 	@Override
-	public boolean addAll(Collection<? extends List<String>> c) {
+	public boolean addAll(Collection<? extends List<Label>> c) {
 		if (empty && c.size() > 0)
 			empty = false;
-		initSet.cross((Collection<List<String>>)c);
+		initSet.cross((Collection<List<Label>>)c);
 		return true;
 	}
 
@@ -93,9 +94,9 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 	}
 
 	@Override
-	public Iterator<List<String>> iterator() {
+	public Iterator<List<Label>> iterator() {
 		if (isEmpty())
-			return new Iterator<List<String>>() {
+			return new Iterator<List<Label>>() {
 
 				@Override
 				public boolean hasNext() {
@@ -103,7 +104,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 				}
 
 				@Override
-				public List<String> next() {
+				public List<Label> next() {
 					throw new UnsupportedOperationException();
 				}
 
@@ -150,17 +151,17 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 	}
 
 	@Override
-	public void addSequence(List<String> sequence) {
+	public void addSequence(List<Label> sequence) {
 		add(sequence);
 	}
 
 	@Override
-	public Collection<List<String>> getData() {
+	public Collection<List<Label>> getData() {
 		if (isEmpty()) return Collections.emptySet();
 		return engine.getData();
 	}
 	
-	public Collection<List<String>> getData(FilterPredicate pred) {
+	public Collection<List<Label>> getData(FilterPredicate pred) {
 		if (isEmpty()) return Collections.emptySet();
 		return engine.getData(pred);
 	}
@@ -184,7 +185,7 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Str
 		return engine;
 	}
 
-	public boolean extendsLeaf(List<String> path) {
+	public boolean extendsLeaf(List<Label> path) {
 		return engine.extendsLeaf(path);
 	}
 }

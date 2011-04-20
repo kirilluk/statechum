@@ -139,15 +139,14 @@ public abstract class RPNILearner extends Observable implements Learner {
             PathRoutines.convertPairAssociationsToTransitions(gr, g, g.config);
             Map<VertexID, Collection<VertexID>> mergedToHard = g.getCache().getMergedToHardFacts();
             if (hardFacts != null && mergedToHard != null) {
-                Map<CmpVertex, LinkedList<String>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
+                Map<CmpVertex, LinkedList<Label>> vertToPath = hardFacts.pathroutines.computeShortPathsToAllStates();
                 for (Object vert : gr.getVertices()) {
                     if (vert instanceof DeterministicVertex) {
                         DeterministicVertex v = (DeterministicVertex) vert;
                         LinkedList<CodeCoverageMap> coverage = new LinkedList<CodeCoverageMap>();
                         Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
                         for (VertexID hard : mergedToHard.get(v.getID())) {
-                            // Fixme: this is Erlang specific - should it be here or handled in some listener?
-                            Trace path = ErlangTrace.parseTrace(vertToPath.get(hardFacts.findVertex(hard)));
+                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
                             allPrefixTraces.add(path);
 
                             // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage

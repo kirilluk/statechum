@@ -48,6 +48,7 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.GD.ChangesRecorder;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
@@ -187,10 +188,10 @@ public class TestGD_ExistingGraphs {
 		for(int i=0;i<gr.getStateNumber()/3;++i)
 		{
 			CmpVertex a = gr.pathroutines.pickRandomState(amberRnd), b = gr.pathroutines.pickRandomState(amberRnd);
-			Map<String,TARGET_TYPE> targets = gr.transitionMatrix.get(a);
+			Map<Label,TARGET_TYPE> targets = gr.transitionMatrix.get(a);
 			if (targets != null)
 			{
-				Entry<String,TARGET_TYPE> entry=targets.entrySet().iterator().next();
+				Entry<Label,TARGET_TYPE> entry=targets.entrySet().iterator().next();
 				if (!gr.getTargets(entry.getValue()).contains(b)) gr.getTargets(entry.getValue()).add(b);
 			}
 		}

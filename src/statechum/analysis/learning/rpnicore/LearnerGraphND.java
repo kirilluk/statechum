@@ -38,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 
 /** This is a non-deterministic graph. Strictly speaking, all the methods here are applicable to the
  * generalised graph too and thus could have been placed in <em>AbstractPathRoutines</em>. The reason
@@ -51,7 +52,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public LearnerGraphND(Configuration conf)
 	{
 		super(conf);
-		transitionMatrix = new TreeMap<CmpVertex,Map<String,List<CmpVertex>>>();
+		transitionMatrix = new TreeMap<CmpVertex,Map<Label,List<CmpVertex>>>();
 		setInit(null);
 		initPTA();
 	}
@@ -104,10 +105,10 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		while(edgeIter.hasNext())
 		{	
 			DirectedSparseEdge edge = edgeIter.next();
-			Map<String,List<CmpVertex>> outgoing = transitionMatrix.get(origToCmp.get(edge.getSource()));
+			Map<Label,List<CmpVertex>> outgoing = transitionMatrix.get(origToCmp.get(edge.getSource()));
 			assert origToCmp.containsKey(edge.getDest());// this cannot fail if we handle normal Jung graphs which will never let me add an edge with vertex not in the graph
 			// The line below aims to ensure that inputs are evaluated by computeStateScore in a specific order, which in conjunction with the visited set of computeStateScore permits emulating a bug in computeScore
-			createLabelToStateMap((Set<String>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
+			createLabelToStateMap((Set<Label>)edge.getUserDatum(JUConstants.LABEL),origToCmp.get(edge.getDest()),outgoing);
 		}
 		
 		PairCompatibility<Vertex> compat = (PairCompatibility<Vertex>)g.getUserDatum(JUConstants.PAIR_COMPATIBILITY);
@@ -186,11 +187,11 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
 		void buildForward(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> coregraph,StatesToConsider filter, LearnerGraphND matrixND)
 	{
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 			{
 				Map<String,List<CmpVertex>> entryForState = new TreeMap<String,List<CmpVertex>>();
-				for(Entry<String,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 					for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 						if (filter.stateToConsider(targetState))
 						{
@@ -224,18 +225,18 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		// First, we fill the map with empty entries - 
 		// it is crucially important to fill in all the entries which can be accessed during the triangular exploration, 
 		// otherwise holes will lead to the sequence of numbers explored to be discontinuous, causing a failure.
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 				matrixND.transitionMatrix.put(entry.getKey(),matrixND.createNewRow());
 		
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 			{
-				for(Entry<String,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 					for(CmpVertex target:graph.getTargets(transition.getValue()))
 						if (filter.stateToConsider(target))
 						{
-							Map<String,List<CmpVertex>> row = matrixND.transitionMatrix.get(target);
+							Map<Label,List<CmpVertex>> row = matrixND.transitionMatrix.get(target);
 							List<CmpVertex> sourceStates = row.get(transition.getKey());
 							if (sourceStates == null)
 							{
@@ -300,12 +301,12 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	Map<String, List<CmpVertex>> createNewRow() {
-		return new TreeMap<String,List<CmpVertex>>();
+	Map<Label, List<CmpVertex>> createNewRow() {
+		return new TreeMap<Label,List<CmpVertex>>();
 	}
 
 	@Override
-	void addTransition(Map<String, List<CmpVertex>> row, String input, CmpVertex target) {
+	void addTransition(Map<Label, List<CmpVertex>> row, Label input, CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets == null)
 		{
@@ -321,8 +322,8 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	Map<CmpVertex, Map<String, List<CmpVertex>>> createNewTransitionMatrix() {
-		return new TreeMap<CmpVertex, Map<String, List<CmpVertex>>>();
+	Map<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix() {
+		return new TreeMap<CmpVertex, Map<Label, List<CmpVertex>>>();
 	}
 
 	@Override
@@ -331,7 +332,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	void removeTransition(Map<String, List<CmpVertex>> row, String input,
+	void removeTransition(Map<Label, List<CmpVertex>> row, Label input,
 			CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets != null)

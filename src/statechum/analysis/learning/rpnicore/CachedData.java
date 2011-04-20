@@ -23,6 +23,7 @@ import java.util.TreeMap;
 
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.model.testset.PTASequenceEngine;
 
 /** We'd like to cache a certain amount of data which will need to be rebuilt when the graph changes.
@@ -47,9 +48,9 @@ public class CachedData<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CA
 	 * edges between every pair of states are collapsed into a single 
 	 * edge associated with a set of labels of those edges).
 	 */   
-	private Map<CmpVertex,Map<CmpVertex,Set<String>>> flowgraph = null;
+	private Map<CmpVertex,Map<CmpVertex,Set<Label>>> flowgraph = null;
 	
-	public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
+	public Map<CmpVertex,Map<CmpVertex,Set<Label>>> getFlowgraph()
 	{
 		if (flowgraph == null) flowgraph = coregraph.pathroutines.getFlowgraph();
 		return flowgraph;
@@ -73,9 +74,9 @@ public class CachedData<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CA
 
 	/** The alphabet of the graph. 
 	 */
-	private Set<String> alphabet = null;
+	private Set<Label> alphabet = null;
 	
-	public Set<String> getAlphabet()
+	public Set<Label> getAlphabet()
 	{
 		if (alphabet == null)
 			alphabet = coregraph.pathroutines.computeAlphabet();

@@ -45,8 +45,10 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
+import statechum.analysis.Erlang.ErlangTrace;
 
 public abstract class RPNILearner extends Observable implements Learner {
 
@@ -144,8 +146,10 @@ public abstract class RPNILearner extends Observable implements Learner {
                         LinkedList<CodeCoverageMap> coverage = new LinkedList<CodeCoverageMap>();
                         Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
                         for (VertexID hard : mergedToHard.get(v.getID())) {
-                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
+                            // Fixme: this is Erlang specific - should it be here or handled in some listener?
+                            Trace path = ErlangTrace.parseTrace(vertToPath.get(hardFacts.findVertex(hard)));
                             allPrefixTraces.add(path);
+
                             // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
                             CmpVertex hardv = hardFacts.findVertex(hard);
                             Collection<Trace> paths = getPaths(path, hardv, hardFacts);
@@ -179,11 +183,11 @@ public abstract class RPNILearner extends Observable implements Learner {
     protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
         Collection<Trace> result = new LinkedList<Trace>();
 
-        Map<String, CmpVertex> edges = hardFacts.getTransitionMatrix().get(v);
+        Map<Label, CmpVertex> edges = hardFacts.getTransitionMatrix().get(v);
         if (edges.isEmpty()) {
             result.add(prefix);
         } else {
-            for (Map.Entry<String, CmpVertex> e : edges.entrySet()) {
+            for (Map.Entry<Label, CmpVertex> e : edges.entrySet()) {
                 Trace newPath = (Trace) prefix.clone();
                 newPath.add(e.getKey());
                 result.addAll(getPaths(newPath, e.getValue(), hardFacts));

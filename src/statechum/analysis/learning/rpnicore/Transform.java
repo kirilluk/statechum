@@ -42,6 +42,7 @@ import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -81,9 +82,9 @@ public class Transform
 	public void addRejectStateRandomly(Random rnd)
 	{
 		CmpVertex v =coregraph.pathroutines.pickRandomState(rnd);
-		HashSet<String> possibilities = new HashSet<String>();possibilities.addAll(coregraph.learnerCache.getAlphabet());
+		HashSet<Label> possibilities = new HashSet<Label>();possibilities.addAll(coregraph.learnerCache.getAlphabet());
 		possibilities.removeAll(coregraph.transitionMatrix.get(v).keySet());
-		Iterator<String> inputIt = possibilities.iterator();
+		Iterator<Label> inputIt = possibilities.iterator();
 		if (inputIt.hasNext())
 		{
 			CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(coregraph.nextID(false), coregraph.config);
@@ -121,7 +122,7 @@ public class Transform
 	{
 		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet_reducedmemory(coregraph));
 		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<CmpVertex,List<Boolean>>();
-		for(Entry<CmpVertex,Map<String,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
 			bitVector.put(state.getKey(),wToBooleans(coregraph,state.getKey(), wSet));
 		int min=Integer.MAX_VALUE,max=0;double average = 0;
 		Map<Integer,AtomicInteger> statistics = new HashMap<Integer,AtomicInteger>();
@@ -156,7 +157,7 @@ public class Transform
 	public static String getVectors(LearnerGraph g, Collection<List<String>> wSet)
 	{
 		String result = "";
-		for(Entry<CmpVertex,Map<String,CmpVertex>> state:g.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
 			result+="\n"+wToBooleans(g,state.getKey(), wSet);
 		result+="\n";
 		return result;
@@ -180,7 +181,7 @@ public class Transform
 	public static double getEffectiveFillRate(LearnerGraph g, Collection<List<String>> wSet)
 	{
 		int positives=0;
-		for(Entry<CmpVertex,Map<String,CmpVertex>> state:g.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
 			for(Boolean b:wToBooleans(g,state.getKey(), wSet))
 				if (b.booleanValue()) ++positives;
 		return ((double)positives)/(g.getStateNumber()*wSet.size());
@@ -209,20 +210,20 @@ public class Transform
 				throw new IllegalArgumentException("non-singleton W");
 			Walphabet.add(wSeq.iterator().next());
 		}
-		Collection<String> alphabet = coregraph.pathroutines.computeAlphabet();
+		Collection<Label> alphabet = coregraph.pathroutines.computeAlphabet();
 		double fillFactor = getEffectiveFillRate(coregraph, wSet);//transitionsFromEveryState/alphabet.size();
 		result+=getVectors(coregraph, wSet);
 		double average = (1-fillFactor)*wSet.size()*coregraph.getStateNumber();
 		int changeNumber = 0, total =0;
-		Map<String,AtomicInteger> labelUsage = new HashMap<String,AtomicInteger>();for(String l:alphabet) labelUsage.put(l, new AtomicInteger());
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		Map<Label,AtomicInteger> labelUsage = new HashMap<Label,AtomicInteger>();for(Label l:alphabet) labelUsage.put(l, new AtomicInteger());
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{
 			Collection<String> newLabels = new HashSet<String>();newLabels.addAll(Walphabet);newLabels.removeAll(entry.getValue().keySet());
 			int changesForThisState = 0;
 			
-			for(String lbl:entry.getValue().keySet()) labelUsage.get(lbl).addAndGet(1);
+			for(Label lbl:entry.getValue().keySet()) labelUsage.get(lbl).addAndGet(1);
 			
-			for(String label:newLabels)
+			for(Label label:newLabels)
 			{
 				LearnerGraph newGraph = new LearnerGraph(coregraph,coregraph.config);
 				CmpVertex currState = newGraph.findVertex(entry.getKey().getID());
@@ -250,7 +251,7 @@ public class Transform
 		double wsize = wSet.size();
 		double expectedNrOfChanges = wsize*2*fillFactor*(1-fillFactor)*Math.pow(fillFactor*fillFactor+(1-fillFactor)*(1-fillFactor), wsize-1)*
 			stateNumber*(stateNumber-1)/2;
-		result+="Distribution of labels: ";for(Entry<String,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
+		result+="Distribution of labels: ";for(Entry<Label,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
 		result+="Distribution of elements of W: ";for(String wElem:Walphabet) result+=" "+labelUsage.get(wElem);result+="\n";
 		return Math.abs(expectedNrOfChanges-changeNumber)/changeNumber+"\n"+result+"W size: "+wSet.size()+" W changes: "+changeNumber+ " out of "+total+" (expected "+average+"), \nfill factor is "+fillFactor+"\n "+
 			"Expected number of changes is: "+expectedNrOfChanges
@@ -967,17 +968,18 @@ public class Transform
 	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
 	 * @return a state machine where each transition transition label belongs to the alphabet.
 	 */
-	public LearnerGraph interpretLabelsOnGraph(Set<String> alphabet)
+	public LearnerGraph interpretLabelsOnGraph(Set<Label> alphabet)
 	{
 		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
 		LearnerGraph result = new LearnerGraph(coregraph,config);
-		LTL_to_ba ba = new LTL_to_ba(config);ba.setAlphabet(alphabet);
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		LTL_to_ba ba = new LTL_to_ba(config);
+                ba.setAlphabet(alphabet);
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
 		 // This is why associations (such as THENs) remain valid.
-			Map<String,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
-			for(Entry<String,CmpVertex> transition:entry.getValue().entrySet())
-				for(String label:ba.interpretString(transition.getKey()))
+			Map<Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
+				for(Label label:ba.interpretString(transition.getKey()))
 					result.addTransition(row, label, transition.getValue());
 		}
 		return result;
@@ -999,7 +1001,7 @@ public class Transform
 	public static TraversalStatistics countSharedTransitions(LearnerGraph big, LearnerGraph small)
 	{
 		CmpVertex stateBig = big.getInit(), stateSmall = small.getInit();
-		Map<Pair<CmpVertex,String>,Integer> TX_counter = new HashMap<Pair<CmpVertex,String>,Integer>();// counts transitions which are visited more than once during the traversal.
+		Map<Pair<CmpVertex,Label>,Integer> TX_counter = new HashMap<Pair<CmpVertex,Label>,Integer>();// counts transitions which are visited more than once during the traversal.
 		Queue<StatePair> currentExplorationBoundary = new LinkedList<StatePair>();// FIFO queue
 		int matchedTransitionCounter = 0;
 		Set<StatePair> statesAddedToBoundary = new HashSet<StatePair>();
@@ -1013,19 +1015,19 @@ public class Transform
 			if (statePair.firstElem.isAccept() != statePair.secondElem.isAccept())
 				throw new DifferentFSMException("states "+statePair.firstElem+" and " + statePair.secondElem+" have a different acceptance labelling between the machines");
 
-			Map<String,CmpVertex> targetsBig = big.transitionMatrix.get(statePair.firstElem);
-			Map<String,CmpVertex> targetsSmall = small.transitionMatrix.get(statePair.secondElem);
+			Map<Label,CmpVertex> targetsBig = big.transitionMatrix.get(statePair.firstElem);
+			Map<Label,CmpVertex> targetsSmall = small.transitionMatrix.get(statePair.secondElem);
 					
-			for(Entry<String,CmpVertex> labelstate:targetsSmall.entrySet())
+			for(Entry<Label,CmpVertex> labelstate:targetsSmall.entrySet())
 			{
-				String label = labelstate.getKey();
+				Label label = labelstate.getKey();
 				if (!targetsBig.containsKey(label))
 					throw new IllegalArgumentException("small graph is not contained in the large one, from "+statePair+
 							" unmatched transition "+label+" to (nothing_in_big,"+labelstate.getValue()+")");
 				++matchedTransitionCounter;
 				CmpVertex nextSmall = labelstate.getValue();
 				CmpVertex nextBig = targetsBig.get(label);
-				Pair<CmpVertex,String> transition = new Pair<CmpVertex,String>(statePair.firstElem,label);
+				Pair<CmpVertex,Label> transition = new Pair<CmpVertex,Label>(statePair.firstElem,label);
 				
 				Integer counter = TX_counter.get(transition);
 				if (counter == null)

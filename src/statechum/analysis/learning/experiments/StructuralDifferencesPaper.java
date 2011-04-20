@@ -26,6 +26,7 @@ import java.util.Set;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.GD;
 import statechum.analysis.learning.rpnicore.GDLearnerGraph;
@@ -103,7 +104,7 @@ public class StructuralDifferencesPaper {
 			markov = new LearnerGraphND(buildGraph(markovString,"sd_markov"),config);
 		markovD.setName("sd_markovD");
 
-		Set<String> origAlphabet = cvsGraph.pathroutines.computeAlphabet();
+		Set<Label> origAlphabet = cvsGraph.pathroutines.computeAlphabet();
 		assert origAlphabet.equals(markov.pathroutines.computeAlphabet());
 		assert origAlphabet.equals(markovD.pathroutines.computeAlphabet());
 		assert origAlphabet.equals(edsm.pathroutines.computeAlphabet());

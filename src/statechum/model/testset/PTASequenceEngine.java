@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import statechum.ArrayOperations;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 
 public class PTASequenceEngine 
 {
@@ -145,7 +146,7 @@ public class PTASequenceEngine
 		 * yet been visited; for states which we've seen earlier, PTATestSequenceEngine will
 		 * store the appropriate entries in its map.
 		 */
-		public Object getNextState(Object currentState, String input); 
+		public Object getNextState(Object currentState, Label input);
 		/** returns the initial state */
 		public Object getInitState();
 		/** returns true if the given state is an accept-state. */
@@ -235,12 +236,12 @@ public class PTASequenceEngine
 		 * @param inputs set with elements to append
 		 * @return
 		 */
-		public SequenceSet crossWithSet(Collection<String> inputs)
+		public SequenceSet crossWithSet(Collection<Label> inputs)
 		{
 			SequenceSet result = new SequenceSet();
 			for(PTASequenceEngine.Node node:ptaNodes)
 			{
-				for(String input:inputs)
+				for(Label input:inputs)
 				{
 					Node newNode = followToNextNode(node, input);
 					if (newNode.isAccept()) // successfully extended
@@ -250,11 +251,11 @@ public class PTASequenceEngine
 			return result;
 		}
 
-		public SequenceSet crossWithMap(Map<String, CmpVertex> map) {
+		public SequenceSet crossWithMap(Map<Label, CmpVertex> map) {
 			SequenceSet result = new SequenceSet();
 			for(PTASequenceEngine.Node node:ptaNodes)
 			{
-				for(Entry<String,CmpVertex> entry:map.entrySet())
+				for(Entry<Label,CmpVertex> entry:map.entrySet())
 				{
 					Node newNode = followToNextNode(node, entry.getKey());
 					if (newNode.isAccept()) // successfully extended

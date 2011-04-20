@@ -33,9 +33,9 @@ import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
@@ -91,8 +91,8 @@ public class WMethod {
 	
 	public Collection<List<String>> computeOldTestSet(int numberOfExtraStates)
 	{
-		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
-		List<List<String>> partialSet = coregraph.pathroutines.computeStateCover(coregraph.getInit());
+		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
+		List<List<Label>> partialSet = coregraph.pathroutines.computeStateCover(coregraph.getInit());
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
@@ -110,7 +110,7 @@ public class WMethod {
 
 	public PTASequenceEngine computeNewTestSet(CmpVertex initialState, int numberOfExtraStates)
 	{
-		Set<String> alphabet =  coregraph.learnerCache.getAlphabet();
+		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<String>> stateCover = coregraph.pathroutines.computeStateCover(initialState);
 		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Arrays.asList(new String[]{}));
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);

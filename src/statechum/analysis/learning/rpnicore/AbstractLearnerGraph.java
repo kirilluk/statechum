@@ -43,6 +43,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.VERTEXLABEL;
+import statechum.Label;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {
@@ -53,9 +54,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
 
 	/** Transition matrix. */
-	Map<CmpVertex,Map<String,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
+	Map<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
 
-	public Map<CmpVertex, Map<String, TARGET_TYPE>> getTransitionMatrix() {
+	public Map<CmpVertex, Map<Label, TARGET_TYPE>> getTransitionMatrix() {
 		return transitionMatrix;
 	}
 
@@ -111,11 +112,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param map a map associating state <i>to</i> with each of the labels. If this is <i>null</i>, a new map is created.
 	 * @return an updated map.
 	 */ 
-	public static Map<String,List<CmpVertex>> createLabelToStateMap(Collection<String> labels,CmpVertex to,Map<String,List<CmpVertex>> map)
+	public static Map<Label,List<CmpVertex>> createLabelToStateMap(Collection<Label> labels,CmpVertex to,Map<Label,List<CmpVertex>> map)
 	{
-		Map<String,List<CmpVertex>> result = (map == null)? new LinkedHashMap<String,List<CmpVertex>>() : map;
+		Map<Label,List<CmpVertex>> result = (map == null)? new LinkedHashMap<Label,List<CmpVertex>>() : map;
 		
-		for(String label:labels)
+		for(Label label:labels)
 		{
 			if(label==null)
 				continue;
@@ -381,7 +382,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the label of the edge
 	 * @return the new vertex.
 	 */
-	CmpVertex addVertex(CmpVertex prevState, boolean accepted, String input)
+	CmpVertex addVertex(CmpVertex prevState, boolean accepted, Label input)
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
@@ -417,7 +418,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
 	 * such as a TreeMap. 
 	 */
-	abstract Map<CmpVertex,Map<String,TARGET_TYPE>> createNewTransitionMatrix();
+	abstract Map<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix();
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a new row for a transition matrix is to be created.
@@ -427,7 +428,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 *  
 	 * @return new row
 	 */
-	abstract Map<String,TARGET_TYPE> createNewRow();
+	abstract Map<Label,TARGET_TYPE> createNewRow();
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a row for a transition matrix needs to be updated with
@@ -437,7 +438,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to use
 	 * @param target the target state
 	 */
-	abstract void addTransition(Map<String,TARGET_TYPE> row,String input,CmpVertex target);
+	abstract void addTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
 
 	/** Makes it possible to remove a transition from a row in a transition matrix.
 	 * Does nothing if a transition does not exist.
@@ -446,7 +447,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to consider 
 	 * @param target state to remove.
 	 */
-	abstract void removeTransition(Map<String,TARGET_TYPE> row,String input,CmpVertex target);	
+	abstract void removeTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
 	
 	/** Given a collection of vertices or a single vertex, this method returns a collection
 	 * representing all the vertices. This makes it possible to iterate through all target
@@ -509,7 +510,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public CmpVertex findVertex(VertexID name)
 	{
 		CmpVertex result = null;
-		Iterator<Entry<CmpVertex,Map<String,TARGET_TYPE>>> entryIt = transitionMatrix.entrySet().iterator();
+		Iterator<Entry<CmpVertex,Map<Label,TARGET_TYPE>>> entryIt = transitionMatrix.entrySet().iterator();
 		while(entryIt.hasNext() && result == null)
 		{
 			CmpVertex currentVert = entryIt.next().getKey();
@@ -582,15 +583,16 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
 		// Clone edges.
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:from.transitionMatrix.entrySet())
 		{
-			Map<String,TARGET_B_TYPE> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
+			Map<Label,TARGET_B_TYPE> row = result.transitionMatrix.get(oldToNew.get(entry.getKey()));
 			if (row == null)
 			{// new state rather than a duplicate one
-				row = result.createNewRow();result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
+				row = result.createNewRow();
+                                result.transitionMatrix.put(oldToNew.get(entry.getKey()),row);
 			}
 			
-			for(Entry<String,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
+			for(Entry<Label,TARGET_A_TYPE> rowEntry:entry.getValue().entrySet())
 			{
 				for(CmpVertex vertex:from.getTargets(rowEntry.getValue()))
 					result.addTransition(row, rowEntry.getKey(), oldToNew.get(vertex));// note that at this point a row corresponding target state may not yet exist; it will be added when we finish going through the states.
@@ -625,7 +627,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		//result = prime * result + vertPositiveID;
 		result = prime * result + (getInit() == null?0:getInit().hashCode());
 		//result = prime * result + transitionMatrix.hashCode();
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
 			result = prime * result + entry.getKey().hashCode();
 			result = prime * result + (entry.getKey().isAccept()?  1231 : 1237);
@@ -633,7 +635,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			result = prime * result + (entry.getKey().isHighlight()?  1231 : 1237);
 			result = prime * result + (entry.getKey().getDepth());
 			result = prime * result + (entry.getKey().getOrigState() == null? 0:entry.getKey().getOrigState().hashCode());
-			for(Entry<String,TARGET_TYPE> rowEntry:entry.getValue().entrySet())
+			for(Entry<Label,TARGET_TYPE> rowEntry:entry.getValue().entrySet())
 			{
 				result = prime * result + rowEntry.getKey().hashCode();
 				for(CmpVertex vertex:getTargets(rowEntry.getValue()))
@@ -687,16 +689,16 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			return false;
 		
 		final Set<CmpVertex> targetThis = new TreeSet<CmpVertex>(), targetOther = new TreeSet<CmpVertex>(); 
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:transitionMatrix.entrySet())
 		{
-			Map<String,Object> row = (Map<String,Object>)other.transitionMatrix.get(entry.getKey());
+			Map<Label,Object> row = (Map<Label,Object>)other.transitionMatrix.get(entry.getKey());
 			if (!DeterministicDirectedSparseGraph.deepEquals(entry.getKey(),other.findVertex(entry.getKey().getID())))
 				return false;// different attributes or incompatible labelling
 			
 			if (!row.keySet().equals(entry.getValue().keySet()))
 				return false;
 			
-			for(Entry<String,TARGET_TYPE> rowEntry:entry.getValue().entrySet())
+			for(Entry<Label,TARGET_TYPE> rowEntry:entry.getValue().entrySet())
 			{
 				targetThis.clear();targetOther.clear();
 				targetThis.addAll(getTargets(rowEntry.getValue()));targetOther.addAll(other.getTargets(row.get(rowEntry.getKey())));

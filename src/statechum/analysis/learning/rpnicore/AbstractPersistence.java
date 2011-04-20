@@ -54,6 +54,7 @@ import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.io.GraphMLFile;
+import statechum.Label;
 
 public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 {
@@ -112,17 +113,17 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		//graphElement.setAttributeNodeNS(doc.createAttributeNS("http://graphml.graphdrawing.org/xmlns/graphml", "gml:aaaschemaLocation"));
 		graphTop.setAttribute("edgedefault", "directed");graphElement.appendChild(graphTop);
 		graphTop.appendChild(endl(doc));
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
 		{
 			graphTop.appendChild(createStateNode(doc, vert.getKey()));graphTop.appendChild(endl(doc));
 		}
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
-			for(Entry<String,TARGET_TYPE> transition:vert.getValue().entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> vert:coregraph.transitionMatrix.entrySet())
+			for(Entry<Label,TARGET_TYPE> transition:vert.getValue().entrySet())
 				for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 			{
 				Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getID().toString());
 				edge.setAttribute("target", targetState.getID().toString());edge.setAttribute("directed", "true");
-				edge.setAttribute("EDGE", transition.getKey());graphTop.appendChild(edge);
+				edge.setAttribute("EDGE", transition.getKey().toString());graphTop.appendChild(edge);
 				graphTop.appendChild(endl(doc));
 			}
 		

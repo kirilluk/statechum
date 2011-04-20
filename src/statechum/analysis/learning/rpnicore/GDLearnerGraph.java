@@ -52,6 +52,7 @@ import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
+import statechum.Label;
 
 /** Many routines in Linear and GD operate on potentially non-deterministic 
  * state machines, represented with the class below.
@@ -59,7 +60,7 @@ import cern.colt.matrix.DoubleMatrix2D;
 public class GDLearnerGraph
 {
 	/** An alphabet of the considered graphs. */
-	final Set<String> alphabet;
+	final Set<Label> alphabet;
 	final Configuration config;
 
 	final StatesToConsider filter;
@@ -113,7 +114,7 @@ public class GDLearnerGraph
 		
 	}
 
-	public Set<String> getAlphabet()
+	public Set<Label> getAlphabet()
 	{
 		return alphabet;
 	}
@@ -170,8 +171,8 @@ public class GDLearnerGraph
 	private int estimatePairIndegree()
 	{
 		int indegreeSum=0, incomingCnt = 0, maxInDegree = -1;
-		for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:matrixInverse.transitionMatrix.entrySet())
-			for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+		for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:matrixInverse.transitionMatrix.entrySet())
+			for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 			{
 				++incomingCnt;
 				int size = transition.getValue().size()*entry.getValue().size();indegreeSum+=size;
@@ -442,14 +443,15 @@ public class GDLearnerGraph
 	{
 		inputsAccepted = new TreeMap<CmpVertex,BitVector>();inputsRejected = new TreeMap<CmpVertex,BitVector>();
 		int num =0;
-		Map<String,Integer> inputToInt = new TreeMap<String,Integer>();for(String str:getAlphabet()) inputToInt.put(str, num++);
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
+		Map<Label,Integer> inputToInt = new TreeMap<Label,Integer>();
+                for(Label str:getAlphabet()) inputToInt.put(str, num++);
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 			{// ignoring irrelevant-states, for efficiency
 				BitVector 
 					acceptVector = new BitVector(getAlphabet().size()),
 					rejectVector = new BitVector(getAlphabet().size());
-				for(Entry<String,TARGET_A_TYPE> transition:entry.getValue().entrySet())
+				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 					for(CmpVertex vert:graph.getTargets(transition.getValue()))
 					{
 						
@@ -498,15 +500,15 @@ public class GDLearnerGraph
 			@Override
 			public void handleEntry(Entry<CmpVertex, Map<String, List<CmpVertex>>> entryA, @SuppressWarnings("unused") int threadNo) 
 			{// we are never called with entryA which has been filtered out.
-				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();// the "inverse" row
+				Collection<Entry<Label,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();// the "inverse" row
 				BitVector inputsAcceptedFromA = inputsAccepted.get(entryA.getKey()), inputsRejectedFromA = inputsRejected.get(entryA.getKey());
 				
 				// Now iterate through states, pre-filtered during construction of matrixInverse but in the same order 
 				// because they are ordered by their IDs and we are using a TreeMap to store 'em.
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+					Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
 					int currentStatePair = vertexToIntNR(stateB.getKey(),entryA.getKey());
 					assert prevStatePairNumber < 0 || currentStatePair == prevStatePairNumber+1;prevStatePairNumber=currentStatePair;
 					
@@ -521,9 +523,9 @@ public class GDLearnerGraph
 							intersects(inputsAcceptedFromA,B_rejected) || intersects(inputsRejectedFromA,B_accepted))
 					{// an incompatible pair, which was not already marked as such, hence propagate incompatibility
 						sourceData.clear();incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
-						Map<String,List<CmpVertex>> rowB = stateB.getValue();
+						Map<Label,List<CmpVertex>> rowB = stateB.getValue();
 						
-						for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
+						for(Entry<Label,List<CmpVertex>> outLabel:rowA_collection)
 						{
 							List<CmpVertex> to = rowB.get(outLabel.getKey());
 							if (to != null)
@@ -575,9 +577,9 @@ public class GDLearnerGraph
 			int currentStatePair = vertexToIntNR(pair.firstElem,pair.secondElem);
 			incompatiblePairs[currentStatePair]=PAIR_INCOMPATIBLE;
 
-			Map<String,List<CmpVertex>> rowB = matrixInverse.transitionMatrix.get(pair.secondElem);
+			Map<Label,List<CmpVertex>> rowB = matrixInverse.transitionMatrix.get(pair.secondElem);
 			
-			for(Entry<String,List<CmpVertex>> outLabel:matrixInverse.transitionMatrix.get(pair.firstElem).entrySet())
+			for(Entry<Label,List<CmpVertex>> outLabel:matrixInverse.transitionMatrix.get(pair.firstElem).entrySet())
 			{
 				List<CmpVertex> to = rowB.get(outLabel.getKey());
 				if (to != null)
@@ -1130,14 +1132,14 @@ public class GDLearnerGraph
 			{
 				IntArrayList Ai = Ai_array[threadNo];
 				DoubleArrayList Ax = Ax_array[threadNo];
-				Collection<Entry<String,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();
+				Collection<Entry<Label,List<CmpVertex>>> rowA_collection = matrixInverse.transitionMatrix.get(entryA.getKey()).entrySet();
 					
 				// Now iterate through states
-				Iterator<Entry<CmpVertex,Map<String,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
+				Iterator<Entry<CmpVertex,Map<Label,List<CmpVertex>>>> stateB_It = matrixInverse.transitionMatrix.entrySet().iterator();
 				while(stateB_It.hasNext())
 				{
-					Entry<CmpVertex,Map<String,List<CmpVertex>>> stateB = stateB_It.next();
-					Map<String,List<CmpVertex>> rowB = stateB.getValue();
+					Entry<CmpVertex,Map<Label,List<CmpVertex>>> stateB = stateB_It.next();
+					Map<Label,List<CmpVertex>> rowB = stateB.getValue();
 					
 					// At this point, we consider a pair of states (entryA.getKey(),stateB),
 					// by iterating through inputs associated with incoming transitions and
@@ -1172,7 +1174,7 @@ public class GDLearnerGraph
 						{// if score computation is GD_DIRECT, no matrix will be filled in.
 							tmpAi.setQuick(colEntriesNumber++, currentStatePair);// we definitely need a diagonal element, hence add it.
 
-							for(Entry<String,List<CmpVertex>> outLabel:rowA_collection)
+							for(Entry<Label,List<CmpVertex>> outLabel:rowA_collection)
 							{
 								List<CmpVertex> to = rowB.get(outLabel.getKey());
 								if (to != null)

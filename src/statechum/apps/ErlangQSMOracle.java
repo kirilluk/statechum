@@ -14,10 +14,12 @@ import java.util.Map;
 import java.util.TreeMap;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper;
+import statechum.Label;
 import statechum.Pair;
 import statechum.PrefixTraceTree;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
+import statechum.analysis.Erlang.ErlangLabel;
 
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -36,7 +38,7 @@ public class ErlangQSMOracle {
     public static Collection<String> erlangModules;
     public static String erlangWrapperModule;
     public static String erlangAlphabet;
-    public static Collection<OtpErlangTuple> moduleAlphabet;
+    public static Collection<ErlangLabel> moduleAlphabet;
     public static String tracesFile;
     public static String covermapFile;
     public static String ErlangFolder = "ErlangOracle";
@@ -104,7 +106,7 @@ public class ErlangQSMOracle {
         int repeats = 0;
         while ((graph != null) && (!complete) && (repeats < exhaustTries)) {
             repeats++;
-            Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix = graph.getTransitionMatrix();
+            Map<CmpVertex, Map<Label, CmpVertex>> transitionMatrix = graph.getTransitionMatrix();
             // Find (one of) the deepest node(s)
             CmpVertex deepest = null;
             CmpVertex root = null;
@@ -121,24 +123,24 @@ public class ErlangQSMOracle {
             }
             System.out.println("Deepest (" + maxDepth + ") == " + deepest);
             // Get the path to this node
-            Collection<String> path = getPathTo(deepest, root, transitionMatrix, new ArrayList<CmpVertex>());
+            Collection<Label> path = getPathTo(deepest, root, transitionMatrix, new ArrayList<CmpVertex>());
             System.out.println("Path: " + path);
             // Get the alphabet
-            Collection<OtpErlangTuple> alpha = new ArrayList<OtpErlangTuple>(moduleAlphabet);
+            Collection<ErlangLabel> alpha = new ArrayList<ErlangLabel>(moduleAlphabet);
             // Remove the elements that are examined for this node
-            for (String s : transitionMatrix.get(deepest).keySet()) {
+            for (Label s : transitionMatrix.get(deepest).keySet()) {
                 System.out.println("\tTried: " + s);
                 alpha.remove(s);
             }
             System.out.println("Untried: " + alpha);
             if (alpha.size() > 0) {
                 // Try all the others...
-                for (OtpErlangTuple s : alpha) {
-                    ArrayList<String> trypath = new ArrayList<String>(path);
-                    trypath.add(s.toString());
+                for (ErlangLabel s : alpha) {
+                    ArrayList<Label> trypath = new ArrayList<Label>(path);
+                    trypath.add(s);
                     System.out.println("Trying " + trypath);
                     // Run this trace in Erlang and add the result to the traces file
-                    Iterator<String> it = trypath.iterator();
+                    Iterator<Label> it = trypath.iterator();
                     //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
                     String erlList = "[";
                     while (it.hasNext()) {
@@ -189,13 +191,13 @@ public class ErlangQSMOracle {
         return graph;
     }
 
-    protected static Collection<String> getPathTo(CmpVertex tgt, CmpVertex root, Map<CmpVertex, Map<String, CmpVertex>> transitionMatrix, Collection<CmpVertex> seenStates) {
-        Map<String, CmpVertex> trans = transitionMatrix.get(root);
-        for (String s : trans.keySet()) {
+    protected static Collection<Label> getPathTo(CmpVertex tgt, CmpVertex root, Map<CmpVertex, Map<Label, CmpVertex>> transitionMatrix, Collection<CmpVertex> seenStates) {
+        Map<Label, CmpVertex> trans = transitionMatrix.get(root);
+        for (Label s : trans.keySet()) {
             CmpVertex dest = trans.get(s);
             if (dest == tgt) {
                 // A hit, a hit, a very palpable hit...
-                ArrayList<String> result = new ArrayList<String>();
+                ArrayList<Label> result = new ArrayList<Label>();
                 result.add(s);
                 return result;
             } else {
@@ -204,9 +206,9 @@ public class ErlangQSMOracle {
                 if (!seenStates.contains(dest)) {
                     ArrayList<CmpVertex> newSeen = new ArrayList<CmpVertex>(seenStates);
                     newSeen.add(dest);
-                    Collection<String> subpath = getPathTo(tgt, dest, transitionMatrix, newSeen);
+                    Collection<Label> subpath = getPathTo(tgt, dest, transitionMatrix, newSeen);
                     if (subpath != null) {
-                        ArrayList<String> result = new ArrayList<String>();
+                        ArrayList<Label> result = new ArrayList<Label>();
                         result.add(s);
                         result.addAll(subpath);
                         return result;

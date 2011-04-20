@@ -43,6 +43,7 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
+import statechum.Label;
 
 public class MergeStates {
 	final LearnerGraph coregraph;
@@ -119,14 +120,14 @@ public class MergeStates {
 		{// In order to build a new transition diagram consisting of equivalence classes, I need to
 		 // navigate the existing transition diagram, in its entirety.
 			AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> current = currentExplorationBoundary.remove();
-			Map<String,CmpVertex> row = result.transitionMatrix.get(current.getMergedVertex());
+			Map<Label,CmpVertex> row = result.transitionMatrix.get(current.getMergedVertex());
 			if (row == null)
 			{
 				row = result.createNewRow();result.transitionMatrix.put(current.getMergedVertex(), row);
 			}
 
 			for(CmpVertex equivalentVertex:current.getStates())
-				for(Entry<String,CmpVertex> entry:original.transitionMatrix.get(equivalentVertex).entrySet())
+				for(Entry<Label,CmpVertex> entry:original.transitionMatrix.get(equivalentVertex).entrySet())
 				{
 					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> nextClass = origToNew.get(entry.getValue());
 					if (!visitedEqClasses.contains(nextClass))
@@ -190,22 +191,22 @@ public class MergeStates {
 			throw new IllegalArgumentException("elements of the pair are incompatible");
 
 		// make a loop
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
-			for(Entry<String,CmpVertex> rowEntry:entry.getValue().entrySet())
+			for(Entry<Label,CmpVertex> rowEntry:entry.getValue().entrySet())
 				if (rowEntry.getValue() == pair.getQ())	
 					// the transition from entry.getKey() leads to the original blue state, record it to be rerouted.
 					result.transitionMatrix.get(entry.getKey()).put(rowEntry.getKey(), pair.getR());
 		}
 
 		Set<CmpVertex> ptaVerticesUsed = new HashSet<CmpVertex>();
-		Set<String> inputsUsed = new HashSet<String>();
+		Set<Label> inputsUsed = new HashSet<Label>();
 
 		// I iterate over the elements of the original graph in order to be able to update the target one.
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:original.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:original.transitionMatrix.entrySet())
 		{
 			CmpVertex vert = entry.getKey();
-			Map<String,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
+			Map<Label,CmpVertex> resultRow = result.transitionMatrix.get(vert);// the row we'll update
 			if (mergedVertices.containsKey(vert))
 			{// there are some vertices to merge with this one.
 				
@@ -216,7 +217,7 @@ public class MergeStates {
 				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
 				// (as long as this combination is the one _not_ already present from the corresponding red state).
 					boolean somethingWasAdded = false;
-					for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
+					for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(toMerge).entrySet())
 						if (!inputsUsed.contains(input_and_target.getKey()))
 						{
 							resultRow.put(input_and_target.getKey(), input_and_target.getValue());
@@ -243,7 +244,7 @@ public class MergeStates {
 				// any transition leading to states in the red portion of the graph, by construction 
 				// of ptaVerticesUsed) have been appended to the transition diagram and
 				// hence we should not go through its target states.
-				for(Entry<String,CmpVertex> input_and_target:original.transitionMatrix.get(currentVert).entrySet())
+				for(Entry<Label,CmpVertex> input_and_target:original.transitionMatrix.get(currentVert).entrySet())
 					currentExplorationBoundary.offer(input_and_target.getValue());
 
 				result.transitionMatrix.remove(currentVert);// remove the vertex from the resulting transition table.
@@ -252,7 +253,7 @@ public class MergeStates {
 		
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled()) PathRoutines.checkPTAIsTree(result, original, pair,ptaVerticesUsed);
 		
-		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:result.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:result.transitionMatrix.entrySet())
 			for(CmpVertex target:entry.getValue().values())
 				if (!result.transitionMatrix.containsKey(target))
 					throw new IllegalArgumentException("vertex "+target+" is not known in a transformed graph");
@@ -275,11 +276,11 @@ public class MergeStates {
 				throw new IllegalArgumentException("elements of the pair are incompatible");
 
 			// make a loop
-			Set<String> usedInputs = new HashSet<String>();
+			Set<Label> usedInputs = new HashSet<Label>();
 			for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)newBlue.getInEdges())
 			{
 				Vertex source = e.getSource();
-				Collection<String> existingLabels = (Collection<String>)e.getUserDatum(JUConstants.LABEL);
+				Collection<Label> existingLabels = (Collection<Label>)e.getUserDatum(JUConstants.LABEL);
 				g.removeEdge(e);
 
 				// It is possible that there is already an edge between g.getSource Blue and newRed
@@ -297,7 +298,7 @@ public class MergeStates {
 				}
 				else
 					// there is already a transition from source to newRed, hence all we have to do is merge the new labels into it.
-					((Collection<String>)fromSourceToNewRed.getUserDatum(JUConstants.LABEL)).addAll( existingLabels );
+					((Collection<Label>)fromSourceToNewRed.getUserDatum(JUConstants.LABEL)).addAll( existingLabels );
 					
 			}
 
@@ -310,11 +311,12 @@ public class MergeStates {
 					{// for every input, I'll have a unique target state - this is a feature of PTA
 					 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 					// As a consequence, it is safe to assume that each input/target state combination will lead to a new state.
-						Set<String> inputsFrom_toMerge = s.transitionMatrix.get(toMerge).keySet();
-						for(String input:inputsFrom_toMerge)
+						Set<Label> inputsFrom_toMerge = s.transitionMatrix.get(toMerge).keySet();
+						for(Label input:inputsFrom_toMerge)
 							if (!usedInputs.contains(input))
 							{
-								Set<String> labels = new HashSet<String>();labels.add(input);
+								Set<Label> labels = new HashSet<Label>();
+                                                                labels.add(input);
 								DeterministicVertex targetVert = (DeterministicVertex)s.transitionMatrix.get(toMerge).get(input);
 								DirectedSparseEdge newEdge = new DirectedSparseEdge(vert,targetVert);
 								newEdge.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);

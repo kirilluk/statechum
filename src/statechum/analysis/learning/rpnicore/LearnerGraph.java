@@ -39,6 +39,7 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
+import statechum.Label;
 
 /** This class and its wholly-owned subsidiaries perform computation 
  * of scores, state merging and question generation. 
@@ -54,10 +55,10 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		}
 	
 		@Override
-		public Object getNextState(Object currentState, String input) 
+		public Object getNextState(Object currentState, Label input)
 		{
 			CmpVertex result = null;
-			Map<String,CmpVertex> row = transitionMatrix.get(currentState);
+			Map<Label,CmpVertex> row = transitionMatrix.get(currentState);
 			if (row != null)
 				result = row.get(input);
 			return result;
@@ -107,7 +108,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		/** This one records non-existing transitions as well as some existing ones, 
 		 * those leaving states with at least one non-existing transition.
 		 */
-		private final Map<CmpVertex,Map<String,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix();
+		private final Map<CmpVertex,Map<Label,CmpVertex>> NonExistingTransitions = createNewTransitionMatrix();
 	
 		/** When checking which questions have been answered by IF-THEN automata, we need to record
 		 * which newly-added nodes have been explored by THEN automata. The set below records it.
@@ -122,7 +123,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		
 		
 		/** Returns a transition matrix of new paths. */
-		public Map<CmpVertex,Map<String,CmpVertex>> getNonExistingTransitionMatrix()
+		public Map<CmpVertex,Map<Label,CmpVertex>> getNonExistingTransitionMatrix()
 		{
 			return NonExistingTransitions;
 		}
@@ -137,21 +138,22 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		}
 	
 		@Override
-		public Object getNextState(Object currentState, String input) 
+		public Object getNextState(Object currentState, Label input)
 		{
 			CmpVertex result = null;
-			Map<String,CmpVertex> transitions = NonExistingTransitions.get(currentState);
+			Map<Label,CmpVertex> transitions = NonExistingTransitions.get(currentState);
 			if (transitions == null)
 			{// the current state is not one of the non-existing/semi-non-existing ones. Semi non-existing states are those
 			 // which replace existing states in order to make it possible to add transitions leading to non-existing states.
-				Map<String,CmpVertex> row = transitionMatrix.get(currentState);
+				Map<Label,CmpVertex> row = transitionMatrix.get(currentState);
 				assert row != null;// a transition matrix is always total (unless current state is (semi)non-existing but then we'll not get here in this case). 
 				result = row.get(input);
 				if (result == null)
 				{// add the current state to the matrix of non-existing states
 					result = AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,idCounter++), config);
 					nonExistingVertices.add(result);
-					transitions = createNewRow();transitions.putAll(row);transitions.put(input, result);// clones the existing row and adds to it
+					transitions = createNewRow();
+                                        transitions.putAll(row);transitions.put(input, result);// clones the existing row and adds to it
 					NonExistingTransitions.put(result, createNewRow());
 					NonExistingTransitions.put((CmpVertex)currentState, transitions);
 				}
@@ -322,7 +324,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		int alphabetSize = tTable[vFrom[0]].length;
 		if (alphabetSize == 0) throw new IllegalArgumentException("alphabet is zero-sized");
 		CmpVertex stateName[] = new CmpVertex[tTable.length];for(int i=0;i < tTable.length;++i) stateName[i]=new StringVertex("S"+i);
-		String inputName[] = new String[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
+		Label inputName[] = new Label[alphabetSize];for(int i=0;i < alphabetSize;++i) inputName[i]="i"+i;
 		LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		fsm.setInit(stateName[vFrom[0]]);
 		Set<CmpVertex> statesUsed = new HashSet<CmpVertex>();
@@ -332,7 +334,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
 			if (tTable[currentState].length != alphabetSize) 
 				throw new IllegalArgumentException("rows of inconsistent size");
-			Map<String,CmpVertex> row = new LinkedHashMap<String,CmpVertex>();
+			Map<Label,CmpVertex> row = new LinkedHashMap<Label,CmpVertex>();
 			stateName[currentState].setAccept(true);
 			for(int input=0;input < tTable[currentState].length;++input)
 				if (tTable[currentState][input] != rejectNumber)
@@ -352,12 +354,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	public Map<String, CmpVertex> createNewRow() {
-		return new TreeMap<String,CmpVertex>();// using TreeMap makes everything predictable
+	public Map<Label, CmpVertex> createNewRow() {
+		return new TreeMap<Label,CmpVertex>();// using TreeMap makes everything predictable
 	}
 
 	@Override
-	void addTransition(Map<String, CmpVertex> row, String input, CmpVertex target) 
+	void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
 	{
 		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
 			
@@ -466,12 +468,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	Map<CmpVertex, Map<String, CmpVertex>> createNewTransitionMatrix() {
-		return new TreeMap<CmpVertex, Map<String, CmpVertex>>();
+	Map<CmpVertex, Map<Label, CmpVertex>> createNewTransitionMatrix() {
+		return new TreeMap<CmpVertex, Map<Label, CmpVertex>>();
 	}
 
 	@Override
-	void removeTransition(Map<String, CmpVertex> row, String input, @SuppressWarnings("unused") CmpVertex target) 
+	void removeTransition(Map<Label, CmpVertex> row, Label input, @SuppressWarnings("unused") CmpVertex target)
 	{
 		row.remove(input);
 	}

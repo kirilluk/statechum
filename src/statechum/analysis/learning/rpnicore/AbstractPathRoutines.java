@@ -44,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
@@ -62,10 +63,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		coregraph = computeStateScores;
 	}
 
-	public Set<String> computeAlphabet()
+	public Set<Label> computeAlphabet()
 	{
-		Set<String> result = new LinkedHashSet<String>();
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		Set<Label> result = new LinkedHashSet<Label>();
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:
+                    coregraph.transitionMatrix.entrySet())
 			result.addAll(entry.getValue().keySet());
 		return result;
 	}
@@ -171,7 +173,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			else
 			{
 				visitedStates.add(currentVert);
-				for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
+				for(Entry<CmpVertex,Set<Label>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
 				{
 					if (entry.getKey() == vertTarget)
 					{// found the vertex we are looking for
@@ -240,7 +242,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		{
 			currentVert = currentExplorationState.remove();currentPath = currentExplorationPath.remove();
 			visitedStates.add(currentVert);
-			for(Entry<CmpVertex,Set<String>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
+			for(Entry<CmpVertex,Set<Label>> entry:coregraph.learnerCache.getFlowgraph().get(currentVert).entrySet())
 			{
 				CmpVertex nextState = entry.getKey();
 				if (nextState.getColour() != JUConstants.AMBER)
@@ -313,7 +315,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<CmpVertex,DeterministicVertex>();
 			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
 				CmpVertex source = entry.getKey();
 				DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
@@ -324,10 +326,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			}
 			
 			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<String>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
 			{
 				DeterministicVertex source = oldToNew.get(entry.getKey());
-				for(Entry<CmpVertex,Set<String>> tgtEntry:entry.getValue().entrySet())
+				for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
 				{
 					CmpVertex targetOld = tgtEntry.getKey();
 					assert coregraph.findVertex(targetOld.getID()) == targetOld : "was looking for vertex with name "+targetOld.getID()+", got "+coregraph.findVertex(targetOld.getID());
@@ -344,28 +346,29 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	/** Numerous methods using this class expect to be able to interpret the state 
 	 * machine as a flowgraph, this method builds one.
 	 */
-	public Map<CmpVertex,Map<CmpVertex,Set<String>>> getFlowgraph()
+	public Map<CmpVertex,Map<CmpVertex,Set<Label>>> getFlowgraph()
 	{
-		Map<CmpVertex,Map<CmpVertex,Set<String>>> result = new TreeMap<CmpVertex,Map<CmpVertex,Set<String>>>();
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> result = new TreeMap<CmpVertex,Map<CmpVertex,Set<Label>>>();
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			Map<CmpVertex,Set<String>> targetStateToEdgeLabels = result.get(entry.getKey());
+			Map<CmpVertex,Set<Label>> targetStateToEdgeLabels = result.get(entry.getKey());
 			if (targetStateToEdgeLabels == null)
 			{
-				targetStateToEdgeLabels = new TreeMap<CmpVertex,Set<String>>();
+				targetStateToEdgeLabels = new TreeMap<CmpVertex,Set<Label>>();
 				result.put(entry.getKey(), targetStateToEdgeLabels);
 			}
 			
-			for(Entry<String,TARGET_TYPE> sv:entry.getValue().entrySet())
+			for(Entry<Label,TARGET_TYPE> sv:entry.getValue().entrySet())
 				for(CmpVertex target:coregraph.getTargets(sv.getValue()))
 				{
-					Set<String> labels = targetStateToEdgeLabels.get(target);
+					Set<Label> labels = targetStateToEdgeLabels.get(target);
 					if (labels != null)
 						// there is an edge already with the same target state from the current vertice, update the label on it
 						labels.add(sv.getKey());
 					else
 					{// add a new edge
-						labels = new HashSet<String>();labels.add(sv.getKey());
+						labels = new HashSet<Label>();
+                                                labels.add(sv.getKey());
 						targetStateToEdgeLabels.put(target, labels);
 					}
 				}
@@ -376,10 +379,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 	public int countEdges()
 	{
-		Iterator<Map<String,TARGET_TYPE>> outIt = coregraph.transitionMatrix.values().iterator();
+		Iterator<Map<Label,TARGET_TYPE>> outIt = coregraph.transitionMatrix.values().iterator();
 		int counter = 0;
 		while(outIt.hasNext()){
-			for(Entry<String,TARGET_TYPE> sv:outIt.next().entrySet())
+			for(Entry<Label,TARGET_TYPE> sv:outIt.next().entrySet())
 				counter = counter + coregraph.getTargets(sv.getValue()).size();
 		}
 		return counter;
@@ -419,12 +422,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		if (!what.getInit().isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
 		AbstractLearnerGraph.copyGraphs(what, result);
 		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
-		for(Entry<CmpVertex,Map<String,TARGET_A_TYPE>> entry:what.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:what.transitionMatrix.entrySet())
 			if (!entry.getKey().isAccept()) result.transitionMatrix.remove(entry.getKey());// a copied state should be identical to the original one, so doing remove is appropriate 
 			else
 			{
-				Map<String,TARGET_B_TYPE> row = result.transitionMatrix.get(entry.getKey());
-				for(Entry<String,TARGET_A_TYPE> targetRow:entry.getValue().entrySet())
+				Map<Label,TARGET_B_TYPE> row = result.transitionMatrix.get(entry.getKey());
+				for(Entry<Label,TARGET_A_TYPE> targetRow:entry.getValue().entrySet())
 					for(CmpVertex target:what.getTargets(targetRow.getValue()))
 						if (!target.isAccept()) result.removeTransition(row, targetRow.getKey(), target);
 			}
@@ -447,12 +450,12 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		CmpVertex rejectVertex = null;
 		
 		// first pass - computing an alphabet
-		Set<String> alphabet = coregraph.learnerCache.getAlphabet();
+		Set<Label> alphabet = coregraph.learnerCache.getAlphabet();
 		
 		// second pass - checking if any transitions need to be added and adding them.
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			Set<String> labelsToRejectState = new HashSet<String>();
+			Set<Label> labelsToRejectState = new HashSet<Label>();
 			labelsToRejectState.addAll(alphabet);labelsToRejectState.removeAll(entry.getValue().keySet());
 			if (!labelsToRejectState.isEmpty())
 			{
@@ -460,7 +463,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				{
 					rejectVertex = AbstractLearnerGraph.generateNewCmpVertex(reject,coregraph.config);rejectVertex.setAccept(false);
 				}
-				for(String rejLabel:labelsToRejectState)
+				for(Label rejLabel:labelsToRejectState)
 					coregraph.addTransition(entry.getValue(), rejLabel, rejectVertex);
 			}
 		}
@@ -498,16 +501,16 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
-		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, String PrefixNew)
+		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, Label PrefixNew)
 	{
 		int NrToKeep = argNrToKeep;
 		Map<String,String> fromTo = new TreeMap<String,String>();
 		int newLabelCnt = 0;
-		Map<CmpVertex,Map<String,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
+		Map<CmpVertex,Map<Label,TARGET_TYPE>> newMatrix = g.createNewTransitionMatrix();
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:g.transitionMatrix.entrySet())
 		{
-			Map<String,TARGET_TYPE> newRow = g.createNewRow();
-			for(Entry<String,TARGET_TYPE> transition:entry.getValue().entrySet())
+			Map<Label,TARGET_TYPE> newRow = g.createNewRow();
+			for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
 			{
 				if (NrToKeep > 0 && !fromTo.containsKey(transition.getKey()))
 				{
@@ -556,7 +559,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		Map<CmpVertex,CmpVertex> whatToG = argWhatToG;
 		if (whatToG == null) whatToG = new TreeMap<CmpVertex,CmpVertex>();else whatToG.clear();
-		for(Entry<CmpVertex,Map<String,TARGET_B_TYPE>> entry:what.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_B_TYPE>> entry:what.transitionMatrix.entrySet())
 		{// The idea is to number the new states rather than to clone vertices.
 		 // This way, new states get numerical IDs rather than retain the original (potentially text) IDs.
 			CmpVertex newVert = g.copyVertexUnderDifferentName(entry.getKey());
@@ -605,13 +608,13 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				if (reference.findVertex(coregraph.getInit().getID()) != coregraph.getInit())
 					throw new IllegalArgumentException("initial state is not in a reference graph");
 				
-				for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+				for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 				{
 					if (entry.getValue() == null) throw new IllegalArgumentException("null target states");
 					if (coregraph.findVertex(entry.getKey().getID()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
 					if (reference.findVertex(entry.getKey().getID()) != entry.getKey()) throw new IllegalArgumentException("duplicate state "+entry.getKey());
 					
-					for(Entry<String,TARGET_TYPE> transition:entry.getValue().entrySet())
+					for(Entry<Label,TARGET_TYPE> transition:entry.getValue().entrySet())
 					{
 						if (coregraph.getTargets(transition.getValue()).isEmpty()) throw new IllegalArgumentException("empty set of target states");
 						for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
@@ -678,7 +681,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			inputToTargetClass.clear();
 			for(CmpVertex vertex:currentClass.getStates())
 			{
-				for(Entry<String,TARGET_TYPE> transition:coregraph.transitionMatrix.get(vertex).entrySet())
+				for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(vertex).entrySet())
 				{
 					AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE> targets = inputToTargetClass.get(transition.getKey());
 					if (targets == null)
@@ -694,7 +697,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			// Now I have iterated through all states in the current class and
 			// assembled collections of states corresponding to destination classes.
 			
-			Map<String,CmpVertex> row = result.transitionMatrix.get(currentClass.getMergedVertex());
+			Map<Label,CmpVertex> row = result.transitionMatrix.get(currentClass.getMergedVertex());
 			// Now I need to iterate through those new classes and
 			// 1. update the transition diagram.
 			// 2. append those I've not yet seen to the exploration stack.
@@ -719,9 +722,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	}
 
 	/** Computes a state cover (a collection of sequences to reach every state in this machine). */
-	public List<List<String>> computeStateCover(CmpVertex initialVertex)
+	public List<List<Label>> computeStateCover(CmpVertex initialVertex)
 	{
-		List<List<String>> outcome = new LinkedList<List<String>>();outcome.addAll(computeShortPathsToAllStates(initialVertex).values());
+		List<List<Label>> outcome = new LinkedList<List<Label>>();
+                outcome.addAll(computeShortPathsToAllStates(initialVertex).values());
 		return outcome;
 	}
 	
@@ -730,7 +734,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 *  
 	 * @return map from states to paths reaching those states.
 	 */
-	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates()
+	public Map<CmpVertex,LinkedList<Label>> computeShortPathsToAllStates()
 	{
 		return computeShortPathsToAllStates(coregraph.getInit());
 	}
@@ -740,25 +744,25 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param from the vertex to start from
 	 * @return map from states to paths reaching those states.
 	 */
-	public Map<CmpVertex,LinkedList<String>> computeShortPathsToAllStates(CmpVertex from)
+	public Map<CmpVertex,LinkedList<Label>> computeShortPathsToAllStates(CmpVertex from)
 	{
-		Map<CmpVertex,LinkedList<String>> stateToPath = new HashMap<CmpVertex,LinkedList<String>>();stateToPath.put(from, new LinkedList<String>());
+		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();stateToPath.put(from, new LinkedList<Label>());
 		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
 		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
 		fringe.add(from);statesInFringe.add(from);
 		while(!fringe.isEmpty())
 		{
 			CmpVertex currentState = fringe.remove();
-			LinkedList<String> currentPath = stateToPath.get(currentState);
-			Map<String,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
+			LinkedList<Label> currentPath = stateToPath.get(currentState);
+			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(currentState);
 			if(targets != null && !targets.isEmpty())
-				for(Entry<String,TARGET_TYPE> labelstate:targets.entrySet())
+				for(Entry<Label,TARGET_TYPE> labelstate:targets.entrySet())
 					
 				for(CmpVertex target:coregraph.getTargets(labelstate.getValue()))
 				{
 					if (!statesInFringe.contains(target))
 					{
-						LinkedList<String> newPath = (LinkedList<String>)currentPath.clone();newPath.add(labelstate.getKey());
+						LinkedList<Label> newPath = (LinkedList<Label>)currentPath.clone();newPath.add(labelstate.getKey());
 						stateToPath.put(target,newPath);
 						fringe.offer(target);
 						statesInFringe.add(target);
@@ -781,7 +785,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public CmpVertex pickRandomState(Random rnd)
 	{
 		int nr = rnd.nextInt(coregraph.transitionMatrix.size());
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 			if (nr-- == 0)
 				return entry.getKey();
 		
@@ -795,15 +799,15 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		StringBuffer result = new StringBuffer();
 		result.append(coregraph.transitionMatrix.size());result.append(' ');result.append(countEdges());result.append('\n');
 		
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
 			result.append(entry.getKey().getID());result.append(' ');result.append(coregraph.getInit() == entry.getKey());
 			result.append(' ');result.append(entry.getKey().isAccept());result.append('\n');
 		}
 		
-		for(Entry<CmpVertex,Map<String,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
+		for(Entry<CmpVertex,Map<Label,TARGET_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 		{
-			for(Entry<String,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
+			for(Entry<Label,TARGET_TYPE> transitionEntry:entry.getValue().entrySet())
 			{
 				List<CmpVertex> targetStates = new ArrayList<CmpVertex>();
 				targetStates.addAll(coregraph.getTargets(transitionEntry.getValue()));

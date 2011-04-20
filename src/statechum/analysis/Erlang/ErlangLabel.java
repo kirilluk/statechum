@@ -21,18 +21,21 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	 */
 	private static final long serialVersionUID = 5192814547774363649L;
 	public final int arity;
+	public final FuncSignature function;
+	public final OtpErlangObject input, expectedOutput;
+
 
     public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs) {
         super(new OtpErlangObject[]{
                     new OtpErlangAtom(operator.getQualifiedName()),
                     inputArgs
                 });
-        arity = 2;function = operator;input = inputArgs;expectedOutput=null;
+        arity = 2;
+        function = operator;
+        input = inputArgs;
+        expectedOutput=null;
     }
     
-	public final FuncSignature function;
-	public final OtpErlangObject input,expectedOutput;
-	
 	@Override
 	public String toString()
 	{
@@ -48,8 +51,17 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
                     inputArgs,
                     expectedOutputArgs
                 });
-        arity = 3;function = operator;input = inputArgs;expectedOutput = expectedOutputArgs;
+        arity = 3;
+        function = operator;
+        input = inputArgs;
+        expectedOutput = expectedOutputArgs;
     }
+
+        public static ErlangLabel parseLabel(String label) {
+            // FIXME temp...
+            throw new UnsupportedOperationException("Not implemented yet");
+        }
+
 
     @Override
 	public int compareTo(Label other) {

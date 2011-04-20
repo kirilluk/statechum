@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.oracles.StringPair;
 
 /**
@@ -59,12 +60,12 @@ public class SootOracleSupport {
 		}
 	}
 	
-	private void addNegativeEdges(CmpVertex fromVertex,List<String> tail, StringPair pair, boolean accepted){
-		Stack<String> callStack = new Stack<String>();
+	private void addNegativeEdges(CmpVertex fromVertex,List<Label> tail, StringPair pair, boolean accepted){
+		Stack<Label> callStack = new Stack<Label>();
 		coregraph.addVertex(fromVertex, accepted, pair.getTo());
 		CmpVertex currentVertex = fromVertex;
 		for(int i=0;i<tail.size();i++){
-			String element = tail.get(i);
+			Label element = tail.get(i);
 			currentVertex = coregraph.transitionMatrix.get(currentVertex).get(element);
 			if(element.equals("ret")&&!callStack.isEmpty()){
 				callStack.pop();
@@ -78,16 +79,16 @@ public class SootOracleSupport {
 		}
 	}
 	
-	private Collection<List<String>> getTails(CmpVertex vertex, ArrayList<String> currentList, Collection<List<String>> collection){
-		Map<String,CmpVertex> successors = coregraph.transitionMatrix.get(vertex);
+	private Collection<List<String>> getTails(CmpVertex vertex, ArrayList<Label> currentList, Collection<List<String>> collection){
+		Map<Label,CmpVertex> successors = coregraph.transitionMatrix.get(vertex);
 		if(successors.isEmpty()){
 			collection.add(currentList);
 			return collection;
 		}
 
-		Iterator<String> keyIt = successors.keySet().iterator();
+		Iterator<Label> keyIt = successors.keySet().iterator();
 		while(keyIt.hasNext()){
-			String key = keyIt.next();
+			Label key = keyIt.next();
 			currentList.add(key);
 			collection.addAll(getTails(successors.get(key),currentList,collection));
 		}
@@ -100,9 +101,9 @@ public class SootOracleSupport {
 	private Collection<CmpVertex> findVertices(String label)
 	{
 		Collection<CmpVertex> vertices = new HashSet<CmpVertex>();
-		Iterator<Map<String, CmpVertex>> outgoingEdgesIt = coregraph.transitionMatrix.values().iterator();
+		Iterator<Map<Label, CmpVertex>> outgoingEdgesIt = coregraph.transitionMatrix.values().iterator();
 		while(outgoingEdgesIt.hasNext()){
-			Map<String,CmpVertex> edges = outgoingEdgesIt.next();
+			Map<Label,CmpVertex> edges = outgoingEdgesIt.next();
 			if(edges.keySet().contains(label))
 				vertices.add(edges.get(label));
 		}

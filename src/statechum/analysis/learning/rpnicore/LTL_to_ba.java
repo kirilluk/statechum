@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -387,7 +388,7 @@ public class LTL_to_ba {
 	 */
 	protected void addTransitionsBetweenStates(CmpVertex currentState, String transitionLabel, CmpVertex targetState)
 	{
-		Map<String,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
+		Map<Label,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
 		for(String currLabel:interpretString(transitionLabel))
 		{
 			List<CmpVertex> targetList = row.get(currLabel);
@@ -400,9 +401,9 @@ public class LTL_to_ba {
 	}
 	
 	/** Alphabet of a graph we'd like to augment with LTL. */
-	protected Set<String> alphabet = null;
+	protected Set<Label> alphabet = null;
 	
-	void setAlphabet(Set<String> alph)
+	void setAlphabet(Set<Label> alph)
 	{
 		alphabet = alph;
 	}

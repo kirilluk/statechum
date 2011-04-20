@@ -32,6 +32,7 @@ import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
@@ -142,8 +143,8 @@ public class ComputeQuestions {
 		{
 			if (fanout == null)
 			{// Initialisation
-				Collection<String> inputsToMultWith = new LinkedList<String>();
-				for(Entry<String,CmpVertex> loopEntry:learnt.transitionMatrix.get(stateLearnt).entrySet())
+				Collection<Label> inputsToMultWith = new LinkedList<Label>();
+				for(Entry<Label,CmpVertex> loopEntry:learnt.transitionMatrix.get(stateLearnt).entrySet())
 					if (loopEntry.getValue() == stateLearnt)
 					{// Note an input corresponding to any loop in temp can be followed in the original machine, since
 					 // a loop in temp is either due to the merge or because it was there in the first place.
@@ -277,7 +278,7 @@ public class ComputeQuestions {
 		currentExplorationBoundary.add(mergedRed);
 		currentExplorationTargetStates.add(pathsInOriginal);
 
-		Map<CmpVertex,List<String>> targetToInputSet = new TreeMap<CmpVertex,List<String>>();
+		Map<CmpVertex,List<Label>> targetToInputSet = new TreeMap<CmpVertex,List<Label>>();
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			CmpVertex currentVert = currentExplorationBoundary.remove();
@@ -285,17 +286,17 @@ public class ComputeQuestions {
 			targetToInputSet.clear();
 			
 			currentPaths.crossWithSet(coregraph.transitionMatrix.get(currentVert).keySet());
-			for(Entry<String,CmpVertex> entry:coregraph.transitionMatrix.get(currentVert).entrySet())
+			for(Entry<Label,CmpVertex> entry:coregraph.transitionMatrix.get(currentVert).entrySet())
 				if (!visitedStates.contains(entry.getValue()) && entry.getValue().getColour() != JUConstants.AMBER)
 				{
-					List<String> inputs = targetToInputSet.get(entry.getValue());
+					List<Label> inputs = targetToInputSet.get(entry.getValue());
 					if (inputs == null)
 					{
-						inputs = new LinkedList<String>();targetToInputSet.put(entry.getValue(),inputs);
+						inputs = new LinkedList<Label>();targetToInputSet.put(entry.getValue(),inputs);
 					}
 					inputs.add(entry.getKey());
 				}
-			for(Entry<CmpVertex,List<String>> target:targetToInputSet.entrySet())
+			for(Entry<CmpVertex,List<Label>> target:targetToInputSet.entrySet())
 			{
 				visitedStates.add(target.getKey());
 				currentExplorationBoundary.offer(target.getKey());
@@ -327,8 +328,8 @@ public class ComputeQuestions {
 
 		merged.pathroutines.computePathsSBetween(merged.getInit(),mergedRed, initp, paths);
 		
-		Collection<String> inputsToMultWith = new LinkedList<String>();
-		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
+		Collection<Label> inputsToMultWith = new LinkedList<Label>();
+		for(Entry<Label,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
 			if (loopEntry.getValue() == mergedRed)
 			{// Note an input corresponding to any loop in temp can be followed in the original machine, since
 				// a loop in temp is either due to the merge or because it was there in the first place.
@@ -355,16 +356,16 @@ public class ComputeQuestions {
 		PTASequenceEngine.SequenceSet paths = engine.new SequenceSet();
 		PTASequenceEngine.SequenceSet initp = engine.new SequenceSet();initp.setIdentity();
 
-		List<Collection<String>> sequenceOfSets = merged.paths.COMPAT_computePathsSBetween(merged.getInit(),mergedRed);
+		List<Collection<Label>> sequenceOfSets = merged.paths.COMPAT_computePathsSBetween(merged.getInit(),mergedRed);
 		if (sequenceOfSets == null)
 			throw new IllegalArgumentException("failed to find the red state in the merge result");
-		for(Collection<String> inputsToMultWith:sequenceOfSets)
+		for(Collection<Label> inputsToMultWith:sequenceOfSets)
 			initp = initp.crossWithSet(inputsToMultWith);
 		paths.unite(initp);
 		//merged.paths.computePathsSBetweenBooleanReduced(merged.init,mergedRed, initp, paths);
 		
-		Collection<String> inputsToMultWith = new LinkedList<String>();
-		for(Entry<String,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
+		Collection<Label> inputsToMultWith = new LinkedList<Label>();
+		for(Entry<Label,CmpVertex> loopEntry:merged.transitionMatrix.get(mergedRed).entrySet())
 			if (loopEntry.getValue() == mergedRed)
 			{// Note an input corresponding to any loop in temp can be followed in the original machine, since
 				// a loop in temp is either due to the merge or because it was there in the first place.

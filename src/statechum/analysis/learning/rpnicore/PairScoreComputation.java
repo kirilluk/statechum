@@ -38,6 +38,7 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -74,7 +75,7 @@ public class PairScoreComputation {
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			CmpVertex currentRed = currentExplorationBoundary.remove();
-			for(Entry<String,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
+			for(Entry<Label,CmpVertex> BlueEntry:coregraph.transitionMatrix.get(currentRed).entrySet())
 				if (BlueEntry.getValue().getColour() == null || 
 						BlueEntry.getValue().getColour() == JUConstants.BLUE)
 				{// the next vertex is not marked red, hence it has to become blue
@@ -251,9 +252,9 @@ public class PairScoreComputation {
 				return -1;// incompatible states
 			if (!redFromPta.booleanValue())
 				++score;
-			Map<String,CmpVertex> targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
+			Map<Label,CmpVertex> targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
 
-			for(Entry<String,CmpVertex> blueEntry:targetBlue.entrySet())
+			for(Entry<Label,CmpVertex> blueEntry:targetBlue.entrySet())
 			{
 				CmpVertex nextRedState = coregraph.transitionMatrix.get(currentPair.getR()).get(blueEntry.getKey());
 				if (nextRedState != null)
@@ -510,10 +511,10 @@ public class PairScoreComputation {
 			}
 			else
 			{
-				Map<String,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
+				Map<Label,CmpVertex> targetRed = coregraph.transitionMatrix.get(currentPair.getR()),
 					targetBlue = coregraph.transitionMatrix.get(currentPair.getQ());
 	
-				for(Entry<String,CmpVertex> redEntry:targetRed.entrySet())
+				for(Entry<Label,CmpVertex> redEntry:targetRed.entrySet())
 				{
 					CmpVertex nextBlueState = targetBlue.get(redEntry.getKey());
 					if (nextBlueState != null)

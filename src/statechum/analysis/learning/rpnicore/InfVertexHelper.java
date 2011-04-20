@@ -81,7 +81,8 @@ public class InfVertexHelper {
 		if (target != null && target.getColour() == JUConstants.INF_AMBER)
 		{// infinite vertex
 			target=makeNewID(transitions.get(input), graph);
-			transitions.put(input, target);graph.transitionMatrix.put(target, graph.createNewRow());
+			transitions.put(input, target);
+                        graph.transitionMatrix.put(target, graph.createNewRow());
 		}
 		return target;
 	}

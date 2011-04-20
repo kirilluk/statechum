@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSet;
 import statechum.model.testset.PTASequenceSetAutomaton;
@@ -39,9 +40,9 @@ public class RandomPathGenerator {
 	final Random randomNumberGenerator;
 	
 	/** An array representation of the transition matrix of the graph, needed for fast computation of random walks. */
-	private Map<CmpVertex,ArrayList<Entry<String,CmpVertex>>> transitions = new TreeMap<CmpVertex,ArrayList<Entry<String,CmpVertex>>>();
+	private Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions = new TreeMap<CmpVertex,ArrayList<Entry<Label,CmpVertex>>>();
 	/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
-	private Map<CmpVertex,ArrayList<String>> inputsRejected = new TreeMap<CmpVertex,ArrayList<String>>();
+	private Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<CmpVertex,ArrayList<Label>>();
 	
 	/** The random number generator passed in is used to generate walks; one can pass a mock in order to 
 	 * produce walks devised by a tester. Note that the object will be modified in the course of walks thanks
@@ -74,7 +75,7 @@ public class RandomPathGenerator {
 	 * graph will be accessible and this will limit visible alphabet while the alphabet for the whole has to be used.
 	 * Alphabet obtained from the supplied graph if <em>null</em>.
 	 */ 
-	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial,Set<String> alphabetArg) 
+	public RandomPathGenerator(LearnerGraph graph, Random random, int extra, CmpVertex initial,Set<Label> alphabetArg)
 	{
 		g = graph;randomNumberGenerator = random;
 		if (initial != null) 
@@ -86,23 +87,23 @@ public class RandomPathGenerator {
 		
 		transitions.clear();inputsRejected.clear();
 		/** The alphabet of the graph. */
-		Set<String> alphabet = null;
+		Set<Label> alphabet = null;
 		if (alphabetArg == null)
 			alphabet = g.pathroutines.computeAlphabet();
 		else
 		{// check that the supplied actual alphabet includes the one in the graph 
-			Set<String> origAlphabet = g.pathroutines.computeAlphabet();
+			Set<Label> origAlphabet = g.pathroutines.computeAlphabet();
 			origAlphabet.removeAll(alphabetArg);if(!origAlphabet.isEmpty()) throw new IllegalArgumentException("the supplied alphabet does not include the one of the graph, "+origAlphabet+" elements are new to the graph");
 			alphabet=alphabetArg;
 		}
- 		for(Entry<CmpVertex,Map<String,CmpVertex>> entry:graph.transitionMatrix.entrySet())
+ 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
-			ArrayList<Entry<String,CmpVertex>> row = new ArrayList<Entry<String,CmpVertex>>();row.addAll(entry.getValue().entrySet());
+			ArrayList<Entry<Label,CmpVertex>> row = new ArrayList<Entry<Label,CmpVertex>>();row.addAll(entry.getValue().entrySet());
 			transitions.put(entry.getKey(), row);
 			
-			Set<String> negatives = new LinkedHashSet<String>();
+			Set<Label> negatives = new LinkedHashSet<Label>();
 			negatives.addAll(alphabet);negatives.removeAll(entry.getValue().keySet());
-			ArrayList<String> rejects = new ArrayList<String>();rejects.addAll(negatives);
+			ArrayList<Label> rejects = new ArrayList<Label>();rejects.addAll(negatives);
 			inputsRejected.put(entry.getKey(), rejects);
 		}
 		initAllSequences();
@@ -176,7 +177,7 @@ public class RandomPathGenerator {
 	 * Returns null if the requested number of paths cannot be computed (because graph does not 
 	 * have enough transitions).
 	 */
-	List<String> generateRandomWalk(int walkLength, int prefixLen, boolean positive)
+	List<Label> generateRandomWalk(int walkLength, int prefixLen, boolean positive)
 	{
 		if (walkLength < 1) 
 			throw new IllegalArgumentException("cannot generate paths with length less than one");
@@ -184,7 +185,7 @@ public class RandomPathGenerator {
 			throw new IllegalArgumentException("invalid prefix length");
 		
 		int generationAttempt = 0;
-		List<String> path = new ArrayList<String>(walkLength);
+		List<Label> path = new ArrayList<Label>(walkLength);
 		do
 		{
 			path.clear();
@@ -195,10 +196,10 @@ public class RandomPathGenerator {
 			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
 				for(int i=0;i<positiveLength;i++)
 				{
-					ArrayList<Entry<String,CmpVertex>> row = transitions.get(current);
+					ArrayList<Entry<Label,CmpVertex>> row = transitions.get(current);
 					if(row.isEmpty())
 						break;// cannot make a transition
-					Entry<String,CmpVertex> inputState = row.get(randomNumberGenerator.nextInt(row.size()));
+					Entry<Label,CmpVertex> inputState = row.get(randomNumberGenerator.nextInt(row.size()));
 					path.add(inputState.getKey());current = inputState.getValue();
 				}
 			}
@@ -210,7 +211,7 @@ public class RandomPathGenerator {
 				// and then append a negative to the copy. It takes as long to take 
 				// all negatives and make copy of all but one elements, given that 
 				// they are ArrayLists. 
-				ArrayList<String> rejects = inputsRejected.get(current);
+				ArrayList<Label> rejects = inputsRejected.get(current);
 				if (!rejects.isEmpty())
 					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
 			}
@@ -354,7 +355,7 @@ public class RandomPathGenerator {
 		{
 			tag = negatives[i % chunks];
 			//System.out.println("generating for chunk "+tag+" with length "+distribution[i]);
-			List<String> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
+			List<Label> path = generateRandomWalkWithFudge(distribution[i],rnd,false);
 			if (path == null)
 				throw new IllegalArgumentException("failed to generate a negative"+
 						" path of length "+distribution[i]+" (prefix length "+rnd.getPrefixLength(distribution[i])+") after even after trying to fudge it "+
@@ -480,9 +481,9 @@ public class RandomPathGenerator {
 	/** Generates a walk, but if none can be produced for a given sequence length, 
 	 * attempts to randomly choose a different length.
 	 */
-	List<String> generateRandomWalkWithFudge(int origWalkLength, RandomLengthGenerator rnd,boolean positive)
+	List<Label> generateRandomWalkWithFudge(int origWalkLength, RandomLengthGenerator rnd,boolean positive)
 	{
-		List<String> path = generateRandomWalk(origWalkLength, rnd.getPrefixLength(origWalkLength), positive);
+		List<Label> path = generateRandomWalk(origWalkLength, rnd.getPrefixLength(origWalkLength), positive);
 		if (path != null)
 		{
 			assert !allSequences.containsAsLeaf(path);assert !extraSequences.containsAsLeaf(path);

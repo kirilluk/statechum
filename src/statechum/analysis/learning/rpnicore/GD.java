@@ -52,6 +52,7 @@ import statechum.JUConstants;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
@@ -493,7 +494,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				}
 				
 				// transitions from the A part.
-				for(Entry<String,List<CmpVertex>> transitionA:grCombined.transitionMatrix.get(entry.getKey()).entrySet())
+				for(Entry<Label,List<CmpVertex>> transitionA:grCombined.transitionMatrix.get(entry.getKey()).entrySet())
 				{
 					List<CmpVertex> targetsInB = grCombined.transitionMatrix.get(entry.getValue()).get(transitionA.getKey());
 					if (targetsInB == null) // this transition does not exist in B, record that all target states have to be removed
@@ -528,7 +529,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				}
 				
 				// transitions from the B part which were not covered above.
-				for(Entry<String,List<CmpVertex>> transitionB:grCombined.transitionMatrix.get(entry.getValue()).entrySet())
+				for(Entry<Label,List<CmpVertex>> transitionB:grCombined.transitionMatrix.get(entry.getValue()).entrySet())
 				{
 					List<CmpVertex> targetsInA = grCombined.transitionMatrix.get(entry.getKey()).get(transitionB.getKey());
 					if (targetsInA == null) // a transition unique to B
@@ -542,7 +543,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(CmpVertex vertex:statesOfA)
 				if (!statesInKeyPairs.contains(vertex))
 				{
-					for(Entry<String,List<CmpVertex>> target:grCombined.transitionMatrix.get(vertex).entrySet())
+					for(Entry<Label,List<CmpVertex>> target:grCombined.transitionMatrix.get(vertex).entrySet())
 						// transition not matched because some states are not known hence remove it.
 						for(CmpVertex targetState:grCombined.getTargets(target.getValue()))
 							removeTransition(vertex, target.getKey(),targetState);
@@ -557,7 +558,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				if (!statesInKeyPairs.contains(vertex))
 				{
 					CmpVertex origSource = getOrig(vertex);
-					Iterator<Entry<String,List<CmpVertex>>> targetStatesIterator = grCombined.transitionMatrix.get(vertex).entrySet().iterator();
+					Iterator<Entry<Label,List<CmpVertex>>> targetStatesIterator = grCombined.transitionMatrix.get(vertex).entrySet().iterator();
 					if (!targetStatesIterator.hasNext())
 						addVertex(getOrig(vertex));// unmatched state with neither incoming nor outgoing transitions 
 					
@@ -738,7 +739,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (next != null) next.addTransition(from, input, to);
 			
 			CmpVertex fromVert = addNewVertex(from);
-			Map<String,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
+			Map<Label,TARGET_TYPE> entry = graph.transitionMatrix.get(fromVert);
 			
 			CmpVertex toVert = addNewVertex(to);
 			graph.addTransition(entry, input, toVert);
@@ -1199,8 +1200,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 			LearnerGraphND gr = new LearnerGraphND(config);AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdRemoved.toString(),false,true),gr);
 			//System.out.println("removed: "+gr.transitionMatrix.keySet());
-			for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
-				for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+				for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 					for(CmpVertex target:gr.getTargets(transition.getValue()))
 						graphPatcher.removeTransition(entry.getKey(), transition.getKey(), target);
 					
@@ -1211,12 +1212,12 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			AbstractPersistence.loadGraph(getGraphElement(elem, StatechumXML.gdAdded.toString(),false,true),gr);
 			//System.out.println("added: "+gr.transitionMatrix.keySet()+"\n with incompatibles : "+gr.pairCompatibility.keySet());
 			
-			for(Entry<CmpVertex,Map<String,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
+			for(Entry<CmpVertex,Map<Label,List<CmpVertex>>> entry:gr.transitionMatrix.entrySet())
 			{
 				if (entry.getValue().isEmpty())
 					graphPatcher.addVertex(entry.getKey());
 				else
-					for(Entry<String,List<CmpVertex>> transition:entry.getValue().entrySet())
+					for(Entry<Label,List<CmpVertex>> transition:entry.getValue().entrySet())
 						for(CmpVertex target:gr.getTargets(transition.getValue()))
 							graphPatcher.addTransition(entry.getKey(), transition.getKey(), target);
 			}
@@ -1541,7 +1542,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		for(PairScore pair:frontWave)
 		{
-			for(Entry<String,List<CmpVertex>> targetCollectionA:matrixND.transitionMatrix.get(pair.getQ()).entrySet())
+			for(Entry<Label,List<CmpVertex>> targetCollectionA:matrixND.transitionMatrix.get(pair.getQ()).entrySet())
 			{
 				List<CmpVertex> targetCollectionB = matrixND.transitionMatrix.get(pair.getR()).get(targetCollectionA.getKey());
 				if (targetCollectionB != null)
@@ -1589,7 +1590,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(PairScore pair:waveToProcess)
 			{
 				// forward
-				for(Entry<String,List<CmpVertex>> targetCollectionA:matrixForward.transitionMatrix.get(pair.getQ()).entrySet())
+				for(Entry<Label,List<CmpVertex>> targetCollectionA:matrixForward.transitionMatrix.get(pair.getQ()).entrySet())
 					if (targetCollectionA.getValue().size() == 1)
 					{
 						CmpVertex targetA = targetCollectionA.getValue().get(0); 
@@ -1607,7 +1608,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						}
 					}
 				// inverse
-				for(Entry<String,List<CmpVertex>> targetCollectionA:matrixInverse.transitionMatrix.get(pair.getQ()).entrySet())
+				for(Entry<Label,List<CmpVertex>> targetCollectionA:matrixInverse.transitionMatrix.get(pair.getQ()).entrySet())
 					if (targetCollectionA.getValue().size() == 1)
 					{
 						CmpVertex targetA = targetCollectionA.getValue().get(0); 

@@ -77,7 +77,7 @@ public class AutoAnswers extends DummyLearner {
 	}
 	
 	@Override
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) 
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<Label> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) 
 	{
 		if (ans == null) setAutoOracle(graph.config);
 		Pair<Integer,String> answer = null;

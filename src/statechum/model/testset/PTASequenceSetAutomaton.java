@@ -18,6 +18,7 @@
 
 package statechum.model.testset;
 
+import statechum.Label;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 
 /** The automaton to be used in PTA engine to implement a collection 
@@ -46,7 +47,7 @@ public class PTASequenceSetAutomaton implements FSMAbstraction
 	@Override
 	public Object getNextState(
 			@SuppressWarnings("unused")	Object currentState, 
-			@SuppressWarnings("unused")	String input) {
+			@SuppressWarnings("unused")	Label input) {
 		return getTheOnlyState();
 	}
 

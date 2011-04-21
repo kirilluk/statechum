@@ -31,13 +31,14 @@ import java.util.Map.Entry;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.StringVertexPair;
+import statechum.Label;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.LabelVertexPair;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 	implements Comparable<AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>>
 {
 	/** The list of outgoing transitions from this equivalence class. */ 
-	private TreeSet<StringVertexPair> outgoingTransitions = new TreeSet<StringVertexPair>(),
+	private TreeSet<LabelVertexPair> outgoingTransitions = new TreeSet<LabelVertexPair>(),
 		newOutgoingTransitions = null;
 	
 	/**	Vertices in the original graph corresponding to the merged vertex. 
@@ -72,13 +73,13 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	}
 	
 	/** Returns transitions leaving states contained in this equivalence class. */ 
-	public TreeSet<StringVertexPair> getOutgoing()
+	public TreeSet<LabelVertexPair> getOutgoing()
 	{
 		return outgoingTransitions;
 	}
 	
 	/** Returns transitions leaving states contained in this equivalence class. */ 
-	public TreeSet<StringVertexPair> getNewOutgoing()
+	public TreeSet<LabelVertexPair> getNewOutgoing()
 	{
 		return newOutgoingTransitions;
 	}
@@ -173,12 +174,12 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * @param from transitions to add from.
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
 	 */
-	public void addFrom(CmpVertex vert,Collection<Entry<String,CmpVertex>> from) throws IncompatibleStatesException
+	public void addFrom(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
 	{
 		addState(vert);
 		if (from != null)
-			for(Entry<String,CmpVertex> entry:from)
-				outgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
+			for(Entry<Label,CmpVertex> entry:from)
+				outgoingTransitions.add(new LabelVertexPair(entry.getKey(),entry.getValue()));
 	}
 	
 	/** Adds transitions from the supplied collection.
@@ -186,13 +187,13 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * @param from transitions to add from.
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
 	 */
-	public void mergeWith(CmpVertex vert,Collection<Entry<String,CmpVertex>> from) throws IncompatibleStatesException
+	public void mergeWith(CmpVertex vert,Collection<Entry<Label,CmpVertex>> from) throws IncompatibleStatesException
 	{
 		addState(vert);
 
-		newOutgoingTransitions = new TreeSet<StringVertexPair>();
-		for(Entry<String,CmpVertex> entry:from)
-			newOutgoingTransitions.add(new StringVertexPair(entry.getKey(),entry.getValue()));
+		newOutgoingTransitions = new TreeSet<LabelVertexPair>();
+		for(Entry<Label,CmpVertex> entry:from)
+			newOutgoingTransitions.add(new LabelVertexPair(entry.getKey(),entry.getValue()));
 	}
 	
 	/** Adds the contents of the supplied argument to outgoing 

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Stack;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -87,7 +88,7 @@ public interface Learner
 	 * @param plus positive strings
 	 * @param minus negative strings
 	 */
-	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus);
+	public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus);
 	
 	/** Returns statistics reflecting the learning. 
 	 */
@@ -98,7 +99,7 @@ public interface Learner
 	 * @param plus positive strings
 	 * @param minus negative strings
 	 */
-	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus);
+	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus);
 	
 	/** Initialises the learner. The value returned is the corresponding graph. 
 	 * 
@@ -125,7 +126,7 @@ public interface Learner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<String>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+	public List<List<Label>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
 	
 	/** Given a pair of graphs, rebuilds a set of questions to validate the merge which 
 	 * resulted in the second graph. This one retains a Pta of questions previously asked
@@ -135,7 +136,7 @@ public interface Learner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<String>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
 
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted.
@@ -148,7 +149,7 @@ public interface Learner
 	 *  <br/>
 	 *  A value of null means that no check is performed.
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<String> question, int expectedAccept,List<Boolean> acceptedElements,PairScore pairBeingMerged, Object [] options);
+	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<Label> question, int expectedAccept,List<Boolean> acceptedElements,PairScore pairBeingMerged, Object [] options);
 	
 	/** Indicates that a restart has taken place.
 	 * 
@@ -166,7 +167,7 @@ public interface Learner
 	 * @param accepted whether the sequence is accept or reject.
 	 * @param newColour
 	 */
-	public void AugmentPTA(LearnerGraph pta,RestartLearningEnum ptaKind,List<String> sequence, boolean accepted, JUConstants newColour);
+	public void AugmentPTA(LearnerGraph pta,RestartLearningEnum ptaKind,List<Label> sequence, boolean accepted, JUConstants newColour);
 	
 	/** Given a PTA, this method adds constraints to it, this could be reject states determined
 	 * by Soot or an automaton obtained from LTL.

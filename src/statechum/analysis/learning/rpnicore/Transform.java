@@ -101,10 +101,10 @@ public class Transform
 	 * @param wSet the set of sequences to manipulate
 	 * @return a list of booleans representing applicability of sequences.
 	 */
-	public static List<Boolean> wToBooleans(LearnerGraph g, CmpVertex state, Collection<List<String>> wSet)
+	public static List<Boolean> wToBooleans(LearnerGraph g, CmpVertex state, Collection<List<Label>> wSet)
 	{
 		List<Boolean> result = new LinkedList<Boolean>();
-		for(List<String> seq:wSet)
+		for(List<Label> seq:wSet)
 			result.add(g.paths.tracePathPrefixClosed(seq,state) == AbstractOracle.USER_ACCEPTED);
 		return result;
 	}
@@ -120,7 +120,7 @@ public class Transform
 	 */
 	public String ComputeHamming(boolean produceStatistics)
 	{
-		List<List<String>> wSet = new LinkedList<List<String>>();wSet.addAll(WMethod.computeWSet_reducedmemory(coregraph));
+		List<List<Label>> wSet = new LinkedList<List<Label>>();wSet.addAll(WMethod.computeWSet_reducedmemory(coregraph));
 		Map<CmpVertex,List<Boolean>> bitVector = new TreeMap<CmpVertex,List<Boolean>>();
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:coregraph.transitionMatrix.entrySet())
 			bitVector.put(state.getKey(),wToBooleans(coregraph,state.getKey(), wSet));
@@ -154,7 +154,7 @@ public class Transform
 	 * @param g the graph which states to examine
 	 * @param wSet the W set to compute the response of g to.
 	 */
-	public static String getVectors(LearnerGraph g, Collection<List<String>> wSet)
+	public static String getVectors(LearnerGraph g, Collection<List<Label>> wSet)
 	{
 		String result = "";
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
@@ -178,7 +178,7 @@ public class Transform
 	 * @param wSet a collection of singleton sequences to restrict g to.
 	 * @return the fill factor of the restriction.
 	 */
-	public static double getEffectiveFillRate(LearnerGraph g, Collection<List<String>> wSet)
+	public static double getEffectiveFillRate(LearnerGraph g, Collection<List<Label>> wSet)
 	{
 		int positives=0;
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> state:g.transitionMatrix.entrySet())
@@ -255,7 +255,7 @@ public class Transform
 			stateNumber*(stateNumber-1)/2;
 		result+="Distribution of labels: ";for(Entry<Label,AtomicInteger> en:labelUsage.entrySet()) result+=" "+en.getValue();result+="\n";
 		result+="Distribution of elements of W: ";
-                for(String wElem:Walphabet) result+=" "+labelUsage.get(wElem);
+                for(Label wElem:Walphabet) result+=" "+labelUsage.get(wElem);
                 result+="\n";
 		return Math.abs(expectedNrOfChanges-changeNumber)/changeNumber+"\n"+result+"W size: "+wSet.size()+" W changes: "+changeNumber+ " out of "+total+" (expected "+average+"), \nfill factor is "+fillFactor+"\n "+
 			"Expected number of changes is: "+expectedNrOfChanges
@@ -655,7 +655,7 @@ public class Transform
 					throw new IllegalArgumentException("a graph cannot contain non-existing vertices");
 		
 		Set<CmpVertex> nonExistingVertices = questionPaths == null?new TreeSet<CmpVertex>():questionPaths.getNonExistingVertices();
-		Map<CmpVertex,Map<String,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
+		Map<CmpVertex,Map<Label,CmpVertex>> nonexistingMatrix = questionPaths == null?graph.createNewTransitionMatrix():questionPaths.getNonExistingTransitionMatrix();
 		final Queue<ExplorationElement> currentExplorationBoundary = new LinkedList<ExplorationElement>();// FIFO queue
 		final Map<CmpVertex,Set<ExplorationElement>>[] visited = new TreeMap[ifthenGraphs.length];// for each IF automaton, this one maps visited graph/THEN states to ExplorationElements. This permits one to re-visit all such states whenever we add a new transition to a graph or a THEN state.
 		final Set<CmpVertex> newStates = new HashSet<CmpVertex>();// since I'm extending a graph and exploring it at the same time, I need to record when I'm walking on previously-added nodes and increment depth accordingly.
@@ -725,18 +725,18 @@ public class Transform
 			}
 			// If the "if" parts do not match, we should not extend the "if" portion.
 			// Imagine exploring non-existing portion - no states can be marked as visited.
-			Map<String,CmpVertex> graphTargets = nonexistingMatrix.get(explorationElement.graphState);
+			Map<Label,CmpVertex> graphTargets = nonexistingMatrix.get(explorationElement.graphState);
 			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 				graphTargets = graph.transitionMatrix.get(explorationElement.graphState);
 			
-			Map<String,CmpVertex> thenTargets = explorationElement.thenState == null?null:explorationElement.thenGraph.transitionMatrix.get(explorationElement.thenState);
-			List<String> labelsOnOutgoingTransitions = new LinkedList<String>();labelsOnOutgoingTransitions.addAll(graphTargets.keySet());
+			Map<Label,CmpVertex> thenTargets = explorationElement.thenState == null?null:explorationElement.thenGraph.transitionMatrix.get(explorationElement.thenState);
+			List<Label> labelsOnOutgoingTransitions = new LinkedList<Label>();labelsOnOutgoingTransitions.addAll(graphTargets.keySet());
 			if (thenTargets != null) labelsOnOutgoingTransitions.addAll(thenTargets.keySet());// Exploring the added "THEN" graph, by adding the appropriate states to the graph or following question PTA.
-			for(String label:labelsOnOutgoingTransitions)
+			for(Label label:labelsOnOutgoingTransitions)
 			{
 				CmpVertex nextGraphState = graphTargets.get(label);
 				
-				Map<String,CmpVertex> IFTargets = explorationElement.IFState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.IFState);
+				Map<Label,CmpVertex> IFTargets = explorationElement.IFState == null?null:ifthenGraph.transitionMatrix.get(explorationElement.IFState);
 				CmpVertex nextPropertyState = IFTargets == null?null:IFTargets.get(label);
 				final CmpVertex nextThenState = thenTargets == null?null:thenTargets.get(label);
 				final LearnerGraph nextThenGraph = nextThenState == null?null:explorationElement.thenGraph;
@@ -910,8 +910,8 @@ public class Transform
 				int endOfName = automatonAndName.indexOf(' ');
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
-				LearnerGraph propertyAutomaton = new LearnerGraph(
-						FsmParser.buildGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim()),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+				LearnerGraph propertyAutomaton = 
+						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
 				ifthenAutomata.add(propertyAutomaton);
 			}

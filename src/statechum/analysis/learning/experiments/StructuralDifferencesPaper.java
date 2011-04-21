@@ -17,7 +17,8 @@
  */
 package statechum.analysis.learning.experiments;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
 import java.util.Collection;
 import java.util.List;
@@ -51,7 +52,7 @@ public class StructuralDifferencesPaper {
 
 	public static void dumpEquations()
 	{
-		GDLearnerGraph ndGraph = new GDLearnerGraph(new LearnerGraph(buildGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"dumpEquations"),config),LearnerGraphND.ignoreRejectStates, false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(buildLearnerGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"dumpEquations",config),LearnerGraphND.ignoreRejectStates, false);
 		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
 		final int pairsNumber = incompatiblePairs.length;
 		for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=i;// emulate the behaviour or non-public part for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;final int pairsNumber = ndGraph.findIncompatiblePairs(incompatiblePairs,1);
@@ -69,7 +70,7 @@ public class StructuralDifferencesPaper {
 		dumpEquations();
 		
 		String markovString = "a-initialise->d-connect->f-login->h-storefile->m\nh-listfiles->l-retrievefile->l-changedir->p-listfiles->l-logout->o-disconnect->q\nh-changedir->n-listnames->i-delete->i-delete->j-changedir->n\ni-appendfile->k-logout->o\nPART2-setfiletype->e-rename->g\nPART3-makedir->PART3";
-		LearnerGraph cvsGraph = new LearnerGraph(buildGraph(
+		LearnerGraph cvsGraph = buildLearnerGraph(
 				"q0 -initialise->q1 /" +
 				"q1-connect->q2 / " +
 				"q3-setfiletype->q4 / " +
@@ -96,12 +97,12 @@ public class StructuralDifferencesPaper {
 				"q16-disconnect->q17 /" +
 				"q3-changedir->q9 /" +
 				"q10-appendfile->q11 /" +
-				"q13-retrievefile->q13","sd_cvs"),config),
-				markovD = new LearnerGraphND(buildGraph(markovString.replace("PART2", "a").replace("PART3", "a"),"sd_markovD"),config).pathroutines.buildDeterministicGraph(),
-				edsm = new LearnerGraph(buildGraph("a-initialise->b-connect->c-login->d-storefile->e-changedir->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedir->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","sd_edsm"),config)
+				"q13-retrievefile->q13","sd_cvs",config),
+				markovD = buildLearnerGraphND(markovString.replace("PART2", "a").replace("PART3", "a"),"sd_markovD",config).pathroutines.buildDeterministicGraph(),
+				edsm = buildLearnerGraph("a-initialise->b-connect->c-login->d-storefile->e-changedir->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedir->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","sd_edsm",config)
 				;
 		LearnerGraphND 
-			markov = new LearnerGraphND(buildGraph(markovString,"sd_markov"),config);
+			markov = buildLearnerGraphND(markovString,"sd_markov",config);
 		markovD.setName("sd_markovD");
 
 		Set<Label> origAlphabet = cvsGraph.pathroutines.computeAlphabet();
@@ -111,7 +112,7 @@ public class StructuralDifferencesPaper {
 		final RandomPathGenerator generator = new RandomPathGenerator(cvsGraph,new Random(0),5,null);
 		final int posOrNegPerChunk = 50;
 		generator.generateRandomPosNeg(posOrNegPerChunk*2,1);
-		Collection<List<String>> sequences = cvsGraph.wmethod.getFullTestSet(1);//generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Collection<List<Label>> sequences = cvsGraph.wmethod.getFullTestSet(1);//generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
 
 		PTASequenceEngine walkEngine = new PTA_FSMStructure(cvsGraph,null);
 		SequenceSet ptaWalk = walkEngine.new SequenceSet();ptaWalk.setIdentity();

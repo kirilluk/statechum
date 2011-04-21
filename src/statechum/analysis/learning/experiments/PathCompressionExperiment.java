@@ -22,6 +22,7 @@ import java.util.*;
 
 import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
+import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
@@ -72,11 +73,11 @@ public class PathCompressionExperiment {
 		}
 	}
 	
-	public static Collection<List<String>> getPositiveStrings(DirectedSparseGraph graph, Collection<List<String>> samples){
-		Iterator<List<String>> sampleIt = samples.iterator();
-		HashSet<List<String>> positiveStrings = new HashSet<List<String>>();
+	public static Collection<List<Label>> getPositiveStrings(DirectedSparseGraph graph, Collection<List<Label>> samples){
+		Iterator<List<Label>> sampleIt = samples.iterator();
+		HashSet<List<Label>> positiveStrings = new HashSet<List<Label>>();
 		while(sampleIt.hasNext()){
-			List<String> v = sampleIt.next();
+			List<Label> v = sampleIt.next();
 			if(Test_Orig_RPNIBlueFringeLearner.getVertex(graph, v) != null)
 				positiveStrings.add(v);
 		}

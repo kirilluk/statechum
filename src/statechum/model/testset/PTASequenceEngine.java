@@ -481,7 +481,7 @@ public class PTASequenceEngine
 		return result;
 	}
 	
-	public List<List<String>> getData()
+	public List<List<Label>> getData()
 	{
 		return getData(null);
 	}
@@ -493,9 +493,9 @@ public class PTASequenceEngine
 	 * @param predicate determines which paths are returned.
 	 * @return the collection of paths for which the predicate holds.
 	 */ 
-	public List<List<String>> getData(final FilterPredicate predicate)
+	public List<List<Label>> getData(final FilterPredicate predicate)
 	{
-		final List<List<String>> result = new LinkedList<List<String>>();
+		final List<List<Label>> result = new LinkedList<List<Label>>();
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
@@ -514,7 +514,7 @@ public class PTASequenceEngine
 						(predicate != null && predicate.shouldBeReturned(currentNode.ptaNode.getState()))
 						)
 				{
-					LinkedList<String> newSeq = new LinkedList<String>();
+					LinkedList<Label> newSeq = new LinkedList<Label>();
 					for(PTAExplorationNode elem:pathToInit)	newSeq.addFirst(elem.inputFromThisNode);
 					result.add(newSeq);
 				}
@@ -579,7 +579,8 @@ public class PTASequenceEngine
 	 * relying on it, such as testComputePathsSBetween1.
 	 * 
 	 * @param targetNodes nodes to "display"
-	 * @return a map from a textual representation of nodes in the set to whether this is accept/reject/leaf/inner/returned/trashed node.
+	 * @return a map from a textual representation of nodes in the set 
+	 * to whether this is accept/reject/leaf/inner/returned/trashed node.
 	 */
 	public Map<String,String> getDebugDataMapDepth(final SequenceSet targetNodes)
 	{
@@ -612,7 +613,7 @@ public class PTASequenceEngine
 			
 			private void addPath(PTAExplorationNode currentNode,LinkedList<PTAExplorationNode> pathToInit)
 			{
-				LinkedList<String> newSeq = new LinkedList<String>();
+				LinkedList<Label> newSeq = new LinkedList<Label>();
 				for(PTAExplorationNode elem:pathToInit)	newSeq.addFirst(elem.inputFromThisNode);
 				setToBeReturned.put(ArrayOperations.seqToString(
 						newSeq),DebugDataValues.booleanToString(currentNode.isTail(), fsm.shouldBeReturned(currentNode.ptaNode.getState())));
@@ -813,7 +814,7 @@ public class PTASequenceEngine
 	public static int ORIGstringCollectionSize(PTASequenceEngine pta)
 	{
 		int size = 0;
-		for (List<String> list : pta.getData()) {
+		for (List<Label> list : pta.getData()) {
 			size = size + list.size();
 		}
 		return size;

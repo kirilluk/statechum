@@ -35,11 +35,13 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Label;
 import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.observers.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
@@ -53,8 +55,8 @@ public class QSMTool {
 
     protected int k = -1;
     /** Learner configuration to be set. */
-    protected Set<List<String>> sPlus = new HashSet<List<String>>();
-    protected Set<List<String>> sMinus = new HashSet<List<String>>();
+    protected Set<List<Label>> sPlus = new HashSet<List<Label>>();
+    protected Set<List<Label>> sMinus = new HashSet<List<Label>>();
     protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration();
     protected Collection<String> dataDescription = null;
     protected boolean active = true;
@@ -162,15 +164,29 @@ public class QSMTool {
         return arg.startsWith(cmd);
     }
 
+	/** Turns a sequence of strings into a sequence of labels. */
+	public static List<Label> buildList(String [] data,Configuration config)
+	{
+		List<Label> result = new LinkedList<Label>();for(String s:data) result.add(AbstractLearnerGraph.generateNewLabel(s,config));
+		return result;
+	}	
+	
+	/** Turns a sequence of strings into a sequence of labels. */
+	public static List<Label> buildList(List<String> data,Configuration config)
+	{
+		List<Label> result = new LinkedList<Label>();for(String s:data) result.add(AbstractLearnerGraph.generateNewLabel(s,config));
+		return result;
+	}	
+	
     public void process(String lineOfText) {
         String fileString = lineOfText.trim();
         if (fileString.length() == 0) {
             return;// ignore empty lines.
         }
         if (isCmdWithArgs(fileString, cmdPositive)) {
-            sPlus.add(tokeniseInput(fileString.substring(cmdPositive.length() + 1)));
+            sPlus.add(buildList(tokeniseInput(fileString.substring(cmdPositive.length() + 1)),learnerInitConfiguration.config));
         } else if (isCmdWithArgs(fileString, cmdNegative)) {
-            sMinus.add(tokeniseInput(fileString.substring(cmdNegative.length() + 1)));
+            sMinus.add(buildList(tokeniseInput(fileString.substring(cmdNegative.length() + 1)),learnerInitConfiguration.config));
         } else if (isCmdWithArgs(fileString, cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON)) {
             if (learnerInitConfiguration.ifthenSequences == null) {
                 learnerInitConfiguration.ifthenSequences = new TreeSet<String>();
@@ -221,9 +237,12 @@ public class QSMTool {
             cmdLowLevelFunction = "func",
             cmdShowLTL = "showltl";
 
+    /** Splits a string into a series of tokens at spaces.
+     * Construction of labels can be done via <em>buildList</em>.
+     */
     public static List<String> tokeniseInput(String str) {
         StringTokenizer tokenizer = new StringTokenizer(str);
-        List<String> sequence = new ArrayList<String>();
+        List<String> sequence = new LinkedList<String>();
         while (tokenizer.hasMoreTokens()) {
             sequence.add(tokenizer.nextToken());
         }

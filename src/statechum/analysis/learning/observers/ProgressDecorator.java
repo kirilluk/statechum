@@ -48,6 +48,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -62,6 +63,7 @@ import org.w3c.dom.NodeList;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
@@ -70,6 +72,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.apps.QSMTool;
 
 public abstract class ProgressDecorator extends LearnerDecorator
 {
@@ -169,7 +172,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	public static class LearnerEvaluationConfiguration 
 	{
 		public LearnerGraph graph = null;
-		public Collection<List<String>> testSet = null;
+		public Collection<List<Label>> testSet = null;
 		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
 		public Collection<String> ifthenSequences = null;
 		public LabelRepresentation labelDetails = null;
@@ -181,7 +184,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			// rely on defaults above.
 		}
 		
-		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<String>> tests, Configuration cnf, 
+		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, 
 				Collection<String> ltl, LabelRepresentation lblDetails)
 		{
 			graph = gr;testSet = tests;config = cnf;ifthenSequences = ltl;labelDetails=lblDetails;
@@ -259,7 +262,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration.
 	 * Unexpected elements are ignored.
 	 */
-	public static LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement)
+	public LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement)
 	{
 		if (!evaluationDataElement.getNodeName().equals(StatechumXML.ELEM_EVALUATIONDATA.name()))
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
@@ -290,7 +293,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
 		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
-		result.testSet = readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
+		result.testSet = readLabelSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name(),config);
 		if (nodesLtl.getLength() > 0)
 			result.ifthenSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
 		if (nodesLabelDetails.getLength() > 0)
@@ -311,7 +314,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		Element evaluationData = doc.createElement(StatechumXML.ELEM_EVALUATIONDATA.name());
 		evaluationData.appendChild(cnf.graph.storage.createGraphMLNode(doc));
-		Element sequenceListElement = writeSequenceList(StatechumXML.ATTR_TESTSET.name(), cnf.testSet);
+		Element sequenceListElement = writeLabelSequenceList(StatechumXML.ATTR_TESTSET.name(), cnf.testSet);
 		evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
@@ -334,6 +337,23 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		}
 		return evaluationData;
 	}
+
+	/** Given a collection of sequences of Labels, it writes them out in a form of XML element.
+	 * 
+	 * @param name the tag of the new element
+	 * @param data what to write
+	 * @return the written element.
+	 */ 
+	protected Element writeLabelSequenceList(final String name, Collection<List<Label>> data)
+	{
+		List<List<String>> dataToWrite = new ArrayList<List<String>>(data.size());
+		for(List<Label> seq:data)
+		{
+			List<String> s = new ArrayList<String>(seq.size());dataToWrite.add(s);
+			for(Label label:seq) s.add(label.toAlphaNum());
+		}
+		return writeSequenceList(name, dataToWrite);
+	}
 	
 	/** Given a collection of sequences, it writes them out in a form of XML element.
 	 * 
@@ -353,6 +373,21 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		org.w3c.dom.Text dataInNode = doc.createTextNode(strWriter.toString());// if the string is empty at this point, the text node will not get added, so I have to check that there is any at the loading stage.
 		sequenceListElement.appendChild(dataInNode);
 		return sequenceListElement;
+	}
+		
+	/** Given an element, loads the data contained in it back into a collection.
+	 * (this is an inverse of <em>writeLabelSequenceList</em>.
+	 * 
+	 * @param elem the element to load from
+	 * @param expectedName the name which should have been given to this collection
+	 * @return the collection of sequences of strings loaded from that element.
+	 */
+	protected static List<List<Label>> readLabelSequenceList(Element elem, String expectedName,Configuration config)
+	{
+		List<List<Label>> result = new LinkedList<List<Label>>();
+		for(List<String> str:readSequenceList(elem, expectedName))
+			result.add(QSMTool.buildList(str, config));
+		return result;
 	}
 	
 	/** Given an element, loads the data contained in it back into a collection.
@@ -470,8 +505,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	protected Element writeInitialData(InitialData initialData)
 	{
 		Element elemInit = doc.createElement(StatechumXML.ELEM_INIT.name());
-		Element positive = writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
-		Element negative = writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
+		Element positive = writeLabelSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
+		Element negative = writeLabelSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
 		elemInit.appendChild(initialData.graph.storage.createGraphMLNode(doc));elemInit.appendChild(AbstractPersistence.endl(doc));
 		elemInit.appendChild(positive);elemInit.appendChild(AbstractPersistence.endl(doc));
 		elemInit.appendChild(negative);elemInit.appendChild(AbstractPersistence.endl(doc));
@@ -510,7 +545,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 						{
 							if (result.plus != null)
 								throw new IllegalArgumentException("duplicate positive element");
-							result.plus = readSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name());
+							result.plus = readLabelSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name(),config);
 							if (!e.hasAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name())) throw new IllegalArgumentException("missing positive size");
 							String size = e.getAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name());
 							try{ result.plusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("positive value is not an integer "+size, ex);}
@@ -520,7 +555,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 							{
 								if (result.minus != null)
 									throw new IllegalArgumentException("duplicate negative element");
-								result.minus = readSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name());
+								result.minus = readLabelSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(),config);
 								if (!e.hasAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name())) throw new IllegalArgumentException("missing negative size");
 								String size = e.getAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name());
 								try{ result.minusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("negative value is not an integer "+size, ex);}
@@ -539,7 +574,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	
 	public static class InitialData
 	{
-		public Collection<List<String>> plus = null, minus = null;
+		public Collection<List<Label>> plus = null, minus = null;
 		public int plusSize=-1, minusSize =-1;
 		public LearnerGraph graph=null;
 		public LabelRepresentation labelDetails = null;
@@ -554,8 +589,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		 * @param minusSize the number of negative sequences, should be equal to the number of sequences in minus - negatives cannot be prefix-reduced.
 		 * @param pta the initial PTA
 		 */
-		public InitialData(Collection<List<String>> argPlus, int argPlusSize, 
-				Collection<List<String>> argMinus, int argMinusSize, LearnerGraph pta)
+		public InitialData(Collection<List<Label>> argPlus, int argPlusSize, 
+				Collection<List<Label>> argMinus, int argMinusSize, LearnerGraph pta)
 		{
 			plus = argPlus;minus = argMinus;plusSize = argPlusSize;minusSize = argMinusSize;graph = pta;
 			
@@ -569,7 +604,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public RestartLearningEnum kind = RestartLearningEnum.restartNONE;
 		
 		/** Sequence to add to PTA. Could be empty. */
-		public List<String> sequence = null;
+		public List<Label> sequence = null;
 		public boolean accept = false;
 		public JUConstants colour = null;
 		
@@ -579,11 +614,11 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		/**
 		* Constructs a class representing arguments to AugmentPTA
 		* @param kind which kind of PTA to modify
-		* @param sequence what to add
+		* @param argSequence what to add
 		* @param accept whether it is an accept or a reject sequence
 		* @param colour the colour to give to the new nodes to be constructed.
 		*/
-		public AugmentPTAData(RestartLearningEnum argKind,List<String> argSequence, boolean argAccept, JUConstants argColour)
+		public AugmentPTAData(RestartLearningEnum argKind,List<Label> argSequence, boolean argAccept, JUConstants argColour)
 		{
 			kind = argKind;sequence = argSequence;accept = argAccept;colour = argColour;
 		}
@@ -668,7 +703,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				kind = element.getAttribute(StatechumXML.ATTR_KIND.name()),
 				sequence = element.getTextContent();
 		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
-		StringReader reader = new StringReader(sequence);result.sequence = readInputSequence(reader, -1);
+		StringReader reader = new StringReader(sequence);result.sequence = readLabelInputSequence(reader, -1,config);
 		result.accept = Boolean.valueOf(accept);
 		if (colour.length() > 0)
 			result.colour=Enum.valueOf(JUConstants.class, colour);

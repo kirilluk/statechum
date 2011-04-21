@@ -33,6 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
 import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
@@ -75,7 +76,7 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question,	@SuppressWarnings("unused") int answerForNoRestart, 
+						List<Label> question,	@SuppressWarnings("unused") int answerForNoRestart, 
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -162,7 +163,7 @@ public class Test_CheckLearnerAgainstLog
 				 * @see statechum.analysis.learning.observers.DummyLearner#init(java.util.Collection, java.util.Collection)
 				 */
 				@Override
-				public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 				{
 					return super.init(plus, minus);
 				}
@@ -171,7 +172,7 @@ public class Test_CheckLearnerAgainstLog
 				 * @see statechum.analysis.learning.RPNIUniversalLearner#ComputeQuestions(statechum.analysis.learning.PairScore, statechum.analysis.learning.rpnicore.LearnerGraph, statechum.analysis.learning.rpnicore.LearnerGraph)
 				 */
 				@Override
-				public List<List<String>> ComputeQuestions(PairScore pair,	LearnerGraph original, LearnerGraph tempNew) 
+				public List<List<Label>> ComputeQuestions(PairScore pair,	LearnerGraph original, LearnerGraph tempNew) 
 				{
 					return ArrayOperations.sort(ComputeQuestions.computeQS_origReduced(pair,original,tempNew));
 				}
@@ -188,7 +189,7 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						List<Label> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -198,7 +199,7 @@ public class Test_CheckLearnerAgainstLog
 				
 				@Override
 				public void AugumentPTA_and_QuestionPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-						List<String> sequence, boolean accepted, JUConstants newColour)
+						List<Label> sequence, boolean accepted, JUConstants newColour)
 				{
 					topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 				}
@@ -217,7 +218,7 @@ public class Test_CheckLearnerAgainstLog
 				 * @see statechum.analysis.learning.observers.DummyLearner#init(java.util.Collection, java.util.Collection)
 				 */
 				@Override
-				public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 				{
 					tentativeAutomaton.initPTA_1();		
 					tentativeAutomaton.paths.augmentPTA(minus, false,false);
@@ -228,7 +229,7 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, @SuppressWarnings("unused") int answerForNoRestart,
+						List<Label> question, @SuppressWarnings("unused") int answerForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)

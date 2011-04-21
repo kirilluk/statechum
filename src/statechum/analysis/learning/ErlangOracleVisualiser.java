@@ -158,7 +158,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                         // This is nice and readable....
                         sum = sum.sum(m);
                     }
-                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
+                    new CodeCoverageStringFrame(traceColorise(sum, new CodeCoverageMap(), false), ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString());
                 }
             }
         } else if (mode == AllSuffixesCompareMode) {
@@ -182,7 +182,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                     String previousLabel = (String) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
                     String thisLabel = (String) ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
                     //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
-                    CodeCoverageStringFrame frameS = new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
+                    new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
                 }
             } else {

@@ -29,12 +29,14 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.PairCompatibility;
@@ -92,7 +94,7 @@ public class FsmParser
 		return lastMatch;
 	}
 	
-	public void parse(TransitionReceiver receiver)
+	public void parse(TransitionReceiver receiver,Configuration config)
 	{
 		String currentState = null;
 		do {					
@@ -143,17 +145,17 @@ public class FsmParser
 			String anotherState = getMatch();
 			
 			if (left == FsmParser.LARROW)
-				receiver.accept(anotherState, currentState, label);
+				receiver.accept(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config));
 			else
 				if (left == FsmParser.LARROWREJ)
-					receiver.reject(anotherState, currentState, label);
+					receiver.reject(anotherState, currentState, AbstractLearnerGraph.generateNewLabel(label,config));
 				else
 					if (left == FsmParser.DASH)
 					{
 						if (right == FsmParser.RARROW)
-							receiver.accept(currentState, anotherState, label);
+							receiver.accept(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config));
 						else
-							receiver.reject(currentState, anotherState, label);
+							receiver.reject(currentState, anotherState, AbstractLearnerGraph.generateNewLabel(label,config));
 					}
 					else // left == FsmParser.EQUIV
 						{
@@ -164,8 +166,31 @@ public class FsmParser
 		} while(!isFinished());
 		
 	}
-
-
+	
+	/** Given a textual representation of an fsm, builds a corresponding deterministic graph
+	 * 
+	 * @param fsm the textual representation of an FSM
+	 * @param name graph name, to be displayed as the caption of the Jung window.
+	 * @return Jung graph for it
+	 * @throws IllegalArgumentException if fsm cannot be parsed.
+	 */
+	public final static LearnerGraph buildLearnerGraph(String fsm,String name,Configuration config)
+	{
+		return new LearnerGraph(buildGraph(fsm,name,config),config);
+	}
+	
+	/** Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
+	 * 
+	 * @param fsm the textual representation of an FSM
+	 * @param name graph name, to be displayed as the caption of the Jung window.
+	 * @return Jung graph for it
+	 * @throws IllegalArgumentException if fsm cannot be parsed.
+	 */
+	public final static LearnerGraphND buildLearnerGraphND(String fsm,String name,Configuration config)
+	{
+		return new LearnerGraphND(buildGraph(fsm,name,config),config);
+	}
+	
 	/** Given a textual representation of an fsm, builds a corresponding Jung graph
 	 * 
 	 * @param fsm the textual representation of an FSM
@@ -173,7 +198,7 @@ public class FsmParser
 	 * @return Jung graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public final static DirectedSparseGraph buildGraph(String fsm,String name)
+	public final static DirectedSparseGraph buildGraph(String fsm,String name,Configuration config)
 	{
 		final Map<String,DeterministicVertex> existingVertices = new HashMap<String,DeterministicVertex>();
 		final Map<StatePair,DeterministicEdge> existingEdges = new HashMap<StatePair,DeterministicEdge>();
@@ -183,7 +208,7 @@ public class FsmParser
 
 		new FsmParser(fsm).parse(new TransitionReceiver()
 		{
-			public void put(String from, String to, String label, boolean accept) {
+			public void put(String from, String to, Label label, boolean accept) {
 				DeterministicVertex fromVertex = existingVertices.get(from), toVertex = existingVertices.get(to);
 				
 				if (fromVertex == null)
@@ -226,17 +251,17 @@ public class FsmParser
 					g.addEdge(edge);existingEdges.put(pair,edge);
 				}
 				
-				Set<String> labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
+				Set<Label> labels = (Set<Label>)edge.getUserDatum(JUConstants.LABEL);
 				labels.add(label);
 			}
 
 			@Override
-			public void accept(String from, String to, String label) {
+			public void accept(String from, String to, Label label) {
 				put(from,to,label,true);
 			}
 
 			@Override
-			public void reject(String from, String to, String label) {
+			public void reject(String from, String to, Label label) {
 				put(from,to,label,false);
 			}
 
@@ -255,7 +280,7 @@ public class FsmParser
 				pairCompatibility.addToCompatibility(existingVertices.get(stateA), existingVertices.get(stateB), pairRelation);
 				
 			}
-		});
+		},config);
 
 		if (GlobalConfiguration.getConfiguration().isGraphTransformationDebug(g))
 		{

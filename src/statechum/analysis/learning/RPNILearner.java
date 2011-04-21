@@ -48,7 +48,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
-import statechum.analysis.Erlang.ErlangTrace;
 
 public abstract class RPNILearner extends Observable implements Learner {
 
@@ -69,7 +68,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     /** Initialises this learner. */
     abstract
     @Override
-    public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus);
+    public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus);
 
     /** Initialises this learner. */
     abstract
@@ -85,7 +84,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 
     public
     @Override
-    LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus) {
+    LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) {
         topLevelListener.init(plus, minus);
         return learnMachine();
     }
@@ -197,31 +196,10 @@ public abstract class RPNILearner extends Observable implements Learner {
     }
     final String questionPrefix = "";
 
-    protected List<String> getShortenedQuestion(List<String> question) {
-        List<String> questionList = new LinkedList<String>();
-        assert (question.size() >= 1);
-        int counter = 1;
-        Iterator<String> questionIter = question.iterator();
-        String lastQuestion = questionIter.next();
-
-        while (questionIter.hasNext()) {
-            String current = questionIter.next();
-            if (current.equals(lastQuestion)) {
-                counter++;
-            } else {
-                questionList.add(lastQuestion.concat((counter > 1) ? "(*" + counter + ")" : ""));// in the string case, I could add "\n" at the end
-                counter = 1;
-                lastQuestion = current;
-            }
-        }
-        questionList.add(lastQuestion.concat((counter > 1) ? "(*" + counter + ")" : ""));
-        return questionList;
-    }
-
-    protected List<String> beautifyQuestionList(List<String> question) {
+    protected List<String> beautifyQuestionList(List<Label> question) {
         List<String> questionList = new LinkedList<String>();
         int i = 0;
-        for (String q : question) {
+        for (Label q : question) {
             questionList.add(questionPrefix + "(" + i++ + ") " + q);
         }
 
@@ -277,7 +255,7 @@ public abstract class RPNILearner extends Observable implements Learner {
      */
     @Override
     public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model, 
-    		final List<String> question, 
+    		final List<Label> question, 
     		final int expectedForNoRestart,
             final List<Boolean> consistentFacts, 
             @SuppressWarnings("unused") final PairScore pairBeingMerged, 

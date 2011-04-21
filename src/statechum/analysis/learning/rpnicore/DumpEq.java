@@ -1,6 +1,6 @@
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.GDLearnerGraph.PAIR_OK;
 
 import statechum.Configuration;
@@ -13,7 +13,7 @@ public class DumpEq {
 	public static void main(String[] args) 
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		GDLearnerGraph ndGraph = new GDLearnerGraph(new LearnerGraph(buildGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"testBuildMatrix1"),config),LearnerGraphND.ignoreRejectStates, false);
+		GDLearnerGraph ndGraph = new GDLearnerGraph(buildLearnerGraph("A-a->B-a->B-b->A / B-c->C / E-a->F-a->F-d->F-b->E-c->F",	"testBuildMatrix1",config),LearnerGraphND.ignoreRejectStates, false);
 		final int [] incompatiblePairs = new int[ndGraph.getPairNumber()];
 		for(int i=0;i<incompatiblePairs.length;++i) incompatiblePairs[i]=PAIR_OK;
 		

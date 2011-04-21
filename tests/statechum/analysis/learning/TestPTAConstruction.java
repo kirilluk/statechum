@@ -19,6 +19,7 @@
 package statechum.analysis.learning;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +35,7 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -55,11 +57,11 @@ public class TestPTAConstruction
 	@Test
 	public void testAugmentPTA_Simple() // only two traces, both accept
 	{
-		Set<List<String>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} });
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[] {"a","b","c"},new String[]{"a","d","c"} },config);
 		DirectedSparseGraph actualA = Test_Orig_RPNIBlueFringeLearner.augmentPTA(DeterministicDirectedSparseGraph.initialise(), plusStrings, true),
 			actualC = null;
 		DeterministicDirectedSparseGraph.numberVertices(actualA);// Numbering is necessary to ensure uniqueness of labels used by LearnerGraph constructor.
-		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		config.setAllowedToCloneNonCmpVertex(true);
 		LearnerGraph l = new LearnerGraph(config);
 		actualC = l.paths.augmentPTA(plusStrings, true,false).pathroutines.getGraph();
@@ -69,11 +71,11 @@ public class TestPTAConstruction
 		checkM(expectedPTA,actualC, config);
 	}
 
-	private static PTASequenceEngine buildPTA(Set<List<String>> plusStrings,Set<List<String>> minusStrings)
+	private static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
 	{
 		final Boolean accept = new Boolean(true), reject = new Boolean(false);
 		boolean theOnlyStateReject = false;
-		for(List<String> seq:minusStrings)
+		for(List<Label> seq:minusStrings)
 			if (seq.isEmpty())
 			{
 				theOnlyStateReject = true;break;
@@ -109,12 +111,12 @@ public class TestPTAConstruction
 	}
 
 	/** Checks if a PTA constructed is consistent with provided sequences. */
-	private void checkPTAConsistency(PTASequenceEngine engine,Set<List<String>> sequences, boolean accept)
+	private void checkPTAConsistency(PTASequenceEngine engine,Set<List<Label>> sequences, boolean accept)
 	{
 		SequenceSet initSeq = engine.new SequenceSet();initSeq.setIdentity();
 		int leafNumber = engine.getDebugDataMapDepth(null).size();
 		// Now we check the consistency
-		for(List<String> seq:sequences)
+		for(List<Label> seq:sequences)
 		{
 			SequenceSet endOfSeq = initSeq.crossWithSequence(seq);// this is aimed to follow a path in a PTA
 				// to a state which is not necessarily a tail-state (hence no use calling getDebugDataMapDepth(null),
@@ -139,7 +141,8 @@ public class TestPTAConstruction
 	@SuppressWarnings("null")
 	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
-		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		Set<List<Label>> plusStrings = buildSet(arrayPlusStrings,conf), minusStrings = buildSet(arrayMinusStrings,conf);
 		DirectedSparseGraph actualA = null, actualC = null, actualD = null, actualE = null, actualF = null;
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null, eF = null;
 		try
@@ -187,9 +190,9 @@ public class TestPTAConstruction
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
-			for(List<String> seq:minusStrings)
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
+			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config)),0,0);
+			for(List<Label> seq:minusStrings)
+				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),buildSet(new String[][] { (String [])seq.toArray()},config)));
 			actualE = l.tentativeAutomaton.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
@@ -280,13 +283,13 @@ public class TestPTAConstruction
 		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		// set the initial state to be reject
-		l.tentativeAutomaton.initPTA();l.tentativeAutomaton.getVertex(new LinkedList<String>()).setAccept(false);
+		l.tentativeAutomaton.initPTA();l.tentativeAutomaton.getVertex(new LinkedList<Label>()).setAccept(false);
 		// and check how augmentPTA works with such a PTA
 		for(boolean maxAutomaton:new boolean[]{true,false})
 		{
-			for(List<String> sequence:buildSet(new String[][] { new String[]{} }))
+			for(List<Label> sequence:buildSet(new String[][] { new String[]{} },config))
 				l.tentativeAutomaton.paths.augmentPTA(sequence, false,maxAutomaton,null);
-			for(List<String> sequence:buildSet(new String[][] { }))
+			for(List<Label> sequence:buildSet(new String[][] { },config))
 				l.tentativeAutomaton.paths.augmentPTA(sequence, true,maxAutomaton,null);
 			DirectedSparseGraph actualC = l.tentativeAutomaton.pathroutines.getGraph();
 			Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
@@ -303,9 +306,9 @@ public class TestPTAConstruction
 		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		l.tentativeAutomaton.initPTA();
-		for(List<String> sequence:buildSet(new String[][] { new String[]{} }))
+		for(List<Label> sequence:buildSet(new String[][] { new String[]{} },config))
 			l.tentativeAutomaton.paths.augmentPTA(sequence, false,true,null);
-		for(List<String> sequence:buildSet(new String[][] { }))
+		for(List<Label> sequence:buildSet(new String[][] { },config))
 			l.tentativeAutomaton.paths.augmentPTA(sequence, true,true,null);
 		DirectedSparseGraph actualC = l.tentativeAutomaton.pathroutines.getGraph();
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
@@ -332,7 +335,8 @@ public class TestPTAConstruction
 	 */
 	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
-		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
+		Configuration conf = Configuration.getDefaultConfiguration().copy();
+		Set<List<Label>> plusStrings = buildSet(arrayPlusStrings,conf), minusStrings = buildSet(arrayMinusStrings,conf);
 		DirectedSparseGraph actualA = null, actualC =null, actualD = null, actualE = null, actualF = null;
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null, eF = null;
 		try
@@ -380,9 +384,9 @@ public class TestPTAConstruction
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-			l.init(buildPTA(plusStrings, buildSet(new String[][] {})),0,0);
-			for(List<String> seq:minusStrings)
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {}),buildSet(new String[][] { (String [])seq.toArray()})));
+			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config)),0,0);
+			for(List<Label> seq:minusStrings)
+				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),buildSet(new String[][] { (String [])seq.toArray()},config)));
 			actualE = l.tentativeAutomaton.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
@@ -436,7 +440,7 @@ public class TestPTAConstruction
 	
 	private void checkDepthLabelling(LearnerGraph gr)
 	{
-		for(Entry<CmpVertex,LinkedList<String>> entry:gr.pathroutines.computeShortPathsToAllStates().entrySet())
+		for(Entry<CmpVertex,LinkedList<Label>> entry:gr.pathroutines.computeShortPathsToAllStates().entrySet())
 			Assert.assertEquals("state "+entry.getKey()+" with path "+entry.getValue(),entry.getValue().size(),entry.getKey().getDepth());
 	}
 	
@@ -455,13 +459,14 @@ public class TestPTAConstruction
 	 */
 	private void checkMAXconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String initialMax,String expectedMAX)
 	{
-		Set<List<String>> plusStrings = buildSet(arrayPlusStrings), minusStrings = buildSet(arrayMinusStrings);
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		Set<List<Label>> plusStrings = buildSet(arrayPlusStrings,config), minusStrings = buildSet(arrayMinusStrings,config);
 		DirectedSparseGraph actualF = null;
 		
 		LearnerGraph graph = initialMax == null? 
 				new LearnerGraph(Configuration.getDefaultConfiguration().copy()):
-					new LearnerGraph(FsmParser.buildGraph(initialMax, "initial_max"),Configuration.getDefaultConfiguration().copy());
-		for(Entry<CmpVertex,LinkedList<String>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
+					new LearnerGraph(FsmParser.buildGraph(initialMax, "initial_max",config),config);
+		for(Entry<CmpVertex,LinkedList<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 			entry.getKey().setDepth(entry.getValue().size());// add depth information to states.
 		
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
@@ -544,9 +549,10 @@ public class TestPTAConstruction
 	@Test
 	public void testAddPositive()
 	{
-		Set<List<String>> plusStrings = buildSet(new String[][] { 
-				new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}}), 
-		minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}});
+		final Configuration conf = Configuration.getDefaultConfiguration();
+		Set<List<Label>> plusStrings = buildSet(new String[][] { 
+				new String[]{"a","b","c"}, new String[]{"a","b"}, new String[]{"a","d","c"}},conf), 
+		minusStrings = buildSet(new String[][] { new String[]{"a","b","c","d"}},conf);
 
 		for(boolean max:new boolean[]{true,false})
 		{
@@ -559,7 +565,7 @@ public class TestPTAConstruction
 			l.tentativeAutomaton.paths.augmentPTA(plusStrings, true,maxAutomaton);
 			
 			checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-				l.tentativeAutomaton.paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}}),true,maxAutomaton);
+				l.tentativeAutomaton.paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}},conf),true,maxAutomaton);
 			}},IllegalArgumentException.class,"incompatible ");
 		}
 	}
@@ -598,15 +604,16 @@ public class TestPTAConstruction
 	@Test
 	public void testPTAconstruction_max5()
 	{
-		Set<List<String>> minusStrings = buildSet(new String[][] { new String[]{} });
+		Configuration config = Configuration.getDefaultConfiguration();
+		Set<List<Label>> minusStrings = buildSet(new String[][] { new String[]{} },config);
 		
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max"),Configuration.getDefaultConfiguration().copy());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C-c->A\nA-b->C-d->C", "initial_max",Configuration.getDefaultConfiguration().copy());
 		graph.findVertex(VertexID.parseID("A")).setDepth(0);
 		graph.config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		graph.paths.augmentPTA(minusStrings, false,true);
 
 		final LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
-		expected.getVertex(new LinkedList<String>()).setAccept(false);
+		expected.getVertex(new LinkedList<Label>()).setAccept(false);
 		DifferentFSMException result = WMethod.checkM(expected,graph);
 		Assert.assertNull(result);
 		checkDepthLabelling(graph);

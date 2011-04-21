@@ -17,7 +17,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 import java.util.List;
 import java.util.Random;
@@ -54,7 +54,7 @@ public class StructuralDifferencePaper {
 	public static void main(String[] args) throws IncompatibleStatesException {
 		
 		String markovString = "a-initialise->d-connect->f-login->h-storefile->m\nh-listfiles->l-retrievefile->l-changedirectory->p-listfiles->l-logout->o-disconnect->q\nh-changedirectory->n-listnames->i-delete->i-delete->j-changedirectory->n\ni-appendfile->k-logout->o\nPART2-setfiletype->e-rename->g\nPART3-makedir->PART3";
-		LearnerGraph cvsGraph = new LearnerGraph(buildGraph(
+		LearnerGraph cvsGraph = buildLearnerGraph(
 				"q0 -initialise->q1 /" +
 				"q1-connect->q2 / " +
 				"q3-setfiletype->q4 / " +
@@ -81,9 +81,9 @@ public class StructuralDifferencePaper {
 				"q16-disconnect->q17 /" +
 				"q3-changeddir->q9 /" +
 				"q10-appendfile->q11 /" +
-				"q13-retrievefile->q13","cvs"),config),
-				markovD = new LearnerGraphND(buildGraph(markovString.replace("PART2", "a").replace("PART3", "a"),"markovD"),config).pathroutines.buildDeterministicGraph(),
-				edsm = new LearnerGraph(buildGraph("a-initialise->b-connect->c-login->d-storefile->e-changedirectory->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedirectory->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","edsm"),config)
+				"q13-retrievefile->q13","cvs",config),
+				markovD = buildLearnerGraph(markovString.replace("PART2", "a").replace("PART3", "a"),"markovD",config).pathroutines.buildDeterministicGraph(),
+				edsm = buildLearnerGraph("a-initialise->b-connect->c-login->d-storefile->e-changedirectory->d-listfiles->e-retrievefile->e-logout->i-disconnect->l\nd-delete->d-makedir->d-changedirectory->f-listnames->d-logout->g-disconnect->j\nd-setfiletype->h-storefile->k-appendfile->m-setfiletype->n-rename->o-storefile->m\nd-appendfile->o-logout->p-disconnect->q","edsm",config)
 				;
 				//"A-initialise->B-connect->C-login->D-setfiletype->D-retrievefile->D-delete->D-storefile->D-makedir->D-listfiles->D-changedirectory->E-listnames->D\nE-listfiles->D-appendfile->F-setfiletype->H-rename->D-rename->F-logout->G-disconnect->I\nD-logout->G",	"correct"),config);
 		//LearnerGraphND 

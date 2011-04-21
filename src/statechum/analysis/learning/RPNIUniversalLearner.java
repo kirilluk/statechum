@@ -21,6 +21,7 @@ package statechum.analysis.learning;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
@@ -59,7 +60,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	protected LearnerGraph tentativeAutomaton = null;
 
 	@Override
-	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
+	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus)
 	{// Given that we may have a graph with a single reject-state, we'd like to start by adding
 	 // reject-sequences first.
 		tentativeAutomaton.initPTA();		
@@ -130,7 +131,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param pair the pair of states merged in the original graph
 	 */
 	@Override 
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
+	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.computeQS(pair, tentativeAutomaton,tempNew, ifthenAutomata);
@@ -145,7 +146,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 * @param pair the pair of states merged in the original graph
 	 */
 	@Override 
-	public List<List<String>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
+	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
 		return ComputeQuestions.RecomputeQS(pair, tentativeAutomaton,temp, ifthenAutomata);
@@ -153,12 +154,12 @@ public class RPNIUniversalLearner extends RPNILearner
 	
 	@Override 
 	public void AugmentPTA(LearnerGraph pta, @SuppressWarnings("unused") RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour) {
+			List<Label> sequence, boolean accepted, JUConstants newColour) {
 		pta.paths.augmentPTA(sequence, accepted, false, newColour);
 	}
 
 	public void AugumentPTA_and_QuestionPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour)
+			List<Label> sequence, boolean accepted, JUConstants newColour)
 	{
 		topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 		if (config.isUseConstraints()) // This check has to be performed because if constraints are used, 
@@ -205,7 +206,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			iterations++;
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
-			Collection<List<String>> questions = new LinkedList<List<String>>();
+			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			int score = pair.getScore();
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA
 											// and restart learning.
@@ -213,11 +214,11 @@ public class RPNIUniversalLearner extends RPNILearner
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 
-				Collection<List<String>> counterExamples = SpinUtil.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
-				Iterator<List<String>> counterExampleIt = counterExamples.iterator();
+				Collection<List<Label>> counterExamples = SpinUtil.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
+				Iterator<List<Label>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext())
 				{
-					List<String> counterExample = counterExampleIt.next();
+					List<Label> counterExample = counterExampleIt.next();
 					topLevelListener.AugmentPTA(ptaSoftFacts, RestartLearningEnum.restartSOFT, counterExample, false,colourToAugmentWith);
 					System.out.println("<temp> "+counterExample);
 					
@@ -241,7 +242,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				// finished with questions.
 			}
 
-			Iterator<List<String>> questionIt = null;
+			Iterator<List<Label>> questionIt = null;
 			
 			if (restartLearning == RestartLearningEnum.restartNONE && shouldAskQuestions(score)) 
 			{
@@ -260,7 +261,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			
 			while (restartLearning == RestartLearningEnum.restartNONE && questionIt != null && questionIt.hasNext()) 
 			{
-				List<String> question = questionIt.next();
+				List<Label> question = questionIt.next();
 				
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
@@ -323,17 +324,17 @@ public class RPNIUniversalLearner extends RPNILearner
 							String newTrace = tokenizer.nextToken().trim();
 							if (newTrace.length() > 0)
 							{
-								List<String> traceToAdd = null;
+								List<Label> traceToAdd = null;
 								boolean positive = true;
 								if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdPositive))
 								{
 									positive = true;
-									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdPositive.length()+1));
+									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdPositive.length()+1),config);
 								}
 								else if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdNegative))
 								{
 									positive = false;
-									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdNegative.length()+1));
+									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdNegative.length()+1),config);
 								}
 								else
 									throw new IllegalArgumentException("trace not labelled as either positive or negative");
@@ -342,7 +343,7 @@ public class RPNIUniversalLearner extends RPNILearner
 								traceString.append(positive?QSMTool.cmdPositive:QSMTool.cmdNegative);
 								traceString.append(' ');
 								boolean firstElem = true;
-								for(String elem:traceToAdd)
+								for(Label elem:traceToAdd)
 								{
 									if (!firstElem) traceString.append(" ");else firstElem = false;
 									traceString.append(elem);
@@ -377,7 +378,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				if (answer.firstElem >= 0) 
 				{// The sequence has been rejected by a user
 					assert answer.firstElem < question.size();
-					LinkedList<String> subAnswer = new LinkedList<String>();
+					LinkedList<Label> subAnswer = new LinkedList<Label>();
 					subAnswer.addAll(question.subList(0, answer.firstElem + 1));
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						AugumentPTA_and_QuestionPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
@@ -418,7 +419,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <"+answerType+"> "+addedConstraint);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ifthenAutomataAsText);tmpLtl.add(answerType+" "+addedConstraint);
 							if(!config.isUseConstraints()){
-								Collection<List<String>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
+								Collection<List<Label>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
 								if (counters.size()>0)
 								{
 									String errorMessage = getHardFactsContradictionErrorMessage(tmpLtl, counters);
@@ -523,10 +524,10 @@ public class RPNIUniversalLearner extends RPNILearner
 		return tentativeAutomaton;
 	}
 
-	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, Collection<List<String>> counters)
+	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, Collection<List<Label>> counters)
 	{
 		StringBuffer errString = new StringBuffer();
-		Iterator<List<String>> counterIt = counters.iterator();
+		Iterator<List<Label>> counterIt = counters.iterator();
 		while(counterIt.hasNext()){
 			errString.append(counterIt.next());errString.append('\n');
 		}
@@ -540,7 +541,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		return errString;
 	}
 	
-	protected int checkWithSPIN (List<String> question){
+	protected int checkWithSPIN (List<Label> question){
 		return SpinUtil.check(question, ifthenAutomataAsText);
 	}
 	
@@ -571,7 +572,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				if (tempNew != null) // merge successful - it would fail if our updates to newPTA have modified tentativeAutomaton (the two are often the same graph)
 				{					
-					for(List<String> question:topLevelListener.ComputeQuestions(pair, ptaHardFacts, tempNew))
+					for(List<Label> question:topLevelListener.ComputeQuestions(pair, ptaHardFacts, tempNew))
 					{
 						List<Boolean> acceptedElements = null;
 						if (tentativeAutomaton.config.isUseConstraints())
@@ -591,7 +592,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							if(answer.firstElem >= 0)
 							{// The sequence has been rejected by a user
 								assert answer.firstElem < question.size();
-								LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
+								LinkedList<Label> subAnswer = new LinkedList<Label>();subAnswer.addAll(question.subList(0, answer.firstElem+1));
 								topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
 							}
 					}

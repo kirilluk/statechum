@@ -17,13 +17,15 @@
  */
 package statechum.analysis.learning.experiments;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 
 public class ForestFireIntermediateNegativesGenerator extends ForestFireLabelledStateMachineGenerator {
 
-	public ForestFireIntermediateNegativesGenerator(double forwards,double backwards, double argSelfLoop, double argParallel, int alphabetSize, int seed) 
+	public ForestFireIntermediateNegativesGenerator(double forwards,double backwards, double argSelfLoop, double argParallel, int alphabetSize, 
+			int seed, Configuration conf) 
 	{
-		super(forwards, backwards,argSelfLoop,  argParallel,  alphabetSize, seed);
+		super(forwards, backwards,argSelfLoop,  argParallel,  alphabetSize, seed,conf);
 	}
 	
 

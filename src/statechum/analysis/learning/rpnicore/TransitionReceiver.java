@@ -19,11 +19,12 @@
 package statechum.analysis.learning.rpnicore;
 
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Label;
 
 /** Used to receive state transitions extracted from textual FSM representation. */
 interface TransitionReceiver
 {
-	public void accept(String from, String to, String label);
-	public void reject(String from, String to, String label);
+	public void accept(String from, String to, Label label);
+	public void reject(String from, String to, Label label);
 	public void pairCompatibility(String stateA, PAIRCOMPATIBILITY pairRelation, String stateB);
 }

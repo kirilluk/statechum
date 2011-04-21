@@ -48,6 +48,7 @@ import statechum.ArrayOperations;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
@@ -160,7 +161,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	 * @param initSeq the set of sequences to which the paths found should be concatenated.
 	 * @param expectedResult the expected outcome.
 	 */
-	private void TestComputePathsBetweenHelper(String machine, String testName, String FirstState, String SecondState, String[][] initSeq, Object[][] expectedResult)
+	private void TestComputePathsBetweenHelper(String machine, String testName, String FirstState, String SecondState, Label[][] initSeq, Object[][] expectedResult)
 	{
 		Map<String,String> expected = new HashMap<String,String>();
 		if (initSeq != null)

@@ -73,12 +73,12 @@ public class PTASequenceSet extends PrefixFreeCollection implements Set<List<Lab
 
 	@Override
 	public boolean contains(Object o) {
-		return engine.containsSequence( (List<String>)o);
+		return engine.containsSequence( (List<Label>)o);
 	}
 	
 	public boolean containsAsLeaf(Object o)
 	{
-		return engine.containsAsLeaf( (List<String>)o);
+		return engine.containsAsLeaf( (List<Label>)o);
 	}
 
 	@Override

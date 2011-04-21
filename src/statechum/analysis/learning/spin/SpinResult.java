@@ -2,19 +2,20 @@ package statechum.analysis.learning.spin;
 
 import java.util.List;
 
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class SpinResult{
 	
 	boolean pass;
-	List<List<String>>counters;
+	List<List<Label>>counters;
 	
 	public SpinResult(){
 		pass = false;
 		counters = null;
 	}
 	
-	public SpinResult(boolean passArg, List<List<String>>countersArg){
+	public SpinResult(boolean passArg, List<List<Label>>countersArg){
 		this.pass=passArg;
 		this.counters=countersArg;
 	}
@@ -22,7 +23,7 @@ public class SpinResult{
 	public boolean isPass() {
 		return pass;
 	}
-	public List<List<String>> getCounters() {
+	public List<List<Label>> getCounters() {
 		return counters;
 	}
 
@@ -30,7 +31,7 @@ public class SpinResult{
 		this.pass = passArg;
 	}
 
-	public void setCounters(List<List<String>> countersArg) {
+	public void setCounters(List<List<Label>> countersArg) {
 		this.counters = countersArg;
 	}
 	

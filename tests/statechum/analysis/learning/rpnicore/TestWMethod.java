@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.*;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.WMethod.cross;
@@ -48,6 +49,7 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.StringVertex;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -101,9 +103,9 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void computeStateCover2() {
-		LearnerGraph gr = new LearnerGraph(buildGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2"),config);
-		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
-			actual = new HashSet<List<String>>();
+		LearnerGraph gr = buildLearnerGraph("A-d->A-b->B-c->B-a->C\nQ-d->S","computeStateCover2",config);
+		Collection<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"b","a"}}),
+			actual = new HashSet<List<Label>>();
 			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
@@ -114,8 +116,8 @@ public class TestWMethod {
 	@Test
 	public final void computeStateCover3() {
 		LearnerGraph gr=new LearnerGraph(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S","computeStateCover3"),config);
-		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
-			actual = new HashSet<List<String>>();
+		Collection<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"b","a"}}),
+			actual = new HashSet<List<Label>>();
 			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
@@ -126,8 +128,8 @@ public class TestWMethod {
 	@Test
 	public final void computeStateCover3_ND() {
 		LearnerGraphND gr=new LearnerGraphND(buildGraph("A-a->A\nD<-d-A-b->B-c->B-a->C\nQ-d->S\nA-a->C","computeStateCover3_ND"),config);
-		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"a"}}),
-			actual = new HashSet<List<String>>();
+		Collection<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"b"},new String[]{"d"},new String[]{"a"}}),
+			actual = new HashSet<List<Label>>();
 			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
@@ -138,8 +140,8 @@ public class TestWMethod {
 	@Test
 	public final void computeStateCover4() {
 		LearnerGraph gr = new LearnerGraph(buildGraph("A-a->S\nD<-d-A-b->B-c->B-a->C-a->Q\nQ-d->S","computeStateCover3"),config);
-		Collection<List<String>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
-			actual = new HashSet<List<String>>();
+		Collection<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{},new String[]{"a"},new String[]{"b"},new String[]{"d"},new String[]{"b","a"},new String[]{"b","a","a"}}),
+			actual = new HashSet<List<Label>>();
 			actual.addAll(gr.pathroutines.computeStateCover(gr.getInit()));
 		Assert.assertTrue(expected.equals(actual));
 	}
@@ -181,10 +183,10 @@ public class TestWMethod {
 	 */
 	@Test
 	public final void testCross1a() {
-		Set<List<String>> actual = new HashSet<List<String>>();
+		Set<List<Label>> actual = new HashSet<List<Label>>();
 		actual.addAll(cross(buildList(new String[][] {new String[]{"a","b"},new String[]{"z","x"}}), 
 		buildList(new String[][] {new String[]{"c","d"}, new String[]{"q","w"}})));
-		Set<List<String>> expected = buildSet(new String[][] {
+		Set<List<Label>> expected = buildSet(new String[][] {
 						new String[]{"a","b","c","d"},
 						new String[]{"a","b","q","w"},
 						new String[]{"z","x","c","d"},
@@ -653,7 +655,7 @@ public class TestWMethod {
 
 	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected, boolean prefixClosed)
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		LearnerGraph fsm = buildLearnerGraph(machine,"testWset",config);
 		testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
 	}
 	
@@ -661,7 +663,7 @@ public class TestWMethod {
 	{
 		fsm.config.setPrefixClosed(prefixClosed);
 		fsm.config.setEquivalentStatesAllowedForW(false);
-		Set<List<String>> computedWset = new TreeSet<List<String>>(); 
+		Set<List<Label>> computedWset = new TreeSet<List<Label>>(); 
 		try
 		{
 			computedWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
@@ -673,7 +675,7 @@ public class TestWMethod {
 		}
 
 		fsm.config.setEquivalentStatesAllowedForW(true);
-		Set<List<String>> wset = new HashSet<List<String>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+		Set<List<Label>> wset = new HashSet<List<Label>>();wset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 		fsm.wmethod.checkW_is_corrent(wset,prefixClosed,equivalentVertices);// we are not checking for W reduction here since space-saving way to compute W
 		
 	}

@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
+import statechum.Label;
+
 /** Makes it possible to construct a collection of sequences of 
  * strings where no string is a prefix of another one.
  * 
@@ -29,10 +31,10 @@ import java.util.List;
  */
 public abstract class PrefixFreeCollection {
 	
-	public abstract Collection<List<String>> getData();
+	public abstract Collection<List<Label>> getData();
 	
 	/** Adds a sequence to this collection. */
-	public abstract void addSequence(List<String> sequence);
+	public abstract void addSequence(List<Label> sequence);
 	
 	/** Returns true if what is a prefix of str.
 	 * 
@@ -40,10 +42,10 @@ public abstract class PrefixFreeCollection {
 	 * @param what what to check against <em>str</em>
 	 * @return true if <em>what</em> is a prefix of <em>str</em>.
 	 */
-	public static boolean isPrefix(List<String> str, List<String> what)
+	public static <ELEM>  boolean isPrefix(List<ELEM> str, List<ELEM> what)
 	{
 		if (what.size() > str.size()) return false;
-		Iterator<String> strIt=str.iterator(), whatIt=what.iterator();
+		Iterator<ELEM> strIt=str.iterator(), whatIt=what.iterator();
 		while(whatIt.hasNext() && strIt.hasNext())
 			if (!strIt.next().equals(whatIt.next()))
 				return false;

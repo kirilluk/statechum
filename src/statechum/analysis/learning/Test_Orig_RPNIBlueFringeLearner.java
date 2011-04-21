@@ -27,19 +27,24 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
+import statechum.model.testset.PTASequenceSet;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.algorithms.shortestpath.ShortestPathUtils;
 import edu.uci.ics.jung.algorithms.shortestpath.UnweightedShortestPath;
@@ -63,14 +68,14 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 
 	protected Graph currentGraph = DeterministicDirectedSparseGraph.initialise();
 	protected HashSet<DirectedSparseEdge> doneEdges;
-	protected Collection<List<String>> sPlus, sMinus;
+	protected Collection<List<Label>> sPlus, sMinus;
 
-	public static Collection<String> getAlphabetForEdges(Collection<Edge> edges){
-		HashSet<String> alphabet = new HashSet<String>();
+	public static Collection<Label> getAlphabetForEdges(Collection<Edge> edges){
+		Set<Label> alphabet = new TreeSet<Label>();
 		Iterator<Edge> edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			Edge e = (edgeIt.next());
-			alphabet.addAll((Collection<String>)e.getUserDatum(JUConstants.LABEL));
+			alphabet.addAll((Collection<Label>)e.getUserDatum(JUConstants.LABEL));
 		}
 		return alphabet;
 	}
@@ -198,7 +203,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return temp;
 	}
 	
-	protected static DirectedSparseGraph createAugmentedPTA(Collection<List<String>> plus, Collection<List<String>> minus){
+	protected static DirectedSparseGraph createAugmentedPTA(Collection<List<Label>> plus, Collection<List<Label>> minus){
 		DirectedSparseGraph model = DeterministicDirectedSparseGraph.initialise();
 		model = augmentPTA(model, minus, false);
 		model = augmentPTA(model, plus, true);
@@ -207,7 +212,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 	
 	@Override
-	public LearnerGraph init(Collection<List<String>> plus, Collection<List<String>> minus)
+	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus)
 	{
 		sPlus = plus;
 		sMinus = minus;		
@@ -234,7 +239,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * but not participating in the logging-and-comparing type of testing.
 	 */ 
 	@Override 
-	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<String>> plus, @SuppressWarnings("unused") Collection<List<String>> minus) {
+	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<Label>> plus, @SuppressWarnings("unused") Collection<List<Label>> minus) {
 		DirectedSparseGraph model = init(sPlus, sMinus).pathroutines.getGraph();
 		
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
@@ -249,15 +254,15 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 				setChanged();
-				List<List<String>> questions;
+				Collection<List<Label>> questions;
 				if(config.getAskQuestions())
 					questions = generateQuestions(model, pair);
 				else
-					questions = new ArrayList<List<String>>();
+					questions = new LinkedList<List<Label>>();
 				questions = trimSet(questions);
-				Iterator<List<String>> questionIt = questions.iterator();
+				Iterator<List<Label>> questionIt = questions.iterator();
 				while(questionIt.hasNext()){
-					List<String> question = questionIt.next();
+					List<Label> question = questionIt.next();
 					boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());// Q is the blue vertex
 					Pair<Integer,String> response = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question,
 							AbstractOracle.USER_CANCELLED,null,null,new Object[0]);// zero means "yes", everything else is "no"
@@ -285,9 +290,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return new LearnerGraph(model,Configuration.getDefaultConfiguration());
 	}
 	
-	protected boolean compatible(DirectedSparseGraph model, Collection<List<String>> plus, Collection<List<String>> minus){
+	protected boolean compatible(DirectedSparseGraph model, Collection<List<Label>> plus, Collection<List<Label>> minus){
 		boolean returnValue = true;
-		for(List<String> string:minus)
+		for(List<Label> string:minus)
 		{
 			Vertex v = getVertex(model,string);
 			if(v != null){
@@ -295,7 +300,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 					returnValue = false;
 			}
 		}
-		for(List<String> string:plus)
+		for(List<Label> string:plus)
 		{
 			Vertex v = getVertex(model,string);
 			if(v == null)
@@ -313,37 +318,24 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param questions
 	 * @return a set of questions which are not prefixes of other questions.
 	 */
-	protected List<List<String>> trimSet(List<List<String>> questions){
-		Set<String> done = new HashSet<String>();
-		List<List<String>> trimmedSet = new ArrayList<List<String>>();
-		Iterator<List<String>> questionIt = questions.iterator();
-		while(questionIt.hasNext()){
-			List<String> question = questionIt.next();
-			Iterator<String> stringIt = question.iterator();
-			String questionString=new String();
-			while(stringIt.hasNext())
-				questionString = questionString.concat("]["+stringIt.next());
-			if(!done.contains(questionString.trim())){
-				done.add(questionString.trim());
-				trimmedSet.add(question);
-			}
-		}
-		return trimmedSet;
+	protected Collection<List<Label>> trimSet(Collection<List<Label>> questions){
+		PTASequenceSet collection = new PTASequenceSet();collection.addAll(questions);
+		return collection.getData();
 	}
 
 	/*
 	 * needs to be refactored into smaller methods
 	 */
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model, OrigStatePair pair){
+	protected List<List<Label>> generateQuestions(DirectedSparseGraph model, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
-			return new ArrayList<List<String>>();
+			return new LinkedList<List<Label>>();
 		boolean accepted = DeterministicDirectedSparseGraph.isAccept(q);
 		if(accepted == false)
-			return new ArrayList<List<String>>();
-		List<String> sp = null;
-		Set<List<String>> w =null;
+			return new LinkedList<List<Label>>();
+		List<Label> sp = null;
+		Set<List<Label>> w =null;
 		if(!hasAcceptedNeighbours(q)){
 			sp = getShortPrefix(model, q);
 			w = getShortSuffixes(model, r);
@@ -352,30 +344,30 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			sp = getShortPrefix(model, r);// shortest sequence to the red state 
 			w = getSuffixes(model,q, accepted);
 		}
-		Iterator<List<String>> wIt;
-		ArrayList<List<String>> questions = new ArrayList<List<String>>();
-		Set<String>loopLabels = new HashSet<String>();
+		Iterator<List<Label>> wIt;
+		List<List<Label>> questions = new LinkedList<List<Label>>();
+		Set<Label>loopLabels = new TreeSet<Label>();
 		boolean loopToR = r.getSuccessors().contains(r);
 		boolean redAndBlueNeighbours = r.getNeighbors().contains(q);
 		if(loopToR||redAndBlueNeighbours){ //there either exists a loop to r or will do if r and b merge
 			if(loopToR){
 				Edge e = findEdge(r, r);
-				HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 			if(redAndBlueNeighbours){
 				Edge e = findEdge(r,q);
-				HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
+				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 				loopLabels.addAll(labels);
 			}
 		}
 		wIt = w.iterator();
 		while(wIt.hasNext()){
-			List<String> suffix = wIt.next();
-			Iterator<String> labelIt = loopLabels.iterator();
+			List<Label> suffix = wIt.next();
+			Iterator<Label> labelIt = loopLabels.iterator();
 			if(!loopLabels.isEmpty()){
 				while(labelIt.hasNext()){
-					List<String> newQuestion = new ArrayList<String>();
+					List<Label> newQuestion = new LinkedList<Label>();
 					newQuestion.addAll(sp);
 					newQuestion.add(labelIt.next());
 					newQuestion.addAll(suffix);
@@ -384,7 +376,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 						questions.add(newQuestion);
 				}
 			}
-			List<String> newQuestion = new ArrayList<String>();
+			List<Label> newQuestion = new LinkedList<Label>();
 			newQuestion.addAll(sp);
 			newQuestion.addAll(suffix);
 			Vertex v = getVertex(model, newQuestion);
@@ -399,8 +391,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * of a tree. This method does not make that presumption, but simply returns the direct successors
 	 * of the source vertex that are accepted.
 	 */
-	protected static HashSet<List<String>> getShortSuffixes(@SuppressWarnings("unused") DirectedSparseGraph g, Vertex v){
-		HashSet<List<String>> returnStrings = new HashSet<List<String>>();
+	protected static Set<List<Label>> getShortSuffixes(@SuppressWarnings("unused") DirectedSparseGraph g, Vertex v){
+		Set<List<Label>> returnStrings = new LinkedHashSet<List<Label>>();
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
@@ -432,8 +424,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param accepted labelling requested.
 	 * @return the list of paths.
 	 */
-	protected Set<List<String>> getSuffixes(DirectedSparseGraph graph, Vertex r, boolean accepted){
-		Set<List<String>> setOfPaths = new HashSet<List<String>>();
+	protected Set<List<Label>> getSuffixes(DirectedSparseGraph graph, Vertex r, boolean accepted){
+		Set<List<Label>> setOfPaths = new HashSet<List<Label>>();
 		Iterator<Vertex> vertexIt = graph.getVertices().iterator();
 		Set<Vertex> endVertices = new HashSet<Vertex>();
 		DijkstraShortestPath p = new DijkstraShortestPath(graph);
@@ -459,24 +451,24 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param l path
 	 * @return
 	 */
-	protected static Set<List<String>> getPaths(List<Edge> l){
-		TreeMap<Integer,Set<List<String>>> returnSet = new TreeMap<Integer,Set<List<String>>>();// KIRR: this should not be done in this way since access to this map is not random - you only need the last element in which case simply storing the last set of lists is best
+	protected static Set<List<Label>> getPaths(List<Edge> l){
+		TreeMap<Integer,Set<List<Label>>> returnSet = new TreeMap<Integer,Set<List<Label>>>();// KIRR: this should not be done in this way since access to this map is not random - you only need the last element in which case simply storing the last set of lists is best
 		for(int i=0;i<l.size();i++){// for each element of the source list
 			Edge e = l.get(i);
-			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-			Set<List<String>> strings = new HashSet<List<String>>();
-			for(String s:labels)
+			Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+			Set<List<Label>> strings = new HashSet<List<Label>>();
+			for(Label s:labels)
 			{
 				if(i==0){
-					List<String> string = new ArrayList<String>();
+					List<Label> string = new LinkedList<Label>();
 					string.add(s);
 					strings.add(string);			
 				}
 				else{
-					Set<List<String>> oldStrings = returnSet.get(i-1);
-					Iterator<List<String>> stringIt = oldStrings.iterator();
+					Set<List<Label>> oldStrings = returnSet.get(i-1);
+					Iterator<List<Label>> stringIt = oldStrings.iterator();
 					while(stringIt.hasNext()){
-						List<String> newString = new ArrayList<String>();
+						List<Label> newString = new LinkedList<Label>();
 						newString.addAll(stringIt.next());
 						newString.add(s);
 						strings.add(newString);
@@ -488,20 +480,20 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		if(!returnSet.isEmpty())
 			return returnSet.get(returnSet.lastKey());
 		
-		return new HashSet<List<String>>();
+		return new LinkedHashSet<List<Label>>();
 	}
 	
 	/** Returns a sequence of names labelling a shortest path from the initial node to node q. */
-	protected static List<String> getShortPrefix(DirectedSparseGraph model, Vertex q){
+	protected static List<Label> getShortPrefix(DirectedSparseGraph model, Vertex q){
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(model);
 		UnweightedShortestPath p = new UnweightedShortestPath(model);
 		Iterator<Edge> pathIt =  ShortestPathUtils.getPath(p, init, q).iterator();
-		List<String> list = new ArrayList<String>();
+		List<Label> list = new LinkedList<Label>();
 		while(pathIt.hasNext()){
 			Edge e = pathIt.next();
-			Set<String> s = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-			Object[] strings = s.toArray();
-			list.add(strings[0].toString());
+			Set<Label> s = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+			Label[] strings = s.toArray(new Label[0]);
+			list.add(strings[0]);
 		}
 			
 		return list;
@@ -521,8 +513,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				model.addEdge(eDash);
 			else{
 				Edge existing = findEdge(e.getSource(), qDash);
-				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);// KIRR: if you use UserData.SHARED, you do not need to copy the result back using put
-				labels.addAll((Set<String>)e.getUserDatum(JUConstants.LABEL));
+				Set<Label> labels = (Set<Label>)existing.getUserDatum(JUConstants.LABEL);// KIRR: if you use UserData.SHARED, you do not need to copy the result back using put
+				labels.addAll((Set<Label>)e.getUserDatum(JUConstants.LABEL));
 				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
@@ -536,8 +528,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				model.addEdge(eDash);
 			else{
 				Edge existing = findEdge(qDash, e.getDest());
-				Set<String> labels = (Set<String>)existing.getUserDatum(JUConstants.LABEL);
-				labels.addAll((Set<String>)e.getUserDatum(JUConstants.LABEL));
+				Set<Label> labels = (Set<Label>)existing.getUserDatum(JUConstants.LABEL);
+				labels.addAll((Set<Label>)e.getUserDatum(JUConstants.LABEL));
 				existing.setUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 			}
 			removeEdges.add(e);
@@ -561,13 +553,13 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			Vertex v = queueIt.next();
 			Set<DirectedSparseEdge> edges = v.getOutEdges();
 			Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
-			Map<String,DirectedSparseEdge> doneLabels = new HashMap<String,DirectedSparseEdge>();
+			Map<Label,DirectedSparseEdge> doneLabels = new HashMap<Label,DirectedSparseEdge>();
 			while(edgeIt.hasNext()){
 				DirectedSparseEdge e = edgeIt.next();
-				Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
-				Iterator<String> labelIt = labels.iterator();
+				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+				Iterator<Label> labelIt = labels.iterator();
 				while(labelIt.hasNext()){
-					String label = labelIt.next();
+					Label label = labelIt.next();
 					if(doneLabels.get(label)==null)
 						doneLabels.put(label, e);
 					else {
@@ -586,7 +578,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return null;
 	}
 
-	protected Stack<OrigStatePair> chooseStatePairs(DirectedSparseGraph g, Collection<List<String>> sPlus, Collection<List<String>> sMinus){
+	protected Stack<OrigStatePair> chooseStatePairs(DirectedSparseGraph g, Collection<List<Label>> sPlusArg, Collection<List<Label>> sMinusArg){
 		Stack<Vertex> blueStack = new Stack<Vertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<OrigStatePair> > scoreToPair = new TreeMap<Integer,Vector<OrigStatePair> >();// maps scores to pairs which have those scores
@@ -601,7 +593,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				doneEdges = new HashSet<DirectedSparseEdge>();
 				Integer score = new Integer(computeScore(g,pair));
 				DirectedSparseGraph temp = mergeAndDeterminize((Graph)g.copy(), pair);
-				if(compatible(temp, sPlus, sMinus)){
+				if(compatible(temp, sPlusArg, sMinusArg)){
 					// singleSet maps scores to pairs which have those scores
 					if(score<config.getKlimit())
 						continue;
@@ -685,10 +677,10 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				continue;
 			
 			doneEdges.add(e);
-			HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
-			Iterator<String> labelIt = labels.iterator();
+			Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+			Iterator<Label> labelIt = labels.iterator();
 			while(labelIt.hasNext()){
-				List<String> string = new ArrayList<String>();
+				List<Label> string = new LinkedList<Label>();
 				string.add(labelIt.next());
 				Vertex qi = e.getDest();
 				Vertex qj = getVertex(original,blueRed.getR(), string);
@@ -715,15 +707,16 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param accepted whether sequences are accept or reject ones.
 	 * @return the result of adding.
 	 */ 
-	static DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<String>> strings, boolean accepted){
-		Iterator<List<String>> stringsIt = strings.iterator();
+	static DirectedSparseGraph augmentPTA(DirectedSparseGraph pta, Collection<List<Label>> strings, boolean accepted)
+	{
+		Iterator<List<Label>> stringsIt = strings.iterator();
 		while(stringsIt.hasNext()){
-			List<String> string = stringsIt.next();
+			List<Label> string = stringsIt.next();
 			if (string.isEmpty() && !accepted)
 				throw new IllegalArgumentException("since the initial state is an accept one, a negative string should not be empty");
 			
 			for(int i = 1;i<=string.size();i++){
-				List<String> current = string.subList(0, i);
+				List<Label> current = string.subList(0, i);
 				Vertex existing = getVertex(pta,current);
 
 				Vertex newVertex = new DirectedSparseVertex();
@@ -737,7 +730,7 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 					Vertex previous;
 					previous = getVertex(pta, string.subList(0, i-1));// for i==1, getVertex will return the initial vertex
 					DirectedSparseEdge e = new DirectedSparseEdge(previous, newVertex);
-					Set<String> labels = new HashSet<String>();
+					Set<Label> labels = new TreeSet<Label>();
 					labels.add(string.get(i-1));
 					e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
 					pta.addEdge(e);
@@ -757,13 +750,13 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return pta;
 	}
 	
-	protected static Vertex getVertex (@SuppressWarnings("unused") DirectedSparseGraph g,Vertex v, List<String> string){
+	protected static Vertex getVertex (@SuppressWarnings("unused") DirectedSparseGraph g,Vertex v, List<Label> string){
 		Vertex current = v;
 		if (current == null)
 			return null;
 		
 		for(int i = 0;i<string.size();i++){
-			String label = string.get(i);
+			Label label = string.get(i);
 			DirectedSparseEdge edge = getEdgeWithLabel(current.getOutEdges(), label);
 			if(edge == null)
 				return null;
@@ -772,15 +765,15 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return current;
 	}
 	
-	public static Vertex getVertex (DirectedSparseGraph g, List<String> string){
+	public static Vertex getVertex (DirectedSparseGraph g, List<Label> string){
 		return getVertex(g, DeterministicDirectedSparseGraph.findInitial(g), string);
 	}
 
-	public static DirectedSparseEdge getEdgeWithLabel(Set<DirectedSparseEdge> edges, String label){
+	public static DirectedSparseEdge getEdgeWithLabel(Set<DirectedSparseEdge> edges, Label label){
 		Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
 		while(edgeIt.hasNext()){
 			DirectedSparseEdge e = edgeIt.next();
-			Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
+			Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 			if(labels.contains(label))
 				return e;
 		}
@@ -809,51 +802,57 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return qAcceptedO != rAcceptedO;
 	}
 
-
-
+	@Override
 	public String getResult() {
 		return null;
 	}
 
+	@Override
 	public Stack<PairScore> ChooseStatePairs(@SuppressWarnings("unused") LearnerGraph graph) 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
-	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair,
+	@Override
+	public List<List<Label>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair,
 			@SuppressWarnings("unused")	LearnerGraph original, 
 			@SuppressWarnings("unused")	LearnerGraph temp) 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
-	public List<List<String>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair,
+	@Override
+	public List<List<Label>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair,
 			@SuppressWarnings("unused")	LearnerGraph original, 
 			@SuppressWarnings("unused")	LearnerGraph temp) 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
+	@Override
 	public LearnerGraph MergeAndDeterminize(@SuppressWarnings("unused")	LearnerGraph original,
 			@SuppressWarnings("unused")	StatePair pair) 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
+	@Override
 	public LearnerGraph learnMachine() 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
+	@Override
 	public void AugmentPTA(@SuppressWarnings("unused") LearnerGraph pta, 
 			@SuppressWarnings("unused")	RestartLearningEnum ptaKind,
-			@SuppressWarnings("unused")	List<String> sequence, 
+			@SuppressWarnings("unused")	List<Label> sequence, 
 			@SuppressWarnings("unused")	boolean accepted, 
 			@SuppressWarnings("unused")	JUConstants newColour) 
 	{
 		throw new UnsupportedOperationException("uses an internal method");
 	}
 
+	@Override
 	public boolean AddConstraints(@SuppressWarnings("unused") LearnerGraph graph, @SuppressWarnings("unused") LearnerGraph outcome, @SuppressWarnings("unused") StringBuffer counterExampleHolder) 
 	{
 		throw new UnsupportedOperationException("does not use constraints");

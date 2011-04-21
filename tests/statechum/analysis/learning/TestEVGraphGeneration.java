@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.TestEquivalenceChecking;
@@ -55,14 +56,14 @@ public class TestEVGraphGeneration {
 	
 	public static DirectedSparseGraph buildEVGraph(String graphString)
 	{
-		DirectedSparseGraph g = FsmParser.buildGraph(graphString, "simpleGraph");
+		DirectedSparseGraph g = FsmParser.buildGraph(graphString, "simpleGraph",Configuration.getDefaultConfiguration());
 		g.getEdgeConstraints().clear();
 		List<Edge> newEdges = new LinkedList<Edge>();
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
 		{
-			Collection<String> labels = (Collection<String>)e.getUserDatum(JUConstants.LABEL);
+			Collection<Label> labels = (Collection<Label>)e.getUserDatum(JUConstants.LABEL);
 			e.removeUserDatum(JUConstants.LABEL);
-			Iterator<String> labelIt = labels.iterator(); 
+			Iterator<Label> labelIt = labels.iterator(); 
 			e.addUserDatum(EDGE, labelIt.next(), UserData.SHARED);
 			while(labelIt.hasNext())
 			{

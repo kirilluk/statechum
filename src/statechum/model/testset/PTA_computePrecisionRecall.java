@@ -27,6 +27,7 @@ import java.util.Queue;
 import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.Label;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -124,10 +125,11 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 		crossWithNoReset(pc);
 	}
 
-	/** Similar to <em>followToNextNode</em> except that instead of a single reject-node, we keep adding reject nodes. */
-	protected PTASequenceEngine.Node followWithRejectNodes(PTASequenceEngine.Node currentNode, String input)
+	/** Similar to <em>followToNextNode</em> except that instead of a single reject-node, 
+	 * we keep adding reject nodes. */
+	protected PTASequenceEngine.Node followWithRejectNodes(PTASequenceEngine.Node currentNode, Label input)
 	{
-		Map<String,PTASequenceEngine.Node> row = pta.get(currentNode);
+		Map<Label,PTASequenceEngine.Node> row = pta.get(currentNode);
 		PTASequenceEngine.Node nextCurrentNode = null;
 
 		if (row.containsKey(input))
@@ -147,7 +149,7 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 				else
 					nextNode = new Node(newState);
 			}
-			row.put(input, nextNode);pta.put(nextNode, new HashMap<String,PTASequenceEngine.Node>());
+			row.put(input, nextNode);pta.put(nextNode, new HashMap<Label,PTASequenceEngine.Node>());
 			nextCurrentNode = nextNode;
 		}
 		
@@ -173,9 +175,9 @@ public class PTA_computePrecisionRecall extends PTA_FSMStructure {
 		{
 			Node walkCurrentNode = testExplorationBoundary.remove(), ptaCurrentNode = ptaExplorationBoundary.remove();
 			assert ptaCurrentNode != rejectNode;
-			Map<String,Node> walkRow = walk.pta.get(walkCurrentNode), ptaRow = pta.get(ptaCurrentNode);
+			Map<Label,Node> walkRow = walk.pta.get(walkCurrentNode), ptaRow = pta.get(ptaCurrentNode);
 
-			for(Entry<String,Node> walkNextInputAndState:walkRow.entrySet())
+			for(Entry<Label,Node> walkNextInputAndState:walkRow.entrySet())
 			{// for each outgoing transition of a test, we need to do something with the current transition of a machine
 				Node nextPtaNode=ptaRow.get(walkNextInputAndState.getKey());
 				if (nextPtaNode == null)

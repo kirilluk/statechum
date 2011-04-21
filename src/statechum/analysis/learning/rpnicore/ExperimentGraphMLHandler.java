@@ -27,14 +27,24 @@ import edu.uci.ics.jung.graph.decorators.StringLabeller;
 
 import java.util.*;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex.MiniPair;
+import statechum.Label;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 
-public class ExperimentGraphMLHandler extends GraphMLFileHandler {
+public class ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	extends GraphMLFileHandler {
 
+	private final Configuration config;
+	
+	public ExperimentGraphMLHandler(Configuration conf)
+	{
+		config = conf;
+	}
+	
 	@Override
 	protected Edge createEdge(Map attributeMap) {
 		Graph mGraph = getGraph();
@@ -67,16 +77,16 @@ public class ExperimentGraphMLHandler extends GraphMLFileHandler {
 	            Object value = attributeMap.get(key);
 	            e.setUserDatum(key, value, UserData.SHARED);
 	        }
-	        HashSet labels = new HashSet();
+	        Set<Label> labels = new TreeSet<Label>();
 	        if(attributeMap.get("EDGE")!=null)
-	        	labels.add(attributeMap.get("EDGE"));
+	        	labels.add(AbstractLearnerGraph.generateNewLabel((String)attributeMap.get("EDGE"),config));
 	        e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
         }
         else{
         	e = Test_Orig_RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
-        	HashSet labels = (HashSet)e.getUserDatum(JUConstants.LABEL);
+        	Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
         	if(attributeMap.get("EDGE")!=null)
-        		labels.add(attributeMap.get("EDGE"));
+        		labels.add(AbstractLearnerGraph.generateNewLabel((String)attributeMap.get("EDGE"),config));
         }
 
         return e;

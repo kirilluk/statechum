@@ -315,7 +315,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static List<List<String>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<Label>> computeQS_orig(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
@@ -345,7 +345,7 @@ public class ComputeQuestions {
 	/** Given a pair of states merged in a graph and the result of merging, 
 	 * this method determines questions to ask.
 	 */
-	public static List<List<String>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static List<List<Label>> computeQS_origReduced(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
@@ -376,7 +376,7 @@ public class ComputeQuestions {
 		return engine.getData();
 	}
 	
-	public static Collection<List<String>> computeQS_getpartA(final StatePair pair, LearnerGraph original, LearnerGraph merged)
+	public static Collection<List<Label>> computeQS_getpartA(final StatePair pair, LearnerGraph original, LearnerGraph merged)
 	{
 		CmpVertex mergedRed = merged.findVertex(pair.getR().getID());
 		if (mergedRed == null)
@@ -438,7 +438,7 @@ public class ComputeQuestions {
 	 * @param merged automaton after the merge
 	 * @param properties IF-THEN automata used to answer questions.
 	 */
-	public static List<List<String>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
+	public static List<List<Label>> computeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
 	{
 		original.learnerCache.questionsPTA = null;
 		return RecomputeQS(pair, original, merged, properties);
@@ -452,9 +452,9 @@ public class ComputeQuestions {
 	 * @param merged automaton after the merge
 	 * @param properties IF-THEN automata used to answer questions.
 	 */
-	public static List<List<String>> RecomputeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
+	public static List<List<Label>> RecomputeQS(final StatePair pair, LearnerGraph original, LearnerGraph merged, LearnerGraph [] properties)
 	{
-		List<List<String>> questions = null;
+		List<List<Label>> questions = null;
 		if (original.config.getQuestionGenerator() == Configuration.QuestionGeneratorKind.ORIGINAL)
 			questions = computeQS_orig(new StatePair(merged.learnerCache.stateLearnt,merged.learnerCache.stateLearnt), original, merged);
 		else

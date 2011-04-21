@@ -178,15 +178,16 @@ public class ArrayOperations {
 	 */
 	public static final char separator=','; 
 
-	/** Converts a supplied sequence of strings into a textual representation. Similar to <em>toString</em> but does not include spaces or brackets.
+	/** Converts a supplied sequence of strings into a textual representation. 
+	 * Similar to <em>toString</em> but does not include spaces or brackets.
 	 * 
 	 * @param seq sequence to convert
 	 * @return conversion outcome.
 	 */
-	public static String seqToString(Collection<String> seq)
+	public static <ELEM> String seqToString(Collection<ELEM> seq)
 	{
 		boolean first = true;
-		StringBuffer result = new StringBuffer();for(String str:seq) { if (first) first=false;else result.append(separator);result.append(str); }
+		StringBuffer result = new StringBuffer();for(ELEM str:seq) { if (first) first=false;else result.append(separator);result.append(str); }
 		return result.toString();
 	}
 
@@ -369,15 +370,15 @@ public class ArrayOperations {
       return true;
     }
 
-    public static List<List<String>> sort(Collection<List<String>> data)
+    public static <ELEM extends Comparable<ELEM>> List<List<ELEM>> sort(Collection<List<ELEM>> data)
     {
-    	LinkedList<List<String>> result = new LinkedList<List<String>>();result.addAll(data);
-    	Collections.sort(result, new Comparator<List<String>>() {
+    	LinkedList<List<ELEM>> result = new LinkedList<List<ELEM>>();result.addAll(data);
+    	Collections.sort(result, new Comparator<List<ELEM>>() {
 
-			public @Override int compare(List<String> o1, List<String> o2) {
+			public @Override int compare(List<ELEM> o1, List<ELEM> o2) {
 				int len1 = o1.size(),len2 = o2.size();
 				if (len1 < len2) return -1;else if (len1 > len2) return 1;
-				Iterator<String> it1 = o1.iterator(),it2 = o2.iterator();
+				Iterator<ELEM> it1 = o1.iterator(),it2 = o2.iterator();
 				while(it1.hasNext())
 				{
 					int cmpResult = it1.next().compareTo(it2.next());

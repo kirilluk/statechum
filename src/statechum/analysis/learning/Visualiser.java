@@ -636,7 +636,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
          * @param currentLabel label (an edge may have multiple labels if it represents multiple parallel edges)
          * @return colour if annotation is present and null otherwise.
          */
-        public Color getEdgeColour(ArchetypeEdge e, String currentLabel) {
+        public Color getEdgeColour(ArchetypeEdge e, Label currentLabel) {
             Color result = null;
 
             if (e instanceof DeterministicEdge) {
@@ -674,11 +674,11 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         public final Color inconsistent = Color.MAGENTA;
 
         public Color getPickedColour(ArchetypeEdge e) {
-            HashSet<String> labels = (HashSet<String>) e.getUserDatum(JUConstants.LABEL);
-            Iterator<String> labelIt = labels.iterator();
+            Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
+            Iterator<Label> labelIt = labels.iterator();
             Color col = null;
             while (labelIt.hasNext()) {
-                String currentLabel = labelIt.next();
+            	Label currentLabel = labelIt.next();
                 Color newCol = getEdgeColour(e, currentLabel);
                 if (col == null) {
                     col = newCol;
@@ -699,12 +699,12 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 String result = "";
 
                 if (e.containsUserDatumKey(JUConstants.LABEL)) {
-                    HashSet<String> labels = (HashSet<String>) e.getUserDatum(JUConstants.LABEL);
-                    Iterator<String> labelIt = labels.iterator();
+                    Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
+                    Iterator<Label> labelIt = labels.iterator();
                     String label = "[ ";
                     while (labelIt.hasNext()) {
-                        String currentLabel = labelIt.next();
-                        label = label.concat(currentLabel);
+                    	Label currentLabel = labelIt.next();
+                        label = label.concat(currentLabel.toString());
                         /*
                         if (paintChooser.getEdgeColour(e, currentLabel) != null)
                         label=label.concat(" @");

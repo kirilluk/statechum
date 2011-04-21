@@ -27,6 +27,7 @@ package statechum.apps;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.Label;
 
 import java.io.IOException;
 import java.util.*;
@@ -51,12 +52,12 @@ public class WMethodApp {
 		}
 	}
 	
-	private static void displayTests(Collection<List<String>> tests, LearnerGraph g){
-		Iterator<List<String>> testIt = tests.iterator();
+	private static void displayTests(Collection<List<Label>> tests, LearnerGraph g){
+		Iterator<List<Label>> testIt = tests.iterator();
 		int count = 0;
 		while(testIt.hasNext()){
 			count++;
-			List<String> test = testIt.next();
+			List<Label> test = testIt.next();
 			int accept = g.paths.tracePathPrefixClosed(test);
 			System.out.print("#"+count+" ");
 			if(accept == AbstractOracle.USER_ACCEPTED)
@@ -66,7 +67,7 @@ public class WMethodApp {
 		}
 	}
 	
-	private static void formatRejectString(List<String> test, int rejectPoint){
+	private static void formatRejectString(List<Label> test, int rejectPoint){
 		System.out.println("ACCEPT: "+ test.subList(0, rejectPoint));
 		System.out.println("\tREJECT: "+test.get(rejectPoint));
 	}

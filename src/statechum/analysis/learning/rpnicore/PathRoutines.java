@@ -41,6 +41,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.StringLabel;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
@@ -605,7 +606,7 @@ public class PathRoutines {
 				System.out.println(response);
 				
 				CmpVertex InterestingUnreachableVertex = unreachables.iterator().next();
-				List<String> seq = original.pathroutines.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
+				List<Label> seq = original.pathroutines.computePathsBetween(pair.getQ(), InterestingUnreachableVertex).iterator().next();
 				System.out.println(seq);// dumps a seq from a blue state to the first unreachable vertex (after merging) which was on the PTA in the original machine.
 				Map<CmpVertex,List<CmpVertex>> mergedVertices = new HashMap<CmpVertex,List<CmpVertex>>();
 				if (original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
@@ -617,10 +618,10 @@ public class PathRoutines {
 				// This is done by traversing a branch of a tree (from the blue state to the unreachable one)
 				// which is used by the merging algorithm and dumping the results.
 				CmpVertex v = pair.getR();
-				Iterator<String> seqIt = seq.iterator();
+				Iterator<Label> seqIt = seq.iterator();
 				while(seqIt.hasNext() && v != null)
 				{
-					String input = seqIt.next();
+					Label input = seqIt.next();
 					System.out.print(v.toString()+" "+original.transitionMatrix.get(v).keySet()+" input "+input+" ");
 					List<CmpVertex> extra = mergedVertices.get(v);
 					if (extra != null) 
@@ -637,7 +638,7 @@ public class PathRoutines {
 				seqIt = seq.iterator();
 				while(seqIt.hasNext() && v != null)
 				{
-					String input = seqIt.next();
+					Label input = seqIt.next();
 					System.out.println(v.toString()+" "+mergeResult.transitionMatrix.get(v).keySet()+" input "+input+" ");
 					v = mergeResult.transitionMatrix.get(v).get(input);
 				}
@@ -657,7 +658,7 @@ public class PathRoutines {
 		return tracePath(path,coregraph.getInit(), true);
 	}
 	
-	public int tracePathPrefixClosed(List<String> path, CmpVertex startState)
+	public int tracePathPrefixClosed(List<Label> path, CmpVertex startState)
 	{
 		return tracePath(path,startState,true);
 	}
@@ -725,7 +726,7 @@ public class PathRoutines {
 	 * @param ifthenAutomata constraints to check against.
 	 * @return true if the path complies with constraints and false otherwise.
 	 */
-	private static boolean checkPathAgainstIFTHEN(List<String> path, boolean condition, Configuration config, LearnerGraph []ifthenAutomata)
+	private static boolean checkPathAgainstIFTHEN(List<Label> path, boolean condition, Configuration config, LearnerGraph []ifthenAutomata)
 	{
 		LearnerGraph ptaHardFacts = new LearnerGraph(config);
 		ptaHardFacts.setInit(AbstractLearnerGraph.generateNewCmpVertex(ptaHardFacts.getDefaultInitialPTAName(),ptaHardFacts.config));
@@ -760,7 +761,7 @@ public class PathRoutines {
 	 * @param path path to trace
 	 * @param startState the state to start from
 	 */
-	public static List<Boolean> mapPathToConfirmedElements(LearnerGraph hardFacts, List<String> path, LearnerGraph [] ifthenAutomata)
+	public static List<Boolean> mapPathToConfirmedElements(LearnerGraph hardFacts, List<Label> path, LearnerGraph [] ifthenAutomata)
 	{
 		List<Boolean> result = new ArrayList<Boolean>(path.size());
 		
@@ -768,7 +769,7 @@ public class PathRoutines {
 		
 		for(int length=0;length < path.size();++length)
 		{
-			List<String> prefix = path.subList(0, length+1);
+			List<Label> prefix = path.subList(0, length+1);
 			CmpVertex pathVertex = hardFacts.getVertex(prefix);
 			if (pathVertex != null)
 				result.add(pathVertex.isAccept());
@@ -912,7 +913,7 @@ public class PathRoutines {
 		LearnerGraphND result = new LearnerGraphND(graph,config);
 		Set<CmpVertex> rowsProcessed = new HashSet<CmpVertex>();
 		
-		class TransitionAnnotationClass extends TreeMap<String,Map<String,Map<String,Color>>>
+		class TransitionAnnotationClass extends TreeMap<String,Map<Label,Map<String,Color>>>
 		{
 			/**
 			 * ID for serialisation
@@ -928,17 +929,17 @@ public class PathRoutines {
 			private void putAssociation_internal(CmpVertex stateFrom, CmpVertex stateTo, Label label,Color color)
 			{
 				String fromString = stateFrom.getID().toString();
-				Map<String,Map<String,Color>> lbl = get(fromString);
+				Map<Label,Map<String,Color>> lbl = get(fromString);
 				if (lbl == null)
 				{
-					lbl = new TreeMap<String,Map<String,Color>>();
-                                        put(fromString, lbl);
+					lbl = new TreeMap<Label,Map<String,Color>>();
+                    put(fromString, lbl);
 				}
 				Map<String,Color> targetToColour = lbl.get(label);
 				if (targetToColour == null)
 				{// this is the first annotation for the specific target state
 					targetToColour = new TreeMap<String,Color>();
-                                        lbl.put(label,targetToColour);
+                    lbl.put(label,targetToColour);
 				}
 				
 				targetToColour.put(stateTo.getID().toString(),color);
@@ -953,7 +954,7 @@ public class PathRoutines {
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
 				if (!rowsProcessed.contains(associations.getKey()))
 				{
-					Label label =associationPrefix+associations.getValue().name();
+					Label label = new StringLabel(associationPrefix+associations.getValue().name());
 					if (alphabet.contains(label))
 						throw new IllegalArgumentException("cannot use label "+label);
 

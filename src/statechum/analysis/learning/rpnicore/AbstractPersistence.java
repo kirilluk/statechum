@@ -47,6 +47,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.PairScore;
@@ -181,8 +182,14 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 	/** We need to be able to get access to a graph being loaded and the only 
 	 * possible way is to override an appropriate method. 
 	 */
-	static class DOMExperimentGraphMLHandler extends ExperimentGraphMLHandler
+	static class DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+		extends ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>
 	{
+		public DOMExperimentGraphMLHandler(Configuration config)
+		{
+			super(config);
+		}
+		
 	    @Override
 		public Graph getGraph() {
 	        return super.getGraph();
@@ -228,7 +235,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 			throw new IllegalArgumentException("duplicate graph element");
 		Element graphElement = (Element)graphs.item(0);
 
-		DOMExperimentGraphMLHandler graphHandler = new DOMExperimentGraphMLHandler();
+		DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE> graphHandler = new DOMExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config);
     	GraphMLFile graphmlFile = new GraphMLFile();
     	graphmlFile.setGraphMLFileHandler(graphHandler);
     	synchronized(AbstractLearnerGraph.syncObj)
@@ -299,7 +306,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config));
 	    	try
 	    	{
 	    		loadGraph(LearnerSimulator.getDocumentOfXML(from).getDocumentElement(), result);
@@ -330,7 +337,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 		synchronized (AbstractLearnerGraph.syncObj) 
 		{// ensure that the calls to Jung's vertex-creation routines do not occur on different threads.
 	    	GraphMLFile graphmlFile = new GraphMLFile();
-	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+	    	graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE>(result.config));
 	    	String fileToLoad = fileName;
 	    	if (!new java.io.File(fileToLoad).canRead()) fileToLoad+=".xml";
 	    	loadGraph(new FileReader(fileToLoad),result);result.setName(fileName);

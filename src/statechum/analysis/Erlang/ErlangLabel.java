@@ -44,7 +44,14 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
         return result;
     }
 
-    public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
+
+	@Override
+	public String toAlphaNum() {
+		return function.toString()+"_"+input+"_" +
+			(expectedOutput != null?" == " + expectedOutput:"");
+	}
+
+	public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
         super(new OtpErlangObject[]{
                     new OtpErlangAtom(operator.getQualifiedName()),
                     inputArgs,

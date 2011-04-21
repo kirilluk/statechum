@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import statechum.Label;
 import statechum.model.testset.PTASequenceEngine.Node;
 
 /** Performs a depth-first walk through all nodes in a PTA, calling the user-supplied callback routine. */
@@ -52,11 +53,11 @@ public abstract class PTAExploration<USEROBJECT>
 		 * go through all its children, recursively invoking the search. 
 		 * This iterator store the current position in the list of children.
 		 */
-		final Iterator<Entry<String,Node>> entryIter;
+		final Iterator<Entry<Label,Node>> entryIter;
 		
-		protected String inputFromThisNode = null;
+		protected Label inputFromThisNode = null;
 		
-		public String getInput()
+		public Label getInput()
 		{
 			return inputFromThisNode;
 		}
@@ -77,7 +78,7 @@ public abstract class PTAExploration<USEROBJECT>
 		@Override
 		public String toString()
 		{
-			return getInput();
+			return getInput().toString();
 		}
 		
 		/** Returns true if this node is a tail node in a PTA. */
@@ -114,7 +115,7 @@ public abstract class PTAExploration<USEROBJECT>
 			{// regardless if all paths from this state lead to reject-nodes or some lead to accept-ones, 
 				// we have to explore all paths in order to identify all nodes which need pruning.
 				currentExplorationBoundary.addFirst( currentVert );
-				Entry<String,Node> nextStringNode = currentVert.entryIter.next();
+				Entry<Label,Node> nextStringNode = currentVert.entryIter.next();
 				currentVert.inputFromThisNode=nextStringNode.getKey();
 				PTAExplorationNode newNode = new PTAExplorationNode(nextStringNode.getValue());
 				currentVert = newNode;

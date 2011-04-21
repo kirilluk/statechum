@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 
+import statechum.Label;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.util.OutputUtil;
@@ -59,7 +60,7 @@ public class ManualAccuracyTracker extends QSMTool {
 		
 		String target =  "X-initialise->B-fail_close->A-check_updates->A-update->H-failed_get_use_old->I-succeed_use_remove_pending->F-write_to_cm_sim->D-set_wind_altimeter->A\nB-success_ctas_use_new_weather->C-succeed_use->D\nC-failed_use->A\nI-failed_use->E-write_to_cm_sim->A\nG-succeed_use_remove_pending->F\nG-failed_use_remove_pending->E\nH-success_ctas_use_new_weather->G";
 		
-		LearnerGraph targetMachine = new LearnerGraph(FsmParser.buildGraph(target, "Target"), learnerInitConfiguration.config);
+		LearnerGraph targetMachine = FsmParser.buildLearnerGraph(target, "Target", learnerInitConfiguration.config);
 		
 		int sampleSize = (targetMachine.pathroutines.countEdges()*2);
 		int percentPerChunk = 10;
@@ -79,8 +80,8 @@ public class ManualAccuracyTracker extends QSMTool {
 				}
 			};
 			
-			sPlus = new HashSet<List<String>>();
-			sMinus = new HashSet<List<String>>();
+			sPlus = new HashSet<List<Label>>();
+			sMinus = new HashSet<List<Label>>();
 			sPlus.addAll(samples.getData(posPredicate));
 			sMinus.addAll(samples.getData(negPredicate));
 			/*

@@ -24,6 +24,7 @@ import java.util.*;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -42,7 +43,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	}
 	
 	@Override
-	public LearnerGraph learnMachine(Collection<List<String>> argSPlus, Collection<List<String>> argSMinus) 	{
+	public LearnerGraph learnMachine(Collection<List<Label>> argSPlus, Collection<List<Label>> argSMinus) 	{
 		this.sPlus = argSPlus;
 		this.sMinus = argSMinus;
 		DirectedSparseGraph model = createAugmentedPTA(sPlus, sMinus);// KIRR: node labelling is done by createAugmentedPTA 
@@ -56,7 +57,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			pair.getQ().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);
 			pair.getR().setUserDatum(JUConstants.HIGHLIGHT, pair, UserData.SHARED);// since this copy of the graph will really not be used, changes to it are immaterial at this stage 
 			setChanged();
-			List<List<String>> questions = new ArrayList<List<String>>();
+			List<List<Label>> questions = new LinkedList<List<Label>>();
 			doneEdges = new HashSet<DirectedSparseEdge>();
 			int score = computeScore(model, pair);
 			if(shouldAskQuestions(score)){
@@ -66,9 +67,9 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			
 			boolean restartLearning = false;// whether we need to rebuild a PTA and restart learning.
 			
-			Iterator<List<String>> questionIt = questions.iterator();
+			Iterator<List<Label>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
-				List<String> question = questionIt.next();
+				List<Label> question = questionIt.next();
 				boolean accepted = DeterministicDirectedSparseGraph.isAccept(pair.getQ());
 				Pair<Integer,String> answer = CheckWithEndUser(new LearnerGraph(model,Configuration.getDefaultConfiguration()),question, AbstractOracle.USER_CANCELLED,null, null,new Object [] {"Test"});
 				if (answer.firstElem == AbstractOracle.USER_CANCELLED)
@@ -87,7 +88,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 				}
 				else if(answer.firstElem >= 0){
 					assert answer.firstElem < question.size();
-					LinkedList<String> subAnswer = new LinkedList<String>();subAnswer.addAll(question.subList(0, answer.firstElem+1));sMinus.add(subAnswer);
+					LinkedList<Label> subAnswer = new LinkedList<Label>();subAnswer.addAll(question.subList(0, answer.firstElem+1));sMinus.add(subAnswer);
 					// sMinus.add(question.subList(0, answer+1)); // KIRR: without a `proper' collection in the set, I cannot serialise the sets into XML
 
 					if((answer.firstElem==question.size()-1)&&!DeterministicDirectedSparseGraph.isAccept(tempVertex)){
@@ -129,11 +130,11 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(DeterministicDirectedSparseGraph.findInitial(model), r);
-		Set<List<String>> pathToRedStrings = new HashSet<List<String>>();
+		Set<List<Label>> pathToRedStrings = new LinkedHashSet<List<Label>>();
 		Vertex tempRed = null;
 		if(!pathToRed.isEmpty()){
 			pathToRedStrings = getPaths(pathToRed);
-			List<String> prefixString = (List<String>)pathToRedStrings.toArray()[0];
+			List<Label> prefixString = (List<Label>)pathToRedStrings.toArray()[0];
 			tempRed = getVertex(temp, prefixString);
 		}
 		else
@@ -141,39 +142,39 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return tempRed;
 	}
 	
-	protected List<List<String>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, OrigStatePair pair){
+	protected List<List<Label>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, OrigStatePair pair){
 		Vertex q = pair.getQ();
 		Vertex r = pair.getR();
 		if(q==null || r ==null)
-			return new ArrayList<List<String>>();
+			return new LinkedList<List<Label>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(temp);
 		Vertex tempRed = getTempRed(model, r, temp);
 		Vertex tempInit = DeterministicDirectedSparseGraph.findInitial(temp);
-		Set<List<String>> prefixes = new HashSet<List<String>>();
+		Set<List<Label>> prefixes = new LinkedHashSet<List<Label>>();
 		if(!tempRed.equals(tempInit)){
 			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
 			prefixes = getPaths(prefixEdges);
 		}
-		Set<List<String>> suffixes = computeSuffixes(tempRed, temp);
-		List<List<String>> questions =new ArrayList<List<String>>();
+		Set<List<Label>> suffixes = computeSuffixes(tempRed, temp);
+		List<List<Label>> questions =new LinkedList<List<Label>>();
 		questions.addAll(mergePrefixWithSuffixes(prefixes, suffixes));
 		Edge loopEdge = findEdge(tempRed, tempRed);
 		if(loopEdge!=null){
-			Collection<String> looplabels = (Collection<String>)loopEdge.getUserDatum(JUConstants.LABEL);
+			Collection<Label> looplabels = (Collection<Label>)loopEdge.getUserDatum(JUConstants.LABEL);
 			questions.addAll(mergePrefixWithSuffixes(prefixes, looplabels,suffixes));
 		}
 		
 		DirectedSparseGraph questionPrefixes = augmentPTA(DeterministicDirectedSparseGraph.initialise(), questions, true);
 		Iterator<Vertex> questionIt = getEndPoints(questionPrefixes).iterator();
 		p = new DijkstraShortestPath(questionPrefixes);
-		questions =new ArrayList<List<String>>();
+		questions =new LinkedList<List<Label>>();
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(questionPrefixes);
 		while(questionIt.hasNext()){
 			List<Edge> edgePath = p.getPath(init, questionIt.next());
-			Set<List<String>> pathsToPoint = getPaths(edgePath);
+			Set<List<Label>> pathsToPoint = getPaths(edgePath);
 			if(pathsToPoint.isEmpty())
 				continue;
-			List<String> pathToPoint = (List<String>)getPaths(edgePath).toArray()[0];
+			List<Label> pathToPoint = (List<Label>)getPaths(edgePath).toArray()[0];
 			Vertex tempV = getVertex(temp, pathToPoint);
 			Vertex v = getVertex(model, pathToPoint);
 			if(v == null)
@@ -185,8 +186,8 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
-	public static List<List<String>> mergePrefixWithSuffixes(Set<List<String>> sp, Collection<List<String>> suffixes){
-		ArrayList<List<String>> questions = new ArrayList<List<String>>();
+	public static List<List<Label>> mergePrefixWithSuffixes(Set<List<Label>> sp, Collection<List<Label>> suffixes){
+		ArrayList<List<Label>> questions = new ArrayList<List<Label>>();
 		Object[] prefixArray = null;
 		int iterations = sp.size();
 		if(sp.isEmpty()){
@@ -195,13 +196,13 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		else
 			prefixArray = sp.toArray();
 		for(int i=0;i<iterations;i++){
-			List<String> prefix = null;
+			List<Label> prefix = null;
 			if(!sp.isEmpty())
-				prefix = (List<String>)prefixArray[i];
-			Iterator<List<String>> suffixIt = suffixes.iterator();
+				prefix = (List<Label>)prefixArray[i];
+			Iterator<List<Label>> suffixIt = suffixes.iterator();
 			while(suffixIt.hasNext()){
-				List<String> suffix = suffixIt.next();
-				List<String> newQuestion = new ArrayList<String>();
+				List<Label> suffix = suffixIt.next();
+				List<Label> newQuestion = new LinkedList<Label>();
 				if(prefix != null)
 					newQuestion.addAll(prefix);
 				newQuestion.addAll(suffix);
@@ -211,8 +212,8 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
-	public static List<List<String>> mergePrefixWithSuffixes(Collection<List<String>> sp, Collection<String> loopLabels, Collection<List<String>> suffixes){
-		ArrayList<List<String>> questions = new ArrayList<List<String>>();
+	public static List<List<Label>> mergePrefixWithSuffixes(Collection<List<Label>> sp, Collection<Label> loopLabels, Collection<List<Label>> suffixes){
+		List<List<Label>> questions = new LinkedList<List<Label>>();
 		Object[] prefixArray = null;
 		int iterations = sp.size();
 		if(sp.isEmpty()){
@@ -221,16 +222,16 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		else
 			prefixArray = sp.toArray();
 		for(int i=0;i<iterations;i++){
-			List<String> prefix = null;
+			List<Label> prefix = null;
 			if(!sp.isEmpty())
-				prefix = (List<String>)prefixArray[i];
-			Iterator<List<String>> suffixIt = suffixes.iterator();
+				prefix = (List<Label>)prefixArray[i];
+			Iterator<List<Label>> suffixIt = suffixes.iterator();
 			while(suffixIt.hasNext()){
-				List<String> suffix = suffixIt.next();
-				Iterator<String> loopLabelIt = loopLabels.iterator();
+				List<Label> suffix = suffixIt.next();
+				Iterator<Label> loopLabelIt = loopLabels.iterator();
 				while(loopLabelIt.hasNext()){
-					String loopLabel = loopLabelIt.next();
-					List<String> newQuestion = new ArrayList<String>();
+					Label loopLabel = loopLabelIt.next();
+					List<Label> newQuestion = new LinkedList<Label>();
 					if(prefix != null)
 						newQuestion.addAll(prefix);
 					newQuestion.add(loopLabel);
@@ -242,8 +243,8 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
-	public static Set<List<String>> computeSuffixes(Vertex v, DirectedSparseGraph model){
-		Set<List<String>> returnSet = new HashSet<List<String>>();
+	public static Set<List<Label>> computeSuffixes(Vertex v, DirectedSparseGraph model){
+		Set<List<Label>> returnSet = new HashSet<List<Label>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		Iterator<DirectedSparseEdge> edgeIt = model.getEdges().iterator();
 		while(edgeIt.hasNext()){
@@ -253,12 +254,12 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 			if(sp!=null){
 				if(!sp.isEmpty()){
 					sp.add(e);
-					Set<List<String>> paths = getPaths(sp);
+					Set<List<Label>> paths = getPaths(sp);
 					returnSet.addAll(paths);
 				}
 				else if(e.getSource().equals(v)) { //&&(e.getDest().equals(v))){ // KIRR: BUG FIXED
 					sp.add(e);
-					Set<List<String>> paths = getPaths(sp);
+					Set<List<Label>> paths = getPaths(sp);
 					returnSet.addAll(paths);
 				}
 			}
@@ -278,12 +279,12 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return returnSet;
 	}
 	
-	private boolean containsSubString(Collection<List<String>> sPlus, List<String> question){
-		Iterator<List<String>> stringIt = sPlus.iterator();
-		String first = question.get(0);
+	private boolean containsSubString(Collection<List<Label>> sPlusArg, List<Label> question){
+		Iterator<List<Label>> stringIt = sPlusArg.iterator();
+		Label first = question.get(0);
 		int length = question.size();
 		while(stringIt.hasNext()){
-			List<String> list = stringIt.next();
+			List<Label> list = stringIt.next();
 			for(int i=0;i<list.size();i++){
 				if(list.get(i).equals(first)){
 					if(list.subList(i, i+length).equals(question))

@@ -65,7 +65,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	}
 
 	/** Collections of positive and negative samples. */
-	Collection<List<String>> sPlus, sMinus;
+	Collection<List<Label>> sPlus, sMinus;
 	
 	/** Configuration for learners. */
 	LearnerEvaluationConfiguration conf = null; 
@@ -76,7 +76,7 @@ public class PickNegativesVisualiser extends Visualiser {
 	 * @param sMinus negatives
 	 * @param whomToNotify this one is called just before learning commences.
 	 */
-	public void construct(final Collection<List<String>> plus, final Collection<List<String>> minus,final LearnerEvaluationConfiguration evalCnf)
+	public void construct(final Collection<List<Label>> plus, final Collection<List<Label>> minus,final LearnerEvaluationConfiguration evalCnf)
     {
 		sPlus=plus;sMinus=minus;conf=evalCnf;
     }
@@ -122,10 +122,10 @@ public class PickNegativesVisualiser extends Visualiser {
 		/** Set to true by the callback from the learner thread. */
 		private boolean learnerStarted = false;
 		
-		List<String> negatives = null;
+		List<Label> negatives = null;
 		String negLTL = null;
 		
-		public LearnerRestarter(List<String> negs)
+		public LearnerRestarter(List<Label> negs)
 		{
 			negatives = negs;
 		}
@@ -183,7 +183,7 @@ public class PickNegativesVisualiser extends Visualiser {
 			innerLearner.terminateUserDialogueFrame();
 			new Thread(new LearnerRestarter(newLTL),"learner restarter").start();
 		}else{
-			final List<String> negatives = pickNegativeStrings((Edge)edges.iterator().next());
+			final List<Label> negatives = pickNegativeStrings((Edge)edges.iterator().next());
 			innerLearner.terminateUserDialogueFrame();
 			// I'm on AWT thread now; once the dialog is closed, it needs its cleanup to be done on the AWT thread too.
 			// For this reason, I launch another thread to wait for a cleanup and subsequently relaunch the learner.
@@ -191,19 +191,19 @@ public class PickNegativesVisualiser extends Visualiser {
 		}
 	}
 	
-	private List<String> pickNegativeStrings(Edge selected){
+	private List<Label> pickNegativeStrings(Edge selected){
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
-		Set<List<String>> questions = new HashSet<List<String>>();
+		Set<List<Label>> questions = new LinkedHashSet<List<Label>>();
 		Vertex init = DeterministicDirectedSparseGraph.findInitial(g);
 		DijkstraShortestPath p = new DijkstraShortestPath(g);
 		List<Edge> shortPrefix = p.getPath(init, e.getSource());
-		Set<List<String>> prefixStrings = Test_Orig_RPNIBlueFringeLearner.getPaths(shortPrefix);
+		Set<List<Label>> prefixStrings = Test_Orig_RPNIBlueFringeLearner.getPaths(shortPrefix);
 		List<Edge> picked = new ArrayList<Edge>();
 		picked.add(e);
-		Set<List<String>> successors = Test_Orig_RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
+		Set<List<Label>> successors = Test_Orig_RPNIBlueFringeLearnerTestComponent.computeSuffixes(e.getDest(), g);
 		
-		questions.addAll(Test_Orig_RPNIBlueFringeLearnerTestComponent.mergePrefixWithSuffixes(prefixStrings, (Collection<String>)e.getUserDatum(JUConstants.LABEL), successors));
+		questions.addAll(Test_Orig_RPNIBlueFringeLearnerTestComponent.mergePrefixWithSuffixes(prefixStrings, (Collection<Label>)e.getUserDatum(JUConstants.LABEL), successors));
 		
 		 Object[] possibleValues = questions.toArray();
 		 Object selectedValue = JOptionPane.showInputDialog(null,
@@ -211,7 +211,7 @@ public class PickNegativesVisualiser extends Visualiser {
 		             JOptionPane.INFORMATION_MESSAGE, null,
 		             possibleValues, possibleValues[0]);
 		System.out.println(selectedValue);
-		return (List<String>)selectedValue;
+		return (List<Label>)selectedValue;
 	}
 	/*
 	private List<String> pickNegativeStringsOrLTL(Edge selected){

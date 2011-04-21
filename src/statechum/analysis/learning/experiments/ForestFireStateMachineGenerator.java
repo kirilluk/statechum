@@ -64,10 +64,11 @@ public class ForestFireStateMachineGenerator {
 	protected Set<DeterministicVertex> visited;
 	protected RandomEngine generator;
 	protected Random boolGenerator;
+	final protected Configuration config;
 	
-	public ForestFireStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed)
+	public ForestFireStateMachineGenerator(double argForward, double argBackward, double argSelfloop, int seed, Configuration conf)
 	{
-		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;
+		this.forwards = argForward;this.backwards = argBackward;selfLoop=argSelfloop;config=conf;
 		if(!(argForward > 0 && argForward < 1) || !(argBackward > 0 && argBackward <= 1))
 			throw new IllegalArgumentException("invalid scopes for backwards or forwards");
 		visited = new HashSet<DeterministicVertex>();
@@ -130,13 +131,12 @@ public class ForestFireStateMachineGenerator {
 			
 		}
 	}
-	
+
 	protected LearnerGraph buildMachine(int size) 
 	{
 		buildGraph(size);
-		Configuration conf = Configuration.getDefaultConfiguration();
 		//conf.setAllowedToCloneNonCmpVertex(true);
-		return new LearnerGraph(machine,conf).paths.reduce();
+		return new LearnerGraph(machine,config).paths.reduce();
 	}
 	
 	/** Adds an edge between the supplied vertices and returns true/false if this was successful. */ 

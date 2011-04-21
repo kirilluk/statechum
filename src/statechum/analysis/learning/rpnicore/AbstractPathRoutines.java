@@ -80,7 +80,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param vertTarget the target state
 	 * @return sequences of inputs to follow all paths found.
 	 */	
-	Collection<List<String>> computePathsBetween(CmpVertex vertSource, CmpVertex vertTarget)
+	Collection<List<Label>> computePathsBetween(CmpVertex vertSource, CmpVertex vertTarget)
 	{
 		PTASequenceEngine engine = new PTASequenceEngine();engine.init(new PTASequenceSetAutomaton());
 		PTASequenceEngine.SequenceSet initSet = engine.new SequenceSet();initSet.setIdentity(); 
@@ -89,7 +89,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		return engine.getData();
 	}
 	
-	public Collection<List<String>> computePathsToRed(CmpVertex red)
+	public Collection<List<Label>> computePathsToRed(CmpVertex red)
 	{
 		return computePathsBetween(coregraph.getInit(), red);
 	}
@@ -501,7 +501,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @throws IllegalArgumentException if PrefixNew is a prefix of an existing vertex. The graph supplied is destroyed in this case.
 	 */
 	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
-		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, Label PrefixNew)
+		void relabel(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> g, int argNrToKeep, String PrefixNew)
 	{
 		int NrToKeep = argNrToKeep;
 		Map<Label,Label> fromTo = new TreeMap<Label,Label>();
@@ -519,9 +519,9 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				else
 					if (!fromTo.containsKey(transition.getKey()))
 					{
-						if(transition.getKey().startsWith(PrefixNew))
+						if(transition.getKey().toAlphaNum().startsWith(PrefixNew))
 							throw new IllegalArgumentException("there is already a transition with prefix "+PrefixNew+" in the supplied graph");
-						fromTo.put(transition.getKey(), PrefixNew+newLabelCnt++);
+						fromTo.put(transition.getKey(), AbstractLearnerGraph.generateNewLabel(PrefixNew+(newLabelCnt++),g.config));
 					}
 				newRow.put(fromTo.get(transition.getKey()), transition.getValue());
 			}

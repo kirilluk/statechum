@@ -51,7 +51,8 @@ import statechum.analysis.learning.Smt;
 import statechum.apps.QSMTool;
 
 /** Transition labels may have complex behaviours associated with them and
- * SMT can be used to check
+ * SMT can be used to check various things such as that every state is reachable
+ * (a timeout is interpreted as "unknown").
  * 
  * @author kirill
  *
@@ -66,6 +67,8 @@ public class LabelRepresentation
 	
 	protected Label init = null;
 
+	protected Configuration config;
+	
 	/** If true, this means that all abstract states corresponding to accept-states will be included in the 
 	 * Yices context.
 	 */
@@ -513,16 +516,16 @@ public class LabelRepresentation
 	public static class TraceWithData
 	{
 		protected boolean accept = true;
-		protected List<String> traceDetails = null;
+		protected List<statechum.Label> traceDetails = null;
 		protected List<CompositionOfFunctions> arguments = null;
 	}
 	
 	protected final Collection<TraceWithData> traces = new LinkedList<TraceWithData>();
 	
 	/** Extracts positive sequences from the collection. */
-	public Collection<List<String>> getSPlus() 
+	public Collection<List<statechum.Label>> getSPlus() 
 	{
-		final Collection<List<String>> sPlus = new LinkedList<List<String>>();
+		final Collection<List<statechum.Label>> sPlus = new LinkedList<List<statechum.Label>>();
 		for(TraceWithData trace:traces)
 			if (trace.accept)
 				sPlus.add(trace.traceDetails);
@@ -530,9 +533,9 @@ public class LabelRepresentation
 	}
 	
 	/** Extracts negative sequences from the collection. */
-	public Collection<List<String>> getSMinus() 
+	public Collection<List<statechum.Label>> getSMinus() 
 	{ 
-		final Collection<List<String>> sMinus = new LinkedList<List<String>>();
+		final Collection<List<statechum.Label>> sMinus = new LinkedList<List<statechum.Label>>();
 		for(TraceWithData trace:traces)
 			if (!trace.accept)
 				sMinus.add(trace.traceDetails);
@@ -909,7 +912,7 @@ public class LabelRepresentation
 		
 		LabelParser parser = new LabelParser();
 		parser.interpretTrace(text.substring(1).trim(),new FunctionVariablesHandler(VARIABLEUSE.IO));
-		trace.traceDetails = parser.operations;
+		trace.traceDetails = QSMTool.buildList(parser.operations,config);
 		trace.arguments = parser.arguments;
 		traces.add(trace);
 	}
@@ -1327,7 +1330,7 @@ public class LabelRepresentation
 			assert trace.traceDetails.size() == trace.arguments.size();
 			if (!trace.traceDetails.isEmpty())
 			{// a non-empty trace - empty ones are ignored here because they do not make it possible to add new abstract states
-				Iterator<String> operationIterator = trace.traceDetails.iterator();
+				Iterator<statechum.Label> operationIterator = trace.traceDetails.iterator();
 				Iterator<CompositionOfFunctions> argumentsIterator = trace.arguments.iterator();
 				AbstractState abstractState = initialAbstractState;
 

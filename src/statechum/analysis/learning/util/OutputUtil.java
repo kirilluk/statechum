@@ -4,10 +4,11 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
@@ -66,10 +67,10 @@ public class OutputUtil {
 			String from = e.getSource().toString();
 			String to = e.getDest().toString();
 			if(e.containsUserDatumKey(JUConstants.LABEL)){
-        		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
-        		Iterator<String> labelIt = labels.iterator();
+				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+        		Iterator<Label> labelIt = labels.iterator();
         		while(labelIt.hasNext()){
-        			graphout.write("\n"+from+" "+labelIt.next()+" "+to);
+        			graphout.write("\n"+from+" "+labelIt.next().toAlphaNum()+" "+to);
         		}
         	}
 		}
@@ -96,11 +97,11 @@ public class OutputUtil {
 			String from = String.valueOf(vertexList.indexOf(e.getSource()));
 			String to = String.valueOf(vertexList.indexOf(e.getDest()));
 			if(e.containsUserDatumKey(JUConstants.LABEL)){
-        		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
-        		Iterator<String> labelIt = labels.iterator();
+        		Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+        		Iterator<Label> labelIt = labels.iterator();
         		graphout.write("\n"+from+" -> "+to+"[label=\"");
         		while(labelIt.hasNext()){
-        			graphout.write(labelIt.next()+"\\n" );
+        			graphout.write(labelIt.next().toAlphaNum()+"\\n" );
         		}
         		graphout.write("\"]");
         	}
@@ -119,12 +120,12 @@ public class OutputUtil {
 		for(Vertex v: (Iterable<DirectedSparseVertex>)g.getVertices()){
 			//Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
 			//if(!v.toString().equals("Init") && accepted.booleanValue())
-			String label = null;	
+			String labelAsString = null;	
 			if(v.getUserDatum(JUConstants.INITIAL)!=null)
-				label = "init";
+				labelAsString = "init";
 			else
-				label = v.toString();
-			graphout.write("\n"+(vertexList.indexOf(v)+1) + " \""+label+"\"");
+				labelAsString = v.toString();
+			graphout.write("\n"+(vertexList.indexOf(v)+1) + " \""+labelAsString+"\"");
 		}
 		graphout.write("\n*Arcs");
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
@@ -134,10 +135,10 @@ public class OutputUtil {
 			String from = String.valueOf((vertexList.indexOf(e.getSource())+1));
 			String to = String.valueOf((vertexList.indexOf(e.getDest())+1));
 			if(e.containsUserDatumKey(JUConstants.LABEL)){
-        		HashSet<String> labels = (HashSet<String>)e.getUserDatum(JUConstants.LABEL);
-        		Iterator<String> labelIt = labels.iterator();
+        		Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+        		Iterator<Label> labelIt = labels.iterator();
         		while(labelIt.hasNext()){
-        			graphout.write("\n"+from+" "+to+" l \"" + labelIt.next()+"\"");
+        			graphout.write("\n"+from+" "+to+" l \"" + labelIt.next().toAlphaNum()+"\"");
         		}
         	}
 		}

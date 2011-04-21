@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -40,18 +41,18 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
  */
 
 public class CompareGraphs {
-
+	final static Configuration config = Configuration.getDefaultConfiguration();
 	/**
 	 * @param hypothesis followed by actual graph
 	 */
 	public static void main(String[] args) {
-		DirectedSparseGraph specGraph = FsmParser.buildGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph");
-		DirectedSparseGraph impGraph = FsmParser.buildGraph("q0-initialise->q1-connect->q2-login->q3-storefile->q9-logout->q12-disconnect->q13\nq3-makedir->q8-makedir->q8-logout->q12\nq3-setfiletype->q4-storefile->q5-appendfile->q6-setfiletype->q4-rename->q7-storefile->q6\nq7-logout->q12\nq3-listfiles->q11-retrievefile->q11-changedirectory->q10-listfiles->q11-logout->q12\nq3-changedirectory->q17-listnames->q16-changedirectory->q17\nq16-delete->q14-delete->q15-delete->q16\nq14-changedirectory->q13\nq14-appendfile->q7", "impGraph");
+		DirectedSparseGraph specGraph = FsmParser.buildGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config);
+		DirectedSparseGraph impGraph = FsmParser.buildGraph("q0-initialise->q1-connect->q2-login->q3-storefile->q9-logout->q12-disconnect->q13\nq3-makedir->q8-makedir->q8-logout->q12\nq3-setfiletype->q4-storefile->q5-appendfile->q6-setfiletype->q4-rename->q7-storefile->q6\nq7-logout->q12\nq3-listfiles->q11-retrievefile->q11-changedirectory->q10-listfiles->q11-logout->q12\nq3-changedirectory->q17-listnames->q16-changedirectory->q17\nq16-delete->q14-delete->q15-delete->q16\nq14-changedirectory->q13\nq14-appendfile->q7", "impGraph",config);
 		compare(specGraph, impGraph);
 	}
 	
 	public static void compare(String spec, DirectedSparseGraph imp){
-		DirectedSparseGraph specGraph = FsmParser.buildGraph(spec, "specGraph");
+		DirectedSparseGraph specGraph = FsmParser.buildGraph(spec, "specGraph",config);
 		compare(specGraph, imp);
 	}
 	
@@ -72,7 +73,7 @@ public class CompareGraphs {
 		precRec.crossWith(engine);return precRec.getPosNegPrecisionRecallNum();
 	}
 	
-	public static PosNegPrecisionRecall compare(Collection<List<String>> tests, LearnerGraph specfsm, LearnerGraph imp){
+	public static PosNegPrecisionRecall compare(Collection<List<Label>> tests, LearnerGraph specfsm, LearnerGraph imp){
 		PTA_computePrecisionRecall precRec = new PTA_computePrecisionRecall(imp);
 		PTASequenceEngine engine = new PTA_FSMStructure(specfsm,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
@@ -86,9 +87,9 @@ public class CompareGraphs {
 		}
 	}
 */
-	public static double computeAccuracy(LearnerGraph learned, LearnerGraph correct, Collection<List<String>> tests){
+	public static double computeAccuracy(LearnerGraph learned, LearnerGraph correct, Collection<List<Label>> tests){
 		int failed = 0;
-		for (List<String> list : tests) {
+		for (List<Label> list : tests) {
 			if(learned.paths.tracePathPrefixClosed(list)!=correct.paths.tracePathPrefixClosed(list))
 				failed++;
 		}

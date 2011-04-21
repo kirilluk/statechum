@@ -33,6 +33,7 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -58,6 +59,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static statechum.Helper.whatToRun;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 
@@ -113,7 +116,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void completeComputeAlphabet0()
 	{
-		Set<String> alphabet = DeterministicDirectedSparseGraph.computeAlphabet(new DirectedSparseGraph());
+		Set<Label> alphabet = DeterministicDirectedSparseGraph.computeAlphabet(new DirectedSparseGraph());
 		Assert.assertTrue(alphabet.isEmpty());
 	}
 
@@ -121,9 +124,9 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet1()
 	{
-		Set<String> expected = new HashSet<String>();
+		Set<String> expected = new TreeSet<String>();
 		expected.add("p");
-		DirectedSparseGraph g = buildGraph("A-p->A","testComputeFSMAlphabet1");
+		DirectedSparseGraph g = buildGraph("A-p->A","testComputeFSMAlphabet1",config);
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));
 	}
@@ -131,7 +134,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet2()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3");
+		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3",config);
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
@@ -141,8 +144,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet3()
 	{
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
-		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3");
+		Collection<String> expected = new TreeSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
+		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3",config);
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
@@ -150,7 +153,7 @@ public class TestFSMAlgo {
 
 	@Test
 	public final void testComputeFSMAlphabet4() {
-		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4");
+		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4",config);
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
@@ -159,7 +162,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void completeComputeAlphabet5()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5");
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5",config);
 		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b","c"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
@@ -184,7 +187,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testFindVertex2()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2");
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex2",config);
 		//Visualiser.updateFrame(g, g);Visualiser.waitForKey();
 		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.JUNKVERTEX, "bb", g));
 	}
@@ -192,7 +195,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testFindVertex3()
 	{
-		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3");
+		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex3",config);
 		//Visualiser.updateFrame(g, null);Visualiser.waitForKey();
 		Assert.assertNull(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, "D", g));
 	}
@@ -200,42 +203,42 @@ public class TestFSMAlgo {
 	@Test
 	public final void testFindVertex4a()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, "anything", buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4a",config));
 		Assert.assertNull(v);
 	}
 
 	@Test
 	public final void testFindVertex4b()
 	{
-		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.INITIAL, true, buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex4b",config));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 
 	@Test
 	public final void testFindVertex5()
 	{
-		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("A"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex5",config));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public final void testFindVertex6()
 	{
-		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("C"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6"));
+		Vertex v =  DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("C"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex6",config));
 		Assert.assertEquals(new VertexID("C"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public final void testFindVertex7()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("S"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex7",config));
 		Assert.assertEquals(new VertexID("S"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
 	@Test
 	public final void testFindVertex8()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8"));
+		Vertex v = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, new VertexID("Q"), buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindVertex8",config));
 		Assert.assertEquals(new VertexID("Q"), v.getUserDatum(JUConstants.LABEL));
 	}
 
@@ -243,7 +246,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testFindInitial1()
 	{
-		Vertex v = DeterministicDirectedSparseGraph.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"));
+		Vertex v = DeterministicDirectedSparseGraph.findInitial(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",config));
 		Assert.assertEquals(new VertexID("A"), v.getUserDatum(JUConstants.LABEL));
 	}
 	
@@ -264,7 +267,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testAddToIncompatibles1()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -281,7 +284,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testAddToIncompatibles2()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -298,7 +301,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testAddToIncompatibles3()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -316,7 +319,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testAddToIncompatibles4()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -334,7 +337,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testAddToIncompatibles5()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -352,7 +355,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testRemoveFromIncompatibles1()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1",Configuration.getDefaultConfiguration());
 		grf.addToCompatibility(grf.findVertex("A"),grf.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -365,7 +368,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testRemoveFromIncompatibles2()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1",Configuration.getDefaultConfiguration());
 		grf.addToCompatibility(grf.findVertex("A"),grf.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
 		Assert.assertTrue(checkIncompatible(grf,new StatePair(grf.findVertex("B"),grf.findVertex("A"))));
@@ -379,7 +382,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testRemoveFromIncompatibles3()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1",Configuration.getDefaultConfiguration());
 		grf.addToCompatibility(grf.findVertex("A"),grf.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("S"));
 		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("C"));
@@ -395,7 +398,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testRemoveFromIncompatibles4()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d-#S", "testRemoveFromIncompatibles1",Configuration.getDefaultConfiguration());
 		grf.addToCompatibility(grf.findVertex("A"),grf.findVertex("B"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grf.removeFromIncompatibles(grf.findVertex("A"),grf.findVertex("B"));
 		Assert.assertTrue(grf.pairCompatibility.compatibility.isEmpty());
@@ -405,7 +408,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testIncompatibles5()
 	{
-		LearnerGraph grf = new LearnerGraph(buildGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial"),Configuration.getDefaultConfiguration());
+		LearnerGraph grf = buildLearnerGraph("A-a->A-b->B-c->B-a->C\nQ-d->S", "testFindInitial",Configuration.getDefaultConfiguration());
 
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("A"))));
 		Assert.assertFalse(checkIncompatible(grf,new StatePair(grf.findVertex("A"),grf.findVertex("B"))));
@@ -445,9 +448,9 @@ public class TestFSMAlgo {
 	@Test
 	public final void testConstuctionOfIncompatibles1() throws IncompatibleStatesException
 	{
-		LearnerGraphND gr = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA"),Configuration.getDefaultConfiguration());
+		LearnerGraphND gr = buildLearnerGraphND("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA",Configuration.getDefaultConfiguration());
 		gr.addToCompatibility(gr.findVertex("F"), gr.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND expected = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB"),Configuration.getDefaultConfiguration());
+		LearnerGraphND expected = buildLearnerGraphND("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB",Configuration.getDefaultConfiguration());
 		expected.addToCompatibility(expected.findVertex("A"), expected.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNull(WMethod.checkM_and_colours(expected,gr.pathroutines.buildDeterministicGraph(),VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -457,9 +460,9 @@ public class TestFSMAlgo {
 	@Test
 	public final void testConstuctionOfIncompatibles2() throws IncompatibleStatesException
 	{
-		LearnerGraphND gr = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA"),Configuration.getDefaultConfiguration());
+		LearnerGraphND gr = buildLearnerGraphND("S-a->A-b->C-c->G\nS-a->B-b->D-c->H\nB-b->E-c->I\nS-a->F", "testConstuctionOfIncompatiblesA",Configuration.getDefaultConfiguration());
 		gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("H"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);gr.addToCompatibility(gr.findVertex("B"), gr.findVertex("D"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND expected = new LearnerGraphND(buildGraph("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB"),Configuration.getDefaultConfiguration());
+		LearnerGraphND expected = buildLearnerGraphND("S-a->A-b->C-c->G", "testConstuctionOfIncompatiblesB",Configuration.getDefaultConfiguration());
 		expected.addToCompatibility(expected.findVertex("A"), expected.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);expected.addToCompatibility(gr.findVertex("A"), gr.findVertex("G"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Assert.assertNull(WMethod.checkM_and_colours(expected,gr.pathroutines.buildDeterministicGraph(),VERTEX_COMPARISON_KIND.DEEP));
 	}
@@ -469,12 +472,13 @@ public class TestFSMAlgo {
 	 * @param data source data
 	 * @return a set of sequences to apply to an RPNI learner
 	 */
-	public static Set<List<String>> buildSet(String [][] data)
+	public static Set<List<Label>> buildSet(String [][] data,Configuration config)
 	{
-		Set<List<String>> result = new HashSet<List<String>>();
+		Set<List<Label>> result = new HashSet<List<Label>>();
 		for(String []seq:data)
 		{
-			result.add(Arrays.asList(seq));
+			List<Label> labelSeq = new LinkedList<Label>();for(String s:seq) labelSeq.add(AbstractLearnerGraph.generateNewLabel(s, config));
+			result.add(labelSeq);
 		}
 		return result;
 	}
@@ -517,7 +521,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildSet1()
 	{
-		assertTrue(buildSet(new String[] []{}).isEmpty());
+		assertTrue(buildSet(new String[] []{},config).isEmpty());
 	}
 
 	@Test
@@ -525,7 +529,7 @@ public class TestFSMAlgo {
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(new LinkedList<String>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{}})));
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{}},config)));
 	}
 
 	@Test
@@ -534,7 +538,7 @@ public class TestFSMAlgo {
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
 		expectedResult.add(new LinkedList<String>());
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}})));
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}},config)));
 	}
 
 	@Test
@@ -542,7 +546,7 @@ public class TestFSMAlgo {
 	{
 		Set<List<String>> expectedResult = new HashSet<List<String>>();
 		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}})));
+		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}},config)));
 	}
 
 	@Test
@@ -554,7 +558,7 @@ public class TestFSMAlgo {
 		expectedResult.add(Arrays.asList(new String[]{"g","t"}));
 		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
 		assertTrue(expectedResult.equals(buildSet(new String[] []{
-				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} })));
+				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} },config)));
 	}
 
 	@Test
@@ -804,7 +808,7 @@ public class TestFSMAlgo {
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{0,1,3}, -1	,config);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"),
-				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5"),config), 
+				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure5",config), 
 				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 	
@@ -819,7 +823,7 @@ public class TestFSMAlgo {
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{1,0,3}, -1	,config);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
-				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6"),config), 
+				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure6",config), 
 				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 
@@ -834,7 +838,7 @@ public class TestFSMAlgo {
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1}, -1	,config);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
-				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7"),config), 
+				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure7",config), 
 				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 	
@@ -849,7 +853,7 @@ public class TestFSMAlgo {
 		};
 		LearnerGraph fsm = LearnerGraph.convertTableToFSMStructure(table, new int[]{3,0,1,0,1,1}, -1	,config);
 		Assert.assertNull(WMethod.checkM(fsm, fsm.findVertex("S0"), 
-				new LearnerGraph(buildGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8"),config), 
+				buildLearnerGraph("S0-i0->S0-i1->S1\nS0-i3->S2\nS1-i0->S0\nS1-i1->S3\nS1-i2->S0", "testConvertTableToFSMStructure8",config), 
 				fsm.findVertex("S0"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 	}
 
@@ -894,7 +898,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void computeShortPathsToAllStates1()
 	{
-		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
 		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
 		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
 		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
@@ -905,7 +909,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void computeShortPathsToAllStates2()
 	{
-		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
 		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
 		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
 		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
@@ -917,7 +921,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void computeShortPathsToAllStates3()
 	{
-		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
 		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
 		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("B")));
@@ -926,7 +930,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void computeShortPathsToAllStates4()
 	{
-		LearnerGraphND graph = new LearnerGraphND(FsmParser.buildGraph("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
 		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
 		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{}));
 		expected.put(graph.findVertex("D"), Arrays.asList(new String[]{"b"}));
@@ -945,7 +949,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap1a()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b->D","testBuildVertexToEqClassMap1a"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A\nA-b->C-b->D","testBuildVertexToEqClassMap1a",Configuration.getDefaultConfiguration());
 		Assert.assertNull(graph.getVertexToAbstractState());
 		
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
@@ -972,7 +976,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap1()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-b->A\nA-b->C-b-#D","testBuildVertexToEqClassMap1b"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A\nA-b->C-b-#D","testBuildVertexToEqClassMap1b",Configuration.getDefaultConfiguration());
 		Assert.assertNull(graph.getVertexToAbstractState());
 		
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
@@ -999,7 +1003,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap2()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2",Configuration.getDefaultConfiguration());
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		
 		Assert.assertNull(graph.getVertexToAbstractState());
@@ -1018,7 +1022,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap3()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2",Configuration.getDefaultConfiguration());
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		
@@ -1060,7 +1064,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap4()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2",Configuration.getDefaultConfiguration());
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		lbls.buildVertexToAbstractStateMap(mergedAB, graph,true);
@@ -1088,13 +1092,13 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildVertexToEqClassMap5()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nC-b->C1\nD-b->D1-b->D2","testBuildVertexToEqClassMap2",Configuration.getDefaultConfiguration());
 		lbls.buildVertexToAbstractStateMap(graph, null,true);
 		LearnerGraph mergedAB = MergeStates.mergeAndDeterminize_general(graph, new StatePair(graph.findVertex("A"),graph.findVertex("B")));
 		lbls.buildVertexToAbstractStateMap(mergedAB, graph,true);
 		CmpVertex newVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D3"), mergedAB.config);
 		mergedAB.transitionMatrix.put(newVertex, mergedAB.createNewRow());
-		mergedAB.addTransition(mergedAB.transitionMatrix.get(mergedAB.findVertex("D2")), "b", newVertex);
+		mergedAB.addTransition(mergedAB.transitionMatrix.get(mergedAB.findVertex("D2")), AbstractLearnerGraph.generateNewLabel("b",config), newVertex);
 		lbls.buildVertexToAbstractStateMap(mergedAB, null,true);// update map
 		LearnerGraph mergedAll = MergeStates.mergeAndDeterminize_general(mergedAB, new StatePair(graph.findVertex("A"),graph.findVertex("C1")));
 		lbls.buildVertexToAbstractStateMap(mergedAll, mergedAB,true);
@@ -1114,14 +1118,14 @@ public class TestFSMAlgo {
 	@Test
 	public final void testCountEdges1()
 	{
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-b->B-b->C-c->D / A-a->E-a->F-d->F","testCountEdges1"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-b->B-b->C-c->D / A-a->E-a->F-d->F","testCountEdges1",Configuration.getDefaultConfiguration());
 		Assert.assertEquals(7, graph.pathroutines.countEdges());
 	}
 	
 	@Test
 	public final void testCountEdges2()
 	{
-		LearnerGraph graph = new LearnerGraph(buildGraph("A-a->A-b->B-b2->C-c->D / A-a2->E-a->F-d->F","testCountEdges2"),Configuration.getDefaultConfiguration());
+		LearnerGraph graph = buildLearnerGraph("A-a->A-b->B-b2->C-c->D / A-a2->E-a->F-d->F","testCountEdges2",Configuration.getDefaultConfiguration());
 		Assert.assertEquals(7, graph.pathroutines.countEdges());
 	}
 	
@@ -1166,7 +1170,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL4()
 	{
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B","testtoADL4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B","testtoADL4",Configuration.getDefaultConfiguration());
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 2\nA true false\nB false true\nA A a\nA B a\n",graph.pathroutines.toADL());
 	}
@@ -1174,7 +1178,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL5()
 	{
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B / A-b->B","testtoADL4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B","testtoADL4",Configuration.getDefaultConfiguration());
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("2 3\nA true false\nB false true\nA A a\nA B a\nA B b\n",graph.pathroutines.toADL());
 	}
@@ -1182,7 +1186,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL6()
 	{
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",Configuration.getDefaultConfiguration());
 		graph.getInit().setAccept(false);
 		Assert.assertEquals("3 5\nA true false\nB false true\nC false false\nA A a\nA B a\nA B b\nB A b\nB C c\n",graph.pathroutines.toADL());
 	}
@@ -1190,7 +1194,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testToADL7()
 	{
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->A-a->B / A-b->B / B-b->A / B-c-#C","testtoADL4",Configuration.getDefaultConfiguration());
 		Assert.assertEquals("3 5\nA true true\nB false true\nC false false\nA A a\nA B a\nA B b\nB A b\nB C c\n",graph.pathroutines.toADL());
 	}
 	

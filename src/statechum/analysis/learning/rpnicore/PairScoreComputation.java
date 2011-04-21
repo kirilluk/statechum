@@ -198,7 +198,7 @@ public class PairScoreComputation {
 	 * @return the target state, null if there is no transition with this input not only from r but also from all states associated to it
 	 * using mergedVertices. 
 	 */
-	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, String input)
+	protected CmpVertex findNextRed(Map<CmpVertex,List<CmpVertex>> mergedVertices, CmpVertex r, Label input)
 	{
 		CmpVertex target = null;
 		List<CmpVertex> associatedVertices = mergedVertices.get(r);
@@ -320,9 +320,9 @@ public class PairScoreComputation {
 		return score;
 	}
 
-	static public class StringVertexPair extends Pair<String,CmpVertex> 
+	static public class LabelVertexPair extends Pair<Label,CmpVertex> 
 	{
-		public StringVertexPair(String st,CmpVertex v)
+		public LabelVertexPair(Label st,CmpVertex v)
 		{
 			super(st,v);
 		}
@@ -422,11 +422,11 @@ public class PairScoreComputation {
 			{
 				// Now we have a single equivalence class in the form of a list of <label,next vertex> entries, explore all matching transitions,
 				// which correspond to sequences where the first element is the same (we are using sorted sets).
-				Iterator<StringVertexPair> firstTransitionIter = equivalenceClass.getOutgoing().iterator();
+				Iterator<LabelVertexPair> firstTransitionIter = equivalenceClass.getOutgoing().iterator();
 
 				while(firstTransitionIter.hasNext())
 				{
-					StringVertexPair firstTransition=firstTransitionIter.next();
+					LabelVertexPair firstTransition=firstTransitionIter.next();
 					AMEquivalenceClass<CmpVertex,LearnerGraphCachedData> fClass = stateToEquivalenceClass.get (firstTransition.secondElem);
 
 					// For each input, we need to consider every pair of next states; the loop below explores a triangle.
@@ -435,11 +435,11 @@ public class PairScoreComputation {
 					// The idea of tailSet is to pick all input/target state pairs for the input we considering and inputs
 					// lexicographically higher; once we got to the end of the collection of inputs,
 					// !firstTransition.firstElem.equals(secondTransition.firstElem) line will stop the iteration.
-					StringVertexPair firstInput = new StringVertexPair(firstTransition.firstElem,null);
-					Iterator<StringVertexPair> secondTransitionIter = equivalenceClass.getNewOutgoing().tailSet(firstInput).iterator();
+					LabelVertexPair firstInput = new LabelVertexPair(firstTransition.firstElem,null);
+					Iterator<LabelVertexPair> secondTransitionIter = equivalenceClass.getNewOutgoing().tailSet(firstInput).iterator();
 					while (secondTransitionIter.hasNext())
 					{
-						StringVertexPair secondTransition = secondTransitionIter.next();
+						LabelVertexPair secondTransition = secondTransitionIter.next();
 						if (!firstTransition.firstElem.equals(secondTransition.firstElem))
 							break;// go to the end of the sequence of outgoing transitions with the same label.
 						//System.out.println("transition " + firstTransition.firstElem+" to "+new StatePair(firstTransition.secondElem,secondTransition.secondElem));
@@ -647,13 +647,13 @@ public class PairScoreComputation {
 					}
 	
 					@Override
-					public void handleEntry(Entry<CmpVertex, Map<String, CmpVertex>> entryA, int threadNo) 
+					public void handleEntry(Entry<CmpVertex, Map<Label, CmpVertex>> entryA, int threadNo) 
 					{
 						// Now iterate through states
-						Iterator<Entry<CmpVertex,Map<String,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
+						Iterator<Entry<CmpVertex,Map<Label,CmpVertex>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
 						while(stateB_It.hasNext())
 						{
-							Entry<CmpVertex,Map<String,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
+							Entry<CmpVertex,Map<Label,CmpVertex>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
 							if (!filter.stateToConsider(entryA.getKey()) ||
 									!filter.stateToConsider(stateB.getKey()))
 							{

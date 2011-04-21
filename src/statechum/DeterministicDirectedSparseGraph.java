@@ -662,12 +662,12 @@ final public class DeterministicDirectedSparseGraph {
 	}
 
 	/** Given a graph, this method computes an alphabet of it. */
-	public static Set<String> computeAlphabet(DirectedSparseGraph g)
+	public static Set<Label> computeAlphabet(DirectedSparseGraph g)
 	{
-		Set<String> alphabet = new TreeSet<String>();
+		Set<Label> alphabet = new TreeSet<Label>();
 	
 		for(Edge e:(Set<Edge>)g.getEdges())
-				alphabet.addAll( (Set<String>)e.getUserDatum(JUConstants.LABEL) );
+				alphabet.addAll( (Set<Label>)e.getUserDatum(JUConstants.LABEL) );
 		return alphabet;
 	}
 
@@ -735,10 +735,10 @@ final public class DeterministicDirectedSparseGraph {
 		rejectVertex.addUserDatum(JUConstants.LABEL, reject, UserData.SHARED);
 		
 		// first pass - computing an alphabet
-		Set<String> alphabet = computeAlphabet(g);
+		Set<Label> alphabet = computeAlphabet(g);
 		
 		// second pass - checking if any transitions need to be added.
-		Set<String> outLabels = new HashSet<String>();
+		Set<Label> outLabels = new HashSet<Label>();
 		Iterator<Vertex> vertexIt = (Iterator<Vertex>)g.getVertices().iterator();
 		while(vertexIt.hasNext() && !transitionsToBeAdded)
 		{
@@ -747,7 +747,7 @@ final public class DeterministicDirectedSparseGraph {
 			Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
 			while(outEdgeIt.hasNext()){
 				DirectedSparseEdge outEdge = outEdgeIt.next();
-				outLabels.addAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+				outLabels.addAll( (Set<Label>)outEdge.getUserDatum(JUConstants.LABEL) );
 			}
 			transitionsToBeAdded = !alphabet.equals(outLabels);
 		}
@@ -762,12 +762,12 @@ final public class DeterministicDirectedSparseGraph {
 				Vertex v = vertexIt.next();
 				if (v != rejectVertex)
 				{// no transitions should start from the reject vertex
-					Set<String> outgoingLabels = new TreeSet<String>();outgoingLabels.addAll(alphabet);
+					Set<Label> outgoingLabels = new TreeSet<Label>();outgoingLabels.addAll(alphabet);
 					
 					Iterator<DirectedSparseEdge>outEdgeIt = v.getOutEdges().iterator();
 					while(outEdgeIt.hasNext()){
 						DirectedSparseEdge outEdge = outEdgeIt.next();
-						outgoingLabels.removeAll( (Set<String>)outEdge.getUserDatum(JUConstants.LABEL) );
+						outgoingLabels.removeAll( (Set<Label>)outEdge.getUserDatum(JUConstants.LABEL) );
 					}
 					if (!outgoingLabels.isEmpty())
 					{
@@ -884,7 +884,9 @@ final public class DeterministicDirectedSparseGraph {
 			DeterministicVertex newSrc = DeterministicDirectedSparseGraph.copyVertex(newVertices,result,e.getSource()),
 				newDst = DeterministicDirectedSparseGraph.copyVertex(newVertices, result, e.getDest());
 			DirectedSparseEdge newEdge = new DirectedSparseEdge(newSrc,newDst);
-			newEdge.addUserDatum(JUConstants.LABEL, ((HashSet<String>)e.getUserDatum(JUConstants.LABEL)).clone(), UserData.SHARED);
+			Set<Label> origLabels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
+			TreeSet<Label> copiedLabels = new TreeSet<Label>();copiedLabels.addAll(origLabels);
+			newEdge.addUserDatum(JUConstants.LABEL, copiedLabels, UserData.SHARED);
 			result.addEdge(newEdge);
 		}
 		return result;

@@ -84,7 +84,7 @@ public class IncrementalAccuracyAndQuestionsExperiment
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
+						List<Label> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused") final Object [] moreOptions)

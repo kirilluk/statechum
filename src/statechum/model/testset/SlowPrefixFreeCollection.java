@@ -23,13 +23,15 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Label;
+
 public class SlowPrefixFreeCollection extends PrefixFreeCollection {
-	private Collection<List<String>> data = new LinkedHashSet<List<String>>();
+	private Collection<List<Label>> data = new LinkedHashSet<List<Label>>();
 	
 	@Override
-	public void addSequence(List<String> seq) {
-		List<List<String>> seqToRemove = new LinkedList<List<String>>();
-		for(List<String> s:data)
+	public void addSequence(List<Label> seq) {
+		List<List<Label>> seqToRemove = new LinkedList<List<Label>>();
+		for(List<Label> s:data)
 		{
 			if (isPrefix(s, seq))
 			{
@@ -43,7 +45,7 @@ public class SlowPrefixFreeCollection extends PrefixFreeCollection {
 	}
 
 	@Override
-	public Collection<List<String>> getData() {
+	public Collection<List<Label>> getData() {
 		return data;
 	}
 

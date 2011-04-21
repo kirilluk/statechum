@@ -23,6 +23,7 @@ import java.util.*;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.util.*;
 import statechum.analysis.learning.rpnicore.*;
@@ -32,32 +33,35 @@ import edu.uci.ics.jung.graph.*;
 
 import jltl2ba.*;
 
-/**
+/** To use this, either LTL2BA and SPIN need to be on the system path or LTL2BA has to be set 
+ * such as by passing -DLTL2BA=/usr/local/bin/ltl2ba as an argument to VM. 
+ * 
  * @author nw
  *
  */
 public class SpinUtil {
 	
-	// To use this, LTL2BA and SPIN need to be on the system path. 
+	int functionCounter=0, stateCounter=0;
 
+	String defines;
 
-	static int functionCounter, stateCounter;
-
-	static String defines;
-
-	static String tempDir = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP);
+	String tempDir = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP);
 	//static String fileRef = statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"promelaMachine";
 	
-	static StringWriter sw;
+	final StringWriter sw = new StringWriter();
 
-	static Map<String, Integer> functionMap;
+	Map<String, Integer> functionMap;
 
-	static Map<Integer, String> inverseFunctionMap;
+	Map<Integer, String> inverseFunctionMap;
 	
-	public static SpinResult check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
-		functionCounter = 0;
-		stateCounter = 0;
-		sw = new StringWriter();
+	final Configuration config;
+	
+	public SpinUtil(Configuration c)
+	{
+		config = c;
+	}
+	
+	public SpinResult check(LearnerGraph temp, LearnerGraph current, Collection<String> ltl) {
 		defines = new String();
 		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
@@ -66,10 +70,9 @@ public class SpinUtil {
 		return sr;
 	}
 	
-	public static SpinResult check(LearnerGraph temp, Collection<String> ltl) {
+	public SpinResult check(LearnerGraph temp, Collection<String> ltl) {
 		functionCounter = 0;
 		stateCounter = 0;
-		sw = new StringWriter();
 		defines = new String();
 		generatePromela(temp.pathroutines.getGraph());
 		createInverseMap();
@@ -78,12 +81,12 @@ public class SpinUtil {
 		return sr;
 	}
 	
-	static void removeInvalidPrefixCounters(List<List<String>> counters, LearnerGraph current){
-		Iterator<List<String>> counterIt = counters.iterator();
-		Collection<List<String>> toBeRemoved = new HashSet<List<String>>();
+	static void removeInvalidPrefixCounters(List<List<Label>> counters, LearnerGraph current){
+		Iterator<List<Label>> counterIt = counters.iterator();
+		Collection<List<Label>> toBeRemoved = new HashSet<List<Label>>();
 		LearnerGraph counterPTA = new LearnerGraph(Configuration.getDefaultConfiguration());
 		while(counterIt.hasNext()){
-			List<String> counter = counterIt.next();
+			List<Label> counter = counterIt.next();
 			if(current.paths.tracePathPrefixClosed(counter.subList(0, counter.size()-1))!=AbstractOracle.USER_ACCEPTED)
 				toBeRemoved.add(counter);
 			else if(current !=null)
@@ -103,11 +106,11 @@ public class SpinUtil {
 		counters.removeAll(toBeRemoved);
 	}
 	
-	public static List<List<String>> sort(Set<List<String>> counters){
-		ArrayList<List<String>> counterList = new ArrayList<List<String>>();
+	public static List<List<Label>> sort(Set<List<Label>> counters){
+		ArrayList<List<Label>> counterList = new ArrayList<List<Label>>();
 		counterList.addAll(counters);
-		Collections.sort(counterList, new Comparator<List<String>>() {
-            public @Override int compare(List<String> s1, List<String> s2) {
+		Collections.sort(counterList, new Comparator<List<Label>>() {
+            public @Override int compare(List<Label> s1, List<Label> s2) {
                  if (s1.size() < s2.size()) {
                     return -1;
                 }
@@ -133,10 +136,7 @@ public class SpinUtil {
 		return ltlString;
 	}
 	
-	public static int check (List<String> question, Collection<String> ltl){
-		functionCounter = 0;
-		stateCounter = 0;
-		sw = new StringWriter();
+	public int check (List<Label> question, Collection<String> ltl){
 		defines = new String();
 		generatePromela(question);
 		createInverseMap();
@@ -151,7 +151,8 @@ public class SpinUtil {
 	
 	
 	
-	private static SpinResult checkLTL(String ltl){
+	private SpinResult checkLTL(String ltl)
+	{
 		addLtl(ltl);
 		generateDefines(functionMap);
 		File promelaMachine  = new File(tempDir+File.separator+"promelaMachine");
@@ -159,8 +160,9 @@ public class SpinUtil {
 		return runSpin('s');
 	}
 
-	private static void createInverseMap() {
-		inverseFunctionMap = new HashMap<Integer, String>();
+	private void createInverseMap() 
+	{
+		inverseFunctionMap = new TreeMap<Integer, String>();
 		for (String key : functionMap.keySet()) {
 			inverseFunctionMap.put(functionMap.get(key), key);
 		}
@@ -169,7 +171,8 @@ public class SpinUtil {
 	/*
 	 * returns a set of counter examples
 	 */
-	private static SpinResult runSpin(char safetyLiveness) {
+	private SpinResult runSpin(char safetyLiveness) 
+	{
 		SpinResult sr = new SpinResult();
 		List<String[]> cmdArray = new ArrayList<String[]>();
 		for(File f:new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)).listFiles(new FileFilter(){
@@ -221,7 +224,7 @@ public class SpinUtil {
 	            
 	            if (foundNoError)
 	            {
-            		sr.setCounters(new ArrayList<List<String>>());
+            		sr.setCounters(new ArrayList<List<Label>>());
             		sr.setPass(true);
             		return sr;
 	            }
@@ -238,14 +241,14 @@ public class SpinUtil {
 	
 	
 
-	private static List<List<String>> getCounterExamples(){
-		Set<List<String>> counterExamples = new HashSet<List<String>>();
+	private List<List<Label>> getCounterExamples()
+	{
+		Set<List<Label>> counterExamples = new HashSet<List<Label>>();
 		String[] filelist;
 		File f = new File(tempDir);		
-		SpinUtil sp = new SpinUtil();
-		filelist = f.list(sp.new TrailFileFilter());
+		filelist = f.list(new TrailFileFilter());
 		for(int i=0; i< filelist.length; i++){
-			List<String> counterExample = getCounterExample(i);
+			List<Label> counterExample = getCounterExample(i,config);
 			if(!counterExample.isEmpty())
 				counterExamples.add(counterExample);
 		}
@@ -272,10 +275,10 @@ public class SpinUtil {
 		return succs;
 	}
 	
-	private static void generatePromela(DirectedSparseGraph g) {
-		HashMap<String, Integer> stateMap = new HashMap<String, Integer>();
+	private void generatePromela(DirectedSparseGraph g) {
+		Map<String, Integer> stateMap = new TreeMap<String, Integer>();
 		functionMap = new HashMap<String, Integer>();
-		setup(g, stateMap, functionMap);
+		setup(g, stateMap);
 		Iterator<DirectedSparseVertex> stateIt = g.getVertices().iterator();
 		
 		while (stateIt.hasNext()) {
@@ -301,7 +304,7 @@ public class SpinUtil {
 				Iterator<DirectedEdge> outEdges = v.getOutEdges().iterator();
 				while(outEdges.hasNext()){
 					DirectedEdge e = outEdges.next();
-					Set<String> labels = (Set<String>)e.getUserDatum(JUConstants.LABEL);
+					Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 					
 					if(!DeterministicDirectedSparseGraph.isAccept(e.getDest()))
 							continue;
@@ -312,11 +315,11 @@ public class SpinUtil {
 						stateMap.put(toState, new Integer(stateCounter));
 						stateCounter++;
 					}
-					Iterator labelIt = labels.iterator();
+					Iterator<Label> labelIt = labels.iterator();
 					while (labelIt.hasNext()) {
-						String label = labelIt.next().toString();
+						Label label = labelIt.next();
 						if (!functionMap.keySet().contains(label)) {
-							functionMap.put(label, new Integer(functionCounter));
+							functionMap.put(label.toAlphaNum(), new Integer(functionCounter));
 							functionCounter++;
 						}
 						sw.write("\n\t:: input=" + functionMap.get(label)
@@ -331,16 +334,15 @@ public class SpinUtil {
 		printLegend(sw, functionMap);
 	}
 	
-	private static void generatePromela(List<String> question) {
-		functionMap = new HashMap<String, Integer>();
-		sw = new StringWriter();
+	private void generatePromela(List<Label> question) {
+		functionMap = new TreeMap<String, Integer>();
 		sw.write("int input=50000;\nproctype machine(){\n");
-		Iterator<String> questionIt = question.iterator();
+		Iterator<Label> questionIt = question.iterator();
 		
 		while (questionIt.hasNext()) {
-			String symb = questionIt.next();
+			Label symb = questionIt.next();
 			if (!functionMap.keySet().contains(symb)) {
-				functionMap.put(symb, new Integer(functionCounter));
+				functionMap.put(symb.toAlphaNum(), new Integer(functionCounter));
 				functionCounter++;
 			}
 			sw.write("input="+functionMap.get(symb)+";\n");
@@ -352,7 +354,7 @@ public class SpinUtil {
 		
 	}
 
-	private static void addLtl(String ltl) {
+	private void addLtl(String ltl) {
 		try {
 			ensureApplicable(ltl);
 			StringBuffer output = LowLevel.exec(ltl);
@@ -360,7 +362,7 @@ public class SpinUtil {
 		} catch (Exception e) {e.printStackTrace();}
 	}
 	
-	private static void ensureApplicable(String ltl){
+	private void ensureApplicable(String ltl){
 		String[] splitString = ltl.split("\\p{Punct}|X|U|V");
 		for (String string : splitString) {
 			if(string.trim().equals("")||string.trim().equals("[]"))
@@ -372,7 +374,7 @@ public class SpinUtil {
 		}
 	}
 
-	private static void generateDefines(Map<String, Integer> functionMapArg) {
+	private void generateDefines(Map<String, Integer> functionMapArg) {
 
 		for (String key : functionMapArg.keySet()) {
 			defines = defines.concat("#define " + key + "\t" + "(input == "
@@ -392,8 +394,9 @@ public class SpinUtil {
 		swArg.write("\n*/");
 	}
 	
-	private static List<String> getCounterExample(int i){
-		List<String> counterExample = new ArrayList<String>();
+	private List<Label> getCounterExample(int i,Configuration config)
+	{
+		List<Label> counterExample = new ArrayList<Label>();
 		String[] trace = new String[]{"spin", "-t"+(i+1), "-p", "-c", "promelaMachine"};
 		LinkedList<String> SpinData = new LinkedList<String>(); 
 		try {
@@ -410,7 +413,7 @@ public class SpinUtil {
 				if(line.contains("trail ends after"))
 					break;
 				if (line.contains("<valid end state>")&&line.contains("proc  1")){
-					return new ArrayList<String>(); //don't want to return this counterexample
+					return new ArrayList<Label>(); //don't want to return this counterexample
 				}
 				else if (line.contains("[input")) {
 					int inputIndex = line.indexOf("[input =") + 8;
@@ -419,7 +422,7 @@ public class SpinUtil {
 							.valueOf(line.substring(inputIndex,
 									closingBracket).trim()));
 					if(function !=null)
-						counterExample.add(function);
+						counterExample.add(AbstractLearnerGraph.generateNewLabel(function,config));
 				} 
 				else if (line.contains("<<<<<"))
 					break;
@@ -438,9 +441,7 @@ public class SpinUtil {
 		}
 	}
 
-	private static void setup(DirectedSparseGraph g,
-			Map<String, Integer> stateMap, Map<String, Integer> functionMapArg) {
-		sw = new StringWriter();
+	private void setup(DirectedSparseGraph g, Map<String, Integer> stateMap) {
 		DirectedSparseVertex v = (DirectedSparseVertex) DeterministicDirectedSparseGraph
 				.findInitial(g);
 		String state = v.getUserDatum(JUConstants.LABEL).toString();

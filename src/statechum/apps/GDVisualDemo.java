@@ -17,7 +17,7 @@
  */
 package statechum.apps;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
 import java.util.List;
 
@@ -44,8 +44,8 @@ public class GDVisualDemo
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraphND grA=new LearnerGraphND(buildGraph(graphA, "labellingDemo_A_"+counter),config),grB=
-		new LearnerGraphND(buildGraph(graphB, "labellingDemo_B_"+counter),config);
+		LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config),grB=
+		buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config);
 		DirectedSparseGraph gr = gd.showGD(
 				grA,grB,
 				ExperimentRunner.getCpuNumber());

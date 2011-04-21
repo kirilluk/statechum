@@ -38,6 +38,7 @@ import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -191,7 +192,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 	
 	@Override
-	public LearnerGraph learnMachine(Collection<List<String>> plus,	Collection<List<String>> minus)
+	public LearnerGraph learnMachine(Collection<List<Label>> plus,	Collection<List<Label>> minus)
 	{
 		LearnerGraph graph = decoratedLearner.learnMachine(plus,minus);
 		writeResult(graph);
@@ -201,7 +202,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 
 	@Override 
 	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, 
+			List<Label> question, 
 			int responseForNoRestart, 
 			List<Boolean> acceptedElements, 
 			PairScore pairBeingMerged,
@@ -230,9 +231,9 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 	
 	@Override 
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		List<List<String>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
+		List<List<Label>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
 		Element questionList = writeSequenceList(StatechumXML.ATTR_QUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
@@ -241,9 +242,9 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 	
 	@Override 
-	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public List<List<Label>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		List<List<String>> result = decoratedLearner.RecomputeQuestions(pair, original, temp);
+		List<List<Label>> result = decoratedLearner.RecomputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
 		Element questionList = writeSequenceList(StatechumXML.ATTR_MOREQUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
@@ -294,7 +295,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	}
 
 	@Override 
-	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+	public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 	{
 		LearnerGraph result = decoratedLearner.init(plus, minus);
 		
@@ -314,7 +315,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 
 	@Override 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour) 
+			List<Label> sequence, boolean accepted, JUConstants newColour) 
 	{
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 		writeElement(writeAugmentPTA(new AugmentPTAData(ptaKind,sequence,accepted,newColour)));

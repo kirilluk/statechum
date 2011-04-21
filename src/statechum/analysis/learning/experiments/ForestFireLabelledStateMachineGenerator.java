@@ -17,14 +17,17 @@
  */
 package statechum.analysis.learning.experiments;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import cern.jet.random.Distributions;
 
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.Label;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.utils.UserData;
@@ -38,17 +41,21 @@ import edu.uci.ics.jung.utils.UserData;
  */
 public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMachineGenerator 
 {
-	Set<String> alphabet;
+	Set<Label> alphabet;
 	double parallel;
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, int seed)
+	public ForestFireLabelledStateMachineGenerator(
+			double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, 
+			int seed,Configuration conf)
 	{
-		super(forwards, backwards,argSelfloop,seed);this.parallel=argParallel;
+		super(forwards, backwards,argSelfloop,seed,conf);this.parallel=argParallel;
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	
-	public ForestFireLabelledStateMachineGenerator(double forwards, double backwards, double argSelfloop, double argParallel, Set<String> argAlphabet, int seed)
+	public ForestFireLabelledStateMachineGenerator(
+			double forwards, double backwards, double argSelfloop, double argParallel, Set<Label> argAlphabet, 
+			int seed,Configuration conf)
 	{
-		super(forwards, backwards, argSelfloop, seed);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards, argSelfloop, seed,conf);this.parallel=(int)(1/argParallel);
 		this.alphabet=argAlphabet;
 	}
 	
@@ -71,34 +78,34 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	
 	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
 	{
-		Set<String> vertexAlphabet = new HashSet<String>();
+		Set<Label> vertexAlphabet = new TreeSet<Label>();
 		DirectedSparseEdge existingEdge = null;
 		for (Object e : v.getOutEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
 			if (edge.getDest() == random)
 				existingEdge = edge;
-			Set<String>labels = (Set<String>)edge.getUserDatum(JUConstants.LABEL);
+			Set<Label>labels = (Set<Label>)edge.getUserDatum(JUConstants.LABEL);
 			assert labels!=null : "vertex "+v.getID().toString()+" has outgoing edges without labels";
 			vertexAlphabet.addAll(labels);
 		}
-		Set<String> possibles = new HashSet<String>();
+		Set<Label> possibles = new TreeSet<Label>();
 		possibles.addAll(alphabet);
 		possibles.removeAll(vertexAlphabet);
-		String label = null;
+		Label label = null;
 		if(possibles.isEmpty())
 			return false;// failure to add an edge since all possible letters of an alphabet have already been used
-		String possiblesArray [] = new String[possibles.size()];possibles.toArray(possiblesArray); 
+		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray); 
 		label = possiblesArray[randomInt(possiblesArray.length)];
 		
 		if (existingEdge != null)
 		{// a parallel edge
-			((Set<String>)existingEdge.getUserDatum(JUConstants.LABEL)).add(label);
+			((Set<Label>)existingEdge.getUserDatum(JUConstants.LABEL)).add(label);
 		}
 		else
 		{// new edge needs to be added.
 			try
 			{
-				Set<String> labelSet = new HashSet<String>();
+				Set<Label> labelSet = new TreeSet<Label>();
 				labelSet.add(label);
 				DirectedSparseEdge e = new DirectedSparseEdge(v,random);
 				e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
@@ -111,14 +118,12 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		return true;
 	}
 	
-	private static Set<String> generateAlphabet(int number)
+	private Set<Label> generateAlphabet(int number)
 	{
-		Set<String> alphabet = new HashSet<String>();
-		for (int i=0;i<number;i++){
-			String next = String.valueOf(i);
-			alphabet.add(next);
-		}
-		return alphabet;
+		Set<Label> generatedAlphabet = new TreeSet<Label>();
+		for (int i=0;i<number;i++)
+			generatedAlphabet.add(AbstractLearnerGraph.generateNewLabel(i, config));
+		return generatedAlphabet;
 	}
 	
 }

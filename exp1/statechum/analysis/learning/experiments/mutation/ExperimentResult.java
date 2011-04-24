@@ -1,11 +1,19 @@
 package statechum.analysis.learning.experiments.mutation;
 
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
 import java.util.Map;
 import java.util.TreeMap;
+
 
 /** Represents results of test runs. */
 public class ExperimentResult
 {
+	/**
+	 * ID for serialization.
+	 */
+	private static final long serialVersionUID = -4710526839732193138L;
+
 	/** These two enums are different to ensure typechecking by the compiler. */
 	public enum DOUBLE_V { MISMATCHED_KEYPAIRS, OBTAINED_TO_EXPECTED, MUTATIONS_TO_TRANSITIONS, ACCURACY_W, ACCURACY_RAND };
 	public enum LONG_V { DURATION_GD, DURATION_RAND, DURATION_W };
@@ -36,6 +44,20 @@ public class ExperimentResult
 	{
 		L_varToValue.put(name,value);
 	}
+	
+	public void record(XMLEncoder encoder)
+	{
+		encoder.writeObject(experimentValid);
+		encoder.writeObject(D_varToValue);encoder.writeObject(L_varToValue);
+	}
+
+	public void load(XMLDecoder decoder)
+	{
+		experimentValid = ((Boolean)decoder.readObject()).booleanValue();
+		D_varToValue = (Map<ExperimentResult.DOUBLE_V,Double>)decoder.readObject();
+		L_varToValue = (Map<ExperimentResult.LONG_V,Long>)decoder.readObject();
+	}
+
 	
 	public boolean experimentValid = false;
 
@@ -77,4 +99,47 @@ public class ExperimentResult
 			result.setValue(varName,getValue(varName)/count);
 		return result;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((D_varToValue == null) ? 0 : D_varToValue.hashCode());
+		result = prime * result
+				+ ((L_varToValue == null) ? 0 : L_varToValue.hashCode());
+		result = prime * result + (experimentValid ? 1231 : 1237);
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (!(obj instanceof ExperimentResult))
+			return false;
+		ExperimentResult other = (ExperimentResult) obj;
+		if (D_varToValue == null) {
+			if (other.D_varToValue != null)
+				return false;
+		} else if (!D_varToValue.equals(other.D_varToValue))
+			return false;
+		if (L_varToValue == null) {
+			if (other.L_varToValue != null)
+				return false;
+		} else if (!L_varToValue.equals(other.L_varToValue))
+			return false;
+		if (experimentValid != other.experimentValid)
+			return false;
+		return true;
+	}
+
 }

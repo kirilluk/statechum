@@ -2,7 +2,6 @@ package statechum.analysis.learning.experiments.mutation;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -157,4 +156,5 @@ public class TestDiffExperiments {
 		Assert.assertEquals(0.5,matrix.getSpecificity(),Configuration.fpAccuracy);
 		Assert.assertEquals(0.75,matrix.BCR(),Configuration.fpAccuracy);
 	}
+	
 }

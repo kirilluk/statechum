@@ -67,13 +67,18 @@ public class DiffExperiments {
 	
 	Configuration config = Configuration.getDefaultConfiguration().copy();
 	boolean skipLanguage = false;
-	final int experimentsPerMutationCategory, mutationStages = 5, graphComplexityMax = 6;
+	final int experimentsPerMutationCategory, mutationStages, graphComplexityMax;
 
 	public static void main(String[] args){
 		try
 		{
-			DiffExperiments exp = new DiffExperiments(30);
-			exp.runExperiment(20, false);
+			//new DiffExperiments(30,5,1).TestExperiment(new ResultRecorder("out.xml"));
+			
+			new DiffExperiments(30).runExperiment(20, false);;
+		}
+		catch(Exception ex)
+		{
+			ex.printStackTrace();
 		}
 		finally
 		{
@@ -81,13 +86,18 @@ public class DiffExperiments {
 		}
 	}
 	
-	public DiffExperiments(int experimentsPerCategoryArg){
-		experimentsPerMutationCategory = experimentsPerCategoryArg;
-		//config.setGdScoreComputation(GDScoreComputationEnum.GD_DIRECT);
-		//config.setGdScoreComputationAlgorithm(GDScoreComputationAlgorithmEnum.SCORE_TESTSET);
-		
+	public DiffExperiments(int experimentsPerCategoryArg)
+	{
+		experimentsPerMutationCategory = experimentsPerCategoryArg;mutationStages = 5;graphComplexityMax = 6;
 	}
 
+	public DiffExperiments(int experimentsPerCategoryArg, int mutationStagesArg, int graphComplexityMaxArg)
+	{
+		experimentsPerMutationCategory = experimentsPerCategoryArg;
+		mutationStages = mutationStagesArg;graphComplexityMax = graphComplexityMaxArg;
+		
+	}
+	
 	public void runExperiment(int initStates, boolean skip){
 		DrawGraphs gr = new DrawGraphs();
 		this.skipLanguage = skip;
@@ -288,14 +298,14 @@ public class DiffExperiments {
 	}
 	
 
-	private LearnerGraph mergeAndDeterminize(LearnerGraphND from) throws IncompatibleStatesException {
+	protected LearnerGraph mergeAndDeterminize(LearnerGraphND from) throws IncompatibleStatesException {
 		LearnerGraph eval = null;
 		eval = from.pathroutines.buildDeterministicGraph();
 		eval = eval.paths.reduce();
 		return eval;
 	}
 
-	private boolean languageDiff(LearnerGraph from,	LearnerGraph to,int states,int graphComplexity,ExperimentResult outcome) 
+	protected boolean languageDiff(LearnerGraph from,	LearnerGraph to,int states,int graphComplexity,ExperimentResult outcome) 
 	{
 		//Set<String> origAlphabet = to.pathroutines.computeAlphabet();
 		//assert origAlphabet.equals(from.pathroutines.computeAlphabet());
@@ -466,7 +476,7 @@ public class DiffExperiments {
 	 * @param graphTo where to store the result
 	 * @return the map from the original to the converted CmpVertices
 	 */
-	private Map<CmpVertex,CmpVertex> copyStatesAndTransitions(LearnerGraphND machineFrom, LearnerGraphND graphTo) {
+	protected Map<CmpVertex,CmpVertex> copyStatesAndTransitions(LearnerGraphND machineFrom, LearnerGraphND graphTo) {
 		Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
 		graphTo.getTransitionMatrix().clear();
 		Set<CmpVertex> machineStates = machineFrom.getTransitionMatrix().keySet();

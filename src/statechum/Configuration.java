@@ -349,6 +349,20 @@ public class Configuration implements Cloneable
 		LearnerUseStrings = learnerUseStrings;
 	}
 	
+	/** Selects the type of labels to use in a graph. This primarily affects parsing of them from text. */
+	public enum LABELKIND { LABEL_STRING,LABEL_ERLANG };
+	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;
+	
+	public LABELKIND getLabelKind()
+	{
+		return labelKind;
+	}
+	
+	public void setLabelKind(LABELKIND newLabelKind)
+	{
+		labelKind = newLabelKind;
+	}
+	
 	/** The initial state in a PTA has to be given some name, this is the default.
 	 * Important: "" means "generate a numerical identifier" which is almost
 	 * always the best choice, but in some specific tests, I'd like to use
@@ -458,6 +472,7 @@ public class Configuration implements Cloneable
 		result = prime * result + (equivalentStatesAllowedForW? 1231 : 1237);
 		result = prime * result + (gdPropagateDet? 1231 : 1237);
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_PathLength;
+		result = prime * result + labelKind.hashCode();
 		
 		return result;
 	}
@@ -586,6 +601,8 @@ public class Configuration implements Cloneable
 		if (gdPropagateDet != other.gdPropagateDet)
 			return false;
 		if (gdScoreComputationAlgorithm_RandomWalk_PathLength != other.gdScoreComputationAlgorithm_RandomWalk_PathLength)
+			return false;
+		if (labelKind != other.labelKind)
 			return false;
 		
 		return true;

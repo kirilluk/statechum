@@ -35,10 +35,9 @@ public final class TestCloneWithDifferentConf
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
-		DirectedSparseGraph graphD=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2");
-		DirectedSparseGraph graphND=FsmParser.buildGraph("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph4");
-		
 		Configuration config = Configuration.getDefaultConfiguration().copy();
+		DirectedSparseGraph graphD=FsmParser.buildGraph("S-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph2",config);
+		DirectedSparseGraph graphND=FsmParser.buildGraph("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+TestRpniLearner.PTA3, "testCopyGraph4",config);
 
 		Configuration confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);
 		Configuration confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);
@@ -72,9 +71,13 @@ public final class TestCloneWithDifferentConf
 		}
 		
 
-		LearnerGraph differentGraphA = new LearnerGraph(graphD,config);differentGraphA.transitionMatrix.get(differentGraphA.findVertex("A2")).put("t", differentGraphA.findVertex("A3"));
+		LearnerGraph differentGraphA = new LearnerGraph(graphD,config);differentGraphA.transitionMatrix.get(differentGraphA.findVertex("A2"))
+			.put(AbstractLearnerGraph.generateNewLabel("t",differentGraphA.config),
+					differentGraphA.findVertex("A3"));
 		differentGraphA.setName("differentA");
-		LearnerGraphND differentGraphB = new LearnerGraphND(graphND,config);differentGraphB.transitionMatrix.get(differentGraphB.findVertex("A2")).get("c").add(differentGraphB.findVertex("S"));
+		LearnerGraphND differentGraphB = new LearnerGraphND(graphND,config);differentGraphB.transitionMatrix.get(differentGraphB.findVertex("A2"))
+			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config))
+			.add(differentGraphB.findVertex("S"));
 		differentGraphB.setName("differentB");
 		
 		List<AbstractLearnerGraph> different = new LinkedList<AbstractLearnerGraph>();different.addAll(Arrays.asList(new AbstractLearnerGraph[]{

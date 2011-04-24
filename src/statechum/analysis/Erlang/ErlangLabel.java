@@ -63,11 +63,6 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
         expectedOutput = expectedOutputArgs;
     }
 
-    public static ErlangLabel parseLabel(String label) {
-        // FIXME temp...
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
     @Override
     public int compareTo(Label other) {
         if (!(other instanceof ErlangLabel)) {
@@ -169,4 +164,16 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
         }
         return true;
     }
+    
+    /** Given a string containing the whole of the expression to parse, parses the text and returns the
+     * corresponding Erlang label.
+     *  
+     * @param str label to parse
+     * @return the outcome.
+     */
+    public static ErlangLabel parseLabel(String str)
+    {
+    	throw new UnsupportedOperationException("cannot parse yet");
+    }
+    
 }

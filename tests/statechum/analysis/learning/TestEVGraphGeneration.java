@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import junit.framework.JUnit4TestAdapter;
 
@@ -48,9 +49,9 @@ public class TestEVGraphGeneration {
 	public static final String EDGE = " EDGE";
 	public static final String VERTEX = "VERTEX";
 	
-	private static void addSingletonLabel(DirectedSparseEdge e, String label)
+	private static void addSingletonLabel(DirectedSparseEdge e, Label label)
 	{
-		Set<String> labelSet = new HashSet<String>();labelSet.add(label);
+		Set<Label> labelSet = new TreeSet<Label>();labelSet.add(label);
 		e.setUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);		
 	}
 	
@@ -88,7 +89,7 @@ public class TestEVGraphGeneration {
 	public void checkEquivalence(DirectedSparseGraph g, String expected)
 	{
 		for(DirectedSparseEdge e:(Set<DirectedSparseEdge>)g.getEdges())
-			addSingletonLabel(e, (String)e.getUserDatum(EDGE));
+			addSingletonLabel(e, (Label)e.getUserDatum(EDGE));
 		
 		for(DirectedSparseVertex v:(Set<DirectedSparseVertex>)g.getVertices())
 		{

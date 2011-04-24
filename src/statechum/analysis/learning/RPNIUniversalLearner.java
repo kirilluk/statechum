@@ -27,6 +27,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -177,6 +178,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
 		LearnerGraph ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		SpinUtil spin = null;
 		LearnerGraph.copyGraphs(tentativeAutomaton, ptaHardFacts);
 		LearnerGraph ptaSoftFacts = tentativeAutomaton;
 		setChanged();tentativeAutomaton.setName(learntGraphName+"_init");
@@ -192,7 +194,8 @@ public class RPNIUniversalLearner extends RPNILearner
 			tentativeAutomaton = updatedTentativeAutomaton;
 		}
 		if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
-			SpinResult sr = SpinUtil.check(ptaHardFacts, ifthenAutomataAsText);
+			spin = new SpinUtil(config);
+			SpinResult sr = spin.check(ptaHardFacts, ifthenAutomataAsText);
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, sr.getCounters()));
 		}
@@ -214,7 +217,7 @@ public class RPNIUniversalLearner extends RPNILearner
 			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 
-				Collection<List<Label>> counterExamples = SpinUtil.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
+				Collection<List<Label>> counterExamples = spin.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
 				Iterator<List<Label>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext())
 				{
@@ -266,7 +269,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
 				if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty())
-					answer = new Pair<Integer,String>(checkWithSPIN(question),null);
+					answer = new Pair<Integer,String>(spin.check(question, ifthenAutomataAsText),null);
 				
 				CmpVertex tempVertex = temp.getVertex(question);
 				boolean answerFromSpin = false;
@@ -329,12 +332,12 @@ public class RPNIUniversalLearner extends RPNILearner
 								if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdPositive))
 								{
 									positive = true;
-									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdPositive.length()+1),config);
+									traceToAdd = AbstractLearnerGraph.parseTrace(newTrace.substring(QSMTool.cmdPositive.length()+1),config);
 								}
 								else if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdNegative))
 								{
 									positive = false;
-									traceToAdd = QSMTool.tokeniseInput(newTrace.substring(QSMTool.cmdNegative.length()+1),config);
+									traceToAdd = AbstractLearnerGraph.parseTrace(newTrace.substring(QSMTool.cmdNegative.length()+1),config);
 								}
 								else
 									throw new IllegalArgumentException("trace not labelled as either positive or negative");
@@ -419,7 +422,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <"+answerType+"> "+addedConstraint);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ifthenAutomataAsText);tmpLtl.add(answerType+" "+addedConstraint);
 							if(!config.isUseConstraints()){
-								Collection<List<Label>> counters = SpinUtil.check(ptaHardFacts, tmpLtl).getCounters();
+								Collection<List<Label>> counters = spin.check(ptaHardFacts, tmpLtl).getCounters();
 								if (counters.size()>0)
 								{
 									String errorMessage = getHardFactsContradictionErrorMessage(tmpLtl, counters);
@@ -539,10 +542,6 @@ public class RPNIUniversalLearner extends RPNILearner
 	{
 		String errString = "LTL formula or IFTHEN automata "+tmpLtl+" contradict hard facts\n"+counterExample;
 		return errString;
-	}
-	
-	protected int checkWithSPIN (List<Label> question){
-		return SpinUtil.check(question, ifthenAutomataAsText);
 	}
 	
 	/** We might be doing a restart, but it never hurts to go through the existing 

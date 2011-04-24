@@ -20,156 +20,159 @@ import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
+import statechum.StatechumXML.StringSequenceWriter;
 
-public class TestRecordProgressDecorator {
-
+public class TestRecordProgressDecorator 
+{
+	protected final Configuration config = Configuration.getDefaultConfiguration().copy();
+	
 	@Test
 	public final void testWriteInputSequence1() {
 		List<String> inputSequence = Arrays.asList(new String[] {});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+""+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+""+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence2() {
 		List<String> inputSequence = Arrays.asList(new String[] {"this is a test"});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+"this is a test"+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+"this is a test"+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence3() {
 		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more"});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+"this is a test"+ProgressDecorator.seqSep+"some more"+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+"this is a test"+StringSequenceWriter.seqSep+"some more"+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence4() {
 		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more","a"});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+
-				"this is a test"+ProgressDecorator.seqSep+
-				"some more"+ProgressDecorator.seqSep+
-				"a"+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+
+				"this is a test"+StringSequenceWriter.seqSep+
+				"some more"+StringSequenceWriter.seqSep+
+				"a"+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteInputSequence_fail1()  {
-		List<String> inputSequence = Arrays.asList(new String[] {""+ProgressDecorator.seqStart});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+""+ProgressDecorator.seqEnd,wr.toString());
+		List<String> inputSequence = Arrays.asList(new String[] {""+StringSequenceWriter.seqStart});
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+""+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteInputSequence_fail2() {
-		List<String> inputSequence = Arrays.asList(new String[] {""+ProgressDecorator.seqNewLine});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+""+ProgressDecorator.seqEnd,wr.toString());
+		List<String> inputSequence = Arrays.asList(new String[] {""+StringSequenceWriter.seqNewLine});
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+""+StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteInputSequence_fail3() {
 		List<String> inputSequence = Arrays.asList(new String[] {"this is a test",""});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+""+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+""+StringSequenceWriter.seqEnd,wr.toString());
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public final void testWriteInputSequence_fail4() {
 		List<String> inputSequence = Arrays.asList(new String[] {""});
-		Writer wr = new StringWriter();ProgressDecorator.writeInputSequence(wr, inputSequence);
-		Assert.assertEquals(ProgressDecorator.seqStart+""+ProgressDecorator.seqEnd,wr.toString());
+		Writer wr = new StringWriter();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
+		Assert.assertEquals(StringSequenceWriter.seqStart+""+StringSequenceWriter.seqEnd,wr.toString());
 	}
 	
 	@Test
 	public final void testReadInputSequence1() {
 		List<String> expected = Arrays.asList(new String[] {});
-		List<String> actual = ProgressDecorator.readInputSequence(new StringReader(
-				""+ProgressDecorator.seqStart+ProgressDecorator.seqEnd),-1);
+		List<String> actual = new StringSequenceWriter(null).readInputSequence(new StringReader(
+				""+StringSequenceWriter.seqStart+StringSequenceWriter.seqEnd),-1);
 		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));		
 	}
 
 	@Test
 	public final void testReadInputSequence2() {
 		List<String> expected = Arrays.asList(new String[] {"some more"});
-		List<String> actual = ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"some more"+ProgressDecorator.seqEnd),-1);
+		List<String> actual = new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"some more"+StringSequenceWriter.seqEnd),-1);
 		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));		
 	}
 
 	@Test
 	public final void testReadInputSequence3() {
 		List<String> expected = Arrays.asList(new String[] {"this is a test","some more"});
-		List<String> actual = ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"this is a test"+ProgressDecorator.seqSep+"some more"+ProgressDecorator.seqEnd),-1);
+		List<String> actual = new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"this is a test"+StringSequenceWriter.seqSep+"some more"+StringSequenceWriter.seqEnd),-1);
 		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));		
 	}
 
 	@Test
 	public final void testReadInputSequence4() {
 		List<String> expected = Arrays.asList(new String[] {"this is a test","some more","data"});
-		List<String> actual = ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"this is a test"+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),-1);
+		List<String> actual = new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"this is a test"+
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),-1);
 		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));		
 	}
 	
 	@Test
 	public final void testReadInputSequence5() {
 		List<String> expected = Arrays.asList(new String[] {"this is a test","some more","data"});
-		List<String> actual = ProgressDecorator.readInputSequence(new StringReader(
+		List<String> actual = new StringSequenceWriter(null).readInputSequence(new StringReader(
 				"this is a test"+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),ProgressDecorator.seqStart);
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),StringSequenceWriter.seqStart);
 		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));		
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testReadInputSequence_fail2a() {
-		ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqEnd+"this is a test"+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),-1);
+		new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqEnd+"this is a test"+
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),-1);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testReadInputSequence_fail2b() {
-		ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"this is a test"+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),ProgressDecorator.seqEnd);
+		new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"this is a test"+
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),StringSequenceWriter.seqEnd);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testReadInputSequence_fail3() {
-		ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"this is a test"+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"),-1);
+		new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"this is a test"+
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"),-1);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testReadInputSequence_fail4() {
-		ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+"this is a test"+
-				ProgressDecorator.seqSep+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),-1);
+		new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+"this is a test"+
+				StringSequenceWriter.seqSep+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),-1);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public final void testReadInputSequence_fail5() {
-		ProgressDecorator.readInputSequence(new StringReader(
-				ProgressDecorator.seqStart+
-				ProgressDecorator.seqSep+"some more"+
-				ProgressDecorator.seqSep+"data"+
-				ProgressDecorator.seqEnd),-1);
+		new StringSequenceWriter(null).readInputSequence(new StringReader(
+				StringSequenceWriter.seqStart+
+				StringSequenceWriter.seqSep+"some more"+
+				StringSequenceWriter.seqSep+"data"+
+				StringSequenceWriter.seqEnd),-1);
 	}
 
 	@Test
@@ -182,14 +185,14 @@ public class TestRecordProgressDecorator {
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		ProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		org.w3c.dom.Element dataElem = dumper.writeSequenceList("someData", data);
+		org.w3c.dom.Element dataElem = dumper.stringio.writeSequenceList("someData", data);
 		
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
 				new String[]{},
 				new String[]{"more data"}
-		}), actual = ProgressDecorator.readSequenceList(dataElem,"someData");
+		}), actual = new StringSequenceWriter(null).readSequenceList(dataElem,"someData");
 		
 		Assert.assertTrue(actual.equals(expected));
 	}
@@ -202,7 +205,7 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{},
 				new String[]{"more data"}
-		}), actual = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData");
+		}), actual = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData");
 		Assert.assertTrue(actual.equals(expected));
 	}
 
@@ -221,8 +224,8 @@ public class TestRecordProgressDecorator {
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
-		dumper.topElement.appendChild(dumper.writeSequenceList("moreData", data2));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("someData", data));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("moreData", data2));
 		dumper.close();
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
@@ -235,8 +238,8 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{},
 				new String[]{"the second set of data"}
-		}),actual = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData"),
-		actual2 = ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"moreData");
+		}),actual = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData"),
+		actual2 = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"moreData");
 		Assert.assertTrue(actual.equals(expected));
 		Assert.assertTrue(actual2.equals(expected2));
 	}
@@ -257,8 +260,8 @@ public class TestRecordProgressDecorator {
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
-		dumper.topElement.appendChild(dumper.writeSequenceList("moreData", data2));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("someData", data));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("moreData", data2));
 		dumper.close();
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
@@ -273,7 +276,7 @@ public class TestRecordProgressDecorator {
 				new String[]{"the second set of data"}
 		});
 		Element someDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
-		List<List<String>> actual = ProgressDecorator.readSequenceList(someDataElement,"someData");
+		List<List<String>> actual = loader.stringio.readSequenceList(someDataElement,"someData");
 		Assert.assertTrue(actual.equals(expected));
 
 		loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
@@ -281,12 +284,12 @@ public class TestRecordProgressDecorator {
 		// after a few attempts at setting the existing element back, we continue with the one to follow.
 		
 		Element moreDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
-		List<List<String>> actual2 = ProgressDecorator.readSequenceList(moreDataElement,"moreData");
+		List<List<String>> actual2 = loader.stringio.readSequenceList(moreDataElement,"moreData");
 		Assert.assertTrue(actual2.equals(expected2));
 		
 		// now we force the old element to be re-discovered
 		loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
-		actual = ProgressDecorator.readSequenceList(someDataElement,"someData");
+		actual = loader.stringio.readSequenceList(someDataElement,"someData");
 		Assert.assertTrue(actual.equals(expected));
 	}
 
@@ -299,7 +302,7 @@ public class TestRecordProgressDecorator {
 				new String[]{},
 				new String[]{},
 				new String[]{"more data"}
-		}), actual = ProgressDecorator.readSequenceList(loader.expectNextElement("whatever"),"someData");
+		}), actual = loader.stringio.readSequenceList(loader.expectNextElement("whatever"),"someData");
 		Assert.assertTrue(actual.equals(expected));
 	}
 	
@@ -322,7 +325,7 @@ public class TestRecordProgressDecorator {
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("someData", data));
 		dumper.close();
 		return output.toString();
 	}
@@ -332,7 +335,7 @@ public class TestRecordProgressDecorator {
 	public final void testWriteSequences_fail3() {
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
-			ProgressDecorator.readSequenceList(loader.expectNextElement("TT"),"someData");
+		loader.stringio.readSequenceList(loader.expectNextElement("TT"),"someData");
 		}},IllegalArgumentException.class,"expecting to load a list of sequences");
 	}
 
@@ -347,12 +350,12 @@ public class TestRecordProgressDecorator {
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
-		dumper.topElement.appendChild(dumper.writeSequenceList("someData", data));
+		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("someData", data));
 		dumper.close();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
+			loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
 		}},IllegalArgumentException.class,"expecting to load a list with name ");
 	}
 

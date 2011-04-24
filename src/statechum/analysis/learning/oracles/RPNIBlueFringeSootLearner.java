@@ -22,6 +22,7 @@ import java.awt.Frame;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.*;
@@ -53,23 +54,23 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			PairScore pair = possibleMerges.pop();
 			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
 			setChanged();
-			Collection<List<String>> questions = new LinkedList<List<String>>();
+			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			int score = pair.getScore();
 			if(shouldAskQuestions(score))
 			{
 				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);
 			} 
 			boolean restartLearning = false;
-			Iterator<List<String>> questionIt = questions.iterator();
+			Iterator<List<Label>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
-				List<String> question = questionIt.next();
+				List<Label> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
 				Pair<Integer,String> answer = CheckWithEndUser(tentativeAutomaton,question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,
 							null, null,new Object [] {"Test"});
 				if(answer.firstElem>=0){
-					String from = oracle.getFrom();
-					String to = question.get(answer.firstElem);
-					newPTA.sootsupport.augmentPairs(new StringPair(from, to), false);
+					Label from = oracle.getFrom();
+					Label to = question.get(answer.firstElem);
+					newPTA.sootsupport.augmentPairs(new statechum.Pair<Label,Label>(from, to), false);
 					if( (answer.firstElem < question.size()-1) || tempVertex.isAccept()){
 						restartLearning = true;break;
 					}

@@ -41,6 +41,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -329,7 +330,7 @@ public class LearnerSimulator extends ProgressDecorator
 				case ATTR_WITHCONSTRAINTS:
 					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config),null);break;
 				case ELEM_ANSWER:
-					List<String> question = readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
+					List<Label> question = labelio.readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
 					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null, null, null);
 					assert outcome == expectedReturnValue;// yes, this should be b
 					break;
@@ -393,7 +394,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 */
 	@Override
 	public Pair<Integer,String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph g, 
-			@SuppressWarnings("unused") List<String> question, 
+			@SuppressWarnings("unused") List<Label> question, 
 			@SuppressWarnings("unused") int responseForNoRestart, 
 			@SuppressWarnings("unused") List<Boolean> acceptedElements, 
 			@SuppressWarnings("unused") PairScore pairBeingMerged,
@@ -439,9 +440,9 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @return loaded from XML.
 	 */
 	@Override
-	public List<List<String>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
+	public List<List<Label>> ComputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
 	{
-		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_QUESTIONS.name());
+		return labelio.readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_QUESTIONS.name());
 	}
 
 	/** Called by the simulator.
@@ -452,9 +453,9 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @return loaded from XML.
 	 */
 	@Override
-	public List<List<String>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
+	public List<List<Label>> RecomputeQuestions(@SuppressWarnings("unused") PairScore pair, @SuppressWarnings("unused") LearnerGraph original, @SuppressWarnings("unused") LearnerGraph temp)
 	{
-		return readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_MOREQUESTIONS.name());
+		return labelio.readSequenceList(getElement(StatechumXML.ELEM_SEQ.name()),StatechumXML.ATTR_MOREQUESTIONS.name());
 	}
 
 	/** Extracts the child of the current element with the provided name. 
@@ -526,7 +527,7 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param minus value loaded from XML
 	 */
 	@Override
-	public LearnerGraph init(@SuppressWarnings("unused") Collection<List<String>> plus, @SuppressWarnings("unused") Collection<List<String>> minus) 
+	public LearnerGraph init(@SuppressWarnings("unused") Collection<List<Label>> plus, @SuppressWarnings("unused") Collection<List<Label>> minus) 
 	{
 		InitialData initial = readInitialData(currentElement);// wastefully load the element once again - does not matter because this is done very infrequently
 		return initial.graph;
@@ -566,15 +567,15 @@ public class LearnerSimulator extends ProgressDecorator
 	@SuppressWarnings("unused")
 	@Override
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind, 
-			List<String> sequence, boolean accepted, JUConstants newColour) 
+			List<Label> sequence, boolean accepted, JUConstants newColour) 
 	{// Does nothing in the simulator. 		
 	}
 
 	/** Since this is a simulator, values of the collections passed are ignored.
 	 */
 	@Override
-	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<String>> plus, 
-			@SuppressWarnings("unused")	Collection<List<String>> minus)
+	public LearnerGraph learnMachine(@SuppressWarnings("unused") Collection<List<Label>> plus, 
+			@SuppressWarnings("unused")	Collection<List<Label>> minus)
 	{
 		return learnMachine();
 	}

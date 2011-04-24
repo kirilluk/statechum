@@ -23,6 +23,7 @@ import java.io.Reader;
 import java.util.List;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.PairScore;
@@ -56,7 +57,7 @@ public class AutoAnswers extends DummyLearner {
 	{
 		if (config.getAutoAnswerFileName().length() > 0)
 			try {
-				loadAnswers(new FileReader(config.getAutoAnswerFileName()));
+				loadAnswers(new FileReader(config.getAutoAnswerFileName()),config);
 			} catch (FileNotFoundException e) {
 				// does not matter - ans remains null
 			}
@@ -66,9 +67,9 @@ public class AutoAnswers extends DummyLearner {
 		super(learner);
 	}
 
-	void loadAnswers(Reader from)
+	void loadAnswers(Reader from, Configuration config)
 	{
-		ans = new StoredAnswers();
+		ans = new StoredAnswers(config);
 		try {
 			((StoredAnswers)ans).setAnswers(from);
 		} catch (Exception e) {

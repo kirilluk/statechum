@@ -44,6 +44,7 @@ import statechum.analysis.learning.rpnicore.Linear;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.model.testset.*;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
+import statechum.Label;
 
 public class IncrementalAccuracyAndQuestionsExperiment
 {	

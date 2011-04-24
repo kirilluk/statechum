@@ -17,17 +17,17 @@
  */
 package statechum.analysis.learning.rpnicore;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
-import statechum.analysis.learning.oracles.StringPair;
+import statechum.Pair;
 
 /**
  * @author Kirill
@@ -35,7 +35,7 @@ import statechum.analysis.learning.oracles.StringPair;
  */
 public class SootOracleSupport {
 	final LearnerGraph coregraph;
-	
+	final Label ret;
 	/** Associates this object to SootOracleSupport it is using for data to operate on. 
 	 * Important: the constructor should not access any data in SootOracleSupport 
 	 * because it is usually invoked during the construction phase of SootOracleSupport 
@@ -43,43 +43,43 @@ public class SootOracleSupport {
 	 */
 	SootOracleSupport(LearnerGraph g)
 	{
-		coregraph =g;
+		coregraph =g;ret = AbstractLearnerGraph.generateNewLabel("ret",coregraph.config);
 	}
 	
 	/**
 	 * Augment every occurrence of the first label in the pair in the PTA
-	 * with an edge to the second label in the pair, that is either accepted or not
+	 * with an edge carrying the second label in the pair, that is either accepted or not
 	 */
-	public void augmentPairs(StringPair pair, boolean accepted){
-		Collection<CmpVertex> fromVertices = findVertices(pair.getFrom());
+	public void augmentPairs(Pair<Label,Label> pair, boolean accepted){
+		Collection<CmpVertex> fromVertices = findVertices(pair.firstElem);
 		for (CmpVertex vertex : fromVertices) {
-			Collection<List<String>> tails = getTails(vertex, new ArrayList<String>(), new HashSet<List<String>>());
-			for (List<String> list : tails) {
-				addNegativeEdges(vertex, list, pair, accepted);
+			Collection<List<Label>> tails = getTails(vertex, new LinkedList<Label>(), new HashSet<List<Label>>());
+			for (List<Label> list : tails) {
+				addNegativeEdges(vertex, list, pair.secondElem, accepted);
 			}
 		}
 	}
 	
-	private void addNegativeEdges(CmpVertex fromVertex,List<Label> tail, StringPair pair, boolean accepted){
+	private void addNegativeEdges(CmpVertex fromVertex,List<Label> tail, Label label, boolean accepted){
 		Stack<Label> callStack = new Stack<Label>();
-		coregraph.addVertex(fromVertex, accepted, pair.getTo());
+		coregraph.addVertex(fromVertex, accepted, label);
 		CmpVertex currentVertex = fromVertex;
 		for(int i=0;i<tail.size();i++){
 			Label element = tail.get(i);
 			currentVertex = coregraph.transitionMatrix.get(currentVertex).get(element);
-			if(element.equals("ret")&&!callStack.isEmpty()){
+			if(element.equals(ret)&&!callStack.isEmpty()){
 				callStack.pop();
 				if(callStack.isEmpty())
-					coregraph.addVertex(currentVertex, accepted, pair.getTo());
+					coregraph.addVertex(currentVertex, accepted, label);
 			}
-			else if (!element.equals("ret"))
+			else if (!element.equals(ret))
 				callStack.push(element);
-			else if (element.equals("ret")&&callStack.isEmpty())
+			else if (element.equals(ret)&&callStack.isEmpty())
 				return;
 		}
 	}
 	
-	private Collection<List<String>> getTails(CmpVertex vertex, ArrayList<Label> currentList, Collection<List<String>> collection){
+	private Collection<List<Label>> getTails(CmpVertex vertex, LinkedList<Label> currentList, Collection<List<Label>> collection){
 		Map<Label,CmpVertex> successors = coregraph.transitionMatrix.get(vertex);
 		if(successors.isEmpty()){
 			collection.add(currentList);
@@ -98,7 +98,7 @@ public class SootOracleSupport {
 	/**
 	 *returns set of vertices that are the destination of label
 	 */
-	private Collection<CmpVertex> findVertices(String label)
+	private Collection<CmpVertex> findVertices(Label label)
 	{
 		Collection<CmpVertex> vertices = new HashSet<CmpVertex>();
 		Iterator<Map<Label, CmpVertex>> outgoingEdgesIt = coregraph.transitionMatrix.values().iterator();

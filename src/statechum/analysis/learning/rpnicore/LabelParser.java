@@ -103,6 +103,9 @@ public class LabelParser {
 				{// record what we've got so far
 					operations.add(lastLabel);arguments.add(lastArgs==null?
 							CompositionOfFunctions.createEmptySecondPhase():lastArgs);
+						// if there are no args to a function, we have to create an empty composition; interpretLabelExpression
+						// is always called during construction of the second version of CompositionOfFunctions,
+						// hence an empty one has to be built using createEmptySecondPhase.
 				}
 				lastLabel = lexExpr.group(exprWordText);
 				lastArgs = null;argumentsAlreadyParsed = false;
@@ -161,7 +164,7 @@ public class LabelParser {
 			throw new IllegalArgumentException("unexpected end of expression when parsing "+lexExpr.getText());
 	
 		if (topLevel) functionArgumentsHandler.reset();
-		boolean expectFunction = !topLevel;// this means that we are waiting for a function name.
+		boolean expectFunction = !topLevel;// this means that we are waiting for a function name in (funcName arg1 arg2 ... ).
 		String function = null;
 		List<String> args = new LinkedList<String>(); 
 		while(currentMatch >= 0 && currentMatch != exprClose)
@@ -171,6 +174,7 @@ public class LabelParser {
 			case exprOpen: // embedded expression
 				if (expectFunction)
 					throw new IllegalArgumentException("missing name of a function");
+				// expression has the form of  ... ( nested expr ) ... 
 				args.add(interpretFunctionalExpression(functionArgumentsHandler,false));
 				break;
 			case exprWord:
@@ -181,7 +185,7 @@ public class LabelParser {
 						throw new IllegalArgumentException("invalid function name "+function);
 				}
 				else
-				{
+				{// literal term rather than expression
 					String argString = lexExpr.group(exprWordText);
 					if (argString.startsWith(LabelRepresentation.functionArg))
 						throw new IllegalArgumentException("invalid argument name "+argString);

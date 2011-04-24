@@ -34,6 +34,7 @@ import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.learning.TestRpniLearner;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
 @RunWith(Parameterized.class)
 public class TestNextID {
@@ -48,8 +49,8 @@ public class TestNextID {
 	public TestNextID(Configuration conf, String desc)
 	{
 		config = conf;description = desc;
-		graph = new LearnerGraphND(FsmParser.buildGraph("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"
-				+TestRpniLearner.PTA3, "testCopyGraph4"),config);
+		graph = buildLearnerGraphND("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"
+				+TestRpniLearner.PTA3, "testCopyGraph4",config);
 	}
 	
 	static 

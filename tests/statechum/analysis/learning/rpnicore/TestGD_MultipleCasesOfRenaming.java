@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
@@ -82,12 +83,12 @@ public class TestGD_MultipleCasesOfRenaming {
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraphND 
-			grA=new LearnerGraphND(FsmParser.buildGraph("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
+			grA=buildLearnerGraphND("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
 				"G-b->A\nG-a->C\nG-b->F\n"+
 				"F-a->A\nF-a->C\nF-a->G\n"
-				, "TestGD_MultipleCasesOfRenamingA"),config), 
-			grB = new LearnerGraphND(FsmParser.buildGraph(
-				"B-a->D-u->D-b->"+stateC+"-b->D\n"+stateC+"-b->A\n"+stateC+"-b->G\n"+stateC+"-b->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC),config);
+				, "TestGD_MultipleCasesOfRenamingA",config), 
+			grB = buildLearnerGraphND(
+				"B-a->D-u->D-b->"+stateC+"-b->D\n"+stateC+"-b->A\n"+stateC+"-b->G\n"+stateC+"-b->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC,config);
 		
 		String [] expectedDuplicates = (stateC.equals("C"))? new String[]{ stateC,"A" }:new String[]{"A"};
 		runTest(grA,grB, "D", expectedDuplicates);
@@ -99,12 +100,12 @@ public class TestGD_MultipleCasesOfRenaming {
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraphND 
-			grA=new LearnerGraphND(FsmParser.buildGraph("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
+			grA=buildLearnerGraphND("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
 				"G-b->A\nG-a->C\nG-b->F\n"+
 				"F-a->A\nF-a->C\nF-a->G\n"
-				, "TestGD_MultipleCasesOfRenamingA"),config), 
-			grB = new LearnerGraphND(FsmParser.buildGraph(
-				"B-a->D-u->D-b->"+stateC+"-b->D\n"+stateC+"-b->A\n"+stateC+"-b->G\n", "TestGD_MultipleCasesOfRenamingB_"+stateC),config);
+				, "TestGD_MultipleCasesOfRenamingA",config), 
+			grB = buildLearnerGraphND(
+				"B-a->D-u->D-b->"+stateC+"-b->D\n"+stateC+"-b->A\n"+stateC+"-b->G\n", "TestGD_MultipleCasesOfRenamingB_"+stateC,config);
 		CmpVertex disconnectedA1 = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("T"), config),
 			disconnectedA2 = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), config),
 			disconnectedB2 = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("U"), config),
@@ -127,12 +128,12 @@ public class TestGD_MultipleCasesOfRenaming {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		final LearnerGraphND 
-			grA=new LearnerGraphND(FsmParser.buildGraph("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
+			grA=buildLearnerGraphND("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
 				"G-b->A\nG-a->C\nG-b->F\n"+
 				"F-a->A\nF-a->C\nF-a->G\n"
-				, "TestGD_MultipleCasesOfRenamingA"),config), 
-			grB = new LearnerGraphND(FsmParser.buildGraph(
-				"B-a->"+stateC+"-u->"+stateC+"-b->F-b->D\nF-b->A\nF-b->G\nF-b->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC),config);
+				, "TestGD_MultipleCasesOfRenamingA",config), 
+			grB = buildLearnerGraphND(
+				"B-a->"+stateC+"-u->"+stateC+"-b->F-b->D\nF-b->A\nF-b->G\nF-b->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC,config);
 
 		String [] expectedDuplicates = (!stateC.equals("A"))? new String[]{ "A" }:new String[]{};
 		runTest(grA,grB, stateC,expectedDuplicates);
@@ -179,12 +180,12 @@ public class TestGD_MultipleCasesOfRenaming {
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
 		final LearnerGraphND 
-			grA=new LearnerGraphND(FsmParser.buildGraph("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
+			grA=buildLearnerGraphND("A-a->C-u->C-c->F\nC-c->G\nC-c->A\nC-b->A\n"+
 				"G-b->A\nG-b->C\nG-b->F\n"+
 				"F-a->A\nF-a->C\nF-a->G\n"
-				, "TestGD_MultipleCasesOfRenamingA"),config), 
-			grB = new LearnerGraphND(FsmParser.buildGraph(
-				"B-a->D-u->D-b->"+stateC+"-bD->D\n"+stateC+"-bA->A\n"+stateC+"-bG->G\n"+stateC+"-bE->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC),config);
+				, "TestGD_MultipleCasesOfRenamingA",config), 
+			grB = buildLearnerGraphND(
+				"B-a->D-u->D-b->"+stateC+"-bD->D\n"+stateC+"-bA->A\n"+stateC+"-bG->G\n"+stateC+"-bE->E\n", "TestGD_MultipleCasesOfRenamingB_"+stateC,config);
 				
 		// add incompatibles for A
 		for(String []pair:new String[][]{

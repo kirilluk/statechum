@@ -44,10 +44,7 @@ public class StringLabel implements Label {
 	 */
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((label == null) ? 0 : label.hashCode());
-		return result;
+		return label.hashCode();
 	}
 
 	/* (non-Javadoc)
@@ -55,19 +52,7 @@ public class StringLabel implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!(obj instanceof StringLabel))
-			return false;
-		StringLabel other = (StringLabel) obj;
-		if (label == null) {
-			if (other.label != null)
-				return false;
-		} else if (!label.equals(other.label))
-			return false;
-		return true;
+		return label.equals(((StringLabel)obj).label);
 	}
 
 	@Override
@@ -75,4 +60,9 @@ public class StringLabel implements Label {
 		return label;
 	}
 
+	@Override
+	public String toString()
+	{
+		return label;
+	}
 }

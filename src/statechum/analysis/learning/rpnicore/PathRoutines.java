@@ -859,11 +859,11 @@ public class PathRoutines {
 	 * @param path path to trace
 	 * @return state which would be entered by the machine if it follows the given path. 
 	 */
-	public CmpVertex getVertex(List<String> path)
+	public CmpVertex getVertex(List<Label> path)
 	{
 		CmpVertex current = coregraph.getInit();
 		int pos = -1;
-		for(String label:path)
+		for(Label label:path)
 		{
 			++pos;
 			Map<Label,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);

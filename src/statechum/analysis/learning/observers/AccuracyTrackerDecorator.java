@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.Stack;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 
 import statechum.analysis.learning.PairScore;
@@ -36,7 +37,7 @@ import statechum.model.testset.PTASequenceEngine;
 
 public class AccuracyTrackerDecorator extends LearnerDecorator
 {
-	protected Collection<List<String>> tests, samples;
+	protected Collection<List<Label>> tests, samples;
 	protected LearnerGraph specfsm;
 	protected List<List<ResultsContainer>> results;
 	protected List<ResultsContainer> currentResults = null;
@@ -83,7 +84,8 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 	
 	@Override
-	public LearnerGraph learnMachine(Collection<List<String>> sPlus,  Collection<List<String>> sMinus){
+	public LearnerGraph learnMachine(Collection<List<Label>> sPlus,  Collection<List<Label>> sMinus)
+	{
 		init(sPlus,sMinus);
 		return learnMachine();
 	}
@@ -124,7 +126,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 
 	@Override 
-	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) {
+	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, List<Label> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) {
 		return decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
 	}
 
@@ -135,12 +137,12 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 
 	@Override 
-	public List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
+	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.ComputeQuestions(pair, original, temp);
 	}
 
 	@Override 
-	public List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
+	public List<List<Label>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) {
 		return decoratedLearner.RecomputeQuestions(pair, original, temp);
 	}
 
@@ -159,7 +161,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 	}
 
 	@Override 
-	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
+	public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) {
 		return decoratedLearner.init(plus, minus);
 	}
 	
@@ -170,7 +172,7 @@ public class AccuracyTrackerDecorator extends LearnerDecorator
 
 	@Override 
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour) {
+			List<Label> sequence, boolean accepted, JUConstants newColour) {
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 	}
 

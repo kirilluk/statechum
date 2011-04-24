@@ -25,8 +25,10 @@ import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.Label;
 
 /** Tests the low-level parser for graphs. High-level functionality is tested
  * using <em>TestGraphConstruction</em>
@@ -48,18 +50,18 @@ public class TestFSMParser {
 		private int i=0;
 		
 		@Override 
-		public void accept(String from, String to, String label) {
+		public void accept(String from, String to, Label label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
-			assertEquals("wrong label string "+from,elements[i++],label);
+			assertEquals("wrong label string "+from,elements[i++],label.toAlphaNum());
 			assertEquals("wrong tag","ACCEPT",elements[i++]);
 		}
 		
 		@Override 
-		public void reject(String from, String to, String label) {
+		public void reject(String from, String to, Label label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
-			assertEquals("wrong label string "+from,elements[i++],label);
+			assertEquals("wrong label string "+from,elements[i++],label.toAlphaNum());
 			assertEquals("wrong tag","REJECT",elements[i++]);
 		}
 		
@@ -77,7 +79,7 @@ public class TestFSMParser {
 			try
 			{
 				FsmParser p = new FsmParser(text);
-				p.parse(this);
+				p.parse(this,Configuration.getDefaultConfiguration());
 			}
 			catch(IllegalArgumentException e)
 			{
@@ -270,7 +272,7 @@ public class TestFSMParser {
 				@Override 
 				public void accept(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
-						@SuppressWarnings("unused")	String label) 
+						@SuppressWarnings("unused")	Label label) 
 				{
 					// do nothing at all
 				}
@@ -278,7 +280,7 @@ public class TestFSMParser {
 				@Override 
 				public void reject(@SuppressWarnings("unused") String from, 
 						@SuppressWarnings("unused")	String to, 
-						@SuppressWarnings("unused")	String label) 
+						@SuppressWarnings("unused")	Label label) 
 				{
 					// do nothing at all
 				}
@@ -289,7 +291,7 @@ public class TestFSMParser {
 				{
 					// do nothing at all
 				}
-			});
+			},Configuration.getDefaultConfiguration());
 		}},IllegalArgumentException.class,exceptionSubString);
 	}
 	

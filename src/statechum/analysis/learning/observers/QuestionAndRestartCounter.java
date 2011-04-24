@@ -19,6 +19,7 @@ package statechum.analysis.learning.observers;
 
 import java.util.List;
 
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -58,7 +59,7 @@ public class QuestionAndRestartCounter extends DummyLearner
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, 
+			List<Label> question, 
 			int responseForNoRestart, 
 			List<Boolean> acceptedElements, 
 			PairScore pairBeingMerged,

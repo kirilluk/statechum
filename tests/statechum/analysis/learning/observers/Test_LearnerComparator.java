@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Stack;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -114,8 +115,8 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 	
 	@Override
-	public LearnerGraph learnMachine(final Collection<List<String>> plus, 
-			final Collection<List<String>> minus)
+	public LearnerGraph learnMachine(final Collection<List<Label>> plus, 
+			final Collection<List<Label>> minus)
 	{
 		return new runComparator() {
 			@Override
@@ -227,7 +228,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 */
 	@Override 
 	public synchronized void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour) {
+			List<Label> sequence, boolean accepted, JUConstants newColour) {
 
 		AugmentPTAData data = new AugmentPTAData(ptaKind,sequence,accepted,newColour);
 		
@@ -257,7 +258,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 
 	protected Thread secondThread = null;
 	
-	protected List<String> question = null;
+	protected List<Label> question = null;
 	protected Pair<Integer,String> cPair = null;
 	
 	/** Simulated check.
@@ -270,7 +271,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 */
 	@Override 
 	public synchronized Pair<Integer, String> CheckWithEndUser(LearnerGraph graph, 
-			List<String> argQuestion, 
+			List<Label> argQuestion, 
 			int responseForNoRestart, 
 			List<Boolean> acceptedElements, 
 			PairScore pairBeingMerged,
@@ -359,7 +360,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 
 	protected PairScore QqPair = null;
-	protected Collection<List<String>> Qquestions = null;
+	protected Collection<List<Label>> Qquestions = null;
 	
 	/** Called by the simulator.
 	 * 
@@ -369,9 +370,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @return loaded from XML.
 	 */
 	@Override 
-	public synchronized List<List<String>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public synchronized List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		List<List<String>> result = null;
+		List<List<Label>> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
@@ -400,7 +401,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	}
 
 	protected PairScore MqPair = null;
-	protected Collection<List<String>> Mquestions = null;
+	protected Collection<List<Label>> Mquestions = null;
 	
 	/** Called by the simulator.
 	 * 
@@ -410,9 +411,9 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @return loaded from XML.
 	 */
 	@Override 
-	public synchronized List<List<String>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
+	public synchronized List<List<Label>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp) 
 	{
-		List<List<String>> result = null;
+		List<List<Label>> result = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)
 		{
@@ -529,7 +530,7 @@ public class Test_LearnerComparator extends LearnerDecorator {
 	 * @param minus value loaded from XML
 	 */
 	@Override 
-	public synchronized LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) {
+	public synchronized LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) {
 		LearnerGraph result = null, copyOfResult = null;
 		// First, we call the expected method
 		if (Thread.currentThread() == secondThread)

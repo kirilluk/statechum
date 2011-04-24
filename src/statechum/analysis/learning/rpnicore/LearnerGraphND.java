@@ -190,7 +190,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		for(Entry<CmpVertex,Map<Label,TARGET_A_TYPE>> entry:coregraph.transitionMatrix.entrySet())
 			if (filter.stateToConsider(entry.getKey()))
 			{
-				Map<String,List<CmpVertex>> entryForState = new TreeMap<String,List<CmpVertex>>();
+				Map<Label,List<CmpVertex>> entryForState = new TreeMap<Label,List<CmpVertex>>();
 				for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 					for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 						if (filter.stateToConsider(targetState))

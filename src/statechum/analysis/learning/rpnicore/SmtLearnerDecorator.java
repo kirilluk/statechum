@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Stack;
 
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
@@ -48,7 +49,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	 */
 	@Override
 	public void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind,
-			List<String> sequence, boolean accepted, JUConstants newColour) {
+			List<Label> sequence, boolean accepted, JUConstants newColour) {
 
 		decoratedLearner.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
 		lbl.buildVertexToAbstractStateMap(pta, null,true);
@@ -71,7 +72,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	 */
 	@Override
 	public Pair<Integer, String> CheckWithEndUser(LearnerGraph graph,
-			List<String> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) 
+			List<Label> question, int responseForNoRestart, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options) 
 	{
 		int smtAnswer = lbl.CheckWithEndUser(question);
 		System.err.println("question: "+question+" expected for no restart: "+responseForNoRestart+" smt returned: "+smtAnswer);
@@ -130,7 +131,7 @@ public class SmtLearnerDecorator extends DummyLearner
 	}
 
 	@Override
-	public LearnerGraph init(Collection<List<String>> plus,	Collection<List<String>> minus) 
+	public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 	{
 		LearnerGraph result= decoratedLearner.init(plus, minus);
 		lbl.buildVertexToAbstractStateMap(result, null, true);// construct the initial version of the 

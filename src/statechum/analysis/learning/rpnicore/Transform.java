@@ -34,6 +34,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
+import statechum.Configuration.LABELKIND;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
@@ -442,7 +443,7 @@ public class Transform
 			graphState = tentativeGraphState;thenGraph = thenG;thenState = thenS;propertyGraph = IFgraph;IFState = IFstate;depth = currDepth;
 			assert (thenGraph == null) == (thenState == null) : " then graph is "+((thenGraph == null)?"NULL":thenGraph)+" but then state is "+((thenState == null)?"NULL":thenState);
 			previousElement =previous;
-			assert input == null || input instanceof PAIRCOMPATIBILITY || input instanceof String;
+			assert input == null || input instanceof PAIRCOMPATIBILITY || input instanceof Label;
 			inputToThisState = input;
 		}
 		
@@ -911,7 +912,7 @@ public class Transform
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph propertyAutomaton = 
-						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet());
+						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet(),true,null);
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
 				ifthenAutomata.add(propertyAutomaton);
 			}
@@ -968,13 +969,19 @@ public class Transform
 	}
 	
 	/** Given a graph where each label is a composite expression, this method expands those labels.
-	 * 
+	 * If labels are regular expressions, the corresponding subsets of an alphabet are built
+	 * and transitions replaced by sets of transitions. This also permits conversion of graphs 
+	 * between label types, for instance, one may load a graph with textual labels and then use
+	 * this method to interpret labels as Erlang expressions.
+	 *  
 	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
+	 * @param labelKind whether to convert vertices to a specified kind, null for no conversion.
 	 * @return a state machine where each transition transition label belongs to the alphabet.
 	 */
-	public LearnerGraph interpretLabelsOnGraph(Set<Label> alphabet)
+	public LearnerGraph interpretLabelsOnGraph(Set<Label> alphabet,boolean expandRegExp, LABELKIND labelKind)
 	{
 		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
+		if (labelKind != null) config.setLabelKind(labelKind);
 		LearnerGraph result = new LearnerGraph(coregraph,config);
 		LTL_to_ba ba = new LTL_to_ba(config);
                 ba.setAlphabet(alphabet);
@@ -983,8 +990,11 @@ public class Transform
 		 // This is why associations (such as THENs) remain valid.
 			Map<Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				for(Label label:ba.interpretString(transition.getKey()))
-					result.addTransition(row, label, transition.getValue());
+				if (expandRegExp)
+					for(Label label:ba.interpretString(transition.getKey().toAlphaNum()))
+						result.addTransition(row, label, transition.getValue());
+				else
+					result.addTransition(row, AbstractLearnerGraph.generateNewLabel(transition.getKey().toAlphaNum(), config), transition.getValue());
 		}
 		return result;
 	}

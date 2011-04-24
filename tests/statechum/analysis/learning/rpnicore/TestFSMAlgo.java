@@ -97,7 +97,7 @@ public class TestFSMAlgo {
 		}
 
 	
-		lbls = new LabelRepresentation();
+		lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ_N",
@@ -113,6 +113,17 @@ public class TestFSMAlgo {
 	/** The configuration to use when running tests. */
 	Configuration config = null, mainConfiguration = null;
 
+	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+	 * because all of them start from a default one and do not modify label type.
+	 * 
+	 * @param labels what to convert
+	 * @return the outcome of conversion.
+	 */
+	protected List<Label> labelList(String [] labels)
+	{
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+	}
+
 	@Test
 	public final void completeComputeAlphabet0()
 	{
@@ -124,8 +135,8 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet1()
 	{
-		Set<String> expected = new TreeSet<String>();
-		expected.add("p");
+		Set<Label> expected = new TreeSet<Label>();
+		expected.addAll(labelList(new String[] {"p"}));
 		DirectedSparseGraph g = buildGraph("A-p->A","testComputeFSMAlphabet1",config);
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));
@@ -135,7 +146,7 @@ public class TestFSMAlgo {
 	public final void testComputeFSMAlphabet2()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A<-b-A", "completeComputeAlphabet3",config);
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b"}));
+		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[] {"a","b"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
@@ -144,7 +155,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet3()
 	{
-		Collection<String> expected = new TreeSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
+		Collection<Label> expected = new TreeSet<Label>();expected.addAll(labelList(new String[]{"p","d","b","c","a"}));
 		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3",config);
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
@@ -154,7 +165,7 @@ public class TestFSMAlgo {
 	@Test
 	public final void testComputeFSMAlphabet4() {
 		DirectedSparseGraph g = buildGraph("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4",config);
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[]{"p","d","b","c","a"}));
+		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[]{"p","d","b","c","a"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 	}
@@ -163,7 +174,7 @@ public class TestFSMAlgo {
 	public final void completeComputeAlphabet5()
 	{
 		DirectedSparseGraph g = buildGraph("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5",config);
-		Collection<String> expected = new HashSet<String>();expected.addAll(Arrays.asList(new String[] {"a","b","c"}));
+		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[] {"a","b","c"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g));				
 
@@ -483,6 +494,38 @@ public class TestFSMAlgo {
 		return result;
 	}
 	
+	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
+	 * 
+	 * @param data source data
+	 * @param config configuration determining the type of label to build
+	 * @return a set of sequences to apply to an RPNI learner
+	 */
+	public static List<List<Label>> buildList(String [][] data, Configuration config)
+	{
+		List<List<Label>> result = new LinkedList<List<Label>>();
+		for(String []seq:data)
+		{
+			result.add(AbstractLearnerGraph.buildList(Arrays.asList(seq),config));
+		}
+		return result;
+	}
+
+	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
+	 * 
+	 * @param data source data
+	 * @param config configuration determining the type of label to build
+	 * @return a set of sequences to apply to an RPNI learner
+	 */
+	public static List<List<String>> buildList(String [][] data)
+	{
+		List<List<String>> result = new LinkedList<List<String>>();
+		for(String []seq:data)
+		{
+			result.add(Arrays.asList(seq));
+		}
+		return result;
+	}
+
 	/** Builds a map from an array, where each element corresponds to a pair of a string array 
 	 * (representing a sequence) and a string (representing flags associated with this sequence).
 	 * 
@@ -499,21 +542,6 @@ public class TestFSMAlgo {
 			if (str[0] == null || str[1] == null || !(str[0] instanceof String[]) || !(str[1] instanceof String))
 				throw new IllegalArgumentException("invalid data in array");
 			result.put(ArrayOperations.seqToString(Arrays.asList((String[])str[0])),(String)str[1]);
-		}
-		return result;
-	}
-	
-	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
-	 * 
-	 * @param data source data
-	 * @return a set of sequences to apply to an RPNI learner
-	 */
-	public static List<List<String>> buildList(String [][] data)
-	{
-		List<List<String>> result = new LinkedList<List<String>>();
-		for(String []seq:data)
-		{
-			result.add(Arrays.asList(seq));
 		}
 		return result;
 	}
@@ -535,28 +563,28 @@ public class TestFSMAlgo {
 	@Test
 	public final void testBuildSet3A()
 	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<String>());
+		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		expectedResult.add(labelList(new String[]{"a","b","c"}));
+		expectedResult.add(new LinkedList<Label>());
 		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{},new String[]{"a","b","c"}},config)));
 	}
 
 	@Test
 	public final void testBuildSet3B()
 	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
+		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		expectedResult.add(labelList(new String[]{"a","b","c"}));
 		assertTrue(expectedResult.equals(buildSet(new String[] []{new String[]{"a","b","c"}},config)));
 	}
 
 	@Test
 	public final void testBuildSet4()
 	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(Arrays.asList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<String>());
-		expectedResult.add(Arrays.asList(new String[]{"g","t"}));
-		expectedResult.add(Arrays.asList(new String[]{"h","q","i"}));
+		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		expectedResult.add(labelList(new String[]{"a","b","c"}));
+		expectedResult.add(new LinkedList<Label>());
+		expectedResult.add(labelList(new String[]{"g","t"}));
+		expectedResult.add(labelList(new String[]{"h","q","i"}));
 		assertTrue(expectedResult.equals(buildSet(new String[] []{
 				new String[]{"a","b","c"},new String[]{"h","q","i"}, new String[] {},new String[]{"g","t"} },config)));
 	}
@@ -899,10 +927,10 @@ public class TestFSMAlgo {
 	public final void computeShortPathsToAllStates1()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
-		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
-		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
-		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
-		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{"a"}));
+		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		expected.put(graph.findVertex("A"), labelList(new String[]{}));
+		expected.put(graph.findVertex("B"), labelList(new String[]{"a"}));
+		expected.put(graph.findVertex("C"), labelList(new String[]{"a"}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("A")));
 	}
 	
@@ -910,11 +938,11 @@ public class TestFSMAlgo {
 	public final void computeShortPathsToAllStates2()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
-		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
-		expected.put(graph.findVertex("A"), Arrays.asList(new String[]{}));
-		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{"a"}));
-		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{"a"}));
-		expected.put(graph.findVertex("D"), Arrays.asList(new String[]{"a","b"}));
+		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		expected.put(graph.findVertex("A"), labelList(new String[]{}));
+		expected.put(graph.findVertex("B"), labelList(new String[]{"a"}));
+		expected.put(graph.findVertex("C"), labelList(new String[]{"a"}));
+		expected.put(graph.findVertex("D"), labelList(new String[]{"a","b"}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("A")));
 	}
 	
@@ -922,8 +950,8 @@ public class TestFSMAlgo {
 	public final void computeShortPathsToAllStates3()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
-		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
-		expected.put(graph.findVertex("B"), Arrays.asList(new String[]{}));
+		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		expected.put(graph.findVertex("B"), labelList(new String[]{}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("B")));
 	}
 	
@@ -931,9 +959,9 @@ public class TestFSMAlgo {
 	public final void computeShortPathsToAllStates4()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",Configuration.getDefaultConfiguration());
-		Map<CmpVertex,List<String>> expected = new TreeMap<CmpVertex,List<String>>();
-		expected.put(graph.findVertex("C"), Arrays.asList(new String[]{}));
-		expected.put(graph.findVertex("D"), Arrays.asList(new String[]{"b"}));
+		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		expected.put(graph.findVertex("C"), labelList(new String[]{}));
+		expected.put(graph.findVertex("D"), labelList(new String[]{"b"}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("C")));
 	}
 	

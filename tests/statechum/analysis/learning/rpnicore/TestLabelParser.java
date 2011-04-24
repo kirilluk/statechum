@@ -30,9 +30,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Helper.whatToRun;
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.CompositionOfFunctions;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.FUNC_DATA;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.OP_DATA;
@@ -46,10 +48,23 @@ public class TestLabelParser {
 
 	LabelRepresentation lbls;
 	
+	protected final Configuration config = Configuration.getDefaultConfiguration(); 
+	
+	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+	 * because all of them start from a default one and do not modify label type.
+	 * 
+	 * @param labels what to convert
+	 * @return the outcome of conversion.
+	 */
+	protected Label[] asArray(String [] labels)
+	{// this is only used for testing hence efficiency is not significant.
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),lbls.config).toArray(new Label[0]);
+	}
+	
 	@Before
 	public final void beforeTest()
 	{
-		lbls = new LabelRepresentation();
+		lbls = new LabelRepresentation(config);
 	
 	}
 	
@@ -80,7 +95,7 @@ public class TestLabelParser {
 			});
 
 		{
-			final LabelRepresentation l = new LabelRepresentation();
+			final LabelRepresentation l = new LabelRepresentation(config);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
@@ -94,7 +109,7 @@ public class TestLabelParser {
 		}
 
 		{
-			final LabelRepresentation l = new LabelRepresentation();
+			final LabelRepresentation l = new LabelRepresentation(config);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 0",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
@@ -105,13 +120,13 @@ public class TestLabelParser {
 		}
 
 		{
-			final LabelRepresentation l = new LabelRepresentation();
+			final LabelRepresentation l = new LabelRepresentation(config);
 			l.parseCollection(decl);
 			Assert.assertFalse(l.usingLowLevelFunctions);
 		}
 
 		{
-			final LabelRepresentation l = new LabelRepresentation();
+			final LabelRepresentation l = new LabelRepresentation(config);
 			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
 					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
 					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+LabelRepresentation.functionArg+LabelRepresentation.delimiterString+"0)",
@@ -288,10 +303,11 @@ public class TestLabelParser {
 				QSMTool.cmdDataTrace+" - callA () callC",
 				QSMTool.cmdDataTrace+" + callA () callB callD"}));
 		Assert.assertEquals(3,lbls.traces.size());
-		Set<List<String>> positives = new LinkedHashSet<List<String>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"}}),positives);
-		Set<List<String>> negatives = new LinkedHashSet<List<String>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callC"}}),negatives);
+		Configuration config = Configuration.getDefaultConfiguration();
+		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"}},config),positives);
+		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callC"}},config),negatives);
 	}
 	
 	/** Empty set of negatives. */
@@ -308,10 +324,11 @@ public class TestLabelParser {
 				QSMTool.cmdDataTrace+" + callT () callC",
 				QSMTool.cmdDataTrace+" + callA () callB callD"}));
 		Assert.assertEquals(3,lbls.traces.size());
-		Set<List<String>> positives = new LinkedHashSet<List<String>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"},new String[]{"callT","callC"}}),positives);
-		Set<List<String>> negatives = new LinkedHashSet<List<String>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{}),negatives);
+		Configuration config = Configuration.getDefaultConfiguration();
+		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"},new String[]{"callT","callC"}},config),positives);
+		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config),negatives);
 	}
 	
 	@Test
@@ -334,10 +351,11 @@ public class TestLabelParser {
 		}));
 	
 		Assert.assertEquals(1,lbls.traces.size());
-		Set<List<String>> positives = new LinkedHashSet<List<String>>();positives.addAll(lbls.getSPlus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"}}),positives);
-		Set<List<String>> negatives = new LinkedHashSet<List<String>>();negatives.addAll(lbls.getSMinus());
-		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{}),negatives);
+		Configuration config = Configuration.getDefaultConfiguration();
+		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"}},config),positives);
+		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config),negatives);
 		
 		TraceWithData trace = lbls.traces.iterator().next();
 		for(CompositionOfFunctions func:trace.arguments)
@@ -380,7 +398,7 @@ public class TestLabelParser {
 		parseDataTrace("+ callA((= input 7) (< output 8)) callB callC((and (= 5 input) (> input output)))");
 		Assert.assertEquals(1,lbls.traces.size());
 		TraceWithData trace = lbls.traces.iterator().next();
-		Assert.assertArrayEquals(new String[]{"callA","callB","callC"}, trace.traceDetails.toArray());
+		Assert.assertArrayEquals(asArray(new String[]{"callA","callB","callC"}), trace.traceDetails.toArray());
 		Iterator<CompositionOfFunctions> compIterator = trace.arguments.iterator();
 		Assert.assertEquals("(= input 7) (< output 8)",compIterator.next().text);
 		Assert.assertEquals("",compIterator.next().text);
@@ -408,7 +426,7 @@ public class TestLabelParser {
 		}));
 		Assert.assertEquals(1,lbls.traces.size());
 		TraceWithData trace = lbls.traces.iterator().next();
-		Assert.assertArrayEquals(new String[]{"callA","callB","callC"}, trace.traceDetails.toArray());
+		Assert.assertArrayEquals(asArray(new String[]{"callA","callB","callC"}), trace.traceDetails.toArray());
 		Iterator<CompositionOfFunctions> compIterator = trace.arguments.iterator();
 		final String expectedCompDeclarations = LabelRepresentation.encloseInBeginEndIfNotEmpty(
 				"(define "+LabelRepresentation.generateFreshVariable("fn", VARIABLEUSE.IO, 0, 0)+"::int)"+LabelRepresentation.ENDL+
@@ -442,7 +460,7 @@ public class TestLabelParser {
 		parseDataTrace("+ callA((= input 7) (< output 8)) callB callC((and (= 5 input) (> (func output input) output)))");
 		Assert.assertEquals(1,lbls.traces.size());
 		TraceWithData trace = lbls.traces.iterator().next();
-		Assert.assertArrayEquals(new String[]{"callA","callB","callC"}, trace.traceDetails.toArray());
+		Assert.assertArrayEquals(asArray(new String[]{"callA","callB","callC"}), trace.traceDetails.toArray());
 		Iterator<CompositionOfFunctions> compIterator = trace.arguments.iterator();
 		Assert.assertEquals("(= input 7) (< output 8)",compIterator.next().text);
 		Assert.assertEquals("",compIterator.next().text);
@@ -457,7 +475,7 @@ public class TestLabelParser {
 		parseDataTrace("+ callA((= input 7) (< output 8)) callB callC((and (= 5 input) (> (func output input) output)))");
 		Assert.assertEquals(1,lbls.traces.size());
 		TraceWithData trace = lbls.traces.iterator().next();
-		Assert.assertArrayEquals(new String[]{"callA","callB","callC"}, trace.traceDetails.toArray());
+		Assert.assertArrayEquals(asArray(new String[]{"callA","callB","callC"}), trace.traceDetails.toArray());
 		Iterator<CompositionOfFunctions> compIterator = trace.arguments.iterator();
 		Assert.assertEquals("(= input 7) (< output 8)",compIterator.next().text);
 		Assert.assertEquals("",compIterator.next().text);

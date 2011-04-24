@@ -32,6 +32,8 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 public class TestRejectManipulation {
@@ -78,19 +80,19 @@ public class TestRejectManipulation {
 	 */
 	private void completeGraphTestHelper(String originalGraph, String expectedOutcome, boolean whetherToBeCompleted, String testName)
 	{
-		DirectedSparseGraph g = buildGraph(originalGraph, testName);
+		DirectedSparseGraph g = buildGraph(originalGraph, testName,config);
 		Assert.assertEquals(whetherToBeCompleted,DeterministicDirectedSparseGraph.completeGraph(g,"REJECT"));checkM(expectedOutcome,g, config);		
-		LearnerGraphND fsm = new LearnerGraphND(buildGraph(originalGraph, testName),config);
+		LearnerGraphND fsm = buildLearnerGraphND(originalGraph, testName,config);
 		Assert.assertEquals(whetherToBeCompleted,fsm.pathroutines.completeGraph(
 				new VertexID("REJECT")));
-		Assert.assertNull(WMethod.checkM(fsm, new LearnerGraphND(buildGraph(expectedOutcome,testName),config)));				
+		Assert.assertNull(WMethod.checkM(fsm, buildLearnerGraphND(expectedOutcome,testName,config)));				
 	}
 	
 	/** Checks that passing a name of an existing state causes an exception to be thrown. */
 	@Test(expected=IllegalArgumentException.class)
 	public void complete_fail()
 	{
-		new LearnerGraph(buildGraph("A-a->A-b->B-c->B", "complete_fail"),config).pathroutines.completeGraph(
+		buildLearnerGraph("A-a->A-b->B-c->B", "complete_fail",config).pathroutines.completeGraph(
 				new VertexID("B"));
 	}
 	
@@ -146,8 +148,8 @@ public class TestRejectManipulation {
 	public void completeGraphTest6_ND()
 	{
 		//String expectedGraph = "A-a->AB-a->AC\nA-b->B-c->B-a->C\nAB-c->B\nA-c-#REJECT#-b-B\nC-a-#REJECT\nC-b-#REJECT\nC-c-#REJECT\nAC-a-#REJECT\nAC-b-#REJECT\nAC-c-#REJECT\nAB-b-#REJECT";
-		LearnerGraphND graph = new LearnerGraphND(buildGraph("A-a->B\nA-a->C\nA-b->A", "completeGraphTest6_ND_a"),Configuration.getDefaultConfiguration());
-		LearnerGraphND expected = new LearnerGraphND(buildGraph("A-a->B\nREJECT#-b-B-a-#REJECT\nA-b->A", "completeGraphTest6_ND_a"),Configuration.getDefaultConfiguration());
+		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-b->A", "completeGraphTest6_ND_a",Configuration.getDefaultConfiguration());
+		LearnerGraphND expected = buildLearnerGraphND("A-a->B\nREJECT#-b-B-a-#REJECT\nA-b->A", "completeGraphTest6_ND_a",Configuration.getDefaultConfiguration());
 		Assert.assertTrue(graph.pathroutines.completeGraph(
 				new VertexID("REJECT")));
 		Assert.assertNull(WMethod.checkM(expected,graph));
@@ -161,11 +163,11 @@ public class TestRejectManipulation {
 		completeGraphTestHelper(fsmOrig,fsmExpected,true,"completeGraphTest7");
 		
 		// Additional checking.
-		DirectedSparseGraph g = buildGraph(fsmOrig, "completeGraphTest7");
+		DirectedSparseGraph g = buildGraph(fsmOrig, "completeGraphTest7",config);
 		final LearnerGraph graph = new LearnerGraph(g,config);
 		Assert.assertTrue(graph.pathroutines.completeGraph(
 				new DeterministicDirectedSparseGraph.VertexID("REJECT")));
-		final LearnerGraph expected = new LearnerGraph(buildGraph(fsmExpected,"completeGraphTest7"),config);
+		final LearnerGraph expected = buildLearnerGraph(fsmExpected,"completeGraphTest7",config);
 		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("A"),expected,expected.findVertex("A"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("B"),expected,expected.findVertex("B"),WMethod.VERTEX_COMPARISON_KIND.NONE));
 		Assert.assertNull(WMethod.checkM(expected,expected.findVertex("Q"),expected,expected.findVertex("Q"),WMethod.VERTEX_COMPARISON_KIND.NONE));
@@ -176,11 +178,11 @@ public class TestRejectManipulation {
 	@Test
 	public final void testLTL_complete2()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("init-a->init-c->B-b->B", "testLTL_ba_graph3"),config);
+		LearnerGraph graph = buildLearnerGraph("init-a->init-c->B-b->B", "testLTL_ba_graph3",config);
 		LearnerGraph result = new LearnerGraph(graph.config);AbstractPathRoutines.completeMatrix(graph,result);
-		LearnerGraph expected = new LearnerGraph(FsmParser.buildGraph("A-a->A-c->B-b->B\n"+
+		LearnerGraph expected = buildLearnerGraph("A-a->A-c->B-b->B\n"+
 				"A-b-#R1\n"+"B-a-#R2\n"+"B-c-#R3"
-				, "testLTL_complete2"),config);
+				, "testLTL_complete2",config);
 		Assert.assertNull(WMethod.checkM(result,expected));
 	}
 	
@@ -188,36 +190,36 @@ public class TestRejectManipulation {
 	public final void testRemoveRejects1()
 	{
 		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D", fsmExpected = "A-a->A-b->B";
-		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(new LearnerGraph(
-				buildGraph(fsmOrig, "testRemoveRejects1A"), config),actual);
-		Assert.assertNull(WMethod.checkM(actual, new LearnerGraph(buildGraph(fsmExpected, "testRemoveRejects1B"), config)));
+		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(
+				buildLearnerGraph(fsmOrig, "testRemoveRejects1A", config),actual);
+		Assert.assertNull(WMethod.checkM(actual, buildLearnerGraph(fsmExpected, "testRemoveRejects1B", config)));
 	}
 
 	@Test
 	public final void testRemoveRejects2()
 	{
 		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D\nA-d-#T", fsmExpected = "A-a->A-b->B";
-		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(new LearnerGraph(
-				buildGraph(fsmOrig, "testRemoveRejects2A"), config),actual);
-		Assert.assertNull(WMethod.checkM(actual, new LearnerGraph(buildGraph(fsmExpected, "testRemoveRejects2B"), config)));
+		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(
+				buildLearnerGraph(fsmOrig, "testRemoveRejects2A", config),actual);
+		Assert.assertNull(WMethod.checkM(actual, buildLearnerGraph(fsmExpected, "testRemoveRejects2B", config)));
 	}
 
 	@Test
 	public final void testRemoveRejects3()
 	{
 		String fsm = "A-a->A-b->B";
-		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(new LearnerGraph(
-				buildGraph(fsm, "testRemoveRejects3"), config),actual);
-		Assert.assertNull(WMethod.checkM(actual, new LearnerGraph(buildGraph(fsm, "testRemoveRejects3"), config)));
+		LearnerGraph actual = new LearnerGraph(config);AbstractPathRoutines.removeRejectStates(
+				buildLearnerGraph(fsm, "testRemoveRejects3", config),actual);
+		Assert.assertNull(WMethod.checkM(actual, buildLearnerGraph(fsm, "testRemoveRejects3", config)));
 	}
 
 	@Test
 	public final void testRemoveRejects3_ND()
 	{
 		String fsm = "A-a->A-b->B\nA-a->B";
-		LearnerGraphND actual = new LearnerGraphND(config);AbstractPathRoutines.removeRejectStates(new LearnerGraphND(
-				buildGraph(fsm, "testRemoveRejects3_ND"), config),actual);
-		Assert.assertNull(WMethod.checkM(actual, new LearnerGraphND(buildGraph(fsm, "testRemoveRejects3_ND"), config)));
+		LearnerGraphND actual = new LearnerGraphND(config);AbstractPathRoutines.removeRejectStates(
+				buildLearnerGraphND(fsm, "testRemoveRejects3_ND", config),actual);
+		Assert.assertNull(WMethod.checkM(actual, buildLearnerGraphND(fsm, "testRemoveRejects3_ND", config)));
 	}
 
 	@Test
@@ -239,7 +241,7 @@ public class TestRejectManipulation {
 	public final void testRemoveRejects_fail2()
 	{
 		String fsmOrig = "A-a->A-b->B-a-#C\nB-b-#D";
-		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects1A"), config);
+		LearnerGraph graph = buildLearnerGraph(fsmOrig, "testRemoveRejects1A", config);
 		graph.getInit().setAccept(false);
 		AbstractPathRoutines.removeRejectStates(graph,new LearnerGraph(config));
 	}
@@ -248,7 +250,7 @@ public class TestRejectManipulation {
 	public final void testRemoveRejects_fail3()
 	{
 		String fsmOrig = "A-a-#D";
-		LearnerGraph graph = new LearnerGraph(buildGraph(fsmOrig, "testRemoveRejects_fail3"), config);
+		LearnerGraph graph = buildLearnerGraph(fsmOrig, "testRemoveRejects_fail3", config);
 		graph.getInit().setAccept(false);
 		AbstractPathRoutines.removeRejectStates(graph,new LearnerGraph(config));
 	}

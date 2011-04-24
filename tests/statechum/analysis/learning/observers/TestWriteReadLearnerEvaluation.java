@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParser;
@@ -50,7 +51,7 @@ public class TestWriteReadLearnerEvaluation {
 	Configuration config = null, anotherconfig = null;
 	LearnerGraph graph = null;
 	String xmlData = null;
-	Collection<List<String>> testData = null;
+	Collection<List<Label>> testData = null;
 	Collection<String> ltl = null;
 	LabelRepresentation labels = null;
 	
@@ -64,17 +65,17 @@ public class TestWriteReadLearnerEvaluation {
 		anotherconfig = Configuration.getDefaultConfiguration().copy();
 		Assert.assertFalse(config.equals(anotherconfig));
 		
-		graph = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation"),config);
+		graph = FsmParser.buildLearnerGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation",config);
 		testData = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
 				new String[]{"more data"}
-		});
+		},config);
 		ltl = Arrays.asList(new String[] { 
 				"![](setfiletype -> X((storefile) || (rename)))",
 				"ltl ![]((initialise) -> X(connect))",
 				"ltl !(XX(initialise))" });
-		labels = new LabelRepresentation();
+		labels = new LabelRepresentation(config);
 		labels.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl_N",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond_N",
@@ -96,7 +97,7 @@ public class TestWriteReadLearnerEvaluation {
 	public final void testLearnerEvaluation1()
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
@@ -118,7 +119,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ifthenSequences);
@@ -136,7 +137,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
@@ -170,7 +171,7 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(anotherXML,xmlData);
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(labels,cnf.labelDetails);
@@ -202,7 +203,7 @@ public class TestWriteReadLearnerEvaluation {
 		Assert.assertEquals(anotherXML,xmlData);
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
-		LearnerEvaluationConfiguration cnf=ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		WMethod.checkM(cnf.graph, graph);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ifthenSequences);
@@ -215,7 +216,7 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_EVALUATIONDATA).getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"expecting to load learner evaluation data");
 	}
 	
@@ -233,7 +234,7 @@ public class TestWriteReadLearnerEvaluation {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"missing graph");
 	}	
 
@@ -244,13 +245,13 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-		learnerConfig.appendChild(new LearnerGraph(FsmParser.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
+		learnerConfig.appendChild(FsmParser.buildLearnerGraph("A-a->A", "testLoadInit_fail7",Configuration.getDefaultConfiguration())
 		.storage.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate graph");
 	}	
 	
@@ -268,7 +269,7 @@ public class TestWriteReadLearnerEvaluation {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"missing test set");
 	}	
 	
@@ -279,16 +280,16 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-		learnerConfig.appendChild(dumper.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), 
+		learnerConfig.appendChild(dumper.labelio.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), 
 				TestFSMAlgo.buildList(new String[][]{
 						new String[]{ "t","some test data"},
 						new String[]{},
-						new String[]{"4","46"}})));
+						new String[]{"4","46"}},config)));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate test set");
 	}	
 	
@@ -304,7 +305,7 @@ public class TestWriteReadLearnerEvaluation {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate configuration");
 	}	
 	
@@ -320,7 +321,7 @@ public class TestWriteReadLearnerEvaluation {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ProgressDecorator.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
+			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()));
 		}}, IllegalArgumentException.class,"duplicate label details");
 	}	
 	

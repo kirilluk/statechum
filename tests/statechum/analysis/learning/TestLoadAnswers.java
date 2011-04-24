@@ -21,24 +21,38 @@ package statechum.analysis.learning;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration;
+import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 
 public class TestLoadAnswers {
+	
+	protected final Configuration config = Configuration.getDefaultConfiguration();
+	
+	/** This method passes the right arguments to the object under test.
+	*/
+	private List<Label> arrayToLabels(String [] question)
+	{
+		return AbstractLearnerGraph.buildList(Arrays.asList(question), config);
+	}
+	
 	@Test
 	public void testLoadAnswers1()
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		Assert.assertEquals(0,sa.getCount());
 	}
 	
 	@Test
 	public void testLoadAnswers2() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(""));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -46,69 +60,70 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers3a() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(""));
-		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new String[]{})));
+		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
 
 	/** If the answer is not user-provided, ignore it. */
 	@Test
 	public void testLoadAnswers3b() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(RPNILearner.QUESTION_SPIN+" even more junk"));
-		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new String[]{})));
+		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
 
 	/** If the answer is not user-provided, ignore it. */
 	@Test
 	public void testLoadAnswers3c() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("junk"+RPNILearner.QUESTION_USER+" even more junk"));
-		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new String[]{})));
+		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
 
 	/** If the answer is not user-provided, ignore it. */
 	@Test
 	public void testLoadAnswers3d() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("junk"+RPNILearner.QUESTION_USER+" even more\n junk"));
-		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new String[]{})));
+		Assert.assertEquals(null,sa.getAnswer(Arrays.asList(new Label[]{})));
 	}
 
 	@Test
 	public void testLoadAnswers4() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(""+RPNILearner.QUESTION_USER+"[test] <yes>"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), 
+				sa.getAnswer(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"test"}),config)));
 	}
 	
 	@Test
 	public void testLoadAnswers5A() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(" \t\t  "+RPNILearner.QUESTION_USER+"  [test] <no> at position 5, junk"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
 	}
 
 	@Test
 	public void testLoadAnswers5B() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+"[test] <no> at position 5, junk\n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
 	}
 
 	@Test
 	public void testLoadAnswers5C() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <no> at position 5, junk"));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -116,16 +131,16 @@ public class TestLoadAnswers {
 	@Test
 	public void testLoadAnswers5D() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_USER+" [test] <ltl> some ltl formula"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl formula"), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl formula"), sa.getAnswer(arrayToLabels(new String[]{"test"})));
 	}
 
 	@Test
 	public void testLoadAnswers5E() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("  "+RPNILearner.QUESTION_AUTO+" [test] <ltl> some ltl, formula"));
 		Assert.assertEquals(0,sa.getCount());
 	}
@@ -134,131 +149,131 @@ public class TestLoadAnswers {
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail1() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"junk"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail2() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] junk"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3a() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no>"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no>"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3b() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail3c() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>    "));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <ltl>    "));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail4() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position "));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position "));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail5() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 6"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 6"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail6() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 7,\n"+RPNILearner.QUESTION_USER+"junk"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+"[valid string] <no> at position 7,\n"+RPNILearner.QUESTION_USER+"junk"));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersFail7() throws IOException
 	{
-		new StoredAnswers().setAnswers(new StringReader(RPNILearner.QUESTION_USER+" junk\n\n[valid string] <no> at position 7,\n"));
+		new StoredAnswers(config).setAnswers(new StringReader(RPNILearner.QUESTION_USER+" junk\n\n[valid string] <no> at position 7,\n"));
 	}
 	
 	@Test
 	public void testLoadAnswersIgnore1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] "+RPNILearner.QUESTION_IGNORE+"\n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
 	}
 	
 	@Test
 	public void testLoadAnswersIgnore2() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_IGNORE+"   \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
-		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
 	/** Junk after the trace to be ignored. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersIgnoreFailure1() throws IOException 
 	{
-		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] <ignore> at position 5, junk\n"));
+		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test] <ignore> at position 5, junk\n"));
 	}
 	
 	@Test
 	public void testLoadAnswersIncompatible1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_INCOMPATIBLE+" nodeA nodeB  \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB  "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
-		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB  "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
 	/** Missing text of the pair. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersIncompatibleFail1() throws IOException 
 	{
-		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_INCOMPATIBLE+"\n"));
+		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_INCOMPATIBLE+"\n"));
 	}
 
 	@Test
 	public void testLoadAnswersNewTrace1() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB  \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB  "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
-		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB  "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
 	@Test
 	public void testLoadAnswersNewTrace2() throws IOException 
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB // elemC elemA / \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB // elemC elemA / "), sa.getAnswer(Arrays.asList(new String[]{"testA","testB"})));
-		Assert.assertNull(sa.getAnswer(Arrays.asList(new String[]{"testA"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB // elemC elemA / "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
 	/** Missing text of the trace. */
 	@Test(expected = IllegalArgumentException.class)
 	public void testLoadAnswersNewTraceFail1() throws IOException 
 	{
-		new StoredAnswers().setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_NEWTRACE+"\n"));
+		new StoredAnswers(config).setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [test]"+RPNILearner.QUESTION_NEWTRACE+"\n"));
 	}
 	
 	@Test
 	public void testLoadAnswers6() throws IOException
 	{
-		StoredAnswers sa = new StoredAnswers();
+		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(""+RPNILearner.QUESTION_USER+"[test] <no> at position 5, junk\n "
 				+RPNILearner.QUESTION_USER+" [some text, more of it] <yes> whatever\n\n\n"
 				+""+RPNILearner.QUESTION_USER+"[teststr, another, more] <no> at position 0, junk\n"				
@@ -274,17 +289,17 @@ public class TestLoadAnswers {
 				+""+RPNILearner.QUESTION_USER+" [trace, B] "+RPNILearner.QUESTION_NEWTRACE+" + a b c \n"
 		));
 		Assert.assertEquals(10,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(Arrays.asList(new String[]{"test"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"some text","more of it"})));
-		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","another", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(2,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","a", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(Arrays.asList(new String[]{"teststr","p", "more"})));
-		Assert.assertEquals(null, sa.getAnswer(Arrays.asList(new String[]{"unknown","p", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(Arrays.asList(new String[]{" difficult one"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(Arrays.asList(new String[]{" difficult second one"})));
+		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(arrayToLabels(new String[]{"some text","more of it"})));
+		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","another", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(2,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","a", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","p", "more"})));
+		Assert.assertEquals(null, sa.getAnswer(arrayToLabels(new String[]{"unknown","p", "more"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(arrayToLabels(new String[]{" difficult one"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(arrayToLabels(new String[]{" difficult second one"})));
 		
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"elem1 elem2"), sa.getAnswer(Arrays.asList(new String[]{"some","trace"})));		
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(Arrays.asList(new String[]{"trace","A"})));		
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ a b c "), sa.getAnswer(Arrays.asList(new String[]{"trace","B"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"elem1 elem2"), sa.getAnswer(arrayToLabels(new String[]{"some","trace"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"trace","A"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ a b c "), sa.getAnswer(arrayToLabels(new String[]{"trace","B"})));		
 	}
 }

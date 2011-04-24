@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.Label;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
@@ -72,7 +73,7 @@ public class IterativeEvaluatorExperiment {
 				@Override
 				public Pair<Integer,String> CheckWithEndUser(
 						@SuppressWarnings("unused")	LearnerGraph model,
-						List<String> question, @SuppressWarnings("unused") int valueForNoRestart,
+						List<Label> question, @SuppressWarnings("unused") int valueForNoRestart,
 						@SuppressWarnings("unused") List<Boolean> acceptedElements,
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused") final Object [] moreOptions)

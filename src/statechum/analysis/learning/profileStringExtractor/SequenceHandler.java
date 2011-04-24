@@ -24,12 +24,14 @@ import javax.swing.tree.TreePath;
 
 import org.xml.sax.Attributes;
 
+import statechum.Configuration;
+
 public class SequenceHandler extends AbstractHandler {
 	
 	protected Set<String> vocabulary; 
 	
-	public SequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
-		super(functions, classMethods);
+	public SequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods, Configuration conf){
+		super(functions, classMethods,conf);
 		vocabulary = new HashSet<String>();
 		computeVocab(functions.values());
 	}

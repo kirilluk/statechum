@@ -179,8 +179,8 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
                         // This is nice and readable....
                         thisSum = thisSum.sum(m);
                     }
-                    String previousLabel = (String) ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
-                    String thisLabel = (String) ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
+                    String previousLabel = ((Vertex) previousPicked[0]).getUserDatum(JUConstants.LABEL).toString();
+                    String thisLabel = ((Vertex) vs[0]).getUserDatum(JUConstants.LABEL).toString();
                     //System.out.println(previousSum.toString() + " vs " + thisSum.toString());
                     new CodeCoverageStringFrame(traceColorise(previousSum, thisSum, false), previousLabel + " vs " + thisLabel);
                     previousPicked = null;
@@ -303,7 +303,7 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
         return result + "]";
     }
 
-    public static CodeCoverageMap getCoverageMap(Trace prefixArg, Trace suffixArg) {
+    public static CodeCoverageMap getCoverageMap(Trace prefix, Trace suffix) {
         while (ErlangQSMOracle.coverageMapLock) {
             try {
                 Thread.sleep(500);
@@ -312,10 +312,6 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             }
         }
         ErlangQSMOracle.coverageMapLock = true;
-
-        // Trying to pass lists with spaces through bash goes horribly wrong so we need to conver [a, b] into [a,b]
-        Trace prefix = prefixArg.replaceAll(", ", ",");
-        Trace suffix = suffixArg.replaceAll(", ", ",");
 
         // Lookup coverage map in the coverage collection...
         CodeCoverageMap result = ErlangQSMOracle.coverageMaps.get(new Pair<Trace, Trace>(prefix, suffix));

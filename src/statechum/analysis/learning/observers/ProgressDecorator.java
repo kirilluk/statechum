@@ -43,18 +43,12 @@
 
 package statechum.analysis.learning.observers;
 
-import java.io.IOException;
-import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -72,29 +66,18 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.apps.QSMTool;
+import statechum.StatechumXML.SequenceIO;
 
 public abstract class ProgressDecorator extends LearnerDecorator
 {
 	public ProgressDecorator(Learner learner) {
 		super(learner);setTopLevelListener(this);
 	}
-
-	private final static Pattern patternBadChars;
-	
-	/** A mini-parser is used in conjunction with XML to reduce the size of test trace
-	 * files - using single chars helps reduce test trace files greatly, making sure
-	 * both my slow uplink and SF are happy.
-	 */
-	public static final char seqStart='{',seqEnd='}',seqSep=',',seqNewLine='\n';
 	
 	protected Document doc = null;
+	protected SequenceIO<statechum.Label> labelio = null;//new StringLabelSequenceWriter(doc, result.config);
+	protected SequenceIO<String> stringio = null;//new StringSequenceWriter(doc);
 
-	static
-	{
-		patternBadChars = Pattern.compile("["+"\\"+seqStart+"\\"+seqSep+"\\"+seqEnd+seqNewLine+"]");
-	}
-		
 	/** Writes the supplied element into XML.
 	 * 
 	 * @param element to write
@@ -293,12 +276,13 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
 		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
-		result.testSet = readLabelSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name(),config);
+		
+		result.testSet = labelio.readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
-			result.ifthenSequences = readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
+			result.ifthenSequences = stringio.readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
 		if (nodesLabelDetails.getLength() > 0)
 		{
-			result.labelDetails = new LabelRepresentation();
+			result.labelDetails = new LabelRepresentation(result.config);
 			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0) );
 		}
 		result.graphNumber=graphNumber;
@@ -314,14 +298,15 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		Element evaluationData = doc.createElement(StatechumXML.ELEM_EVALUATIONDATA.name());
 		evaluationData.appendChild(cnf.graph.storage.createGraphMLNode(doc));
-		Element sequenceListElement = writeLabelSequenceList(StatechumXML.ATTR_TESTSET.name(), cnf.testSet);
+		
+		Element sequenceListElement = labelio.writeSequenceList(StatechumXML.ATTR_TESTSET.name(), cnf.testSet);
 		evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(sequenceListElement);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		evaluationData.appendChild(cnf.config.writeXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
 		if (cnf.ifthenSequences != null)
 		{
 			Element ltl = doc.createElement(StatechumXML.ELEM_CONSTRAINTS.name());
-			StringWriter ltlsequences = new StringWriter();writeInputSequence(ltlsequences, cnf.ifthenSequences);
+			StringWriter ltlsequences = new StringWriter();stringio.writeInputSequence(ltlsequences, cnf.ifthenSequences);
 			ltl.setTextContent(ltlsequences.toString());
 			evaluationData.appendChild(ltl);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}
@@ -337,165 +322,6 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		}
 		return evaluationData;
 	}
-
-	/** Given a collection of sequences of Labels, it writes them out in a form of XML element.
-	 * 
-	 * @param name the tag of the new element
-	 * @param data what to write
-	 * @return the written element.
-	 */ 
-	protected Element writeLabelSequenceList(final String name, Collection<List<Label>> data)
-	{
-		List<List<String>> dataToWrite = new ArrayList<List<String>>(data.size());
-		for(List<Label> seq:data)
-		{
-			List<String> s = new ArrayList<String>(seq.size());dataToWrite.add(s);
-			for(Label label:seq) s.add(label.toAlphaNum());
-		}
-		return writeSequenceList(name, dataToWrite);
-	}
-	
-	/** Given a collection of sequences, it writes them out in a form of XML element.
-	 * 
-	 * @param name the tag of the new element
-	 * @param data what to write
-	 * @return the written element.
-	 */ 
-	protected Element writeSequenceList(final String name, Collection<List<String>> data)
-	{
-		Element sequenceListElement = doc.createElement(StatechumXML.ELEM_SEQ.name());
-		sequenceListElement.setAttribute(StatechumXML.ATTR_SEQ.name(), name.toString());
-		StringWriter strWriter = new StringWriter();strWriter.append('\n');
-		for(List<String> seq:data)
-		{
-			writeInputSequence(strWriter, seq);strWriter.append('\n');
-		}
-		org.w3c.dom.Text dataInNode = doc.createTextNode(strWriter.toString());// if the string is empty at this point, the text node will not get added, so I have to check that there is any at the loading stage.
-		sequenceListElement.appendChild(dataInNode);
-		return sequenceListElement;
-	}
-		
-	/** Given an element, loads the data contained in it back into a collection.
-	 * (this is an inverse of <em>writeLabelSequenceList</em>.
-	 * 
-	 * @param elem the element to load from
-	 * @param expectedName the name which should have been given to this collection
-	 * @return the collection of sequences of strings loaded from that element.
-	 */
-	protected static List<List<Label>> readLabelSequenceList(Element elem, String expectedName,Configuration config)
-	{
-		List<List<Label>> result = new LinkedList<List<Label>>();
-		for(List<String> str:readSequenceList(elem, expectedName))
-			result.add(QSMTool.buildList(str, config));
-		return result;
-	}
-	
-	/** Given an element, loads the data contained in it back into a collection.
-	 * (this is an inverse of <em>addSequenceList</em>.
-	 * 
-	 * @param elem the element to load from
-	 * @param expectedName the name which should have been given to this collection
-	 * @return the collection of sequences of strings loaded from that element.
-	 */
-	protected static List<List<String>> readSequenceList(Element elem, String expectedName)
-	{
-		List<List<String>> result = new LinkedList<List<String>>();
-		if (!elem.getNodeName().equals(StatechumXML.ELEM_SEQ.name()))
-			throw new IllegalArgumentException("expecting to load a list of sequences "+elem.getNodeName());
-		if (!elem.getAttribute(StatechumXML.ATTR_SEQ.name()).equals(expectedName))
-			throw new IllegalArgumentException("expecting to load a list with name "+expectedName+
-					" but found a list named "+elem.getAttribute(StatechumXML.ATTR_SEQ.name()));
-		if (elem.getFirstChild() != null)
-		{
-			Reader reader = new StringReader(elem.getFirstChild().getTextContent());
-			try
-			{
-				int ch = reader.read();while(ch == seqNewLine) ch=reader.read();
-				if (ch != -1 && ch != seqStart) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
-				
-				while(ch == seqStart)
-				{
-					result.add(readInputSequence(reader,ch));
-					ch = reader.read();while(ch == seqNewLine) ch=reader.read();
-				}
-				if (ch != -1 && ch != seqStart) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
-			}
-			catch(IOException e)
-			{
-				statechum.Helper.throwUnchecked("failed to write to writer ",e);
-			}
-		}
-		return result;
-	}
-	
-	/** Dumps a sequence of inputs to the writer.
-	 * 
-	 * @param wr where to write sequences
-	 * @param str sequence of inputs to write out. The collection can be empty but no input can be of length zero.
-	 * @throws IOException
-	 */	
-	public static void writeInputSequence(Writer wr,Collection<String> str)
-	{
-		try
-		{
-			wr.append(seqStart);
-			boolean firstElem = true;
-			for(String st:str)
-			{
-				if (!firstElem)	wr.append(seqSep);else firstElem = false;
-				if (st.length() == 0)
-					throw new IllegalArgumentException("empty input in sequence");
-				if (patternBadChars.matcher(st).find())
-					throw new IllegalArgumentException("invalid characters in sequence "+str+" : it matches "+patternBadChars.toString());
-				wr.append(st);
-			}
-			wr.append(seqEnd);
-		}
-		catch(IOException e)
-		{
-			statechum.Helper.throwUnchecked("failed to write to writer ",e);
-		}
-	}
-	
-	/** Loads a sequence of inputs from a reader. Since I do not wish to use <em>mark</em>
-	 * or some form of put-back but would like a way to see ahead, I decided simply to pass
-	 * the first character as a parameter, -1 if there is none.
-	 * 
-	 * @param rd stream to read
-	 * @param firstChar the first character, -1 if the first char is to be read from a stream
-	 * @return collection of inputs read from a stream
-	 */
-	public static List<String> readInputSequence(Reader rd, int firstChar)
-	{
-		List<String> result = new LinkedList<String>();
-		try
-		{
-			int ch = firstChar == -1?rd.read():firstChar;while(ch == seqNewLine) ch=rd.read();if (ch != seqStart) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
-			boolean after_open_bracket = true;
-			do
-			{
-				StringBuffer input = new StringBuffer();
-				ch = rd.read();
-				while(ch != -1 && ch != seqEnd && ch != seqSep)
-				{
-					input.append((char)ch);
-					ch = rd.read();
-				}
-				if (ch == -1) throw new IllegalArgumentException("premature end of stream");
-				if (!after_open_bracket && input.length() == 0)
-					throw new IllegalArgumentException("empty input in a sequence of inputs");
-				after_open_bracket = false;
-				if (input.length() > 0)
-					result.add(input.toString());// if length is zero and we did not throw an exception, this means that the stream is empty.
-			}		
-			while(ch != seqEnd);
-		}
-		catch(IOException e)
-		{
-			statechum.Helper.throwUnchecked("failed to read from reader ",e);
-		}
-		return result;
-	}
 	
 	/** This method stores all the details of initialisation of a learner. 
 	 * 
@@ -505,8 +331,8 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	protected Element writeInitialData(InitialData initialData)
 	{
 		Element elemInit = doc.createElement(StatechumXML.ELEM_INIT.name());
-		Element positive = writeLabelSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
-		Element negative = writeLabelSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
+		Element positive = labelio.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), initialData.plus);positive.setAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name(), Integer.toString(initialData.plusSize));
+		Element negative = labelio.writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), initialData.minus);negative.setAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name(), Integer.toString(initialData.minusSize));
 		elemInit.appendChild(initialData.graph.storage.createGraphMLNode(doc));elemInit.appendChild(AbstractPersistence.endl(doc));
 		elemInit.appendChild(positive);elemInit.appendChild(AbstractPersistence.endl(doc));
 		elemInit.appendChild(negative);elemInit.appendChild(AbstractPersistence.endl(doc));
@@ -545,7 +371,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 						{
 							if (result.plus != null)
 								throw new IllegalArgumentException("duplicate positive element");
-							result.plus = readLabelSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name(),config);
+							result.plus = labelio.readSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name());
 							if (!e.hasAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name())) throw new IllegalArgumentException("missing positive size");
 							String size = e.getAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name());
 							try{ result.plusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("positive value is not an integer "+size, ex);}
@@ -555,7 +381,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 							{
 								if (result.minus != null)
 									throw new IllegalArgumentException("duplicate negative element");
-								result.minus = readLabelSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(),config);
+								result.minus = labelio.readSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name());
 								if (!e.hasAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name())) throw new IllegalArgumentException("missing negative size");
 								String size = e.getAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name());
 								try{ result.minusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("negative value is not an integer "+size, ex);}
@@ -578,6 +404,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public int plusSize=-1, minusSize =-1;
 		public LearnerGraph graph=null;
 		public LabelRepresentation labelDetails = null;
+
 		public InitialData() {
 			// rely on defaults above.
 		}
@@ -677,7 +504,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (data.colour != null) result.setAttribute(StatechumXML.ATTR_COLOUR.name(), data.colour.name());
 		result.setAttribute(StatechumXML.ATTR_ACCEPT.name(), Boolean.toString(data.accept));
 		StringWriter writer = new StringWriter();
-		writeInputSequence(writer, data.sequence);result.setTextContent(writer.toString());
+		labelio.writeInputSequence(writer, data.sequence);result.setTextContent(writer.toString());
 		return result;
 	}
 	
@@ -703,7 +530,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				kind = element.getAttribute(StatechumXML.ATTR_KIND.name()),
 				sequence = element.getTextContent();
 		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
-		StringReader reader = new StringReader(sequence);result.sequence = readLabelInputSequence(reader, -1,config);
+		StringReader reader = new StringReader(sequence);result.sequence = labelio.readInputSequence(reader, -1);
 		result.accept = Boolean.valueOf(accept);
 		if (colour.length() > 0)
 			result.colour=Enum.valueOf(JUConstants.class, colour);

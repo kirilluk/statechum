@@ -53,6 +53,7 @@ import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.StringLabel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
@@ -1728,7 +1729,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			public void addTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
 				String label = "ADD_"+origLabel;
-				mutator.addTransition(from, label, to);
+				mutator.addTransition(from, new StringLabel(label), to);
 				addTransitionAnnotation(from, label, to, Color.GREEN);
 			}
 
@@ -1737,7 +1738,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			{
 				String label = "REM_"+origLabel;
 				mutator.removeTransition(from, origLabel, to);// remove the original transition
-				mutator.addTransition(from, label, to);// and add the renamed one
+				mutator.addTransition(from, new StringLabel(label), to);// and add the renamed one
 				addTransitionAnnotation(from, label, to, Color.RED);
 			}
 

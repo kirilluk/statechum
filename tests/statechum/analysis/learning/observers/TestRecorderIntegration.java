@@ -38,12 +38,14 @@ import statechum.Configuration.IDMode;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.WMethod;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import statechum.Label;
 
 /**
  * @author kirill
@@ -99,20 +101,20 @@ public class TestRecorderIntegration {
 		testConfig.setGdFailOnDuplicateNames(false);
 		if (forceGDfallback) testConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 		testConfig.setCompressLogs(useCompression);
-		final DirectedSparseGraph g = FsmParser.buildGraph(fsmString, name);
+		final DirectedSparseGraph g = FsmParser.buildGraph(fsmString, name,testConfig);
 		final LearnerGraph expected = new LearnerGraph(g,testConfig);
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
-			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED == expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig));
 		for(String [] path:minus)
-			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(Arrays.asList(path));
+			assert AbstractOracle.USER_ACCEPTED != expected.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),testConfig));
 		Learner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -123,9 +125,9 @@ public class TestRecorderIntegration {
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 		ByteArrayOutputStream logStream = new ByteArrayOutputStream();
 		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,testConfig,useZip);
-		Collection<List<String>> testSet = new LinkedList<List<String>>();
+		Collection<List<Label>> testSet = new LinkedList<List<Label>>();
 		recorder.writeLearnerEvaluationData(new LearnerEvaluationConfiguration(expected, testSet, testConfig, null, null));
-		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus), buildSet(minus));
+		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
 		
 		//System.out.println("compression rate: "+recorder.getCompressionRate());
 		//System.out.println(logStream.toString()+"============");
@@ -151,7 +153,7 @@ public class TestRecorderIntegration {
 				Assert.assertEquals(testSet, eval2.testSet);
 				Assert.assertEquals(expected.config, testConfig);
 				
-				new Test_LearnerComparator(simulator,simulator2,true).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(simulator,simulator2,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
 				break;
 			}
 			
@@ -168,7 +170,7 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, @SuppressWarnings("unused") int responseForNoRestart, 
+							List<Label> question, @SuppressWarnings("unused") int responseForNoRestart, 
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -176,7 +178,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
-				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
 				break;
 			}
 
@@ -187,7 +189,7 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+							List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -200,7 +202,7 @@ public class TestRecorderIntegration {
 					@Override
 					public Pair<Integer,String> CheckWithEndUser(
 							@SuppressWarnings("unused")	LearnerGraph model,
-							List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+							List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 							@SuppressWarnings("unused") List<Boolean> acceptedElements,
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -208,7 +210,7 @@ public class TestRecorderIntegration {
 						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
 					}
 				};
-				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus), buildSet(minus));
+				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus,testConfig), buildSet(minus,testConfig));
 				break;
 			}
 		}

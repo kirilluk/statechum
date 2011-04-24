@@ -74,7 +74,7 @@ public class TestWriteReadPair {
 	@Before
 	public final void beforeTest()
 	{
-		graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C", "testWritePairs1"),Configuration.getDefaultConfiguration());
+		graph = FsmParser.buildLearnerGraph("A-a->B-a->C", "testWritePairs1",Configuration.getDefaultConfiguration());
 		xmlData=pairToXMLDocument(new PairScore(graph.findVertex("A"),graph.findVertex("B"),6,7));
 	}
 	

@@ -32,12 +32,15 @@ import javax.swing.tree.TreePath;
 
 import org.xml.sax.SAXException;
 
+import statechum.Configuration;
+
 public class ExtendedSequenceHandler extends SequenceHandler {
 	
 	protected Map<String,Collection<List<String>>> functionsToObservations; 
 	
-	public ExtendedSequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
-		super(functions, classMethods);
+	public ExtendedSequenceHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods, Configuration conf)
+	{
+		super(functions, classMethods,conf);
 		functionsToObservations = new HashMap<String,Collection<List<String>>>();
 	}
 

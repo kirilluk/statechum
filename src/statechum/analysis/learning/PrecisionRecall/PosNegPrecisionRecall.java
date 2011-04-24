@@ -21,6 +21,8 @@ package statechum.analysis.learning.PrecisionRecall;
 import java.util.Collection;
 import java.util.List;
 
+import statechum.Label;
+
 public class PosNegPrecisionRecall extends PrecisionRecall {
 	
 	protected double negprecision, posprecision, negrecall, posrecall;
@@ -33,8 +35,8 @@ public class PosNegPrecisionRecall extends PrecisionRecall {
 	 * @param retneg
 	 * @param relneg
 	 */
-	public PosNegPrecisionRecall(Collection<List<String>> retpos, Collection<List<String>> relpos, 
-			Collection<List<String>> retneg, Collection<List<String>> relneg){
+	public PosNegPrecisionRecall(Collection<List<Label>> retpos, Collection<List<Label>> relpos, 
+			Collection<List<Label>> retneg, Collection<List<Label>> relneg){
 		super();
 		negprecision = computePrecision(retneg, relneg);
 		posprecision = computePrecision(retpos, relpos);

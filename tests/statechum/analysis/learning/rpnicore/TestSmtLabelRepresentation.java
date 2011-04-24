@@ -35,6 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.Label;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.JUConstants;
@@ -46,13 +47,14 @@ import statechum.Helper.whatToRun;
 import statechum.analysis.learning.Smt;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.FUNC_DATA;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.SMTLabel;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.VARIABLEUSE;
 
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.toCurrentMem;
 import static statechum.analysis.learning.rpnicore.LabelRepresentation.generateFreshVariable;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.apps.QSMTool;
 
@@ -61,6 +63,17 @@ public class TestSmtLabelRepresentation {
 	private static final String _M = LabelRepresentation.varOldSuffix;
 	
 	Configuration config = null;
+
+	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+	 * because all of them start from a default one and do not modify label type.
+	 * 
+	 * @param labels what to convert
+	 * @return the outcome of conversion.
+	 */
+	protected List<statechum.Label> labelList(String [] labels)
+	{
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+	}
 	
 	@Before
 	public void beforeTest()
@@ -78,7 +91,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testNoLabels1()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		Assert.assertNull(lbls.labelMapConstructionOfOperations);
 		Assert.assertNull(lbls.labelMapConstructionOfDataTraces);
 		Assert.assertNull(lbls.labelMapFinal);
@@ -87,8 +100,8 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testNoLabels2()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lbls = new LabelRepresentation(config);
+		lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		lbls.parseLabel(null);
 		lbls.parseLabel("");
 		Assert.assertTrue(lbls.labelMapConstructionOfOperations.isEmpty());
@@ -101,8 +114,8 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			LabelRepresentation lbls = new LabelRepresentation(config);
+			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 			lbls.parseLabel(INITMEM+" ");
 		}}, IllegalArgumentException.class,"expected details for label");
 	}
@@ -112,8 +125,8 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			LabelRepresentation lbls = new LabelRepresentation(config);
+			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 			lbls.parseLabel(INITMEM+" JUNK");
 		}}, IllegalArgumentException.class,"expected [PRE");
 	}
@@ -123,8 +136,8 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			LabelRepresentation lbls = new LabelRepresentation(config);
+			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.OP_DATA.PRE);
 		}}, IllegalArgumentException.class,"expected specification for label");
 	}
@@ -134,8 +147,8 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
-			lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+			LabelRepresentation lbls = new LabelRepresentation(config);
+			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 			lbls.parseLabel(INITMEM+"  "+LabelRepresentation.OP_DATA.PRE+"  ");
 		}}, IllegalArgumentException.class,"expected specification for label");
 	}
@@ -143,15 +156,15 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCreateLabels1()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lbls = new LabelRepresentation(config);
+		lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl");
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl2");
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory0");
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory1");
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.POST.name()+" memory2");
 		Assert.assertEquals(1,lbls.labelMapConstructionOfOperations.size());
-		Label l = lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getValue();
+		SMTLabel l = lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getValue();
 		Assert.assertEquals(INITMEM,lbls.labelMapConstructionOfOperations.entrySet().iterator().next().getKey());
 		Assert.assertEquals(INITMEM,l.getName());
 		Assert.assertEquals("memory0\nmemory1\nmemory2",l.post.text);
@@ -161,8 +174,8 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCreateLabels2()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
-		lbls.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lbls = new LabelRepresentation(config);
+		lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		lbls.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE.name()+" varDecl");
 		lbls.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST.name()+" postA and            more");
 		lbls.parseLabel("A"+" "+LabelRepresentation.OP_DATA.POST.name()+"     details of postcondition     of A     ");
@@ -170,21 +183,21 @@ public class TestSmtLabelRepresentation {
 		Assert.assertEquals(3,lbls.labelMapConstructionOfOperations.size());
 
 		{
-			Label l = lbls.labelMapConstructionOfOperations.get(INITMEM);
+			SMTLabel l = lbls.labelMapConstructionOfOperations.get(INITMEM);
 			Assert.assertEquals(INITMEM,l.getName());
 			Assert.assertNull(l.post.text);
 			Assert.assertEquals("varDecl",l.pre.text);
 		}
 
 		{
-			Label l = lbls.labelMapConstructionOfOperations.get("A");
+			SMTLabel l = lbls.labelMapConstructionOfOperations.get("A");
 			Assert.assertEquals("A",l.getName());
 			Assert.assertNull(l.pre.text);
 			Assert.assertEquals("postA and more\ndetails of postcondition of A",l.post.text);
 		}
 
 		{
-			Label l = lbls.labelMapConstructionOfOperations.get("B");
+			SMTLabel l = lbls.labelMapConstructionOfOperations.get("B");
 			Assert.assertEquals("B",l.getName());
 			Assert.assertNull(l.post.text);
 			Assert.assertEquals("value of precondition of B",l.pre.text);
@@ -194,8 +207,8 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testEquals()
 	{
-		LabelRepresentation lblsA = new LabelRepresentation();
-		lblsA.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lblsA = new LabelRepresentation(config);
+		lblsA.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		{
 			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N);
 			lblsA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
@@ -204,8 +217,8 @@ public class TestSmtLabelRepresentation {
 			lblsA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB");
 			lblsA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB");
 		}
-		LabelRepresentation lblsB = new LabelRepresentation();
-		lblsB.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lblsB = new LabelRepresentation(config);
+		lblsB.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		{
 			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ "    varDecl"+_N);
 			lblsB.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
@@ -214,8 +227,8 @@ public class TestSmtLabelRepresentation {
 			lblsB.parseLabel("B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB");
 			lblsB.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
 		}
-		LabelRepresentation lblsDiffA = new LabelRepresentation();
-		lblsDiffA.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lblsDiffA = new LabelRepresentation(config);
+		lblsDiffA.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		{
 			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ "    varDecl"+_N);
 			lblsDiffA.parseLabel(INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N);
@@ -225,8 +238,8 @@ public class TestSmtLabelRepresentation {
 			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
 			lblsDiffA.parseLabel("B"+" "+LabelRepresentation.OP_DATA.POST+ "       somePostcondB");
 		}
-		LabelRepresentation lblsDiffB = new LabelRepresentation();
-		lblsDiffB.labelMapConstructionOfOperations = new TreeMap<String,Label>();
+		LabelRepresentation lblsDiffB = new LabelRepresentation(config);
+		lblsDiffB.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
 		TestEqualityComparisonAndHashCode.equalityTestingHelper(lblsA,lblsA,lblsDiffA,lblsDiffB);
 	}
 
@@ -294,7 +307,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
 			}));
@@ -306,7 +319,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
 					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
@@ -323,7 +336,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+LabelRepresentation.varOldSuffix,
@@ -340,7 +353,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+LabelRepresentation.varOldSuffix,
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
@@ -354,7 +367,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
 					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " ("+LabelRepresentation.functionArg+")"}));
@@ -364,7 +377,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testParseCollectionInvalidFunctionName_no_failure_if_does_not_start_with_frg()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
 				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (a"+LabelRepresentation.functionArg+")"}));
@@ -375,7 +388,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"::int)",
 					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func"+LabelRepresentation.delimiterString+")"}));
@@ -387,7 +400,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"::int)",
 					QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func "+LabelRepresentation.functionArg+"arg )"}));
@@ -398,7 +411,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testParseCollectionInvalidArgumentNameOk()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
 				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func a"+LabelRepresentation.functionArg+"arg )"}));
@@ -407,7 +420,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testParseCollectionRepeatConstruction()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
 				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " (func )"}));
@@ -422,7 +435,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCreateConjunctionEmpty1()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " decl"+_N,
@@ -430,8 +443,8 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondA)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondB)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
-		Pair<String,String> state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
+		Pair<String,String> state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{}),null);
 		int number = 4;
 		Assert.assertEquals("define varDecl"+__P+number+" decl"+__P+number+ENDL,state.firstElem);
 		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+"true"+ENDL, state.secondElem);
@@ -440,7 +453,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCreateConjunctionEmpty2()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= initCond"+_N+" 7)",
@@ -448,8 +461,8 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondA)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondB)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
-		Pair<String,String>  state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
+		Pair<String,String>  state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{}),null);
 		int number = 4;
 		Assert.assertEquals("varDecl"+__P+number+ENDL,state.firstElem);
 		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+
@@ -461,7 +474,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N,
@@ -469,7 +482,7 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
 				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
 				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
-			lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-unknown_label->stD", "testCreateConjunctionUnknown1"), Configuration.getDefaultConfiguration()),null,true);
+			lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-unknown_label->stD", "testCreateConjunctionUnknown1", Configuration.getDefaultConfiguration()),null,true);
 		}}, IllegalArgumentException.class,"unknown label unknown_label");
 	}
 	
@@ -478,7 +491,7 @@ public class TestSmtLabelRepresentation {
 	{
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond"+_N,
@@ -486,14 +499,14 @@ public class TestSmtLabelRepresentation {
 				QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
 				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
 				QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
-			lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-unknown_label->stD", "testCreateConjunctionUnknown2"), Configuration.getDefaultConfiguration()),null,true);
+			lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-unknown_label->stD", "testCreateConjunctionUnknown2", Configuration.getDefaultConfiguration()),null,true);
 		}}, IllegalArgumentException.class,"unknown label unknown_label");
 	}
 	
 	@Test
 	public void testCreateConjunction_mismatchedLength()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -502,12 +515,12 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 	
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			lbls.getConjunctionForPath(
-					Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),
+					Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),
 					Arrays.asList(new LabelRepresentation.CompositionOfFunctions[]{}));
 		}}, IllegalArgumentException.class,"mismatched length");
 	}
@@ -515,7 +528,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCreateConjunction_constructionIncomplete1()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -528,14 +541,14 @@ public class TestSmtLabelRepresentation {
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			lbls.getConjunctionForPath(
-					Arrays.asList(new Label[]{lbls.labelMapConstructionOfDataTraces.get("A"),lbls.labelMapConstructionOfDataTraces.get("B")}),null);
+					Arrays.asList(new SMTLabel[]{lbls.labelMapConstructionOfDataTraces.get("A"),lbls.labelMapConstructionOfDataTraces.get("B")}),null);
 		}}, IllegalArgumentException.class,"construction incomplete");
 	}
 		
 	@Test
 	public void testCreateConjunction1()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N+"",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N+"",
@@ -544,9 +557,9 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N+"",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M+"",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N+""}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
-				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+				Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -578,7 +591,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState1()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond"+_N,
@@ -586,7 +599,7 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		AbstractState state = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("P"),config),0);
 		Assert.assertEquals("varDecl"+__P+"0",state.variableDeclarations);
 		Assert.assertEquals(LabelRepresentation.commentForInit+ENDL+"initCond"+__P+"0",state.abstractState);
@@ -599,11 +612,11 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState2()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		List<String> decls = new LinkedList<String>();decls.addAll(declsForTestsOfAbstractStates);
 		decls.add(QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M);
 		lbls.parseCollection(decls);
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		int number0 = 10,number1=15,number2=20;
 		AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),number0);
 		AbstractState stateAfterA = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,lbls.labelMapFinal.get("A"),null,number1);
@@ -630,9 +643,9 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState3()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(declsForTestsOfAbstractStates);
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		int number0 = 10,number1=15,number2=20;
 		AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),number0);
 		AbstractState stateAfterA = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("IO1").post,number1);
@@ -661,9 +674,9 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState_fail1()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(declsForTestsOfAbstractStates);
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),null,lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("IO1").post,7);
@@ -674,9 +687,9 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState_fail2()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(declsForTestsOfAbstractStates);
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
@@ -688,9 +701,9 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateAbstractState_fail3()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(declsForTestsOfAbstractStates);
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
@@ -700,16 +713,16 @@ public class TestSmtLabelRepresentation {
 	
 	private LabelRepresentation testCreateConjunction2_internal()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA"+_M,
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
-				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+				Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -741,7 +754,7 @@ public class TestSmtLabelRepresentation {
 	{
 		LabelRepresentation lbls = testCreateConjunction2_internal();
 		Pair<String,String> state = lbls.getConjunctionForPath(
-				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
+				Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),null);
 		int number = 7;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
 				"varDeclP"+__P+(number+1)+" varDeclQ"+__P+(number+1)+ENDL+
@@ -762,7 +775,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateConjunction4()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -772,9 +785,9 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"IO1"+" "+LabelRepresentation.OP_DATA.POST+ " m"+_N+"=m"+_M, // this postcondition is what I'll use as an IO			
 			QSMTool.cmdOperation+" "+"IO2"+" "+LabelRepresentation.OP_DATA.POST+ " m"+_N+"=-m"+_M // this postcondition is what I'll use as an IO			
 			}));
-		lbls.buildVertexToAbstractStateMap(new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"), Configuration.getDefaultConfiguration()),null,true);
+		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", Configuration.getDefaultConfiguration()),null,true);
 		Pair<String,String> state = lbls.getConjunctionForPath(
-				Arrays.asList(new Label[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),
+				Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("A"),lbls.labelMapFinal.get("B")}),
 				Arrays.asList(new LabelRepresentation.CompositionOfFunctions[]{lbls.labelMapFinal.get("IO1").post,lbls.labelMapFinal.get("IO2").post}));
 		int number = 4;
 		Assert.assertEquals("varDeclP"+__P+(number+0)+" varDeclQ"+__P+(number+0)+ENDL+
@@ -800,7 +813,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testCheckConsistency_constructionIncomplete()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -822,7 +835,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testDataTracesToAbstractStates_fail()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " define varDecl"+_N+"",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " decl"+_N,
@@ -830,7 +843,7 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondA)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " (somePrecondB)",
 			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
-		final LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1"),Configuration.getDefaultConfiguration());
+		final LearnerGraph graph = buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1",Configuration.getDefaultConfiguration());
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.addAbstractStatesFromTraces(graph);
@@ -845,7 +858,18 @@ public class TestSmtLabelRepresentation {
 	public static class TestChecksInTwoContexts
 	{
 		Configuration config = null;
-		final boolean lowLevel;
+
+		/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+		 * because all of them start from a default one and do not modify label type.
+		 * 
+		 * @param labels what to convert
+		 * @return the outcome of conversion.
+		 */
+		protected List<statechum.Label> labelList(String [] labels)
+		{
+			return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+		}
+				final boolean lowLevel;
 		
 		public TestChecksInTwoContexts(Boolean useLowLevel)
 		{
@@ -876,14 +900,14 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testUpdateScore()
 		{
-			final LabelRepresentation lbls = new LabelRepresentation();lbls.usingLowLevelFunctions = lowLevel;
+			final LabelRepresentation lbls = new LabelRepresentation(config);lbls.usingLowLevelFunctions = lowLevel;
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-			LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
+			LearnerGraph graph = buildLearnerGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore", config);
 			lbls.buildVertexToAbstractStateMap(graph,null,true);
 			
 			config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
@@ -903,7 +927,7 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testAugmentCheck1()
 		{
-			final LabelRepresentation lbls = new LabelRepresentation();lbls.usingLowLevelFunctions = lowLevel;
+			final LabelRepresentation lbls = new LabelRepresentation(config);lbls.usingLowLevelFunctions = lowLevel;
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (and (= m"+_N+" 0) (= m"+_N+" 1))",
@@ -926,7 +950,7 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testAugmentCheck2()
 		{
-			final LabelRepresentation lbls = new LabelRepresentation();lbls.usingLowLevelFunctions = lowLevel;
+			final LabelRepresentation lbls = new LabelRepresentation(config);lbls.usingLowLevelFunctions = lowLevel;
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -952,7 +976,7 @@ public class TestSmtLabelRepresentation {
 			final LabelRepresentation lbls = simpleLabel();
 			final LearnerGraph graph = new LearnerGraph(config);
 	
-			final List<String> sequence = Arrays.asList(new String[]{"remove"});
+			final List<statechum.Label> sequence = labelList(new String[]{"remove"});
 			graph.paths.augmentPTA(sequence,false, false, null);
 			
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -962,7 +986,7 @@ public class TestSmtLabelRepresentation {
 		
 		LabelRepresentation simpleLabel()
 		{
-			final LabelRepresentation lbls = new LabelRepresentation();lbls.usingLowLevelFunctions = lowLevel;
+			final LabelRepresentation lbls = new LabelRepresentation(config);lbls.usingLowLevelFunctions = lowLevel;
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -979,7 +1003,7 @@ public class TestSmtLabelRepresentation {
 			final LabelRepresentation lbls = simpleLabel();
 			final LearnerGraph graph = new LearnerGraph(config);
 			
-			final List<String> sequence = Arrays.asList(new String[]{"remove"});
+			final List<statechum.Label> sequence = labelList(new String[]{"remove"});
 			graph.paths.augmentPTA(sequence,true, false, null);
 			
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -993,7 +1017,7 @@ public class TestSmtLabelRepresentation {
 		{
 			final LabelRepresentation lbls = simpleLabel();
 			final LearnerGraph graph = new LearnerGraph(config);
-			final List<String> sequence = Arrays.asList(new String[]{"add","remove","remove"});
+			final List<statechum.Label> sequence = labelList(new String[]{"add","remove","remove"});
 			graph.paths.augmentPTA(sequence,false, false, null);
 			
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1008,7 +1032,7 @@ public class TestSmtLabelRepresentation {
 			final LabelRepresentation lbls = simpleLabel();
 			final LearnerGraph graph = new LearnerGraph(config);
 	
-			final List<String> sequence = Arrays.asList(new String[]{"add","remove","remove"});
+			final List<statechum.Label> sequence = labelList(new String[]{"add","remove","remove"});
 			graph.paths.augmentPTA(sequence,true, false, null);
 	
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1023,7 +1047,7 @@ public class TestSmtLabelRepresentation {
 			final LabelRepresentation lbls = simpleLabel();
 			final LearnerGraph graph = new LearnerGraph(config);
 	
-			final List<String> sequence = Arrays.asList(new String[]{"add","remove","add"});
+			final List<statechum.Label> sequence = labelList(new String[]{"add","remove","add"});
 			graph.paths.augmentPTA(sequence,true, false, null);
 	
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1035,14 +1059,14 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testCheck8()
 		{
-			LabelRepresentation lbls = new LabelRepresentation();
+			LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-			LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore"), config);
+			LearnerGraph graph = buildLearnerGraph("A-add->B-add->C-add->D\nB-remove->E-add->F","testUpdateScore", config);
 			lbls.buildVertexToAbstractStateMap(graph,null,true);
 			
 			config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
@@ -1053,14 +1077,14 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testCheck9()
 		{
-			final LabelRepresentation lbls = new LabelRepresentation();
+			final LabelRepresentation lbls = new LabelRepresentation(config);
 			lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 				QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 				QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-			LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2"), config);
+			LearnerGraph graph = buildLearnerGraph("A-add->B\nA-remove->S","testAbstractStateSatisfiability2", config);
 			lbls.buildVertexToAbstractStateMap(graph,null,true);
 			
 			config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.ALLABSTRACTSTATESEXIST);
@@ -1074,7 +1098,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateIDToStateMap2()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -1083,7 +1107,7 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
 			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
 			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a->D\nB-b->E", "testCreateIDToStateMap2"),config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D\nB-b->E", "testCreateIDToStateMap2",config);
 		lbls.buildVertexToAbstractStateMap(graph, null,true);
 
 		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
@@ -1148,7 +1172,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCreateIDToStateMap3()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP"+_N,
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ"+_N,
@@ -1157,7 +1181,7 @@ public class TestSmtLabelRepresentation {
 			QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA"+_N,
 			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_M,
 			QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D\nB-b->E", "testCreateIDToStateMap2"),config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a-#D\nB-b->E", "testCreateIDToStateMap2",config);
 		lbls.buildVertexToAbstractStateMap(graph, null,true);
 
 		//for(Entry<VertexID,AbstractState> entry:lbls.idToState.entrySet())
@@ -1207,27 +1231,27 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public void testSolvingConstraints()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B-remove->C-remove-#D\nB-add->E", "testSolvingConstraints"),config);
+		LearnerGraph graph = buildLearnerGraph("A-add->B-remove->C-remove-#D\nB-add->E", "testSolvingConstraints",config);
 		lbls.buildVertexToAbstractStateMap(graph, null,true);
 
 		Pair<String,String> state = null;
-		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("remove")}),null);
+		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("remove")}),null);
 		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{}),null);
+		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{}),null);
 		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove")}),null);
+		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove")}),null);
 		Assert.assertTrue(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 
-		state = lbls.getConjunctionForPath(Arrays.asList(new Label[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove"),lbls.labelMapFinal.get("remove")}),null);
+		state = lbls.getConjunctionForPath(Arrays.asList(new SMTLabel[]{lbls.labelMapFinal.get("add"),lbls.labelMapFinal.get("remove"),lbls.labelMapFinal.get("remove")}),null);
 		Assert.assertFalse(lbls.checkSatisfiability(state.firstElem, state.secondElem));
 	}
 	
@@ -1242,39 +1266,39 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testCheckWithEndUser()
 	{
-		LabelRepresentation lbls = new LabelRepresentation();
+		LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B","testUpdateScore"), config);
+		LearnerGraph graph = buildLearnerGraph("A-add->B","testUpdateScore", config);
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{})));
-		Assert.assertEquals(0,lbls.CheckWithEndUser(Arrays.asList(new String[]{"remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove"})));
-		Assert.assertEquals(2,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove","remove"})));
-		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(Arrays.asList(new String[]{"add","remove","add","add"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(labelList(new String[]{})));
+		Assert.assertEquals(0,lbls.CheckWithEndUser(labelList(new String[]{"remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(labelList(new String[]{"add"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(labelList(new String[]{"add","remove"})));
+		Assert.assertEquals(2,lbls.CheckWithEndUser(labelList(new String[]{"add","remove","remove"})));
+		Assert.assertEquals(AbstractOracle.USER_ACCEPTED,lbls.CheckWithEndUser(labelList(new String[]{"add","remove","add","add"})));
 	}
 	
 	@Test
 	public final void testCheckWithEndUser_fail()
 	{
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
 			QSMTool.cmdOperation+" "+"add"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.PRE+ " (> m"+_N+" 0)",
 			QSMTool.cmdOperation+" "+"remove"+" "+LabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))"}));
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-add->B","testUpdateScore"), config);
+		LearnerGraph graph = buildLearnerGraph("A-add->B","testUpdateScore", config);
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.CheckWithEndUser(Arrays.asList(new String[]{"aa"}));
+			lbls.CheckWithEndUser(labelList(new String[]{"aa"}));
 		}},IllegalArgumentException.class,"unknown label");
 	}
 
@@ -1285,6 +1309,17 @@ public class TestSmtLabelRepresentation {
 	{
 		LabelRepresentation lbls;
 		LearnerGraph graph;
+		
+		/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+		 * because all of them start from a default one and do not modify label type.
+		 * 
+		 * @param labels what to convert
+		 * @return the outcome of conversion.
+		 */
+		protected List<statechum.Label> labelList(String [] labels)
+		{
+			return AbstractLearnerGraph.buildList(Arrays.asList(labels),graph.config);
+		}
 		
 		public final String __P = LabelRepresentation.delimiterString,__N = LabelRepresentation.delimiterString+"-";
 
@@ -1308,10 +1343,11 @@ public class TestSmtLabelRepresentation {
 		@Before
 		public final void beforeTest()
 		{
-			lbls = new LabelRepresentation();
+			Configuration cnf = Configuration.getDefaultConfiguration();
+			lbls = new LabelRepresentation(cnf);
 			lbls.parseCollection(sampleSpecification);
 			
-			graph = new LearnerGraph(Configuration.getDefaultConfiguration());
+			graph = new LearnerGraph(cnf);
 			graph.paths.augmentPTA(lbls.getSPlus(), true, false);
 			graph.paths.augmentPTA(lbls.getSMinus(), false, false);
 			
@@ -1326,9 +1362,9 @@ public class TestSmtLabelRepresentation {
 		public final void testDataTracesToAbstractStates1()
 		{
 			
-			Map<CmpVertex,LinkedList<String>> paths = graph.pathroutines.computeShortPathsToAllStates();
+			Map<CmpVertex,LinkedList<statechum.Label>> paths = graph.pathroutines.computeShortPathsToAllStates();
 			CmpVertex vertexWithTwoAbstractStates = null;
-			for(Entry<CmpVertex,LinkedList<String>> entry:paths.entrySet())
+			for(Entry<CmpVertex,LinkedList<statechum.Label>> entry:paths.entrySet())
 			{
 				Collection<AbstractState> abstractStates = graph.getVertexToAbstractState().get(entry.getKey());//graph.findVertex(VertexID.parseID(stateName)));
 				Assert.assertEquals(entry.getValue().size() == 1?2:1,abstractStates.size());
@@ -1385,7 +1421,9 @@ public class TestSmtLabelRepresentation {
 			// I cannot use AugmentPTA to add a new state because it will flush the cache.
 			CmpVertex newState = AbstractLearnerGraph.generateNewCmpVertex(graph.nextID(false), graph.config);
 			graph.transitionMatrix.put(newState, graph.createNewRow());
-			graph.addTransition(graph.transitionMatrix.get(graph.paths.getVertex(Arrays.asList(new String[]{"add","remove"}))), "remove", newState);
+			graph.addTransition(graph.transitionMatrix.get(
+					graph.paths.getVertex(labelList(new String[]{"add","remove"}))), 
+					AbstractLearnerGraph.generateNewLabel("remove",graph.config), newState);
 			Assert.assertEquals(origVertices.size()+1,graph.getStateNumber());
 			
 			lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1402,7 +1440,7 @@ public class TestSmtLabelRepresentation {
 		@Test
 		public final void testBuildVertexToAbstractStateMapConsistency_fail1()
 		{
-			graph.getVertexToAbstractState().get(graph.paths.getVertex(Arrays.asList("add","remove"))).addAll(
+			graph.getVertexToAbstractState().get(graph.paths.getVertex(labelList(new String[]{"add","remove"}))).addAll(
 					graph.getVertexToAbstractState().get(graph.getInit()));
 			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				lbls.buildVertexToAbstractStateMap(graph, null,true);
@@ -1461,7 +1499,7 @@ public class TestSmtLabelRepresentation {
 	@Test
 	public final void testAssociationsOfArgsToValues()
 	{		
-		final LabelRepresentation lbls = new LabelRepresentation();
+		final LabelRepresentation lbls = new LabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " ( define a"+_N+"::nat )",

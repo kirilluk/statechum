@@ -24,6 +24,7 @@ import java.io.*;
 import java.util.*;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.apps.QSMTool;
@@ -203,7 +204,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 		}
 		else if(e.getActionCommand().equals(buttonInferMachine)){
 			SAXParserFactory factory = SAXParserFactory.newInstance();
-			HashSet<List<String>> sPlus = new HashSet<List<String>>();
+			HashSet<List<Label>> sPlus = new HashSet<List<Label>>();
 			try{
 				if(filesToHandlers == null){
 					JOptionPane.showMessageDialog(this, "No traces loaded");
@@ -213,14 +214,14 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 				for(int i=0;i<files.length;i++){
 					SAXParser parser = factory.newSAXParser();
 					
-					SequenceHandler stackHandler = new ExtendedSequenceHandler(namesToMethods, filesToHandlers.get(files[i]));
+					SequenceHandler stackHandler = new ExtendedSequenceHandler(namesToMethods, filesToHandlers.get(files[i]),config);
 					parser.parse((File)files[i], stackHandler);
 					System.out.println(stackHandler.getFunctionString(3));
 					sPlus.add(stackHandler.getArrayListFunctionString(3));
 				}
 				
 				QSMTool.setSimpleConfiguration(config, true,0);
-				new PickNegativesVisualiser(split).construct(sPlus, new HashSet<List<String>>(),new LearnerEvaluationConfiguration(null,null,config,null,null));
+				new PickNegativesVisualiser(split).construct(sPlus, new HashSet<List<Label>>(),new LearnerEvaluationConfiguration(null,null,config,null,null));
 			}
 			catch(Exception ex){
 				ex.printStackTrace();
@@ -236,7 +237,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 			for(int i=0;i<files.length;i++){
 				SAXParser parser = factory.newSAXParser();
 				
-				StackHandler stackHandler = new StackHandler(namesToMethods, filesToHandlers.get(files[i]));
+				StackHandler stackHandler = new StackHandler(namesToMethods, filesToHandlers.get(files[i]),config);
 				parser.parse((File)files[i], stackHandler);
 				System.out.println(stackHandler.getFunctionString(3));
 				sPlus.add(stackHandler.getArrayListFunctionString(3));

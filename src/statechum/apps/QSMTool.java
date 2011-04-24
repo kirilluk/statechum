@@ -164,29 +164,15 @@ public class QSMTool {
         return arg.startsWith(cmd);
     }
 
-	/** Turns a sequence of strings into a sequence of labels. */
-	public static List<Label> buildList(String [] data,Configuration config)
-	{
-		List<Label> result = new LinkedList<Label>();for(String s:data) result.add(AbstractLearnerGraph.generateNewLabel(s,config));
-		return result;
-	}	
-	
-	/** Turns a sequence of strings into a sequence of labels. */
-	public static List<Label> buildList(List<String> data,Configuration config)
-	{
-		List<Label> result = new LinkedList<Label>();for(String s:data) result.add(AbstractLearnerGraph.generateNewLabel(s,config));
-		return result;
-	}	
-	
     public void process(String lineOfText) {
         String fileString = lineOfText.trim();
         if (fileString.length() == 0) {
             return;// ignore empty lines.
         }
         if (isCmdWithArgs(fileString, cmdPositive)) {
-            sPlus.add(buildList(tokeniseInput(fileString.substring(cmdPositive.length() + 1)),learnerInitConfiguration.config));
+            sPlus.add(AbstractLearnerGraph.parseTrace(fileString.substring(cmdPositive.length() + 1),learnerInitConfiguration.config));
         } else if (isCmdWithArgs(fileString, cmdNegative)) {
-            sMinus.add(buildList(tokeniseInput(fileString.substring(cmdNegative.length() + 1)),learnerInitConfiguration.config));
+            sMinus.add(AbstractLearnerGraph.parseTrace(fileString.substring(cmdNegative.length() + 1),learnerInitConfiguration.config));
         } else if (isCmdWithArgs(fileString, cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON)) {
             if (learnerInitConfiguration.ifthenSequences == null) {
                 learnerInitConfiguration.ifthenSequences = new TreeSet<String>();
@@ -213,7 +199,7 @@ public class QSMTool {
             showLTL = true;
         } else if (fileString.startsWith(cmdOperation) || fileString.startsWith(cmdDataTrace) || fileString.startsWith(cmdLowLevelFunction)) {
             if (learnerInitConfiguration.labelDetails == null) {
-                learnerInitConfiguration.labelDetails = new LabelRepresentation();
+                learnerInitConfiguration.labelDetails = new LabelRepresentation(learnerInitConfiguration.config);
                 dataDescription = new LinkedList<String>();
             }
             dataDescription.add(fileString.trim());

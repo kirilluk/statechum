@@ -9,6 +9,7 @@ import javax.management.Notification;
 import javax.management.NotificationBroadcasterSupport;
 import javax.management.ObjectName;
 
+/** Integration into JConsole to show test progress for really long-running GD-tests. */
 public class TestDiagnostics extends NotificationBroadcasterSupport implements TestDiagnosticsMBean 
 {
 	private String currentStatus;

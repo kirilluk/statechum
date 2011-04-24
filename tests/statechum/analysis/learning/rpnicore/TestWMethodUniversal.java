@@ -17,6 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import statechum.Configuration;
 import statechum.Helper;
+import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Helper.whatToRun;
@@ -90,7 +92,7 @@ public class TestWMethodUniversal
 
 	public void testWsetconstruction(String machine, boolean equivalentExpected, boolean reductionExpected)
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph(machine,"testWset"),config);
+		LearnerGraph fsm = buildLearnerGraph(machine,"testWset",config);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,equivalentExpected,reductionExpected,prefixClosed);
 	}
 	
@@ -117,7 +119,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset4()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->A","testWset4"),config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->A","testWset4",config);
 		Assert.assertTrue(WMethod.computeWSet_reducedmemory(fsm).isEmpty());
 	}
 
@@ -214,7 +216,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles1()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1"),config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B-b->C-b->C-c->D","testWset_incompatibles1",config);
 		fsm.addToCompatibility(fsm.findVertex("A"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,false,false,prefixClosed);
 	}
@@ -223,7 +225,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles2()
 	{
-		LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2"),config);
+		LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D-d->A / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2-d->A","testWset_incompatibles2",config);
 		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("C"), fsm.findVertex("B2"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		fsm.addToCompatibility(fsm.findVertex("C2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -239,7 +241,7 @@ public class TestWMethodUniversal
 	@Test
 	public final void testWset_incompatibles_fail1()
 	{
-		final LearnerGraph fsm = new LearnerGraph(buildGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2"),config);
+		final LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2",config);
 		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
 		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
@@ -248,9 +250,9 @@ public class TestWMethodUniversal
 	
 	public class EmptyPermutator implements FsmPermutator {
 		@Override 
-		public ArrayList<Pair<CmpVertex, String>> getPermutation(
-				Collection<Pair<CmpVertex, String>> from) {
-			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());
+		public ArrayList<Pair<CmpVertex, Label>> getPermutation(
+				Collection<Pair<CmpVertex, Label>> from) {
+			ArrayList<Pair<CmpVertex, Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
 			result.addAll(from);
 			return result;
 		}
@@ -265,15 +267,15 @@ public class TestWMethodUniversal
 		}
 		/** Returns an array representing an order in which elements of an FSM should be placed in a string. */
 		@Override 
-		public ArrayList<Pair<CmpVertex, String>> getPermutation(
-				Collection<Pair<CmpVertex, String>> from) {
-			ArrayList<Pair<CmpVertex, String>> result = new ArrayList<Pair<CmpVertex,String>>(from.size());
+		public ArrayList<Pair<CmpVertex, Label>> getPermutation(
+				Collection<Pair<CmpVertex, Label>> from) {
+			ArrayList<Pair<CmpVertex, Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
 			result.addAll(from);
 			
 			for(int i=0;i< from.size();++i)
 			{
 				int first = rnd.nextInt(from.size()), second = rnd.nextInt(from.size());
-				Pair<CmpVertex, String> firstObj = result.get(first);result.set(first,result.get(second));result.set(second,firstObj);
+				Pair<CmpVertex, Label> firstObj = result.get(first);result.set(first,result.get(second));result.set(second,firstObj);
 			}
 			return result;
 		}
@@ -289,13 +291,13 @@ public class TestWMethodUniversal
 	 */
 	public void testWsetDeterministic(String machine, FsmPermutator perm, String testName)
 	{
-		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName);
+		DirectedSparseGraph g = buildGraph(machine,"testDeterminism_"+testName,config);
 		LearnerGraph fsm = new LearnerGraph(g,config);//visFrame.update(null, g);
-		Set<List<String>> origWset = new HashSet<List<String>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+		Set<List<Label>> origWset = new HashSet<List<Label>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
 		LearnerGraph permFsm = fsm.wmethod.Permute(perm);
 		Assert.assertNull(WMethod.checkM(fsm,permFsm));
 		
-		Set<List<String>> newWset = new HashSet<List<String>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
+		Set<List<Label>> newWset = new HashSet<List<Label>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
 		fsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);
 		fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);
 		permFsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);

@@ -106,8 +106,8 @@ public class TestVisualDemo {
 		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
 		String name = "testVisual5";
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nS-a-#T";
-		LearnerGraphND grA = new LearnerGraphND(FsmParser.buildGraph("A-a->E-s->E\nA-a->F-v->F\nU-a-#V\n"+common,name+"A"),config);
-		LearnerGraphND grB = new LearnerGraphND(FsmParser.buildGraph("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B"),config);
+		LearnerGraphND grA = FsmParser.buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\nU-a-#V\n"+common,name+"A",config);
+		LearnerGraphND grB = FsmParser.buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B",config);
 		LearnerGraphND grA_reduced = new LearnerGraphND(config), grB_reduced = new LearnerGraphND(config);
 		AbstractPathRoutines.removeRejectStates(grA, grA_reduced);
 		AbstractPathRoutines.removeRejectStates(grB, grB_reduced);

@@ -30,16 +30,17 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
-import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import static org.junit.Assert.assertEquals;
@@ -49,10 +50,23 @@ public class TestPTA_computePrecisionRecall {
 	/** The configuration to use in these tests. */
 	private Configuration config = Configuration.getDefaultConfiguration();
 	LearnerGraph fsm = null;
+
+	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+	 * because all of them start from a default one and do not modify label type.
+	 * 
+	 * @param labels what to convert
+	 * @return the outcome of conversion.
+	 */
+	protected List<Label> labelList(String [] labels)
+	{
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
+	}
+	
+
 	@Before
 	public final void setUp()
 	{
-		fsm = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->A-b-#C\nB-b->D-c->E\nD-a-#F", "testPrecisionRecall0"),config);
+		fsm = buildLearnerGraph("A-a->B-a->A-b-#C\nB-b->D-c->E\nD-a-#F", "testPrecisionRecall0",config);
 	}
 	
 	@Test
@@ -60,23 +74,23 @@ public class TestPTA_computePrecisionRecall {
 	{
 		PTASequenceEngine en = new PTA_FSMStructure(fsm,null);
 		SequenceSet seq = en.new SequenceSet();
-		seq.crossWithSet(Arrays.asList(new String[] {"a"})); // appending anything to an empty sequence produces an empty sequence.
+		seq.crossWithSet(labelList(new String[] {"a"})); // appending anything to an empty sequence produces an empty sequence.
 		TestPTASequenceEngine.vertifyPTA(en, 1, new String[][] {
 				new String[] {}
-		});
+		},fsm.config);
 	}
 	
 	@Test
 	public final void testPrecisionRecall1()
 	{
 		// this graph gives the labelling to the sequences I add to the set of sequences with partialPTA.cross below.
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("A-a->A-b-#B","testPrecisionRecall1"),config);
+		LearnerGraph mach = buildLearnerGraph("A-a->A-b-#B","testPrecisionRecall1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a"}, // + 
 				new String[]{"b"}			// -
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",1, precComputer.resultTN);assertEquals("true positives",1, precComputer.resultTP);
@@ -88,14 +102,14 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall2a()
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("A-a->A-b-#B","testPrecisionRecall2a"),config);
+		LearnerGraph mach = buildLearnerGraph("A-a->A-b-#B","testPrecisionRecall2a",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a"},// + 
 				new String[]{"b"},      // -
 				new String[]{"a", "b"}  // -, FP
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",1, precComputer.resultTN);assertEquals("true positives",1, precComputer.resultTP);
@@ -108,15 +122,15 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall2b()
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("A-a->A-b-#B","testPrecisionRecall2b"),config);
+		LearnerGraph mach = buildLearnerGraph("A-a->A-b-#B","testPrecisionRecall2b",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a"}, // + 
 				new String[]{"b"}, // -
 				new String[]{"a", "b"} // -, FP
-			}));
-		fsm = new LearnerGraph(FsmParser.buildGraph("Q-a->Q / A-a->B-a->A-b-#C\nB-b->D-c->E\nD-a-#F", "testPrecisionRecall2b"),config);
+			},config));
+		fsm = buildLearnerGraph("Q-a->Q / A-a->B-a->A-b-#C\nB-b->D-c->E\nD-a-#F", "testPrecisionRecall2b",config);
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm,fsm.findVertex(VertexID.parseID("A")));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",1, precComputer.resultTN);assertEquals("true positives",1, precComputer.resultTP);
@@ -128,14 +142,14 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall3()
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("A-a->A-b-#B","testPrecisionRecall3"),config);
+		LearnerGraph mach = buildLearnerGraph("A-a->A-b-#B","testPrecisionRecall3",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","a","b"}, // - 
 				new String[]{"b"}, // -
 				new String[]{"a", "b"} //, FP
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",2, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -147,7 +161,7 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall4()
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->BM-a->AM\nBM-b->CM-a->DM","testPrecisionRecall4"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->BM-a->AM\nBM-b->CM-a->DM","testPrecisionRecall4",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
@@ -155,7 +169,7 @@ public class TestPTA_computePrecisionRecall {
 				new String[]{"b"}, // -
 				new String[]{"a", "b", "c"}, // -, FP 
 				new String[]{"a", "b", "a"} // +, FN
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",2, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -168,12 +182,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall5a()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall5"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall5",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b","a"}, // +, FN
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -186,12 +200,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall5b()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall5"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall5",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","a","b"}, // +, FN
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -204,12 +218,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall6()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b","a","c"}, // +, FN
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -222,14 +236,14 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall7()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b","a","d"}, // -
 				new String[] {"a","a","a","b","a","e","f"}, // -
 				new String[] {"a","a","a","b","a","c","c","c"}, // +, FN
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",2, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
@@ -242,14 +256,14 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall8()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall6",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","a","a","b","c"}, // +
 				new String[] {"a","b"}, // +
 				new String[] {"a","a","a","b","c"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",3, precComputer.resultTP);
@@ -262,12 +276,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign1()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -275,7 +289,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c"}, // +, FN
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
 		assertEquals("false negatives",1, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -287,12 +301,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign2()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -300,7 +314,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c"}, // +, FN
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
 		assertEquals("false negatives",0, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -312,12 +326,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign3()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c","c","c"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 
@@ -325,7 +339,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c"}, // +, FN
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
 		assertEquals("false negatives",1, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -337,12 +351,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign4()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -350,7 +364,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","b","b","c","c"}, // +, FN
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
 		assertEquals("false negatives",1, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -362,12 +376,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign5()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -375,7 +389,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b"}, // +
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",1, precComputer.resultTP);
 		assertEquals("false negatives",0, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -387,12 +401,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign6()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -400,7 +414,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a"}, // +
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",1, precComputer.resultTP);
 		assertEquals("false negatives",0, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -412,12 +426,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign7()  
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->AM-b->AM-c->AM","testPrecisionRecall_ign1",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b"}, // +
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		
@@ -425,7 +439,7 @@ public class TestPTA_computePrecisionRecall {
 		partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","b"}, // +
-			}));
+			},config));
 		precComputer.crossWith(engine);
 		assertEquals("true negatives",0, precComputer.resultTN);assertEquals("true positives",0, precComputer.resultTP);
 		assertEquals("false negatives",0, precComputer.resultFN);assertEquals("false positives",0, precComputer.resultFP);
@@ -436,12 +450,12 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testPrecisionRecall_ign8() // a complex structure, most of which gets ignored.
 	{
-		LearnerGraph mach = new LearnerGraph(FsmParser.buildGraph("AM-a->BM-a->AM\nBM-b->CM-a->DM","testPrecisionRecall_ign2"),config);
+		LearnerGraph mach = buildLearnerGraph("AM-a->BM-a->AM\nBM-b->CM-a->DM","testPrecisionRecall_ign2",config);
 		PTASequenceEngine engine = new PTA_FSMStructure(mach,null);
 		SequenceSet partialPTA = engine.new SequenceSet();partialPTA.setIdentity();
 		partialPTA = partialPTA.cross(TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a","a","a","b"}, new String[]{"b"}, new String[]{"a", "b", "c"}, new String[]{"a", "b", "a"}
-			}));
+			},config));
 		PTA_computePrecisionRecall precComputer = new PTA_computePrecisionRecall(fsm);
 		precComputer.crossWith(engine);
 		precComputer.crossWith(engine);
@@ -454,7 +468,7 @@ public class TestPTA_computePrecisionRecall {
 	/** Two-thread computation of precision/recall by going through all the sequences. */
 	private static final PosNegPrecisionRecall computePrecisionRecall(final LearnerGraph graph, final PTASequenceEngine sequences)
 	{
-		final Collection<List<String>> positiveRel = sequences.filter(sequences.getFSM_filterPredicate()).getData(),
+		final Collection<List<Label>> positiveRel = sequences.filter(sequences.getFSM_filterPredicate()).getData(),
 			negativeRel = sequences.getData(new FilterPredicate() {
 				FilterPredicate origFilter = sequences.getFSM_filterPredicate();
 				
@@ -466,14 +480,14 @@ public class TestPTA_computePrecisionRecall {
 		if (positiveRel.size() == 1 && positiveRel.iterator().next().size() == 0) positiveRel.clear();
 		if (negativeRel.size() == 1 && negativeRel.iterator().next().size() == 0) negativeRel.clear();
 
-		final List<List<String>> positiveRet = new LinkedList<List<String>>(), negativeRet = new LinkedList<List<String>>();
-		for(List<String> pos:positiveRel)
+		final List<List<Label>> positiveRet = new LinkedList<List<Label>>(), negativeRet = new LinkedList<List<Label>>();
+		for(List<Label> pos:positiveRel)
 			if (graph.paths.tracePath(pos, true) == AbstractOracle.USER_ACCEPTED)
 				positiveRet.add(pos);
 			else
 				negativeRet.add(pos);
 		
-		for(List<String> neg:negativeRel)
+		for(List<Label> neg:negativeRel)
 			if (graph.paths.tracePath(neg, true) == AbstractOracle.USER_ACCEPTED)
 				positiveRet.add(neg);
 			else
@@ -504,13 +518,13 @@ public class TestPTA_computePrecisionRecall {
 	@Test
 	public final void testCheckPrecisionRecallBruteForce()
 	{
-		LearnerGraph graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-c->A / B-b->C-b->B-a-#X / B-c->A / C-a->C","testCheckPrecisionRecallBruteForce_subject"),config);
+		LearnerGraph graph = buildLearnerGraph("A-a->B-c->A / B-b->C-b->B-a-#X / B-c->A / C-a->C","testCheckPrecisionRecallBruteForce_subject",config);
 
 		// First, sequences are generated
 		
-		PTASequenceEngine sequences = new PTA_FSMStructureAccept(new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-b->B-a-#X / B-c->C-c->C-a-#X / C-b->D-a->D-c->D","testCheckPrecisionRecallBruteForce_reference"),config));
+		PTASequenceEngine sequences = new PTA_FSMStructureAccept(buildLearnerGraph("A-a->A-b->B-b->B-a-#X / B-c->C-c->C-a-#X / C-b->D-a->D-c->D","testCheckPrecisionRecallBruteForce_reference",config));
 		PTASequenceEngine.SequenceSet initSet = sequences.new SequenceSet();initSet.setIdentity();
-		Set<String> alphabet = graph.pathroutines.computeAlphabet();
+		Set<Label> alphabet = graph.pathroutines.computeAlphabet();
 		for(int i=0;i < 12;++i)
 			initSet = initSet.crossWithSet(alphabet);
 		

@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Label;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
@@ -95,7 +96,7 @@ public class TestAutoAnswers {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -108,20 +109,20 @@ public class TestAutoAnswers {
 		AutoAnswers ans = new AutoAnswers(learner);
 		ans.loadAnswers(new StringReader(
 				partA+partB+partC
-		));
+		),testConfig);
 		ans.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }}),
+				new String[] { "c","a","a","a","a","b","p" }},testConfig),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			}));
+			},testConfig));
 	}	
 	
 	@Test
@@ -134,14 +135,14 @@ public class TestAutoAnswers {
 		final AutoAnswers semiUser = new AutoAnswers(null);
 		semiUser.loadAnswers(new StringReader(
 				partA
-		));
+		),testConfig);
 		
 		RPNILearner learner = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
 		{
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -155,20 +156,20 @@ public class TestAutoAnswers {
 		AutoAnswers ans = new AutoAnswers(learner);
 		ans.loadAnswers(new StringReader(
 				partB+partC
-		));
+		),testConfig);
 		ans.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }}),
+				new String[] { "c","a","a","a","a","b","p" }},testConfig),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			}));
+			},testConfig));
 	}
 	
 	@Test
@@ -183,7 +184,7 @@ public class TestAutoAnswers {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused")	List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -196,24 +197,24 @@ public class TestAutoAnswers {
 		AutoAnswers ans1 = new AutoAnswers(learner);
 		ans1.loadAnswers(new StringReader(
 				partA+partC
-		));
+		),testConfig);
 		AutoAnswers ans2 = new AutoAnswers(ans1);
 		ans2.loadAnswers(new StringReader(
 				partB
-		));
+		),testConfig);
 		ans2.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }}),
+				new String[] { "c","a","a","a","a","b","p" }},testConfig),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			}));
+			},testConfig));
 	}
 	
 	@Test
@@ -228,7 +229,7 @@ public class TestAutoAnswers {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused")	List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -270,20 +271,20 @@ public class TestAutoAnswers {
 				RPNILearner.QUESTION_USER+" [e, c, a, a, b, p, e] <yes>\n"+
 				RPNILearner.QUESTION_USER+" [e, c, a, a, a, a, b, p] <yes>\n"+
 				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"
-		));
+		),testConfig);
 		ans2.learnMachine(
 			buildSet(new String[][]{
 				new String[] { "c","b","p","e","e" },
 				new String[] { "c","a","a","b","p", "e" },
 				new String[] { "c","a","e","c" },
-				new String[] { "c","a","a","a","a","b","p" }}),
+				new String[] { "c","a","a","a","a","b","p" }},testConfig),
 			buildSet(new String[][]{
 				new String[] { "c", "a", "a", "b", "p", "a" },
 				new String[] { "c", "b", "p", "a" },
 				new String[] { "c", "c" },
 				new String[] { "b" },
 				new String[] { "a" }
-			}));
+			},testConfig));
 	}
 	
 	@Test
@@ -298,7 +299,7 @@ public class TestAutoAnswers {
 			@Override
 			public Pair<Integer,String> CheckWithEndUser(
 					@SuppressWarnings("unused")	LearnerGraph model,
-					@SuppressWarnings("unused")	List<String> question, @SuppressWarnings("unused") int responseForNoRestart,
+					@SuppressWarnings("unused")	List<Label> question, @SuppressWarnings("unused") int responseForNoRestart,
 					@SuppressWarnings("unused") List<Boolean> acceptedElements,
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
@@ -314,20 +315,20 @@ public class TestAutoAnswers {
 				RPNILearner.QUESTION_USER+" [c, b, a, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
 				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" - c b a / - p / + c b e e / - c b p p / + e e // - c b e a / - c b e p  / - e a / + e e e / - e e p / - e e a / - e e b / - e p / - e b / - e c c / - e c b a // + e c a e c \n"+
 				RPNILearner.QUESTION_USER+" [e, c, b, e, a] "+RPNILearner.QUESTION_NEWTRACE+" - e c b e a / + e c b e e / - e c b e p / - e c b p a / - e c b p p / + e c b p e e / - e c a a b p a / + e c a a b p e / + e c a a a a b p \n"
-		));
+		),testConfig);
 		ans2.learnMachine(
 				buildSet(new String[][]{
 					new String[] { "c","b","p","e","e" },
 					new String[] { "c","a","a","b","p", "e" },
 					new String[] { "c","a","e","c" },
-					new String[] { "c","a","a","a","a","b","p" }}),
+					new String[] { "c","a","a","a","a","b","p" }},testConfig),
 				buildSet(new String[][]{
 					new String[] { "c", "a", "a", "b", "p", "a" },
 					new String[] { "c", "b", "p", "a" },
 					new String[] { "c", "c" },
 					new String[] { "b" },
 					new String[] { "a" }
-				}));
+				},testConfig));
 		}
 
 }

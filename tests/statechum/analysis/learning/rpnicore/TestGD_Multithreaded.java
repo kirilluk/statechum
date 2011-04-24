@@ -18,7 +18,8 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -87,8 +88,8 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testInit()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.init(graphA, graphB, threadNumber,Configuration.getDefaultConfiguration());
@@ -103,8 +104,8 @@ public class TestGD_Multithreaded {
 	public final void testFindKeyPairs1()
 	{
 
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C","testFindKeyPairs1A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C","testFindKeyPairs1B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.init(graphA, graphB, threadNumber,Configuration.getDefaultConfiguration());
@@ -123,8 +124,8 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testFindKeyPairs2()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a->C-a->D-a->A","testFindKeyPairs2A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B-a->@C-a->@A","testFindKeyPairs2B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a->C-a->D-a->A","testFindKeyPairs2A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B-a->@C-a->@A","testFindKeyPairs2B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.init(graphA, graphB, threadNumber,Configuration.getDefaultConfiguration());
@@ -135,10 +136,10 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testMakeSteps1()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
+				"B-c->B-d->B","testMakeSteps1A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
+				"@B-c->@B-d->@B","testMakeSteps1B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(true);
@@ -159,10 +160,10 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testMakeSteps2()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
+				"B-c->B-d->B","testMakeSteps1A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
+				"@B-c->@B-d->@B","testMakeSteps1B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(false);
@@ -184,10 +185,10 @@ public class TestGD_Multithreaded {
 	@Test
 	public final void testMakeSteps3()
 	{
-		LearnerGraph graphA = new LearnerGraph(buildGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
-				"B-c->B-d->B","testMakeSteps1A"),Configuration.getDefaultConfiguration());
-		LearnerGraph graphB = new LearnerGraph(buildGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
-				"@B-c->@B-d->@B","testMakeSteps1B"),Configuration.getDefaultConfiguration());
+		LearnerGraph graphA = buildLearnerGraph("A-a->B-a-#C\nA-d-#D\nA-c->A\nB-b->E-a-#C\n"+
+				"B-c->B-d->B","testMakeSteps1A",Configuration.getDefaultConfiguration());
+		LearnerGraph graphB = buildLearnerGraph("@A-a->@B\n@A-d-#@D\n@A-c->@A\n@B-b->@E-a-#@C"+"\n@B-a->@F-b->@G-c-#@C\n"+
+				"@B-c->@B-d->@B","testMakeSteps1B",Configuration.getDefaultConfiguration());
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdPropagateDet(true);
@@ -243,8 +244,8 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = argConfig;
 		if (config == null) config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
+		LearnerGraph grA = buildLearnerGraph(graphA,name+"A",config);
+		LearnerGraph grB = buildLearnerGraph(graphB,name+"B",config);
 
 		grA.pathroutines.checkConsistency(grA);grB.pathroutines.checkConsistency(grB);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
@@ -256,7 +257,7 @@ public class TestGD_Multithreaded {
 		gd.makeSteps();gd.computeDifference(recorder);
 		//printListOfPairs(gd, allKeyPairs);
 		Assert.assertEquals(expectedMatchedPairs,gd.aTOb.size());
-		LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+		LearnerGraph graph = buildLearnerGraph(graphA,name+"A",config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -264,8 +265,8 @@ public class TestGD_Multithreaded {
 	private final void testNesting(String graphA,String graphB,String name, Configuration argConfig)
 	{
 		Configuration config = argConfig;if (config == null) config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
+		LearnerGraph grA = buildLearnerGraph(graphA,name+"A",config);
+		LearnerGraph grB = buildLearnerGraph(graphB,name+"B",config);
 
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		ChangesRecorder rec1 = 	new ChangesRecorder(null);
@@ -278,22 +279,22 @@ public class TestGD_Multithreaded {
 		ChangesDisplay  rec8 = new ChangesDisplay(rec7);
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>  rec9 = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,rec8);
 		{// compute GD and check that changes recorded by rec9 are correct.
-			LearnerGraph graph1 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			LearnerGraph graph1 = buildLearnerGraph(graphA,name+"A",config);
 			ChangesRecorder.applyGD(graph1, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(), rec9,Configuration.getDefaultConfiguration()));
 			Assert.assertNull(WMethod.checkM(graph1, grB));Assert.assertEquals(grB.getStateNumber(),graph1.getStateNumber());
 		}
 		{// check that changes propagated to rec7 are correct.
-			LearnerGraph graph2 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			LearnerGraph graph2 = buildLearnerGraph(graphA,name+"A",config);
 			ChangesRecorder.applyGD(graph2, rec7.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph2, grB));Assert.assertEquals(grB.getStateNumber(),graph2.getStateNumber());
 		}
 		{// check that changes propagated to rec4 are correct.
-			LearnerGraph graph3 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			LearnerGraph graph3 = buildLearnerGraph(graphA,name+"A",config);
 			ChangesRecorder.applyGD(graph3, rec4.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph3, grB));Assert.assertEquals(grB.getStateNumber(),graph3.getStateNumber());
 		}
 		{// check that changes propagated to rec1 are correct.
-			LearnerGraph graph4 = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			LearnerGraph graph4 = buildLearnerGraph(graphA,name+"A",config);
 			ChangesRecorder.applyGD(graph4, rec1.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph4, grB));Assert.assertEquals(grB.getStateNumber(),graph4.getStateNumber());
 		}
@@ -393,8 +394,8 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5a()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5a"),config));
+		LearnerGraph grA = buildLearnerGraph(A6,"testComputeGD5a",config);
+		LearnerGraph grB = convertToNumerical(buildLearnerGraph(A6,"testComputeGD5a",config));
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		//Visualiser.updateFrame(grA, grB);Visualiser.waitForKey();
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
@@ -468,7 +469,7 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
+		LearnerGraph grB = convertToNumerical(buildLearnerGraph(A6,"testComputeGD5b",config));
 		int transitionsCount = grB.pathroutines.countEdges();
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
@@ -483,7 +484,7 @@ public class TestGD_Multithreaded {
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);
 		LearnerGraph grA = new LearnerGraph(config);grA.getInit().setAccept(false);
-		LearnerGraph grB = convertToNumerical(new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config));
+		LearnerGraph grB = convertToNumerical(buildLearnerGraph(A6,"testComputeGD5b",config));
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
@@ -497,7 +498,7 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5e_AA()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
+		LearnerGraph grA = buildLearnerGraph(A6,"testComputeGD5b",config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));
 		int transitionsCount = grA.pathroutines.countEdges();
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
@@ -512,12 +513,12 @@ public class TestGD_Multithreaded {
 	public final void testComputeGD5e_RR()
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		LearnerGraph grA = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
+		LearnerGraph grA = buildLearnerGraph(A6,"testComputeGD5b",config);
 		LearnerGraph grB = convertToNumerical(new LearnerGraph(config));grB.getInit().setAccept(false);
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, recorder,config);
-		LearnerGraph graph = new LearnerGraph(buildGraph(A6,"testComputeGD5b"),config);
+		LearnerGraph graph = buildLearnerGraph(A6,"testComputeGD5b",config);
 		ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 		Assert.assertNull(WMethod.checkM(graph, grB));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
 	}
@@ -530,8 +531,8 @@ public class TestGD_Multithreaded {
 		testComputeGD(A, B, "testComputeGD6a", 9,null);
 /*		
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph(A,"testComputeGD6A"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(B,"testComputeGD6B"),config);
+		LearnerGraph grA = buildLearnerGraph(A,"testComputeGD6A",config);
+		LearnerGraph grB = buildLearnerGraph(B,"testComputeGD6B",config);
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 		ChangesDisplay recorder = new ChangesDisplay();
 		GD gd = new GD();//gd.computeGD(grA, grB, threadNumber, recorder);
@@ -619,8 +620,8 @@ public class TestGD_Multithreaded {
 			assert fourStrings.length == 4;
 			final String graphA = fourStrings[0], graphB = fourStrings[1],
 				otherA=fourStrings[2],otherB=fourStrings[3];
-			LearnerGraph grA = new LearnerGraph(buildGraph(graphA,name+"A"),config);
-			LearnerGraph grB = new LearnerGraph(buildGraph(graphB,name+"B"),config);
+			LearnerGraph grA = buildLearnerGraph(graphA,name+"A",config);
+			LearnerGraph grB = buildLearnerGraph(graphB,name+"B",config);
 	
 			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 			gd.init(grA, grB, threadNumber,config);
@@ -628,7 +629,7 @@ public class TestGD_Multithreaded {
 			ChangesRecorder recorder = new ChangesRecorder(null);
 			gd.makeSteps();gd.computeDifference(recorder);
 			Assert.assertEquals(expectedMatchedPairs,gd.aTOb.size());
-			LearnerGraph graph = new LearnerGraph(buildGraph(graphA,name+"A"),config);
+			LearnerGraph graph = buildLearnerGraph(graphA,name+"A",config);
 			ChangesRecorder.applyGD(graph, recorder.writeGD(TestGD.createDoc()));
 			Assert.assertNull(WMethod.checkM(graph, grB));
 			Assert.assertNull(WMethod.checkM(graph, graph.findVertex(otherA), grB, grB.findVertex(otherB),WMethod.VERTEX_COMPARISON_KIND.NONE));
@@ -697,8 +698,8 @@ public class TestGD_Multithreaded {
 /*		
 		String A="A4-a->B4-a->C4-a-#D4", B="A1-a->A1-b->B1-a->C1";
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph(A,"testComputeGD6A"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph(B,"testComputeGD6B"),config);
+		LearnerGraph grA = buildLearnerGraph(A,"testComputeGD6A",config);
+		LearnerGraph grB = buildLearnerGraph(B,"testComputeGD6B",config);
 		List<PairScore> allKeyPairs = new LinkedList<PairScore>();
 		ChangesDisplay recorder = new ChangesDisplay(null);
 		GD gd = new GD();//gd.computeGD(grA, grB, 1, recorder);
@@ -759,8 +760,8 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A"),config);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-s->G\nA-a->H-v->H\n"+common,name+"B"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A",config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-s->G\nA-a->H-v->H\n"+common,name+"B",config);
 		checkDiffBetweenND(grA, grB, 6,0,config);
 	}
 	
@@ -772,9 +773,9 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B",config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
 		
@@ -797,14 +798,14 @@ public class TestGD_Multithreaded {
 		final String name = "testComputeGD_ND2";
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		CmpVertex newStateA = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("testA"), config),
 			newStateB = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("testB"), config);
 		newStateA.setHighlight(true);newStateB.setDepth(45);
 		grA.transitionMatrix.put(newStateA,grA.createNewRow());grA.transitionMatrix.put(newStateB,grA.createNewRow());
 
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B",config);
 		CmpVertex newStateC = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(nameC), config),
 		newStateD = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(nameD), config);
 		newStateC.setColour(JUConstants.BLUE);newStateD.setOrigState(VertexID.parseID("P609"));
@@ -862,13 +863,13 @@ public class TestGD_Multithreaded {
 		config.setGdKeyPairThreshold(1);config.setGdLowToHighRatio(1);
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		CmpVertex newStateA = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("testA"), config);
 		newStateA.setHighlight(true);
 		grA.transitionMatrix.put(newStateA,grA.createNewRow());
 
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B",config);
 		CmpVertex newStateC = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(nameC), config);
 		DeterministicDirectedSparseGraph.copyVertexData(newStateA, newStateC);
 		grB.transitionMatrix.put(newStateC,grB.createNewRow());
@@ -937,10 +938,10 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B",config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
 		grB.addToCompatibility(grB.findVertex("B"), grB.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -965,13 +966,13 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nU-a->U-b->R";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		
 		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B",config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
 		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -994,12 +995,12 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nU-a->U-b->R";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("R"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B",config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
 		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1024,11 +1025,11 @@ public class TestGD_Multithreaded {
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		Configuration cloneConfig = config.copy();cloneConfig.setLearnerCloneGraph(true);
 		String common = "A-a->B-p->B\nA-a->C-q->C\nA-a->D-r->D\nU-a->U-b->R";
-		LearnerGraphND grA = new LearnerGraphND(buildGraph("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A"),config);
+		LearnerGraphND grA = buildLearnerGraphND("A-a->E-s->E\nA-a->F-v->F\nC-p->S\n"+common,name+"A",config);
 		grA.findVertex("F").setColour(JUConstants.RED);grA.findVertex("B").setColour(JUConstants.AMBER);grA.findVertex("B").setDepth(3);
 		grA.addToCompatibility(grA.findVertex("D"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		grA.addToCompatibility(grA.findVertex("U"), grA.findVertex("S"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		LearnerGraphND grB = new LearnerGraphND(buildGraph("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B"),config);
+		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\nC-q->T\n"+common,name+"B",config);
 		VertexID origID = VertexID.parseID("test orig");
 		grB.findVertex("B").setColour(JUConstants.GRAY);grB.findVertex("B").setOrigState(origID);grB.findVertex("B").setDepth(3);
 		grB.addToCompatibility(grB.findVertex("D"), grB.findVertex("T"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
@@ -1061,8 +1062,8 @@ public class TestGD_Multithreaded {
 	public final void testCounter()
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
+		LearnerGraph grA = buildLearnerGraph("A-a->B\nA-b->B","testCounterA",config);
+		LearnerGraph grB = buildLearnerGraph("@A-a->@B\n@A-c->@B","testCounterB",config);
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
 		gd.computeGD(grA, grB, threadNumber, counter,config);
@@ -1076,8 +1077,8 @@ public class TestGD_Multithreaded {
 	public final void testDisplay()
 	{
 		Configuration config = Configuration.getDefaultConfiguration();
-		LearnerGraph grA = new LearnerGraph(buildGraph("A-a->B\nA-b->B","testCounterA"),config);
-		LearnerGraph grB = new LearnerGraph(buildGraph("@A-a->@B\n@A-c->@B","testCounterB"),config);
+		LearnerGraph grA = buildLearnerGraph("A-a->B\nA-b->B","testCounterA",config);
+		LearnerGraph grB = buildLearnerGraph("@A-a->@B\n@A-c->@B","testCounterB",config);
 		ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> counter = new ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(grA,grB,null);
 		ChangesDisplay recorder = new ChangesDisplay(counter);
 		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();

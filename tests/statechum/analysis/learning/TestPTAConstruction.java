@@ -138,7 +138,6 @@ public class TestPTAConstruction
 		Assert.assertEquals(leafNumber, engine.getDebugDataMapDepth(null).size());
 	}
 	
-	@SuppressWarnings("null")
 	private void checkEmptyPTA(String[][] arrayPlusStrings,String [][] arrayMinusStrings, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();

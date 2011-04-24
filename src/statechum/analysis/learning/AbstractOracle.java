@@ -20,6 +20,7 @@ package statechum.analysis.learning;
 
 import java.util.List;
 
+import statechum.Label;
 import statechum.Pair;
 
 /** Choices which can be made by a user - all these number have to be negative because positives are
@@ -74,5 +75,5 @@ public interface AbstractOracle {
 	 * <p>
 	 * Returns null if an oracle does not know an answer - useful for nesting multiple oracles.
 	 */
-	public Pair<Integer,String> getAnswer(List<String> question);
+	public Pair<Integer,String> getAnswer(List<Label> question);
 }

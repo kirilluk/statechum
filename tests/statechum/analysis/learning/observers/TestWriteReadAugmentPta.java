@@ -34,26 +34,29 @@ import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.JUConstants;
+import statechum.Label;
 import statechum.StatechumXML;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.observers.Learner.RestartLearningEnum;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 /**
  * @author kirill
  *
  */
-public class TestWriteReadAugmentPta {
+public class TestWriteReadAugmentPta 
+{
 	LearnerGraph graph = null;
-	List<String> sequence = null;
+	List<Label> sequence = null;
 	String xmlData = null;
 	
 	@Before
 	public final void beforeTest()
 	{
-		graph = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C", "testWritePairs1"),Configuration.getDefaultConfiguration());
-		sequence = Arrays.asList(new String[]{"p","q","r"});
+		graph = buildLearnerGraph("A-a->B-a->C", "testWritePairs1",Configuration.getDefaultConfiguration());
+		sequence = AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"p","q","r"}),graph.config);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeAugmentPTA(
@@ -94,7 +97,7 @@ public class TestWriteReadAugmentPta {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		dumper.topElement.appendChild(dumper.writeAugmentPTA(
-				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartHARD,new LinkedList<String>(),false,JUConstants.RED)));dumper.close();
+				new ProgressDecorator.AugmentPTAData(RestartLearningEnum.restartHARD,new LinkedList<Label>(),false,JUConstants.RED)));dumper.close();
 		
 		xmlData = output.toString();
 
@@ -102,7 +105,7 @@ public class TestWriteReadAugmentPta {
 		loader.config = Configuration.getDefaultConfiguration();
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
-				RestartLearningEnum.restartHARD,new LinkedList<String>(),false,JUConstants.RED);
+				RestartLearningEnum.restartHARD,new LinkedList<Label>(),false,JUConstants.RED);
 		Assert.assertEquals(expected,data);
 	}
 	

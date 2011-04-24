@@ -21,6 +21,7 @@ package statechum.analysis.learning.observers;
 import java.util.Collection;
 import java.util.List;
 
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 
@@ -53,7 +54,7 @@ public abstract class LearnerDecorator implements Learner {
 	}
 
 	@Override 
-	public LearnerGraph learnMachine(Collection<List<String>> plus, Collection<List<String>> minus)
+	public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus)
 	{
 		init(plus,minus);
 		return decoratedLearner.learnMachine();

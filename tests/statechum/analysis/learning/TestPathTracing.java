@@ -37,8 +37,8 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.apps.QSMTool;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -91,10 +91,10 @@ public class TestPathTracing {
 		assert (enteredName == null)? (ExpectedResult >= 0):true;
 		final DirectedSparseGraph g = buildGraph(fsmString, "sample FSM",config);
 		final LearnerGraph fsm = new LearnerGraph(g,config);
-		assertEquals(ExpectedResult, fsm.paths.tracePathPrefixClosed(QSMTool.buildList(path,config)));
+		assertEquals(ExpectedResult, fsm.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),conf)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
-		Vertex receivedA = Test_Orig_RPNIBlueFringeLearner.getVertex(g, QSMTool.buildList(path,config));
-		CmpVertex receivedB = new LearnerGraph(g,conf).paths.getVertex(Arrays.asList(path));
+		Vertex receivedA = Test_Orig_RPNIBlueFringeLearner.getVertex(g, AbstractLearnerGraph.buildList(Arrays.asList(path),conf));
+		CmpVertex receivedB = new LearnerGraph(g,conf).paths.getVertex(AbstractLearnerGraph.buildList(Arrays.asList(path),conf));
 		if (expected == null)
 		{
 			Assert.assertNull(receivedA);Assert.assertNull(receivedB);
@@ -129,10 +129,10 @@ public class TestPathTracing {
 			for(String reject:rejectStates)
 				fsm.findVertex(VertexID.parseID(reject)).setAccept(false);
 		
-		assertEquals(ExpectedResult, fsm.paths.tracePath(QSMTool.buildList(path,config),fsm.findVertex(startingState), conf.isPrefixClosed()));
+		assertEquals(ExpectedResult, fsm.paths.tracePath(AbstractLearnerGraph.buildList(Arrays.asList(path),config),fsm.findVertex(startingState), conf.isPrefixClosed()));
 		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(new VertexID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(new VertexID(enteredName));
-		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, QSMTool.buildList(path,config));
+		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config));
 
 		if (expected != null)
 		{

@@ -41,7 +41,6 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.util.OutputUtil;
 import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
@@ -297,11 +296,14 @@ public class ForestFireStateMachineGenerator {
 	}
 		
 	//0.46,0.92,17,seed
-	private static ArrayList<String> generateGraphs(int numberOfGraphs, double forward, double backward, int alphabet, int uppersize) throws Exception{
+	/*
+	private static ArrayList<String> generateGraphs(int numberOfGraphs, double forward, double backward, 
+			int alphabet, int uppersize, Configuration config) throws Exception
+	{
 		ArrayList<String> graphs = new ArrayList<String>();
 		int seed = 0;
 		for(int i=0;i<numberOfGraphs;i++){
-			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,0.35,0.2,alphabet,seed);
+			ForestFireIntermediateNegativesGenerator fsmg = new ForestFireIntermediateNegativesGenerator(forward,backward,0.35,0.2,alphabet,seed,config);
 			LearnerGraph g = fsmg.buildMachine(uppersize);
 			//ForestFireStateMachineGenerator fsmg = new ForestFireLabelledStateMachineGenerator(forward,backward,alphabet,seed);
 			//LearnerGraph g = fsmg.buildMachine(uppersize);
@@ -319,17 +321,7 @@ public class ForestFireStateMachineGenerator {
 		}
 		return graphs;
 	}
-	
-	public static void main(String[] args) throws Exception{
-		int numberOfGraphs = Integer.valueOf(args[0]);
-		double forward = Double.valueOf(args[1]);
-		double backward = Double.valueOf(args[2]);
-		int alphabet = Integer.valueOf(args[3]);
-		int uppersize = Integer.valueOf(args[4]);
-		ArrayList<String> graphs = generateGraphs(numberOfGraphs, forward, backward, alphabet, uppersize);
-		printResults(graphs);	
-	}
-	
+	*/
 	protected static void printResults(ArrayList<String> graphs){
 		for (int i=0;i<graphs.size();i++) {
 			System.out.println("synth."+graphs.get(i)+".net <- read.graph(\""+ graphs.get(i)+".net\", format=\"pajek\")");

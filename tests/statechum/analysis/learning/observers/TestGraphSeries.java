@@ -32,7 +32,7 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -58,15 +58,15 @@ public class TestGraphSeries {
 	{
 		renumberConfig = Configuration.getDefaultConfiguration().copy();
 /*
-		graphA = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-a->C", "TestGraphSeries1"),renumberConfig);
-		graphB = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C", "TestGraphSeries2"),renumberConfig);
-		graphC = new LearnerGraph(FsmParser.buildGraph("A-a->D-b->D-a->C", "TestGraphSeries3"),renumberConfig);
-		graphD = new LearnerGraph(FsmParser.buildGraph("A-a->B-a->C-a-#D", "TestGraphSeries4"),renumberConfig);
+		graphA = buildLearnerGraph("A-a->A-b->B-a->C", "TestGraphSeries1",renumberConfig);
+		graphB = buildLearnerGraph("A-a->B-a->C", "TestGraphSeries2",renumberConfig);
+		graphC = buildLearnerGraph("A-a->D-b->D-a->C", "TestGraphSeries3",renumberConfig);
+		graphD = buildLearnerGraph("A-a->B-a->C-a-#D", "TestGraphSeries4",renumberConfig);
 		*/
-		graphA = new LearnerGraph(FsmParser.buildGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1"),renumberConfig);
-		graphB = new LearnerGraph(FsmParser.buildGraph("A2-a->B2-a->C2", "B_TestGraphSeries2"),renumberConfig);
-		graphC = new LearnerGraph(FsmParser.buildGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3"),renumberConfig);
-		graphD = new LearnerGraph(FsmParser.buildGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4"),renumberConfig);
+		graphA = buildLearnerGraph("A1-a->A1-b->B1-a->C1", "A_TestGraphSeries1",renumberConfig);
+		graphB = buildLearnerGraph("A2-a->B2-a->C2", "B_TestGraphSeries2",renumberConfig);
+		graphC = buildLearnerGraph("A3-a->D3-b->D3-a->C3", "C_TestGraphSeries3",renumberConfig);
+		graphD = buildLearnerGraph("A4-a->B4-a->C4-a-#D4", "D_TestGraphSeries4",renumberConfig);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output, 1,renumberConfig,false);
 		GraphSeries series = dumper.series;

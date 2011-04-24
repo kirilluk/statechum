@@ -132,13 +132,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
     @Override
     public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,
-            final List<String> question,
+            final List<Label> question,
             @SuppressWarnings("unused") final int expectedForNoRestart,
             @SuppressWarnings("unused") final List<Boolean> consistentFacts,
             @SuppressWarnings("unused") final PairScore pairBeingMerged,
             @SuppressWarnings("unused") final Object[] moreOptions) {
 
-        Iterator<String> it = question.iterator();
+        Iterator<Label> it = question.iterator();
         //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
         String erlList = "[";
         while (it.hasNext()) {
@@ -149,7 +149,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         }
         erlList += "]";
         String prefixString = null;
-        Trace qtrace = Trace.fromListOfStrings(question);
+        Trace qtrace = null;//KIRR: commented out Trace.fromListOfStrings(question);
         int failure = AbstractOracle.USER_CANCELLED;
         try {
             Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
@@ -313,7 +313,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             //System.out.println("Prefix found: " + prefix.toString());
             Label item = qtrace.get(prefix.size());
             // Wildcard the output
-            item = item.replaceAll(",[^,}]*}$", ",'*'}");
+            // KIRR: commented out  //item = item.replaceAll(",[^,}]*}$", ",'*'}");
             Trace newPrefix = prefix.clone();
             newPrefix.add(item);
             //System.out.println("Trying " + newPrefix.toString());

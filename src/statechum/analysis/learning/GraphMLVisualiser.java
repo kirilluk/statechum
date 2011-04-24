@@ -20,6 +20,7 @@ package statechum.analysis.learning;
 
 import java.io.File;
 
+import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.ExperimentGraphMLHandler;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;
@@ -34,9 +35,9 @@ public class GraphMLVisualiser extends Visualiser {
 	public static void main(String[] args){
 		File graphDir = new File(args[0]);//new File(System.getProperty("user.dir")+System.getProperty("file.separator")+"resources"+
 		//System.getProperty("file.separator")+"TestGraphs"+System.getProperty("file.separator") +args[0]);
-		String wholePath = graphDir.getAbsolutePath()+System.getProperty("file.separator");
+		String wholePath = graphDir.getAbsolutePath()+File.separator;
 		GraphMLFile graphmlFile = new GraphMLFile();
-		graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler());
+		graphmlFile.setGraphMLFileHandler(new ExperimentGraphMLHandler(Configuration.getDefaultConfiguration()));
 		DirectedSparseGraph dg = new DirectedSparseGraph();
 		dg.getEdgeConstraints().clear();
 		dg = (DirectedSparseGraph)graphmlFile.load(wholePath+args[1]);

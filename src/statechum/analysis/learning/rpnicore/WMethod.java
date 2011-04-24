@@ -194,10 +194,10 @@ public class WMethod {
 	 * @param alphabet the collection to turn into 
 	 * @return a collection of singleton sequences.
 	 */
-	public static List<List<String>> makeSingleton(Collection<String> alphabet){
-		List<List<String>> functionList = new LinkedList<List<String>>();
-		for(String stim:alphabet){
-			List<String> path = new LinkedList<String>();
+	public static <ELEM> List<List<ELEM>> makeSingleton(Collection<ELEM> alphabet){
+		List<List<ELEM>> functionList = new LinkedList<List<ELEM>>();
+		for(ELEM stim:alphabet){
+			List<ELEM> path = new LinkedList<ELEM>();
 			path.add(stim);
 			functionList.add(path);
 		}

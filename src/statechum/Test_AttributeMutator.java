@@ -28,6 +28,7 @@ import junit.framework.Assert;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Configuration.IDMode;
+import statechum.Configuration.LABELKIND;
 import statechum.Configuration.LEARNER;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
@@ -195,6 +196,11 @@ public class Test_AttributeMutator {
 				if (var.getType().equals(GDScoreComputationAlgorithmEnum.class))
 				{
 						valueA = GDScoreComputationAlgorithmEnum.SCORE_LINEAR;valueB = GDScoreComputationAlgorithmEnum.SCORE_TESTSET;
+				}
+				else
+				if (var.getType().equals(LABELKIND.class))
+				{
+					valueA = LABELKIND.LABEL_ERLANG;valueB = LABELKIND.LABEL_STRING;
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))

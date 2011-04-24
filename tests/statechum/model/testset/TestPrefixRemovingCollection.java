@@ -18,6 +18,9 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 
 package statechum.model.testset;
 
+import statechum.Configuration;
+import statechum.Label;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.model.testset.PTASequenceSet;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
@@ -33,6 +36,8 @@ import org.junit.Test;
 
 public class TestPrefixRemovingCollection 
 {
+	final Configuration config = Configuration.getDefaultConfiguration();
+	
 	@Test 
 	public final void testPrefixRemovingCollection0()
 	{
@@ -43,24 +48,24 @@ public class TestPrefixRemovingCollection
 
 		Assert.assertTrue(c.containsAll(c));
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a"})));
 	}
 	
 	@Test 
 	public final void testPrefixRemovingCollection1()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a"})));
 
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -70,39 +75,50 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection2()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(new LinkedList<String>());
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(new LinkedList<Label>());
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertFalse(c.getData().isEmpty());
 		Assert.assertTrue(expected.equals(actual));
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
+	}
+	
+	/** Converts arrays of labels to lists of labels using config - it does not really matter which configuration is used 
+	 * because all of them start from a default one and do not modify label type.
+	 * 
+	 * @param labels what to convert
+	 * @return the outcome of conversion.
+	 */
+	protected List<Label> labelList(String [] labels)
+	{
+		return AbstractLearnerGraph.buildList(Arrays.asList(labels),config);
 	}
 	
 	@Test 
 	public final void testPrefixRemovingCollection3()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -112,20 +128,20 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection4()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{"a","a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{"a","a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","a","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -135,21 +151,21 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection5()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a","a"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a","a"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","a","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -159,22 +175,22 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection6()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{}));
-		c.addSequence(Arrays.asList(new String[]{"a","a"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{}));
+		c.addSequence(labelList(new String[]{"a","a"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","a"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","a"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","a","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","a"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","a","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -184,23 +200,23 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection7a()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{}));
-		c.addSequence(Arrays.asList(new String[]{"a","b"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{}));
+		c.addSequence(labelList(new String[]{"a","b"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -210,23 +226,23 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection7b()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{}));
-		c.addSequence(Arrays.asList(new String[]{"a","b"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{}));
+		c.addSequence(labelList(new String[]{"a","b"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(1, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -236,27 +252,27 @@ public class TestPrefixRemovingCollection
 	public final void testPrefixRemovingCollection8()
 	{
 		PTASequenceSet c = new PTASequenceSet();
-		c.addSequence(new LinkedList<String>());
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{}));
-		c.addSequence(Arrays.asList(new String[]{"a","b"}));
-		c.addSequence(Arrays.asList(new String[]{"a","c","d"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		c.addSequence(Arrays.asList(new String[]{"a"}));
-		Set<List<String>> expected = buildSet(new String[][]{
+		c.addSequence(new LinkedList<Label>());
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{}));
+		c.addSequence(labelList(new String[]{"a","b"}));
+		c.addSequence(labelList(new String[]{"a","c","d"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		c.addSequence(labelList(new String[]{"a"}));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -272,21 +288,21 @@ public class TestPrefixRemovingCollection
 			new String[]{"a","b"},
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}}));
-		Set<List<String>> expected = buildSet(new String[][]{
+			new String[]{"a"}},config));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -299,28 +315,28 @@ public class TestPrefixRemovingCollection
 		c.addAll(buildSet(new String[][] {
 			new String[]{"a"},
 			new String[]{},
-			new String[]{"a","b"}}));
+			new String[]{"a","b"}},config));
 		
 		PTASequenceSet d = new PTASequenceSet();
 		d.addAll(buildSet(new String[][] {		
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}}));
+			new String[]{"a"}},config));
 		c.addAll(d);
-		Set<List<String>> expected = buildSet(new String[][]{
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c.getData());
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c.getData());
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));
@@ -336,21 +352,21 @@ public class TestPrefixRemovingCollection
 			new String[]{"a","b"},
 			new String[]{"a","c","d"},
 			new String[]{"a"},
-			new String[]{"a"}}));
-		Set<List<String>> expected = buildSet(new String[][]{
+			new String[]{"a"}},config));
+		Set<List<Label>> expected = buildSet(new String[][]{
 				new String[]{"a","b"},
 				new String[]{"a","c","d"}
-		}),actual = new HashSet<List<String>>();actual.addAll(c);
+		},config),actual = new HashSet<List<Label>>();actual.addAll(c);
 		Assert.assertEquals(2, c.getData().size());
 		Assert.assertTrue(expected.equals(actual));
 		Assert.assertFalse(c.getData().isEmpty());
 
-		Assert.assertTrue(c.contains(new LinkedList<String>()));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","b"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c"})));
-		Assert.assertTrue(c.contains(Arrays.asList(new String[]{"a","c","d"})));
-		Assert.assertFalse(c.contains(Arrays.asList(new String[]{"a","b","a"})));
+		Assert.assertTrue(c.contains(new LinkedList<Label>()));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","b"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c"})));
+		Assert.assertTrue(c.contains(labelList(new String[]{"a","c","d"})));
+		Assert.assertFalse(c.contains(labelList(new String[]{"a","b","a"})));
 		
 		Assert.assertTrue(c.containsAll(expected));
 		Assert.assertTrue(c.containsAll(c));

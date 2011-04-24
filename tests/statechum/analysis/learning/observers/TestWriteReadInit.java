@@ -30,9 +30,10 @@ import org.junit.Test;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
+import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.InitialData;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import static statechum.Helper.checkForCorrectException;
@@ -47,27 +48,27 @@ import static statechum.analysis.learning.observers.TestRecordProgressDecorator.
 public class TestWriteReadInit {
 	LearnerGraph graph = null;
 	String xmlData = null;
-	Collection<List<String>> plus, minus = null, justSomething = null;
+	Collection<List<Label>> plus, minus = null, justSomething = null;
 	
 	@Before
 	public final void beforeTest()
 	{
-		graph = new LearnerGraph(FsmParser.buildGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation"),Configuration.getDefaultConfiguration());
+		graph = buildLearnerGraph("A-a->A-b->B-a->C", "TestWriteReadLearnerEvaluation",Configuration.getDefaultConfiguration());
 		plus = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
 				new String[]{"more data"}
-		});
+		},Configuration.getDefaultConfiguration());
 		minus = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "t","some test data"},
 				new String[]{ "q"},
 				new String[]{},
 				new String[]{"4","46"}
-		});
+		},Configuration.getDefaultConfiguration());
 		justSomething = TestFSMAlgo.buildList(new String[][]{
 				new String[]{"a"},
 				new String[]{"5"}
-		});
+		},Configuration.getDefaultConfiguration());
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
@@ -87,16 +88,18 @@ public class TestWriteReadInit {
 	@Test
 	public final void createInitialData_fail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new InitialData(new LinkedList<List<String>>(),-1,new LinkedList<List<String>>(),0,null);
+		checkForCorrectException(new whatToRun() {
+		public @Override void run() {
+			new InitialData(new LinkedList<List<Label>>(),-1,new LinkedList<List<Label>>(),0,null);
 		}},IllegalArgumentException.class,"inconsistent positive");
 	}
 	
 	@Test
 	public final void createInitialData_fail2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new InitialData(new LinkedList<List<String>>(),0,new LinkedList<List<String>>(),5,null);
+		checkForCorrectException(new whatToRun() {
+		public @Override void run() {
+			new InitialData(new LinkedList<List<Label>>(),0,new LinkedList<List<Label>>(),5,null);
 		}},IllegalArgumentException.class,"inconsistent negative");
 	}
 	
@@ -163,7 +166,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		initElement.appendChild(dumper.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), justSomething));
+		initElement.appendChild(dumper.labelio.writeSequenceList(StatechumXML.ATTR_POSITIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
@@ -200,7 +203,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		initElement.appendChild(dumper.writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), justSomething));
+		initElement.appendChild(dumper.labelio.writeSequenceList(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name(), justSomething));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();
 
@@ -237,7 +240,7 @@ public class TestWriteReadInit {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
 		Element initElement = dumper.writeInitialData(new InitialData(plus,plus.size(),minus,minus.size(),graph));
-		initElement.appendChild(new LearnerGraph(FsmParser.buildGraph("A-a->A", "testLoadInit_fail7"),Configuration.getDefaultConfiguration())
+		initElement.appendChild(buildLearnerGraph("A-a->A", "testLoadInit_fail7",Configuration.getDefaultConfiguration())
 			.storage.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(initElement);dumper.close();
 		xmlData = output.toString();

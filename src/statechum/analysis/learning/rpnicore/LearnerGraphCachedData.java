@@ -24,7 +24,7 @@ import java.util.Map;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.Label;
+import statechum.analysis.learning.rpnicore.LabelRepresentation.SMTLabel;
 
 /** An extension of the cache with elements to support learning. */ 
 public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCachedData>
@@ -86,9 +86,9 @@ public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCac
 	 * the range intersection condition will be satisfied.</li>
 	 * </ul>
 	 */
-	Map<Label,Collection<AbstractState>> abstractStateToLabelPreviouslyChecked = null;
+	Map<SMTLabel,Collection<AbstractState>> abstractStateToLabelPreviouslyChecked = null;
 	
-	public Map<Label,Collection<AbstractState>> getAbstractStateToLabelPreviouslyChecked()
+	public Map<SMTLabel,Collection<AbstractState>> getAbstractStateToLabelPreviouslyChecked()
 	{
 		return abstractStateToLabelPreviouslyChecked;
 	}

@@ -27,13 +27,22 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import statechum.Configuration;
+import statechum.Label;
 import statechum.Pair;
 import statechum.apps.QSMTool;
-
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 
 public class StoredAnswers implements AbstractOracle
 {
-	private Map<String,Pair<Integer,String>> answers = new HashMap<String, Pair<Integer,String>>();
+	private final Configuration config;
+	
+	public StoredAnswers(Configuration conf)
+	{
+		config = conf;
+	}
+	
+	private Map<List<Label>,Pair<Integer,String>> answers = new HashMap<List<Label>, Pair<Integer,String>>();
 	
 	protected void throwEx(String line)
 	{
@@ -67,7 +76,7 @@ public class StoredAnswers implements AbstractOracle
 					throwEx(line);
 				//for(int i=1;i<=lexer.groupCount();++i)
 				//	System.out.println("("+i+") "+lexer.group(i));
-				String text = "["+lexer.group(GROUP_TEXT)+"]";
+				List<Label> question = AbstractLearnerGraph.parseTrace(lexer.group(GROUP_TEXT),config);
 				if (lexer.group(GROUP_YES) != null)
 				{
 					if (lexer.group(GROUP_NO) != null || lexer.group(GROUP_NO_NUM) != null || 
@@ -75,7 +84,7 @@ public class StoredAnswers implements AbstractOracle
 							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
 						throwEx(line);
 					
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
 				}
 				else
 				if (lexer.group(GROUP_NO) != null)
@@ -84,7 +93,7 @@ public class StoredAnswers implements AbstractOracle
 							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
 						throwEx(line);
 
-					answers.put(text, new Pair<Integer,String>(Integer.parseInt(lexer.group(GROUP_NO_NUM)),null));				
+					answers.put(question, new Pair<Integer,String>(Integer.parseInt(lexer.group(GROUP_NO_NUM)),null));				
 				}
 				else
 				if (lexer.group(GROUP_LTL) != null)
@@ -92,35 +101,35 @@ public class StoredAnswers implements AbstractOracle
 					if (lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0 
 							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
 						throwEx(line);
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
 				}
 				else
 				if (lexer.group(GROUP_IFTHEN) != null)
 				{
 					if (lexer.group(GROUP_IFTHEN_CONSTRAINT) == null || lexer.group(GROUP_IFTHEN_CONSTRAINT).length() == 0)
 						throwEx(line);
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_IFTHEN,lexer.group(GROUP_IFTHEN_CONSTRAINT)));				
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IFTHEN,lexer.group(GROUP_IFTHEN_CONSTRAINT)));				
 				}
 				else
 				if (lexer.group(GROUP_IGNORE) != null)
 				{
 					if (lexer.group(GROUP_IGNORE_CONSTRAINT) == null || lexer.group(GROUP_IGNORE_CONSTRAINT).trim().length() != 0)
 						throwEx(line);
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null));				
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null));				
 				}
 				else
 				if (lexer.group(GROUP_INCOMPATIBLE) != null)
 				{
 					if (lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT) == null || lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT).length() == 0)
 						throwEx(line);
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT)));				
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT)));				
 				}
 				else
 				if (lexer.group(GROUP_NEWTRACE) != null)
 				{
 					if (lexer.group(GROUP_NEWTRACE_CONSTRAINT) == null || lexer.group(GROUP_NEWTRACE_CONSTRAINT).length() == 0)
 						throwEx(line);
-					answers.put(text, new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,lexer.group(GROUP_NEWTRACE_CONSTRAINT)));				
+					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,lexer.group(GROUP_NEWTRACE_CONSTRAINT)));				
 				}
 				else
 					
@@ -138,12 +147,11 @@ public class StoredAnswers implements AbstractOracle
 	
 	/** Retrieves a stored answer. */
 	@Override
-	public Pair<Integer,String> getAnswer(List<String> question)
+	public Pair<Integer,String> getAnswer(List<Label> question)
 	{
 		Pair<Integer,String> result = null;
-		String q = question.toString();
-		if (answers != null && answers.containsKey(q))
-			result = answers.get(q);
+		if (answers != null && answers.containsKey(question))
+			result = answers.get(question);
 		
 		return result;
 	}

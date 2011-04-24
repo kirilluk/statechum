@@ -210,7 +210,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	{
 		Element questionElement = doc.createElement(StatechumXML.ELEM_ANSWER.name());
 		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
-		StringWriter strWriter = new StringWriter();writeInputSequence(strWriter,question);
+		StringWriter strWriter = new StringWriter();labelio.writeInputSequence(strWriter,question);
 		questionElement.setAttribute(StatechumXML.ATTR_QUESTION.name(),strWriter.toString());
 		questionElement.setAttribute(StatechumXML.ATTR_FAILEDPOS.name(), result.firstElem.toString());
 		if (result.secondElem != null) questionElement.setAttribute(StatechumXML.ATTR_LTL.name(), result.secondElem);
@@ -235,7 +235,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	{
 		List<List<Label>> result = decoratedLearner.ComputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
-		Element questionList = writeSequenceList(StatechumXML.ATTR_QUESTIONS.name(), result);
+		Element questionList = labelio.writeSequenceList(StatechumXML.ATTR_QUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
 		writeElement(questions);
 		return result;
@@ -246,7 +246,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 	{
 		List<List<Label>> result = decoratedLearner.RecomputeQuestions(pair, original, temp);
 		Element questions = doc.createElement(StatechumXML.ELEM_QUESTIONS.name());
-		Element questionList = writeSequenceList(StatechumXML.ATTR_MOREQUESTIONS.name(), result);
+		Element questionList = labelio.writeSequenceList(StatechumXML.ATTR_MOREQUESTIONS.name(), result);
 		questions.appendChild(questionList);questions.appendChild(writePair(pair,doc));
 		writeElement(questions);
 		return result;

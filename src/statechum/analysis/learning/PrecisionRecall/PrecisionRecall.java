@@ -20,6 +20,8 @@ package statechum.analysis.learning.PrecisionRecall;
 
 import java.util.*;
 
+import statechum.Label;
+
 /**
  * Precision recall can be calculated from set of retrieved data (RET) and relevant data (REL)
  * @author nw
@@ -32,7 +34,7 @@ public class PrecisionRecall {
 	
 	public PrecisionRecall(){}
 
-	public PrecisionRecall(Collection<List<String>> ret, Collection<List<String>> rel){
+	public PrecisionRecall(Collection<List<Label>> ret, Collection<List<Label>> rel){
 		precision = computePrecision(ret, rel);
 		recall = computeRecall(ret,rel);
 		fMeasure = (2*precision*recall)/(precision+recall);
@@ -40,8 +42,8 @@ public class PrecisionRecall {
 	
 	
 	
-	protected double computePrecision(Collection<List<String>> ret, Collection<List<String>> rel){
-		Collection<List<String>> relret = new HashSet<List<String>>();
+	protected double computePrecision(Collection<List<Label>> ret, Collection<List<Label>> rel){
+		Collection<List<Label>> relret = new HashSet<List<Label>>();
 		relret.addAll(ret);
 		relret.retainAll(rel);
 		if(relret.isEmpty())
@@ -50,8 +52,8 @@ public class PrecisionRecall {
 		return (double)relret.size()/(double)ret.size();
 	}
 	
-	protected double computeRecall(Collection<List<String>> ret, Collection<List<String>> rel){
-		Collection<List<String>> relret = new HashSet<List<String>>();
+	protected double computeRecall(Collection<List<Label>> ret, Collection<List<Label>> rel){
+		Collection<List<Label>> relret = new HashSet<List<Label>>();
 		relret.addAll(ret);
 		relret.retainAll(rel);
 		if(relret.isEmpty())

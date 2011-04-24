@@ -20,26 +20,34 @@ package statechum.analysis.learning.profileStringExtractor;
 
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.Attributes;
+
+import statechum.Configuration;
+import statechum.Label;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+
 import java.util.*;
 
 import javax.swing.tree.TreePath;
 
 public abstract class AbstractHandler extends DefaultHandler {
 	
-	protected Map<Integer,String> ticketToString;
-	protected Map<String,List<TreePath>> functions;
-	protected Set<Integer> doneTickets;
-	protected ClassMethodDefsHandler classMethods;
-	protected List<Integer> methodSequence;
-	protected List<String> functionString;
+	final protected Map<Integer,String> ticketToString;
+	final protected Map<String,List<TreePath>> functions;
+	final protected Set<Integer> doneTickets;
+	final protected ClassMethodDefsHandler classMethods;
+	final protected List<Integer> methodSequence;
+	final protected List<String> functionString;
+	final protected Configuration config;
 	
-	public AbstractHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
-		this.functionString = new ArrayList<String>();
-		this.classMethods = classMethods;
-		this.functions = functions;
+	public AbstractHandler(Map<String,List<TreePath>> functionsArg, ClassMethodDefsHandler classMethodsArg, Configuration conf)
+	{
+		this.functionString = new LinkedList<String>();
+		this.classMethods = classMethodsArg;
+		this.functions = functionsArg;
 		this.ticketToString = new HashMap<Integer,String>();
 		this.methodSequence = new ArrayList<Integer>();
 		this.doneTickets = new HashSet<Integer>();
+		this.config=conf;
 	}
 	
 	public String getFunctionString(int maxLoopSize){
@@ -63,8 +71,8 @@ public abstract class AbstractHandler extends DefaultHandler {
 		return returnString;
 	}
 	
-	public ArrayList<String> getArrayListFunctionString(int maxLoopSize){
-		ArrayList<String> string = new ArrayList<String>();
+	public List<Label> getArrayListFunctionString(int maxLoopSize){
+		List<Label> string = new LinkedList<Label>();
 		int counter=0;
 		for(int i=0;i<functionString.size();i++){
 			String s = functionString.get(i);
@@ -75,11 +83,12 @@ public abstract class AbstractHandler extends DefaultHandler {
 					counter = 0;
 				}
 			if(counter<maxLoopSize)
-				string.add(s);
+				string.add(AbstractLearnerGraph.generateNewLabel(s,config));
 		}
 	return string;
 	}
 	
+	@Override
 	public abstract void startElement(String uri, String localName, String qName, Attributes attributes);
 	
 	protected abstract void checkSequenceForFunction(List<Integer> sequence);
@@ -148,10 +157,10 @@ public abstract class AbstractHandler extends DefaultHandler {
 	}
 	
 	private Integer findKeyFor(Map<Integer, Set<Integer>> classesToMethods, Integer method){
-		Iterator keyIt = classesToMethods.keySet().iterator();
+		Iterator<Integer> keyIt = classesToMethods.keySet().iterator();
 		while(keyIt.hasNext()){
-			Integer nextKey = (Integer)keyIt.next();
-			Collection methods = classesToMethods.get(nextKey);
+			Integer nextKey = keyIt.next();
+			Collection<Integer> methods = classesToMethods.get(nextKey);
 			if(methods.contains(method))
 				return nextKey;
 		}

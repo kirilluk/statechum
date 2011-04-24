@@ -20,14 +20,16 @@ package statechum.analysis.learning.profileStringExtractor;
 
 import org.xml.sax.Attributes;
 
+import statechum.Configuration;
+
 import java.util.*;
 
 import javax.swing.tree.TreePath;
 
 public class StackHandler extends AbstractHandler {
 	
-	public StackHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods){
-		super(functions, classMethods);
+	public StackHandler(Map<String,List<TreePath>> functions, ClassMethodDefsHandler classMethods, Configuration conf){
+		super(functions, classMethods,conf);
 	}
 
 	@Override

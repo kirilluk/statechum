@@ -23,33 +23,39 @@ import java.util.*;
 import soot.*;
 import soot.jimple.toolkits.callgraph.*;
 
+import statechum.Helper;
+import statechum.Label;
 import statechum.Pair;
+import statechum.StringLabel;
 import statechum.analysis.learning.AbstractOracle;
 
 
 public class SootCallGraphOracle  implements AbstractOracle {
 	
 	//private SootCallGraphManager scm;
-	private String from = new String();
+	private Label from = null;
 	
 	public SootCallGraphOracle(){
 		//scm = new SootCallGraphManager();
 	}
 	
 	@Override 
-	public Pair<Integer,String> getAnswer(List<String> question) {
+	public Pair<Integer,String> getAnswer(List<Label> question) {
 		HashMap<MethodOrMethodContext,String> methodToString = new HashMap<MethodOrMethodContext,String>();
 		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();
 		int length = question.size();
-		if(question.get(0).equals("ret"))
+		if (!(question.get(0) instanceof StringLabel)) throw new IllegalArgumentException("Only String labels are supported");
+		String question_0 = question.get(0).toAlphaNum(); 
+		if(question_0.equals("ret"))
 			return new Pair<Integer,String>(0,null);
-		MethodOrMethodContext fromMethod = getSootMethod(question.get(0));
-		methodToString.put(fromMethod, question.get(0));
+		MethodOrMethodContext fromMethod = getSootMethod(question_0);
+		methodToString.put(fromMethod, question_0);
 		methodStack.push(fromMethod);
 		CallGraph cg = Scene.v().getCallGraph();
 
 		for(int i=1;i<length;i++){
-			String next = question.get(i);
+			Label nextLabel = question.get(i);
+			String next = nextLabel.toAlphaNum();
 			if(next.equals("ret")){
 				if(!methodStack.isEmpty()){
 					methodStack.pop();
@@ -73,7 +79,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 				}
 				if(!found){
 					System.out.println("not found: "+methodStack.peek().method().getSignature()+ "->"+ toMethod.method().getSignature());
-					from = methodToString.get(methodStack.peek());
+					from = new StringLabel(methodToString.get(methodStack.peek()));
 					return new Pair<Integer,String>(i,null);
 				}
 			}
@@ -119,8 +125,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 		try{
 			params = signature.substring(parenthesisIndex+1, signature.indexOf(')'));
 		}catch(Exception e){ 
-			System.out.println(signature);
-			System.exit(0);
+			Helper.throwUnchecked("could not parse "+signature, e);
 		}
 		String classString = signature.substring(0, parenthesisIndex);
 		classString = classString.substring(0,classString.lastIndexOf('.'));
@@ -135,7 +140,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 
 
 
-	public String getFrom() {
+	public Label getFrom() {
 		return from;
 	}
 

@@ -386,7 +386,7 @@ public class LTL_to_ba {
 	 * @param transitionLabel the SPIN label
 	 * @param targetState target state
 	 */
-	protected void addTransitionsBetweenStates(CmpVertex currentState, Label transitionLabel, CmpVertex targetState)
+	protected void addTransitionsBetweenStates(CmpVertex currentState, String transitionLabel, CmpVertex targetState)
 	{
 		Map<Label,List<CmpVertex>> row = matrixFromLTL.transitionMatrix.get(currentState);
 		for(Label currLabel:interpretString(transitionLabel))
@@ -427,7 +427,7 @@ public class LTL_to_ba {
 	}
 	
 	/** Given a composite transition label, this method converts it into a corresponding set of labels. */
-	Set<Label> interpretString(Label data)
+	Set<Label> interpretString(String data)
 	{
 		buildExprLexer(data+")");
 		Set<Label> result = interpretExpression();
@@ -437,23 +437,23 @@ public class LTL_to_ba {
 	}
 	
 	/** Performs a lexical analysis and extracts the alphabet. */
-	Set<String> computeAlphabet(String data)
+	Set<Label> computeAlphabet(String data)
 	{
 		buildExprLexer(data+")");
-		Set<String> result = computeAlphabet();
+		Set<Label> result = computeAlphabet();
 		if (lexExpr.getMatchType() >=0)
 			throw new IllegalArgumentException("extra tokens at the end of expression");
 
 		return result;
 	}
 	
-	private Set<String> computeAlphabet()
+	private Set<Label> computeAlphabet()
 	{
 		int currentMatch = lexExpr.getMatchType();
 		if (currentMatch < 0 || currentMatch == exprClose)
 			throw new IllegalArgumentException("unexpected end of expression");
 		
-		Set<String> currentValue = new TreeSet<String>();// the alphabet constructed so far.
+		Set<Label> currentValue = new TreeSet<Label>();// the alphabet constructed so far.
 
 		while(currentMatch >= 0 && currentMatch != exprClose)
 		{
@@ -469,7 +469,7 @@ public class LTL_to_ba {
 			case exprNEG:
 				break;
 			case exprWord:
-				currentValue.add(lexExpr.group(exprWordText));
+				currentValue.add(AbstractLearnerGraph.generateNewLabel(lexExpr.group(exprWordText),config));
 				break;
 			default:
 				throw new IllegalArgumentException("invalid token "+currentMatch+", looking at "+lexExpr.getMatch());
@@ -533,10 +533,10 @@ public class LTL_to_ba {
 		return currentValue;
 	}
 	
-	protected Set<String> interpretUnary()
+	protected Set<Label> interpretUnary()
 	{
 		int currentMatch = lexExpr.getMatchType();
-		Set<String> currentValue = new TreeSet<String>();// the outcome of the left-hand side.
+		Set<Label> currentValue = new TreeSet<Label>();// the outcome of the left-hand side.
 		switch(currentMatch)
 		{
 		case exprOpen: // expression in braces
@@ -582,23 +582,24 @@ public class LTL_to_ba {
 	/** The notation for each label in a BA is one of the following:
 	 * "label", "1".
 	 * 
-	 * @param label label to interpret, using an alphabet.
+	 * @param stringLabel label to interpret, using an alphabet.
 	 * @return result of interpretation.
 	 * 
 	 */
-	protected Set<Label> interpretInputLabel(Label label)
+	protected Set<Label> interpretInputLabel(String stringLabel)
 	{
-		if (label == null)
+		if (stringLabel == null)
 			throw new IllegalArgumentException("empty label");
 		
 		Set<Label> result = new TreeSet<Label>();
 		
-		if (label.equals("1")) 
+		if (stringLabel.equals("1")) 
 			result.addAll(alphabet);
 		else
 		{
+			Label label=AbstractLearnerGraph.generateNewLabel(stringLabel,config);
 			if (!alphabet.contains(label))
-				throw new IllegalArgumentException("unrecognised label "+label);
+				throw new IllegalArgumentException("unrecognised label "+stringLabel);
 			result.add(label);
 		}
 		return result;

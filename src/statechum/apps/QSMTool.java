@@ -39,12 +39,12 @@ import statechum.Label;
 import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
-import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LabelRepresentation;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -199,7 +199,7 @@ public class QSMTool {
             showLTL = true;
         } else if (fileString.startsWith(cmdOperation) || fileString.startsWith(cmdDataTrace) || fileString.startsWith(cmdLowLevelFunction)) {
             if (learnerInitConfiguration.labelDetails == null) {
-                learnerInitConfiguration.labelDetails = new LabelRepresentation(learnerInitConfiguration.config);
+                learnerInitConfiguration.labelDetails = new SmtLabelRepresentation(learnerInitConfiguration.config);
                 dataDescription = new LinkedList<String>();
             }
             dataDescription.add(fileString.trim());
@@ -227,7 +227,7 @@ public class QSMTool {
      * Construction of labels can be done via <em>buildList</em>.
      */
     public static List<String> tokeniseInput(String str) {
-        StringTokenizer tokenizer = new StringTokenizer(str);
+        StringTokenizer tokenizer = new StringTokenizer(str," ,");
         List<String> sequence = new LinkedList<String>();
         while (tokenizer.hasMoreTokens()) {
             sequence.add(tokenizer.nextToken());

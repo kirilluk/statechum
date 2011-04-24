@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="lib/junit-statechum"/>
 	<classpathentry kind="src" path="tests"/>
+	<classpathentry kind="src" path="lib/junit-statechum"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/colt.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.1.jar"/>
@@ -10,6 +10,6 @@
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
 	<classpathentry kind="lib" path="lib/OtpErlang.jar"/>
-	<classpathentry kind="lib" path="lib/junit-4.8.1.jar"/>
+	<classpathentry kind="lib" path="lib/junit-4.8.1.jar" sourcepath="/media/software/java/junit-4.8.2-src.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

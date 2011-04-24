@@ -60,12 +60,13 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
-import statechum.analysis.learning.rpnicore.LabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.StatechumXML.SequenceIO;
 
 public abstract class ProgressDecorator extends LearnerDecorator
@@ -158,7 +159,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Collection<List<Label>> testSet = null;
 		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
 		public Collection<String> ifthenSequences = null;
-		public LabelRepresentation labelDetails = null;
+		public SmtLabelRepresentation labelDetails = null;
 		
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
@@ -168,7 +169,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		}
 		
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, 
-				Collection<String> ltl, LabelRepresentation lblDetails)
+				Collection<String> ltl, SmtLabelRepresentation lblDetails)
 		{
 			graph = gr;testSet = tests;config = cnf;ifthenSequences = ltl;labelDetails=lblDetails;
 			
@@ -275,6 +276,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration();
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
+		
+		initIO(evaluationDataElement.getOwnerDocument(),result.config);
+		
 		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
 		
 		result.testSet = labelio.readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
@@ -282,11 +286,20 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			result.ifthenSequences = stringio.readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
 		if (nodesLabelDetails.getLength() > 0)
 		{
-			result.labelDetails = new LabelRepresentation(result.config);
+			result.labelDetails = new SmtLabelRepresentation(result.config);
 			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0) );
 		}
 		result.graphNumber=graphNumber;
 		return result;
+	}
+
+	/** Performs initialization if necessary of the io routines aimed at loading/saving sequences of labels. */
+	protected void initIO(Document document, Configuration configuration)
+	{
+		if (labelio == null)
+			labelio = new StatechumXML.StringLabelSequenceWriter(document,configuration);
+		if (stringio == null)
+			stringio = new StatechumXML.StringSequenceWriter(document);
 	}
 
 	/** Writes the supplied learner evaluation configuration.
@@ -403,7 +416,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Collection<List<Label>> plus = null, minus = null;
 		public int plusSize=-1, minusSize =-1;
 		public LearnerGraph graph=null;
-		public LabelRepresentation labelDetails = null;
+		public SmtLabelRepresentation labelDetails = null;
 
 		public InitialData() {
 			// rely on defaults above.

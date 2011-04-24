@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Helper.whatToRun;
-import statechum.Test_AttributeMutator.MethodAndArgs;
+import statechum.AttributeMutator.MethodAndArgs;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
 public class TestConfiguration {
@@ -109,7 +109,7 @@ public class TestConfiguration {
 	@Test
 	public void testConfigurationUsesAllItsVariables()
 	{	
-		List<MethodAndArgs<Configuration>> MethodsArgs = Test_AttributeMutator.constructArgList(Configuration.class);
+		List<MethodAndArgs<Configuration>> MethodsArgs = AttributeMutator.constructArgList(Configuration.class);
 		// Now check that hashCode and equals are affected by values of different fields.
 		for(MethodAndArgs<Configuration> currentMethod:MethodsArgs)
 		{

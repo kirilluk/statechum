@@ -48,14 +48,14 @@ import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StringVertex;
-import statechum.Test_AttributeMutator;
+import statechum.AttributeMutator;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex.IllegalUserDataException;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.Helper.whatToRun;
-import statechum.Test_AttributeMutator.MethodAndArgs;
+import statechum.AttributeMutator.MethodAndArgs;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner.OrigStatePair;
@@ -233,7 +233,6 @@ public class TestEqualityComparisonAndHashCode {
 	
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID1()
 	{
@@ -241,7 +240,6 @@ public class TestEqualityComparisonAndHashCode {
 	}
 	
 	/** Tests that it is not possible to create an invalid VertexID. */
-	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testCannotCreateNoneVertexID2()
 	{
@@ -2341,7 +2339,7 @@ public class TestEqualityComparisonAndHashCode {
 	@Test
 	public void testStringVertexUsesAllItsAttributes()
 	{	
-		List<MethodAndArgs<StringVertex>> MethodsArgs = Test_AttributeMutator.constructArgList(StringVertex.class);
+		List<MethodAndArgs<StringVertex>> MethodsArgs = AttributeMutator.constructArgList(StringVertex.class);
 		
 		// Now check that hashCode and equals are affected by values of different fields.
 		// ID is not included because it is declared final.

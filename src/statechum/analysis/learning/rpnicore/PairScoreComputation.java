@@ -43,10 +43,12 @@ import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph.HandleRow;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph.StateBasedRandom;
+import statechum.analysis.learning.linear.GDLearnerGraph;
+import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSide;
+import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
+import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
+import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
+import statechum.analysis.learning.rpnicore.LSolver;
 
 public class PairScoreComputation {
 	final LearnerGraph coregraph;
@@ -129,7 +131,7 @@ public class PairScoreComputation {
 	}		
 
 	/** Used to sort the collection of pairs and scores and do the filtering if needed. */
-	Stack<PairScore>  getSortedPairsAndScoresStackFromUnsorted()
+	public Stack<PairScore>  getSortedPairsAndScoresStackFromUnsorted()
 	{
 		Collections.sort(coregraph.pairsAndScores);// there is no point maintaining a sorted collection as we go since a single quicksort at the end will do the job
 

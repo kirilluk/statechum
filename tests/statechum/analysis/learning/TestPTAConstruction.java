@@ -21,6 +21,7 @@ package statechum.analysis.learning;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -191,7 +192,10 @@ public class TestPTAConstruction
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config)),0,0);
 			for(List<Label> seq:minusStrings)
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),buildSet(new String[][] { (String [])seq.toArray()},config)));
+			{
+				Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
+				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
+			}
 			actualE = l.tentativeAutomaton.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
@@ -385,7 +389,9 @@ public class TestPTAConstruction
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config)),0,0);
 			for(List<Label> seq:minusStrings)
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),buildSet(new String[][] { (String [])seq.toArray()},config)));
+			{	Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
+				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
+			}
 			actualE = l.tentativeAutomaton.pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)

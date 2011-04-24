@@ -38,7 +38,7 @@ import statechum.Pair;
 import statechum.StatechumXML;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.ComparisonKind;
-import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.RecordProgressDecorator;

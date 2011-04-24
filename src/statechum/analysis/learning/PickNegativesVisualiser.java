@@ -23,14 +23,12 @@ import java.util.*;
 import javax.swing.*;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
-import edu.uci.ics.jung.algorithms.shortestpath.*;
 
 import statechum.analysis.learning.observers.AutoAnswers;
-import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.profileStringExtractor.SplitFrame;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
+import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.*;
 import statechum.analysis.learning.util.*;
 
@@ -43,18 +41,9 @@ public class PickNegativesVisualiser extends Visualiser {
 	/** This one does the learning. */
 	protected RPNILearner innerLearner =  null;
 		
-	protected SplitFrame split = null;
-	
 	public PickNegativesVisualiser()
 	{
 		super(statechum.GlobalConfiguration.G_PROPERTIES.UPPER);
-	}
-	
-	
-	public PickNegativesVisualiser(SplitFrame frm)
-	{
-		super();
-		split = frm;
 	}
 	
 	/** The learner thread. */
@@ -91,11 +80,7 @@ public class PickNegativesVisualiser extends Visualiser {
 				if (conf.ifthenSequences != null)
 					innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);
 				else
-					if (split != null) {
-						innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(PickNegativesVisualiser.this, conf.config);
-		        	}
-		        	else
-		        		innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ifthenSequences will always be null.
+		        	innerLearner = new RPNIUniversalLearner(PickNegativesVisualiser.this, conf);// at this point ifthenSequences will always be null.
 				
 				innerLearner.addObserver(PickNegativesVisualiser.this);
 				Learner mainDecorator = new AutoAnswers(innerLearner);
@@ -190,7 +175,10 @@ public class PickNegativesVisualiser extends Visualiser {
 			new Thread(new LearnerRestarter(negatives),"learner restarter").start();
 		}
 	}
-	
+	private List<Label> pickNegativeStrings(@SuppressWarnings("unused") Edge selected){
+		throw new UnsupportedOperationException("this one made not to call legacy code");
+	}
+	/*
 	private List<Label> pickNegativeStrings(Edge selected){
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();
@@ -213,7 +201,7 @@ public class PickNegativesVisualiser extends Visualiser {
 		System.out.println(selectedValue);
 		return (List<Label>)selectedValue;
 	}
-	/*
+	
 	private List<String> pickNegativeStringsOrLTL(Edge selected){
 		DirectedSparseEdge e = (DirectedSparseEdge) selected;
 		DirectedSparseGraph g = (DirectedSparseGraph)selected.getGraph();

@@ -18,7 +18,6 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -57,13 +56,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	final public AbstractPersistence<TARGET_TYPE,CACHE_TYPE> storage = new AbstractPersistence<TARGET_TYPE,CACHE_TYPE>(this);
 
 	/** Transition matrix. */
-	Map<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
+	public Map<CmpVertex,Map<Label,TARGET_TYPE>> transitionMatrix = createNewTransitionMatrix();
 
 	public Map<CmpVertex, Map<Label, TARGET_TYPE>> getTransitionMatrix() {
 		return transitionMatrix;
 	}
 
-	final CACHE_TYPE learnerCache = createCache();
+	public final CACHE_TYPE learnerCache = createCache();
 
         public CACHE_TYPE getCache()
         {
@@ -189,7 +188,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * the two will have the same string as the previously-loaded text.
 	 * TODO: replace most assert statements with conditional checks, perhaps related to "underTest" variable of LearnerGraph or config, so I'll be able to test both with and without consistency checks. Best to run all tests this way and another way via ant
 	 */
-	protected void setIDNumbers()
+	public void setIDNumbers()
 	{
 		for(CmpVertex vert:transitionMatrix.keySet())
 			updateIDWith(vert);
@@ -215,8 +214,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public static final Object syncObj = new Object();
 	
 	/** Important: when a graph is cloned, these should be cloned too in order to avoid creating duplicate vertices at some point in future. */
-	protected int vertPositiveID = 0;
-	protected int vertNegativeID = 0;
+	public int vertPositiveID = 0;
+	public int vertNegativeID = 0;
 
 	public synchronized VertexID nextID(boolean accepted)
 	{
@@ -416,7 +415,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param vertToIntMap from vertices to numbers (an inverse of the map returned).
 	 * @return map from vertex number to vertices 
 	 */
-	CmpVertex[] buildStateToIntegerMap(StatesToConsider whatToConsider, Map<CmpVertex,Integer> vertToIntMap)
+	public CmpVertex[] buildStateToIntegerMap(StatesToConsider whatToConsider, Map<CmpVertex,Integer> vertToIntMap)
 	{
 		int size=0;for(CmpVertex vert:transitionMatrix.keySet()) 
 			if (whatToConsider == null || whatToConsider.stateToConsider(vert)) size++;
@@ -440,7 +439,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the label of the edge
 	 * @return the new vertex.
 	 */
-	CmpVertex addVertex(CmpVertex prevState, boolean accepted, Label input)
+	public CmpVertex addVertex(CmpVertex prevState, boolean accepted, Label input)
 	{
 		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
@@ -476,7 +475,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Creates a new transition matrix of the correct type and backed by an appropriate map,
 	 * such as a TreeMap. 
 	 */
-	abstract Map<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix();
+	abstract public Map<CmpVertex,Map<Label,TARGET_TYPE>> createNewTransitionMatrix();
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a new row for a transition matrix is to be created.
@@ -486,7 +485,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 *  
 	 * @return new row
 	 */
-	abstract Map<Label,TARGET_TYPE> createNewRow();
+	abstract public Map<Label,TARGET_TYPE> createNewRow();
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a row for a transition matrix needs to be updated with
@@ -496,7 +495,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to use
 	 * @param target the target state
 	 */
-	abstract void addTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
+	abstract public void addTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
 
 	/** Makes it possible to remove a transition from a row in a transition matrix.
 	 * Does nothing if a transition does not exist.
@@ -505,7 +504,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param input the input to consider 
 	 * @param target state to remove.
 	 */
-	abstract void removeTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
+	abstract public void removeTransition(Map<Label,TARGET_TYPE> row,Label input,CmpVertex target);
 	
 	/** Given a collection of vertices or a single vertex, this method returns a collection
 	 * representing all the vertices. This makes it possible to iterate through all target
@@ -514,7 +513,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * @param targ targets
 	 * @return iterator for navigation through target states.
 	 */
-	abstract Collection<CmpVertex> getTargets(TARGET_TYPE targ);
+	abstract public Collection<CmpVertex> getTargets(TARGET_TYPE targ);
 	
 	/** Initialises this graph with a single-state PTA. */
 	public void initPTA()
@@ -821,7 +820,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return init;
 	}
 
-	final protected PairCompatibility<CmpVertex> pairCompatibility = new PairCompatibility<CmpVertex>();
+	public final PairCompatibility<CmpVertex> pairCompatibility = new PairCompatibility<CmpVertex>();
 
 	/** Stores pairs of states which satisfy a relation of interest.
 	 * For instance, these could be mandatory merge constraints or a record that

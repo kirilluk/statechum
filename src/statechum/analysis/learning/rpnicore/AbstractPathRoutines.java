@@ -823,5 +823,64 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		return result.toString();
 	}
 	
-
+	void addColourAndIncompatiblesRandomly(Random amberRnd, int ratioColour, int proportionIncompatible, int proportionMerged)
+	{
+		for(int i=0;i<coregraph.getStateNumber()/3;++i)
+		{
+			pickRandomState(amberRnd).setColour(JUConstants.AMBER);
+			pickRandomState(amberRnd).setColour(JUConstants.BLUE);
+		}
+		
+		for(int i=0;i<coregraph.getStateNumber()/6;++i)
+		{
+			CmpVertex a = pickRandomState(amberRnd), b = pickRandomState(amberRnd);
+			coregraph.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		}
+		for(int i=0;i<coregraph.getStateNumber()/6;++i)
+		{
+			CmpVertex a = pickRandomState(amberRnd), b = pickRandomState(amberRnd);
+			coregraph.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.MERGED);
+		}
+	}
+	
+	public void addColourRandomly(Random rnd, int ratioColour)
+	{
+		for(int i=0;i<coregraph.getStateNumber()/ratioColour;++i)
+		{
+			pickRandomState(rnd).setColour(JUConstants.AMBER);
+			pickRandomState(rnd).setColour(JUConstants.BLUE);
+		}
+	}
+	
+	public void addIncompatiblesRandomly(Random rnd, int proportionIncompatible)
+	{
+		for(int i=0;i<coregraph.getStateNumber()/proportionIncompatible;++i)
+		{
+			CmpVertex a = pickRandomState(rnd), b = pickRandomState(rnd);
+			coregraph.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
+		}
+	}
+	
+	public void addMergedRandomly(Random rnd, int proportionMerged)
+	{
+		for(int i=0;i<coregraph.getStateNumber()/proportionMerged;++i)
+		{
+			CmpVertex a = pickRandomState(rnd), b = pickRandomState(rnd);
+			coregraph.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.MERGED);
+		}
+	}
+	
+	public void addTransitionsRandomly(Random amberRnd, int proportionToAdd)
+	{
+		for(int i=0;i<coregraph.getStateNumber()/proportionToAdd;++i)
+		{
+			CmpVertex a = pickRandomState(amberRnd), b = pickRandomState(amberRnd);
+			Map<Label,TARGET_TYPE> targets = coregraph.transitionMatrix.get(a);
+			if (targets != null)
+			{
+				Entry<Label,TARGET_TYPE> entry=targets.entrySet().iterator().next();
+				if (!coregraph.getTargets(entry.getValue()).contains(b)) coregraph.getTargets(entry.getValue()).add(b);
+			}
+		}
+	}
 }

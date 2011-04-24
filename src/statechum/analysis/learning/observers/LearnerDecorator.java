@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 
 import statechum.Label;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTASequenceEngine;
 

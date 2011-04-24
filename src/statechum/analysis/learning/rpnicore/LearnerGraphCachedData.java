@@ -23,8 +23,8 @@ import java.util.Map;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.SMTLabel;
+import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
+import statechum.analysis.learning.smt.SmtLabelRepresentation.SMTLabel;
 
 /** An extension of the cache with elements to support learning. */ 
 public class LearnerGraphCachedData extends CachedData<CmpVertex,LearnerGraphCachedData>

@@ -28,7 +28,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import statechum.Test_AttributeMutator.GETMETHOD_KIND;
+import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 
 /** Represents a configuration for a learner. The purpose is a possibility of a 
@@ -1217,7 +1217,7 @@ public class Configuration implements Cloneable
 					var.getName() != "$VRc"// added by eclemma (coverage analysis) 
 				&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
 			{
-				Method getter = Test_AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_GET, var);
+				Method getter = AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_GET, var);
 				Element varData = doc.createElement(configVarTag);
 				try 
 				{
@@ -1283,7 +1283,7 @@ public class Configuration implements Cloneable
 		try
 		{
 			var = getClass().getDeclaredField(attrName);
-			Method setter = Test_AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_SET,var);
+			Method setter = AttributeMutator.getMethod(Configuration.class,GETMETHOD_KIND.FIELD_SET,var);
 			Object value = null;String valueAsText = attrValue;
 			if (var.getType().equals(Boolean.class) || var.getType().equals(boolean.class))
 			{

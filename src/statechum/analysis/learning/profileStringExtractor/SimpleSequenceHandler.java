@@ -137,7 +137,7 @@ public class SimpleSequenceHandler extends DefaultHandler{
 	public void endDocument() throws SAXException {
 		super.endDocument();
 			try{
-				FileOutputStream fos = new FileOutputStream("temp"+System.getProperty("file.separator")+"trace.txt");
+				FileOutputStream fos = new FileOutputStream(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)+File.separator+"trace.txt");
 				OutputStreamWriter out= new OutputStreamWriter(fos, "UTF-8");
 				Iterator<Integer> obsIt = methodSequence.iterator();
 				out.write("+ ");

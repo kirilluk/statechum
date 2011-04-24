@@ -13,9 +13,9 @@ import java.io.FileReader;
 import statechum.JUConstants;
 
 import statechum.analysis.learning.observers.AutoAnswers;
-import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.SmtLearnerDecorator;
+import statechum.analysis.learning.smt.SmtLearnerDecorator;
 import statechum.analysis.learning.util.*;
 import statechum.apps.ErlangQSMOracle;
 import javax.swing.*;
@@ -105,8 +105,6 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             public void run() {
                 if (conf.ifthenSequences != null) {
                     innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf);
-                } else if (split != null) {
-                    innerLearner = new Test_Orig_RPNIBlueFringeLearnerTestComponent(ErlangOracleVisualiser.this, conf.config);
                 } else {
                     innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf);// at this point ifthenSequences will always be null.
                 }

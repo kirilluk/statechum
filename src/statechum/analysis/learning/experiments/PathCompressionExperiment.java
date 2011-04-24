@@ -20,12 +20,9 @@ package statechum.analysis.learning.experiments;
 
 import java.util.*;
 
-import edu.uci.ics.jung.graph.impl.*;
 import statechum.Configuration;
-import statechum.Label;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
-import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -72,18 +69,7 @@ public class PathCompressionExperiment {
 			pta = rpg.getAllSequences(percent);
 		}
 	}
-	
-	public static Collection<List<Label>> getPositiveStrings(DirectedSparseGraph graph, Collection<List<Label>> samples){
-		Iterator<List<Label>> sampleIt = samples.iterator();
-		HashSet<List<Label>> positiveStrings = new HashSet<List<Label>>();
-		while(sampleIt.hasNext()){
-			List<Label> v = sampleIt.next();
-			if(Test_Orig_RPNIBlueFringeLearner.getVertex(graph, v) != null)
-				positiveStrings.add(v);
-		}
-		return positiveStrings;
-	}
-	
+
 	public static void main(String []args)
 	{
 		ExperimentRunner experiment = new ExperimentRunner();

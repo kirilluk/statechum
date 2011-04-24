@@ -36,6 +36,7 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;

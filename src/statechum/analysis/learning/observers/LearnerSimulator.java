@@ -43,6 +43,7 @@ import org.w3c.dom.NodeList;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -226,9 +227,10 @@ public class LearnerSimulator extends ProgressDecorator
 			if (result.getNodeType() == org.w3c.dom.Node.TEXT_NODE)
 				result = null;
 		}
+		
 		return (Element)result;
 	}
-	
+		
 	/** Whether the incoming stream is a zip file. */
 	protected boolean readZip = true;
 	

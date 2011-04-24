@@ -22,7 +22,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.uci.ics.jung.visualization.*;
@@ -40,9 +39,16 @@ import statechum.GlobalConfiguration.WindowPosition;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Label;
 import statechum.analysis.learning.rpnicore.*;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
+import java.awt.Image;
+import java.awt.Paint;
+import java.awt.Shape;
+import java.awt.Toolkit;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.beans.XMLDecoder;

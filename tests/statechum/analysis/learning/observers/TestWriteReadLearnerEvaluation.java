@@ -33,13 +33,13 @@ import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParser;
-import statechum.analysis.learning.rpnicore.LabelRepresentation;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.apps.QSMTool;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
-import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
+import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
 
@@ -53,7 +53,7 @@ public class TestWriteReadLearnerEvaluation {
 	String xmlData = null;
 	Collection<List<Label>> testData = null;
 	Collection<String> ltl = null;
-	LabelRepresentation labels = null;
+	SmtLabelRepresentation labels = null;
 	
 	@Before
 	public final void beforeTest()
@@ -75,14 +75,14 @@ public class TestWriteReadLearnerEvaluation {
 				"![](setfiletype -> X((storefile) || (rename)))",
 				"ltl ![]((initialise) -> X(connect))",
 				"ltl !(XX(initialise))" });
-		labels = new LabelRepresentation(config);
+		labels = new SmtLabelRepresentation(config);
 		labels.parseCollection(Arrays.asList(new String[]{
-			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDecl_N",
-			QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " initCond_N",
-			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA",
-			QSMTool.cmdOperation+" "+"A"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA",
-			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB",
-			QSMTool.cmdOperation+" "+"B"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+			QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDecl_N",
+			QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " initCond_N",
+			QSMTool.cmdOperation+" "+"A"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+			QSMTool.cmdOperation+" "+"A"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondA",
+			QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+			QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);

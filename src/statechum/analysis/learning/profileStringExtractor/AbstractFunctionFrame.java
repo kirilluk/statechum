@@ -221,7 +221,7 @@ public class AbstractFunctionFrame extends JFrame implements ActionListener{
 				}
 				
 				QSMTool.setSimpleConfiguration(config, true,0);
-				new PickNegativesVisualiser(split).construct(sPlus, new HashSet<List<Label>>(),new LearnerEvaluationConfiguration(null,null,config,null,null));
+				new PickNegativesVisualiser().construct(sPlus, new HashSet<List<Label>>(),new LearnerEvaluationConfiguration(null,null,config,null,null));
 			}
 			catch(Exception ex){
 				ex.printStackTrace();

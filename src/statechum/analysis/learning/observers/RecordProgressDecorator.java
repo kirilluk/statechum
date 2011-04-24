@@ -40,6 +40,7 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
@@ -87,6 +88,8 @@ public class RecordProgressDecorator extends ProgressDecorator
 			}
 			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
 			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
+			labelio = new StatechumXML.StringLabelSequenceWriter(doc,config);
+			stringio = new StatechumXML.StringSequenceWriter(doc);
 		}
 		catch(ParserConfigurationException e)
 		{

@@ -219,6 +219,10 @@ import cern.colt.matrix.linalg.LUDecompositionQuick;
 * and triggering a bouncing coffee icon in the dock as well as a display of application name in the menu bar.
 * The problem is caused by static data in, for instance, <em>java.awt.Rectangle</em> making the said connection upon classloading of <em>java.awt.Rectangle</em>.
 * </li></ul>
+* 
+* It is worth noting that the full path of the interface is encoded in the shared libraries hence
+* moving this interface is only possible if libraries are rebuilt. For this reason, LSolver
+* is stuck in the rpnicore rather than in learner/linear. 
 */
 public class LSolver 
 {
@@ -263,7 +267,7 @@ public class LSolver
 	private static LibraryLoadResult libraryLoaded = LibraryLoadResult.NOT_ATTEMPTED;
 	
 	/** Solves the system of equations, placing the solution in the x array. For details, refer to UMFPACK manual. */
-	static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
+	public static native boolean extsolve(int Ap[], int[] Ai, double []Ax, double b[], double x[]);
 
 	/** Allocates the memory for use by the solver. This was introduced to 
 	 * combat "out-of-memory" errors on 32-bit WinXP but was not useful for this purpose. 

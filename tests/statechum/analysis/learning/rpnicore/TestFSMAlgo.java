@@ -37,7 +37,8 @@ import statechum.Label;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
+import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.apps.QSMTool;
 import edu.uci.ics.jung.graph.Vertex;
@@ -62,7 +63,7 @@ import static statechum.Helper.whatToRun;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
-import static statechum.analysis.learning.rpnicore.LabelRepresentation.INITMEM;
+import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 
 public class TestFSMAlgo {
 
@@ -74,7 +75,7 @@ public class TestFSMAlgo {
 	
 	org.w3c.dom.Document doc = null;
 	
-	LabelRepresentation lbls = null;
+	SmtLabelRepresentation lbls = null;
 	
 	/** Make sure that whatever changes a test have made to the 
 	 * configuration, next test is not affected.
@@ -97,17 +98,17 @@ public class TestFSMAlgo {
 		}
 
 	
-		lbls = new LabelRepresentation(config);
+		lbls = new SmtLabelRepresentation(config);
 		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
-				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.PRE+ " varDeclQ_N",
-				QSMTool.cmdOperation+" "+INITMEM+" "+LabelRepresentation.OP_DATA.POST+ " initCond_N",
-				QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondA_N",
-				QSMTool.cmdOperation+" "+"a"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondA_N",
-				QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondB_N",
-				QSMTool.cmdOperation+" "+"b"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondB_N",
-				QSMTool.cmdOperation+" "+"c"+" "+LabelRepresentation.OP_DATA.PRE+ " somePrecondC_N",
-				QSMTool.cmdOperation+" "+"c"+" "+LabelRepresentation.OP_DATA.POST+ " somePostcondC_N"}));
+				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
+				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDeclQ_N",
+				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " initCond_N",
+				QSMTool.cmdOperation+" "+"a"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondA_N",
+				QSMTool.cmdOperation+" "+"a"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondA_N",
+				QSMTool.cmdOperation+" "+"b"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB_N",
+				QSMTool.cmdOperation+" "+"b"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB_N",
+				QSMTool.cmdOperation+" "+"c"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondC_N",
+				QSMTool.cmdOperation+" "+"c"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondC_N"}));
 	}
 
 	/** The configuration to use when running tests. */

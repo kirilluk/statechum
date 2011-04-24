@@ -30,12 +30,12 @@ import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.analysis.learning.rpnicore.FsmParser;
-import statechum.analysis.learning.rpnicore.LabelRepresentation;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import static statechum.Helper.checkForCorrectException;
 import static statechum.Helper.whatToRun;
-import static statechum.analysis.learning.rpnicore.LabelRepresentation.ENDL;
+import static statechum.analysis.learning.smt.SmtLabelRepresentation.ENDL;
 
 /**
  * This one tests the ability of QSMTool to load a configuration.
@@ -308,7 +308,7 @@ public class TestQSMTool {
 	public final void testLoadXMLabels1()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
-		"k 8\n\npassive\n"+QSMTool.cmdOperation+"\n"+QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+QSMTool.cmdOperation));
+		"k 8\n\npassive\n"+QSMTool.cmdOperation+"\n"+QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+QSMTool.cmdOperation));
 		Assert.assertEquals(8,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config),tool.sPlus);
@@ -323,19 +323,19 @@ public class TestQSMTool {
 	public final void testLoadXMLabels2()
 	{
 		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
-			QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl"+LabelRepresentation.delimiterString+"N"+"\n"+
-			QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.POST+" constraint"+LabelRepresentation.delimiterString+"N"+"\n"+
-			QSMTool.cmdOperation+" a "+LabelRepresentation.OP_DATA.POST+" constraint_N"+"\n"+
+			QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+" decl"+SmtLabelRepresentation.delimiterString+"N"+"\n"+
+			QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+" constraint"+SmtLabelRepresentation.delimiterString+"N"+"\n"+
+			QSMTool.cmdOperation+" a "+SmtLabelRepresentation.OP_DATA.POST+" constraint_N"+"\n"+
 			QSMTool.cmdOperation));
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
 		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(FsmParser.buildLearnerGraph("A-a->B", "testLoadXMLabels2",Configuration.getDefaultConfiguration()), null,true);
-		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new LabelRepresentation.SMTLabel[]{}),null);
-		Assert.assertEquals("decl"+LabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
-		Assert.assertEquals(LabelRepresentation.commentForNewSeq+"[]"+ENDL+
+		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new SmtLabelRepresentation.SMTLabel[]{}),null);
+		Assert.assertEquals("decl"+SmtLabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
+		Assert.assertEquals(SmtLabelRepresentation.commentForNewSeq+"[]"+ENDL+
 				"(and"+ENDL+
-				LabelRepresentation.commentForInit+ENDL+
-				"constraint"+LabelRepresentation.delimiterString+"2"+ENDL+
+				SmtLabelRepresentation.commentForInit+ENDL+
+				"constraint"+SmtLabelRepresentation.delimiterString+"2"+ENDL+
 				')'+ENDL,
 				state.secondElem);
 	}
@@ -346,8 +346,8 @@ public class TestQSMTool {
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
-				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" "+LabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+
-				QSMTool.cmdOperation+" "+LabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
+				QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+
+				QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
 				QSMTool.cmdOperation));
 		}},IllegalArgumentException.class,"expected [PRE");
 	}

@@ -26,10 +26,10 @@ import statechum.Configuration;
 import statechum.StringVertex;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.FsmParser;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph;
+import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.GDLearnerGraph.StateBasedRandom;
+import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
 
 
 public class ScoreMatrixOutput {

@@ -26,6 +26,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.StoredAnswers;

@@ -36,7 +36,9 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.rpnicore.LabelRepresentation.AbstractState;
+import statechum.analysis.learning.linear.Linear;
+import statechum.analysis.learning.smt.SmtLabelRepresentation;
+import statechum.analysis.learning.smt.SmtLabelRepresentation.AbstractState;
 import statechum.model.testset.PTASequenceEngine.FSMAbstraction;
 import edu.uci.ics.jung.graph.Graph;
 import statechum.Label;
@@ -197,7 +199,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	/** Stores all red-blue pairs; has to be backed by array for 
 	 * the optimal performance of the sort function. 
 	 */
-	protected ArrayList<PairScore> pairsAndScores;
+	public ArrayList<PairScore> pairsAndScores;
 
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
@@ -209,9 +211,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
-	
 	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
-
+	
 	/** Constructs a StateChum graph from a Jung Graph
 	 *
 	 * @param g the graph to build StateChum graph from
@@ -284,11 +285,16 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 
 	/** A map from merged vertices to collections of original vertices they correspond to.
 	 */
-	Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> vertexToAbstractState = null; 
+	Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> vertexToAbstractState = null; 
 
-	public Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> getVertexToAbstractState()
+	public Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> getVertexToAbstractState()
 	{
 		return vertexToAbstractState;
+	}
+	
+	public void setVertexToAbstractState(Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newMap)
+	{
+		vertexToAbstractState = newMap;
 	}
 	
 	/** Makes a deep-clone of the map. Abstract states are immutable hence they are preserved. */
@@ -296,8 +302,8 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	{// TODO: to test this one
 		if (from.getVertexToAbstractState() != null)
 		{
-			Map<CmpVertex,Collection<LabelRepresentation.AbstractState>> newMap = new TreeMap<CmpVertex,Collection<LabelRepresentation.AbstractState>>();
-			for(Entry<CmpVertex,Collection<LabelRepresentation.AbstractState>> entry:from.getVertexToAbstractState().entrySet())
+			Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> newMap = new TreeMap<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>>();
+			for(Entry<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> entry:from.getVertexToAbstractState().entrySet())
 			{
 				List<AbstractState> combinedAbstractStates = new LinkedList<AbstractState>();
 				combinedAbstractStates.addAll(entry.getValue());newMap.put(entry.getKey(), combinedAbstractStates);
@@ -355,12 +361,13 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	public Map<Label, CmpVertex> createNewRow() {
+	public Map<Label, CmpVertex> createNewRow() 
+	{
 		return new TreeMap<Label,CmpVertex>();// using TreeMap makes everything predictable
 	}
 
 	@Override
-	void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
+	public void addTransition(Map<Label, CmpVertex> row, Label input, CmpVertex target)
 	{
 		if (row.containsKey(input)) throw new IllegalArgumentException("non-determinism detected for input "+input+" to state "+target);
 			
@@ -469,12 +476,13 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	}
 
 	@Override
-	Map<CmpVertex, Map<Label, CmpVertex>> createNewTransitionMatrix() {
+	public Map<CmpVertex, Map<Label, CmpVertex>> createNewTransitionMatrix() 
+	{
 		return new TreeMap<CmpVertex, Map<Label, CmpVertex>>();
 	}
 
 	@Override
-	void removeTransition(Map<Label, CmpVertex> row, Label input, @SuppressWarnings("unused") CmpVertex target)
+	public void removeTransition(Map<Label, CmpVertex> row, Label input, @SuppressWarnings("unused") CmpVertex target)
 	{
 		row.remove(input);
 	}

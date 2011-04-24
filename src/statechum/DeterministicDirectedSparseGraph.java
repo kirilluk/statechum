@@ -963,4 +963,14 @@ final public class DeterministicDirectedSparseGraph {
 		to.setOrigState(from.getOrigState());
 		to.setDepth(from.getDepth());
 	}
+	
+	public static Edge findEdge(Vertex from, Vertex to){
+		Iterator<DirectedSparseEdge> edgesOut = from.getOutEdges().iterator();
+		while(edgesOut.hasNext()){
+			DirectedSparseEdge current = edgesOut.next();
+			if(current.getDest().equals(to))
+				return current;
+		}
+		return null;
+	}
 }

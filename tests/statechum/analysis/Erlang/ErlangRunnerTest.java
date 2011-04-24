@@ -38,7 +38,7 @@ import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
-import statechum.analysis.learning.rpnicore.TestGD.ProgressIndicator;
+import statechum.ProgressIndicator;
 import statechum.apps.ErlangQSMOracle;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;

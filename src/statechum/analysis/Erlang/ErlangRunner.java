@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;

@@ -78,7 +78,7 @@ public class Smt {
 	private native void releaseContext();
 	
 	@Override
-	protected void finalize()
+	public void finalize()
 	{
 		releaseContext();
 	}

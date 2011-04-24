@@ -50,6 +50,7 @@ import javax.swing.SwingUtilities;
 
 import statechum.Configuration;
 import statechum.StatechumXML;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser.graphAction;

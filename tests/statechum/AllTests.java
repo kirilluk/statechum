@@ -30,10 +30,12 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.AllTests.BasicTests.class,
     statechum.AllTests.GraphTests.class,
     statechum.AllTests.LearnerTests.class,
-    //statechum.AllTests.LinearTests.class,
-    //statechum.AllTests.SmtTests.class,
+    statechum.AllTests.ObserversTests.class,
+    statechum.AllTests.LinearTests.class,
+    statechum.AllTests.SmtTests.class,
     statechum.AllTests.ErlangTests.class,
-    statechum.analysis.learning.Test_CheckLearnerAgainstLog.class
+    statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
+    statechum.AllTests.LengthyTests.class
 })
 public class AllTests {
 
@@ -47,8 +49,7 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
         statechum.analysis.learning.TestLoadAnswers.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
-        statechum.model.testset.TestPTA_computePrecisionRecall.class,
-        statechum.AllTests.ObserversTests.class
+        statechum.model.testset.TestPTA_computePrecisionRecall.class
     }) // commas after the last entry compile from within Eclipse but not from ant
     public static class LearnerTests {// all tests are included in the annotation.
     }
@@ -96,24 +97,21 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestTransform.class,
         statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
         statechum.analysis.learning.rpnicore.TestWMethod.class,
-        statechum.analysis.learning.experiments.TestForestFireGenerator.class
+        statechum.analysis.learning.experiments.TestForestFireGenerator.class,
+        statechum.TestProgressIndicator.class
     })
     public static class GraphTests {// all tests are included in the annotation.
     }
 
     @RunWith(Suite.class)
     @Suite.SuiteClasses({
-        statechum.analysis.learning.rpnicore.TestLinear.class,
-        statechum.analysis.learning.rpnicore.TestSolverRandomly.class,
-        statechum.analysis.learning.rpnicore.TestSolver.class,
-        statechum.analysis.learning.rpnicore.TestLinearWithMultipleThreads.class,
-        statechum.analysis.learning.rpnicore.TestGD.class,
-        statechum.analysis.learning.rpnicore.TestGD_Multithreaded.class,
-        statechum.analysis.learning.rpnicore.TestGD_MultipleCasesOfRenaming.class,
-        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphs.class,
-        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsUsingTestSet.class,
-        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsND.class,
-        //statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet.class,
+        statechum.analysis.learning.linear.TestLinear.class,
+        statechum.analysis.learning.linear.TestSolverRandomly.class,
+        statechum.analysis.learning.linear.TestSolver.class,
+        statechum.analysis.learning.linear.TestLinearWithMultipleThreads.class,
+        statechum.analysis.learning.linear.TestGD.class,
+        statechum.analysis.learning.linear.TestGD_Multithreaded.class,
+        statechum.analysis.learning.linear.TestGD_MultipleCasesOfRenaming.class,
         statechum.apps.TestVisualDemo.class
     })
     public static class LinearTests {// all tests are included in the annotation.
@@ -122,10 +120,10 @@ public class AllTests {
     @RunWith(Suite.class)
     @SuiteClasses({
         statechum.analysis.learning.TestSmt.class,
-        statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.class,
-        statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestFeaturesOfAbstractStates.class,
-        statechum.analysis.learning.rpnicore.TestLabelParser.class,
-        statechum.analysis.learning.rpnicore.TestSmtLabelRepresentation.TestChecksInTwoContexts.class
+        statechum.analysis.learning.smt.TestSmtLabelRepresentation.class,
+        statechum.analysis.learning.smt.TestSmtLabelRepresentation.TestFeaturesOfAbstractStates.class,
+        statechum.analysis.learning.smt.TestLabelParser.class,
+        statechum.analysis.learning.smt.TestSmtLabelRepresentation.TestChecksInTwoContexts.class
     })
     public static class SmtTests {// all tests are included in the annotation.
     }
@@ -138,4 +136,15 @@ public class AllTests {
     })
     public static class ErlangTests {// all tests are included in the annotation.
     }
+    
+    @RunWith(Suite.class)
+    @SuiteClasses({
+    	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,
+        statechum.analysis.learning.linear.TestGD_ExistingGraphsUsingTestSet.class,
+        statechum.analysis.learning.linear.TestGD_ExistingGraphsND.class,
+        statechum.analysis.learning.linear.TestGD_ExistingGraphsNDUsingTestSet.class
+    })
+    public static class LengthyTests {// all tests are included in the annotation.
+    }
+  
 }

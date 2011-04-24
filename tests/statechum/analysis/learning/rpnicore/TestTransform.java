@@ -60,7 +60,8 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.observers.TestWriteReadPair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
-import statechum.analysis.learning.rpnicore.GD.ChangesCounter;
+import statechum.analysis.learning.linear.GD;
+import statechum.analysis.learning.linear.GD.ChangesCounter;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 

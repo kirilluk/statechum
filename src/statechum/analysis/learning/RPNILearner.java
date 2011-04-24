@@ -34,7 +34,7 @@ import statechum.JUConstants;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
-import statechum.analysis.learning.observers.Learner;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.model.testset.PTASequenceEngine;

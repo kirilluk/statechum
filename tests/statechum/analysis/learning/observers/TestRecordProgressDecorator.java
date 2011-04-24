@@ -200,6 +200,7 @@ public class TestRecordProgressDecorator
 	@Test
 	public final void testWriteSequences2() {
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().getBytes()),false);
+		loader.initIO(loader.doc, config);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -228,6 +229,7 @@ public class TestRecordProgressDecorator
 		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("moreData", data2));
 		dumper.close();
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
+		loader.initIO(loader.doc, config);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -264,6 +266,7 @@ public class TestRecordProgressDecorator
 		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("moreData", data2));
 		dumper.close();
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
+		loader.initIO(loader.doc, config);
 		List<List<String>> expected = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ "a","this is a test","3"},
 				new String[]{},
@@ -333,9 +336,10 @@ public class TestRecordProgressDecorator
 	/** Wrong tag when doing readSequenceList */
 	@Test
 	public final void testWriteSequences_fail3() {
+		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
+		loader.initIO(loader.doc, config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false);
-		loader.stringio.readSequenceList(loader.expectNextElement("TT"),"someData");
+			loader.stringio.readSequenceList(loader.expectNextElement("TT"),"someData");
 		}},IllegalArgumentException.class,"expecting to load a list of sequences");
 	}
 
@@ -350,10 +354,12 @@ public class TestRecordProgressDecorator
 		});
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,Configuration.getDefaultConfiguration(),false);
+		dumper.initIO(dumper.doc, config);
 		dumper.topElement.appendChild(dumper.stringio.writeSequenceList("someData", data));
 		dumper.close();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false);
+		loader.initIO(loader.doc, config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
 		}},IllegalArgumentException.class,"expecting to load a list with name ");

@@ -26,6 +26,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import statechum.Helper.whatToRun;
+import statechum.analysis.learning.Smt;
 
 public class TestSmt {
 

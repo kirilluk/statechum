@@ -275,14 +275,14 @@ public class TestLoadAnswers {
 	{
 		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader(""+RPNILearner.QUESTION_USER+"[test] <no> at position 5, junk\n "
-				+RPNILearner.QUESTION_USER+" [some text, more of it] <yes> whatever\n\n\n"
+				+RPNILearner.QUESTION_USER+" [some_text, more_of_it] <yes> whatever\n\n\n"
 				+""+RPNILearner.QUESTION_USER+"[teststr, another, more] <no> at position 0, junk\n"				
-				+""+RPNILearner.QUESTION_USER+" [ difficult one] <ltl> some ltl 1\n"
+				+""+RPNILearner.QUESTION_USER+" [ difficult_one] <ltl> some ltl 1\n"
 				+RPNILearner.QUESTION_USER+"[teststr, a, more] <no> at position 2, junk\n"
 				+RPNILearner.QUESTION_AUTO+" this junk should be ignored\n"
 				+RPNILearner.QUESTION_SPIN+" this junk should be ignored\n"
 				+""+RPNILearner.QUESTION_USER+"[teststr, p, more] <yes> junk\n"
-				+""+RPNILearner.QUESTION_USER+" [ difficult second one] <ltl> some ltl 2\n"
+				+""+RPNILearner.QUESTION_USER+" [ difficult_second_one] <ltl> some ltl 2\n"
 
 				+""+RPNILearner.QUESTION_USER+" [some, trace] "+RPNILearner.QUESTION_INCOMPATIBLE+" elem1 elem2\n"
 				+""+RPNILearner.QUESTION_USER+" [trace, A] "+RPNILearner.QUESTION_IGNORE+"\n"
@@ -290,13 +290,13 @@ public class TestLoadAnswers {
 		));
 		Assert.assertEquals(10,sa.getCount());
 		Assert.assertEquals(new Pair<Integer,String>(5,null), sa.getAnswer(arrayToLabels(new String[]{"test"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(arrayToLabels(new String[]{"some text","more of it"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(arrayToLabels(new String[]{"some_text","more_of_it"})));
 		Assert.assertEquals(new Pair<Integer,String>(0,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","another", "more"})));
 		Assert.assertEquals(new Pair<Integer,String>(2,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","a", "more"})));
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null), sa.getAnswer(arrayToLabels(new String[]{"teststr","p", "more"})));
 		Assert.assertEquals(null, sa.getAnswer(arrayToLabels(new String[]{"unknown","p", "more"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(arrayToLabels(new String[]{" difficult one"})));
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(arrayToLabels(new String[]{" difficult second one"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 1"), sa.getAnswer(arrayToLabels(new String[]{"difficult_one"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_LTL,"some ltl 2"), sa.getAnswer(arrayToLabels(new String[]{"difficult_second_one"})));
 		
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"elem1 elem2"), sa.getAnswer(arrayToLabels(new String[]{"some","trace"})));		
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"trace","A"})));		

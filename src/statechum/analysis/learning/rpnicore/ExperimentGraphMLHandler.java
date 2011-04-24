@@ -33,7 +33,6 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex.MiniPair;
 import statechum.Label;
-import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearner;
 
 public class ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 	extends GraphMLFileHandler {
@@ -83,7 +82,7 @@ public class ExperimentGraphMLHandler<TARGET_TYPE,CACHE_TYPE extends CachedData<
 	        e.setUserDatum(JUConstants.LABEL, labels, UserData.SHARED);
         }
         else{
-        	e = Test_Orig_RPNIBlueFringeLearner.findEdge(sourceVertex, targetVertex);
+        	e = DeterministicDirectedSparseGraph.findEdge(sourceVertex, targetVertex);
         	Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
         	if(attributeMap.get("EDGE")!=null)
         		labels.add(AbstractLearnerGraph.generateNewLabel((String)attributeMap.get("EDGE"),config));

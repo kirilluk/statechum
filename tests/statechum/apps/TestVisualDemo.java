@@ -32,10 +32,10 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
-import statechum.analysis.learning.rpnicore.GD;
+import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
-import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
+import statechum.analysis.learning.linear.TestGD_Multithreaded;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 

@@ -180,7 +180,7 @@ public class LTL_to_ba {
 	private static final int lexTRANSITIONTARGET =3;
 	private static final int lexSKIP = 12;
 
-	protected static class Lexer 
+	public static class Lexer 
 	{
 		private String text = null;
 		private Matcher lexer = null;

@@ -34,7 +34,7 @@ import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestGD_Multithreaded;
+import statechum.analysis.learning.linear.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 

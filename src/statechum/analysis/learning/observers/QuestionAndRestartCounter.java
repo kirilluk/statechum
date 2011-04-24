@@ -21,6 +21,7 @@ import java.util.List;
 
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 

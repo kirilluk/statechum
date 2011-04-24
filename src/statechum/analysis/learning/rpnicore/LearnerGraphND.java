@@ -273,7 +273,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	/** Puts together transitions from a different matrices and returns the result of addition, which
 	 * is most likely non-deterministic.
 	 */
-	protected static 
+	public static 
 	<TARGET_A_TYPE,TARGET_B_TYPE,
 	CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 	CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
@@ -301,12 +301,12 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	Map<Label, List<CmpVertex>> createNewRow() {
+	public Map<Label, List<CmpVertex>> createNewRow() {
 		return new TreeMap<Label,List<CmpVertex>>();
 	}
 
 	@Override
-	void addTransition(Map<Label, List<CmpVertex>> row, Label input, CmpVertex target) {
+	public void addTransition(Map<Label, List<CmpVertex>> row, Label input, CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets == null)
 		{
@@ -322,17 +322,17 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 	}
 
 	@Override
-	Map<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix() {
+	public Map<CmpVertex, Map<Label, List<CmpVertex>>> createNewTransitionMatrix() {
 		return new TreeMap<CmpVertex, Map<Label, List<CmpVertex>>>();
 	}
 
 	@Override
-	Collection<CmpVertex> getTargets(List<CmpVertex> targ) {
+	public Collection<CmpVertex> getTargets(List<CmpVertex> targ) {
 		return targ;
 	}
 
 	@Override
-	void removeTransition(Map<Label, List<CmpVertex>> row, Label input,
+	public void removeTransition(Map<Label, List<CmpVertex>> row, Label input,
 			CmpVertex target) {
 		List<CmpVertex> targets = row.get(input);
 		if (targets != null)

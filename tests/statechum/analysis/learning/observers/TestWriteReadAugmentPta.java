@@ -37,7 +37,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.Helper.whatToRun;
-import statechum.analysis.learning.observers.Learner.RestartLearningEnum;
+import statechum.analysis.learning.Learner.RestartLearningEnum;
 import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -71,6 +71,7 @@ public class TestWriteReadAugmentPta
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
 				RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE);
@@ -84,6 +85,7 @@ public class TestWriteReadAugmentPta
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(
 				TestRecordProgressDecorator.addExtraAttribute(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
 				RestartLearningEnum.restartSOFT,sequence,true,JUConstants.BLUE);
@@ -103,6 +105,7 @@ public class TestWriteReadAugmentPta
 
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
 				RestartLearningEnum.restartHARD,new LinkedList<Label>(),false,JUConstants.RED);
@@ -122,6 +125,7 @@ public class TestWriteReadAugmentPta
 
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
 				RestartLearningEnum.restartHARD,sequence,false,null);
@@ -134,6 +138,7 @@ public class TestWriteReadAugmentPta
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_AUGMENTPTA).getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag));
 		}},IllegalArgumentException.class,"cannot load augmentPTA data");
@@ -153,6 +158,7 @@ public class TestWriteReadAugmentPta
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing sequence");
@@ -172,6 +178,7 @@ public class TestWriteReadAugmentPta
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		ProgressDecorator.AugmentPTAData data = loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		ProgressDecorator.AugmentPTAData expected = new ProgressDecorator.AugmentPTAData(
 				RestartLearningEnum.restartSOFT,sequence,true,null);
@@ -192,6 +199,7 @@ public class TestWriteReadAugmentPta
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing accept");
@@ -211,6 +219,7 @@ public class TestWriteReadAugmentPta
 
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false);
 		loader.config = Configuration.getDefaultConfiguration();
+		loader.initIO(loader.doc, loader.config);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			loader.readAugmentPTA(loader.expectNextElement(StatechumXML.ELEM_AUGMENTPTA.name()));
 		}},IllegalArgumentException.class,"missing kind");

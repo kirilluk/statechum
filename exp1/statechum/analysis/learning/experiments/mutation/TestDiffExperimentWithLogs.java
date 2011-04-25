@@ -38,7 +38,7 @@ public class TestDiffExperimentWithLogs {
 		runner.TestExperiment(new ResultChecker(path+File.separator+logs));
 		
 		// Uncomment this to record logs.
-		//runner.TestExperiment(new ResultRecorder(logs));
+		//runner.TestExperiment(new ResultRecorder(path+File.separator+logs));
 	}
 	
 	/** Called for each result, could either record results or match them to the recording. */
@@ -115,7 +115,7 @@ public class TestDiffExperimentWithLogs {
 					int states=initStates+graphComplexity*50;
 					int alphabet = states/2;
 					
-					MachineGenerator mg = new MachineGenerator(states, 40, states/6);
+					MachineGenerator mg = new MachineGenerator(states, 40, states/10);
 					int mutationsPerStage = (states/2) / 2;
 					//System.out.print("\n"+states+": ");
 					TestGD.ProgressIndicator progress = new ProgressIndicator(""+states, mutationStages*experimentsPerMutationCategory);

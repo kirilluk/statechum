@@ -39,7 +39,6 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.util.OutputUtil;
@@ -103,33 +102,49 @@ public class ForestFireStateMachineGenerator {
 		 // support multi-core (internal vertex ID generation of Jung is not synchronized).
 			
 			labelmap = new HashMap<VertexID,DeterministicVertex>();
-			for(int i=0;i<size-1;i++)
-			{
-				DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
-				annotateVertex(v);
-				machine.addVertex(v);
-				vertices.add(v);// permits v to be chosen as a target, creating self-loops
-				this.labelmap.put(v.getID(), v);
-				Set<DeterministicVertex> tried = new HashSet<DeterministicVertex>();
-				tried.add(v);
-				DeterministicVertex random = null;
-				do
-				{
-					random = selectRandom(tried);
-					tried.add(random);
-				}
-				while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
-				
-				if (Distributions.nextGeometric(1-selfLoop,generator)>0)
-					addEdge(v,v); 
-
-				// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
-				// at this point it is appropriate to assume that we were successful.
-				visited.add(random);visited.add(v);
-				spread(v,random);
-				visited.clear();
-			}
 			
+			int i=0;
+			
+			// We start by adding the specified number of vertices, after that we reduce,
+			// the outcome is likely to shrink substantially, hence we add as many vertices 
+			// as we are short of.
+			int numberOfVerticesToAdd = size;
+			int currentSize = 0; 
+			do
+			{
+				while(i < numberOfVerticesToAdd)
+				{
+					DeterministicVertex v=new DeterministicVertex(new VertexID(VertexID.VertKind.NEUTRAL,i+1));
+					annotateVertex(v);
+					machine.addVertex(v);
+					vertices.add(v);// permits v to be chosen as a target, creating self-loops
+					this.labelmap.put(v.getID(), v);
+					Set<DeterministicVertex> tried = new HashSet<DeterministicVertex>();
+					tried.add(v);
+					DeterministicVertex random = null;
+					do
+					{
+						random = selectRandom(tried);
+						tried.add(random);
+					}
+					while(!addEdge(random,v));// choose different vertices until we find one which can be successfully added.
+					
+					if (Distributions.nextGeometric(1-selfLoop,generator)>0)
+						addEdge(v,v); 
+	
+					// if the above fails, we bail out via an IllegalArgumentException from selectRandom(), hence
+					// at this point it is appropriate to assume that we were successful.
+					visited.add(random);visited.add(v);
+					spread(v,random);
+					visited.clear();
+					++i;
+				}
+				
+				// reached our target, check the size of the graph
+				currentSize = new LearnerGraph(machine,Configuration.getDefaultConfiguration()).paths.reduce().getStateNumber();
+				int additionalVertices = size-currentSize;
+				numberOfVerticesToAdd+=additionalVertices;
+			} while(size > currentSize+3);
 		}
 	}
 	
@@ -137,8 +152,7 @@ public class ForestFireStateMachineGenerator {
 	{
 		buildGraph(size);
 		Configuration conf = Configuration.getDefaultConfiguration();
-		//conf.setAllowedToCloneNonCmpVertex(true);
-		return new LearnerGraph(machine,conf);
+		return new LearnerGraph(machine,conf).paths.reduce();
 	}
 	
 	/** Adds an edge between the supplied vertices and returns true/false if this was successful. */ 
@@ -320,16 +334,6 @@ public class ForestFireStateMachineGenerator {
 				
 		}
 		return graphs;
-	}
-	
-	public static void main(String[] args) throws Exception{
-		int numberOfGraphs = Integer.valueOf(args[0]);
-		double forward = Double.valueOf(args[1]);
-		double backward = Double.valueOf(args[2]);
-		int alphabet = Integer.valueOf(args[3]);
-		int uppersize = Integer.valueOf(args[4]);
-		ArrayList<String> graphs = generateGraphs(numberOfGraphs, forward, backward, alphabet, uppersize);
-		printResults(graphs);	
 	}
 	
 	protected static void printResults(ArrayList<String> graphs){

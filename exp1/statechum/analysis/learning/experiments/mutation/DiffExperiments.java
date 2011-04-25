@@ -136,7 +136,7 @@ public class DiffExperiments {
 			int states=initStates+graphComplexity*50;
 			int alphabet = states/2;
 			
-			MachineGenerator mg = new MachineGenerator(states, 40, states/6);
+			MachineGenerator mg = new MachineGenerator(states, 40, states/10);
 			int mutationsPerStage = (states/2) / 2;
 			//System.out.print("\n"+states+": ");
 			TestGD.ProgressIndicator progress = new ProgressIndicator(""+states, mutationStages*experimentsPerMutationCategory);
@@ -559,13 +559,11 @@ public class DiffExperiments {
 					//System.out.println("generated states: "+machineSize);
 					sizeSequence.add(machineSize);
 					
-					if (Math.abs(machineSize - actualTargetSize) != 0)
-							throw new RuntimeException();
 					if(Math.abs(machineSize - actualTargetSize)<=error){
 						found = true;
 						break;
 					}
-						
+					
 				}
 				if(!found)
 					adjustArtificialTargetSize();

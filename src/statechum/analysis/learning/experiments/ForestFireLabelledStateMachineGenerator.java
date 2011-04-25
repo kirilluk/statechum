@@ -17,6 +17,8 @@
  */
 package statechum.analysis.learning.experiments;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -47,7 +49,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, 
 			int seed,Configuration conf)
 	{
-		super(forwards, backwards,argSelfloop,seed,conf);this.parallel=argParallel;
+		super(forwards, backwards,argSelfloop,seed,conf);this.parallel=(int)(1/argParallel);
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
 	
@@ -94,9 +96,8 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		Label label = null;
 		if(possibles.isEmpty())
 			return false;// failure to add an edge since all possible letters of an alphabet have already been used
-		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray); 
+		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray);
 		label = possiblesArray[randomInt(possiblesArray.length)];
-		
 		if (existingEdge != null)
 		{// a parallel edge
 			((Set<Label>)existingEdge.getUserDatum(JUConstants.LABEL)).add(label);

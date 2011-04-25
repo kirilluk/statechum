@@ -49,7 +49,6 @@ public class GlobalConfiguration {
 		,LINEARWARNINGS// whether to warn when external solver cannot be loaded and we have to fall back to the colt solver.
 		,SMTWARNINGS// whether we should provide warnings when some SMT-related operations do not make sense or cannot be completed.
 		,BUILDGRAPH // whether to break if the name of a graph to build is equal to a value of this property
-		,LOWER, UPPER // window positions (not real properties) to be stored in a configuration file.
 		,STOP // used to stop execution - a workaround re JUnit Eclipse bug on linux amd64.
 		,GRAPHICS_MONITOR // the monitor to pop graphs on - useful when using multiple separate screens rather than xinerama or nview
 		,TIMEBETWEENHEARTBEATS // How often to check i/o streams and send heartbeat data.
@@ -105,7 +104,7 @@ public class GlobalConfiguration {
 	}
 	
 	protected Properties properties = null;
-	protected Map<String, WindowPosition> windowCoords = null;
+	protected Map<Integer, WindowPosition> windowCoords = null;
 
 	/** Retrieves the name of the property from the property file.
 	 *  The first call to this method opens the property file.
@@ -130,7 +129,7 @@ public class GlobalConfiguration {
 			System.out.println("Loaded configuration file "+configFileName);
 			XMLDecoder decoder = new XMLDecoder(new FileInputStream(configFileName));
 			properties = (Properties) decoder.readObject();
-			windowCoords = (HashMap<String, WindowPosition>) decoder.readObject();
+			windowCoords = (HashMap<Integer, WindowPosition>) decoder.readObject();
 			decoder.close();
 		} catch (Exception e) 
 		{// failed loading, (almost) ignore this.
@@ -139,7 +138,7 @@ public class GlobalConfiguration {
 		}
 		
 		if (windowCoords == null)
-			windowCoords = new HashMap<String, WindowPosition>();
+			windowCoords = new HashMap<Integer, WindowPosition>();
 		if (properties == null)
 			properties = new Properties();
 		boolean valuesSet = false,firstValue=true;
@@ -176,12 +175,12 @@ public class GlobalConfiguration {
 	 * @param frame the frame to position.
 	 * @param name the name of the property to load from
 	 */   
-	public WindowPosition loadFrame(G_PROPERTIES name)
+	public WindowPosition loadFrame(int windowID)
 	{
 		if (windowCoords == null)
 			loadConfiguration();
 		
-		WindowPosition result = windowCoords.get(name.name());
+		WindowPosition result = windowCoords.get(windowID);
 		
 		if (result == null)
 		{// invent default coordinates, using http://java.sun.com/j2se/1.5.0/docs/api/java/awt/GraphicsDevice.html#getDefaultConfiguration()
@@ -195,10 +194,12 @@ public class GlobalConfiguration {
 			// from http://java.sun.com/j2se/1.4.2/docs/api/index.html
 			Rectangle shape = gc.getBounds();
 			Rectangle rect = new Rectangle(new Rectangle(shape.x, shape.y,400,300));
-			if (name == G_PROPERTIES.LOWER)
-				rect.y+=rect.getHeight()+30;
+			if (rect.height > shape.height) rect.height=shape.height;if (rect.width > shape.width) rect.width=shape.width;
+			rect.y+=windowID*(rect.getHeight()+30);
+			int yLimit = shape.height-rect.height;if (rect.y>yLimit) rect.y=yLimit;
+			int xLimit = shape.width -rect.width ;if (rect.x>xLimit) rect.x=xLimit;
 			result = new WindowPosition(rect,deviceToUse);
-			windowCoords.put(name.name(),result);
+			windowCoords.put(windowID,result);
 		}
 		
 		return result;
@@ -209,12 +210,12 @@ public class GlobalConfiguration {
 	 * @param frame the frame to position.
 	 * @param name the name under which to store the property
 	 */   
-	public void saveFrame(Frame frame,G_PROPERTIES name)
+	public void saveFrame(Frame frame,int windowID)
 	{
-		WindowPosition windowPos = windowCoords.get(name.name());if (windowPos == null) windowPos = new WindowPosition();
+		WindowPosition windowPos = windowCoords.get(windowID);if (windowPos == null) windowPos = new WindowPosition();
 		Rectangle newRect = new Rectangle(frame.getSize());newRect.setLocation(frame.getX(), frame.getY());
 		windowPos.setRect(newRect);
-		windowCoords.put(name.name(), windowPos);
+		windowCoords.put(windowID, windowPos);
 	}
 
 	/** Stores the details of the frame position. 
@@ -257,7 +258,7 @@ public class GlobalConfiguration {
 	{
 		String configFileName = getConfigurationFileName();
 		if (windowCoords == null)
-			windowCoords = new HashMap<String, WindowPosition>();
+			windowCoords = new HashMap<Integer, WindowPosition>();
 		if (properties == null)
 			properties = new Properties();
 

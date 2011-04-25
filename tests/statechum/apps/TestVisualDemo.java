@@ -67,7 +67,7 @@ public class TestVisualDemo {
 	public final void testVisual2()
 	{
 		Pair<String,String> pair = differenceLabelling("A-a->B-a->C\nB-b->D\nA-d->T-d->S","A-a->C-c->E-c->D-c->F-s->T\nA-d->T-d->T");
-		Assert.assertEquals("{A=(P=A), B=(P=C)[C] , C=DEL, D=KEPT, E=ADD, F=ADD, S=DEL, T=(K 8,2=T)}",pair.firstElem);
+		Assert.assertEquals("{A=(P=A,0.575), B=(P=C,0.5)[C] , C=DEL, D=KEPT, E=ADD, F=ADD, S=DEL, T=(K 8,2=T)}",pair.firstElem);
 		Assert.assertEquals("{B={ADD_c={E=java.awt.Color[r=0,g=255,b=0]}, REM_a={C=java.awt.Color[r=255,g=0,b=0]}, REM_b={D=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"D={ADD_c={F=java.awt.Color[r=0,g=255,b=0]}}, "+
 				"E={ADD_c={D=java.awt.Color[r=0,g=255,b=0]}}, "+
@@ -79,7 +79,7 @@ public class TestVisualDemo {
 	public final void testVisual3()
 	{
 		Pair<String,String> pair = differenceLabelling("A-a->B-a->C\nB-b->D\nA-d->T-d->T","A-a->C-c->E-c->D-c->F-s->T\nA-d->U-d->U");
-		Assert.assertEquals("{A=(P=A), B=(P=C)[C] , C=DEL, D=KEPT, E=ADD, F=ADD, P1005=DUP[T] , T=(K 12,3=U)[U] }",pair.firstElem);
+		Assert.assertEquals("{A=(P=A,0.6071428571428572), B=(P=C,0.5)[C] , C=DEL, D=KEPT, E=ADD, F=ADD, P1005=DUP[T] , T=(K 12,3=U)[U] }",pair.firstElem);
 		Assert.assertEquals("{B={ADD_c={E=java.awt.Color[r=0,g=255,b=0]}, REM_a={C=java.awt.Color[r=255,g=0,b=0]}, REM_b={D=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"D={ADD_c={F=java.awt.Color[r=0,g=255,b=0]}}, "+
 				"E={ADD_c={D=java.awt.Color[r=0,g=255,b=0]}}, "+
@@ -90,7 +90,7 @@ public class TestVisualDemo {
 	public final void testVisual4()
 	{
 		Pair<String,String> pair = differenceLabelling(TestGD_Multithreaded.A6,TestGD_Multithreaded.B6);
-		Assert.assertEquals("{A=(P=B@)[B@] , B=DEL, C=(P=C@)[C@] , D=(K 14,14=A@)[A@] , E=(P=F@)[F@] , F=DEL, G=(P=G@)[G@] , H=(P=E@)[E@] , I=(P=J@)[J@] , J=DEL, K=(P=K@)[K@] , L=(P=I@)[I@] }",pair.firstElem);
+		Assert.assertEquals("{A=(P=B@,1.4285714285714286)[B@] , B=DEL, C=(P=C@,1.4285714285714286)[C@] , D=(K 14,14=A@)[A@] , E=(P=F@,1.3127413127413128)[F@] , F=DEL, G=(P=G@,1.3127413127413128)[G@] , H=(P=E@,1.3127413127413128)[E@] , I=(P=J@,1.30334968172806)[J@] , J=DEL, K=(P=K@,1.30334968172806)[K@] , L=(P=I@,1.30334968172806)[I@] }",pair.firstElem);
 		Assert.assertEquals("{A={ADD_a={C=java.awt.Color[r=0,g=255,b=0]}, REM_a={B=java.awt.Color[r=255,g=0,b=0]}}, B={REM_a={C=java.awt.Color[r=255,g=0,b=0]}, REM_b={F=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"E={ADD_b={G=java.awt.Color[r=0,g=255,b=0]}, REM_b={F=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"F={REM_a={J=java.awt.Color[r=255,g=0,b=0]}, REM_b={G=java.awt.Color[r=255,g=0,b=0]}}, "+

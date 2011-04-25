@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import edu.uci.ics.jung.visualization.*;
@@ -43,7 +44,6 @@ import statechum.Label;
 import statechum.analysis.learning.rpnicore.*;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Paint;
@@ -69,6 +69,15 @@ import org.apache.commons.collections.Predicate;
  * 
  * JVM arguments for auto-answering queries:
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path=linear/.libs;smt/.libs -Xmx1500m -DVIZ_AUTOFILENAME=resources/aseQuestionsAndAnswers
+ *
+ * JVM arguments for DiffExperiments:
+ * -ea -DVIZ_CONFIG=kirill_office -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs;exp1/smt/.libs;"D:/R-2.12.2/library/rJava/jri"  -Xmx1500m
+ * as above on Debian x86_64:
+ * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/usr/local/lib/R/site-library/rJava/jri -Xmx3500m
+ * R_HOME=/usr/lib/R
+ * as above on MacOS X 10.5.8,
+ * -ea -DVIZ_CONFIG=kirill_home -DVIZ_DIR=exp1/resources/graphLayout -Dthreadnum=2 -Djava.library.path=exp1/linear/.libs:exp1/smt/.libs:/Library/Frameworks/R.framework/Versions/2.12/Resources/library/rJava/jri -Xmx3500m
+ * R_HOME=/Library/Frameworks/R.framework/Versions/2.12/Resources
  * 
  * Updating Statechum web page:
  * 
@@ -99,14 +108,14 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-public class Visualiser extends JFrame implements Observer, Runnable,
-        MouseListener {
-
+public class Visualiser extends JFrame implements Observer, Runnable, MouseListener 
+{
     /**
      * The version ID for serialisation.
      */
     private static final long serialVersionUID = -6382530787840924374L;
     protected VisualizationViewer viewer = null;
+    
     /** We'd like to store a number of graphs and switch between them, but
      * knowing the name (i.e. the layout) is not enough - we need to store
      * graphs themselves, which is accomplished using this map.
@@ -123,13 +132,16 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     /** Current position in the above list. */
     protected int currentGraph;
     /**
-     * The name under which to store window information. The default value is
-     * null which inhibits saving of a layout.
+     * The identifier under which to store window information. The default value is
+     * negative which inhibits saving of a layout.
      */
-    protected G_PROPERTIES propName = null;
+    protected int propName = -1;
+    
+    /** Global configuration. */
+    static final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration();
+
     /** A popup with Jung control choices. */
     JPopupMenu popupMenu;
-    final GlobalConfiguration globalConfig = GlobalConfiguration.getConfiguration();
 
     /**
      * Public constructor
@@ -137,10 +149,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * @param windowPropName
      *            the name under which to store configuration information.
      */
-    public Visualiser(G_PROPERTIES windowPropName) {
-        super(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[GlobalConfiguration.getConfiguration().loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
-        propName = windowPropName;
-
+    public Visualiser(int windowPropName) {
+      super(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[GlobalConfiguration.getConfiguration().loadFrame(windowPropName).getScreenDevice()].getDefaultConfiguration());
+      propName = windowPropName;
     }
 
     /**
@@ -148,8 +159,9 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * layout.
      */
     public Visualiser() {
-        propName = null;
+        propName = -1;
     }
+    
     /** Key bindings. */
     Map<Integer, Action> keyToActionMap = new TreeMap<Integer, Action>();
     /** Actions to switch to picking/transform mode. */
@@ -181,7 +193,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         }
     }
 
-    protected void setKeyBindings() {
+    protected void setVisualiserKeyBindings() {
         persistAction = new graphAction("saveLayout", "save the layout of the visible graph") {
 
             /** Serial number. */
@@ -190,7 +202,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             @Override
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 try {
-                    if (propName != null) {
+                    if (propName >= 0) {
                         String fileName = getLayoutFileName(graphs.get(currentGraph));
                         XMLEncoder encoder = new XMLEncoder(new FileOutputStream(fileName));
                         Map<Integer, DoublePair> layout = ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).persist();
@@ -202,6 +214,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                         trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());
                         encoder.writeObject(trL);
                         ((XMLModalGraphMouse) viewer.getGraphMouse()).store(encoder);
+                        encoder.writeObject(layoutOptions);
                         encoder.close();
                     }
                 } catch (Exception e1) {
@@ -229,49 +242,6 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
                 if (currentGraph > 0) {
                     restoreLayout(false, currentGraph - 1);
-                }
-            }
-        });
-        keyToActionMap.put(KeyEvent.VK_F4, new graphAction("saveWindows", "save the current position/size of graph windows") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 4L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                globalConfig.saveFrame(Visualiser.this, propName);
-                globalConfig.saveConfiguration();
-            }
-        });
-        
-        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 5L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                setVisible(false);
-                dispose();
-                Visualiser.syncValue.set(true);
-
-                System.exit(1);
-                /*
-                synchronized (Visualiser.syncObject) {
-                Visualiser.syncObject.notify();
-                }*/
-            }
-        });
-        keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
-
-            /** Serial number. */
-            private static final long serialVersionUID = 6L;
-
-            @Override
-            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
-                Visualiser.syncValue.set(false);
-                synchronized (Visualiser.syncObject) {
-                    Visualiser.syncObject.notify();
                 }
             }
         });
@@ -343,6 +313,60 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         });
     }
 
+    /** Creates key bindings used in all Statechum windows.
+     * 
+     * @param frame frame of the window
+     * @param windowID the identifier of the window in the config file - used to store/restore window positions
+     * @param keyToActionMap map to store key bindings in.
+     */
+    public static void setStateChumKeyBindings(final JFrame frame,final int windowID,Map<Integer, Action> keyToActionMap)
+    {
+        keyToActionMap.put(KeyEvent.VK_F4, new graphAction("saveWindows", "save the current position/size of graph windows") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 4L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                globalConfig.saveFrame(frame, windowID);
+                globalConfig.saveConfiguration();
+            }
+        });
+        
+        keyToActionMap.put(KeyEvent.VK_ESCAPE, new graphAction("terminate", "terminates this program") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 5L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                frame.setVisible(false);
+                frame.dispose();
+                Visualiser.syncValue.set(true);
+                DrawGraphs.end();
+                System.exit(1);
+                /*
+                synchronized (Visualiser.syncObject) {
+                Visualiser.syncObject.notify();
+                }*/
+            }
+        });
+        keyToActionMap.put(KeyEvent.VK_SPACE, new graphAction("step", "exits the Visualiser.waitForKey() call") {
+
+            /** Serial number. */
+            private static final long serialVersionUID = 6L;
+
+            @Override
+            public void actionPerformed(@SuppressWarnings("unused") ActionEvent e) {
+                Visualiser.syncValue.set(false);
+                synchronized (Visualiser.syncObject) {
+                    Visualiser.syncObject.notify();
+                }
+            }
+        });
+
+    }
+    
     public void construct(Graph g,LayoutOptions options) {
         if (!globalConfig.isAssertEnabled() && Boolean.getBoolean(globalConfig.getProperty(G_PROPERTIES.ASSERT))) {
             System.err.println("Pass the -ea argument to JVM to enable assertions");
@@ -357,7 +381,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
 			public void componentShown(@SuppressWarnings("unused") ComponentEvent e) {}
 			
 			@Override
-			public void componentResized(ComponentEvent e) {
+			public void componentResized(@SuppressWarnings("unused") ComponentEvent e) {
 				if (viewer != null) viewer.getModel().getGraphLayout().resize(getSize());
 			}
 			
@@ -387,40 +411,19 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         });
 
         popupMenu = new JPopupMenu();
-        JMenuItem item = new JMenuItem("pick");
-        item.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pickAction.actionPerformed(e);
-            }
-        });
-        popupMenu.add(item);
-        item = new JMenuItem("transform");
-        item.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                transformAction.actionPerformed(e);
-            }
-        });
-        popupMenu.add(item);
-
- 
-        // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
+       // Icon loading is from http://www.javaworld.com/javaworld/javaqa/2000-06/03-qa-0616-icon.html
         Image icon = Toolkit.getDefaultToolkit().getImage("resources" + File.separator + "icon.jpg");
         if (icon != null) {
             setIconImage(icon);
         }
 
-        setKeyBindings();
+        setVisualiserKeyBindings();setStateChumKeyBindings(this, propName, keyToActionMap);
+        updatePopupMenu(popupMenu,keyToActionMap);
         //getContentPane().removeAll();
         WindowPosition framePosition = globalConfig.loadFrame(propName);
-        setSize(new Dimension(framePosition.getRect().width, framePosition.getRect().height));
-        setBounds(framePosition.getRect());
 
         viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
-                propName != null ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
+                propName >= 0 ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
 
         viewer.setBackground(Color.WHITE);
         final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
@@ -434,7 +437,19 @@ public class Visualiser extends JFrame implements Observer, Runnable,
         pack();
       
         restoreLayout(true, currentGraph);
+        setBounds(framePosition.getRect());
         setVisible(true);
+    }
+    
+    public static void updatePopupMenu(JPopupMenu popupMenu,Map<Integer, Action> keyToActionMap)
+    {
+        for(Entry<Integer,Action> ia:keyToActionMap.entrySet())
+        {
+        	ia.getValue().putValue(Action.ACCELERATOR_KEY,KeyStroke.getKeyStroke(ia.getKey(),0));
+        	JMenuItem menuitem = new JMenuItem(ia.getValue());
+        	popupMenu.add(menuitem);
+        }
+
     }
     
     protected static class XMLModalGraphMouse extends DefaultModalGraphMouse {
@@ -475,7 +490,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
             setTitle(title);
             wasInitialised = true;
         } else {
-            viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName != null ? new FRLayout(graph) : new KKLayout(graph)));
+            viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));
@@ -493,7 +508,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
     protected void restoreLayout(boolean ignoreErrors, int graphNumber) {
         try {
             String fileName = getLayoutFileName(graphs.get(graphNumber));
-            if (propName != null && (new File(fileName)).canRead()) {
+            if (propName >= 0 && (new File(fileName)).canRead()) {
                 XMLDecoder decoder = new XMLDecoder(new FileInputStream(fileName));
                 Map<Integer, DoublePair> map = (Map<Integer, DoublePair>) decoder.readObject();
                 ((XMLPersistingLayout) viewer.getModel().getGraphLayout()).restore(map);
@@ -510,6 +525,7 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 viewer.getLayoutTransformer().concatenate(
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
                 ((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
+                layoutOptions = (List<LayoutOptions>)decoder.readObject();
                 decoder.close();
 
                 viewer.invalidate();
@@ -839,48 +855,44 @@ public class Visualiser extends JFrame implements Observer, Runnable,
      * </pre>
      * where <i>upper</i> and <i>lower</i> are the graphs to be displayed.
      */
-    static Visualiser upperGraphViz = null, lowerGraphViz = null;
+    static Visualiser graphWindow[] = new Visualiser[3];
 
     /** If a dialog box has to be displayed, it needs to know a reference frame. This method returns this frame, creating it if necessary.
      *
      * @return a Visualiser frame.
      */
     public static Visualiser getVisualiser() {
-        if (upperGraphViz == null) {
-            upperGraphViz = new Visualiser(G_PROPERTIES.UPPER);
+    	final int mainWindow = 0;
+        if (graphWindow[mainWindow] == null) {
+        	graphWindow[mainWindow] = new Visualiser(mainWindow);
         }
-        return upperGraphViz;
+        return graphWindow[mainWindow];
     }
 
     /** Removes the two windows displaying Jung graphs.
      */
     public static void disposeFrame() {
-        if (upperGraphViz != null && lowerGraphViz != null) {
-            try {
-                SwingUtilities.invokeAndWait(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        if (upperGraphViz != null) {
-                            upperGraphViz.setVisible(false);
-                            upperGraphViz.dispose();
-                            upperGraphViz = null;
-                        }
-                        if (lowerGraphViz != null) {
-                            lowerGraphViz.setVisible(false);
-                            lowerGraphViz.dispose();
-                            lowerGraphViz = null;
-                        }
-                    }
-                });
-            } catch (InterruptedException e) {
-                // cannot do much about this
-                e.printStackTrace();
-            } catch (InvocationTargetException e) {
-                // cannot do much about this
-                e.printStackTrace();
-            }
-        }
+	    try {
+	        SwingUtilities.invokeAndWait(new Runnable() {
+	
+	            @Override
+	            public void run() {
+	            	for(int i=0;i<graphWindow.length;++i)
+	            		if (graphWindow[i] != null)
+	                	{
+	                    	graphWindow[i].setVisible(false);
+	                    	graphWindow[i].dispose();
+	                    	graphWindow[i] = null;
+	                	}
+	            }
+	        });
+	    } catch (InterruptedException e) {
+	        // cannot do much about this
+	        e.printStackTrace();
+	    } catch (InvocationTargetException e) {
+	        // cannot do much about this
+	        e.printStackTrace();
+	    }
     }
 
     /** Displays twos graphs passed as arguments in the Jung window.
@@ -898,19 +910,20 @@ public class Visualiser extends JFrame implements Observer, Runnable,
                 throw new IllegalArgumentException("the first graph to display cannot be null");
             }
 
-            if (upperGraphViz == null) {
-                upperGraphViz = new Visualiser(G_PROPERTIES.UPPER);
-            }
-
-            upperGraphViz.update(null, upperGraph);
-            if (lowerGraph != null) {
-                if (lowerGraphViz == null) {
-                    lowerGraphViz = new Visualiser(G_PROPERTIES.LOWER);
-                }
-                lowerGraphViz.update(null, lowerGraph);
-            }
+            updateFrameWithPos(upperGraph, 0);
+            if (lowerGraph != null)
+            	updateFrameWithPos(lowerGraph, 1);
         }
     }
+    
+    public static void updateFrameWithPos(final Object graph, int windowid)
+    {
+        if (graphWindow[windowid] == null) {
+        	graphWindow[windowid] = new Visualiser(windowid);
+        }
+        graphWindow[windowid].update(null,graph);
+    }
+    
     /** Used to make it possible to single-step through graph transforms. */
     final static Object syncObject = new Object();
     /** Value to return to a thread which is waiting. */

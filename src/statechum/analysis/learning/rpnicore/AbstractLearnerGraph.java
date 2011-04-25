@@ -72,6 +72,12 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Creates the cache. Should be overridden by subclasses to create instances of an appropriate type. */
 	abstract public CACHE_TYPE createCache();
 	
+	public void invalidateCache()
+	{
+		learnerCache.invalidate();
+	}
+	
+
 	/** The configuration stores parameters used by a variety methods
 	 * involved in learning;
 	 */

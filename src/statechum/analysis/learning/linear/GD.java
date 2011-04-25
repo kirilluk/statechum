@@ -65,6 +65,7 @@ import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.experiments.mutation.Transition;
 import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_BCR;
 import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_default;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
@@ -252,6 +253,18 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	/** Contains an inverse of the <em>frontwave</em> map. */
 	Map<CmpVertex,CmpVertex> newToOrig = null;
 	
+	public void printWave(Collection<PairScore> wave)
+	{
+		boolean initial = true;
+		System.out.print("[");
+		for(PairScore elem:wave) 
+		{	
+			if (!initial) System.out.print(", ");else initial=false;
+			System.out.print(elem.getQ()+","+newBToOrig.get(elem.getR())+": "+elem.getScore());
+		}
+		System.out.println("]");
+	}
+	
 	/** Expands the set of key pairs.
 	 */
 	protected void makeSteps()
@@ -304,6 +317,22 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 						AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), grCombined.pairCompatibility)) // we should not merge incompatible pairs
 				{// this is the one for the front line
 					frontWave.add(pair);statesInKeyPairs.add(pair.getQ());statesInKeyPairs.add(pair.getR());
+					/*
+						if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LINEARWARNINGS)))
+							for(PairScore similarPair:currentWave)
+								if ((similarPair.getQ().equals(pair.getQ()) || similarPair.getR().equals(pair.getR())) && !similarPair.equals(pair))
+								{
+									int minScore = Math.min(similarPair.getScore(),pair.getScore());
+									assert minScore >= 0;
+									if (minScore == 0)
+									System.out.println("Warning: for pairs "+pair+" and "+similarPair+" in the current wave min score is 0");
+									else
+									{
+										if (Math.abs(similarPair.getScore()-pair.getScore()) < minScore/2)
+											System.out.println("Warning: for pairs "+pair+" and "+similarPair+" there is very small difference in scores");
+									}								
+								}
+					*/
 				}
 		}
 		while(!frontWave.isEmpty());
@@ -963,7 +992,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			result.append("mapping: "+a+" - "+b);appendEndl();
 		}
 	}
-	
+
 	/** This class counts the requested changes.
 	 */
 	public static class ChangesCounter<TARGET_A_TYPE,TARGET_B_TYPE,
@@ -1290,11 +1319,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			removedPatcher.addToCompatibility(a, b, JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
 		}
 	}
-	
-	public List<PairScore> getAllScores(){
-		return allScores;
-	}
-	
+		
 	protected boolean fallbackToInitialPair = false;
 	
 	/** Builds the data structures subsequently used in traversal.
@@ -1307,6 +1332,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
 	{
+		a.pathroutines.checkConsistency(a);
+		b.pathroutines.checkConsistency(b);
+
 		ThreadNumber = threads;
 		Configuration cloneConfig = argConfig.copy();cloneConfig.setLearnerCloneGraph(true);// we need to clone attributes here because after key pair identification, attributes from graph B will be copied into vertices of A, otherwise these attributes may not make it into the patch.
 		grCombined = new LearnerGraphND(a,cloneConfig);// I cannot simply do Transform.addToGraph here because patch has to be relative to graph A.
@@ -1432,8 +1460,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 	}
-	
-	List<PairScore> allScores = new ArrayList<PairScore>();
 	
 	/** Goes through the result of linear and identifies candidates for key state pairs.
 	 * @return true if everything is ok, false if no perfect set of candidates was found.
@@ -1681,6 +1707,14 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		oldVerticesToNew.put(currID,newID);
 	}
 
+	public Map<CmpVertex,CmpVertex> getKeyPairs()
+	{
+		Map<CmpVertex,CmpVertex> result = new TreeMap<CmpVertex,CmpVertex>();
+		for(Entry<CmpVertex,CmpVertex> entry:aTOb.entrySet())
+			result.put(entry.getKey(),newBToOrig.get(entry.getValue()));
+		return result;
+	}
+
 	/** This one is similar to applyGD but computes a union of the remove and added parts,
 	 *  very useful if I wish to visualise the difference between two graphs.
 	 *  <p>
@@ -1820,8 +1854,21 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				renameVertex(pair.getKey().getID(),"(K "+pairscore.getScore()+","+pairscore.getAnotherScore()+"="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
 			}
 			else
-				renameVertex(pair.getKey().getID(),"(P="+newBToOrig.get(pair.getValue()).getID()+")",oldVerticesToNew);
+			{
+				int scorePosition = pairScores[forward.vertexToIntNR(pair.getKey(),pair.getValue())];
+				double score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+				renameVertex(pair.getKey().getID(),"(P="+newBToOrig.get(pair.getValue()).getID()+","+score+")",oldVerticesToNew);
+			}
 		}
+		
+		/*
+		for(CmpVertex stateA:statesOfA)
+			for(CmpVertex stateB:statesOfB)
+		{
+			int scorePosition = pairScores[forward.vertexToIntNR(stateA,stateB)];double score = scoresForward[scorePosition] + scoresInverse[scorePosition];
+			System.out.println(stateA.toString()+","+newBToOrig.get(stateB).toString()+" : "+score);
+		}
+		*/
 		
 		Map<String,String> labelling = new TreeMap<String,String>();
 		for(Entry<VertexID,VertexID> entry:oldVerticesToNew.entrySet())

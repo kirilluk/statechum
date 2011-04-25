@@ -98,6 +98,11 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
         statechum.analysis.learning.rpnicore.TestWMethod.class,
         statechum.analysis.learning.experiments.TestForestFireGenerator.class,
+        statechum.analysis.learning.TestDrawGraphs.class,
+        statechum.analysis.learning.experiments.mutation.TestGraphMutator.class,
+        statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
+        statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
+        statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
         statechum.TestProgressIndicator.class
     })
     public static class GraphTests {// all tests are included in the annotation.

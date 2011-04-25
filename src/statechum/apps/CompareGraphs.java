@@ -58,8 +58,8 @@ public class CompareGraphs {
 	
 	public static void compare(DirectedSparseGraph spec, DirectedSparseGraph imp){
 		LearnerGraph specfsm =new LearnerGraph(spec, Configuration.getDefaultConfiguration()); 
-		Visualiser v = new Visualiser(statechum.GlobalConfiguration.G_PROPERTIES.UPPER);
-		v.construct(specfsm.pathroutines.getGraph(),null);
+		Visualiser v = new Visualiser(0);
+		v.construct(specfsm.pathroutines.getGraph(),null);		
 		LearnerGraph wm = new LearnerGraph(imp,Configuration.getDefaultConfiguration());
 		PosNegPrecisionRecall pr = compare(specfsm, wm);
 		System.out.println(pr.getPosprecision()+", "+pr.getPosrecall()+", "+pr.getNegprecision()+", "+pr.getNegrecall());

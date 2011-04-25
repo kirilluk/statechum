@@ -144,7 +144,7 @@ public class ForestFireStateMachineGenerator {
 				currentSize = new LearnerGraph(machine,Configuration.getDefaultConfiguration()).paths.reduce().getStateNumber();
 				int additionalVertices = size-currentSize;
 				numberOfVerticesToAdd+=additionalVertices;
-			} while(size > currentSize+3);
+			} while(size > currentSize+2);
 		}
 	}
 	

@@ -566,7 +566,7 @@ public class DiffExperiments {
 					
 				}
 				if(!found)
-					adjustArtificialTargetSize();
+					throw new RuntimeException();//adjustArtificialTargetSize();
 			}
 			
 			LearnerGraphND outcome = new LearnerGraphND(machine.config);AbstractLearnerGraph.copyGraphs(machine,outcome);

@@ -17,8 +17,8 @@
  */
 package statechum.analysis.learning.experiments;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import cern.jet.random.Distributions;
 
@@ -71,7 +71,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	
 	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
 	{
-		Set<String> vertexAlphabet = new HashSet<String>();
+		Set<String> vertexAlphabet = new TreeSet<String>();
 		DirectedSparseEdge existingEdge = null;
 		for (Object e : v.getOutEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
@@ -81,7 +81,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			assert labels!=null : "vertex "+v.getID().toString()+" has outgoing edges without labels";
 			vertexAlphabet.addAll(labels);
 		}
-		Set<String> possibles = new HashSet<String>();
+		Set<String> possibles = new TreeSet<String>();
 		possibles.addAll(alphabet);
 		possibles.removeAll(vertexAlphabet);
 		String label = null;
@@ -98,7 +98,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		{// new edge needs to be added.
 			try
 			{
-				Set<String> labelSet = new HashSet<String>();
+				Set<String> labelSet = new TreeSet<String>();
 				labelSet.add(label);
 				DirectedSparseEdge e = new DirectedSparseEdge(v,random);
 				e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
@@ -113,7 +113,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	
 	private static Set<String> generateAlphabet(int number)
 	{
-		Set<String> alphabet = new HashSet<String>();
+		Set<String> alphabet = new TreeSet<String>();
 		for (int i=0;i<number;i++){
 			String next = String.valueOf(i);
 			alphabet.add(next);

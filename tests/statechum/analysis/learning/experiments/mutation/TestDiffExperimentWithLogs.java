@@ -106,7 +106,6 @@ public class TestDiffExperimentWithLogs {
 		public void TestExperiment(ResultProcessor processor)
 		{
 			int initStates=20;
-			Random r = new Random(0);
 			try
 			{
 				for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
@@ -116,7 +115,6 @@ public class TestDiffExperimentWithLogs {
 					
 					MachineGenerator mg = new MachineGenerator(states, 40, states/10);
 					int mutationsPerStage = (states/2) / 2;
-					//System.out.print("\n"+states+": ");
 					ProgressIndicator progress = new ProgressIndicator(""+states, mutationStages*experimentsPerMutationCategory);
 					for(int mutationStage = 0;mutationStage<mutationStages;mutationStage++)
 					{
@@ -132,7 +130,7 @@ public class TestDiffExperimentWithLogs {
 		
 							int mutations = mutationsPerStage * (mutationStage+1);
 							LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment,config);
-							GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
+							GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,new Random(mutationStage*experimentsPerMutationCategory+experiment));
 							mutator.mutate(mutations);
 							LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
 							Map<CmpVertex,CmpVertex> origToNew = copyStatesAndTransitions(origGraph,origAfterRenaming);

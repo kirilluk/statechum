@@ -18,7 +18,6 @@
 
 package statechum.analysis.learning.experiments;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -265,7 +264,7 @@ public class ForestFireStateMachineGenerator {
 		// This one needs to choose vertices at random, not just choose first x/y vertices.
 		List<DeterministicVertex> result = new LinkedList<DeterministicVertex>();
 		Iterator<DirectedSparseEdge> inIt = ambassador.getInEdges().iterator();
-		List<DeterministicVertex> verticesToChooseFrom = new LinkedList<DeterministicVertex>();
+		Set<DeterministicVertex> verticesToChooseFrom = new TreeSet<DeterministicVertex>();
 		while(inIt.hasNext()){
 			DirectedSparseEdge e = inIt.next();
 			DeterministicVertex v = (DeterministicVertex) e.getSource();
@@ -275,7 +274,7 @@ public class ForestFireStateMachineGenerator {
 		if (!verticesToChooseFrom.isEmpty()) result.addAll(selectVertices(verticesToChooseFrom, x));
 		
 		Iterator<DirectedSparseEdge> outIt = ambassador.getOutEdges().iterator();
-		verticesToChooseFrom = new LinkedList<DeterministicVertex>();
+		verticesToChooseFrom.clear();
 		while(outIt.hasNext()){
 			DirectedSparseEdge e = outIt.next();
 			DeterministicVertex v = (DeterministicVertex) e.getDest();

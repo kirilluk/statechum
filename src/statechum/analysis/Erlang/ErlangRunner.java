@@ -17,7 +17,10 @@
  * 
  * 
  * In order to run Erlang on Win32, the following VM args can be used:
- * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path="linear/.libs;smt/.libs" -Xmx1500m -DERLANGHOME="D:\Program Files\erl5.8.2"
+ * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path="linear/.libs;smt/.libs" -Xmx1500m -DERLANGHOME="D:\Program~1\erl5.8.2"
+ * The "~1" is important: without it experimentRunner passes the wrong arguments to its nested jvm because 
+ * ManagementFactory.getRuntimeMXBean().getInputArguments() splits the command line into a number of parts.
+ *  
  * Running on Debian x86_64 requires something like:
  * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs:smt/.libs -Xmx2500m -DLTL2BA=/usr/local/bin/ltl2ba
  */

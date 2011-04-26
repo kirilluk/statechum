@@ -32,6 +32,7 @@ public class CharSignature extends Signature {
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("CharSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 
 	@Override

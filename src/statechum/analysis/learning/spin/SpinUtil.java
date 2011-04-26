@@ -319,7 +319,7 @@ public class SpinUtil {
 					while (labelIt.hasNext()) {
 						Label label = labelIt.next();
 						if (!functionMap.keySet().contains(label)) {
-							functionMap.put(label.toAlphaNum(), new Integer(functionCounter));
+							functionMap.put(label.toErlangTerm(), new Integer(functionCounter));
 							functionCounter++;
 						}
 						sw.write("\n\t:: input=" + functionMap.get(label)
@@ -342,7 +342,7 @@ public class SpinUtil {
 		while (questionIt.hasNext()) {
 			Label symb = questionIt.next();
 			if (!functionMap.keySet().contains(symb)) {
-				functionMap.put(symb.toAlphaNum(), new Integer(functionCounter));
+				functionMap.put(symb.toErlangTerm(), new Integer(functionCounter));
 				functionCounter++;
 			}
 			sw.write("input="+functionMap.get(symb)+";\n");

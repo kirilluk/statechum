@@ -56,7 +56,7 @@ public class StringLabel implements Label {
 	}
 
 	@Override
-	public String toAlphaNum() {
+	public String toErlangTerm() {
 		return label;
 	}
 

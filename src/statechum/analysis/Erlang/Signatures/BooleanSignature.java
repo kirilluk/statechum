@@ -32,6 +32,7 @@ public class BooleanSignature  extends Signature {
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("BooleanSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 
 	@Override

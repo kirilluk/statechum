@@ -66,13 +66,12 @@ public class ErlangModuleTest {
 	@Test
 	public void testRunParserFailure1()
 	{
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { @SuppressWarnings("unused")
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 		public @Override void run() throws IOException {
 			new ErlangModule(new File("ErlangExamples/WibbleMonster/wibble.erla"));
 		}},IllegalArgumentException.class,"Invalid module");
 	}
 
-	@SuppressWarnings("unused")
 	@Test
 	public void testRunParserFailure2() throws IOException
 	{
@@ -164,8 +163,15 @@ public class ErlangModuleTest {
     {
     	File file = new File("ErlangExamples/WibbleMonster/wibble.erl");
     	ErlangModule mod = new ErlangModule(file);
-    	System.out.println(mod.behaviour.getAlphabet());
+    	for(FuncSignature s:mod.sigs.values())
+    	{
+       		FuncSignature newSig = new FuncSignature(ErlangLabel.parseText(s.toErlangTerm()));
+       		Assert.assertEquals(s, newSig);
+       		Assert.assertEquals(s, new FuncSignature(ErlangLabel.parseText(newSig.toErlangTerm())));
+    	}
     }
+    
+    
 /*
 	@Test
 	public void testRunParser1() throws IOException

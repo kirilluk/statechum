@@ -519,7 +519,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 				else
 					if (!fromTo.containsKey(transition.getKey()))
 					{
-						if(transition.getKey().toAlphaNum().startsWith(PrefixNew))
+						if(transition.getKey().toErlangTerm().startsWith(PrefixNew))
 							throw new IllegalArgumentException("there is already a transition with prefix "+PrefixNew+" in the supplied graph");
 						fromTo.put(transition.getKey(), AbstractLearnerGraph.generateNewLabel(PrefixNew+(newLabelCnt++),g.config));
 					}

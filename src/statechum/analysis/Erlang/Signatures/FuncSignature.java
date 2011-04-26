@@ -20,10 +20,12 @@ package statechum.analysis.Erlang.Signatures;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import statechum.Helper;
+import statechum.Label;
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 
@@ -41,20 +43,19 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  *
  * @author ramsay
  */
-public class FuncSignature {
+public class FuncSignature implements Label {
 
-    protected final String funcName, moduleName;
+    protected final String funcName, moduleName, fullFileName;
     /** A function can be defined with a variety of argument types, 
      * this one collects all of those offerered by typer. 
      */
     protected final List<List<Signature>> args;
     protected final Signature result;
     protected final int arity,lineNumber;
+    
     /** Type constructor for a function which takes anything and returns anything - 
      * not supported since arity is not known.
-    public FuncSignature() 
-    {
-    }
+    public FuncSignature() {}
 	*/
     
     public String getName()
@@ -78,13 +79,68 @@ public class FuncSignature {
     	return moduleName+":"+getName();
     }
     
+    /** Represents an Erlang term from which details of this function can be reconstructed - this is 
+     * currently only used to compare labels due to their immutability but can easily be 
+     * used for serialisation.
+     */
+    private final String erlangTermForThisType;
+    
     /** Used by the old parser. */
     public FuncSignature(String module,String func,List<List<Signature>> arguments, Signature res) {
-    	moduleName = module;funcName = func;args=arguments;result=res;lineNumber=-1;
+    	moduleName = module;fullFileName = module+".erl";funcName = func;
+    	args=buildImmutableCollection(arguments);
+    	result=res;lineNumber=-1;
     	if (arguments.isEmpty()) throw new IllegalArgumentException("empty list of argument choices");
     	arity = arguments.get(0).size();
+    	
+    	erlangTermForThisType = buildFunctionSignatureAsString();
     }
     
+    protected String buildFunctionSignatureAsString()
+    {// {File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap)}
+    	StringBuffer resultHolder = new StringBuffer();
+    	resultHolder.append("{\"");
+    	resultHolder.append(fullFileName);resultHolder.append("\",");
+    	resultHolder.append(lineNumber);resultHolder.append(',');
+       	resultHolder.append(funcName);resultHolder.append(',');
+       	resultHolder.append(arity);resultHolder.append(',');
+		resultHolder.append("{'");resultHolder.append(Signature.getSigName(this));resultHolder.append("',[],[");
+    	if (args.size() != 1)
+		throw new IllegalArgumentException("only function declarations obtained from Erlang are supported");
+		boolean innerFirst = true;
+		for(Signature sig:args.get(0))
+		{
+			if (!innerFirst) resultHolder.append(',');else innerFirst = false;
+			resultHolder.append(sig.toErlangTerm());
+		}
+		resultHolder.append("],");
+		resultHolder.append(result.toErlangTerm());
+		resultHolder.append("}}");
+		return resultHolder.toString();
+    }
+    
+    protected static <ELEM> List<List<ELEM>> buildImmutableCollection(List<List<ELEM>> collection)
+    {
+    	List<List<ELEM>> immutableListList = new ArrayList<List<ELEM>>(collection.size());
+    	for(List<ELEM> list:collection)
+    	{
+    		List<ELEM> immutableList = new ArrayList<ELEM>(list.size());
+    		immutableList.addAll(list);immutableListList.add(Collections.unmodifiableList(list));
+    	}
+    	return Collections.unmodifiableList(immutableListList);
+    }
+    
+    protected static List<List<Signature>> LoadArgs(OtpErlangList ArgList)
+    {// arguments
+    	List<List<Signature>> result = new ArrayList<List<Signature>>(1);
+        ArrayList<Signature> arguments = new ArrayList<Signature>(ArgList.arity());
+        for(int i=0;i<ArgList.arity();++i)
+        	arguments.add(Signature.buildFromType(ArgList.elementAt(i)));
+        
+        result.add(Collections.unmodifiableList(arguments));
+        return Collections.unmodifiableList(result);
+    }
+
     /** Intended for functions passed as arguments to other functions.
      * Typer only returns one type signature which generalises possible values. */
     public FuncSignature(OtpErlangList attributes,OtpErlangList ArgList, OtpErlangList Range) {
@@ -92,21 +148,25 @@ public class FuncSignature {
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FuncSignature does not accept attributes");
 		arity = ArgList.arity();
         args = LoadArgs(ArgList);result = Signature.buildFromType(Range);
-        moduleName="UNKNOWN";funcName="ANONYMOUS";lineNumber=-1;
+        moduleName="UNKNOWN";fullFileName=moduleName+".erl";funcName="ANONYMOUS";lineNumber=-1;
+
+        erlangTermForThisType = buildFunctionSignatureAsString();
     }
 
     public static final OtpErlangAtom funcAtom = new OtpErlangAtom("Func"); 
     
     /** Used to take a response from a call to typer and turn it into a function-signature. */
-    public FuncSignature(OtpErlangObject func) {
+    public FuncSignature(OtpErlangObject func) 
+    {
     	super();
-    	String extractedModuleName = null,extractedFuncName=null;
+    	String extractedModuleName = null,extractedFuncName=null, extractedFileName = null;
     	int knownArity =-1, extractedLineNumber =-1;
     	OtpErlangList attributes = null,ArgList = null;OtpErlangObject Range = null;
     	try
     	{
     		OtpErlangTuple funcTuple = (OtpErlangTuple) func;
-	    	extractedModuleName = ErlangRunner.getName(new File( ((OtpErlangString)funcTuple.elementAt(0)).stringValue()),ERL.MOD);
+    		extractedFileName = ((OtpErlangString)funcTuple.elementAt(0)).stringValue();
+	    	extractedModuleName = ErlangRunner.getName(new File( extractedFileName),ERL.MOD);
 	    	extractedLineNumber = ((OtpErlangLong)funcTuple.elementAt(1)).intValue();
 	    	extractedFuncName =((OtpErlangAtom)funcTuple.elementAt(2)).atomValue();
 	    	knownArity = ((OtpErlangLong)funcTuple.elementAt(3)).intValue();
@@ -124,17 +184,10 @@ public class FuncSignature {
 		arity = ArgList.arity();lineNumber=extractedLineNumber;moduleName=extractedModuleName;funcName=extractedFuncName;
 		assert arity == knownArity;
         args = LoadArgs(ArgList);result = Signature.buildFromType(Range);
+        fullFileName = extractedFileName;
+        erlangTermForThisType = buildFunctionSignatureAsString();
     }
     
-    private static List<List<Signature>> LoadArgs(OtpErlangList ArgList)
-    {// arguments
-    	List<List<Signature>> result = new ArrayList<List<Signature>>(1);
-        ArrayList<Signature> arguments = new ArrayList<Signature>(ArgList.arity());result.add(arguments);
-        for(int i=0;i<ArgList.arity();++i)
-        	arguments.add(Signature.buildFromType(ArgList.elementAt(i)));
-        return result;
-    }
-
 	public List<OtpErlangObject> instantiate() {
         // Just pick the first pattern for now...
         // This needs to be cleverererer
@@ -165,18 +218,7 @@ public class FuncSignature {
 	 */
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int outcome = 1;
-		outcome = prime * outcome + ((args == null) ? 0 : args.hashCode());
-		outcome = prime * outcome + arity;
-		outcome = prime * outcome
-				+ ((funcName == null) ? 0 : funcName.hashCode());
-		outcome = prime * outcome + lineNumber;
-		outcome = prime * outcome
-				+ ((moduleName == null) ? 0 : moduleName.hashCode());
-		outcome = prime * outcome
-				+ ((this.result == null) ? 0 : this.result.hashCode());
-		return outcome;
+		return toErlangTerm().hashCode();
 	}
 
 	/* (non-Javadoc)
@@ -184,37 +226,16 @@ public class FuncSignature {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!(obj instanceof FuncSignature))
-			return false;
-		FuncSignature other = (FuncSignature) obj;
-		if (args == null) {
-			if (other.args != null)
-				return false;
-		} else if (!args.equals(other.args))
-			return false;
-		if (arity != other.arity)
-			return false;
-		if (funcName == null) {
-			if (other.funcName != null)
-				return false;
-		} else if (!funcName.equals(other.funcName))
-			return false;
-		if (lineNumber != other.lineNumber)
-			return false;
-		if (moduleName == null) {
-			if (other.moduleName != null)
-				return false;
-		} else if (!moduleName.equals(other.moduleName))
-			return false;
-		if (result == null) {
-			if (other.result != null)
-				return false;
-		} else if (!result.equals(other.result))
-			return false;
-		return true;
+		return toErlangTerm().equals( ((Label) obj).toErlangTerm() );
+	}
+
+	@Override
+	public int compareTo(Label o) {
+		return erlangTermForThisType.compareTo( ((FuncSignature)o).erlangTermForThisType);
+	}
+
+	@Override
+	public String toErlangTerm() {
+		return erlangTermForThisType;
 	}
 }

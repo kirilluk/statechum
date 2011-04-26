@@ -41,6 +41,7 @@ public class StringSignature extends Signature {
 		values = new LinkedList<OtpErlangObject>();values.add(new OtpErlangString("wibble"));
 		if (!nonEmpty)
 			values.add(new OtpErlangString(""));
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
 	public StringSignature(OtpErlangList attributes, OtpErlangList valuesArg)
@@ -58,6 +59,7 @@ public class StringSignature extends Signature {
 			values.set(i,valuesArg.elementAt(i));
 		}
 		nonEmpty = nonEmptyValue;
+		erlangTermForThisType = erlangTypeToString(attributes,valuesArg);
 	}
 	
     @Override

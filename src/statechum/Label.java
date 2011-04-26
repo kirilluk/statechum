@@ -25,12 +25,14 @@ package statechum;
  */
 public interface Label extends Comparable<Label> {
 
-	/** Converts a label to an alphanumeric representation suitable for passing to 
-	 * various programs which do not expect funny characters in labels.
+	/** Converts a label to text which can be parsed back into the same label.
+	 * Used to compare labels and to compute their hash codes as well 
+	 * as to output questions for <em>AutoAnswers</em> to answer and for logging  
+	 * the progress of learning (<em>RecordProgressDecorator</em>).
 	 * 
 	 * @return
 	 */
-	String toAlphaNum();
+	String toErlangTerm();
 
 
 }

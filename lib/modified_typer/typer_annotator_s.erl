@@ -456,6 +456,9 @@ t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive'],[]};%%"pos_integer
 t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative'],[]};%%"non_neg_integer()";
 t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative'],[]};%%"neg_integer()";
 t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',[],[From, To, atom]};%% atom is to stop OtpErlang from turning list into string
+%% but at the same time, it is not proper to turn the last argument from a list into a tuple because we'd like to generate them using 
+%% list comprehensions in the union case and others; the trouble with lists integers being autoconverted to strings is relatively minor.
+
 %%  lists:flatten(io_lib:format("~w..~w", [From, To]));
 t_to_Statechum(?integer(?any), _RecDict) -> {'Int',[]};%%"integer()";
 t_to_Statechum(?float, _RecDict) -> {'Float',[]};%%"float()";

@@ -991,10 +991,10 @@ public class Transform
 			Map<Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 				if (expandRegExp)
-					for(Label label:ba.interpretString(transition.getKey().toAlphaNum()))
+					for(Label label:ba.interpretString(transition.getKey().toErlangTerm()))
 						result.addTransition(row, label, transition.getValue());
 				else
-					result.addTransition(row, AbstractLearnerGraph.generateNewLabel(transition.getKey().toAlphaNum(), config), transition.getValue());
+					result.addTransition(row, AbstractLearnerGraph.generateNewLabel(transition.getKey().toErlangTerm(), config), transition.getValue());
 		}
 		return result;
 	}

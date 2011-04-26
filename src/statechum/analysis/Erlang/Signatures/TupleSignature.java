@@ -47,6 +47,7 @@ public class TupleSignature extends Signature {
 		int arity = 2;// arbitrary value
         elems = new ArrayList<Signature>(arity);
         for(int i=0;i<arity;++i) elems.add(wibbleSignature);
+		erlangTermForThisType = erlangTypeToString(attributes,null);
     }
 
     /** A tuple with elements of known types. */
@@ -70,7 +71,8 @@ public class TupleSignature extends Signature {
        	int arity = values.arity();
         elems = new ArrayList<Signature>(arity);
         for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
-    }
+		erlangTermForThisType = erlangTypeToString(attributes,values);
+   }
 
     @Override
 	public OtpErlangObject instantiate() {

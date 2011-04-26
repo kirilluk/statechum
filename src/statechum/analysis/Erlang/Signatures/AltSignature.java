@@ -39,6 +39,17 @@ public class AltSignature extends Signature {
     /** Used by the old parser. */
     public AltSignature(List<Signature> e) {
     	elems = e;
+    	
+    	StringBuffer resultHolder = new StringBuffer();resultHolder.append("{'");
+    	resultHolder.append(getSigName(this));
+   		resultHolder.append("',[],[");
+		boolean innerFirst = true;
+		for(Signature sig:elems)
+		{
+			if (!innerFirst) resultHolder.append(',');else innerFirst = false;
+			resultHolder.append(sig.toErlangTerm());
+		}
+		resultHolder.append("]}");
     }
     
     /** A tuple with elements of known types. */
@@ -48,6 +59,7 @@ public class AltSignature extends Signature {
        	int arity = values.arity();
         elems = new ArrayList<Signature>(arity);
         for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
+		erlangTermForThisType = erlangTypeToString(attributes,values);
     }
 
     // Pick the first one...

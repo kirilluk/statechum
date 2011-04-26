@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import statechum.Helper;
+import statechum.Label;
+import statechum.analysis.Erlang.ErlangLabel;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -35,8 +37,8 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  *
  * @author ramsay
  */
-public abstract class Signature {
-
+public abstract class Signature implements Label
+{
     /** This method should provide a valid (if pointless) instance of the type signature it represents.
      *
      * Currently it will always use 1 for integers and wibble for atoms, and corresponding useful values like [1] and [wibble] for lists.
@@ -59,7 +61,7 @@ public abstract class Signature {
         return result;
     }
 
-    /** Used to instantiate a list of any elements. */
+    /** Used to instantiate a list of "any" elements. */
     protected static final AtomSignature wibbleSignature = new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("wibble")}));
 
     /** Given an Erlang type encoded as an object, constructs an instance of a corresponding type. */
@@ -97,7 +99,36 @@ public abstract class Signature {
 		return result;
 	}
 
-   public static List<List<OtpErlangObject>> computeCrossProduct(List<Signature> listOfArgs) {
+	/** Returns a shortened class name which is the first atom in a type signature returned by the
+	 * modified typer.
+	 * @return reduced class name.
+	 */
+	public static String getSigName(Object obj)
+	{
+		String name = obj.getClass().getName();
+		name = name.substring(name.lastIndexOf('.')+1);name = name.substring(0,name.indexOf("Signature"));
+		return name;
+	}
+	
+	/** Used by subclasses of Signature to build string representation. */
+   public String erlangTypeToString(OtpErlangList listA, OtpErlangList listB)
+   {
+		List<OtpErlangObject> details = new LinkedList<OtpErlangObject>();
+		details.add(new OtpErlangAtom(getSigName(this)));
+		if (listA != null)
+		{
+			details.add(listA);
+			if (listB != null)
+				details.add(listB);
+		}
+		else 
+			throw new IllegalArgumentException("listA is null but listB is not");
+		
+		return ErlangLabel.dumpErlangObject(new OtpErlangTuple(details.toArray(new OtpErlangObject[0])));
+   }
+   
+   public static List<List<OtpErlangObject>> computeCrossProduct(List<Signature> listOfArgs) 
+   {
     	assert !listOfArgs.isEmpty();
         LinkedList<List<OtpErlangObject>> res = new LinkedList<List<OtpErlangObject>>();
     	List<Signature> tail = new LinkedList<Signature>(listOfArgs);
@@ -128,4 +159,32 @@ public abstract class Signature {
         return res;
     }
 
+   
+   /** Represents an Erlang term from which details of this signature can be reconstructed - this is 
+    * currently only used to compare labels due to their immutability but can easily be 
+    * used for serialisation.
+    */
+   protected String erlangTermForThisType = null;
+
+	@Override
+	public int compareTo(Label o) {
+		return toErlangTerm().compareTo(o.toErlangTerm());
+	}
+	
+	@Override
+	public String toErlangTerm() {
+		return erlangTermForThisType;
+	}
+
+	@Override
+	public boolean equals(Object o)
+	{
+		return toErlangTerm().equals(((Label)o).toErlangTerm());
+	}
+	
+	@Override
+	public int hashCode()
+	{
+		return toErlangTerm().hashCode();
+	}
 }

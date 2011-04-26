@@ -19,6 +19,7 @@
 package statechum.analysis.Erlang.Signatures;
 
 import statechum.Helper;
+import statechum.Label;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -60,7 +61,8 @@ public class IntSignature extends Signature {
 		{
 			lower = lowerValue;upper = upperValue;
 		}
-    }
+		erlangTermForThisType = erlangTypeToString(attributes,boundaries);
+	}
     
     public IntSignature(OtpErlangList attributes)
     {
@@ -88,10 +90,12 @@ public class IntSignature extends Signature {
         	lowerValue = upperValue = 42;
         
         lower=lowerValue;upper=upperValue;
-    }
+		erlangTermForThisType = erlangTypeToString(attributes, null);
+   }
     
     @Override
 	public OtpErlangObject instantiate() {
         return new OtpErlangLong((upper-lower)/2);
     }
+
 }

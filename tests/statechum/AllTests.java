@@ -137,6 +137,7 @@ public class AllTests {
     @SuiteClasses({
         statechum.analysis.Erlang.ErlangModuleTest.class,
         statechum.analysis.Erlang.ErlangRunnerTest.class,
+        statechum.analysis.Erlang.TestErlangParser.class,
         statechum.analysis.learning.TestErlangOracleLearner.class
     })
     public static class ErlangTests {// all tests are included in the annotation.

@@ -31,6 +31,7 @@ public class ByteSignature extends Signature {
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("ByteSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
     @Override

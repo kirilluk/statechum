@@ -33,6 +33,7 @@ public class BitStringSignature extends Signature {
 		if (values.arity() != 3) throw new IllegalArgumentException("invalid values "+values+" passed to BitStringSignature"); 
 		Base = ((OtpErlangLong) values.elementAt(0)).intValue();Unit =  ((OtpErlangLong) values.elementAt(1)).intValue();
 		if (!IntSignature.AntiStringAtom.equals(values.elementAt(2))) throw new IllegalArgumentException("The third element of list "+values+" should be an atom to stop it from becoming a string");
+		erlangTermForThisType = erlangTypeToString(attributes,values);
 	}
 	
 	@Override

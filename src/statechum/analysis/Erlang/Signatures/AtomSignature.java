@@ -38,6 +38,7 @@ public class AtomSignature extends Signature {
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AtomSignature does not accept attributes");
 		values = new ArrayList<OtpErlangObject>(1);values.set(0, new OtpErlangAtom("wibble"));
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
 	/** Specific values. */
@@ -51,6 +52,7 @@ public class AtomSignature extends Signature {
 			if (!(argValues.elementAt(i) instanceof OtpErlangAtom)) throw new IllegalArgumentException("Cannot build an atom from values "+argValues+" some of which are not atoms"); 
 			values.add(argValues.elementAt(i));
 		}
+		erlangTermForThisType = erlangTypeToString(attributes,argValues);
 	}
 	
     @Override

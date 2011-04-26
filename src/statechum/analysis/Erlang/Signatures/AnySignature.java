@@ -31,6 +31,7 @@ public class AnySignature extends Signature {
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AnySignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
     @Override

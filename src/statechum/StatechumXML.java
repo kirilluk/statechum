@@ -332,7 +332,7 @@ public enum StatechumXML
 			for(List<Label> seq:data)
 			{
 				List<String> s = new ArrayList<String>(seq.size());
-				for(Label l:seq) s.add(l.toAlphaNum());
+				for(Label l:seq) s.add(l.toErlangTerm());
 				dataToWrite.add(s);
 			}
 			return delegate.writeSequenceList(name, dataToWrite);
@@ -352,7 +352,7 @@ public enum StatechumXML
 		@Override
 		public void writeInputSequence(Writer wr, Collection<Label> str) {
 			List<String> s = new ArrayList<String>(str.size());
-			for(Label l:str) s.add(l.toAlphaNum());
+			for(Label l:str) s.add(l.toErlangTerm());
 			delegate.writeInputSequence(wr, s);
 		}
 

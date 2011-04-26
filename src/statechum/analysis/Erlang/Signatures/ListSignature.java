@@ -85,6 +85,8 @@ public class ListSignature extends Signature {
         
         if (improper)
         	throw new IllegalArgumentException("improper lists are not currently supported");
+
+        erlangTermForThisType = erlangTypeToString(attributes,values);
     }
 
     @Override

@@ -45,7 +45,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 		Stack<MethodOrMethodContext> methodStack = new Stack<MethodOrMethodContext>();
 		int length = question.size();
 		if (!(question.get(0) instanceof StringLabel)) throw new IllegalArgumentException("Only String labels are supported");
-		String question_0 = question.get(0).toAlphaNum(); 
+		String question_0 = question.get(0).toErlangTerm(); 
 		if(question_0.equals("ret"))
 			return new Pair<Integer,String>(0,null);
 		MethodOrMethodContext fromMethod = getSootMethod(question_0);
@@ -55,7 +55,7 @@ public class SootCallGraphOracle  implements AbstractOracle {
 
 		for(int i=1;i<length;i++){
 			Label nextLabel = question.get(i);
-			String next = nextLabel.toAlphaNum();
+			String next = nextLabel.toErlangTerm();
 			if(next.equals("ret")){
 				if(!methodStack.isEmpty()){
 					methodStack.pop();

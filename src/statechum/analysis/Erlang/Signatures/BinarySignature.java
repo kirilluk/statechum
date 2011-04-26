@@ -32,6 +32,7 @@ public class BinarySignature extends Signature {
 	{
 		super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("BinarySignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
     @Override

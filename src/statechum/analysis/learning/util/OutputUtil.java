@@ -70,7 +70,7 @@ public class OutputUtil {
 				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
         		Iterator<Label> labelIt = labels.iterator();
         		while(labelIt.hasNext()){
-        			graphout.write("\n"+from+" "+labelIt.next().toAlphaNum()+" "+to);
+        			graphout.write("\n"+from+" "+labelIt.next().toErlangTerm()+" "+to);
         		}
         	}
 		}
@@ -101,7 +101,7 @@ public class OutputUtil {
         		Iterator<Label> labelIt = labels.iterator();
         		graphout.write("\n"+from+" -> "+to+"[label=\"");
         		while(labelIt.hasNext()){
-        			graphout.write(labelIt.next().toAlphaNum()+"\\n" );
+        			graphout.write(labelIt.next().toErlangTerm()+"\\n" );
         		}
         		graphout.write("\"]");
         	}
@@ -138,7 +138,7 @@ public class OutputUtil {
         		Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
         		Iterator<Label> labelIt = labels.iterator();
         		while(labelIt.hasNext()){
-        			graphout.write("\n"+from+" "+to+" l \"" + labelIt.next().toAlphaNum()+"\"");
+        			graphout.write("\n"+from+" "+to+" l \"" + labelIt.next().toErlangTerm()+"\"");
         		}
         	}
 		}

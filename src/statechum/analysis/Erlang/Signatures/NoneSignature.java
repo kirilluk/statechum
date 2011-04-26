@@ -30,6 +30,7 @@ public class NoneSignature extends Signature {
 	public NoneSignature()
 	{
 		super();
+		erlangTermForThisType = erlangTypeToString(null,null);
 	}
 	
 	@Override

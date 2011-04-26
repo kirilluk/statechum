@@ -53,7 +53,7 @@ public class TestFSMParser {
 		public void accept(String from, String to, Label label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
-			assertEquals("wrong label string "+from,elements[i++],label.toAlphaNum());
+			assertEquals("wrong label string "+from,elements[i++],label.toErlangTerm());
 			assertEquals("wrong tag","ACCEPT",elements[i++]);
 		}
 		
@@ -61,7 +61,7 @@ public class TestFSMParser {
 		public void reject(String from, String to, Label label) {
 			assertEquals("wrong from string "+from,elements[i++],from);
 			assertEquals("wrong to string "+from,elements[i++],to);
-			assertEquals("wrong label string "+from,elements[i++],label.toAlphaNum());
+			assertEquals("wrong label string "+from,elements[i++],label.toErlangTerm());
 			assertEquals("wrong tag","REJECT",elements[i++]);
 		}
 		

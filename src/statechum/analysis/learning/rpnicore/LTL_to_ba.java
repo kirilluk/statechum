@@ -208,7 +208,7 @@ public class LTL_to_ba {
 		{
 			int result = -1;
 			if(lastMatchNumber >=0)
-			{
+			{// Switch lexing to the next part of the input text
 				try
 				{
 					lexer.region(lexer.end(lastMatchNumber),lexer.regionEnd());
@@ -218,11 +218,13 @@ public class LTL_to_ba {
 					throwException(e.getMessage()+" when lexing "+text);
 				}
 			}
+			
 			if (lexer.regionStart() < lexer.regionEnd())
-			{// not run out of elements
+			{// not run out of elements, ask lexer to do it.
 				if (!lexer.lookingAt())
 					throwException("failed to lex");
 	
+				// Now find what has matched
 				int i=1;
 				while(i<lexer.groupCount()+1 && lexer.group(i) == null) ++i;
 				if (i == lexer.groupCount()+1)
@@ -236,7 +238,18 @@ public class LTL_to_ba {
 				lastMatchNumber = -1;
 				lastMatch = null;
 			}
+			
 			return result;
+		}
+		
+		public String remaining()
+		{
+			return text.substring(lexer.regionStart());
+		}
+		
+		public int getLastMatchType()
+		{
+			return lastMatchNumber;
 		}
 		
 		public String getMatch()

@@ -344,7 +344,14 @@ public class ErlangRunner
     		OtpErlangObject decodedResponseCode = decodedResponse.elementAt(0);
     		if (!(decodedResponseCode instanceof OtpErlangAtom))
     				throw new RuntimeException(errorMessage+" : unexpected type in response tuple "+decodedResponse);
-    		if (!decodedResponseCode.equals(okAtom)) throw new RuntimeException(errorMessage+" : error "+decodedResponse);
+    		if (!decodedResponseCode.equals(okAtom))
+    		{
+    			if (decodedResponse.arity() == 2)
+    				// try to beautify the error
+    				throw new RuntimeException(errorMessage+" : error "+decodedResponse.elementAt(1).toString());
+				throw new RuntimeException(errorMessage+" : error "+decodedResponse);
+    			
+    		}
     		result = decodedResponse;
     	}
     	else throw new RuntimeException(errorMessage+" : unexpected response type "+response);

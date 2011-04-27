@@ -115,6 +115,21 @@ compileModules([M | OtherModules], State) ->
 			end
 	end.
 
+%% Sometimes, files are known under different names but define the same module,
+%% Dialyzer may lock up inside dialyzer_succ_typings:analyze_callgraph when 
+%% analysing such files. The following function check for this and complains when 
+%% file name does not match module name. Expects beams and throws an error if an
+%% inconsistency is detected.
+fileNameValid([])->ok;
+fileNameValid([F|Others])->
+	%% the next line is almost verbatim from typer.erl
+	FileName = list_to_atom(filename:basename(F, ".beam")),
+	{'module',ModName}=lists:keyfind('module',1,beam_lib:info(F)),
+	case(FileName =:= ModName) of
+		true -> fileNameValid(Others);
+		false-> erlang:error("Invalid file name " ++ F ++ " for module " ++ atom_to_list(ModName))
+	end.
+	
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
 %% Description: Handling call messages
@@ -136,6 +151,7 @@ handle_call({runTrace,Trace}, _From, State) ->
 handle_call({typer,FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 	try	
 		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
+		fileNameValid(FilesBeam),
 %%		io:format("~nOptions: ~p~n",[dialyzer_options:build(DialOpts)]),
 		_ListOfWarnings=dialyzer:run(DialOpts),
 		Outcome = typer:start(FilesErl,Plt,Outputmode),

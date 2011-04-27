@@ -393,7 +393,7 @@ t_to_Statechum(?identifier(Set), _RecDict) -> unsupportedType("identifiers are n
 t_to_Statechum(?matchstate(Pres, Slots), RecDict) -> unsupportedType("matchstates are not supported");
 %%  io_lib:format("ms(~s,~s)", [t_to_string(Pres, RecDict),
 %%			      t_to_string(Slots,RecDict)]);
-t_to_Statechum(?nil, _RecDict) -> 'StringSignature';
+t_to_Statechum(?nil, _RecDict) -> {'String',[],[""]};
 %%  "[]";
 t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
   StringContents = t_to_Statechum(Contents, RecDict),
@@ -401,7 +401,7 @@ t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
     ?nil ->
       case Contents of
 	?char -> {'String',['nonempty']};%% "nonempty_string()";
-	_ -> {'List',[],[StringContents]} %%"["++ContentString++",...]"
+	_ -> {'List',[],[StringContents]} %% "["++ContentString++",...]"
       end;
     ?any -> 
       %% Just a safety check.
@@ -415,10 +415,10 @@ t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
       case erl_types:t_is_subtype(erl_types:t_nil(), Termination) of
 	true ->
 	  {'List',['nonempty','maybeimproper'],[StringContents,t_to_Statechum(Termination, RecDict)]};
-	  %%"nonempty_maybe_improper_list("++ContentString++","++t_to_string(Termination, RecDict)++")";
+	  %% "nonempty_maybe_improper_list("++ContentString++","++t_to_string(Termination, RecDict)++")";
 	false ->
 	  {'List',['nonempty','improper'],[StringContents,t_to_Statechum(Termination, RecDict)]}
-	  %%"nonempty_improper_list("++ContentString++","++t_to_string(Termination, RecDict)++")"
+	  %% "nonempty_improper_list("++ContentString++","++t_to_string(Termination, RecDict)++")"
       end
   end;
 t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
@@ -427,7 +427,7 @@ t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
     ?nil ->
       case Contents of
 	?char -> {'String',[]};%% arbitrary string
-	_ -> {'String',[],[StringContents]}%%"["++ContentString++"]"
+	_ -> {'List',[],[StringContents]} %% "["++ContentString++"]"
       end;
     ?any ->
       %% Just a safety check.      
@@ -437,7 +437,7 @@ t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
 	  L = ?list(Contents, Termination, ?unknown_qual),
 	  typer:error({illegal_list, L})
       end,
-      {'List',['maybeimproper'],[]};%%"maybe_improper_list()";
+      {'List',['maybeimproper'],[]}; %% "maybe_improper_list()";
     _ -> 
       case erl_types:t_is_subtype(erl_types:t_nil(), Termination) of
 	true ->
@@ -450,19 +450,19 @@ t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
   end;
 t_to_Statechum(?int_set(Set), _RecDict) ->
  set_to_Statechum(Set);
-t_to_Statechum(?byte, _RecDict) -> {'Byte',[]};%%"byte()";
-t_to_Statechum(?char, _RecDict) -> {'Char',[]};%%"char()";
-t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive'],[]};%%"pos_integer()";
-t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative'],[]};%%"non_neg_integer()";
-t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative'],[]};%%"neg_integer()";
-t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',[],[From, To, atom]};%% atom is to stop OtpErlang from turning list into string
+t_to_Statechum(?byte, _RecDict) -> {'Byte',[]}; %% "byte()";
+t_to_Statechum(?char, _RecDict) -> {'Char',[]}; %% "char()";
+t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive'],[]}; %% "pos_integer()";
+t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative'],[]}; %% "non_neg_integer()";
+t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative'],[]}; %% "neg_integer()";
+t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',[],[From, To, atom]}; %% atom is to stop OtpErlang from turning list into string
 %% but at the same time, it is not proper to turn the last argument from a list into a tuple because we'd like to generate them using 
 %% list comprehensions in the union case and others; the trouble with lists integers being autoconverted to strings is relatively minor.
 
 %%  lists:flatten(io_lib:format("~w..~w", [From, To]));
-t_to_Statechum(?integer(?any), _RecDict) -> {'Int',[]};%%"integer()";
-t_to_Statechum(?float, _RecDict) -> {'Float',[]};%%"float()";
-t_to_Statechum(?number(?any, ?unknown_qual), _RecDict) -> {'Int',[]};%%"number()";
+t_to_Statechum(?integer(?any), _RecDict) -> {'Int',[]}; %% "integer()";
+t_to_Statechum(?float, _RecDict) -> {'Float',[]}; %% "float()";
+t_to_Statechum(?number(?any, ?unknown_qual), _RecDict) -> {'Int',[]}; %% "number()";
 t_to_Statechum(?product(List), RecDict) -> unsupportedType("product types are not supported");
 %% It is not hard to support this type - I could do the same as I did for fun_to_Statechum, 
 %% but I do not know when it is used
@@ -477,13 +477,13 @@ t_to_Statechum(?remote(Set), RecDict) -> unsupportedType("remote types are not s
 %% 	    end
 %% 	    || #remote{mod = Mod, name = Name, args = Args} <- ordsets:to_list(Set)],
 %% 	   [], " | ");
-t_to_Statechum(?tuple(?any, ?any, ?any), _RecDict) -> {'Tuple',[]};%%"tuple()";
+t_to_Statechum(?tuple(?any, ?any, ?any), _RecDict) -> {'Tuple',[]}; %% "tuple()";
 t_to_Statechum(?tuple(Elements, _Arity, ?any), RecDict) -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)};
 %%  "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
 t_to_Statechum(?tuple(Elements, Arity, Tag), RecDict) ->
   [TagAtom] = erl_types:t_atom_vals(Tag),
   case erl_types:lookup_record(TagAtom, Arity-1, RecDict) of
-    error -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)};%%"{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
+    error -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)}; %% "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
     {ok, FieldNames} ->
       record_to_Statechum(TagAtom, Elements, FieldNames, RecDict)
   end;

@@ -56,7 +56,7 @@ public class StringSignature extends Signature {
 			if  (((OtpErlangString)valuesArg.elementAt(i)).stringValue().isEmpty())
 				nonEmptyValue = false;
 			// I'm not simply doing System.arraycopy because if I encounter values like "any", I'll need to add wibbles here.
-			values.set(i,valuesArg.elementAt(i));
+			values.add(valuesArg.elementAt(i));
 		}
 		nonEmpty = nonEmptyValue;
 		erlangTermForThisType = erlangTypeToString(attributes,valuesArg);

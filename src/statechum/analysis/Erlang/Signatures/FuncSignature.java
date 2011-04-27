@@ -26,6 +26,7 @@ import java.util.List;
 
 import statechum.Helper;
 import statechum.Label;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 
@@ -99,8 +100,8 @@ public class FuncSignature implements Label {
     protected String buildFunctionSignatureAsString()
     {// {File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap)}
     	StringBuffer resultHolder = new StringBuffer();
-    	resultHolder.append("{\"");
-    	resultHolder.append(fullFileName);resultHolder.append("\",");
+    	resultHolder.append("{");
+    	ErlangLabel.ErlangString.getSingleton().dump(fullFileName,resultHolder);resultHolder.append(",");
     	resultHolder.append(lineNumber);resultHolder.append(',');
        	resultHolder.append(funcName);resultHolder.append(',');
        	resultHolder.append(arity);resultHolder.append(',');
@@ -183,7 +184,9 @@ public class FuncSignature implements Label {
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FuncSignature does not accept attributes");
 		arity = ArgList.arity();lineNumber=extractedLineNumber;moduleName=extractedModuleName;funcName=extractedFuncName;
 		assert arity == knownArity;
-        args = LoadArgs(ArgList);result = Signature.buildFromType(Range);
+		
+        args = LoadArgs(ArgList);
+        result = Signature.buildFromType(Range);
         fullFileName = extractedFileName;
         erlangTermForThisType = buildFunctionSignatureAsString();
     }

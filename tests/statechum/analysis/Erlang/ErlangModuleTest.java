@@ -73,7 +73,7 @@ public class ErlangModuleTest {
 	}
 
 	@Test
-	public void testRunParserFailure2() throws IOException
+	public void testRunParserFailure2()
 	{
 		final File file = new File("ErlangExamples/WibbleMonster/Wibble.erl");
 		if (!file.canRead()) // running on a case-sensitive OS
@@ -82,7 +82,10 @@ public class ErlangModuleTest {
 					new ErlangModule(file);
 			}},IOException.class,"does not exist");
 		else
-			new ErlangModule(file);// should not throw
+			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
+				public @Override void run() throws IOException {
+					new ErlangModule(file);
+			}},RuntimeException.class,"Invalid file name");
 	}
 	
     /** Only used for testing against runTyperAsAProcessInsideErlang. 

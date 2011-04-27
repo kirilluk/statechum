@@ -535,11 +535,17 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		public void dump(OtpErlangObject arg,StringBuffer resultHolder)
     	{
     		OtpErlangString atom = (OtpErlangString)arg;
-    		resultHolder.append('\"');
-    		stringToText(atom.stringValue(),whatToQuoteForString,resultHolder);
-    		resultHolder.append('\"');
-    	}
+    		dump(atom.stringValue(),resultHolder);
+     	}
 
+     	/** Similar to the above but for normal strings. */
+     	public void dump(String str, StringBuffer resultHolder)
+     	{
+       		resultHolder.append('\"');
+    		stringToText(str,whatToQuoteForString,resultHolder);
+    		resultHolder.append('\"');
+     	}
+     	
 		@Override
 		public OtpErlangObject parseObject(Lexer lexer) 
 		{

@@ -551,13 +551,13 @@ public class ErlangRunnerTest {
 	@Test 
 	public void testEvaluateTerm1()
 	{
-		Assert.assertEquals(new OtpErlangLong(25),erl.evaluateString("25."));
+		Assert.assertEquals(new OtpErlangLong(25),erl.evaluateString("25"));
 	}
 	
 	@Test 
 	public void testEvaluateTerm2()
 	{
-		Assert.assertEquals("[{10,6},{7,3},{13,9}]",ErlangLabel.dumpErlangObject(erl.evaluateString("[{X+4,X} || X <- [6,3,9] ].")));
+		Assert.assertEquals("[{10,6},{7,3},{13,9}]",ErlangLabel.dumpErlangObject(erl.evaluateString("[{X+4,X} || X <- [6,3,9] ]")));
 	}
 	
 	@Test 
@@ -565,7 +565,7 @@ public class ErlangRunnerTest {
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			erl.evaluateString("aa/gg.");
-		}},RuntimeException.class,"{failed,[{badmatch");
+		}},RuntimeException.class,"syntax error before");
 	}
 	
 }

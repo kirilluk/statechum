@@ -39,6 +39,7 @@ import com.ericsson.otp.erlang.OtpErlangDecodeException;
 import com.ericsson.otp.erlang.OtpErlangExit;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
@@ -350,6 +351,14 @@ public class ErlangRunner
     	
     	return result;
     }
+    
+    /** Parses an evaluates a supplied text using Erlang. */
+	public OtpErlangObject evaluateString(String text)
+	{
+		OtpErlangTuple outcome = call(new OtpErlangObject[]{new OtpErlangAtom("evaluateTerm"), new OtpErlangString(text+".")},
+				"evaluation of "+text);
+		return outcome.elementAt(1);
+	}
     
    /** Makes a call and waits for a response for the specified duration, infinitely if timeout is zero.
      * 

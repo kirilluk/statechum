@@ -20,7 +20,7 @@ package statechum.analysis.Erlang.Signatures;
 
 import com.ericsson.otp.erlang.OtpErlangObject;
 
-/** Empty type.
+/** Empty type, corresponding to the "noreturn" - type functions.
  * 
  * @author kirill
  *

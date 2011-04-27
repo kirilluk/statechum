@@ -38,7 +38,7 @@
 %% when Java fails to respond.
 -export([start/1]).
 
--record(state, {processNum}).
+-record(state, {processNum,compiledModules=sets:new()}).
 
 %% ====================================================================
 %% External functions
@@ -98,6 +98,23 @@ compileAndLoad(What,Path) ->
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
 
+
+%% Compiles all supplied modules for Analyser
+%% Modules which have already been compiled are recorded and not recompiled later.
+compileModules([], State) ->
+	{reply, ok, State};
+
+compileModules([M | OtherModules], State) ->
+	case sets:is_element(M,State#state.compiledModules) of
+		true -> compileModules(OtherModules, State);
+		false->
+			case(cover:compile(M)) of
+				{ok,_} -> compileModules(OtherModules, 
+					State#state{compiledModules=sets:add_element(M,State#state.compiledModules)});
+				FailureDetails -> {reply, {failed, FailureDetails}, State}
+			end
+	end.
+
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
 %% Description: Handling call messages
@@ -127,16 +144,18 @@ handle_call({typer,FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
 	end;
 	
-%% Compiles all supplied modules for Analyser
-handle_call({compile,[],cover}, _From, State) ->
-	{reply, ok, State};
-
-handle_call({compile,[M | OtherModules],cover}, From, State) ->
-	case(cover:compile(M)) of
-		{ok,_} -> handle_call({compile,OtherModules,cover}, From, State);
-		_ -> {reply, failed, State}
+%% Evaluates a term and returns a result, based on http://www.trapexit.org/String_Eval
+handle_call({evaluateTerm,String}, _From, State) ->
+	try	
+		{ ok, Tokens, _ } = erl_scan:string(String),
+		{ ok, Tree } = erl_parse:parse_exprs(Tokens),
+		{ value, Value, NewBindings} = erl_eval:exprs(Tree,[]),
+		{ reply, { ok, Value }, State }
+	catch
+		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
 	end;
-	
+		
+
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
 handle_call({compile,[],erlc,_Dir}, _From, State) ->
 	{reply, ok, State};

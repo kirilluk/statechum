@@ -246,9 +246,9 @@ public class ErlangApplicationLoader extends javax.swing.JFrame {
             {
                 ErlangModule m = (ErlangModule) s;
                 // Create an Erlang QSM jobby for the selected behaviours...
-                ErlangOracleRunner runner = new ErlangOracleRunner(m, app.modules);
-                Thread t = new Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
-                t.start();
+                //ErlangOracleRunner runner = new ErlangOracleRunner(m, app.modules);
+                //Thread t = new Thread(runner);t.setPriority(Thread.MIN_PRIORITY);
+                //t.start();
             }
         } catch (IOException e) {
             e.printStackTrace();

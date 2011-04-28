@@ -18,17 +18,26 @@
 
 package statechum.analysis.Erlang;
 
+import static statechum.Helper.checkForCorrectException;
+
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
@@ -41,6 +50,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Helper.whatToRun;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.AltSignature;
@@ -72,6 +82,19 @@ import statechum.analysis.learning.rpnicore.LTL_to_ba;
 
 public class TestErlangModule {
 	
+	@Before
+	public void beforeTest()
+	{
+		if (!TestErlangRunner.testDir.isDirectory()) 
+			Assert.assertTrue("could not create "+TestErlangRunner.testDir.getAbsolutePath(),TestErlangRunner.testDir.mkdir());
+	}
+	
+	@After
+	public void afterTest()
+	{
+		ExperimentRunner.zapDir(TestErlangRunner.testDir);
+	}
+
 	@Test
 	public void testRunParserFailure1()
 	{
@@ -81,6 +104,9 @@ public class TestErlangModule {
 		}},IllegalArgumentException.class,"Invalid module");
 	}
 
+	/** This is one of those odd tests which behaves differently on different operating systems,
+	 * hence there are two different cases.
+	 */
 	@Test
 	public void testRunParserFailure2()
 	{
@@ -91,10 +117,14 @@ public class TestErlangModule {
 					new ErlangModule(file);
 			}},IOException.class,"does not exist");
 		else
+		{
+			File plt = new File(ErlangRunner.getName(file, ERL.PLT));
+			if (plt.canRead()) Assert.assertTrue(plt.delete());
 			statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { 
 				public @Override void run() throws IOException {
 					new ErlangModule(file);
 			}},RuntimeException.class,"Invalid file name");
+		}
 	}
 	
     /** Only used for testing against runTyperAsAProcessInsideErlang. 
@@ -181,7 +211,6 @@ public class TestErlangModule {
 		String typerInRunner = runTyperAsAProcessInsideErlang(file).replace("\\\\", "\\");
 		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.PLT)).delete());
 		String typerAsProcess = runTyperAsAProcess(file).replace("\\\\", "\\");
-		System.out.println(typerAsProcess);
 		Assert.assertEquals(typerAsProcess,typerInRunner);
     }
     
@@ -217,6 +246,29 @@ public class TestErlangModule {
     	}
     }
     
+   	@Test
+   	public void testWibbleAlphabet() throws IOException
+    {
+   		ErlangModule mod = new ErlangModule(new java.io.File("ErlangExamples/WibbleMonster/wibble.erl"));
+   		Set<Label> lbls = new TreeSet<Label>();lbls.addAll(mod.behaviour.getAlphabet());
+   		Assert.assertEquals("[wibble:handle_call/3(xyz), wibble:handle_call/3([wibble,wibble]), wibble:handle_call/3([]), wibble:handle_cast/2(wibble), wibble:handle_info/2(wibble), wibble:init/1(wibble)]",
+   				lbls.toString());
+    }
+
+    /** Given a fully-qualified name of a function and a collection of labels,
+     * this method returns a first label from that collection with function with that name.
+     * input (if non-null) is matched to any of the arguments.
+     */
+    protected ErlangLabel findLabelByFunction(String functionName, String input, Collection<ErlangLabel> labels)
+    {
+    	for(ErlangLabel lbl:labels) 
+    		if (lbl.function.getQualifiedName().equals(functionName) &&
+    				(input == null || lbl.input.toString().contains(input)))
+    			return lbl;
+
+    	throw new IllegalArgumentException("cannot find function "+functionName+" with input of "+input);
+    }
+    
     @Test
     public void testAttemptTraces() throws IOException
     {
@@ -230,64 +282,142 @@ public class TestErlangModule {
     	evalConf.config = Configuration.getDefaultConfiguration().copy();
     	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf, mod);
     	
-    	List<ErlangLabel> alphabet = new ArrayList<ErlangLabel>(mod.behaviour.getAlphabet().size());
-    	alphabet.addAll(mod.behaviour.getAlphabet());
-    	ErlangLabel initLabel = null, labelLock = alphabet.get(0),
-    		labelRead = alphabet.get(1), 
-    		labelWrite = alphabet.get(3);
-    	for(ErlangLabel lbl:alphabet)
-    		if (lbl.function.getName().equals("init"))
-    		{
-    			initLabel = lbl;break;
-    		}
-    			
+    	ErlangLabel initLabel = findLabelByFunction(mod.getName()+":init/1",null,mod.behaviour.getAlphabet()), 
+    		labelLock = findLabelByFunction(mod.getName()+":handle_call/3","lock",mod.behaviour.getAlphabet()),
+    		labelRead = findLabelByFunction(mod.getName()+":handle_call/3","read",mod.behaviour.getAlphabet()), 
+    		labelWrite = findLabelByFunction(mod.getName()+":handle_call/3","write",mod.behaviour.getAlphabet());
     	
     	// Attempting first trace
-    	TraceOutcome tr = 
-    	learner.askErlang(Arrays.asList(new Label[]{
-    				initLabel,labelLock
-    		}));
+    	TraceOutcome tr = learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock}));
     	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/3(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
     	
-    	tr = 
-        	learner.askErlang(Arrays.asList(new Label[]{
-        				initLabel,labelLock, labelLock
-        		}));
+    	tr = learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock, labelLock}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_FAIL,tr.outcome);
-    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/3(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
     	
-    	tr = 
-        	learner.askErlang(Arrays.asList(new Label[]{
-        				initLabel,labelLock,labelWrite, labelRead
-        		}));
+    	tr =learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelRead}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}, locker:handle_call/2({write,wibble}) == {ok,wibble}, locker:handle_call/2(read) == wibble]",Arrays.toString(tr.answerDetails));
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/3(lock) == {ok,locked}, locker:handle_call/3({write,wibble}) == {ok,wibble}, locker:handle_call/3(read) == wibble]",Arrays.toString(tr.answerDetails));
     	
-    	// Now attempt "different output" input
+    	// Now attempt a "different output" input
     	ErlangLabel lbl = (ErlangLabel)tr.answerDetails[3];
     	tr.answerDetails[3] = new ErlangLabel(lbl.function,lbl.callName,
     			lbl.input, new OtpErlangAtom("aa"));
-    	//System.out.println(ErlangLabel.dumpErlangObject((ErlangLabel)tr.answerDetails[3]));
-    	tr = 
-        	learner.askErlang(Arrays.asList(tr.answerDetails));
-    	//System.out.println(Arrays.toString(tr.answerDetails));
+    	tr =learner.askErlang(Arrays.asList(tr.answerDetails));
        	Assert.assertEquals(TRACEOUTCOME.TRACE_DIFFERENTOUTPUT,tr.outcome);
-    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}, locker:handle_call/2({write,wibble}) == {ok,wibble}, locker:handle_call/2(read) == wibble]",Arrays.toString(tr.answerDetails));
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/3(lock) == {ok,locked}, locker:handle_call/3({write,wibble}) == {ok,wibble}, locker:handle_call/3(read) == wibble]",Arrays.toString(tr.answerDetails));
     }
     
+    /** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
+     * after it has been initialised.
+     */
+    protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl";
     
-/*
-	@Test
-	public void testRunParser1() throws IOException
-	{
-		ErlangModule mod = new ErlangModule(new java.io.File("ErlangExamples/WibbleMonster/wibble.erl"));
-		Assert.assertEquals("[{call, xyz, '*'}, {call, xyz, '*'}, {call, xyz, '*'}, {call, [wibble], '*'}, {call, [wibble], '*'}, {call, [wibble], '*'}, {call, xyz, '*'}, {call, xyz, '*'}, {call, xyz, '*'}, {cast, wibble}, {cast, stop}, {cast, xyz}, {cast, xyz3}, {info, wibble}, {info, xyz}]",
-mod.behaviour.alphabet.toString());
-	}
-	*/
+    @Test
+    public void testInvalidModuleName() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n");wr.close();
+		File origFile = new File(erlangFile);
+		ErlangRunner.compileErl(origFile, ErlangRunner.getRunner());
+		final File renamedFile = new File(TestErlangRunner.testDir.getAbsolutePath()+File.separator+"otherFile.erl");
+		origFile.renameTo(new File(ErlangRunner.getName(renamedFile, ERL.ERL)));
+		new File(ErlangRunner.getName(origFile,ERL.BEAM)).renameTo(new File(ErlangRunner.getName(renamedFile, ERL.BEAM)));
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(renamedFile);
+		}},RuntimeException.class,"Invalid file name");// error message returned by Erlang code
+    }
+
+    protected static final String stdFunctions = "\nhandle_call(_,_,_)->ok.\nhandle_cast(_,_)->ok.\nhandle_info(_,_)->ok.\ninit(_)->ok.\n";
+    
+    @Test
+    public void testExtraAttribute1() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-justsomething(aa)."+stdFunctions);wr.close();
+		new ErlangModule(new File(erlangFile));
+   }
+
+    @Test
+    public void testInvalidAttribute1() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n-behaviour(aa)."+stdFunctions);wr.close();
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(new File(erlangFile));
+		}},IllegalArgumentException.class,"[gen_server,aa] is of the wrong kind");
+   }
+
+    @Test
+    public void testInvalidAttribute2() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(56)."+stdFunctions);wr.close();
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(new File(erlangFile));
+		}},IllegalArgumentException.class,"\"8\" is of the wrong kind");// 56 is interpreted as a string "8"
+   }
+    @Test
+    public void testInvalidAttribute3() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(565)."+stdFunctions);wr.close();
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(new File(erlangFile));
+		}},IllegalArgumentException.class,"[565] is of the wrong kind");
+   }
+    
+    @Test
+    public void testInvalidAttribute4() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(\"junk\")."+stdFunctions);wr.close();
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(new File(erlangFile));
+		}},IllegalArgumentException.class,"\"junk\" is of the wrong kind");
+   }
+    
+    @Test
+    public void testSpecificValue1() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server)."+stdFunctions);wr.close();
+		Assert.assertEquals("gen_server_wrapper",new ErlangModule(new File(erlangFile)).behaviour.getWrapperName());
+   }
+    
+    @Test
+    public void testSpecificValue2() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_fsm).\n"+
+				"\nhandle_event(_,_,_)->ok.\nhandle_sync_event(_,_)->ok.\n\ninit(_)->ok.\nhandle_info(_,_)->ok.\n");wr.close();
+		Assert.assertEquals("gen_fsm_wrapper",new ErlangModule(new File(erlangFile)).behaviour.getWrapperName());
+   }
+    
+    @Test
+    public void testSpecificValueFail() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_fsm).\n"+
+				"\nhandle_event(_,_,_)->ok.\nhandle_sync_event(_,_)->ok.\nainit(_)->ok.\nhandle_info(_,_)->ok.\n");wr.close();
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			new ErlangModule(new File(erlangFile));
+		}},IllegalArgumentException.class,"function testFile:init/1 is missing");
+    }
+    
+    @Test
+    public void testDependencies1() throws IOException
+    {
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server)."+stdFunctions);wr.close();
+		Assert.assertTrue(new ErlangModule(new File(erlangFile)).behaviour.dependencies.isEmpty());
+   }
+    
+    @Test
+    public void testDependencies2() throws IOException
+    {
+    	final String erlangFile2 = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile2.erl";
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-export[funct/0].\nfunct() -> ok.");wr.close();
+		wr = new FileWriter(erlangFile2);wr.write("-module(testFile2).\n-export[f/0].\nf() -> testFile:funct().");wr.close();
+		Assert.assertTrue(new ErlangModule(new File(erlangFile)).behaviour.dependencies.isEmpty());
+		Collection<String> deps = new ErlangModule(new File(erlangFile2)).behaviour.dependencies;
+		Assert.assertEquals(1,deps.size());
+		Assert.assertEquals("testFile",deps.toArray()[0]);
+   }
+    
     protected static ListSignature parseList(StringBuffer specbuf, boolean definitelyNotEmpty,char terminal) {
         ListSignature lsig = null;
         List<Signature> elems = new LinkedList<Signature>();

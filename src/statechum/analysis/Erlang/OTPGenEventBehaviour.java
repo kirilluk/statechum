@@ -19,5 +19,6 @@ public class OTPGenEventBehaviour extends OTPBehaviour {
         patterns.put("handle_call", new Pair<String,Boolean>("call", Boolean.FALSE));
         patterns.put("handle_info", new Pair<String,Boolean>("info", Boolean.FALSE));
         patterns.put("init", 		new Pair<String,Boolean>("init", Boolean.FALSE));
+        buildInvPatterns();
     }
 }

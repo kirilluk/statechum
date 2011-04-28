@@ -22,11 +22,16 @@ import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+
+import statechum.Label;
 import statechum.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.Map.Entry;
+
 import statechum.analysis.Erlang.Signatures.FuncSignature;
+import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 
 /**
  *
@@ -36,7 +41,8 @@ public abstract class OTPBehaviour {
 
     public String name;
     final protected ErlangModule parent;
-    protected Map<String, Pair<String, Boolean>> patterns;
+    protected final Map<String, Pair<String, Boolean>> patterns;
+    protected final Map<String,String> invPatterns;
     protected Set<ErlangLabel> alphabet;
     protected Collection<String> dependencies;
     public Collection<List<OtpErlangObject>> initArgs;
@@ -54,13 +60,23 @@ public abstract class OTPBehaviour {
         "math"};
     protected static final ArrayList<String> stdModsList = new ArrayList<String>(Arrays.asList(stdmodsarray));
 
-    public OTPBehaviour(ErlangModule mod) {
+    protected OTPBehaviour(ErlangModule mod) {
     	name = null;parent = mod;
     	alphabet = null;
-        patterns = new TreeMap<String, Pair<String, Boolean>>();
+        patterns = new TreeMap<String, Pair<String, Boolean>>();invPatterns = new TreeMap<String, String>();
         dependencies = new LinkedList<String>();
     }
 
+    protected void buildInvPatterns()
+    {
+    	for(Entry<String,Pair<String,Boolean>> pattern:patterns.entrySet())
+    	{
+    		if (!parent.sigs.containsKey(pattern.getKey()))
+    			throw new IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
+    		invPatterns.put(pattern.getValue().firstElem, pattern.getKey());
+    	}
+    }
+    
     @Override
     public String toString() {
         return name;
@@ -159,15 +175,16 @@ public abstract class OTPBehaviour {
         }*/
     }
 
-    public void loadAlphabet() {
+    public void loadAlphabet() 
+    {
     	alphabet = new TreeSet<ErlangLabel>();
     	for(FuncSignature sig:parent.sigs.values())
-    		if (patterns.containsKey(sig.getName())) 
+    		if (patterns.containsKey(sig.getQualifiedName())) 
 	    		for(List<OtpErlangObject> funcArgs:sig.instantiateAllArgs())
 	    		{
 	    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+sig+" should take at least one argument");
 	    			OtpErlangObject firstArg = funcArgs.get(0);
-	    			alphabet.add(new ErlangLabel(sig,patterns.get(sig.getName()).firstElem,firstArg));
+	    			alphabet.add(new ErlangLabel(sig,patterns.get(sig.getQualifiedName()).firstElem,firstArg,null));
 	    		}
     }
 
@@ -175,4 +192,70 @@ public abstract class OTPBehaviour {
         return alphabet;
     }
 
+    
+    public static interface ConvertALabel
+    {
+    	public Label convertLabelToLabel(Label lbl);
+    }
+    
+    /** Given an instance of a converter, converts all elements of a trace. 
+     * This is useful for converting from text-compatible traces (no function signatures) to
+     * those with signatures and back.
+     * 
+     * @param trace trace to convert
+     * @param converter how to convert, see <em>ConverterModToErl</em> and <em>ConverterErlToMod</em>.
+     * @return result of conversion.
+     */
+    public List<Label> convertTrace(List<Label> trace,ConvertALabel converter)
+    {
+    	List<Label> outcome = new LinkedList<Label>();
+    	for(Label lbl:trace) outcome.add(converter.convertLabelToLabel(lbl));
+    	return outcome;
+    }
+    
+    /** Used to turn real traces into textual traces, suitable for persistence.
+     */ 
+    class ConverterModToErl implements LabelConverter,ConvertALabel
+    {
+		@Override
+		public Set<Label> convertLabel(Label lbl) 
+		{
+			return Collections.singleton(convertLabelToLabel(lbl));
+		}
+
+		@Override
+		public Label convertLabelToLabel(Label lbl) {
+			if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
+			ErlangLabel label = (ErlangLabel)lbl;
+			
+			return new ErlangLabel(null,label.callName,label.input,label.expectedOutput);
+		}
+   }
+    
+    /** Used to turn textual traces loaded from somewhere into proper Erlang traces which can be executed.
+     */ 
+    class ConverterErlToMod implements LabelConverter,ConvertALabel
+    {
+		@Override
+		public Set<Label> convertLabel(Label lbl) 
+		{
+			return Collections.singleton(convertLabelToLabel(lbl));
+		}
+
+		@Override
+		public Label convertLabelToLabel(Label lbl) 
+		{
+			if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
+			ErlangLabel label = (ErlangLabel)lbl;
+			if (label.function != null) throw new IllegalArgumentException("label already has a function assigned");
+
+			String callName = invPatterns.get(label.callName);
+			if (callName == null) throw new IllegalArgumentException("unknown call name \""+label.callName+"\" in module "+parent.getName());
+			FuncSignature origFunc = parent.sigs.get(callName);
+			if (origFunc == null) throw new IllegalArgumentException("unknown function \""+callName+"\" in module "+parent.getName());
+			return new ErlangLabel(origFunc,label.callName,label.input,label.expectedOutput);
+		}
+    	
+    }
+    
 }

@@ -101,7 +101,6 @@ public class AllTests {
         statechum.analysis.learning.TestDrawGraphs.class,
         statechum.analysis.learning.experiments.mutation.TestGraphMutator.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
-        statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
         statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
         statechum.TestProgressIndicator.class
     })
@@ -139,13 +138,15 @@ public class AllTests {
         statechum.analysis.Erlang.TestErlangRunner.class,
         statechum.analysis.Erlang.TestErlangParser.class,
         statechum.analysis.learning.TestErlangOracleLearner.class,
-        statechum.analysis.Erlang.TestErlangParser.TestParseBitStr.class
+        statechum.analysis.Erlang.TestErlangParser.TestParseBitStr.class,
+        statechum.analysis.Erlang.TestErlangGraphs.class
     })
     public static class ErlangTests {// all tests are included in the annotation.
     }
     
     @RunWith(Suite.class)
     @SuiteClasses({
+        statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
     	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,
         statechum.analysis.learning.linear.TestGD_ExistingGraphsUsingTestSet.class,
         statechum.analysis.learning.linear.TestGD_ExistingGraphsND.class,

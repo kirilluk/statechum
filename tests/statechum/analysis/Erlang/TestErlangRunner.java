@@ -207,7 +207,7 @@ public class TestErlangRunner {
 				,2000);
 	}
 	
-	public static final File testDir = new File("resources","__TestErlangRunner__");
+	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),"__TestErlangRunner__");
 	
 	@Test
 	public void testCompileFailure0a()
@@ -326,7 +326,7 @@ public class TestErlangRunner {
 		origName.renameTo(tmpName);// now make a copy of it
 		createAndCompile("44",runner);
 		Assert.assertTrue(origName.delete());tmpName.renameTo(origName);// restore the '43 .beam
-		Assert.assertTrue(origName.setLastModified(output.lastModified()+10000L));
+		Assert.assertTrue(origName.setLastModified(output.lastModified()+100000L));
 		ErlangRunner.compileErl(output,runner);// compile, beam should be preserved
 		attemptRun("43");// verify it is the preserved .beam
 	}

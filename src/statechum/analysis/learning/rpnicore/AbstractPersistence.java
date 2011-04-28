@@ -124,7 +124,7 @@ public class AbstractPersistence<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGE
 			{
 				Element edge = doc.createElementNS(StatechumXML.graphmlNS.toString(),"edge");edge.setAttribute("source", vert.getKey().getID().toString());
 				edge.setAttribute("target", targetState.getID().toString());edge.setAttribute("directed", "true");
-				edge.setAttribute("EDGE", transition.getKey().toString());graphTop.appendChild(edge);
+				edge.setAttribute("EDGE", transition.getKey().toErlangTerm());graphTop.appendChild(edge);
 				graphTop.appendChild(endl(doc));
 			}
 		

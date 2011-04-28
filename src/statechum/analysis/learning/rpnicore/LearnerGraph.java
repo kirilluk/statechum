@@ -211,7 +211,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	final public WMethod wmethod = new WMethod(this);
 	final public Transform transform = new Transform(this);
 	final public Linear linear = new Linear(this);
-	final public SootOracleSupport sootsupport = new SootOracleSupport(this);
+	final public SootOracleSupport sootsupport = null;//new SootOracleSupport(this);
 	
 	/** Constructs a StateChum graph from a Jung Graph
 	 *

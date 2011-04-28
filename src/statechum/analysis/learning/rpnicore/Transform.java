@@ -19,6 +19,7 @@
 package statechum.analysis.learning.rpnicore;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -34,7 +35,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import statechum.Configuration;
-import statechum.Configuration.LABELKIND;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
@@ -912,7 +912,7 @@ public class Transform
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph propertyAutomaton = 
-						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsOnGraph(graph.pathroutines.computeAlphabet(),true,null);
+						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config).transform.interpretLabelsAsReg(graph.pathroutines.computeAlphabet());
 				checkTHEN_disjoint_from_IF(propertyAutomaton);
 				ifthenAutomata.add(propertyAutomaton);
 			}
@@ -968,35 +968,94 @@ public class Transform
 			throw new IllegalArgumentException("unreachable states in graph");
 	}
 	
+	public static interface LabelConverter
+	{
+		/** Converts a label to a collection of labels, possibly of a completely different type,
+		 * such as string->Erlang.
+		 * 
+		 * @param label label to convert
+		 * @return outcome of conversion.
+		 */
+		public Set<Label> convertLabel(Label label);
+	}
+	
+	/** Interprets string labels as a limited kind of regular expressions, returns the corresponding set of labels.
+	 * 
+	 */
+	public static class ConvertExpandLabels implements LabelConverter
+	{
+		/**
+		 * 
+		 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
+		 * @param config configuration to use
+		 */
+		public ConvertExpandLabels(Set<Label> alphabet, Configuration config)
+		{
+			ba = new LTL_to_ba(config);
+            ba.setAlphabet(alphabet);
+		}
+		@Override
+		public Set<Label> convertLabel(Label label) {
+			return ba.interpretString(label.toErlangTerm());
+		}
+
+		private final LTL_to_ba ba;
+	}
+	
+	/** Makes no interpretation, aimed to convert vertices to a different type.
+	 * 
+	 */
+	public static class ConvertTypeOfLabels implements LabelConverter
+	{
+
+		@Override
+		public Set<Label> convertLabel(Label label) {
+			return Collections.singleton(AbstractLearnerGraph.generateNewLabel(label.toErlangTerm(), config));
+		}
+
+		public ConvertTypeOfLabels(Configuration cnf)
+		{
+			config = cnf;
+		}
+		private final Configuration config;
+	}
+	
 	/** Given a graph where each label is a composite expression, this method expands those labels.
 	 * If labels are regular expressions, the corresponding subsets of an alphabet are built
 	 * and transitions replaced by sets of transitions. This also permits conversion of graphs 
 	 * between label types, for instance, one may load a graph with textual labels and then use
 	 * this method to interpret labels as Erlang expressions.
 	 *  
-	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
-	 * @param labelKind whether to convert vertices to a specified kind, null for no conversion.
+	 * @param converter code do convert vertices.
 	 * @return a state machine where each transition transition label belongs to the alphabet.
 	 */
-	public LearnerGraph interpretLabelsOnGraph(Set<Label> alphabet,boolean expandRegExp, LABELKIND labelKind)
+	public LearnerGraph interpretLabelsOnGraph(LabelConverter converter)
 	{
 		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
-		if (labelKind != null) config.setLabelKind(labelKind);
 		LearnerGraph result = new LearnerGraph(coregraph,config);
-		LTL_to_ba ba = new LTL_to_ba(config);
-                ba.setAlphabet(alphabet);
 		for(Entry<CmpVertex,Map<Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
 		 // This is why associations (such as THENs) remain valid.
 			Map<Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-				if (expandRegExp)
-					for(Label label:ba.interpretString(transition.getKey().toErlangTerm()))
+					for(Label label:converter.convertLabel(transition.getKey()))
 						result.addTransition(row, label, transition.getValue());
-				else
-					result.addTransition(row, AbstractLearnerGraph.generateNewLabel(transition.getKey().toErlangTerm(), config), transition.getValue());
 		}
 		return result;
+	}
+	
+	
+	/** Given a graph where each label is a composite expression, this method expands those labels.
+	 * If labels are regular expressions, the corresponding subsets of an alphabet are built
+	 * and transitions replaced by sets of transitions.
+	 * 
+	 * @param alphabet the alphabet to interpret labels - this one should be computed from traces.
+	 * @param config configuration to use
+	 */
+	public LearnerGraph interpretLabelsAsReg(Set<Label> alphabet)
+	{
+		Configuration config = coregraph.config.copy();config.setLearnerCloneGraph(false);// to ensure the new graph has the same vertices
+		return interpretLabelsOnGraph(new ConvertExpandLabels(alphabet, config));
 	}
 	
 	public static class TraversalStatistics

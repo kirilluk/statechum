@@ -48,7 +48,7 @@ public class FuncSignature implements Label {
 
     protected final String funcName, moduleName, fullFileName;
     /** A function can be defined with a variety of argument types, 
-     * this one collects all of those offerered by typer. 
+     * this one collects all of those offered by typer. 
      */
     protected final List<List<Signature>> args;
     protected final Signature result;
@@ -69,15 +69,16 @@ public class FuncSignature implements Label {
     	return arity;
     }
     
+    /** Returns a fully-qualified name. */
     @Override
     public String toString()
     {
-    	return getQualifiedName()+"/"+getArity();
+    	return getQualifiedName();
     }
     
     public String getQualifiedName()
     {
-    	return moduleName+":"+getName();
+    	return moduleName+":"+getName()+"/"+getArity();
     }
     
     /** Represents an Erlang term from which details of this function can be reconstructed - this is 

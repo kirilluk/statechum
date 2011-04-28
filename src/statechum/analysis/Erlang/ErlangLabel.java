@@ -57,24 +57,24 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     /** A function might be called wibble:handle_call/3 but we have to use the name of "call" when making a call to Erlang. */
     public final String callName;
 
-    public ErlangLabel(FuncSignature operator, String shortName, OtpErlangObject inputArgs) {
-        super(new OtpErlangObject[]{
-                    new OtpErlangAtom(shortName),
-                    inputArgs
-                });
-        arity = 2;
-        function = operator;callName = shortName;
-        input = inputArgs;
-        expectedOutput = null;
-        alphaNum = buildFunctionSignatureAsString();
-    }
-
+    /** Denotes the name of the function which is known to the module but not stored in this label. */
+    public static final String missingFunction = "?F()";
+    
     protected String buildFunctionSignatureAsString()
     {// {File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap)}
     	StringBuffer resultHolder = new StringBuffer();
-    	resultHolder.append('{');resultHolder.append(function.toErlangTerm());resultHolder.append(',');
-    	ErlangLabel.ErlangString.getSingleton().dump(callName,resultHolder);resultHolder.append(",");
-    	resultHolder.append(arity);resultHolder.append(',');
+    	resultHolder.append('{');
+    	if (function == null)
+    	{
+    		resultHolder.append(missingFunction);
+    	}
+    	else
+    	{
+    		resultHolder.append(function.toErlangTerm());resultHolder.append(",");
+        	resultHolder.append(arity);
+    	}
+    	resultHolder.append(',');
+    	ErlangLabel.ErlangQuotedAtom.getSingleton().dump(callName,resultHolder);resultHolder.append(',');
        	resultHolder.append(dumpErlangObject(input));
        	if (expectedOutput != null) {resultHolder.append(',');resultHolder.append(dumpErlangObject(expectedOutput)); }
        	resultHolder.append('}');
@@ -83,7 +83,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     
     @Override
     public String toString() {
-        String result = function.toString() + "(" + input + ")";
+        String result = (function == null?missingFunction:function.toString()) + "(" + input + ")";
         if (expectedOutput != null) {
             result = result + " == " + expectedOutput;
         }
@@ -115,12 +115,18 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	}
 	
 	public ErlangLabel(FuncSignature operator, String shortName, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
-        super(new OtpErlangObject[]{
+        super(expectedOutputArgs == null?
+        		new OtpErlangObject[]{
                     new OtpErlangAtom(shortName),
-                    inputArgs,
-                    expectedOutputArgs
-                });
-        arity = 3;
+                    inputArgs
+                }
+        	:
+        		new OtpErlangObject[]{
+                        new OtpErlangAtom(shortName),
+                        inputArgs,
+                        expectedOutputArgs
+                    }        		);
+        arity = expectedOutputArgs == null?2:3;
         function = operator;callName = shortName;
         input = inputArgs;
         expectedOutput = expectedOutputArgs;
@@ -375,6 +381,13 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     		resultHolder.append('\'');
     	}
     	
+		public void dump(String arg,StringBuffer resultHolder)
+    	{
+    		resultHolder.append('\'');
+    		stringToText(arg,whatToQuoteForAtom,resultHolder);
+    		resultHolder.append('\'');
+    	}
+
 		@Override
 		public OtpErlangObject parseObject(Lexer lexer) 
 		{
@@ -1140,28 +1153,63 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     }    
     
     /** Given a string containing the whole of the expression to parse, parses the text and returns the
-     * corresponding Erlang label.
+     * corresponding Erlang label. This is not a complete label - it cannot really be passed to Erlang 
+     * for execution because the function it corresponds to is not defined.
      *  
      * @param str label to parse
      * @return the outcome.
      */
     public static Label parseLabel(String str)
     {
-    	OtpErlangObject obj = parseText(str);
-    	if (!(obj instanceof OtpErlangTuple))
-    		throw new IllegalArgumentException("expected Erlang label, parsed "+obj);
-    	OtpErlangTuple tuple = (OtpErlangTuple)obj;
-    	
-    	if (tuple.arity() < 2 || tuple.arity() > 3)
-    		throw new IllegalArgumentException("expected Erlang label, got tuple of arity "+tuple.arity()+" in "+obj);
-    	
-    	// map of names to signatures is to be stored in OtpErlangModule or somewhere, hence ErlangTrace cannot have parse as a static method.
-    	// moreover, we have no idea where to get a function for this label  - the first element of the tuple is not enough :/  
-    	return null;
+     	return erlangObjectToLabel( parseText(str) );
+    }
+ 
+    /** Builds a semblance of Erlang label from a tuple. This is not a complete label - it cannot really be passed to Erlang 
+     * for execution because the function it corresponds to is not defined.
+     */
+    protected static ErlangLabel erlangObjectToLabel(OtpErlangObject obj)
+    {
+       	if (!(obj instanceof OtpErlangTuple))
+    		throw new IllegalArgumentException("expected a tuple, parsed "+obj);
+       	OtpErlangTuple tuple = (OtpErlangTuple)obj;
+       	
+       	ErlangLabel outcome = null;
+       	switch(tuple.arity())
+       	{
+       	case 2:
+        	if (!(tuple.elementAt(0) instanceof OtpErlangAtom))
+        		throw new IllegalArgumentException("function name should be an atom, got "+tuple.elementAt(0));
+        	outcome = new ErlangLabel(null, ((OtpErlangAtom)tuple.elementAt(0)).atomValue(), tuple.elementAt(1), null);
+        	break;
+       	case 3:
+        	if (!(tuple.elementAt(0) instanceof OtpErlangAtom))
+        		throw new IllegalArgumentException("first element of a tuple should be an atom, got "+tuple.elementAt(0));
+        	if (((OtpErlangAtom)tuple.elementAt(0)).atomValue().equals(missingFunction))
+        	{
+        		OtpErlangObject funcName = tuple.elementAt(1);
+        		if (!(funcName instanceof OtpErlangAtom))
+            		throw new IllegalArgumentException("function name should be an atom, got "+funcName);
+        		outcome = new ErlangLabel(null, ((OtpErlangAtom)funcName).atomValue(), tuple.elementAt(2), null);
+        	}
+        	else
+        		outcome = new ErlangLabel(null, ((OtpErlangAtom)tuple.elementAt(0)).atomValue(), tuple.elementAt(1), tuple.elementAt(2));
+        	break;
+       	case 4:
+        	if (!(tuple.elementAt(0) instanceof OtpErlangAtom) || !((OtpErlangAtom)tuple.elementAt(0)).atomValue().equals(missingFunction))
+        		throw new IllegalArgumentException("tuples of length 4 should start with "+missingFunction+", got "+tuple.elementAt(0));
+        	if (!(tuple.elementAt(1) instanceof OtpErlangAtom))
+        		throw new IllegalArgumentException("function name should be an atom, got "+tuple.elementAt(0));
+        	outcome = new ErlangLabel(null, ((OtpErlangAtom)tuple.elementAt(1)).atomValue(), tuple.elementAt(2), tuple.elementAt(3));
+        	break;
+      	default:
+    		throw new IllegalArgumentException("expected Erlang label, got tuple of arity "+tuple.arity()+" in "+tuple);
+       	}
+    	return outcome;
     }
     
     /** Given a string containing the whole of the expression to parse, parses the text and returns the
-     * corresponding Erlang label.
+     * corresponding Erlang trace. This is not a complete trace - it cannot really be passed to Erlang 
+     * for execution because labels of which it consists are not associated with actual functions.
      *  
      * @param str label to parse
      * @return the outcome.
@@ -1172,12 +1220,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	assert obj instanceof OtpErlangList;
     	OtpErlangList list = (OtpErlangList)obj;
     	List<Label> outcome = new LinkedList<Label>();
-    	/*for(OtpErlangObject o:list.elements())
-    		outcome.add(o);
-    	// need module information 
-    		*
-    		*/
     	
+    	for(OtpErlangObject o:list.elements())
+    		outcome.add(erlangObjectToLabel(o));
     	
     	return outcome;
     }

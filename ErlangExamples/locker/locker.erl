@@ -30,6 +30,8 @@ handle_cast(stop, _State) ->
 handle_cast(_, State) ->
     {noreply, State}.
 
+handle_info(_Event, State) -> {noreply,State}.
+	
 terminate(_Reason, _State) ->
     ok.
 

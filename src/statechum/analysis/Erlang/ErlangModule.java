@@ -18,16 +18,22 @@
  */
 package statechum.analysis.Erlang;
 
+import statechum.Configuration;
+import statechum.Label;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
+import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.Assert;
@@ -45,20 +51,11 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 public class ErlangModule {
 
 	
-	public File sourceFolder;
-    public String name;
-    public OTPBehaviour behaviour;
-    public Map<String, FuncSignature> sigs;
+	public final File sourceFolder;
+    public final String name;
+    public final OTPBehaviour behaviour;
+    public final Map<String, FuncSignature> sigs;
 
-    public ErlangModule() {
-        name = null;
-        sigs = new TreeMap<String, FuncSignature>();
-    }
-
-    public ErlangModule(String filename, File folder) throws IOException {
-        this(new File(folder, filename));
-    }
-    
     public ErlangModule(final File f) throws IOException 
     {
     	name = ErlangRunner.getName(f,ERL.MOD);
@@ -105,7 +102,7 @@ public class ErlangModule {
         for(int i=0;i<typeInformation.arity();++i)
         {
         	FuncSignature s = new FuncSignature(typeInformation.elementAt(i));
-        	sigs.put(s.toString(), s);
+        	sigs.put(s.getQualifiedName(), s);
         }
         
         behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this);

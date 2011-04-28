@@ -110,7 +110,7 @@ fileNameValid([F|Others])->
 	{'module',ModName}=lists:keyfind('module',1,beam_lib:info(F)),
 	case(FileName =:= ModName) of
 		true -> fileNameValid(Others);
-		false-> erlang:error("Invalid file name " ++ F ++ " for module " ++ atom_to_list(ModName))
+		false-> "Invalid file name " ++ F ++ " for module " ++ atom_to_list(ModName)
 	end.
 	
 %% --------------------------------------------------------------------
@@ -148,10 +148,11 @@ end;
 handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 	try	
 		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
-		fileNameValid(FilesBeam),
-%%		io:format("~nOptions: ~p~n",[dialyzer_options:build(DialOpts)]),
-		_ListOfWarnings=dialyzer:run(DialOpts),
-		{reply,ok, State}
+		case (fileNameValid(FilesBeam)) of
+			ok ->
+				_ListOfWarnings=dialyzer:run(DialOpts),{reply,ok, State};
+			Error ->{reply, {failed,Error}, State}
+		end
 	catch
 		error:_Error -> {reply, {failed,dialyzer_failed}, State}
 	end;

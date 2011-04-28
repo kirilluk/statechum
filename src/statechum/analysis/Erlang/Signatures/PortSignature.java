@@ -18,6 +18,7 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPort;
 
@@ -27,9 +28,15 @@ import com.ericsson.otp.erlang.OtpErlangPort;
  */
 public class PortSignature extends Signature {
 
-    @Override
+	public PortSignature(OtpErlangList attributes)
+	{
+		super();
+		if (attributes.arity() != 0) throw new IllegalArgumentException("PortSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
+	}
+
+   @Override
 	public OtpErlangObject instantiate() {
-        //throw new RuntimeException("I don't know how to instantiate a port() siganture...");
         return new OtpErlangPort("PORT", 0,0);
     }
 

@@ -20,21 +20,11 @@ import org.junit.Assert;
 public class TestErlangOracleLearner {
 
     /*
-     * Test that we can start an Erlang process without locking the whole system...
-     */
-    @Test
-    public final void testStartErlang() {
-        ErlangOracleLearner.startErlang();
-        Assert.assertNotNull(ErlangOracleLearner.erlangProcess);
-        ErlangOracleLearner.killErlang();
-    }
-    /*
      * Test the askErlang function, which should call the Erlang tracer process to request a first_failure evaluation
      */
 
     @Test
     public final void testAskErlang1() {
-        ErlangOracleLearner.startErlang();
         String module = "locker";
         String wrapper = "gen_server_wrapper";
         OtpErlangList testTrace = new OtpErlangList(
@@ -51,7 +41,7 @@ public class TestErlangOracleLearner {
                         new OtpErlangAtom("stop")
                     })
                 });
-        OtpErlangTuple response = ErlangOracleLearner.askErlang(module, wrapper, testTrace);
+        OtpErlangTuple response = null;//ErlangOracleLearner.askErlang(module, wrapper, testTrace);
         Assert.assertNotNull(response);
         // {ok,[{init,[]},{cast,stop}], [{"locker.8",1},{"locker.29",1},{"locker.34",1}]}
         OtpErlangTuple expected = new OtpErlangTuple(
@@ -75,6 +65,5 @@ public class TestErlangOracleLearner {
                 });
 
         Assert.assertEquals(expected, response);
-        ErlangOracleLearner.killErlang();
     }
 }

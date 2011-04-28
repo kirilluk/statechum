@@ -1,56 +1,32 @@
 -module(tracer3).
--export([first_failure/3, first_failure/4, trace_server/0, trace_server_loop/0, test_trace_server/3]).
+-export([first_failure/5]).
 
-%% server main loop that will receive and process questions from the Java components
-trace_server() ->
-    Pid = spawn(?MODULE, trace_server_loop, []),
-    register(trace_server, Pid).
-
-trace_server_loop() ->
-    receive
-	kill ->
-	    ok;
-	{first_failure, {Module, Wrapper, Trace}, From} ->
-	    From ! first_failure(Module, Wrapper, Trace),
-	    trace_server_loop();
-	{first_failure, {Module, Wrapper, Trace, ModulesList}, From} ->
-	    From ! first_failure(Module, Wrapper, Trace, ModulesList),
-	    trace_server_loop()
-    end.
-
-test_trace_server(Module, Wrapper, Trace) ->
-    trace_server ! {first_failure, {Module, Wrapper, Trace}, self()},
-    receive
-	Msg ->
-	     Msg
-    end.
+-include("tracerunner.hrl").
 
 %% Module - Name of the Module Under Test
 %% Wrapper - Name of the wrapper module - usually gen_server_wrapper, gen_fsm_wrapper etc.
 %% Trace - List of operation tuples to try
 %% ModulesList - List of Modules to cover compile for code coverage analysis
-first_failure(_Module, _Wrapper, [], _ModulesList) ->
-    {ok, []};
-first_failure(Module, Wrapper, Trace, ModulesList) ->
-    compile_all(ModulesList),
+%% Options configuration to use.
+first_failure(_Module, _Wrapper, [], _ModulesList, State) ->
+    {ok, [],State};
+first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
+    State2=compileModulesForAnalyser(ModulesList,State),
     {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
     {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
     erlang:demonitor(Ref,[flush]),
-    OPTrace = flushOPTrace(PartialOPTrace, Pid),
+    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
     %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
-    Coverage = analyse_all(ModulesList),
+    State3=analyse_all(ModulesList,State2),
     case ProcStatus of 
 	ok ->
-	    {ok, OPTrace, Coverage};
+	    {ok, OPTrace, State3};
 	failed_but ->
-	    {failed, OPTrace, Coverage};
+	    {failed_but, OPTrace, State3};
 	failed ->
-	    {failed, OPTrace, Coverage}
+	    {failed, OPTrace, State3}
     end.
     
-first_failure(Module, Wrapper, Trace) ->
-    first_failure(Module, Wrapper, Trace, [Module]).
-
 %%
 %% Helper functions
 %%
@@ -72,7 +48,7 @@ await_end(Pid, Ref, OpTrace) ->
 	    {failed_but, OpTrace ++ [OP]};
 	{Pid, failed, OP} ->
 	    {failed, OpTrace ++ [OP]}
-    after 500 ->    
+    after 100 ->    
 	    case lists:member(Pid, erlang:processes()) of
 		false ->
 		    %%io:format("Scone...~n"),
@@ -82,33 +58,79 @@ await_end(Pid, Ref, OpTrace) ->
 	    end
     end.
 
-flushOPTrace(OPTrace, Pid) ->
+flushOPTrace(OPTrace, Pid, Delay) ->
+  if 
+    Delay =< 0 -> OPTrace;
+    true ->
     receive
 	{Pid, output, OP} ->
-	    flushOPTrace(OPTrace ++ [OP], Pid);
+	    flushOPTrace(OPTrace ++ [OP], Pid, Delay);
 	Msg ->
 	    io:format("UNHANDLED: ~p~n", [Msg]),
-	    flushOPTrace(OPTrace, Pid)
-    after 500 ->
+	    flushOPTrace(OPTrace, Pid, Delay)
+    after Delay ->
 	    OPTrace
-    end.
+    end
+  end.
 
-%% Code coverage functions
-compile_all([]) ->
-    ok;
-compile_all([M | ModulesList]) ->
-    cover:compile(M),
-    compile_all(ModulesList).
 
-analyse_all(ModulesList) ->
-    analyse_all(ModulesList, []).
+%% Extracts the value of a variable from a configuration
+getConfig(Var,#statechum{config=Conf}=_State) ->
+	case(dict:find(Var,Conf)) of
+		{ok,Value} -> Value;
+		_ -> erlang:error("unknown configuration variable " ++ atom_to_list(Var))
+	end.
 
-analyse_all([], Map) ->
+
+%% Compiles all supplied modules for Analyser if coverage analysis is enabled.
+%% and Modules which have already been compiled are recorded and not recompiled later.
+compileModulesForAnalyser(ModulesList,State) ->
+	CovValue = getConfig(?erlCoverage,State),
+	if 
+		CovValue =:= 'ERLCOV_NONE' -> State;
+		true	-> compileModulesA(ModulesList,State)
+	end.
+
+%% The worker method actually doing compilation
+compileModulesA([], State) ->
+	{reply, ok, State};
+
+compileModulesA([M | OtherModules], State) ->
+	case sets:is_element(M,State#statechum.compiledModules) of
+		true -> compileModulesA(OtherModules, State);
+		false->
+			case(cover:compile(M)) of
+				{ok,_} -> compileModulesA(OtherModules, 
+					State#statechum{compiledModules=sets:add_element(M,State#statechum.compiledModules)});
+				FailureDetails -> {reply, {failed, FailureDetails}, State}
+			end
+	end.
+
+analyse_all(ModulesList,#statechum{config=Conf,attr=Attrs}=State) ->
+	case(dict:find(?erlCoverage,Conf)) of
+		{ok,'ERLCOV_LINE'} -> 
+			AttrsWithCoverage = dict:store(coverage,analyse_linecoverage(ModulesList),Attrs),
+			State#statechum{attr=AttrsWithCoverage};
+		{ok,'ERLCOV_NONE'} -> State;
+		{ok,Other} -> erlang:error("invalid coverage type " ++ atom_to_list(Other));
+		_ -> erlang:error("coverage kind not defined")
+	end.
+
+analyse_linecoverage(ModulesList) ->
+	lists:foldl(fun (Mod,Acc) ->
+		{ok, Answer}=cover:analyse(Mod,line),
+		Acc ++ Answer
+		end, ModulesList, []).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Analysis via file
+
+analyse_all_f([], Map) ->
     Map;
-analyse_all([M | ModulesList], Map) ->
+analyse_all_f([M | ModulesList], Map) ->
     cover:analyse_to_file(M, "tmp.cover", []),
     ThisMap = create_map("tmp.cover"),
-    analyse_all(ModulesList, map_label(M, ThisMap) ++ Map).
+    analyse_all_f(ModulesList, map_label(M, ThisMap) ++ Map).
 
 create_map(FileName) ->
     {ok, IODevice} = file:open(FileName, [read]),

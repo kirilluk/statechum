@@ -44,6 +44,7 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertexID.VertKind;
 import statechum.JUConstants.VERTEXLABEL;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.apps.QSMTool;
 import statechum.Label;
 
@@ -279,6 +280,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		case LABEL_STRING:
 			result = buildList(QSMTool.tokeniseInput(trace),config);
 			break;
+		case LABEL_ERLANG:
+			result = ErlangLabel.parseTrace(trace);
+			break;
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());
 		}
@@ -293,6 +297,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		{
 		case LABEL_STRING:
 			result = new StringLabel(label);
+			break;
+		case LABEL_ERLANG:
+			result = ErlangLabel.parseLabel(label);
 			break;
 		default:
 			throw new IllegalArgumentException("No parser available for traces of type "+config.getLabelKind());

@@ -16,16 +16,19 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import statechum.Helper;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.ErlangOracleLearner;
 
 /**
@@ -38,11 +41,11 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	 * Serial ID.
 	 */
 	private static final long serialVersionUID = -5038890683208421642L;
-	protected List<OtpErlangTuple> alphabet;
+	protected Set<ErlangLabel> alphabet;
     protected String module;
     protected String wrapper;
 
-    public void setAlphabet(List<OtpErlangTuple> al) {
+    public void setAlphabet(Set<ErlangLabel> al) {
         alphabet = al;
         JLabel ta = new JLabel("<html>");
         for (OtpErlangTuple a : alphabet) {
@@ -190,11 +193,10 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
     /** Generate a trace file with random traces up to the length supplied. */
     private void genRandom(File file, int length, int count) {
-        ErlangOracleLearner.startErlang();
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter(file));
             for (int i = 0; i < count; i++) {
-                List<OtpErlangTuple> line = randLine(alphabet, length);
+                List<ErlangLabel> line = randLine(alphabet, length);
                 System.out.println("trying " + line + "...");
                 //ErlangOracleLearner.askErlang
             }
@@ -202,15 +204,15 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
         } catch (IOException e) {
             Helper.throwUnchecked("Error writing traces file", e);
         }
-        ErlangOracleLearner.killErlang();
     }
 
     /** This needs to use RandomPathGenerator */ 
-    private List<OtpErlangTuple> randLine(List<OtpErlangTuple> alphabet, int lenght) {
-        LinkedList<OtpErlangTuple> result = new LinkedList<OtpErlangTuple>();
+    private List<ErlangLabel> randLine(Set<ErlangLabel> alphabet, int lenght) {
+    	List<ErlangLabel> list = new ArrayList<ErlangLabel>(alphabet.size());list.addAll(alphabet);
+        LinkedList<ErlangLabel> result = new LinkedList<ErlangLabel>();
         for(int i = 0; i < lenght; i++) {
             int rand = (int) Math.floor(Math.random() * alphabet.size());
-            result.add(alphabet.get(rand));
+            result.add(list.get(rand));
         }
         return result;
     }

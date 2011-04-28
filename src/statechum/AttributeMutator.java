@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import junit.framework.Assert;
+import statechum.Configuration.ERLCOVERAGE;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
 import statechum.Configuration.GDScoreComputationEnum;
 import statechum.Configuration.IDMode;
@@ -216,6 +217,11 @@ public class AttributeMutator {
 				if (var.getType().equals(JUConstants.class))
 				{
 					valueA = JUConstants.RED;valueB = JUConstants.BLUE;
+				}
+				else
+				if (var.getType().equals(ERLCOVERAGE.class))
+				{
+					valueA = ERLCOVERAGE.ERLCOV_NONE;valueB = ERLCOVERAGE.ERLCOV_LINE;
 				}
 				else
 					throw new IllegalArgumentException("A field "+var+" of "+clazz+" has an unsupported type "+var.getType());

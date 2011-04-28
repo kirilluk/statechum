@@ -473,7 +473,8 @@ public class Configuration implements Cloneable
 		result = prime * result + (gdPropagateDet? 1231 : 1237);
 		result = prime * result + gdScoreComputationAlgorithm_RandomWalk_PathLength;
 		result = prime * result + labelKind.hashCode();
-		
+		result = prime * result + erlFlushDelay;
+		result = prime * result + erlCoverage.hashCode();
 		return result;
 	}
 
@@ -604,7 +605,10 @@ public class Configuration implements Cloneable
 			return false;
 		if (labelKind != other.labelKind)
 			return false;
-		
+		if (erlFlushDelay != other.erlFlushDelay)
+			return false;
+		if (erlCoverage != other.erlCoverage)
+			return false;
 		return true;
 	}
 
@@ -1199,6 +1203,35 @@ public class Configuration implements Cloneable
 	
 	public static final String configXMLTag = "configuration", configVarTag="var", configVarAttrName="name",configVarAttrValue="value";
 
+	
+	/** How long to wait before deciding that no new messages will arrive from a system being analysed. */
+	protected int erlFlushDelay = 10;
+	
+	public void setErlFlushDelay(int newValue)
+	{
+		erlFlushDelay = newValue;
+	}
+	
+	public int getErlFlushDelay()
+	{
+		return erlFlushDelay;
+	}
+	
+	public enum ERLCOVERAGE { ERLCOV_NONE, ERLCOV_LINE, ERLCOV_FUNCTION };
+	
+	/** Determines what kind of coverage analysis to engage in when running traces. */
+	protected ERLCOVERAGE erlCoverage = ERLCOVERAGE.ERLCOV_NONE;
+	
+	public void setErlCoverage(ERLCOVERAGE newValue)
+	{
+		erlCoverage = newValue;
+	}
+	
+	public ERLCOVERAGE getErlCoverage()
+	{
+		return erlCoverage;
+	}
+	
 	/** Serialises configuration into XML
 	 * Only primitive strings, enums and primitive data types 
 	 * are taken care of. For this reason, this should only be used on classes such 

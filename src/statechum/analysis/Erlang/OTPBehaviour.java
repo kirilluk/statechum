@@ -37,7 +37,7 @@ public abstract class OTPBehaviour {
     public String name;
     final protected ErlangModule parent;
     protected Map<String, Pair<String, Boolean>> patterns;
-    protected List<OtpErlangTuple> alphabet;
+    protected Set<ErlangLabel> alphabet;
     protected Collection<String> dependencies;
     public Collection<List<OtpErlangObject>> initArgs;
     protected static final String[] stdmodsarray = {"erlang",
@@ -56,7 +56,7 @@ public abstract class OTPBehaviour {
 
     public OTPBehaviour(ErlangModule mod) {
     	name = null;parent = mod;
-    	alphabet = new LinkedList<OtpErlangTuple>();
+    	alphabet = null;
         patterns = new TreeMap<String, Pair<String, Boolean>>();
         dependencies = new LinkedList<String>();
     }
@@ -97,6 +97,49 @@ public abstract class OTPBehaviour {
         }
     }
 
+    public static OTPBehaviour obtainDeclaredBehaviour(File file, ErlangModule mod)
+    {
+    	OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless defined in a module
+    	
+    	// extract the list of attributes and determine the kind of this module
+    	OtpErlangTuple response = ErlangRunner.getRunner().call(new OtpErlangObject[]{
+    			new OtpErlangAtom("attributes"),
+    			new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM))},
+    			"Could not load attributes of "+file.getName());
+
+    	OtpErlangList listOfDepTuples = (OtpErlangList)response.elementAt(1);// the first element is 'ok'
+    	for(OtpErlangObject tup:listOfDepTuples.elements())
+    	{
+    		OtpErlangTuple tuple = (OtpErlangTuple)tup;
+    		OtpErlangObject name = tuple.elementAt(0);
+    		if (name instanceof OtpErlangAtom &&
+    				((OtpErlangAtom)name).atomValue().equals("behaviour"))
+    		{// found the gen_server attribute
+    			OtpErlangObject value = tuple.elementAt(1);
+    			if (value instanceof OtpErlangList &&
+    					((OtpErlangList)value).arity() == 1 &&
+    					((OtpErlangList)value).elementAt(0) instanceof OtpErlangAtom)
+    			{// behaviour attribute is of the correct kind
+	    			String bstring = ((OtpErlangAtom)((OtpErlangList)value).elementAt(0)).atomValue();
+	                if (bstring.startsWith("gen_server")) {
+	                    behaviour = new OTPGenServerBehaviour(mod);
+	                } else if (bstring.startsWith("gen_event")) {
+	                    behaviour = new OTPGenEventBehaviour(mod);
+	                } else if (bstring.startsWith("gen_fsm")) {
+	                    behaviour = new OTPGenFSMBehaviour(mod);
+	                } else
+	                	throw new IllegalArgumentException("unknown behaviour type defined "+bstring);
+	                
+	                break;
+    			}
+    			else
+    				throw new IllegalArgumentException("behaviour attribute "+value+ " is of the wrong kind");
+    		}
+   		}
+
+    	return behaviour;
+    }
+
     public void loadInitArgs() {
         initArgs = new LinkedList<List<OtpErlangObject>>();
         FuncSignature initSig = parent.sigs.get(parent.getName()+":init/1");
@@ -117,17 +160,18 @@ public abstract class OTPBehaviour {
     }
 
     public void loadAlphabet() {
+    	alphabet = new TreeSet<ErlangLabel>();
     	for(FuncSignature sig:parent.sigs.values())
-    		if (patterns.keySet().contains(sig.getName())) 
-    		for(List<OtpErlangObject> funcArgs:sig.instantiateAllArgs())
-    		{
-    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+sig+" should take at least one argument");
-    			OtpErlangObject firstArg = funcArgs.get(0);
-    			alphabet.add(new ErlangLabel(sig,firstArg));
-    		}
+    		if (patterns.containsKey(sig.getName())) 
+	    		for(List<OtpErlangObject> funcArgs:sig.instantiateAllArgs())
+	    		{
+	    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+sig+" should take at least one argument");
+	    			OtpErlangObject firstArg = funcArgs.get(0);
+	    			alphabet.add(new ErlangLabel(sig,patterns.get(sig.getName()).firstElem,firstArg));
+	    		}
     }
 
-    public List<OtpErlangTuple> getAlphabet() {
+    public Set<ErlangLabel> getAlphabet() {
         return alphabet;
     }
 

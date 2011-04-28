@@ -67,7 +67,7 @@ public class AltSignature extends Signature {
 	public OtpErlangObject instantiate() {
         if (elems.isEmpty()) return null;
 
-        return elems.get(0).instantiateAllAlts().get(0);
+        return elems.get(0).instantiate();
     }
 
     @Override

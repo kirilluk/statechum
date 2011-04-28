@@ -54,19 +54,33 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     public final int arity;
     public final FuncSignature function;
     public final OtpErlangObject input, expectedOutput;
+    /** A function might be called wibble:handle_call/3 but we have to use the name of "call" when making a call to Erlang. */
+    public final String callName;
 
-    public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs) {
+    public ErlangLabel(FuncSignature operator, String shortName, OtpErlangObject inputArgs) {
         super(new OtpErlangObject[]{
-                    new OtpErlangAtom(operator.getQualifiedName()),
+                    new OtpErlangAtom(shortName),
                     inputArgs
                 });
         arity = 2;
-        function = operator;
+        function = operator;callName = shortName;
         input = inputArgs;
         expectedOutput = null;
-        alphaNum = dumpErlangObject(this);
+        alphaNum = buildFunctionSignatureAsString();
     }
 
+    protected String buildFunctionSignatureAsString()
+    {// {File, LineNo, F, A,fun_to_Statechum(erl_types:t_fun(ArgType, RetType),Info#info.recMap)}
+    	StringBuffer resultHolder = new StringBuffer();
+    	resultHolder.append('{');resultHolder.append(function.toErlangTerm());resultHolder.append(',');
+    	ErlangLabel.ErlangString.getSingleton().dump(callName,resultHolder);resultHolder.append(",");
+    	resultHolder.append(arity);resultHolder.append(',');
+       	resultHolder.append(dumpErlangObject(input));
+       	if (expectedOutput != null) {resultHolder.append(',');resultHolder.append(dumpErlangObject(expectedOutput)); }
+       	resultHolder.append('}');
+       	return resultHolder.toString();
+    }
+    
     @Override
     public String toString() {
         String result = function.toString() + "(" + input + ")";
@@ -100,17 +114,17 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		return buffer.toString();
 	}
 	
-	public ErlangLabel(FuncSignature operator, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
+	public ErlangLabel(FuncSignature operator, String shortName, OtpErlangObject inputArgs, OtpErlangObject expectedOutputArgs) {
         super(new OtpErlangObject[]{
-                    new OtpErlangAtom(operator.getQualifiedName()),
+                    new OtpErlangAtom(shortName),
                     inputArgs,
                     expectedOutputArgs
                 });
         arity = 3;
-        function = operator;
+        function = operator;callName = shortName;
         input = inputArgs;
         expectedOutput = expectedOutputArgs;
-		alphaNum = dumpErlangObject(this);
+		alphaNum = buildFunctionSignatureAsString();
     }
 
     @Override
@@ -981,7 +995,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		}
    }
     
-    public static void stringToText(String str,Set<Character> whatToQuote,StringBuffer result)
+    protected static void stringToText(String str,Set<Character> whatToQuote,StringBuffer result)
     {
     	for(int i=0;i<str.length();++i)
     	{
@@ -1142,7 +1156,29 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     		throw new IllegalArgumentException("expected Erlang label, got tuple of arity "+tuple.arity()+" in "+obj);
     	
     	// map of names to signatures is to be stored in OtpErlangModule or somewhere, hence ErlangTrace cannot have parse as a static method.
-    	
+    	// moreover, we have no idea where to get a function for this label  - the first element of the tuple is not enough :/  
     	return null;
+    }
+    
+    /** Given a string containing the whole of the expression to parse, parses the text and returns the
+     * corresponding Erlang label.
+     *  
+     * @param str label to parse
+     * @return the outcome.
+     */
+    public static List<Label> parseTrace(String str)
+    {
+    	OtpErlangObject obj = parseText("["+str+"]");
+    	assert obj instanceof OtpErlangList;
+    	OtpErlangList list = (OtpErlangList)obj;
+    	List<Label> outcome = new LinkedList<Label>();
+    	/*for(OtpErlangObject o:list.elements())
+    		outcome.add(o);
+    	// need module information 
+    		*
+    		*/
+    	
+    	
+    	return outcome;
     }
 }

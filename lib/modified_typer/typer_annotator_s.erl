@@ -27,7 +27,8 @@
 %%============================================================================
 %%
 %%	MODIFIED BY KIRR for integration into the Statechum project.
-%%
+%%	quite a lot of the code was lifted from the erl_types.erl file of the Erlang distribution.
+%% 
 
 -module(typer_annotator_s).
 
@@ -351,9 +352,6 @@ fun_to_Statechum(?function(?any, _Range), _RecDict) -> unsupportedType("cannot h
 fun_to_Statechum(?function(?product(ArgList), Range), RecDict) ->
  { 'Func',[],sequence_to_Statechum(ArgList, RecDict),t_to_Statechum(Range, RecDict) }.
 
-t_to_Statechum(T) ->
-  t_to_Statechum(T, dict:new()).
-
 t_to_Statechum(?any, _RecDict) ->
   {'Any',[]};
 t_to_Statechum(?none, _RecDict) ->
@@ -379,7 +377,14 @@ t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B, atom ]};
 
 t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as arguments are not yet supported");
 
-t_to_Statechum(?identifier(Set), _RecDict) -> unsupportedType("identifiers are not supported");
+t_to_Statechum(?identifier(Set), _RecDict) -> 
+	SetPid = erl_types:t_is_pid(?identifier(Set)),SetPort = erl_types:t_is_port(?identifier(Set)),
+	if
+		SetPid  -> {'Pid',[]};
+		SetPort -> {'Port',[]};
+		true -> unsupportedType("references are not supported")
+	end;
+
 %%  if Set =:= ?any -> "identifier()";
 %%     true -> sequence([io_lib:format("~w()", [T]) 
 %%		       || T <- ordsets:to_list(Set)], [], " | ")
@@ -390,7 +395,7 @@ t_to_Statechum(?identifier(Set), _RecDict) -> unsupportedType("identifiers are n
 %%	      false -> io_lib:format("~w:~w()", [Mod, Name])
 %%	    end
 %%	    || #opaque{mod = Mod, name = Name} <- ordsets:to_list(Set)], [], " | ");
-t_to_Statechum(?matchstate(Pres, Slots), RecDict) -> unsupportedType("matchstates are not supported");
+t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
 %%  io_lib:format("ms(~s,~s)", [t_to_string(Pres, RecDict),
 %%			      t_to_string(Slots,RecDict)]);
 t_to_Statechum(?nil, _RecDict) -> {'String',[],[""]};
@@ -449,13 +454,13 @@ t_to_Statechum(?list(Contents, Termination, ?unknown_qual), RecDict) ->
       end
   end;
 t_to_Statechum(?int_set(Set), _RecDict) ->
- set_to_Statechum(Set);
+	{'Int',['values'],set_to_Statechum(Set)};
 t_to_Statechum(?byte, _RecDict) -> {'Byte',[]}; %% "byte()";
 t_to_Statechum(?char, _RecDict) -> {'Char',[]}; %% "char()";
-t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive'],[]}; %% "pos_integer()";
-t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative'],[]}; %% "non_neg_integer()";
-t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative'],[]}; %% "neg_integer()";
-t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',[],[From, To, atom]}; %% atom is to stop OtpErlang from turning list into string
+t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive']}; %% "pos_integer()";
+t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative']}; %% "non_neg_integer()";
+t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative']}; %% "neg_integer()";
+t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',['boundaries'],[From, To, atom]}; %% atom is to stop OtpErlang from turning list into string
 %% but at the same time, it is not proper to turn the last argument from a list into a tuple because we'd like to generate them using 
 %% list comprehensions in the union case and others; the trouble with lists integers being autoconverted to strings is relatively minor.
 
@@ -463,12 +468,12 @@ t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',[],[From, To, atom]}; %
 t_to_Statechum(?integer(?any), _RecDict) -> {'Int',[]}; %% "integer()";
 t_to_Statechum(?float, _RecDict) -> {'Float',[]}; %% "float()";
 t_to_Statechum(?number(?any, ?unknown_qual), _RecDict) -> {'Int',[]}; %% "number()";
-t_to_Statechum(?product(List), RecDict) -> unsupportedType("product types are not supported");
+t_to_Statechum(?product(_List), _RecDict) -> unsupportedType("product types are not supported");
 %% It is not hard to support this type - I could do the same as I did for fun_to_Statechum, 
 %% but I do not know when it is used
 %% and hence the envelope to use for it.
 %%  "<" ++ sequence_to_Statechum(List, RecDict) ++ ">";
-t_to_Statechum(?remote(Set), RecDict) -> unsupportedType("remote types are not supported");
+t_to_Statechum(?remote(_Set), _RecDict) -> unsupportedType("remote types are not supported");
 %%   sequence([case Args =:= [] of
 %% 	      true  -> io_lib:format("~w:~w()", [Mod, Name]);
 %% 	      false ->

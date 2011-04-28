@@ -38,7 +38,7 @@
 %% when Java fails to respond.
 -export([start/1]).
 
--record(state, {processNum,compiledModules=sets:new()}).
+-include("tracerunner.hrl").
 
 %% ====================================================================
 %% External functions
@@ -88,7 +88,7 @@ verifyJavaUp(Node) ->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([Arg]) ->
-    {ok, #state{processNum=Arg}}.
+    {ok, #statechum{processNum=Arg}}.
 
 %% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
 %% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
@@ -97,23 +97,6 @@ compileAndLoad(What,Path) ->
 	ModuleName = filename:basename(What,".erl"),
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
-
-
-%% Compiles all supplied modules for Analyser
-%% Modules which have already been compiled are recorded and not recompiled later.
-compileModules([], State) ->
-	{reply, ok, State};
-
-compileModules([M | OtherModules], State) ->
-	case sets:is_element(M,State#state.compiledModules) of
-		true -> compileModules(OtherModules, State);
-		false->
-			case(cover:compile(M)) of
-				{ok,_} -> compileModules(OtherModules, 
-					State#state{compiledModules=sets:add_element(M,State#state.compiledModules)});
-				FailureDetails -> {reply, {failed, FailureDetails}, State}
-			end
-	end.
 
 %% Sometimes, files are known under different names but define the same module,
 %% Dialyzer may lock up inside dialyzer_succ_typings:analyze_callgraph when 
@@ -140,37 +123,74 @@ fileNameValid([F|Others])->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
-handle_call({runTrace,Trace}, _From, State) ->
-	io:format("~w~n", [Trace]),
-    	Reply = {ok,aa},
-    	{reply, Reply, State};
+handle_call({runTrace,Module, Wrapper, Trace, ModulesList}, _From, State) ->
+    	{Outcome, OPTrace, State3} = tracer3:first_failure(Module, Wrapper, Trace, ModulesList, State),
+    	{reply, {ok, Outcome, OPTrace}, State3};
 
-%% Runs analysis on the supplied files using a modified version of the typer
+%% Adds the specified directory to the code path
+handle_call({addPath,Path}, _From, State) ->
+case(code:add_path(Path)) of
+	true -> {reply, ok, State};
+	{error, What} -> {reply, { failed, What }, State}
+end;
+
+%% Removes the specified directory from the code path
+handle_call({delPath,Path}, _From, State) ->
+case(code:del_path(Path)) of
+	true -> {reply, ok, State};
+	false->{reply, { failed, dir_not_found }, State};
+	{error, What} -> {reply, { failed, What }, State}
+end;
+
+%% Runs dialyzer on the supplied files.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({typer,FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
+handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 	try	
 		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
 		fileNameValid(FilesBeam),
 %%		io:format("~nOptions: ~p~n",[dialyzer_options:build(DialOpts)]),
 		_ListOfWarnings=dialyzer:run(DialOpts),
+		{reply,ok, State}
+	catch
+		error:_Error -> {reply, {failed,dialyzer_failed}, State}
+	end;
+
+%% Runs typer on the supplied files using a modified version of the typer,
+%% assuming that Dialyzer has been run previously.
+%% Files is a list of files to process, 
+%% Plt is the name of the Plt file.
+handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
+	try	
 		Outcome = typer:start(FilesErl,Plt,Outputmode),
 		{reply,{ok,Outcome}, State}
 	catch
-		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
+		error:_Error -> {reply, {failed,typer_failed}, State}
 	end;
-	
+%% [Error,erlang:get_stacktrace()]
+
+%% Loads Statechum's configuration variables into this process.
+handle_call({getAttr,Attr}, _From, State) ->
+	case dict:find(Attr,State#statechum.attr) of
+		{ok, Value} -> 	{reply, {ok, Value}, State};
+		error ->	{reply, {failed, no_such_attribute}, State}
+	end;
+
+%% Obtains a value of a specific attribute		
+handle_call({setConfiguration,Configuration}, _From, State) ->
+	{reply, ok, State#statechum{config=dict:from_list(Configuration)}};
+
 %% Evaluates a term and returns a result, based on http://www.trapexit.org/String_Eval
 handle_call({evaluateTerm,String}, _From, State) ->
 	try	
 		{ ok, Tokens, _ } = erl_scan:string(String),
 		{ ok, Tree } = erl_parse:parse_exprs(Tokens),
-		{ value, Value, NewBindings} = erl_eval:exprs(Tree,[]),
+		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
 		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
 	end;
-		
+
 
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
 handle_call({compile,[],erlc,_Dir}, _From, State) ->
@@ -189,6 +209,13 @@ handle_call({dependencies,M}, _From, State) ->
 		_ -> {reply, failed, State}
 	end;
 
+%% Extracts attributes from the supplied module
+handle_call({attributes,M}, _From, State) ->
+	case(beam_lib:chunks(M,[attributes])) of
+		{ok,{_,[{attributes,AttributeList}]}} -> {reply, {ok,AttributeList}, State};
+		_ -> {reply, failed, State}
+	end;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Test routines.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,7 +226,7 @@ handle_call(noreply,_From, State) ->
 
 %% Used for testing - produces a specific response.
 handle_call({echo,[Head | Tail]},_From, State) ->
-	{reply, { Head,State#state.processNum, Tail }, State};
+	{reply, { Head,State#statechum.processNum, Tail }, State};
 
 %% Used for testing - produces a specific response.
 handle_call({echo2Tuple,aaa},_From, State) ->

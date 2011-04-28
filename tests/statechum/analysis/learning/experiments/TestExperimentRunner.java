@@ -53,7 +53,8 @@ import static statechum.Helper.whatToRun;
 import static statechum.Helper.checkForCorrectException;
 
 public class TestExperimentRunner {
-	public static final File testDir = new File("resources","__TestAbstractExperiment__"),
+	public static final File testDir = new File(statechum.GlobalConfiguration.getConfiguration().getProperty(statechum.GlobalConfiguration.G_PROPERTIES.TEMP)
+				,"__TestAbstractExperiment__"),
 		testGraphsDir = new File(testDir,"__graphs"), testOutputDir = new File(testDir,ExperimentRunner.outputDirNamePrefix+testGraphsDir.getName());
 
 	protected final Configuration config = Configuration.getDefaultConfiguration();

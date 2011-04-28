@@ -49,7 +49,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangRangeException;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
-public class ErlangRunnerTest {
+public class TestErlangRunner {
 
 	protected ErlangRunner erl = null;
 	

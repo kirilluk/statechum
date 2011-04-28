@@ -18,6 +18,7 @@
  */
 package statechum.analysis.Erlang;
 
+import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import java.io.BufferedReader;
@@ -58,29 +59,46 @@ public class ErlangModule {
         this(new File(folder, filename));
     }
     
-    public static final String behaviourToken = "-behaviour(";
-
     public ErlangModule(final File f) throws IOException 
     {
     	name = ErlangRunner.getName(f,ERL.MOD);
     	sourceFolder = f.getParentFile();
-        System.out.println("----------------  " + name + "  --------------------------");
-
+        ProgressIndicator progress = new ProgressIndicator(name, 5);
+        // launch Erlang
+        ErlangRunner.getRunner().call(new OtpErlangObject[]{new OtpErlangAtom("echo2Tuple"),new OtpErlangAtom("aaa")},"echo2Tuple");
+        progress.next();// 1
+        
         // Compile and typecheck the module...
         ErlangRunner.compileErl(f,ErlangRunner.getRunner());
+        progress.next();// 2
         sigs = new TreeMap<String, FuncSignature>();
         
-		new File(ErlangRunner.getName(f, ERL.PLT)).delete();
-		OtpErlangTuple response = null;
-		 response = ErlangRunner.getRunner().call(
-				new OtpErlangObject[]{new OtpErlangAtom("typer"), 
-						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
-						new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
-						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
-						new OtpErlangAtom("types")
-					},
-				"Could not run typer");
-       OtpErlangList analysisResults = (OtpErlangList)response.elementAt(1);
+        File pltFile = new File(ErlangRunner.getName(f,ERL.PLT));
+        
+        // Almost the same arguments for dialyzer and typer, the first argument determines which of the two to run.
+        OtpErlangObject otpArgs[] = new OtpErlangObject[]{
+        		null, 
+
+        		new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
+				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
+				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
+				new OtpErlangAtom("types")        
+        };
+        
+        if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified())
+        {// rebuild the PLT file since the source was modified or the plt file does not exist
+        	pltFile.delete();
+        	otpArgs[0]= new OtpErlangAtom("dialyzer");
+   		 	ErlangRunner.getRunner().call(otpArgs,"Could not run dialyzer");
+        }
+        progress.next();// 3
+        
+        // Typer always has to be run
+        otpArgs[0]= new OtpErlangAtom("typer");
+		OtpErlangTuple response = ErlangRunner.getRunner().call(otpArgs,"Could not run typer");
+        progress.next();// 4
+       
+        OtpErlangList analysisResults = (OtpErlangList)response.elementAt(1);
         Assert.assertEquals(1,analysisResults.arity());
         OtpErlangTuple fileDetails = (OtpErlangTuple)analysisResults.elementAt(0);
         OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
@@ -89,34 +107,12 @@ public class ErlangModule {
         	FuncSignature s = new FuncSignature(typeInformation.elementAt(i));
         	sigs.put(s.toString(), s);
         }
-
-        BufferedReader input = new BufferedReader(new FileReader(f));
-        String line = input.readLine();
-        while (line != null && !line.startsWith(behaviourToken)) {
-            //System.out.println("Skipping " + line);
-            line = input.readLine();
-        }
-        behaviour = new OTPUnknownBehaviour(this);
-        if (line != null) {
-            String bstring = line.substring(behaviourToken.length());
-            if (bstring.startsWith("gen_server")) {
-                behaviour = new OTPGenServerBehaviour(this);
-            } else if (bstring.startsWith("gen_event")) {
-                behaviour = new OTPGenEventBehaviour(this);
-            } else if (bstring.startsWith("gen_fsm")) {
-                behaviour = new OTPGenFSMBehaviour(this);
-            }
-        }
-        input.close();
-        /*
-        behaviour.loadInitArgs(f);
-        behaviour.loadAlphabet(f);
-        behaviour.loadDependencies(f);
-         * *
-         */
+        
+        behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this);
         behaviour.loadInitArgs();
         behaviour.loadAlphabet();
         behaviour.loadDependencies(f);
+        progress.next();// 5
     }
 
     private static Collection<String> seekUsages(String funcName, File f) {

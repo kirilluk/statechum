@@ -18,6 +18,7 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPid;
 
@@ -27,10 +28,15 @@ import com.ericsson.otp.erlang.OtpErlangPid;
  */
 public class PidSignature extends Signature {
 
-    @Override
-	public OtpErlangObject instantiate() {
-        //throw new RuntimeException("I don't know how to instantiate a pid() signature...");
+	public PidSignature(OtpErlangList attributes)
+	{
+		super();
+		if (attributes.arity() != 0) throw new IllegalArgumentException("PidSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
+	}
 
+	@Override
+	public OtpErlangObject instantiate() {
        return new OtpErlangPid("PID", 0, 0, 0);
     }
 }

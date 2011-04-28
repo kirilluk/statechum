@@ -21,6 +21,7 @@ package statechum.analysis.Erlang;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,10 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.Configuration;
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Label;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.AltSignature;
 import statechum.analysis.Erlang.Signatures.AnySignature;
@@ -57,11 +62,15 @@ import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.Erlang.Signatures.StringSignature;
 import statechum.analysis.Erlang.Signatures.TupleSignature;
 import statechum.analysis.Erlang.Signatures.UnknownSignature;
+import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
+import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 
-public class ErlangModuleTest {
+public class TestErlangModule {
 	
 	@Test
 	public void testRunParserFailure1()
@@ -139,14 +148,17 @@ public class ErlangModuleTest {
     {
     	ErlangRunner erl = ErlangRunner.getRunner();
     	ErlangRunner.compileErl(f, erl);
-    	OtpErlangTuple response = erl.call(
-				new OtpErlangObject[]{new OtpErlangAtom("typer"), 
-						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
-						new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
-						new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
-						new OtpErlangAtom("text")
-					},
-				"Could not run typer");
+    	OtpErlangObject otpArgs[] = new OtpErlangObject[]{
+        		null, 
+				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
+				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
+				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL))}),
+				new OtpErlangAtom("text")
+			};
+    	otpArgs[0]=new OtpErlangAtom("dialyzer");
+    	erl.call(otpArgs,"Could not run dialyzer");
+    	otpArgs[0]=new OtpErlangAtom("typer");
+    	OtpErlangTuple response = erl.call(otpArgs,"Could not run typer");
     	return ((OtpErlangString)response.elementAt(1)).stringValue();
     }
     
@@ -162,16 +174,108 @@ public class ErlangModuleTest {
     }
     
     @Test
-    public void testExtractFunctionTypes() throws IOException
+    public void testConsistencyBetweenOriginalAndOurTyper2() throws IOException
     {
+    	File file = new File("ErlangExamples/locker/locker.erl");
+		new File(ErlangRunner.getName(file, ERL.PLT)).delete();
+		String typerInRunner = runTyperAsAProcessInsideErlang(file).replace("\\\\", "\\");
+		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.PLT)).delete());
+		String typerAsProcess = runTyperAsAProcess(file).replace("\\\\", "\\");
+		System.out.println(typerAsProcess);
+		Assert.assertEquals(typerAsProcess,typerInRunner);
+    }
+    
+    @Test
+    public void testExtractFunctionTypes1() throws IOException
+    {
+    	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
     	File file = new File("ErlangExamples/WibbleMonster/wibble.erl");
     	ErlangModule mod = new ErlangModule(file);
+    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
+    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	for(FuncSignature s:mod.sigs.values())
     	{
        		FuncSignature newSig = new FuncSignature(ErlangLabel.parseText(s.toErlangTerm()));
        		Assert.assertEquals(s, newSig);
        		Assert.assertEquals(s, new FuncSignature(ErlangLabel.parseText(newSig.toErlangTerm())));
     	}
+    }
+    
+    @Test
+    public void testExtractFunctionTypes2() throws IOException
+    {
+    	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
+    	File file = new File("ErlangExamples/locker/locker.erl");
+    	ErlangModule mod = new ErlangModule(file);
+    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
+    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
+    	for(FuncSignature s:mod.sigs.values())
+    	{
+       		FuncSignature newSig = new FuncSignature(ErlangLabel.parseText(s.toErlangTerm()));
+       		Assert.assertEquals(s, newSig);
+       		Assert.assertEquals(s, new FuncSignature(ErlangLabel.parseText(newSig.toErlangTerm())));
+    	}
+    }
+    
+    @Test
+    public void testAttemptTraces() throws IOException
+    {
+    	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
+    	File file = new File("ErlangExamples/locker/locker.erl");
+    	ErlangModule mod = new ErlangModule(file);
+    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
+    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
+    	
+    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration();
+    	evalConf.config = Configuration.getDefaultConfiguration().copy();
+    	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf, mod);
+    	
+    	List<ErlangLabel> alphabet = new ArrayList<ErlangLabel>(mod.behaviour.getAlphabet().size());
+    	alphabet.addAll(mod.behaviour.getAlphabet());
+    	ErlangLabel initLabel = null, labelLock = alphabet.get(0),
+    		labelRead = alphabet.get(1), 
+    		labelWrite = alphabet.get(3);
+    	for(ErlangLabel lbl:alphabet)
+    		if (lbl.function.getName().equals("init"))
+    		{
+    			initLabel = lbl;break;
+    		}
+    			
+    	
+    	// Attempting first trace
+    	TraceOutcome tr = 
+    	learner.askErlang(Arrays.asList(new Label[]{
+    				initLabel,labelLock
+    		}));
+    	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
+    	
+    	tr = 
+        	learner.askErlang(Arrays.asList(new Label[]{
+        				initLabel,labelLock, labelLock
+        		}));
+    	
+       	Assert.assertEquals(TRACEOUTCOME.TRACE_FAIL,tr.outcome);
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}]",Arrays.toString(tr.answerDetails));
+    	
+    	tr = 
+        	learner.askErlang(Arrays.asList(new Label[]{
+        				initLabel,labelLock,labelWrite, labelRead
+        		}));
+    	
+       	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}, locker:handle_call/2({write,wibble}) == {ok,wibble}, locker:handle_call/2(read) == wibble]",Arrays.toString(tr.answerDetails));
+    	
+    	// Now attempt "different output" input
+    	ErlangLabel lbl = (ErlangLabel)tr.answerDetails[3];
+    	tr.answerDetails[3] = new ErlangLabel(lbl.function,lbl.callName,
+    			lbl.input, new OtpErlangAtom("aa"));
+    	//System.out.println(ErlangLabel.dumpErlangObject((ErlangLabel)tr.answerDetails[3]));
+    	tr = 
+        	learner.askErlang(Arrays.asList(tr.answerDetails));
+    	//System.out.println(Arrays.toString(tr.answerDetails));
+       	Assert.assertEquals(TRACEOUTCOME.TRACE_DIFFERENTOUTPUT,tr.outcome);
+    	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/2(lock) == {ok,locked}, locker:handle_call/2({write,wibble}) == {ok,wibble}, locker:handle_call/2(read) == wibble]",Arrays.toString(tr.answerDetails));
     }
     
     
@@ -288,10 +392,10 @@ mod.behaviour.alphabet.toString());
             sig = new ByteSignature(new OtpErlangList());
         } else if (spec.startsWith("pid()")) {
             specbuf.delete(0, 5);
-            sig = new PidSignature();
+            sig = new PidSignature(new OtpErlangList());
         } else if (spec.startsWith("port()")) {
             specbuf.delete(0, 6);
-            sig = new PortSignature();
+            sig = new PortSignature(new OtpErlangList());
         } else if (spec.startsWith("'")) {
             String lit = "";
             specbuf.delete(0, 1);

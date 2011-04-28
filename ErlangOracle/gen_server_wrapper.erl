@@ -21,7 +21,7 @@ call_trace(_ModulePid, [], _OpProc) ->
 call_trace({_Module, _Pid}, [{init, _T} | _Trace], _OpProc) ->
     erlang:exit("Init inside trace!");
 %% This will accept any Output but records it in the written trace
-call_trace({Module, Pid}, [{call, T, '*'} | Trace], OpProc) ->
+call_trace({Module, Pid}, [{call, T} | Trace], OpProc) ->
     OP = gen_server:call(Module, T, 500),
     OpProc ! {self(), output, {call, T, OP}},
     call_trace({Module, Pid}, Trace, OpProc);

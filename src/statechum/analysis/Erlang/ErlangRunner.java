@@ -30,22 +30,31 @@ package statechum.analysis.Erlang;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBoolean;
 import com.ericsson.otp.erlang.OtpErlangDecodeException;
+import com.ericsson.otp.erlang.OtpErlangDouble;
 import com.ericsson.otp.erlang.OtpErlangExit;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import com.ericsson.otp.erlang.OtpMbox;
 import com.ericsson.otp.erlang.OtpNode;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
+import statechum.AttributeMutator.GETMETHOD_KIND;
+
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.apps.ErlangQSMOracle;
@@ -233,7 +242,8 @@ public class ErlangRunner
                 dumpProcessOutputOnFailure("testing that Erlang can be run at all",p);
                 
                 // The compilation phase could a few seconds but only needs to be done once after installation of Statechum
-                compileErl(new File(ErlangQSMOracle.ErlangFolder,tracerunnerProgram),null);
+                for(String str:new String[]{tracerunnerProgram,"tracer3.erl","gen_event_wrapper.erl", "gen_fsm_wrapper.erl", "gen_server_wrapper.erl"})
+                	compileErl(new File(ErlangQSMOracle.ErlangFolder,str),null);
                 for (File f : new File(ErlangQSMOracle.ErlangTyper).listFiles())
                     if (ErlangRunner.validName(f.getName()))
                         ErlangRunner.compileErl(f,null);
@@ -318,6 +328,69 @@ public class ErlangRunner
     protected OtpMbox thisMbox = null;
     
     public static final OtpErlangAtom okAtom = new OtpErlangAtom("ok");
+    
+    /** Passes Statechum configuration to Erlang. */
+    public void configurationToErlang(Configuration config)
+    {
+    	Class clazz = config.getClass();
+    	List<OtpErlangTuple> nameToValue = new LinkedList<OtpErlangTuple>();
+    	
+		for(Field var:clazz.getDeclaredFields())
+		{
+			// based on constructArgList of AttributeMutator
+		
+			if (var.getType() != clazz && 
+					var.getName() != "$VRc"// added by eclemma (coverage analysis)
+					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers()))
+			{
+				String varName = var.getName();
+				Method getter = statechum.AttributeMutator.getMethod(clazz,GETMETHOD_KIND.FIELD_GET, var);
+				Object outcome = null;
+				try
+				{
+					outcome = getter.invoke(config, new Object[]{});
+				} catch (Exception e) 
+				{
+					Helper.throwUnchecked("cannot invoke method "+getter+" on "+clazz, e);
+				}
+				
+				if (outcome != null)
+				{// it is null for some enums
+					OtpErlangObject value = null;
+					if (outcome.getClass().equals(Boolean.class))
+						value = new OtpErlangBoolean(((Boolean)outcome).booleanValue());
+					else
+					if (outcome.getClass().equals(Double.class))
+						value = new OtpErlangDouble(((Double)outcome).doubleValue());
+					else
+					if (outcome.getClass().equals(String.class))
+						value = new OtpErlangAtom((String)outcome);
+					else
+					if (outcome.getClass().equals(Integer.class))
+						value = new OtpErlangInt(((Integer)outcome).intValue());
+					else
+					if (outcome.getClass().equals(Long.class))
+						value = new OtpErlangLong(((Long)outcome).longValue());
+					else
+						value = new OtpErlangAtom(outcome.toString());
+					
+					nameToValue.add(new OtpErlangTuple(new OtpErlangObject[]{
+							new OtpErlangAtom(varName), value
+					}));
+				}
+			}
+		}
+		
+		call(new OtpErlangObject[]{new OtpErlangAtom("setConfiguration"),
+				new OtpErlangList(nameToValue.toArray(new OtpErlangObject[0]))}, "setConfiguration");
+    }
+    
+    /** Extracts an attribute value from Erlang. */
+    public OtpErlangObject getAttr(String name)
+    {
+    	return call(new OtpErlangObject[]{new OtpErlangAtom("getAttr"), new OtpErlangAtom(name)}, "getAttr "+name).elementAt(1);
+    }
+    
     
     /** Makes a call and waits for a response.
      * 

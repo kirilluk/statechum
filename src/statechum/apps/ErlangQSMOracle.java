@@ -112,7 +112,7 @@ public class ErlangQSMOracle {
         QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config, true, 0);
         ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
         // This is the one line thats actually changed...
-        ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration);
+        ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration,null);
         innerLearner.addObserver(viz);
         LearnerGraph graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
         boolean complete = false;
@@ -165,10 +165,7 @@ public class ErlangQSMOracle {
                     erlList += "]";
                     String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
                     System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
-                    innerLearner.erlangProcess.getOutputStream().write(erlArgs.getBytes());
-                    innerLearner.erlangProcess.getOutputStream().write('.');
-                    innerLearner.erlangProcess.getOutputStream().write('\n');
-                    innerLearner.erlangProcess.getOutputStream().flush();
+
                 }
                 System.out.println("##############################################################################");
                 // FIXME stupid file sync issue...
@@ -184,11 +181,10 @@ public class ErlangQSMOracle {
                 wildCardStrip(ErlangFolder + File.separator + tracesFile);
                 // For some reason this breaks if I re-use it...
                 // I'm sure kirill will have a nice way to cary on from where we left off...
-                innerLearner.killErlang();
                 tool = new QSMTool();
                 tool.loadConfig(ErlangFolder + File.separator + tracesFile);
                 QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config, true, 0);
-                innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration);
+                innerLearner = new ErlangOracleLearner(viz, tool.learnerInitConfiguration,null);
                 innerLearner.addObserver(viz);
                 graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
             } else {
@@ -269,7 +265,7 @@ public class ErlangQSMOracle {
 
         System.out.println("Evaluating " + erlArgs + " in folder " + ErlangFolder);
         //./erlinittraces.sh testmod1 testfun [1,4,8,16,32,37,41,42] test2.out [testmod1,testmod2] in folder ErlangOracle
-        ErlangOracleLearner.runErlang(erlArgs);
+        //ErlangOracleLearner.runErlang(erlArgs);
     }
 
     public static void loadCoverageMaps() {

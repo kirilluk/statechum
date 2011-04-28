@@ -104,9 +104,9 @@ public class ErlangOracleVisualiser extends PickNegativesVisualiser {
             @Override
             public void run() {
                 if (conf.ifthenSequences != null) {
-                    innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf);
+                    innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf,null);
                 } else {
-                    innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf);// at this point ifthenSequences will always be null.
+                    innerLearner = new ErlangOracleLearner(ErlangOracleVisualiser.this, conf,null);// at this point ifthenSequences will always be null.
                 }
                 innerLearner.addObserver(ErlangOracleVisualiser.this);
                 Learner mainDecorator = new AutoAnswers(innerLearner);

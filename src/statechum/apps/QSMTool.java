@@ -23,11 +23,13 @@ package statechum.apps;
  * first line: either "active" or "passive" followed by \n
  * following lines:
  * strings that belong to the target machine:
- * + function1, function2...
- * + function1, function3...
+ * + [[function1, function2... ] , [ another_function1, another_function2 ... ] ... ]
  * and optionally strings that do NOT belong to the target machine:
- * -function1, function4
+ * - [[function1, function2... ] , [ another_function1, another_function2 ... ] ... ]
+ * The two can be combined on a single line,
  * 
+ *  + [[function1, function2... ]] - [ another_function1, another_function2 ... ] ... ]
+ *  
  * @author nw
  */
 import java.io.*;
@@ -36,18 +38,20 @@ import java.util.*;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Label;
+import statechum.StatechumXML;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.PickNegativesVisualiser;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.PathRoutines;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -57,7 +61,7 @@ public class QSMTool {
     /** Learner configuration to be set. */
     protected Set<List<Label>> sPlus = new HashSet<List<Label>>();
     protected Set<List<Label>> sMinus = new HashSet<List<Label>>();
-    protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration();
+    protected final LearnerEvaluationConfiguration learnerInitConfiguration = new LearnerEvaluationConfiguration(null);
     protected Collection<String> dataDescription = null;
     protected boolean active = true;
     protected boolean showLTL = false;
@@ -105,9 +109,7 @@ public class QSMTool {
             in = new BufferedReader(inputData);
             String fileString;
             while ((fileString = in.readLine()) != null) {
-                if (!((fileString.equals("- ")) || (fileString.equals("+ ")))) {
                     process(fileString);
-                }
             }
             if (learnerInitConfiguration.labelDetails != null) {
                 learnerInitConfiguration.labelDetails.parseCollection(dataDescription);
@@ -164,15 +166,54 @@ public class QSMTool {
         return arg.startsWith(cmd);
     }
 
+    public static interface TraceAdder 
+    {
+    	public void addTrace(List<Label> trace, boolean positive);
+    }
+    
+    public static void parseSequenceOfTraces(String traces,Configuration config,TraceAdder collector)
+    {
+    	Lexer lexer = ErlangLabel.buildLexer(traces);
+    	int match = lexer.getMatchType();
+    	
+		while(match > 0)
+		{
+			Boolean positiveNegative = null;
+	    	if (match == ErlangLabel.erlPlus)
+	    		positiveNegative = true;
+	    	else
+	    		if (match == ErlangLabel.erlMinus)
+	    			positiveNegative = false;
+	    		else
+	    			if (match != ErlangLabel.erlComma && lexer.getLastMatchType() != ErlangLabel.erlSpaces)
+	    				throw new IllegalArgumentException("a collection of traces should start with either "+cmdPositive+" or "+cmdNegative+", got"+lexer.getMatch()+" in "+lexer.remaining());
+	    	if (positiveNegative != null)
+	    	{
+	    		for(List<Label> sequence:StatechumXML.readSequenceList(ErlangLabel.parseFirstTermInText(lexer),config))
+	    			collector.addTrace(sequence, positiveNegative.booleanValue());
+	    		match = lexer.getLastMatchType();
+	    	}
+	    	else match = lexer.getMatchType();
+		}
+    }
+    
     public void process(String lineOfText) {
         String fileString = lineOfText.trim();
         if (fileString.length() == 0) {
             return;// ignore empty lines.
         }
-        if (isCmdWithArgs(fileString, cmdPositive)) {
-            sPlus.add(AbstractLearnerGraph.parseTrace(fileString.substring(cmdPositive.length() + 1),learnerInitConfiguration.config));
-        } else if (isCmdWithArgs(fileString, cmdNegative)) {
-            sMinus.add(AbstractLearnerGraph.parseTrace(fileString.substring(cmdNegative.length() + 1),learnerInitConfiguration.config));
+        if (isCmdWithArgs(fileString, cmdPositive) || isCmdWithArgs(fileString, cmdNegative)) {
+        	parseSequenceOfTraces(fileString,learnerInitConfiguration.config, new TraceAdder() {
+
+				@Override
+				public void addTrace(List<Label> trace, boolean positive) {
+					if (positive)
+						sPlus.add(trace);
+					else
+						sMinus.add(trace);
+				}
+        		
+        	});
         } else if (isCmdWithArgs(fileString, cmdLTL) || isCmdWithArgs(fileString, cmdIFTHENAUTOMATON)) {
             if (learnerInitConfiguration.ifthenSequences == null) {
                 learnerInitConfiguration.ifthenSequences = new TreeSet<String>();
@@ -188,12 +229,15 @@ public class QSMTool {
         } else if (fileString.startsWith(cmdPassive)) {
             active = false;
         } else if (isCmdWithArgs(fileString, cmdConfig)) {
-            List<String> values = tokeniseInput(fileString.substring(cmdConfig.length() + 1));
-            if (values.size() != 2) {
-                throw new IllegalArgumentException("invalid configuration option " + fileString);
+            StringTokenizer tokenizer = new StringTokenizer(fileString.substring(cmdConfig.length() + 1)," ,");
+            if (tokenizer.hasMoreTokens())
+            {
+            	String key = tokenizer.nextToken();
+            	if (!tokenizer.hasMoreTokens())
+            		throw new IllegalArgumentException("missing value for "+key);
+            	String value = tokenizer.nextToken();
+            	learnerInitConfiguration.config.assignValue(key, value, true);
             }
-
-            learnerInitConfiguration.config.assignValue(values.get(0), values.get(1), true);
         } else if (fileString.startsWith(cmdComment)) {// do nothing
         } else if (fileString.startsWith(cmdShowLTL)) {
             showLTL = true;
@@ -222,17 +266,4 @@ public class QSMTool {
             cmdVarInput = "varInput",
             cmdLowLevelFunction = "func",
             cmdShowLTL = "showltl";
-
-    /** Splits a string into a series of tokens at spaces.
-     * Construction of labels can be done via <em>buildList</em>.
-     */
-    public static List<String> tokeniseInput(String str) {
-        StringTokenizer tokenizer = new StringTokenizer(str," ,");
-        List<String> sequence = new LinkedList<String>();
-        while (tokenizer.hasMoreTokens()) {
-            sequence.add(tokenizer.nextToken());
-        }
-        assert !sequence.isEmpty();
-        return sequence;
-    }
 }

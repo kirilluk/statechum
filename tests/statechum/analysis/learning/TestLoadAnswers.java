@@ -232,7 +232,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_INCOMPATIBLE+" nodeA nodeB  \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB  "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"nodeA nodeB"), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
 		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
@@ -249,7 +249,7 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB  \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB  "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB"), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
 		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
@@ -259,7 +259,8 @@ public class TestLoadAnswers {
 		StoredAnswers sa = new StoredAnswers(config);
 		sa.setAnswers(new StringReader("\n\n"+RPNILearner.QUESTION_USER+" [testA, testB] "+RPNILearner.QUESTION_NEWTRACE+"   + elemA elemB // elemC elemA / \n"));
 		Assert.assertEquals(1,sa.getCount());
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB // elemC elemA / "), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
+		Assert.assertEquals("+ elemA elemB // elemC elemA /",sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})).secondElem);
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ elemA elemB // elemC elemA /"), sa.getAnswer(arrayToLabels(new String[]{"testA","testB"})));
 		Assert.assertNull(sa.getAnswer(arrayToLabels(new String[]{"testA"})));
 	}
 	
@@ -300,6 +301,6 @@ public class TestLoadAnswers {
 		
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,"elem1 elem2"), sa.getAnswer(arrayToLabels(new String[]{"some","trace"})));		
 		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null), sa.getAnswer(arrayToLabels(new String[]{"trace","A"})));		
-		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ a b c "), sa.getAnswer(arrayToLabels(new String[]{"trace","B"})));		
+		Assert.assertEquals(new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,"+ a b c"), sa.getAnswer(arrayToLabels(new String[]{"trace","B"})));		
 	}
 }

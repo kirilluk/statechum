@@ -40,6 +40,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -332,7 +333,7 @@ public class LearnerSimulator extends ProgressDecorator
 				case ATTR_WITHCONSTRAINTS:
 					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config),null);break;
 				case ELEM_ANSWER:
-					List<Label> question = labelio.readInputSequence(new java.io.StringReader(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name())),-1);
+					List<Label> question = labelio.readInputSequence(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name()));
 					Object outcome = topLevelListener.CheckWithEndUser(graph, question, AbstractOracle.USER_CANCELLED, null, null, null);
 					assert outcome == expectedReturnValue;// yes, this should be b
 					break;
@@ -479,11 +480,12 @@ public class LearnerSimulator extends ProgressDecorator
 	
 	/** Loads the current learner input parameters and initialises the internal data in the simulator.
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration. 
+	 * @param defaultConfig - configuration to start with, the loaded one will replace values in the supplied one. 
 	 */
-	public LearnerEvaluationConfiguration readLearnerConstructionData()
+	public LearnerEvaluationConfiguration readLearnerConstructionData(Configuration defaultConfig)
 	{
 		Element evaluationData = expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name());
-		LearnerEvaluationConfiguration cnf = readLearnerEvaluationConfiguration(evaluationData);
+		LearnerEvaluationConfiguration cnf = readLearnerEvaluationConfiguration(evaluationData,defaultConfig);
 		config = cnf.config;
 		series = new GraphSeries(config);
 		return cnf;

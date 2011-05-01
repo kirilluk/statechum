@@ -105,27 +105,28 @@ public class AutoAnswers extends DummyLearner {
 		
 		if (answer != null)
 		{
+			
 			if (answer.firstElem >= 0)
 				// rejected
-				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+ " <no> at position "+answer.firstElem+", element "+question.get(answer.firstElem));
 			else
 			if (answer.firstElem == AbstractOracle.USER_ACCEPTED)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <yes>");
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+ " <yes>");
 			else
 			if (answer.firstElem == AbstractOracle.USER_LTL && answer.secondElem != null)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdLTL+"> "+answer.secondElem);
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+ " <"+QSMTool.cmdLTL+"> "+answer.secondElem);
 			else
 			if (answer.firstElem == AbstractOracle.USER_IFTHEN && answer.secondElem != null)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+ " <"+QSMTool.cmdIFTHENAUTOMATON+"> "+answer.secondElem);
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+ " <"+QSMTool.cmdIFTHENAUTOMATON+"> "+answer.secondElem);
 			else
 			if (answer.firstElem == AbstractOracle.USER_INCOMPATIBLE)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_INCOMPATIBLE+" "+pairToString(pairBeingMerged));
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+" "+RPNILearner.QUESTION_INCOMPATIBLE+" "+pairToString(pairBeingMerged));
 			else
 			if (answer.firstElem == AbstractOracle.USER_IGNORED)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_IGNORE);
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+" "+RPNILearner.QUESTION_IGNORE);
 			else
 			if (answer.firstElem == AbstractOracle.USER_NEWTRACE && answer.secondElem != null)
-				System.out.println(howAnswerWasObtained+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+answer.secondElem);
+				System.out.println(howAnswerWasObtained+" "+RPNILearner.questionToString(question)+" "+RPNILearner.QUESTION_NEWTRACE+" "+answer.secondElem);
 
 		}
 		return answer;

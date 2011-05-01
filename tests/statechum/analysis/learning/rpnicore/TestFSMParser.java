@@ -90,15 +90,21 @@ public class TestFSMParser {
 		}
 	}
 	
+	/** Given a name, returns a label - the idea is to quote the outcome if stringlabels do this. */
+	public static String lbl(String l)
+	{
+		return l;
+	}
+	
 	@Test
 	public void testFsmParse1() {
 		new bufferMatcher(" A-b->C1<-d0-P----a->C\n A- b ->B-a->U",
 			new String [] {
-				"A", "C1", "b",	 "ACCEPT",
-				"P", "C1", "d0", "ACCEPT",
-				"P", "C", "a",	 "ACCEPT",
-				"A", "B", "b",	 "ACCEPT",
-				"B", "U", "a",	 "ACCEPT",
+				"A", "C1", lbl("b"),	 "ACCEPT",
+				"P", "C1", lbl("d0"), "ACCEPT",
+				"P", "C", lbl("a"),	 "ACCEPT",
+				"A", "B", lbl("b"),	 "ACCEPT",
+				"B", "U", lbl("a"),	 "ACCEPT",
 			}).match();
 	}
 
@@ -106,11 +112,11 @@ public class TestFSMParser {
 	public void testFsmParse2() {
 		new bufferMatcher(" A-b->C1<-d0-P----a->C / A- b ->B-a->U",
 			new String [] {
-				"A", "C1", "b",	 "ACCEPT",
-				"P", "C1", "d0", "ACCEPT",
-				"P", "C", "a",	 "ACCEPT",
-				"A", "B", "b",	 "ACCEPT",
-				"B", "U", "a",	 "ACCEPT",
+				"A", "C1", lbl("b"),	 "ACCEPT",
+				"P", "C1", lbl("d0"), "ACCEPT",
+				"P", "C", lbl("a"),	 "ACCEPT",
+				"A", "B", lbl("b"),	 "ACCEPT",
+				"B", "U", lbl("a"),	 "ACCEPT",
 			}).match();
 	}
 
@@ -139,11 +145,11 @@ public class TestFSMParser {
 	public void testFsmParse6() {
 		new bufferMatcher(" A_string-b->C1<-d0-P----a->C\n A- b ->B-a->U",
 			new String [] {
-				"A_string", "C1", "b", "ACCEPT",
-				"P", "C1", "d0",	 "ACCEPT",
-				"P", "C", "a",	 	"ACCEPT",
-				"A", "B", "b",	 	"ACCEPT",
-				"B", "U", "a",	 	"ACCEPT",
+				"A_string", "C1", lbl("b"), "ACCEPT",
+				"P", "C1", lbl("d0"),	 "ACCEPT",
+				"P", "C", lbl("a"),	 	"ACCEPT",
+				"A", "B", lbl("b"),	 	"ACCEPT",
+				"B", "U", lbl("a"),	 	"ACCEPT",
 			}).match();
 	}
 
@@ -151,11 +157,11 @@ public class TestFSMParser {
 	public void testFsmParse7() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate",
 			new String [] {
-				"A", "C.1", "b",	 "ACCEPT",
-				"C.1", "P", "d0",	 "ACCEPT",
-				"P", "C", "a",	 	 "ACCEPT",
-				"A", "B", "b.g",	 "ACCEPT",
-				"B", "Qst.ate", "a", "ACCEPT",
+				"A", "C.1", lbl("b"),	 "ACCEPT",
+				"C.1", "P", lbl("d0"),	 "ACCEPT",
+				"P", "C", lbl("a"),	 	 "ACCEPT",
+				"A", "B", lbl("b.g"),	 "ACCEPT",
+				"B", "Qst.ate", lbl("a"), "ACCEPT",
 			}).match();
 	}
 		
@@ -163,13 +169,13 @@ public class TestFSMParser {
 	public void testFsmParse8() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate-c->B-a->C",
 			new String [] {
-				"A", "C.1", "b",	 "ACCEPT",
-				"C.1", "P", "d0",	 "ACCEPT",
-				"P", "C", "a",	 	"ACCEPT",
-				"A", "B", "b.g",	 "ACCEPT",
-				"B", "Qst.ate", "a", "ACCEPT",
-				"Qst.ate","B","c",	"ACCEPT",
-				"B","C","a",	 	"ACCEPT",
+				"A", "C.1", lbl("b"),	 "ACCEPT",
+				"C.1", "P", lbl("d0"),	 "ACCEPT",
+				"P", "C", lbl("a"),	 	"ACCEPT",
+				"A", "B", lbl("b.g"),	 "ACCEPT",
+				"B", "Qst.ate", lbl("a"), "ACCEPT",
+				"Qst.ate","B",lbl("c"),	"ACCEPT",
+				"B","C",lbl("a"),	 	"ACCEPT",
 			}).match();
 	}
 
@@ -177,13 +183,13 @@ public class TestFSMParser {
 	public void testFsmParse9() {
 		new bufferMatcher(" A-b-#C.1  ---d0->P--a->C\n A- b.g ->B-a->Qst.ate-c->B-a->C",
 			new String [] {
-				"A", "C.1", "b",	 "REJECT",
-				"C.1", "P", "d0",	 "ACCEPT",
-				"P", "C", "a",	 	"ACCEPT",
-				"A", "B", "b.g",	 "ACCEPT",
-				"B", "Qst.ate", "a", "ACCEPT",
-				"Qst.ate","B","c",	"ACCEPT",
-				"B","C","a",	 	"ACCEPT",
+				"A", "C.1", lbl("b"),	 "REJECT",
+				"C.1", "P", lbl("d0"),	 "ACCEPT",
+				"P", "C", lbl("a"),	 	"ACCEPT",
+				"A", "B", lbl("b.g"),	 "ACCEPT",
+				"B", "Qst.ate", lbl("a"), "ACCEPT",
+				"Qst.ate","B",lbl("c"),	"ACCEPT",
+				"B","C",lbl("a"),	 	"ACCEPT",
 			}).match();
 	}
 
@@ -191,13 +197,13 @@ public class TestFSMParser {
 	public void testFsmParse10() {
 		new bufferMatcher(" A-b->C.1  ---d0->P--a->C\n A- b.g -#B-a-#Qst.ate-c->B-a->C",
 			new String [] {
-				"A", "C.1", "b",	 "ACCEPT",
-				"C.1", "P", "d0",	 "ACCEPT",
-				"P", "C", "a",	 	"ACCEPT",
-				"A", "B", "b.g",	 "REJECT",
-				"B", "Qst.ate", "a", "REJECT",
-				"Qst.ate","B","c",	"ACCEPT",
-				"B","C","a",	 	"ACCEPT",
+				"A", "C.1", lbl("b"),	 "ACCEPT",
+				"C.1", "P", lbl("d0"),	 "ACCEPT",
+				"P", "C", lbl("a"),	 	"ACCEPT",
+				"A", "B", lbl("b.g"),	 "REJECT",
+				"B", "Qst.ate", lbl("a"), "REJECT",
+				"Qst.ate","B",lbl("c"),	"ACCEPT",
+				"B","C",lbl("a"),	 	"ACCEPT",
 			}).match();
 	}
 
@@ -205,11 +211,11 @@ public class TestFSMParser {
 	public void testFsmParse11() {
 		new bufferMatcher(" A_string-b-#C1#-d0-P----a->C\n A- b ->B-a->U",
 			new String [] {
-				"A_string", "C1", "b", "REJECT",
-				"P", "C1", "d0",	 "REJECT",
-				"P", "C", "a",	 	"ACCEPT",
-				"A", "B", "b",	 	"ACCEPT",
-				"B", "U", "a",	 	"ACCEPT",
+				"A_string", "C1", lbl("b"), "REJECT",
+				"P", "C1", lbl("d0"),	 "REJECT",
+				"P", "C", lbl("a"),	 	"ACCEPT",
+				"A", "B", lbl("b"),	 	"ACCEPT",
+				"B", "U", lbl("a"),	 	"ACCEPT",
 			}).match();
 	}
 
@@ -217,11 +223,11 @@ public class TestFSMParser {
 	public void testFsmParse12() {
 		new bufferMatcher(" A_string-b-#C1#-d0-P----a-#C\n A- b -#B-a-#U",
 			new String [] {
-				"A_string", "C1", "b", "REJECT",
-				"P", "C1", "d0",	 "REJECT",
-				"P", "C", "a",	 	"REJECT",
-				"A", "B", "b",	 	"REJECT",
-				"B", "U", "a",	 	"REJECT",
+				"A_string", "C1", lbl("b"), "REJECT",
+				"P", "C1", lbl("d0"),	 "REJECT",
+				"P", "C", lbl("a"),	 	"REJECT",
+				"A", "B", lbl("b"),	 	"REJECT",
+				"B", "U", lbl("a"),	 	"REJECT",
 			}).match();
 	}
 
@@ -229,9 +235,9 @@ public class TestFSMParser {
 	public void testFsmParse13() {
 		new bufferMatcher("P-c->P<-b-Q_State<-a-P",
 			new String [] {
-				"P", "P", "c", "ACCEPT",
-				"Q_State", "P", "b",	 "ACCEPT",
-				"P", "Q_State", "a",	 	"ACCEPT"
+				"P", "P", lbl("c"), "ACCEPT",
+				"Q_State", "P", lbl("b"),	 "ACCEPT",
+				"P", "Q_State", lbl("a"),	 	"ACCEPT"
 			}).match();
 	}
 		
@@ -239,11 +245,11 @@ public class TestFSMParser {
 	public void testFsmParse_compatibility1() {
 		new bufferMatcher(" A-b->C1<-d0-P----a->C / A- b ->B-a->U / A== MERGED == B = INCOMPATIBLE == C",
 			new String [] {
-				"A", "C1", "b",	 "ACCEPT",
-				"P", "C1", "d0", "ACCEPT",
-				"P", "C", "a",	 "ACCEPT",
-				"A", "B", "b",	 "ACCEPT",
-				"B", "U", "a",	 "ACCEPT",
+				"A", "C1", lbl("b"),	 "ACCEPT",
+				"P", "C1", lbl("d0"), "ACCEPT",
+				"P", "C", lbl("a"),	 "ACCEPT",
+				"A", "B", lbl("b"),	 "ACCEPT",
+				"B", "U", lbl("a"),	 "ACCEPT",
 				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
 				"B", JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.name(), "C",""
 			}).match();
@@ -253,12 +259,12 @@ public class TestFSMParser {
 	public void testFsmParse_compatibility2() {
 		new bufferMatcher(" A-b->C1<-d0-P----a->C / A== MERGED == B / A- b ->B-a->U / A== MERGED == B = INCOMPATIBLE == C",
 			new String [] {
-				"A", "C1", "b",	 "ACCEPT",
-				"P", "C1", "d0", "ACCEPT",
-				"P", "C", "a",	 "ACCEPT",
+				"A", "C1", lbl("b"),	 "ACCEPT",
+				"P", "C1", lbl("d0"), "ACCEPT",
+				"P", "C", lbl("a"),	 "ACCEPT",
 				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
-				"A", "B", "b",	 "ACCEPT",
-				"B", "U", "a",	 "ACCEPT",
+				"A", "B", lbl("b"),	 "ACCEPT",
+				"B", "U", lbl("a"),	 "ACCEPT",
 				"A", JUConstants.PAIRCOMPATIBILITY.MERGED.name(), "B","",
 				"B", JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE.name(), "C",""
 			}).match();

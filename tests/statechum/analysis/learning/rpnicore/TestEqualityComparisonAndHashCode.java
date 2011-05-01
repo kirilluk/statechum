@@ -127,6 +127,8 @@ public class TestEqualityComparisonAndHashCode {
 			Object differentA, Object differentB)
 	{
 		assertTrue(p.equals(p));assertTrue(q.equals(q));
+		if (!p.equals(q))
+			p.equals(q);
 		assertTrue("graphs differ: "+p+" and "+q,p.equals(q));
 		assertTrue("graphs differ: "+p+" and "+q,q.equals(p));
 		assertTrue("hash codes differ",p.hashCode() == q.hashCode());

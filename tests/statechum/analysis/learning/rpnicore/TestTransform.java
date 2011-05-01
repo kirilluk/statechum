@@ -207,7 +207,7 @@ public class TestTransform {
 	public final void testRelabel_fail1()
 	{
 		LearnerGraph fsm = buildLearnerGraph(relabelFSM, "testRelabel1",Configuration.getDefaultConfiguration());
-		AbstractPathRoutines.relabel(fsm,-1,"c");
+		AbstractPathRoutines.relabel(fsm,-1,TestFSMParser.lbl("c"));
 	}
 	
 	@Test
@@ -893,7 +893,8 @@ public class TestTransform {
 		LearnerGraph loaded = loadLearnerGraph(new StringReader(writer.toString()),config);
 
 		Assert.assertTrue(!gr.pathroutines.checkUnreachableStates());Assert.assertTrue(!loaded.pathroutines.checkUnreachableStates());
-		Assert.assertNull(WMethod.checkM(gr,gr.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP));
+		Exception ex=WMethod.checkM(gr,gr.getInit(),loaded,loaded.getInit(),VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(ex == null?"":ex.toString(),ex);
 		Assert.assertTrue(ids_are_valid(loaded));
 		Assert.assertEquals(gr.pairCompatibility,loaded.pairCompatibility);
 	}

@@ -187,6 +187,7 @@ public class LTL_to_ba {
 	
 		private String lastMatch = null;
 		private int lastMatchNumber = -1;
+		private final Pattern pattern;
 		
 		/** Constructs the lexer.
 		 * 
@@ -195,8 +196,27 @@ public class LTL_to_ba {
 		 */
 		public Lexer(String grammar, String textToAnalyse)
 		{
-			text = textToAnalyse;
-			lexer = Pattern.compile(grammar).matcher(text);
+			this(grammar);startParsing(textToAnalyse);
+		}
+		
+		/** Constructs a lexer without committing to text to analyse - very good for reusable parsers
+		 * where sequences are built from text extracted from XML.
+		 * 
+		 * @param grammar
+		 */
+		public Lexer(String grammar)
+		{
+			pattern = Pattern.compile(grammar);text = null;lexer = null;lastMatch = null;lastMatchNumber =-1;
+		}
+		
+		/** Starts the lexing process on the supplied the chunk of text.
+		 *  
+		 * @param data what to lex.
+		 */
+		public void startParsing(String data)
+		{
+			lastMatch = null;lastMatchNumber =-1;
+			text = data;lexer = pattern.matcher(text);
 		}
 		
 		public void throwException(String errMsg)

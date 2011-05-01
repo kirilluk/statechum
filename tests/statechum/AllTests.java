@@ -34,7 +34,6 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.AllTests.LinearTests.class,
     statechum.AllTests.SmtTests.class,
     statechum.AllTests.ErlangTests.class,
-    statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
     statechum.AllTests.LengthyTests.class
 })
 public class AllTests {
@@ -57,6 +56,7 @@ public class AllTests {
     @RunWith(Suite.class)
     @Suite.SuiteClasses({
         statechum.analysis.learning.observers.TestRecordProgressDecorator.class,
+        statechum.analysis.learning.observers.TestRecordProgressDecorator.TestSequenceDumping.class,
         statechum.analysis.learning.observers.TestWriteReadPair.class,
         statechum.analysis.learning.observers.TestWriteReadInit.class,
         statechum.analysis.learning.observers.TestWriteReadLearnerEvaluation.class,
@@ -78,12 +78,12 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestEquivalenceChecking.class,
         statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
         statechum.apps.TestQSMTool.class,
+        statechum.apps.TestQSMTool.TestInvalidTraces.class,
         statechum.TestArrayOperations.class,
         statechum.analysis.learning.rpnicore.TestNextID.class,
         statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
         statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
-        statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
-        statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class
+        statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class
     })
     public static class BasicTests {// all tests are included in the annotation.
     }
@@ -137,8 +137,10 @@ public class AllTests {
         statechum.analysis.Erlang.TestErlangModule.class,
         statechum.analysis.Erlang.TestErlangRunner.class,
         statechum.analysis.Erlang.TestErlangParser.class,
-        statechum.analysis.learning.TestErlangOracleLearner.class,
-        statechum.analysis.Erlang.TestErlangParser.TestParseBitStr.class,
+        statechum.analysis.Erlang.TestErlangParser.TestParseBitStrFail.class,
+        statechum.analysis.Erlang.TestErlangParser.TestParseDoubleFail.class,
+        statechum.analysis.Erlang.TestErlangParser.TestParseInvalidCharsInAtomFail.class,
+        //statechum.analysis.learning.TestErlangOracleLearner.class,
         statechum.analysis.Erlang.TestErlangGraphs.class
     })
     public static class ErlangTests {// all tests are included in the annotation.
@@ -146,6 +148,8 @@ public class AllTests {
     
     @RunWith(Suite.class)
     @SuiteClasses({
+        statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
+        statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
     	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,
         statechum.analysis.learning.linear.TestGD_ExistingGraphsUsingTestSet.class,

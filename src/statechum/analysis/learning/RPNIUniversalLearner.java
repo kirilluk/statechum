@@ -27,7 +27,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.MergeStates;
@@ -37,6 +36,7 @@ import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomaton
 import statechum.analysis.learning.spin.SpinResult;
 import statechum.analysis.learning.spin.SpinUtil;
 import statechum.apps.QSMTool;
+import statechum.apps.QSMTool.TraceAdder;
 import statechum.model.testset.PTASequenceEngine;
 
 import java.awt.Frame;
@@ -319,45 +319,39 @@ public class RPNIUniversalLearner extends RPNILearner
 					if (traceDescr == null) traceDescr = JOptionPane.showInputDialog("New trace :");
 					if(traceDescr != null && traceDescr.length() != 0)
 					{
-						StringBuffer traceString = new StringBuffer();
+						final LearnerGraph ptaToAugment = ptaHardFacts;
+						final JUConstants colour = colourToAugmentWith;
+						final List<List<Label>> plus = new LinkedList<List<Label>>(), minus = new LinkedList<List<Label>>();
 
-						StringTokenizer tokenizer = new StringTokenizer(traceDescr,"/");
-						while (tokenizer.hasMoreTokens())
-						{
-							String newTrace = tokenizer.nextToken().trim();
-							if (newTrace.length() > 0)
-							{
-								List<Label> traceToAdd = null;
-								boolean positive = true;
-								if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdPositive))
-								{
-									positive = true;
-									traceToAdd = AbstractLearnerGraph.parseTrace(newTrace.substring(QSMTool.cmdPositive.length()+1),config);
-								}
-								else if (QSMTool.isCmdWithArgs(newTrace,QSMTool.cmdNegative))
-								{
-									positive = false;
-									traceToAdd = AbstractLearnerGraph.parseTrace(newTrace.substring(QSMTool.cmdNegative.length()+1),config);
-								}
-								else
-									throw new IllegalArgumentException("trace not labelled as either positive or negative");
-						
-								if (traceString.length() > 0) traceString.append(" / ");
-								traceString.append(positive?QSMTool.cmdPositive:QSMTool.cmdNegative);
-								traceString.append(' ');
-								boolean firstElem = true;
-								for(Label elem:traceToAdd)
-								{
-									if (!firstElem) traceString.append(" ");else firstElem = false;
-									traceString.append(elem);
-								}
-								// The following will append a trace and check its consistency with the existing set of traces, choking if our path is inconsistent with hardfacts
-								topLevelListener.AugmentPTA(ptaHardFacts,RestartLearningEnum.restartHARD,traceToAdd, positive,colourToAugmentWith);
-								
+						QSMTool.parseSequenceOfTraces(traceDescr, config, new TraceAdder() {
+
+							@Override
+							public void addTrace(List<Label> trace,	boolean positive) {
+								topLevelListener.AugmentPTA(ptaToAugment,RestartLearningEnum.restartHARD,trace, positive,colour);
+								if (positive) plus.add(trace);else minus.add(trace);
 							}
-						} // tokenizer
-						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceString);
-						restartLearning = RestartLearningEnum.restartHARD;// force a full restart.
+							
+						});
+					
+						if (!obtainedViaAuto) System.out.println(RPNILearner.QUESTION_USER+" "+question.toString()+" "+RPNILearner.QUESTION_NEWTRACE+" "+traceDescr);
+						// At this point, we attempt to augment the current automaton with the supplied traces,
+						// which may be successful or not (if we did some erroneous mergers earlier), in which case we restart.
+
+						restartLearning = null;
+						try
+						{
+							for(List<Label> positive:plus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,positive, true,colour);
+							for(List<Label> negative:minus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,negative, false,colour);
+							if (config.isAlwaysRestartOnNewTraces())
+								restartLearning = RestartLearningEnum.restartHARD;
+							else
+								restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
+						}
+						catch(IllegalArgumentException ex)
+						{
+							assert ex.getMessage().contains("incompatible");
+							restartLearning = RestartLearningEnum.restartHARD;
+						}
 					}
 				}
 				else
@@ -421,7 +415,8 @@ public class RPNIUniversalLearner extends RPNILearner
 						{
 							if (!obtainedLTLViaAuto) System.out.println(QUESTION_USER+" "+question.toString()+ " <"+answerType+"> "+addedConstraint);
 							Set<String> tmpLtl = new HashSet<String>();tmpLtl.addAll(ifthenAutomataAsText);tmpLtl.add(answerType+" "+addedConstraint);
-							if(!config.isUseConstraints()){
+							if(!config.isUseConstraints())
+							{
 								Collection<List<Label>> counters = spin.check(ptaHardFacts, tmpLtl).getCounters();
 								if (counters.size()>0)
 								{
@@ -475,8 +470,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				}
 			} // loop of questions
 
-			if (restartLearning == RestartLearningEnum.restartHARD || 
-					restartLearning == RestartLearningEnum.restartSOFT) 
+			if (restartLearning == RestartLearningEnum.restartHARD || restartLearning == RestartLearningEnum.restartSOFT) 
 			{// restart learning
 				
 				if (restartLearning == RestartLearningEnum.restartHARD)

@@ -34,6 +34,12 @@ public class Pair<A extends Comparable<A>,B extends Comparable<B>> implements Co
 		firstElem = a;secondElem = b;
 	}
 
+	@Override
+	public String toString()
+	{
+		return firstElem+" , "+secondElem;
+	}
+	
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */

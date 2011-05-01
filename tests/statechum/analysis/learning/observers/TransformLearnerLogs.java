@@ -62,9 +62,9 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
  * 
  * @author kirill
  */
-public class Test_LearnerLogCompress implements Runnable 
+public class TransformLearnerLogs implements Runnable 
 {
-	public Test_LearnerLogCompress(String directory)
+	public TransformLearnerLogs(String directory)
 	{
 		dir=directory;
 	}
@@ -225,7 +225,7 @@ public class Test_LearnerLogCompress implements Runnable
 				try
 				{
 					LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(sourceFile),true);
-					LearnerEvaluationConfiguration evaluationData = simulator.readLearnerConstructionData();
+					LearnerEvaluationConfiguration evaluationData = simulator.readLearnerConstructionData(null);
 					evaluationData.config.setGdFailOnDuplicateNames(false);evaluationData.graphNumber=graphsInFile;
 					final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 					final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
@@ -421,7 +421,7 @@ public class Test_LearnerLogCompress implements Runnable
 	public static void main(final String [] args)
 	{
 		final String dir = args[0];
-		final Test_LearnerLogCompress compressor = new Test_LearnerLogCompress(dir);
+		final TransformLearnerLogs compressor = new TransformLearnerLogs(dir);
 		compressor.initFrame();
 		
 		final Thread workerThread = new Thread(compressor,"worker");

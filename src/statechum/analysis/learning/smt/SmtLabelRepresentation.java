@@ -16,8 +16,6 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 package statechum.analysis.learning.smt;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -516,19 +514,17 @@ public class SmtLabelRepresentation
 	/** This one stores the text from which label descriptions have been loaded. */
 	private List<String> originalText = new LinkedList<String>();
 	
-	public Element storeToXML(Document doc)
+	public Element storeToXML(Document doc,StatechumXML.SequenceIO<String> stringio)
 	{
 		Element labelText = doc.createElement(StatechumXML.ELEM_LABELDETAILS.name());
-		StatechumXML.SequenceIO<String> stringio = new StatechumXML.StringSequenceWriter(doc);
-		StringWriter labelDetails = new StringWriter();stringio.writeInputSequence(labelDetails, originalText);
+		StringBuffer labelDetails = new StringBuffer();stringio.writeInputSequence(labelDetails, originalText);
 		labelText.setTextContent(labelDetails.toString());
 		return labelText;
 	}
 	
-	public void loadXML(Element elem)
+	public void loadXML(Element elem,StatechumXML.SequenceIO<String> stringio)
 	{
-		StatechumXML.SequenceIO<String> stringio = new StatechumXML.StringSequenceWriter(elem.getOwnerDocument());
-		parseCollection(stringio.readInputSequence(new StringReader( elem.getTextContent()),-1));		
+		parseCollection(stringio.readInputSequence(elem.getTextContent()));		
 	}
 
 	/** Represents a trace with arguments. */
@@ -812,7 +808,8 @@ public class SmtLabelRepresentation
 		// PHASE 2 of construction
 		
 		// Assign an initial memory value.
-		init = labelMapConstructionOfOperations.get(AbstractLearnerGraph.generateNewLabel(INITMEM,config));if (init == null) throw new IllegalArgumentException("missing initial memory value");
+		init = labelMapConstructionOfOperations.get(AbstractLearnerGraph.generateNewLabel(AbstractLearnerGraph.inventParsableLabel(INITMEM,config),config));
+		if (init == null) throw new IllegalArgumentException("missing initial memory value");
 		
 		// Check that no references to old values are being made in the declaration of the initial memory value. 
 		if ((init.pre.text != null && init.pre.text.contains(varOldSuffix)) || 

@@ -26,7 +26,7 @@ public class ProgressIndicator
 	{
 		total = t;
 		// if total <=0, little will be displayed, I presume this is ok.
-		System.out.print("["+nameArg+" ");
+		printStr("["+nameArg+" ");
 		if (total <= 0) 
 		{
 			end();p=10;// the assignment to p is for testing
@@ -41,15 +41,21 @@ public class ProgressIndicator
 			
 			while(cnt > total*p/10)
 			{
-				++p;System.out.print(".");
+				++p;printStr(".");
 			}
 			if (cnt == total) end();
 		}
 	}
 	
+	private void printStr(String str)
+	{
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+			System.out.print(str);
+	}
+	
 	private void end()
 	{
-		System.out.print(".] ");
+		printStr(".] ");
 	}
 	
 	/** For testing only. */

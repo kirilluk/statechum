@@ -10,7 +10,6 @@ import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
-import org.junit.Test;
 import org.junit.Assert;
 
 /**
@@ -22,8 +21,6 @@ public class TestErlangOracleLearner {
     /*
      * Test the askErlang function, which should call the Erlang tracer process to request a first_failure evaluation
      */
-
-    @Test
     public final void testAskErlang1() {
         String module = "locker";
         String wrapper = "gen_server_wrapper";

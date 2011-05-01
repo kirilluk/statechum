@@ -19,6 +19,7 @@
 package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -27,6 +28,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +51,7 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.Configuration.LABELKIND;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.Label;
@@ -78,7 +81,9 @@ import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LTL_to_ba;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 
 public class TestErlangModule {
 	
@@ -87,6 +92,7 @@ public class TestErlangModule {
 	{
 		if (!TestErlangRunner.testDir.isDirectory()) 
 			Assert.assertTrue("could not create "+TestErlangRunner.testDir.getAbsolutePath(),TestErlangRunner.testDir.mkdir());
+		ErlangModule.modulesRegistry.clear();
 	}
 	
 	@After
@@ -278,7 +284,7 @@ public class TestErlangModule {
     	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
     	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	
-    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration();
+    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
     	evalConf.config = Configuration.getDefaultConfiguration().copy();
     	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf, mod);
     	
@@ -311,7 +317,22 @@ public class TestErlangModule {
     	Assert.assertEquals("[locker:init/1(wibble), locker:handle_call/3(lock) == {ok,locked}, locker:handle_call/3({write,wibble}) == {ok,wibble}, locker:handle_call/3(read) == wibble]",Arrays.toString(tr.answerDetails));
     }
     
-    /** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
+	@Test
+	public void testTraces() throws IOException
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		File file = new File("ErlangExamples/locker/locker.erl");
+		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
+		final String LBL1 = "{call, wibble}", LBL2 = "{call, smth}";
+		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
+		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
+		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
+		List<Label> trace = AbstractLearnerGraph.buildList(Arrays.asList(
+				new String[]{LBL1,LBL2,LBL2}), config), expected = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
+		Assert.assertEquals(expected,trace);
+	}
+
+	/** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
      * after it has been initialised.
      */
     protected final String erlangFile = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile.erl";
@@ -330,6 +351,26 @@ public class TestErlangModule {
 		}},RuntimeException.class,"Invalid file name");// error message returned by Erlang code
     }
 
+    @Test
+    public void testLoadModule1() throws IOException
+    {
+    	File fileLocker = new File("ErlangExamples/locker/locker.erl");
+    	Assert.assertNull(ErlangModule.findModule("locker"));
+    	ErlangModule modA = ErlangModule.loadModule(fileLocker);
+    	Assert.assertSame(modA,ErlangModule.findModule("locker"));
+    }
+    
+    @Test
+    public void testLoadModule2() throws IOException
+    {
+    	final File fileLocker = new File("ErlangExamples/locker/locker.erl");
+    	Assert.assertNull(ErlangModule.findModule("locker"));
+    	ErlangModule.loadModule(fileLocker);
+		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+			ErlangModule.loadModule(fileLocker);
+		}},IllegalArgumentException.class,"alread loaded");// error message returned by Erlang code
+   }
+    
     protected static final String stdFunctions = "\nhandle_call(_,_,_)->ok.\nhandle_cast(_,_)->ok.\nhandle_info(_,_)->ok.\ninit(_)->ok.\n";
     
     @Test

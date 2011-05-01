@@ -18,12 +18,10 @@
  */
 package statechum.analysis.Erlang;
 
-import statechum.Configuration;
-import statechum.Label;
+import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
-import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -31,9 +29,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.Assert;
@@ -44,7 +40,7 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
-/**
+/** Represents an Erlang module
  *
  * @author ramsay
  */
@@ -56,12 +52,12 @@ public class ErlangModule {
     public final OTPBehaviour behaviour;
     public final Map<String, FuncSignature> sigs;
 
-    public ErlangModule(final File f) throws IOException 
+    protected ErlangModule(final File f) throws IOException 
     {
     	name = ErlangRunner.getName(f,ERL.MOD);
     	sourceFolder = f.getParentFile();
         ProgressIndicator progress = new ProgressIndicator(name, 5);
-        // launch Erlang
+        // launch Erlang by calling a test method. 
         ErlangRunner.getRunner().call(new OtpErlangObject[]{new OtpErlangAtom("echo2Tuple"),new OtpErlangAtom("aaa")},"echo2Tuple");
         progress.next();// 1
         
@@ -74,7 +70,7 @@ public class ErlangModule {
         
         // Almost the same arguments for dialyzer and typer, the first argument determines which of the two to run.
         OtpErlangObject otpArgs[] = new OtpErlangObject[]{
-        		null, 
+        		null, // either Dialyzer or typer
 
         		new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.BEAM))}),
 				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT)),
@@ -106,9 +102,6 @@ public class ErlangModule {
         }
         
         behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this);
-        behaviour.loadInitArgs();
-        behaviour.loadAlphabet();
-        behaviour.loadDependencies(f);
         progress.next();// 5
     }
 
@@ -153,7 +146,7 @@ public class ErlangModule {
             }
             input.close();
         } catch (IOException e) {
-            ;
+           Helper.throwUnchecked("read error", e);
         }
 
         return result;
@@ -169,5 +162,24 @@ public class ErlangModule {
     public String toString() {
         return getName() + " [" + behaviour.toString() + "] (" + behaviour.dependencies.size() + " dependecies)";
     }
+
+    protected final static Map<String,ErlangModule> modulesRegistry = new TreeMap<String,ErlangModule>();
+
+    public static ErlangModule loadModule(File module) throws IOException
+    {
+    	ErlangModule mod = new ErlangModule(module);
+    	if (modulesRegistry.containsKey(mod.getName()))
+    		throw new IllegalArgumentException("module "+mod.getName()+" is already loaded");
+    	modulesRegistry.put(mod.getName(), mod);
+    	return mod;
+    }
+    
+    /** Finds the respective module - it cannot load one because this is usually called
+     * using module name from a configuration which does not have a corresponding file name. */
+	public static ErlangModule findModule(String erlangModuleName) {
+		ErlangModule result = null;
+		if (erlangModuleName != null) result = modulesRegistry.get(erlangModuleName);
+		return result;
+	}
 
 }

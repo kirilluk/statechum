@@ -110,7 +110,7 @@ public class Start extends javax.swing.JFrame {
         int returnValue = chooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
-                ErlangModuleViewer modview = new ErlangModuleViewer(new ErlangModule(chooser.getSelectedFile()));
+                ErlangModuleViewer modview = new ErlangModuleViewer(ErlangModule.loadModule(chooser.getSelectedFile()));
                 modview.setVisible(true);
             } catch (IOException ex) {
                 Logger.getLogger(Start.class.getName()).log(Level.SEVERE, null, ex);

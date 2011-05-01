@@ -43,8 +43,6 @@
 
 package statechum.analysis.learning.observers;
 
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -76,8 +74,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	}
 	
 	protected Document doc = null;
-	protected SequenceIO<statechum.Label> labelio = null;//new StringLabelSequenceWriter(doc, result.config);
-	protected SequenceIO<String> stringio = null;//new StringSequenceWriter(doc);
+
+	protected SequenceIO<statechum.Label> labelio = null;//new LEGACY_StringLabelSequenceWriter(doc, result.config);
+	protected SequenceIO<String> stringio = null;//new LEGACY_StringSequenceWriter(doc);
 
 	/** Writes the supplied element into XML.
 	 * 
@@ -157,15 +156,19 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		public LearnerGraph graph = null;
 		public Collection<List<Label>> testSet = null;
-		public Configuration config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
+		public Configuration config = null; 
 		public Collection<String> ifthenSequences = null;
 		public SmtLabelRepresentation labelDetails = null;
 		
 		/** The number of graphs to be included in this log file. This one does not participate in equality of hashcode computations.*/
 		public transient int graphNumber = -1; 
 
-		public LearnerEvaluationConfiguration() {
-			// rely on defaults above.
+		public LearnerEvaluationConfiguration(Configuration defaultCnf) {
+			// Mostly rely on defaults above.
+			if (defaultCnf == null)
+				config = Configuration.getDefaultConfiguration().copy();// making a clone is important because the configuration may later be modified and we do not wish to mess up the default one.
+			else
+				config = defaultCnf.copy();
 		}
 		
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, 
@@ -246,7 +249,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration.
 	 * Unexpected elements are ignored.
 	 */
-	public LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement)
+	public LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement,Configuration defaultConfig)
 	{
 		if (!evaluationDataElement.getNodeName().equals(StatechumXML.ELEM_EVALUATIONDATA.name()))
 			throw new IllegalArgumentException("expecting to load learner evaluation data but found "+evaluationDataElement.getNodeName());
@@ -273,21 +276,21 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			{// ignore - graphNumber is unchanged.
 			}
 
-		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration();
+		LearnerEvaluationConfiguration result = new LearnerEvaluationConfiguration(defaultConfig);
 		if (nodesConfigurations.getLength() > 0)
 			result.config.readXML(nodesConfigurations.item(0));
-		
+
 		initIO(evaluationDataElement.getOwnerDocument(),result.config);
 		
 		result.graph = new LearnerGraph(result.config);AbstractPersistence.loadGraph((Element)nodesGraph.item(0), result.graph);
 		
 		result.testSet = labelio.readSequenceList((Element)nodesSequences.item(0),StatechumXML.ATTR_TESTSET.name());
 		if (nodesLtl.getLength() > 0)
-			result.ifthenSequences = stringio.readInputSequence(new StringReader( nodesLtl.item(0).getTextContent() ),-1);
+			result.ifthenSequences = stringio.readInputSequence(nodesLtl.item(0).getTextContent());
 		if (nodesLabelDetails.getLength() > 0)
 		{
 			result.labelDetails = new SmtLabelRepresentation(result.config);
-			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0) );
+			result.labelDetails.loadXML( (Element)nodesLabelDetails.item(0),stringio );
 		}
 		result.graphNumber=graphNumber;
 		return result;
@@ -296,10 +299,20 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	/** Performs initialization if necessary of the io routines aimed at loading/saving sequences of labels. */
 	protected void initIO(Document document, Configuration configuration)
 	{
-		if (labelio == null)
-			labelio = new StatechumXML.StringLabelSequenceWriter(document,configuration);
-		if (stringio == null)
-			stringio = new StatechumXML.StringSequenceWriter(document);
+		if (configuration.getLegacyXML())
+		{
+			if (labelio == null)
+				labelio = new StatechumXML.LEGACY_StringLabelSequenceWriter(document,configuration);
+			if (stringio == null)
+				stringio = new StatechumXML.LEGACY_StringSequenceWriter(document);
+		}
+		else
+		{// current
+			if (labelio == null)
+				labelio = new StatechumXML.LabelSequenceWriter(document,configuration);
+			if (stringio == null)
+				stringio = new StatechumXML.StringSequenceWriter(document);
+		}
 	}
 
 	/** Writes the supplied learner evaluation configuration.
@@ -319,13 +332,13 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		if (cnf.ifthenSequences != null)
 		{
 			Element ltl = doc.createElement(StatechumXML.ELEM_CONSTRAINTS.name());
-			StringWriter ltlsequences = new StringWriter();stringio.writeInputSequence(ltlsequences, cnf.ifthenSequences);
+			StringBuffer ltlsequences = new StringBuffer();stringio.writeInputSequence(ltlsequences, cnf.ifthenSequences);
 			ltl.setTextContent(ltlsequences.toString());
 			evaluationData.appendChild(ltl);evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}
 		if (cnf.labelDetails != null)
 		{
-			evaluationData.appendChild(cnf.labelDetails.storeToXML(doc));evaluationData.appendChild(AbstractPersistence.endl(doc));
+			evaluationData.appendChild(cnf.labelDetails.storeToXML(doc,stringio));evaluationData.appendChild(AbstractPersistence.endl(doc));
 		}
 		if (cnf.graphNumber >= 0)
 		{
@@ -516,7 +529,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		result.setAttribute(StatechumXML.ATTR_KIND.name(), data.kind.name());
 		if (data.colour != null) result.setAttribute(StatechumXML.ATTR_COLOUR.name(), data.colour.name());
 		result.setAttribute(StatechumXML.ATTR_ACCEPT.name(), Boolean.toString(data.accept));
-		StringWriter writer = new StringWriter();
+		StringBuffer writer = new StringBuffer();
 		labelio.writeInputSequence(writer, data.sequence);result.setTextContent(writer.toString());
 		return result;
 	}
@@ -543,7 +556,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				kind = element.getAttribute(StatechumXML.ATTR_KIND.name()),
 				sequence = element.getTextContent();
 		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
-		StringReader reader = new StringReader(sequence);result.sequence = labelio.readInputSequence(reader, -1);
+		result.sequence = labelio.readInputSequence(sequence);
 		result.accept = Boolean.valueOf(accept);
 		if (colour.length() > 0)
 			result.colour=Enum.valueOf(JUConstants.class, colour);

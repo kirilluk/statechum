@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,8 +66,9 @@ public class Test_CheckLearnerAgainstLog
 	public void copyLogIntoAnotherLog(String logFileName)
 	{
 		try {
+			Configuration config = Configuration.getDefaultConfiguration().copy();
 			final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
-			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
+			final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
 			final org.w3c.dom.Element nextElement = simulator.expectNextElement(StatechumXML.ELEM_INIT.name());
 			final ProgressDecorator.InitialData initial = simulator.readInitialData(nextElement);
 			simulator.setNextElement(nextElement);
@@ -113,8 +115,10 @@ public class Test_CheckLearnerAgainstLog
 			VertexID.comparisonKind = ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG;// this is a major change in a configuration of learners, affecting the comparison between vertex IDs 
 
 		final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
-		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData();
-
+		Configuration config = Configuration.getDefaultConfiguration().copy();
+		config.setLegacyXML(false);
+		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
+		
 		// Now we need to choose learner parameters based on the kind of file we are given
 		// (given the pace of Statechum evolution, I cannot expect all the correct options
 		// to be stored in log files).
@@ -297,5 +301,11 @@ public class Test_CheckLearnerAgainstLog
 	public final void testAgainstLog() throws FileNotFoundException
 	{
 		check(logFileToProcess.getAbsolutePath());
+	}
+	
+	@After
+	public final void afterTest()
+	{
+		VertexID.comparisonKind = ComparisonKind.COMPARISON_NORM;
 	}
 }

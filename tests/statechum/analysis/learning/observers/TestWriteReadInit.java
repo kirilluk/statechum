@@ -111,7 +111,8 @@ public class TestWriteReadInit {
 		loader.initIO(loader.doc, loader.config);
 		InitialData data=loader.readInitialData(loader.expectNextElement(StatechumXML.ELEM_INIT.name()));
 		Assert.assertEquals(plus.size(),data.plusSize);Assert.assertEquals(minus.size(), data.minusSize);
-		Assert.assertEquals(plus,data.plus);Assert.assertEquals(minus,data.minus);Assert.assertEquals(graph,data.graph);
+		Assert.assertEquals(plus,data.plus);Assert.assertEquals(minus,data.minus);
+		Assert.assertEquals(graph,data.graph);
 	}
 
 	/** Extra attributes are ignored. */

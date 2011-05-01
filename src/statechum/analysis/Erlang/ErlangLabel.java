@@ -31,12 +31,16 @@ import java.util.TreeSet;
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBitstr;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
+import com.ericsson.otp.erlang.OtpErlangDouble;
+import com.ericsson.otp.erlang.OtpErlangFloat;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
+
+import statechum.Configuration;
 import statechum.Label;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
@@ -51,6 +55,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
      * ID for serialization.
      */
     private static final long serialVersionUID = 5192814547774363649L;
+    
     public final int arity;
     public final FuncSignature function;
     public final OtpErlangObject input, expectedOutput;
@@ -100,6 +105,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	public static String dumpErlangObject(OtpErlangObject obj)
 	{
 		StringBuffer buffer = new StringBuffer();
+		@SuppressWarnings("rawtypes")
 		Class cls = obj.getClass();
 		ErlangParserComponent dumper = classToDumper.get(cls);
 		while(dumper == null)
@@ -131,6 +137,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
         input = inputArgs;
         expectedOutput = expectedOutputArgs;
 		alphaNum = buildFunctionSignatureAsString();
+		if (function != null) function.typeCompatible(this);
     }
 
     @Override
@@ -139,30 +146,13 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
             throw new IllegalArgumentException("Comparing an ErlangLabel to something thats not an ErlangLabel");
         }
 
-        return toErlangTerm().compareTo( ((ErlangLabel)other).toErlangTerm() );
+        return toErlangTerm().compareTo( other.toErlangTerm() );
     }
 
 
-    /* No idea what this means, hence cannot fix
-    public ErlangLabel replaceAll(String from, String to) {
-    String[] resultContent = new String[arity];
-    for (int i = 0; i < arity; i++) {
-    resultContent[i] = this.elementAt(i).toString().replaceAll(from, to);
-    }
-    // Only arity 2 or arity 3 elements should exist...
-    // This would be better handled by having two subclasses that represent the different types of Alphabet element. Maybe Ill do that tomorrow.
-    if (arity == 2) {
-    return new ErlangLabel(resultContent[0], resultContent[1]);
-    } else {
-    return new ErlangLabel(resultContent[0], resultContent[1], resultContent[2]);
-
-    }
-    }
-     */
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
-
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -255,6 +245,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					break;
 				case erlPositiveNumber:
 				case erlNegativeNumber:
+				case erlDot:
+				case erlE:
 				case erlText:
 					if (expectComma)
 						throw new IllegalArgumentException("expecting comma in parsing tuple");
@@ -332,6 +324,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					break;
 				case erlPositiveNumber:
 				case erlNegativeNumber:
+				case erlDot:
+				case erlE:
 				case erlText:
 					if (expectComma)
 						throw new IllegalArgumentException("expecting comma in parsing list");
@@ -369,7 +363,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	
     	static
     	{
-    		whatToQuoteForAtom.add('\'');whatToQuoteForAtom.add('\\');
+    		for(char ch:new char[]{'\'','\\','\n','\r'})
+    			whatToQuoteForAtom.add(ch);
     	}
     	
     	@Override
@@ -416,7 +411,10 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlLT:
 				case erlCol:
 				case erlMinus:
+				case erlPlus:
 				case erlSlash:
+				case erlDot:
+				case erlE:
 				case erlSpaces:
 				case erlComma:
 					atomText.append(lexer.getMatch());expectedChar = false;
@@ -491,11 +489,11 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	@Override
 		public OtpErlangObject parseObject(Lexer lexer) 
 		{
-			assert lexer.getLastMatchType() == erlText;
+			assert lexer.getLastMatchType() == erlText || lexer.getLastMatchType() == erlE || lexer.getLastMatchType() == erlDot;
 			StringBuffer atomText = new StringBuffer();
 			
 			// parser state
-			boolean finished = false;
+			boolean finished = false, firstToken = true;
 			int currentMatch = lexer.getLastMatchType();
 			while(!finished && currentMatch >= 0)
 			{
@@ -508,12 +506,18 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlLT:// Erlang interprets statements with these as expressions and attempts to evaluate them, we simply ban 'em
 				case erlCol:
 				case erlMinus:
+				case erlPlus:
 				case erlSlash:
 					throw new IllegalArgumentException("unquoted atom parser: "+lexer.getMatch()+" is never allowed in an atom without quotes");
 				case erlPositiveNumber:
 				case erlNegativeNumber:
+				case erlE:
 				case erlText:
 					atomText.append(lexer.getMatch());break;
+				case erlDot:
+					if (firstToken)
+						throw new IllegalArgumentException("unquoted atom cannot start with a dot which is ignored by the actual Erlang ");
+					break;
 				case erlTupleBegin:
 				case erlListBegin:
 				case erlTupleEnd:
@@ -526,6 +530,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				default:
 					throw new IllegalArgumentException("invalid token type "+currentMatch+" in parsing unquoted atom, looking at "+lexer.getMatch());
 				}
+				firstToken = false;
 				if (!finished) currentMatch = lexer.getMatchType();
 			}
 			assert atomText.length() > 0;
@@ -555,7 +560,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	
      	static
     	{
-     		whatToQuoteForString.add('\"');whatToQuoteForString.add('\\');
+    		for(char ch:new char[]{'\"','\\','\n','\r'})
+    			whatToQuoteForString.add(ch);
     	}
    
      	@Override
@@ -601,7 +607,10 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlLT:
 				case erlCol:
 				case erlMinus:
+				case erlPlus:
 				case erlSlash:
+				case erlDot:
+				case erlE:
 				case erlComma:
 				case erlSpaces:
 					stringText.append(lexer.getMatch());expectedChar = false;
@@ -826,19 +835,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			assert lexer.getLastMatchType() == erlBitStrBegin;
 			
 			// parser state
-			boolean pullNextToken = true;
 			ParseState state = ParseState.NUM_OR_END;
 			
 			SegmentParameters currentSegment = null;
 			while(state != ParseState.FINISHED)
 			{
-				int currentMatch =-1;
-				if (pullNextToken)
-					currentMatch = lexer.getMatchType();
-				else
-				{// use the last token but pull the next one next time 'round
-					currentMatch = lexer.getLastMatchType();pullNextToken = true;
-				}
+				int currentMatch = lexer.getMatchType();
 				
 				if (currentMatch < 0)
 					throw new IllegalArgumentException("unexpected end of bit string");
@@ -921,6 +923,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 						throw new IllegalArgumentException("BitStr parser: got "+lexer.getMatch()+" in "+state+ " state");
 					}
 					break;
+				case erlE:
 				case erlText:
 					if (state != ParseState.TYPE)
 						throw new IllegalArgumentException("BitStr parser: type is unexpected in this position, looking at "+lexer.getMatch());
@@ -958,28 +961,130 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	{
        		OtpErlangLong longValue = (OtpErlangLong)arg;
        		resultHolder.append(longValue.longValue());
-    	}   	
+    	}
+    	
+    	private static enum ParseState { PARSE_DOT, PARSE_SECONDNUM, PARSE_E, PARSE_EXP, PARSE_END, PARSE_FINISHED};
+    	private static final String SPACE = " ";
+    	
+    	public static final int minExponent = 324,maxExponent = 307;
+    	
 		@Override
 		public OtpErlangObject parseObject(Lexer lexer) 
 		{
 			assert lexer.getLastMatchType() == erlPositiveNumber || lexer.getLastMatchType() == erlNegativeNumber;
-			long outcome = Long.parseLong(lexer.getMatch().trim());
+			String partA = lexer.getMatch().trim(), partB=null, partExp=null; 
 			
-			int currentMatch = lexer.getMatchType();
-			if (currentMatch >= 0)
-				switch(currentMatch)
+			// after a space, we can only expect a separator char, but nothing part of this number.
+			ParseState state = lexer.getMatch().endsWith(SPACE)?ParseState.PARSE_END:ParseState.PARSE_DOT;
+			
+			while(state != ParseState.PARSE_FINISHED)
+			{
+				int currentMatch = lexer.getMatchType();
+				if (currentMatch < 0)
 				{
-				case erlPositiveNumber:
-				case erlNegativeNumber:
-				case erlText:
-					throw new IllegalArgumentException("invalid token type "+currentMatch+" in parsing erlang number, looking at "+lexer.getMatch());
+					if (state == ParseState.PARSE_EXP)
+						throw new IllegalArgumentException("unexpected end of text");
+					
+					state = ParseState.PARSE_FINISHED;
 				}
+				else
+					switch(currentMatch)
+					{
+					case erlPositiveNumber:
+						switch(state)
+						{
+						case PARSE_SECONDNUM:
+							if (lexer.getMatch().startsWith(SPACE))
+								throw new IllegalArgumentException("unexpected space, parsing number, looking at "+lexer.getMatch());
+							partB = lexer.getMatch().trim();
+							if (lexer.getMatch().endsWith(SPACE))
+								state = ParseState.PARSE_END;
+							state = ParseState.PARSE_E;
+							break;
+						case PARSE_EXP:
+							if (lexer.getMatch().startsWith(SPACE))
+								throw new IllegalArgumentException("unexpected space, parsing number, looking at "+lexer.getMatch());
+							partExp = lexer.getMatch().trim();
+							state = ParseState.PARSE_END;
+							break;
+						default:
+							throw new IllegalArgumentException("invalid token, expected dot, parsing number in state "+state+" looking at "+lexer.getMatch());
+						}
+						break;
+					case erlNegativeNumber:
+						switch(state)
+						{
+						case PARSE_EXP:
+							if (lexer.getMatch().startsWith(SPACE))
+								throw new IllegalArgumentException("unexpected space, parsing number, looking at "+lexer.getMatch());
+							partExp = lexer.getMatch().trim();
+							state = ParseState.PARSE_END;
+							break;
+						default:
+							throw new IllegalArgumentException("expected dot, parsing number in state "+state+" looking at "+lexer.getMatch());
+						}
+						break;
+					case erlDot:
+						if (state != ParseState.PARSE_DOT)
+							throw new IllegalArgumentException("unexpected dot in state "+state+", parsing number, looking at "+lexer.getMatch());
+						state = ParseState.PARSE_SECONDNUM;
+						break;
+					case erlE:
+						switch(state)
+						{
+						case PARSE_DOT:
+						case PARSE_E:
+						case PARSE_SECONDNUM:
+							state = ParseState.PARSE_EXP;break;
+						default:
+							throw new IllegalArgumentException("unexpected exponent in state "+state+", looking at "+lexer.getMatch());
+						}
+						break;
+					case erlTupleEnd:
+					case erlListEnd:
+					case erlSpaces:
+					case erlComma:
+						switch(state)
+						{
+						case PARSE_DOT:
+						case PARSE_END:
+						case PARSE_E:
+						case PARSE_SECONDNUM:
+							state = ParseState.PARSE_FINISHED;
+							break;
+						default:
+							throw new IllegalArgumentException("invalid token in parsing erlang number, state "+state+", looking at "+lexer.getMatch());
+						}
+						break;
+					default:
+						throw new IllegalArgumentException("invalid token type "+currentMatch+" in parsing erlang number, state "+state+", looking at "+lexer.getMatch());
+					}
+			}
 			OtpErlangObject result = null;
-			if (outcome > Integer.MAX_VALUE || outcome < Integer.MIN_VALUE)
-				result = new OtpErlangLong(outcome);
+			if (partB == null && partExp == null)
+			{// integer/long
+				if (partA.startsWith("+")) partA = partA.substring(1);
+				long outcome = Long.parseLong(partA);
+				if (outcome > Integer.MAX_VALUE || outcome < Integer.MIN_VALUE)
+					result = new OtpErlangLong(outcome);
+				else
+					result = new OtpErlangInt((int)outcome);
+			}
 			else
-				result = new OtpErlangInt((int)outcome);
-			
+			{// floating - point number. 
+				String textToParse = partA+"."+(partB == null? "0":partB)+(partExp == null?"":("e"+partExp));
+				if (partExp != null)
+				{
+					long exponent = Long.parseLong(partExp)+partA.length()-1;
+					if (exponent < -minExponent || exponent > maxExponent)
+						throw new IllegalArgumentException("the number parsed cannot be represented as a double");
+				}
+				double parsingResult = Double.parseDouble(textToParse);
+				if (Double.isInfinite(parsingResult) || Double.isNaN(parsingResult))
+					throw new IllegalArgumentException("the number parsed cannot be represented as a double");
+				result = new OtpErlangDouble(parsingResult);
+				
+			}
 			return result;
 		}
    }
@@ -1005,6 +1110,40 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		public OtpErlangObject parseObject(@SuppressWarnings("unused") Lexer lexer) 
 		{
 			throw new UnsupportedOperationException("all numbers are supposed to be parsed as long numbers and subsequently converted to int if they are small enough");
+		}
+   }
+    
+    public static class ErlangDouble implements ErlangParserComponent
+    {
+    	private ErlangDouble() {}
+    	
+    	private static final ErlangDouble singleton = new ErlangDouble();
+    	public static ErlangDouble getSingleton()
+    	{
+    		return singleton;
+    	}
+    	
+       	@Override
+		public void dump(OtpErlangObject arg,StringBuffer resultHolder)
+    	{
+       		assert (arg instanceof OtpErlangDouble) || (arg instanceof OtpErlangFloat);
+       		if (arg instanceof OtpErlangDouble)
+       		{
+	       		OtpErlangDouble doubleValue = (OtpErlangDouble)arg;
+	       		resultHolder.append(doubleValue.doubleValue());
+       		}
+       		else
+       		if (arg instanceof OtpErlangFloat)
+       		{
+	       		OtpErlangDouble doubleValue = (OtpErlangDouble)arg;
+	       		resultHolder.append(doubleValue.doubleValue());
+       		}
+    	}
+       	
+		@Override
+		public OtpErlangObject parseObject(@SuppressWarnings("unused") Lexer lexer) 
+		{
+			throw new UnsupportedOperationException("all numbers are supposed to be parsed as long numbers and subsequently converted");
 		}
    }
     
@@ -1036,9 +1175,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	public static final int erlLT = 15;
 	public static final int erlCol = 16;
 	public static final int erlMinus = 17;
-	public static final int erlSlash = 18;
-    public static final int erlText = 19;
-    
+	public static final int erlPlus = 18;
+	public static final int erlSlash = 19;
+	public static final int erlDot = 20;
+	public static final int erlE = 21;
+    public static final int erlText = 22;
+    		
     public static Lexer buildLexer(String whatToParse)
     {
 		return new Lexer(
@@ -1050,16 +1192,19 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				"(\\s*>>\\s*)|" + // erlBitStrEnd
 				"(\\s*\'\\s*)|" + // erlAtomQuote
 				"(\\s*\"\\s*)|" + // erlString
-				"(\\s*\\d+\\s*)|" +// erlPositiveNumber
+				"(\\s*\\+?\\d+\\s*)|" +// erlPositiveNumber
 				"(\\s*-\\d+\\s*)|" +// erlNegativeNumber
 				"(\\\\)|" + // erlBackslash
-				"( *, *)|"+// erlComma
-				"( +)|"+// erlSpaces
+				"(\\s*,\\s*)|"+// erlComma
+				"(\\s+)|"+// erlSpaces
 				"(>)|"+// erlGT
 				"(<)|"+// erlLT
 				"(:)|"+// erlCol
 				"(-)|"+// erlMinus
+				"(\\+)|"+// erlMinus
 				"(/)|"+// erlSlash
+				"(\\.)|"+// erlDot
+				"([eE])|"+// erlE
 				"([^\\\\\"\',\\[\\]{}<>:\\-/ ]+)" // erlText, together with spaces but none of the special characters above.
 				,whatToParse);
 
@@ -1090,6 +1235,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		case erlBitStrBegin:
 		case erlAtomQuote:
 		case erlString:
+		case erlE:
+		case erlDot:
 			result = tokenToParser.get(currentMatch).parseObject(lexer);
 			currentMatch = lexer.getMatchType();
 			break;
@@ -1122,7 +1269,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	Lexer lexer = buildLexer(str);
     	OtpErlangObject result = parseFirstTermInText(lexer);
 		if (lexer.getLastMatchType() >= 0)// did not get to the end of string
-			throw new IllegalArgumentException("unexpected characters at the end of string to parse, looking at "+lexer.getMatch());
+			throw new IllegalArgumentException("unexpected characters at the end of string to parse, looking at "+lexer.remaining());
 		return result;
     }
    
@@ -1137,6 +1284,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	classToDumper.put(OtpErlangLong.class,ErlangLong.getSingleton());
     	classToDumper.put(OtpErlangInt.class,ErlangInt.getSingleton());
     	classToDumper.put(OtpErlangBitstr.class,ErlangBitString.getSingleton());
+    	classToDumper.put(OtpErlangFloat.class,ErlangDouble.getSingleton());
+    	classToDumper.put(OtpErlangDouble.class,ErlangDouble.getSingleton());
     }
     protected final static Map<Integer,ErlangParserComponent> tokenToParser;
     static {
@@ -1148,26 +1297,16 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     	tokenToParser.put(erlString, ErlangString.getSingleton());
     	tokenToParser.put(erlPositiveNumber, ErlangLong.getSingleton());
     	tokenToParser.put(erlNegativeNumber, ErlangLong.getSingleton());
+    	tokenToParser.put(erlE, ErlangUnquotedAtom.getSingleton());
+    	tokenToParser.put(erlDot, ErlangUnquotedAtom.getSingleton());
     	tokenToParser.put(erlText, ErlangUnquotedAtom.getSingleton());
     	tokenToParser.put(erlBitStrBegin,ErlangBitString.getSingleton());
     }    
     
-    /** Given a string containing the whole of the expression to parse, parses the text and returns the
-     * corresponding Erlang label. This is not a complete label - it cannot really be passed to Erlang 
-     * for execution because the function it corresponds to is not defined.
-     *  
-     * @param str label to parse
-     * @return the outcome.
-     */
-    public static Label parseLabel(String str)
-    {
-     	return erlangObjectToLabel( parseText(str) );
-    }
- 
     /** Builds a semblance of Erlang label from a tuple. This is not a complete label - it cannot really be passed to Erlang 
      * for execution because the function it corresponds to is not defined.
      */
-    protected static ErlangLabel erlangObjectToLabel(OtpErlangObject obj)
+    public static ErlangLabel erlangObjectToLabel(OtpErlangObject obj,Configuration config)
     {
        	if (!(obj instanceof OtpErlangTuple))
     		throw new IllegalArgumentException("expected a tuple, parsed "+obj);
@@ -1204,26 +1343,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
       	default:
     		throw new IllegalArgumentException("expected Erlang label, got tuple of arity "+tuple.arity()+" in "+tuple);
        	}
+       	
+       	// now assign a function name
+		ErlangModule mod = ErlangModule.findModule(config.getErlangModuleName());
+		if (mod != null)
+			outcome=mod.behaviour.convertErlToMod(outcome);
     	return outcome;
     }
-    
-    /** Given a string containing the whole of the expression to parse, parses the text and returns the
-     * corresponding Erlang trace. This is not a complete trace - it cannot really be passed to Erlang 
-     * for execution because labels of which it consists are not associated with actual functions.
-     *  
-     * @param str label to parse
-     * @return the outcome.
-     */
-    public static List<Label> parseTrace(String str)
-    {
-    	OtpErlangObject obj = parseText("["+str+"]");
-    	assert obj instanceof OtpErlangList;
-    	OtpErlangList list = (OtpErlangList)obj;
-    	List<Label> outcome = new LinkedList<Label>();
-    	
-    	for(OtpErlangObject o:list.elements())
-    		outcome.add(erlangObjectToLabel(o));
-    	
-    	return outcome;
-    }
+
 }

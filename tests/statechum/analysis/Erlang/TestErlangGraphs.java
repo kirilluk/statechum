@@ -87,7 +87,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail1()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{a,b,c", config).toErlangTerm();
 		}},IllegalArgumentException.class,"unexpected end of tuple");
 	}
@@ -96,7 +96,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail2()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{a,b,c,d,e}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"arity 5");
 	}
@@ -105,7 +105,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail3()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{b}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"arity 1");
 	}
@@ -114,7 +114,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail4()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("b", config).toErlangTerm();
 		}},IllegalArgumentException.class,"expected a tuple");
 	}
@@ -123,7 +123,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail5()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{\"a\",b,c}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
@@ -132,7 +132,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail6()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{98,c,d}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
@@ -141,7 +141,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail7()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{98,c}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
@@ -150,7 +150,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail8()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
@@ -159,7 +159,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail9()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",56,c,d}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should be an atom");
 	}
@@ -168,7 +168,7 @@ public class TestErlangGraphs {
 	public void testLabelBuildingFail10()
 	{
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.generateNewLabel("{56,a,c,d}", config).toErlangTerm();
 		}},IllegalArgumentException.class,"should start with "+ErlangLabel.missingFunction);
 	}
@@ -176,7 +176,7 @@ public class TestErlangGraphs {
 	@Test
 	public void testTraceParsing1()
 	{
-		List<Label> list = AbstractLearnerGraph.parseTrace(lblTextA+","+lblTextB+","+lblTextC,config);
+		List<Label> list = AbstractLearnerGraph.parseTrace("["+lblTextA+","+lblTextB+","+lblTextC+"]",config);
 		Assert.assertEquals(lblDumpA,list.get(0).toErlangTerm());
 		Assert.assertEquals(lblDumpB,list.get(1).toErlangTerm());
 		Assert.assertEquals(lblDumpC,list.get(2).toErlangTerm());
@@ -187,28 +187,28 @@ public class TestErlangGraphs {
 	public void testTraceParsing2() throws IOException
 	{
 		String fnA = "{"+ErlangLabel.missingFunction+",'call','wibble'}", fnB = "{"+ErlangLabel.missingFunction+",'info','txt'}",comma=", ";
-		String text = fnA+comma+fnB+comma+fnB;
+		String text = "["+fnA+comma+fnB+comma+fnB+"]";
 		List<Label> list = AbstractLearnerGraph.parseTrace(text,config);
 		ErlangModule mod = new ErlangModule(new File("ErlangExamples/locker/locker.erl"));
 		List<String> newList = new LinkedList<String>();
 		for(Label l:mod.behaviour.convertTrace(mod.behaviour.convertTrace(list, mod.behaviour.new ConverterErlToMod()), mod.behaviour.new ConverterModToErl()))
 				newList.add(l.toErlangTerm());
-		Assert.assertEquals("["+text+"]",newList.toString());
+		Assert.assertEquals(text,newList.toString());
 	}
 	
 	@Test
 	public void testTraceParsingFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			AbstractLearnerGraph.parseTrace("b", config);
-		}},IllegalArgumentException.class,"expected a tuple");		
+		}},IllegalArgumentException.class,"expected a sequence");		
 	}
 	
 	@Test
 	public void testTraceParsingFail2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			AbstractLearnerGraph.parseTrace(lblTextA+","+lblTextB+",{},"+lblTextC, config);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			AbstractLearnerGraph.parseTrace("["+lblTextA+","+lblTextB+",{},"+lblTextC+"]", config);
 		}},IllegalArgumentException.class,"arity 0");
 	}
 	
@@ -287,21 +287,51 @@ public class TestErlangGraphs {
 		final LearnerGraph gr = buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = new ErlangModule(file);
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		}},IllegalArgumentException.class,"unknown call name");
 	}
 	
+	/** Unknown function in module. */
 	@Test
-	public void testConvertToModuleFailure2a() throws IOException
+	public void testConvertToModuleFailure2() throws IOException
+	{
+		File file = new File("ErlangExamples/locker/locker.erl");
+		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config);
+		}},IllegalArgumentException.class,"unknown call name");
+		
+	}
+	@Test
+	public void testConvertToModuleForAnAlreadyAssignedLabel() throws IOException
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = new ErlangModule(file);
 		final LearnerGraph converted = gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			converted.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
-		}},IllegalArgumentException.class,"already has a function assigned");
+		LearnerGraph anotherGraph = converted.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
+		Assert.assertEquals(converted.pathroutines.computeAlphabet(),anotherGraph.pathroutines.computeAlphabet());
+	}
+	
+	@Test
+	public void testConvertToModuleForAnAlreadyAssignedToADifferentLabel() throws IOException
+	{
+		File file = new File("ErlangExamples/locker/locker.erl");
+		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
+		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B - {cast,yyy}->C", "testConvertToModuleFailure1", config);
+		for(Label lbl:gr.pathroutines.computeAlphabet())
+			Assert.assertNotNull("undefined function for label "+lbl,((ErlangLabel)lbl).function);
+		
+		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
+		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
+		
+		// now mess up the name of the function,
+		String fun2 = mod.behaviour.invPatterns.get(lbl2.callName);
+		mod.behaviour.invPatterns.put(lbl1.callName,fun2);// mess up behaviour
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
+		}},IllegalArgumentException.class,"label already has a function assigned");
 	}
 	
 	@Test
@@ -339,7 +369,7 @@ public class TestErlangGraphs {
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = new ErlangModule(file);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		}},IllegalArgumentException.class,"non-erlang labels");
 	}
@@ -353,7 +383,7 @@ public class TestErlangGraphs {
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = new ErlangModule(file);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
+		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterModToErl());
 		}},IllegalArgumentException.class,"non-erlang labels");
 	}

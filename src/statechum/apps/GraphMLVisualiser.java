@@ -16,11 +16,12 @@ You should have received a copy of the GNU General Public License
 along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-package statechum.analysis.learning;
+package statechum.apps;
 
 import java.io.File;
 
 import statechum.Configuration;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.ExperimentGraphMLHandler;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.io.GraphMLFile;

@@ -203,6 +203,7 @@ final public class DeterministicDirectedSparseGraph {
 		 */
 		public static ComparisonKind comparisonKind = ComparisonKind.COMPARISON_NORM;
 		
+		@Override
 		public int compareTo(VertexID o) {
 			if (comparisonKind == ComparisonKind.COMPARISON_LEXICOGRAPHIC_ORIG) // Dec2007 compatibility mode
 				return idString.compareTo(o.idString);
@@ -528,6 +529,7 @@ final public class DeterministicDirectedSparseGraph {
 			return vertexID.equals(other.getID());
 		}
 
+		@Override
 		public VertexID getID() {
 			return vertexID;
 		}
@@ -809,9 +811,9 @@ final public class DeterministicDirectedSparseGraph {
 		while(i<j){
 			DirectedSparseVertex v = (DirectedSparseVertex)queue.get(i);
 			done.add(v);
-			Iterator succIt = v.getSuccessors().iterator();
+			Iterator<Vertex> succIt = v.getSuccessors().iterator();
 			while(succIt.hasNext()){
-				Vertex succ = (Vertex)succIt.next();
+				Vertex succ = succIt.next();
 				if(!done.contains(succ))
 					queue.add(succ);
 			}

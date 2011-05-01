@@ -27,8 +27,6 @@ import java.util.*;
 import java.io.*;
 
 import statechum.apps.ErlangQSMOracle;
-import statechum.apps.QSMTool;
-
 import java.awt.Frame;
 
 import statechum.analysis.Erlang.ErlangLabel;
@@ -253,7 +251,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             if (traceString.equals("")) {
                 traceFromFile = new Trace();
             } else {
-                traceFromFile = Trace.fromListOfStrings(QSMTool.tokeniseInput(traceString));
+                traceFromFile = null;//Trace.fromListOfStrings(QSMTool.tokeniseInput(traceString));
             }
             if (line.substring(0, 1).equals("-")) {
                 if (traceFromFile.size() <= erlTrace.size()

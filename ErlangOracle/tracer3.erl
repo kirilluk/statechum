@@ -109,7 +109,7 @@ compileModulesA([M | OtherModules], State) ->
 analyse_all(ModulesList,#statechum{config=Conf,attr=Attrs}=State) ->
 	case(dict:find(?erlCoverage,Conf)) of
 		{ok,'ERLCOV_LINE'} -> 
-			AttrsWithCoverage = dict:store(coverage,analyse_linecoverage(ModulesList),Attrs),
+			AttrsWithCoverage = dict:store('coverage',analyse_linecoverage(ModulesList),Attrs),
 			State#statechum{attr=AttrsWithCoverage};
 		{ok,'ERLCOV_NONE'} -> State;
 		{ok,Other} -> erlang:error("invalid coverage type " ++ atom_to_list(Other));

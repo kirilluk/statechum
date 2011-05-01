@@ -19,16 +19,38 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.lang.reflect.Constructor;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangLabel.ErlangBitString;
+import statechum.analysis.Erlang.ErlangLabel.ErlangBoolean;
+import statechum.analysis.Erlang.ErlangLabel.ErlangDouble;
+import statechum.analysis.Erlang.ErlangLabel.ErlangInt;
+import statechum.analysis.Erlang.ErlangLabel.ErlangList;
+import statechum.analysis.Erlang.ErlangLabel.ErlangLong;
+import statechum.analysis.Erlang.ErlangLabel.ErlangParserComponent;
+import statechum.analysis.Erlang.ErlangLabel.ErlangQuotedAtom;
+import statechum.analysis.Erlang.ErlangLabel.ErlangString;
+import statechum.analysis.Erlang.ErlangLabel.ErlangTuple;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangBitstr;
+import com.ericsson.otp.erlang.OtpErlangBoolean;
+import com.ericsson.otp.erlang.OtpErlangDouble;
+import com.ericsson.otp.erlang.OtpErlangFloat;
+import com.ericsson.otp.erlang.OtpErlangFun;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangPid;
+import com.ericsson.otp.erlang.OtpErlangPort;
+import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /** Describes the type signature of a function and provides some useful(?) methods for manipulating them.
@@ -60,6 +82,7 @@ public abstract class Signature implements Label
         	result.add(this.instantiate());
         return result;
     }
+
 
     /** Used to instantiate a list of "any" elements. */
     protected static final AtomSignature wibbleSignature = new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("wibble")}));
@@ -168,7 +191,7 @@ public abstract class Signature implements Label
 
 	@Override
 	public int compareTo(Label o) {
-		return toErlangTerm().compareTo(o.toErlangTerm());
+		return toErlangTerm().compareTo(((Signature)o).toErlangTerm());
 	}
 	
 	@Override

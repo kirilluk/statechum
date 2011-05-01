@@ -33,6 +33,7 @@ import javax.swing.event.ListSelectionListener;
 import statechum.JUConstants;
 import statechum.Configuration;
 import statechum.Pair;
+import statechum.StringLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -48,6 +49,8 @@ import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
+import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.OTPBehaviour;
 
 public abstract class RPNILearner extends Observable implements Learner {
 
@@ -124,6 +127,28 @@ public abstract class RPNILearner extends Observable implements Learner {
         return true;
     }
 
+    /** Pretty-prints a supplied question. Useful for questions with Erlang labels which 
+     * contain functions they are associated with. 
+     */ 
+    public static String questionToString(List<Label> question)
+    {
+		StringBuffer questionString = new StringBuffer();questionString.append('[');
+		boolean first = true;
+		for(Label lbl:question)
+		{
+			if (!first) questionString.append(',');else first = false;
+			if (lbl instanceof StringLabel)
+				questionString.append(lbl.toErlangTerm());
+			else
+				if (lbl instanceof ErlangLabel)
+					questionString.append(OTPBehaviour.convertModToErl(lbl).toErlangTerm());
+				else
+					throw new IllegalArgumentException("unknown type of label "+lbl.getClass());
+		}
+		questionString.append(']');
+		return questionString.toString();
+    }
+    
     /** Updates listeners only if this object has been modified and debug mode is on, by calling
      * <pre>
      * setChanged()
@@ -177,7 +202,10 @@ public abstract class RPNILearner extends Observable implements Learner {
     {
     	return new LayoutOptions();
     }
-        
+     
+    
+    /* This one is a specialised version of computeShortPathsToAllStates()
+     */
     protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
         Collection<Trace> result = new LinkedList<Trace>();
 
@@ -194,6 +222,7 @@ public abstract class RPNILearner extends Observable implements Learner {
 
         return result;
     }
+    
     final String questionPrefix = "";
 
     protected List<String> beautifyQuestionList(List<Label> question) {

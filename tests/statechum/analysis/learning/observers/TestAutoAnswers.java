@@ -17,22 +17,32 @@
  */
 package statechum.analysis.learning.observers;
 
+import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.StringReader;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
 
+import statechum.Configuration.LABELKIND;
 import statechum.Label;
 import statechum.Configuration;
 import statechum.Pair;
 import statechum.Configuration.IDMode;
+import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.PairScore;
 
 /** Tests that AutoAnswers works.
@@ -77,6 +87,28 @@ public class TestAutoAnswers {
 		RPNILearner.QUESTION_USER+"[e, c, b, p, e, e] <yes>\n"+
 		RPNILearner.QUESTION_USER+"[e, b] <no> at position 1, element b\n"+
 		RPNILearner.QUESTION_USER+"[e, e] <yes>\n";	
+
+	@Test
+	public void testPrettyPrintTrace0()
+	{
+		Assert.assertEquals("[]",RPNILearner.questionToString(Arrays.asList(new Label[]{})));
+	}
+	
+	@Test
+	public void testPrettyPrintTrace1() throws IOException
+	{
+		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		File file = new File("ErlangExamples/locker/locker.erl");
+		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
+		final String LBL1 = "{call, wibble}", LBL2 = "{call, smth}";
+		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
+		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
+		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
+		List<Label> trace = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
+		Assert.assertEquals("[{?F(),'call','wibble'},{?F(),'call','smth'},{?F(),'call','smth'}]",RPNILearner.questionToString(trace));
+	}
+	
+
 	
 	// The machine I'm talking of is the following:
 	// A-e->A-c->B-b->C-p->G-e->A\nB-a->D-a->E-a->D\nE-b->F-p->G\n
@@ -244,7 +276,7 @@ public class TestAutoAnswers {
 				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"+
 				RPNILearner.QUESTION_USER+" [c, a, p, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
 				RPNILearner.QUESTION_USER+" [c, b, a, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
-				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" - c b a\n"+
+				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" -[ [c, b, a]]\n"+
 				RPNILearner.QUESTION_USER+" [p, a] <no> at position 0, element p\n"+
 				RPNILearner.QUESTION_USER+" [c, b, e, e] <yes>\n"+
 				RPNILearner.QUESTION_USER+" [c, b, p, p] <no> at position 3, element p\n"+
@@ -290,7 +322,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testAuto4()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
+		Configuration testConfig = Configuration.getDefaultConfiguration().copy();testConfig.setAlwaysRestartOnNewTraces(true);
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 
@@ -313,8 +345,19 @@ public class TestAutoAnswers {
 				RPNILearner.QUESTION_USER+" [c, a, c] "+RPNILearner.QUESTION_INCOMPATIBLE+" P1002 P1001\n"+
 				RPNILearner.QUESTION_USER+" [c, a, p, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
 				RPNILearner.QUESTION_USER+" [c, b, a, a] "+RPNILearner.QUESTION_IGNORE+"\n"+
-				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" - c b a / - p / + c b e e / - c b p p / + e e // - c b e a / - c b e p  / - e a / + e e e / - e e p / - e e a / - e e b / - e p / - e b / - e c c / - e c b a // + e c a e c \n"+
-				RPNILearner.QUESTION_USER+" [e, c, b, e, a] "+RPNILearner.QUESTION_NEWTRACE+" - e c b e a / + e c b e e / - e c b e p / - e c b p a / - e c b p p / + e c b p e e / - e c a a b p a / + e c a a b p e / + e c a a a a b p \n"
+				RPNILearner.QUESTION_USER+" [c, b, a, b] "+RPNILearner.QUESTION_NEWTRACE+" "+
+				"+ [[e, e, e], [ e, e], [e, c, a, e, c], [ c, b, e, e,]]"+
+				"- [[c, b, a], [ p ], [c, b, p, p], "+
+				"[c, b, e, a], "+
+				"[c, b, e, p], [e, a], [e, e, p], "+
+				"[e, e, a], [e, e, b], [ e, p], "+
+				"[e, b], [e, c, c], [e, c, b, a]]\n"+
+				
+				RPNILearner.QUESTION_USER+" [e, c, b, e, a] "+RPNILearner.QUESTION_NEWTRACE+
+				"- [[e, c, b, e, a]], + [[ e, c, b, e, e]] "+
+				" - [[ e, c, b, e, p], [ e, c, b, p, a], [ e, c, b, p, p]] "+
+				"+ [[ e, c, b, p, e, e]], - [[e, c, a, a, b, p, a]], "+
+				"+ [[e, c, a, a, b, p, e], [ e, c, a, a, a, a, b, p]] \n"
 		),testConfig);
 		ans2.learnMachine(
 				buildSet(new String[][]{

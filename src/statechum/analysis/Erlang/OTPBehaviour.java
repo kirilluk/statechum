@@ -153,6 +153,9 @@ public abstract class OTPBehaviour {
     		}
    		}
 
+        behaviour.loadInitArgs();
+        behaviour.loadAlphabet();
+        behaviour.loadDependencies(file);
     	return behaviour;
     }
 
@@ -225,14 +228,11 @@ public abstract class OTPBehaviour {
 
 		@Override
 		public Label convertLabelToLabel(Label lbl) {
-			if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
-			ErlangLabel label = (ErlangLabel)lbl;
-			
-			return new ErlangLabel(null,label.callName,label.input,label.expectedOutput);
+			return convertModToErl(lbl);
 		}
    }
     
-    /** Used to turn textual traces loaded from somewhere into proper Erlang traces which can be executed.
+	/** Used to turn textual traces loaded from somewhere into proper Erlang traces which can be executed.
      */ 
     class ConverterErlToMod implements LabelConverter,ConvertALabel
     {
@@ -245,17 +245,49 @@ public abstract class OTPBehaviour {
 		@Override
 		public Label convertLabelToLabel(Label lbl) 
 		{
-			if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
-			ErlangLabel label = (ErlangLabel)lbl;
-			if (label.function != null) throw new IllegalArgumentException("label already has a function assigned");
-
-			String callName = invPatterns.get(label.callName);
-			if (callName == null) throw new IllegalArgumentException("unknown call name \""+label.callName+"\" in module "+parent.getName());
-			FuncSignature origFunc = parent.sigs.get(callName);
-			if (origFunc == null) throw new IllegalArgumentException("unknown function \""+callName+"\" in module "+parent.getName());
-			return new ErlangLabel(origFunc,label.callName,label.input,label.expectedOutput);
+			return convertErlToMod(lbl);
 		}
     	
     }
     
+    /** Strips the description of the function from the supplied label. */
+	public static Label convertModToErl(Label lbl) 
+	{
+		if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
+		ErlangLabel label = (ErlangLabel)lbl;
+		
+		return new ErlangLabel(null,label.callName,label.input,label.expectedOutput);
+	}
+
+	/** Using the behaviour, identify the function corresponding to the name of label and 
+	 * creates a new label with that function.
+	 *  
+	 * @param lbl label to convert
+	 * @return result of conversion.
+	 */
+	public ErlangLabel convertErlToMod(Label lbl) 
+	{
+		if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
+		ErlangLabel label = (ErlangLabel)lbl;
+
+		String callName = label.callName;
+		if (invPatterns != null)
+		{
+			callName = invPatterns.get(label.callName);
+			if (callName == null) throw new IllegalArgumentException("unknown call name \""+label.callName+"\" in module "+parent.getName());
+		}
+		FuncSignature origFunc = parent.sigs.get(callName);
+		if (origFunc == null) throw new IllegalArgumentException("unknown function \""+callName+"\" in module "+parent.getName());
+		
+		// At this point, we know which function should correspond to this label,
+		// it is worth checking whether the function already associated with the label
+		// is the correct function,
+		if (label.function != null)
+		{
+			if (!label.function.toErlangTerm().equals(origFunc.toErlangTerm()))
+				throw new IllegalArgumentException("label already has a function assigned and it is a different function, "+
+						"was : "+label.function+", now: "+origFunc);
+		}
+		return new ErlangLabel(origFunc,label.callName,label.input,label.expectedOutput);
+	}
 }

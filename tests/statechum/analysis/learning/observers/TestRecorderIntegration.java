@@ -145,11 +145,11 @@ public class TestRecorderIntegration {
 					simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip),
 					simulator2 = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
 				
-				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData(testConfig);
 				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
 				Assert.assertEquals(testSet, eval1.testSet);
 				Assert.assertEquals(expected.config, testConfig);
-				LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData();
+				LearnerEvaluationConfiguration eval2 = simulator2.readLearnerConstructionData(testConfig);
 				Assert.assertNull(WMethod.checkM(expected, eval2.graph));
 				Assert.assertEquals(testSet, eval2.testSet);
 				Assert.assertEquals(expected.config, testConfig);
@@ -161,7 +161,7 @@ public class TestRecorderIntegration {
 			case RECORDERTEST_SL:
 			{// now a simulator to a learner
 				final LearnerSimulator simulator = new LearnerSimulator(new ByteArrayInputStream(logStream.toByteArray()),useZip);
-				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData();
+				LearnerEvaluationConfiguration eval1 = simulator.readLearnerConstructionData(testConfig);
 				Assert.assertNull(WMethod.checkM(expected, eval1.graph));
 				Assert.assertEquals(testSet, eval1.testSet);
 				Assert.assertEquals(expected.config, testConfig);

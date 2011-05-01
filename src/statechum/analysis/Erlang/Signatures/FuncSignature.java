@@ -21,6 +21,7 @@ package statechum.analysis.Erlang.Signatures;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -241,5 +242,27 @@ public class FuncSignature implements Label {
 	@Override
 	public String toErlangTerm() {
 		return erlangTermForThisType;
+	}
+
+	/** Verifies that the supplied label is type-compatible to the type represented by this signature, 
+	 * throws an exception if not.
+	 * 
+	 * @param label
+	 * @return
+	 */
+	public void typeCompatible(ErlangLabel label) {
+		assert label.function == this;
+		
+		Iterator<List<Signature>> sigListIterator = args.iterator();
+		boolean typeCompatible = false;
+		while(sigListIterator.hasNext() && !typeCompatible)
+		{
+//			Signature.
+			Iterator<Signature> sigIterator = sigListIterator.next().iterator();
+			
+			//Iterator<OtpErlangObject> label.
+		}
+		
+		
 	}
 }

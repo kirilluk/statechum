@@ -24,14 +24,16 @@ import java.io.Reader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.ericsson.otp.erlang.OtpErlangObject;
 
 import statechum.Configuration;
 import statechum.Label;
 import statechum.Pair;
 import statechum.apps.QSMTool;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
 public class StoredAnswers implements AbstractOracle
 {
@@ -46,94 +48,102 @@ public class StoredAnswers implements AbstractOracle
 	
 	protected void throwEx(String line)
 	{
-		throw new IllegalArgumentException("could not parse line "+line);			
+		throw new IllegalArgumentException("could not parse line : "+line);			
 	}
 
+	final Lexer lex = new Lexer(
+			"(\\s*<yes>)|"+
+			"(\\s*<no>\\s+at position +(.+),.*)|"+
+			"(\\s*(<.+>)\\s*(.*))"// here I assume the second \\s* is greedy and will consume all spaces
+			);
+
+	final int 
+		lexYES = 1,
+		lexNO = 2, lexNO_position = 3, 
+		lexOther = 4, lexResponse = 5,lexOther_text = 6;
+
+	final Pattern usefulData = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+").*");
+	
 	public synchronized void setAnswers(Reader src) throws IOException
 	{
-		final int GROUP_TEXT = 2, GROUP_YES = 4, GROUP_NO = 5, GROUP_NO_NUM = 6, 
-			GROUP_LTL = 7, GROUP_LTL_CONSTRAINT = 8, 
-			GROUP_IFTHEN = 9,GROUP_IFTHEN_CONSTRAINT = 10,
-			GROUP_IGNORE = 11, GROUP_IGNORE_CONSTRAINT = 12, 
-			GROUP_INCOMPATIBLE = 13, GROUP_INCOMPATIBLE_CONSTRAINT = 14, 
-			GROUP_NEWTRACE = 15, GROUP_NEWTRACE_CONSTRAINT = 16;
-
-		final Pattern pat = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+") *\\0133([^\\0135]+)\\0135 +((<yes>.*)|(<no> +at position +(.+),.*)|"+
-					"(<"+QSMTool.cmdLTL+"> +(.*))|(<"+QSMTool.cmdIFTHENAUTOMATON+"> +(.*))|"+
-					"("+RPNILearner.QUESTION_IGNORE+"(.*))|"+
-					"("+RPNILearner.QUESTION_INCOMPATIBLE+" +(.*))|"+
-					"("+RPNILearner.QUESTION_NEWTRACE+" +(.*))"+
-					")");
-		final Pattern usefulData = Pattern.compile("[ \\t]*("+RPNILearner.QUESTION_USER+").*");
 		BufferedReader reader = new BufferedReader(src);//new FileReader(src));
 		String line = reader.readLine();
 		while( line != null )
 		{
-			if (line.trim().length() > 0 && usefulData.matcher(line).lookingAt())
+			String trimmedLine = line.trim(); 
+			if (trimmedLine.length() > 0 && usefulData.matcher(line).lookingAt())
 			{// we are here if the line is non-empty and contains the magic keyword
-				Matcher lexer = pat.matcher(line);
-				if (!lexer.lookingAt() || lexer.group(GROUP_TEXT) == null)
-					throwEx(line);
-				//for(int i=1;i<=lexer.groupCount();++i)
-				//	System.out.println("("+i+") "+lexer.group(i));
-				List<Label> question = AbstractLearnerGraph.parseTrace(lexer.group(GROUP_TEXT),config);
-				if (lexer.group(GROUP_YES) != null)
+				int tagEnd = trimmedLine.indexOf('>');
+				if (tagEnd < 0)
+					throwEx("missing end of tag \">\"");
+				String tag = trimmedLine.substring(0, tagEnd+1);
+				if (tag.equals(RPNILearner.QUESTION_USER))
 				{
-					if (lexer.group(GROUP_NO) != null || lexer.group(GROUP_NO_NUM) != null || 
-							lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null 
-							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
-						throwEx(line);
+					String questionAndResponse = trimmedLine.substring(tagEnd+1);
+					String theRestOfResponse = null;
+					List<Label> question = null;
+					{
+				    	Lexer lexer = ErlangLabel.buildLexer(questionAndResponse);
+				    	OtpErlangObject result = ErlangLabel.parseFirstTermInText(lexer);
+				    	question = statechum.StatechumXML.readInputSequenceFromErlangObject(result,config);
+				    	if (lexer.getLastMatchType() < 0)
+				    		throwEx("question "+questionAndResponse);
+				    	theRestOfResponse = lexer.remaining();
+					}
+					lex.startParsing(theRestOfResponse);
 					
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
+					if (lex.getMatchType() < 0)
+						throwEx("setAnswers: cannot parse "+theRestOfResponse);
+	
+					String errMsg = "unrecognised response "+lex.getMatch();
+					switch(lex.getLastMatchType())
+					{
+					case lexYES:
+						answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_ACCEPTED,null));
+						break;
+					case lexNO:
+						answers.put(question, new Pair<Integer,String>(Integer.parseInt(lex.group(lexNO_position)),null));
+						break;
+					default:
+						String response = lex.group(lexResponse);
+						if (response.equals("<"+QSMTool.cmdLTL+">"))
+						{
+							if (lex.group(lexOther_text).isEmpty())
+								throwEx(errMsg);
+							answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_LTL,lex.group(lexOther_text)));				
+						}
+						else
+						if (response.equals("<"+QSMTool.cmdIFTHENAUTOMATON+">"))
+						{
+							if (lex.group(lexOther_text).isEmpty())
+								throwEx(errMsg);
+							answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IFTHEN,lex.group(lexOther_text)));				
+						}
+						else
+						if (response.equals(RPNILearner.QUESTION_IGNORE))
+						{
+							if (!lex.group(lexOther_text).isEmpty())
+								throwEx(errMsg);
+							answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null));				
+						}
+						else
+						if (response.equals(RPNILearner.QUESTION_INCOMPATIBLE))
+						{
+							if (lex.group(lexOther_text).isEmpty())
+								throwEx(errMsg);
+							answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,lex.group(lexOther_text)));				
+						}
+						else
+						if (response.equals(RPNILearner.QUESTION_NEWTRACE))
+						{
+							if (lex.group(lexOther_text).isEmpty())
+								throwEx(errMsg);
+							answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,lex.group(lexOther_text)));				
+						}
+						else
+							throwEx(errMsg);
+					}
 				}
-				else
-				if (lexer.group(GROUP_NO) != null)
-				{
-					if (lexer.group(GROUP_LTL) != null || lexer.group(GROUP_LTL_CONSTRAINT) != null 
-							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
-						throwEx(line);
-
-					answers.put(question, new Pair<Integer,String>(Integer.parseInt(lexer.group(GROUP_NO_NUM)),null));				
-				}
-				else
-				if (lexer.group(GROUP_LTL) != null)
-				{
-					if (lexer.group(GROUP_LTL_CONSTRAINT) == null || lexer.group(GROUP_LTL_CONSTRAINT).length() == 0 
-							|| lexer.group(GROUP_IFTHEN) != null || lexer.group(GROUP_IFTHEN_CONSTRAINT) != null)
-						throwEx(line);
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_LTL,lexer.group(GROUP_LTL_CONSTRAINT)));				
-				}
-				else
-				if (lexer.group(GROUP_IFTHEN) != null)
-				{
-					if (lexer.group(GROUP_IFTHEN_CONSTRAINT) == null || lexer.group(GROUP_IFTHEN_CONSTRAINT).length() == 0)
-						throwEx(line);
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IFTHEN,lexer.group(GROUP_IFTHEN_CONSTRAINT)));				
-				}
-				else
-				if (lexer.group(GROUP_IGNORE) != null)
-				{
-					if (lexer.group(GROUP_IGNORE_CONSTRAINT) == null || lexer.group(GROUP_IGNORE_CONSTRAINT).trim().length() != 0)
-						throwEx(line);
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_IGNORED,null));				
-				}
-				else
-				if (lexer.group(GROUP_INCOMPATIBLE) != null)
-				{
-					if (lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT) == null || lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT).length() == 0)
-						throwEx(line);
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_INCOMPATIBLE,lexer.group(GROUP_INCOMPATIBLE_CONSTRAINT)));				
-				}
-				else
-				if (lexer.group(GROUP_NEWTRACE) != null)
-				{
-					if (lexer.group(GROUP_NEWTRACE_CONSTRAINT) == null || lexer.group(GROUP_NEWTRACE_CONSTRAINT).length() == 0)
-						throwEx(line);
-					answers.put(question, new Pair<Integer,String>(AbstractOracle.USER_NEWTRACE,lexer.group(GROUP_NEWTRACE_CONSTRAINT)));				
-				}
-				else
-					
-					throwEx(line);
 			}			
 			line = reader.readLine();
 		}

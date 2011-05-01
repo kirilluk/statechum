@@ -19,7 +19,6 @@
 package statechum.analysis.learning.observers;
 
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
@@ -88,8 +87,7 @@ public class RecordProgressDecorator extends ProgressDecorator
 			}
 			Configuration seriesConfiguration = config.copy();seriesConfiguration.setGdMaxNumberOfStatesInCrossProduct(0);
 			series = new GraphSeries(doc,threadNumber,seriesConfiguration);
-			labelio = new StatechumXML.StringLabelSequenceWriter(doc,config);
-			stringio = new StatechumXML.StringSequenceWriter(doc);
+			initIO(doc,config);
 		}
 		catch(ParserConfigurationException e)
 		{
@@ -213,8 +211,8 @@ public class RecordProgressDecorator extends ProgressDecorator
 	{
 		Element questionElement = doc.createElement(StatechumXML.ELEM_ANSWER.name());
 		Pair<Integer,String> result = decoratedLearner.CheckWithEndUser(graph, question, responseForNoRestart, acceptedElements, pairBeingMerged, options);
-		StringWriter strWriter = new StringWriter();labelio.writeInputSequence(strWriter,question);
-		questionElement.setAttribute(StatechumXML.ATTR_QUESTION.name(),strWriter.toString());
+		StringBuffer strBuffer = new StringBuffer();labelio.writeInputSequence(strBuffer,question);
+		questionElement.setAttribute(StatechumXML.ATTR_QUESTION.name(),strBuffer.toString());
 		questionElement.setAttribute(StatechumXML.ATTR_FAILEDPOS.name(), result.firstElem.toString());
 		if (result.secondElem != null) questionElement.setAttribute(StatechumXML.ATTR_LTL.name(), result.secondElem);
 		writeElement(questionElement);

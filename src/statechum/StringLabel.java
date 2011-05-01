@@ -36,7 +36,7 @@ public class StringLabel implements Label {
 	 */
 	@Override
 	public int compareTo(Label o) {
-		return label.compareTo(((StringLabel)o).label);
+		return toErlangTerm().compareTo(((StringLabel)o).toErlangTerm());
 	}
 
 	/* (non-Javadoc)

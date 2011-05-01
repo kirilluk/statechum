@@ -149,6 +149,22 @@ public class Configuration implements Cloneable
 		speculativeQuestionAsking = newValue;
 	}
 	
+	/** When new traces are offered instead of an answer to a question, one may try to add them 
+	 * both to hard facts and to tentative automaton. If the latter has been successful, it is 
+	 * then possible to attempt to continue. 
+	 */
+	protected boolean alwaysRestartOnNewTraces = false;
+	
+	public boolean isAlwaysRestartOnNewTraces()
+	{
+		return alwaysRestartOnNewTraces;
+	}
+
+	public void setAlwaysRestartOnNewTraces(boolean newValue)
+	{
+		alwaysRestartOnNewTraces = newValue;
+	}
+	
 	/** There could be different ways to query the current strategy for asking questions.
 	 * The enumeration below includes those implemented:
 	 * <ul>
@@ -475,6 +491,10 @@ public class Configuration implements Cloneable
 		result = prime * result + labelKind.hashCode();
 		result = prime * result + erlFlushDelay;
 		result = prime * result + erlCoverage.hashCode();
+		result = prime * result + (legacyXML? 1231 : 1237);
+		result = prime * result + (erlangModuleName == null?0:erlangModuleName.hashCode());
+		result = prime * result + (alwaysRestartOnNewTraces? 1231 : 1237);
+		
 		return result;
 	}
 
@@ -609,6 +629,14 @@ public class Configuration implements Cloneable
 			return false;
 		if (erlCoverage != other.erlCoverage)
 			return false;
+		if (legacyXML != other.legacyXML)
+			return false;
+		if ((erlangModuleName == null && other.erlangModuleName != null) || (erlangModuleName != null && other.erlangModuleName == null) ||
+				(erlangModuleName != null && !erlangModuleName.equals(other.erlangModuleName)))
+			return false;
+		if (alwaysRestartOnNewTraces != other.alwaysRestartOnNewTraces)
+			return false;
+		
 		return true;
 	}
 
@@ -1132,6 +1160,21 @@ public class Configuration implements Cloneable
 		useSpin = newValue;
 	}
 	
+	/** Determines whether dumping/loading from XML uses legacy implementation or the current one.
+	 * This is useful for conversion of logs (.gd) from old to new format.
+	 */
+	protected boolean legacyXML = false;
+	
+	public boolean getLegacyXML()
+	{
+		return legacyXML;
+	}
+	
+	public void setLegacyXML(boolean newValue)
+	{
+		legacyXML = newValue;
+	}
+	
 	/** When learning, we might wish to add transitions from a property automaton.
 	 * This corresponds to adding waves of transitions where the first wave starts from
 	 * state of a tentative automaton, the second wave from the newly-added states and so on.
@@ -1230,6 +1273,19 @@ public class Configuration implements Cloneable
 	public ERLCOVERAGE getErlCoverage()
 	{
 		return erlCoverage;
+	}
+	
+	/** Specific Erlang module we a working with, null if no module is assigned to this configuration. */
+	protected String erlangModuleName = null; 
+	
+	public String getErlangModuleName()
+	{
+		return erlangModuleName;
+	}
+	
+	public void setErlangModuleName(String newValue)
+	{
+		erlangModuleName = newValue;
 	}
 	
 	/** Serialises configuration into XML

@@ -2,7 +2,6 @@ package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.math.BigInteger;
 import java.util.Collection;
 
 import org.junit.Assert;
@@ -11,19 +10,19 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import statechum.Configuration;
 import statechum.Helper.whatToRun;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
-
-import cern.colt.Arrays;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangBitstr;
 import com.ericsson.otp.erlang.OtpErlangBoolean;
-import com.ericsson.otp.erlang.OtpErlangFloat;
+import com.ericsson.otp.erlang.OtpErlangDouble;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangRef;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -98,15 +97,25 @@ public class TestErlangParser {
 	@Test
 	public void testToString9()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.dumpErlangObject(new OtpErlangFloat(-234));
-		}},IllegalArgumentException.class,"cannot dump object of type");
+		Assert.assertEquals("-2.340000138101317E-10",ErlangLabel.dumpErlangObject(new OtpErlangDouble(-2.34e-10f)));
+	}
+	
+	@Test
+	public void testToString10()
+	{
+		Assert.assertEquals("-2.3399999141693115",ErlangLabel.dumpErlangObject(new OtpErlangDouble(-2.34f)));
+	}
+	
+	@Test
+	public void testToString11()
+	{
+		Assert.assertEquals("-2.34E-210",ErlangLabel.dumpErlangObject(new OtpErlangDouble(-2.34e-210)));
 	}
 	
 	
 	/** A bigger structure to dump. */
 	@Test
-	public void testToString10()
+	public void testToString12()
 	{
 		Assert.assertEquals("{\'this is an atom\',\"this is a string\",[[-234],{}]}",
 				ErlangLabel.dumpErlangObject(new OtpErlangTuple(new OtpErlangObject[]{
@@ -120,6 +129,14 @@ public class TestErlangParser {
 								})
 						})
 				})));
+	}
+	
+	@Test
+	public void testToStringFail1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.dumpErlangObject(new OtpErlangRef("aa",1,2));
+		}},IllegalArgumentException.class,"cannot dump object of type");
 	}
 	
 	/** Empty term. */
@@ -158,6 +175,14 @@ public class TestErlangParser {
 		OtpErlangAtom atom = (OtpErlangAtom)result;
 		Assert.assertEquals("\'this is an atom\'",ErlangLabel.dumpErlangObject(atom));
 		Assert.assertEquals("junk and more",lexer.remaining());
+	}
+	
+	@Test
+	public void testParse1aa()
+	{
+		String text = "\'\'";
+		Assert.assertTrue(ErlangLabel.parseText(text) instanceof OtpErlangAtom);
+		checkResponse(text,text);
 	}
 	
 	@Test
@@ -392,7 +417,7 @@ public class TestErlangParser {
 		final String text = " 45junk";
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.parseText(text);
-		}},IllegalArgumentException.class,"in parsing erlang number");
+		}},IllegalArgumentException.class,"invalid token type");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangRunner.getRunner().evaluateString(text);
 		}},RuntimeException.class,"badmatch");
@@ -411,21 +436,216 @@ public class TestErlangParser {
 	}
 	
 	@Test
-	public void testParse5()
+	public void testParse5a()
 	{
-		String text = " 4588888888888888 ";
+		String text = " 45888888888";
 		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
-		Assert.assertEquals(4588888888888888L,number.longValue());
+		Assert.assertEquals(45888888888L,number.longValue());
 		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
 	}
 	
 	@Test
-	public void testParseUnquotedAtom1()
+	public void testParse5b()
+	{
+		String text = " -458";
+		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
+		Assert.assertEquals(-458L,number.longValue());
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse5c()
+	{
+		String text = " +458";
+		OtpErlangLong number = (OtpErlangLong)ErlangLabel.parseText(text);
+		Assert.assertEquals(458L,number.longValue());
+		Assert.assertEquals("458",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6a()
+	{
+		String text = " 458888.5";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(458888.5,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6b()
+	{
+		String text = " 458888.5e0 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(458888.5,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("458888.5",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6c()
+	{
+		String text = " 458888.5e-5 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4.588885,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("4.588885",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6d()
+	{
+		String text = " 458888.5e5 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4.588885e10,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("4.588885E10",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6e()
+	{
+		String text = " 4588.456e34 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4.588456e37,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("4.588456E37",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6f()
+	{
+		String text = " 4588888888888888.456e244 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4.588888888888889E259,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("4.588888888888889E259",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6g()
+	{
+		String text = " 4588888888888888.456e-244 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4.588888888888888E-229,number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals("4.588888888888888E-229",ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	/** When offered the value exactly on the boundary of the lower exponent, the answer given by 
+	 * Erlang is completely wrong, hence we do not test this case. 
+	 */
+	@Test
+	public void testParse6ha()
+	{
+		final String text = " 4.0E"+(-ErlangLabel.ErlangLong.minExponent+1)+" ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4d*Math.pow(10, -ErlangLabel.ErlangLong.minExponent+1),number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6hb()
+	{
+		final String text = " 4.0e"+(-ErlangLabel.ErlangLong.minExponent-1)+" ";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"cannot be represented");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testParse6ia()
+	{
+		final String text = " 4.0E"+(ErlangLabel.ErlangLong.maxExponent)+" ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4d*Math.pow(10, ErlangLabel.ErlangLong.maxExponent),number.doubleValue(),Configuration.fpAccuracy);
+		Assert.assertEquals(text.trim(),ErlangLabel.dumpErlangObject(ErlangRunner.getRunner().evaluateString(text)));
+	}
+	
+	@Test
+	public void testParse6ib()
+	{
+		final String text = " 4.0e"+(ErlangLabel.ErlangLong.maxExponent+1)+" ";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"cannot be represented");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	@Test
+	public void testCheckMaxExponent()
+	{
+		int i=0;
+		for(i=200;i< 400 &&
+			!Double.isInfinite(Double.parseDouble("4.0e"+i))
+		;++i);
+		Assert.assertEquals(ErlangLabel.ErlangLong.maxExponent+1, i);
+	}
+
+	@Test
+	public void testCheckMinExponent()
+	{
+		int i=0;
+		for(i=-200;i> -400 &&
+		0 !=(Double.parseDouble("4.0e"+i))
+		;--i);
+		Assert.assertEquals(ErlangLabel.ErlangLong.minExponent+1, -i);
+	}
+
+	/** Erlang refuses to parse 4e10, I think this is wrong and hence my parser accepts this. */
+	@Test
+	public void testParse6j()
+	{
+		final String text = " 4e10 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
+	}
+	
+	/** Erlang refuses to parse 4.e10, I think this is wrong and hence my parser accepts this. */
+	@Test
+	public void testParse6k()
+	{
+		final String text = " 4.e10 ";
+		OtpErlangDouble number = (OtpErlangDouble)ErlangLabel.parseText(text);
+		Assert.assertEquals(4e10,number.doubleValue(),Configuration.fpAccuracy);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"illegal_expr");
+	}
+	
+	@Test
+	public void testParseUnquotedAtom0()
 	{
 		String text = "atom";
 		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
 		Assert.assertEquals(text.trim(),atom.atomValue());
 	}
+	
+	@Test
+	public void testParseUnquotedAtom1a()
+	{
+		String text = "eatom";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(text.trim(),atom.atomValue());
+	}
+	
+	@Test
+	public void testParseUnquotedAtom1b()
+	{
+		String text = "eateom";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(text.trim(),atom.atomValue());
+	}
+	
+	@Test
+	public void testParseUnquotedAtom1c()
+	{
+		String text = "eat...om";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(text.trim(),atom.atomValue());
+	}
+	
 	@Test
 	public void testParseUnquotedAtom2()
 	{
@@ -478,59 +698,17 @@ public class TestErlangParser {
 		Assert.assertEquals("aa",atom.atomValue());
 	}
 	
+	/** Atom cannot begin with a dot. */
 	@Test
-	public void testParseUnquotedAtomFail4()
+	public void testParseUnquotedAtomFail6()
 	{
-		for(String str:new String[]{
-		"a-atom",
-		"a:atom",
-		"atom-a",
-		"atom:b"})
-		{
-			final String text = str;
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangLabel.parseText(text);
-			}},IllegalArgumentException.class,"is never allowed");
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangRunner.getRunner().evaluateString(text);
-			}},RuntimeException.class,"evaluation");
-			
-		}
-	}
-	
-	@Test
-	public void testParseUnquotedAtomFail5()
-	{
-		for(String str:new String[]{
-		"a>atom",
-		"a<atom"})
-		{
-			final String text = str;
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangLabel.parseText(text);
-			}},IllegalArgumentException.class,"is never allowed");
-			// Erlang has a different opinion on this, interpreting it as an expression.
-		}
-	}
-	
-	@Test
-	public void testParseJunkInTheBeginning()
-	{
-		for(String str:new String[]{
-		"-atom",
-		":atom",
-		">atom",
-		"<atom"})
-		{
-			final String text = str;
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangLabel.parseText(text);
-			}},IllegalArgumentException.class,"invalid token");
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ErlangRunner.getRunner().evaluateString(text);
-			}},RuntimeException.class,"evaluation");
-			
-		}
+		final String text = " .aa junk";
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangLabel.parseText(text);
+		}},IllegalArgumentException.class,"cannot start with a dot");
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			ErlangRunner.getRunner().evaluateString(text);
+		}},RuntimeException.class,"badmatch");
 	}
 	
 	@Test
@@ -674,6 +852,75 @@ public class TestErlangParser {
 		}},RuntimeException.class,"badmatch");
 	}
 	
+	/** invalid atoms. */
+	@RunWith(Parameterized.class)
+	public static class TestParseInvalidCharsInAtomFail
+	{
+		@Parameters
+		public static Collection<Object[]> data() 
+		{
+			final String unquotedError = "unquoted atom cannot start with a dot",
+			isNeverAllowedError = "is never allowed",invalidTokenError = "invalid token",
+			erlEvaluation = "evaluation",erlNone = "";
+			return java.util.Arrays.asList(new Object[][]{
+					new Object[]{"{ 56, .aa }",unquotedError,erlNone},// Real Erlang accepts this but throws away the dot - I'm not happy about this.
+					new Object[]{"{ 56, +aa }",invalidTokenError,erlNone}, 
+					new Object[]{"{ 56, -aa }",invalidTokenError,erlNone}, 
+					new Object[]{"[ 56, .aa ]",unquotedError,erlNone},
+					new Object[]{"[ 56, +aa ]",invalidTokenError,erlNone}, 
+					new Object[]{"[ 56, -aa ]",invalidTokenError,erlNone},
+					new Object[]{"{ 56, [.aa] }",unquotedError,erlNone},
+					new Object[]{"{ 56,[ +aa ]}",invalidTokenError,erlNone}, 
+					new Object[]{"{ 56, [-aa ]}",invalidTokenError,erlNone}, 
+					new Object[]{"[ 56, {.aa} ]",unquotedError,erlNone},
+					new Object[]{"[ 56,{ +aa} ]",invalidTokenError,erlNone}, 
+					new Object[]{"[ 56, {-aa }]",invalidTokenError,erlNone},
+					new Object[]{"+ [ 56 ]",invalidTokenError,erlNone},
+					new Object[]{". [ 56 ]",unquotedError,erlNone},
+					new Object[]{"- [ 56 ]",invalidTokenError,erlNone},
+					new Object[]{"+[ 56 ]",invalidTokenError,erlNone},
+					new Object[]{".[ 56 ]",unquotedError,erlNone},
+					new Object[]{"-[ 56 ]",invalidTokenError,erlNone},
+					
+					new Object[]{"a-atom",isNeverAllowedError,erlNone},
+					new Object[]{"a:atom",isNeverAllowedError,erlNone},
+					new Object[]{"atom-a",isNeverAllowedError,erlNone},
+					new Object[]{"atom:b",isNeverAllowedError,erlNone},
+					
+					new Object[]{"-atom",invalidTokenError,erlEvaluation},
+					new Object[]{"+atom",invalidTokenError,erlEvaluation},
+					new Object[]{":atom",invalidTokenError,erlEvaluation},
+					new Object[]{">atom",invalidTokenError,erlEvaluation},
+					new Object[]{"<atom",invalidTokenError,erlEvaluation},
+					
+			});
+		}
+		final String text,exception,erlException; 
+					
+		public TestParseInvalidCharsInAtomFail(String textArg,String exceptionArg, String erlArg)
+		{
+			text = textArg;exception = exceptionArg;erlException = erlArg;
+		}
+		
+		public static String parametersToString(String textArg,String exceptionArg, String erlArg)
+		{
+			return textArg+" - "+exceptionArg+" , "+erlArg;
+		}
+		
+		@Test
+		public void testParseInvalidCharsInAtomFail()
+		{
+			checkForCorrectException(new whatToRun() { public @Override void run() {
+				ErlangLabel.parseText(text);
+			}},IllegalArgumentException.class,exception);
+			
+			if (!erlException.isEmpty())
+				checkForCorrectException(new whatToRun() { public @Override void run() {
+					ErlangRunner.getRunner().evaluateString(text);
+				}},RuntimeException.class,erlException);
+		}
+	}
+	
 	@Test
 	public void testParseList1()
 	{
@@ -707,6 +954,16 @@ public class TestErlangParser {
 		}
 	}
 
+	@Test
+	public void testParseList4()
+	{
+		for(String text:new String[]{
+				" [ e,267.5E40,45.8]"," [ e, 267.5E40, 45.8 ]"," [e,267.5E40, 45.8]"," [ e , 267.5E40 , 45.8]"})
+		{
+			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangList);
+			checkResponse("['e',2.675E42,45.8]",text);
+		}
+	}
 	@Test
 	public void testParseList1Fail1()
 	{
@@ -876,9 +1133,79 @@ public class TestErlangParser {
 		}},IllegalArgumentException.class,"is not divisible by 8");
 	}
 	
-	
 	@RunWith(Parameterized.class)
-	public static class TestParseBitStr
+	public static class TestParseDoubleFail
+	{
+		@Parameters
+		public static Collection<Object[]> data() 
+		{
+			final String badmatch = "badmatch"; // it is always so for real Erlang because we'll get an error which correspond to a pattern match failure. 
+			return java.util.Arrays.asList(new Object[][]{
+					new Object[]{"56R","invalid token",badmatch},
+					new Object[]{"56[","invalid token",badmatch},
+					new Object[]{"56<","invalid token",badmatch},
+					new Object[]{"56.R","invalid token",badmatch},
+					new Object[]{"56 .R","unexpected dot",badmatch},
+					new Object[]{"56-","invalid token",badmatch},
+					new Object[]{"56 -","invalid token",badmatch},
+					new Object[]{"56-7","expected dot",""},// Erlang permits this, we do not (expressions are not permitted for us)
+					new Object[]{"56.-","invalid token",badmatch},
+					new Object[]{"56..","unexpected dot",badmatch},
+					new Object[]{"56.-7","expected dot",badmatch},
+					new Object[]{"56. 7","unexpected space",badmatch},
+					new Object[]{"56.[","invalid token",badmatch},
+					new Object[]{"56.<","invalid token",badmatch},
+					new Object[]{"56.5R","invalid token",badmatch},
+					new Object[]{"56.5[","invalid token",badmatch},
+					new Object[]{"56.5<","invalid token",badmatch},
+					new Object[]{"56e","unexpected end of",badmatch},
+					new Object[]{"56e.","unexpected dot",badmatch},
+					new Object[]{"56ee","unexpected exponent",badmatch},
+					new Object[]{"56 e","unexpected exponent",badmatch},
+					new Object[]{"56.e","unexpected end of","illegal_expr"},
+					new Object[]{"56.eR","invalid token","illegal_expr"},
+					new Object[]{"56.e[","invalid token",badmatch},
+					new Object[]{"56.e<","invalid token",badmatch},
+					new Object[]{"56.e-","invalid token",badmatch},
+					new Object[]{"56.e-6e","unexpected exponent",badmatch},
+					new Object[]{"56.e-6R","invalid token",badmatch},
+					new Object[]{"56.e-6[","invalid token",badmatch},
+					new Object[]{"56.e-6.","unexpected dot",badmatch},
+					new Object[]{"56.e-6<","invalid token",badmatch},
+					new Object[]{"56.e -6.","unexpected space",badmatch},
+					new Object[]{"56.e ,","invalid token",badmatch},
+					new Object[]{"56.e - 6.","invalid token",badmatch},
+			});
+		}
+		
+		final String text,exception, erlEx; 
+		
+		public TestParseDoubleFail(String textArg,String exceptionArg, String erlExArg)
+		{
+			text = textArg;exception = exceptionArg;erlEx = erlExArg;
+		}
+		
+		public static String parametersToString(String textArg,String exceptionArg, @SuppressWarnings("unused") String erlExArg)
+		{
+			return textArg+" - "+exceptionArg;
+		}
+		
+		@Test
+		public void testDoubleFail()
+		{
+			checkForCorrectException(new whatToRun() { public @Override void run() {
+				ErlangLabel.parseText(text);
+			}},IllegalArgumentException.class,exception);
+
+			if (!erlEx.isEmpty())
+				checkForCorrectException(new whatToRun() { public @Override void run() {
+					ErlangRunner.getRunner().evaluateString(text);
+				}},RuntimeException.class,erlEx);
+		}
+	}
+
+	@RunWith(Parameterized.class)
+	public static class TestParseBitStrFail
 	{
 		@Parameters
 		public static Collection<Object[]> data() 
@@ -1004,8 +1331,7 @@ public class TestErlangParser {
 		
 		final String text,exception, erlEx; 
 		
-		/** Creates the test class with the number of threads to create as an argument. */
-		public TestParseBitStr(String textArg,String exceptionArg, String erlExArg)
+		public TestParseBitStrFail(String textArg,String exceptionArg, String erlExArg)
 		{
 			text = textArg;exception = exceptionArg;erlEx = erlExArg;
 		}
@@ -1016,7 +1342,7 @@ public class TestErlangParser {
 		}
 		
 		@Test
-		public void testBitStrFail1()
+		public void testBitStrFail()
 		{
 			checkForCorrectException(new whatToRun() { public @Override void run() {
 				ErlangLabel.parseText(text);

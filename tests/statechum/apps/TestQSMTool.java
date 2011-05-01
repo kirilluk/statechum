@@ -20,11 +20,15 @@ package statechum.apps;
 
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -61,7 +65,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad2()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a"));
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b,part_c]]\n- [[smth_a]]"));
 		Assert.assertEquals(-1,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config),tool.sPlus);
@@ -74,7 +78,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad3()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n+ a b\n- q er t y"));
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n+ [[a,b]]\n- [[q, er, t, y]]"));
 		Assert.assertEquals(-1,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}},tool.learnerInitConfiguration.config),tool.sPlus);
@@ -88,7 +92,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad4()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n+ a b\n- q er t y\n- q er t y\n- q er t y"));
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n+ [[a, b]]\n- [[q, er, t, y]]\n- [[q, er, t, y]]\n- [[q, er, t, y]]"));
 		Assert.assertEquals(-1,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}},tool.learnerInitConfiguration.config),tool.sPlus);
@@ -101,7 +105,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad5()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\nk 8\n\n"));
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n# another comment\nk 8\n\n"));
 		Assert.assertEquals(8,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config),tool.sPlus);
@@ -114,7 +118,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad6()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n# another comment\n"+
 				"k 8\n\npassive"));
 		Assert.assertEquals(8,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);
@@ -128,7 +132,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad7()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n"+
 				QSMTool.cmdConfig+" attenuationK 0.34\n"+
 				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
 				QSMTool.cmdConfig+" compressLogs true\n"+
@@ -150,7 +154,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad8()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n"+
 				QSMTool.cmdConfig+" attenuationK 0.34\n"+
 				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
 				QSMTool.cmdConfig+" compressLogs false\n"+
@@ -180,7 +184,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoad9()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n"+
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n"+
 				QSMTool.cmdConfig+" attenuationK 0.34\n"+
 				QSMTool.cmdConfig+" defaultInitialPTAName test\n"+
 				QSMTool.cmdConfig+" compressLogs true\n"+
@@ -203,14 +207,6 @@ public class TestQSMTool {
 	}
 	
 	@Test
-	public final void testWrongCommand()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("A# sample file"));
-		}},IllegalArgumentException.class,"invalid command");
-	}
-	
-	@Test
 	public final void testEmpty1()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
@@ -218,21 +214,52 @@ public class TestQSMTool {
 		}},IllegalArgumentException.class,"Argument required");
 	}
 	
-	@Test
-	public final void testEmpty2()
+	@RunWith(Parameterized.class)
+	public static class TestInvalidTraces
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("-"));
-		}},IllegalArgumentException.class,"Argument required");
-	}
+		@Parameters
+		public static Collection<Object[]> data() 
+		{
+			String errArgumentRequired ="Argument required";
+			return java.util.Arrays.asList(new Object[][]{
+					new Object[]{"A# sample file","invalid command"},
+					new Object[]{"+",errArgumentRequired}, 
+					new Object[]{"-",errArgumentRequired}, 
+					new Object[]{QSMTool.cmdLTL,errArgumentRequired}, 
+					new Object[]{"- +","invalid token type"}, 
+					new Object[]{"- [a] +","expected a sequence"}, 
+					new Object[]{"- [] +[] []","a collection of traces should start"}, 
+					new Object[]{"- [a, aa","unexpected end of list"}, 
+					new Object[]{"- [+ ]","invalid token"}, 
+					new Object[]{"- aa","expected a sequence"}, 
+					new Object[]{"- [aa, []]","expected a sequence"}, 
+					new Object[]{"- [] P","a collection of traces should start"}, 
+			});
+		}
+		
+		@Test
+		public final void testParseBadTrace()
+		{
+			checkForCorrectException(new whatToRun() { public @Override void run() {
+				QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(text));
+			}},IllegalArgumentException.class,exception);
+		}
 	
-	@Test
-	public final void testEmpty3()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdLTL));
-		}},IllegalArgumentException.class,"Argument required");
-	}
+		final String text,exception; 
+		
+		public TestInvalidTraces(String textArg,String exceptionArg)
+		{
+			text = textArg;exception = exceptionArg;
+		}
+		
+		public static String parametersToString(String textArg,String exceptionArg)
+		{
+			return textArg+" - "+exceptionArg;
+		}
+		
+	
+	
+	} // end of the class TestInvalidTraces
 	
 	@Test
 	public final void testInsufficientArgsForProperty1()
@@ -241,13 +268,13 @@ public class TestQSMTool {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig));
 		}},IllegalArgumentException.class,"Argument required");
 	}
-	
+
 	@Test
 	public final void testInsufficientArgsForProperty2()
 	{
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" a"));
-		}},IllegalArgumentException.class,"invalid configuration");
+		}},IllegalArgumentException.class,"missing value");
 	}
 	
 	@Test
@@ -307,7 +334,7 @@ public class TestQSMTool {
 	@Test
 	public final void testLoadXMLabels1()
 	{
-		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ part_a part_b part_c\n- smth_a\n# another comment\n"+
+		QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("# sample file\n+ [[part_a, part_b, part_c]]\n- [[smth_a]]\n# another comment\n"+
 		"k 8\n\npassive\n"+QSMTool.cmdOperation+"\n"+QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+QSMTool.cmdOperation));
 		Assert.assertEquals(8,tool.k);
 		Assert.assertEquals(Configuration.getDefaultConfiguration(),tool.learnerInitConfiguration.config);

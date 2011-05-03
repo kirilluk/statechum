@@ -236,7 +236,7 @@ public class PTASequenceEngine
 		 * @param inputs set with elements to append
 		 * @return
 		 */
-		public SequenceSet crossWithSet(Collection<Label> inputs)
+		public SequenceSet crossWithSet(Collection<? extends Label> inputs)
 		{
 			SequenceSet result = new SequenceSet();
 			for(PTASequenceEngine.Node node:ptaNodes)

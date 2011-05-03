@@ -253,7 +253,7 @@ public class TestErlangModule {
    	public void testWibbleAlphabet() throws IOException
     {
    		ErlangModule mod = ErlangModule.loadModule(new java.io.File("ErlangExamples/WibbleMonster/wibble.erl"));
-   		Assert.assertEquals("[{?F(),'call','xyz','here_kirill'},{?F(),'call','xyz','listing'},{?F(),'call','xyz','wibbling'},{?F(),'call','xyz','wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'cast','AnyWibble',[]},{?F(),'cast','AnyWibble',[127,127]},{?F(),'info','AnyWibble',{'noreply','AnyWibble'}},{?F(),'init','AnyWibble',{'ok','xyz1'}},{?F(),'init','AnyWibble',{'ok','xyz2'}}]",
+   		Assert.assertEquals("[{?F(),'call','xyz','here_kirill'},{?F(),'call','xyz','listing'},{?F(),'call','xyz','wibbling'},{?F(),'call','xyz','wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'cast','AnyWibble',[]},{?F(),'cast','AnyWibble',[127,127]},{?F(),'info','AnyWibble',{'noreply','AnyWibble'}},{?F(),'init','AnyWibble','ok'}]",
    				TestTypes.getAlphabetAsString(mod));
     }
 
@@ -295,17 +295,17 @@ public class TestErlangModule {
     	List<Label> trace = Arrays.asList(new Label[]{initLabel,labelLock});
     	TraceOutcome tr = learner.askErlang(trace);
     	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
+    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	tr = learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock, labelLock}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_FAIL,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
+    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	tr =learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelRead}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
+    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
     			RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	// Now attempt a "different output" input
@@ -314,7 +314,7 @@ public class TestErlangModule {
     			lbl.input, new OtpErlangAtom("aa"));
     	tr =learner.askErlang(Arrays.asList(tr.answerDetails));
        	Assert.assertEquals(TRACEOUTCOME.TRACE_DIFFERENTOUTPUT,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
+    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
     			RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     }
     

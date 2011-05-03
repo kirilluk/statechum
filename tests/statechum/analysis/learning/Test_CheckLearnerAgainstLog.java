@@ -116,7 +116,7 @@ public class Test_CheckLearnerAgainstLog
 
 		final LearnerSimulator simulator = new LearnerSimulator(new java.io.FileInputStream(logFileName),true);
 		Configuration config = Configuration.getDefaultConfiguration().copy();
-		config.setLegacyXML(false);
+		config.setLegacyXML(true);
 		final LearnerEvaluationConfiguration evalData = simulator.readLearnerConstructionData(config);
 		
 		// Now we need to choose learner parameters based on the kind of file we are given

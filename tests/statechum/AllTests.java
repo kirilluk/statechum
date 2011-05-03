@@ -139,7 +139,7 @@ public class AllTests {
         statechum.analysis.Erlang.TestErlangParser.TestParseBitStrFail.class,
         statechum.analysis.Erlang.TestErlangParser.TestParseDoubleFail.class,
         statechum.analysis.Erlang.TestErlangParser.TestParseInvalidCharsInAtomFail.class,
-        //statechum.analysis.learning.TestErlangOracleLearner.class,
+        statechum.analysis.learning.TestErlangOracleLearner.class,
         statechum.analysis.Erlang.Signatures.TestTypes.class,
         statechum.analysis.Erlang.TestErlangGraphs.class
     })

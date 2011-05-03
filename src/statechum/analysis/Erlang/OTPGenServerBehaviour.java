@@ -47,11 +47,11 @@ public class OTPGenServerBehaviour extends OTPBehaviour {
     			return "init";
     		}
     		
-           	/** No conversion for return type. */
+           	/** Only the first element of the return value is to be returned. */
         	@Override
     		public Signature extractVisibleReturnType(Signature fullReturnType)
         	{
-        		return fullReturnType;
+        		return Signature.extractElement(fullReturnType, 0);
         	}
       	
         	/** No conversion for arguments. */

@@ -751,7 +751,7 @@ public class TestTypes
 		wr.write(otherMethods);wr.close();
 		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
-		Assert.assertEquals("[{?F(),'call','AnyWibble',<< 34, 56>>},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble',{'ok',5}}]",getAlphabetAsString(mod));
+		Assert.assertEquals("[{?F(),'call','AnyWibble',<< 34, 56>>},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",getAlphabetAsString(mod));
 		createLabel("call, 4.7,<< 45>> ",config);
 		checkFailureFor("call, 4,1",config);
 	}
@@ -766,7 +766,7 @@ public class TestTypes
 		wr.write("wr(A) -> A+1.");
 		wr.write(otherMethods);wr.close();
 		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
-		Assert.assertEquals("[{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble',{'ok',5}}]",getAlphabetAsString(mod));
+		Assert.assertEquals("[{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",getAlphabetAsString(mod));
 	}
 	
 	/** Tests for bit strings numbers - for an unknown reason, the return type turns out to be ?none. */
@@ -849,7 +849,7 @@ public class TestTypes
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 
 		checkFailureFor("call, afalse,11",config);
-		Assert.assertEquals("[{?F(),'call',{'st'},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble',{'ok',5}}]",
+		Assert.assertEquals("[{?F(),'call',{'st'},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]",
 				getAlphabetAsString(mod));
 	}
 	
@@ -865,7 +865,7 @@ public class TestTypes
 		final Configuration config = Configuration.getDefaultConfiguration().copy();config.setErlangModuleName(mod.getName());config.setLabelKind(LABELKIND.LABEL_ERLANG);
 
 		checkFailureFor("call, afalse,11",config);
-		Assert.assertEquals("[{?F(),'call',{'st',11,[]},11},{?F(),'call',{'st',11,[65,65]},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble',{'ok',5}}]", 
+		Assert.assertEquals("[{?F(),'call',{'st',11,[]},11},{?F(),'call',{'st',11,[65,65]},11},{?F(),'cast','AnyWibble',5},{?F(),'info','AnyWibble',{'noreply',5}},{?F(),'init','AnyWibble','ok'}]", 
 				getAlphabetAsString(mod));
 	}
 }

@@ -24,9 +24,6 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.util.*;
-import java.io.*;
-
-import statechum.apps.ErlangQSMOracle;
 import java.awt.Frame;
 
 import statechum.analysis.Erlang.ErlangLabel;
@@ -37,9 +34,8 @@ import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.Label;
 import statechum.Pair;
-import statechum.PrefixTraceTree;
-import statechum.Trace;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.model.testset.PTASequenceEngine;
 
 /**
  *
@@ -51,11 +47,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf, ErlangModule mod) {
         super(parent, evalCnf);module = mod;
         
+        // this one configures the runner.
         ErlangRunner.getRunner().configurationToErlang(evalCnf.config);
     	ErlangRunner.getRunner().call(new OtpErlangObject[]{
     			new OtpErlangAtom("addPath"),
         		new OtpErlangString(mod.sourceFolder.getAbsolutePath()) }, "addPath");
-
+   
     }
 
     public void finished()
@@ -68,10 +65,26 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     @Override
     public LearnerGraph learnMachine() {
 
-         LearnerGraph result = super.learnMachine();
+        LearnerGraph result = super.learnMachine();
+        finished(); 
         return result;
     }
 
+    /** We often need to add all possible failed outputs for each input rejected by Erlang, 
+     * this collection holds all those outputs which correspond to a specific input.
+     */
+    protected Map<Label,Set<Label>> inputToPossibleOutputs = new TreeMap<Label,Set<Label>>();
+    
+    protected void updateInputToPossibleOutputs(Label label)
+    {
+		Label inputPortionOfLabel = stripOutput((ErlangLabel)label);
+		Set<Label> rejects = inputToPossibleOutputs.get(inputPortionOfLabel);
+		if (rejects == null)
+		{
+			rejects = new TreeSet<Label>();inputToPossibleOutputs.put(inputPortionOfLabel, rejects);
+		}
+		rejects.add(label);
+    }
 
     @Override
     public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,
@@ -79,84 +92,254 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
             @SuppressWarnings("unused") final int expectedForNoRestart,
             @SuppressWarnings("unused") final List<Boolean> consistentFacts,
             @SuppressWarnings("unused") final PairScore pairBeingMerged,
-            @SuppressWarnings("unused") final Object[] moreOptions) {
-
-        String prefixString = null;
-        Trace qtrace = null;//KIRR: commented out Trace.fromListOfStrings(question);
-        int failure = AbstractOracle.USER_CANCELLED;
-        Trace prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
-        // Lets see if QSM is being silly and we already know the answer...
-
-        if ((prefix != null) && (prefix.size() > 0)) {
-            if (prefix.negative) {
-                failure = prefix.size() - 1;
-            } else {
-                if (prefix.equals(qtrace)) {
-                    throw new RuntimeException("Er, why are you asking? " + qtrace.toString() + " (" + prefix.toString() + ")");
-                    //failure = AbstractOracle.USER_ACCEPTED;
-                }
-            }
-        }
-
-
-        //failure = firstFailure(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile, new Trace(question));
-        if (failure == AbstractOracle.USER_CANCELLED) {
-            // We didn't find the answer in the existing traces file so lets extend it
-            // OR we did find a negative answer but it might be based on a wildcard for the output, so lets try again anyway!
-        	/*
-            String erlArgs = "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + "," + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" + ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser.toErlangList(ErlangQSMOracle.erlangModules) + ")";
-            System.out.println("Evaluating " + erlArgs + " in folder " + ErlangQSMOracle.ErlangFolder);
-        	 */
-
-            //ErlangQSMOracle.loadCoverageMaps(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap");
-            ErlangQSMOracle.loadCoverageMaps();
-            //(new File(ErlangQSMOracle.ErlangFolder + "/" + outFile + ".covermap")).delete();
-
-            ErlangQSMOracle.ErlangTraces = new PrefixTraceTree(ErlangQSMOracle.ErlangFolder + "/" + ErlangQSMOracle.tracesFile);
-            //System.out.println("Traces Tree:\n" + ErlangQSMOracle.ErlangTraces.toString());
-            //System.out.flush();
-            prefix = ErlangQSMOracle.ErlangTraces.findPrefix(qtrace);
-            if (prefix != null) {
-                if (prefix.negative) {
-                    failure = prefix.size() - 1;
-                } else {
-                    if (prefix.equals(qtrace)) {
-                        failure = AbstractOracle.USER_ACCEPTED;
-                    } else {
-                        // Positive prefix but not actual data....
-                        // Output alternative?
-                        Pair<Integer, String> alt = altOutput(prefix, qtrace);
-                        if (alt != null) {
-                            failure = alt.firstElem;
-                            prefixString = alt.secondElem;
-                        } else {
-                            throw new RuntimeException("Er, what?\n>question>>" + qtrace.toString() + "\n>prefix >>" + prefix.toString() + "\n");
-                        }
-                    }
-                }
-            }
-            // We really should have found the answer now...
-            if (failure == AbstractOracle.USER_TRACENOTFOUND) {
-                throw new RuntimeException("Errrr, answer not found even though we asked Erlang (" + question + ")...");
-            } else {
-                //System.out.println("Erlang says " + prefix.toString() + " (" + prefix.size() + " - " + prefix.negative + ") vs " + question + " ==> " + failure);
-            }
-        }
-        System.out.println("<Erlang> " + question + " " + failure + " " + prefixString);
-        if (failure != AbstractOracle.USER_NEWTRACE) {
-            return new Pair<Integer, String>(failure, null);
-        } else {
-            return new Pair<Integer, String>(failure, prefixString);
-        }
+            @SuppressWarnings("unused") final Object[] moreOptions) 
+    {
+    	TraceOutcome outcome = askErlang(question);
+    	StringBuffer response = null;
+    	switch(outcome.outcome)
+    	{
+    	case TRACE_DIFFERENTOUTPUT:
+    		// we generate a string because it will most likely need to be stored in logs etc,
+    		// hence no point being efficient and returning the actual data.
+    		response = new StringBuffer();
+    		response.append("- [");response.append(RPNILearner.questionToString(question));response.append("] ");
+    		response.append("+ [");response.append(RPNILearner.questionToString(Arrays.asList(outcome.answerDetails)));response.append("] ");
+    		// since we implicitly extend the alphabet here, add a new trace to our collection.
+    		updateInputToPossibleOutputs(outcome.answerDetails[outcome.answerDetails.length-1]);
+    		break;
+    	case TRACE_OK:
+    		// trace was accepted, response remains null indicating success.    		
+    		break;
+    	case TRACE_FAIL:
+    		// generate a collection of traces corresponding to failures
+    		response = new StringBuffer();
+    		int prefixLen = outcome.answerDetails.length;
+    		List<Label> prefix = question.subList(0, prefixLen);
+    		Label failedLabel = question.get(prefixLen);
+    		response.append("- [");
+    		boolean first = true;
+    		for(Label lbl:inputToPossibleOutputs.get(stripOutput((ErlangLabel)failedLabel)))
+    		{
+    			if (!first) response.append(',');else first=false;
+    			List<Label> failedSequence = new LinkedList<Label>(prefix);failedSequence.add(lbl);
+    			response.append(RPNILearner.questionToString(failedSequence));
+    		}
+    		response.append(" ]");
+    	}
+    	
+    	if (response != null)
+    	{
+    		return new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, response.toString());
+    	}
+    	return new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED,null);
     }
     
+
+	/** Erlang states are represented by traces used to enter those states.
+	 * The reason for this is that we cannot re-enter states in an Erlang engine
+	 * without re-running traces, hence the only realistic way is to associate
+	 * states with paths.
+	 */
+	private static class ErlangState implements Comparable<ErlangState>
+	{
+		public final ErlangState previousState;
+		public final Label inputToThisState;
+		public final boolean accept;
+		
+		/** Inputs which have been rejected from this state. */
+		public final Set<Label> rejects = new TreeSet<Label>();
+		
+		private final int ident;
+		
+	   	/** ErlangState id. */
+		private static int ErlangStateId=0;
+		
+		public static synchronized ErlangState newErlangState(ErlangState prev, Label label, boolean a)
+		{
+			return new ErlangState(ErlangStateId++,prev,label,a);
+		}
+		
+		private ErlangState(int id,ErlangState prev, Label label, boolean a)
+		{
+			previousState=prev;ident=id;inputToThisState=label;accept=a;
+		}
+		
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() 
+		{
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ident;
+			return result;
+		}
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof ErlangState))
+				return false;
+			ErlangState other = (ErlangState) obj;
+			if (ident != other.ident)
+				return false;
+			return true;
+		}
+		@Override
+		public int compareTo(ErlangState o) {
+			return ident - o.ident;
+		}
+	}
+	ErlangState initialState = null;
+	
+	/** The purpose of this class is to explore Erlang state machine without having 
+     * to think about sequences which may lead somewhere or not lead anywhere at all.
+     */
+    protected class ErlangMachine implements PTASequenceEngine.FSMAbstraction
+    {
+		@Override
+		public Object getNextState(Object currentState, Label input) {
+			assert input instanceof ErlangLabel;
+			ErlangState state = (ErlangState)currentState;
+			
+			// First of all, we check if we already have a wildcard-transition recorded from this state,
+			Label inputPortionOfLabel = stripOutput((ErlangLabel)input);
+			if (state.rejects.contains(inputPortionOfLabel))
+				return null;// failed
+			
+			// now normal input
+			if (state.rejects.contains(input))
+				return null;
+			
+			// no luck, attempting the transition, first compute a path from the initial state to this state
+			LinkedList<Label> newTrace = new LinkedList<Label>();
+			newTrace.addFirst(input);
+			ErlangState nextState = state;int traceLength = 1;
+			while(nextState != initialState)
+			{
+				++traceLength;
+				newTrace.addFirst(nextState.inputToThisState);
+				nextState = nextState.previousState;
+			}
+			
+			TraceOutcome outcome = askErlang(newTrace);
+			
+			// at this point, nextState == null
+			switch(outcome.outcome)
+			{
+			case TRACE_OK:
+				// we store the actual label
+				assert outcome.answerDetails.length == traceLength;
+				nextState = ErlangState.newErlangState(state, input, true);
+				//System.out.println("OK : "+RPNILearner.questionToString(newTrace));
+				break;
+			case TRACE_DIFFERENTOUTPUT:
+				assert outcome.answerDetails.length == traceLength;
+				ErlangLabel nextLabel = outcome.answerDetails[traceLength-1];
+				state.rejects.add(input);// record the reject.
+				
+				//nextState = ErlangState.newErlangState(state, nextLabel, true);
+				if (!module.behaviour.getAlphabet().contains(nextLabel))
+				{
+					module.behaviour.getAlphabet().add(nextLabel);// extend the alphabet
+					// (if the input is already in the alphabet, fine, it would be attempted soon anyway).
+					//System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());
+				}
+				nextState = null;
+				break;
+			case TRACE_FAIL:
+				// put a wildcard - this will come handy when we extend alphabet.
+				state.rejects.add(inputPortionOfLabel);
+				nextState = null;
+				break;
+			default:
+				assert false;
+			}
+			return nextState;
+		}
+
+		@Override
+		public Object getInitState() {
+			if (initialState == null)
+			{
+				TraceOutcome outcome = askErlang(new LinkedList<Label>());
+				assert outcome.outcome == TRACEOUTCOME.TRACE_OK;
+				initialState = ErlangState.newErlangState(null, null, true);
+			}
+			return initialState;
+		}
+
+		@Override
+		public boolean isAccept(Object currentState) {
+			return ((ErlangState)currentState).accept;
+		}
+
+		/** This method should not be called.
+		 * 
+		 * @see statechum.model.testset.PTASequenceEngine.FSMAbstraction#setAccept(java.lang.Object, boolean)
+		 */
+		@Override
+		public void setAccept(@SuppressWarnings("unused") Object currentState, @SuppressWarnings("unused") boolean value) 
+		{
+			throw new UnsupportedOperationException("this method should not be called");
+		}
+
+		@Override
+		public boolean shouldBeReturned(Object elem) 
+		{
+			if (elem == null) return false;
+			return ((ErlangState)elem).accept;
+		}
+    	
+    }
+    
+    /** Starts the learning process by generating a number of traces. */
+    public void GenerateInitialTraces()
+    {
+		PTASequenceEngine engine = new PTASequenceEngine();
+		engine.init(new ErlangMachine());
+/*    	 System.out.println(askErlang(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel(
+    			 "{"+ErlangLabel.missingFunction+",init,AnyWibble,'aa'}", config)
+    			 })).outcome);*/
+		PTASequenceEngine.SequenceSet seq = engine.new SequenceSet();
+		seq.setIdentity();
+		PTASequenceEngine.SequenceSet seqNext = null;
+    	 
+		for(int waveNo=0;waveNo<5;++waveNo)
+		{
+			// have to make a copy to avoid concurrentModification exception when updating our alphabet.
+			LinkedHashSet<Label> currentAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
+			seqNext = seq.crossWithSet(currentAlphabet);
+			if (currentAlphabet.size() < module.behaviour.getAlphabet().size())
+			{
+				LinkedHashSet<Label> newAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
+				seqNext = seq.crossWithSet(newAlphabet);
+				assert newAlphabet.size() == module.behaviour.getAlphabet().size() : "alphabet was extended for the second time";
+			}
+			seq = seqNext;
+	    }
+		
+		// Create map associating input to all possible outputs
+		for(Label label:module.behaviour.getAlphabet())
+			updateInputToPossibleOutputs(label);
+		
+		topLevelListener.init(engine, 0, 0);
+    }
+    
+    /** Records the result of running a trace past Erlang. */
     public static class TraceOutcome
     {
     	public static enum TRACEOUTCOME { TRACE_OK,TRACE_FAIL, TRACE_DIFFERENTOUTPUT };
-    	public final Label []answerDetails;
+    	public final ErlangLabel []answerDetails;
     	public final TRACEOUTCOME outcome;
     	
-    	public TraceOutcome(Label []trace, TRACEOUTCOME out)
+    	public TraceOutcome(ErlangLabel []trace, TRACEOUTCOME out)
     	{
     		answerDetails = trace;outcome = out;
     	}
@@ -167,7 +350,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     	return new ErlangLabel(label.function,label.callName,label.input,null);
     }
     
-    public TraceOutcome askErlang(List<Label> question) 
+    /** Determines the outcome of running a trace past Erlang. */
+    public TraceOutcome askErlang(List<? extends Label> question) 
     {
     	ErlangLabel []questionDetails = new ErlangLabel[question.size()];
     	int i=0;for(Label lbl:question) 
@@ -176,7 +360,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     			throw new IllegalArgumentException("question element "+lbl+" is not of Erlang type");
     		questionDetails[i++]=(ErlangLabel)lbl;
     	}
-    	
+    	return askErlang(questionDetails);
+    }
+    
+    /** Determines the outcome of running a trace past Erlang. */
+    public TraceOutcome askErlang(ErlangLabel []questionDetails) 
+    {
     	OtpErlangTuple result = ErlangRunner.getRunner().call(new OtpErlangObject[]{
                         new OtpErlangAtom("runTrace"),
                         new OtpErlangAtom(module.getName()),
@@ -197,11 +386,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     			if (outcome.atomValue().equals("failed"))
     				outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
     			else
-    				throw new IllegalArgumentException("unknown response "+outcome);
+    				throw new IllegalArgumentException("unknown Erlang response "+outcome);
     	
     	OtpErlangList trace = (OtpErlangList)result.elementAt(2);
-    	Label []answerDetails = new ErlangLabel[trace.arity()];
-    	for(i=0;i<trace.arity();++i)
+    	ErlangLabel []answerDetails = new ErlangLabel[trace.arity()];
+    	for(int i=0;i<trace.arity();++i)
     	{
     		OtpErlangTuple elemAti = (OtpErlangTuple)trace.elementAt(i);
     		if (elemAti.arity() < 2 || elemAti.arity() > 3)
@@ -214,80 +403,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     	}
     
     	return new TraceOutcome(answerDetails, outcomeEnum);
-    }
-
-    protected static Pair<Integer, String> altOutput(Trace prefix, Trace qtrace) {
-        Pair<Integer, String> result = null;
-        if (prefix.size() < qtrace.size()) {
-            //System.out.println("Prefix found: " + prefix.toString());
-            Label item = qtrace.get(prefix.size());
-            // Wildcard the output
-            // KIRR: commented out  //item = item.replaceAll(",[^,}]*}$", ",'*'}");
-            Trace newPrefix = prefix.clone();
-            newPrefix.add(item);
-            //System.out.println("Trying " + newPrefix.toString());
-            Trace alt = ErlangQSMOracle.ErlangTraces.findPrefix(newPrefix);
-            if ((alt != null) && (alt.size() > prefix.size())) {
-                qtrace.negative = true;
-                result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, alt.toTraceString() + "/" + qtrace.toTraceString());
-                //System.out.println("Got: " + alt.toTraceString());
-                //System.exit(1);
-            } else {
-                //System.out.println("Nope...");
-            }
-        }
-        return result;
-
-    }
-
-    /** Returns -1 if the string is shown as accepted, returns -2 if it is not found, and returns the point at which it is rejected otherwise */
-    protected int firstFailure(String file, Trace erlTrace) throws IOException {
-        //System.out.println("Seeking first failure for " + erlTrace);
-        BufferedReader input = new BufferedReader(new FileReader(file));
-
-        String line;
-        int count = AbstractOracle.USER_TRACENOTFOUND;
-        // We may find a short negative trace with a wildcard but we should look for longer positive traces
-        // that may use a different instantiation
-        int negativecount = AbstractOracle.USER_TRACENOTFOUND;
-        while ((line = input.readLine()) != null && count == AbstractOracle.USER_TRACENOTFOUND) {
-            String traceString = line.substring(1).trim();
-            Trace traceFromFile;
-            if (traceString.equals("")) {
-                traceFromFile = new Trace();
-            } else {
-                traceFromFile = null;//Trace.fromListOfStrings(QSMTool.tokeniseInput(traceString));
-            }
-            if (line.substring(0, 1).equals("-")) {
-                if (traceFromFile.size() <= erlTrace.size()
-                        && traceFromFile.isPrefix(erlTrace)) {
-                    // We have to be careful not to pick a negative trace if there is a longer positive trace with a different instantiation of wildcards...
-                    // We also want to find the LONGEST negative trace...
-                    if (traceFromFile.size() - 1 > negativecount) {
-                        //System.out.println("                        - " + traceFromFile);
-                        negativecount = traceFromFile.size() - 1;
-                    }
-                    //break;
-                }
-            } else {
-                assert line.substring(0, 1).equals("+");
-
-                if (traceFromFile.size() >= erlTrace.size() && traceFromFile.isPrefix(erlTrace)) {
-                    // System.out.println("                        + " + traceFromFile);
-
-                    // This is an accept line for our string.
-                    count = AbstractOracle.USER_ACCEPTED;
-                    break;
-                }
-            }
-        }
-        input.close();
-        if (count != AbstractOracle.USER_TRACENOTFOUND) {
-            // If we have a positive trace lets use that
-            return count;
-        } else {
-            return negativecount;
-        }
     }
 
     /** Determines the default options with which a graph should be displayed. */

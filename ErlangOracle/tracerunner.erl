@@ -166,7 +166,7 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		Outcome = typer:start(FilesErl,Plt,Outputmode),
 		{reply,{ok,Outcome}, State}
 	catch
-		error:_Error -> {reply, {failed,typer_failed}, State}
+		error:Error -> {reply, {failed,Error}, State}
 	end;
 %% [Error,erlang:get_stacktrace()]
 

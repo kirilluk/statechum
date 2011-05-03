@@ -343,7 +343,7 @@ public class RPNIUniversalLearner extends RPNILearner
 							for(List<Label> positive:plus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,positive, true,colour);
 							for(List<Label> negative:minus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,negative, false,colour);
 							if (config.isAlwaysRestartOnNewTraces())
-								restartLearning = RestartLearningEnum.restartHARD;
+								restartLearning = RestartLearningEnum.restartHARD;// this one works out to be _much_ slower than the one below, for a simple very imperfect learning of locker, the two produce identical numbers of states/edges/alphabet size.
 							else
 								restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
 						}

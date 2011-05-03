@@ -58,6 +58,7 @@ public class GlobalConfiguration {
 		,VIZ_AUTOFILENAME // used to define a name of a file to load answers to questions.
 		,LTL2BA // path to LTL2BA executable, if null the default path will be used.
 		,ERLANGHOME // path to the Erlang distribution directory 
+		,ERLANGOUTPUT_ENABLED // whether to relay any output from Erlang to the console - there could be quite a lot of it.
 		;
 	}
 
@@ -83,6 +84,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.TEMP, "tmp");
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
+		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "true");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 	

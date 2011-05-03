@@ -52,6 +52,7 @@ import com.ericsson.otp.erlang.OtpNode;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.AttributeMutator.GETMETHOD_KIND;
 
@@ -267,7 +268,7 @@ public class ErlangRunner
                 		"-pa",new File(ErlangQSMOracle.ErlangTyper).getAbsolutePath(),// the easiest way to substitute our module in place of the original Erlang's one, otherwise I'd have to rely on tracerunner:compileAndLoad
                 		"-run","tracerunner","start",ourNode,runnerMode,"-sname",traceRunnerNode,"-noshell","-setcookie",uniqueID}, envpList.toArray(new String[0]), new File(ErlangQSMOracle.ErlangFolder));
                 stdDumper = new Thread(new Runnable() {
-					
+				final boolean displayErlangOutput = Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANGOUTPUT_ENABLED));
 					@Override
 					public void run() {
 					       ExperimentRunner.dumpStreams(erlangProcess, timeBetweenChecks, new HandleProcessIO() {
@@ -278,12 +279,12 @@ public class ErlangRunner
 
 					            @Override
 					            public void StdErr(StringBuffer b) {
-					                System.out.print("[ERLANG] "+b.toString());
+					                if (displayErlangOutput) System.out.print("[ERLANG] "+b.toString());
 					            }
 
 					            @Override
 					            public void StdOut(StringBuffer b) {
-					                System.out.print("[ERLERR] "+b.toString());
+					                if (displayErlangOutput) System.out.print("[ERLERR] "+b.toString());
 					            }
 					        });
 					}

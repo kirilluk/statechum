@@ -130,7 +130,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     /** Pretty-prints a supplied question. Useful for questions with Erlang labels which 
      * contain functions they are associated with. 
      */ 
-    public static String questionToString(List<Label> question)
+    public static String questionToString(List<? extends Label> question)
     {
 		StringBuffer questionString = new StringBuffer();questionString.append('[');
 		boolean first = true;

@@ -1,14 +1,29 @@
 -module(gen_server_wrapper).
 -export([exec_call_trace/3]).
 
+exec_call_trace(Module, [{init, InitArgs, OP} | Trace], OpProc) ->
+    %%io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
+    {ok, Pid} = gen_server:start_link({local, mod_under_test}, Module, InitArgs, []),
+    %%Module:init(InitArgs),
+    if (ok =/= OP) ->
+	    OpProc ! {self(), output_mismatch, {init, InitArgs, ok}},
+    	    %%Module:terminate(stop, who_cares_state),
+   	    gen_server:cast(mod_under_test, stop),
+	    erlang:exit("Output mismatch");
+      true ->
+	    OpProc ! {self(), output, {init, InitArgs, ok}},
+	    ok = call_trace({mod_under_test, Pid}, Trace, OpProc),
+	    gen_server:cast(mod_under_test, stop)
+    end;
+
 exec_call_trace(Module, [{init, InitArgs} | Trace], OpProc) ->
     %%io:format("Executing gen_server:start_link({local, mod_under_test}, ~p, ~p, []).~n", [Module, InitArgs]),
     {ok, Pid} = gen_server:start_link({local, mod_under_test}, Module, InitArgs, []),
     %%Module:init(InitArgs),
-    OpProc ! {self(), output, {init, InitArgs}},
+    OpProc ! {self(), output, {init, InitArgs, ok}},
     ok = call_trace({mod_under_test, Pid}, Trace, OpProc),
-    %%Module:terminate(stop, who_cares_state),
     gen_server:cast(mod_under_test, stop);
+
     %%OpProc ! {self(), output, stop};
 exec_call_trace(_Module, [], _OpProc) ->
     ok;

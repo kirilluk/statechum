@@ -18,6 +18,7 @@
 
 /*
  * Installation of RJava, JavaGD and aplpack on Debian x86_64:
+ * apt-get install r-base
  * 
  * (note: an alternative way to install javagd is from http://blog.binfalse.de/2011/02/talking-r-through-java/
  *  which boils down to apt-get install r-cran-rjava )

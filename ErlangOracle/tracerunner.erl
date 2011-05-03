@@ -129,16 +129,17 @@ handle_call({runTrace,Module, Wrapper, Trace, ModulesList}, _From, State) ->
 
 %% Adds the specified directory to the code path
 handle_call({addPath,Path}, _From, State) ->
-case(code:add_path(Path)) of
+case(code:add_path(filename:join(filename:split(Path)))) of
 	true -> {reply, ok, State};
 	{error, What} -> {reply, { failed, What }, State}
 end;
 
 %% Removes the specified directory from the code path
 handle_call({delPath,Path}, _From, State) ->
-case(code:del_path(Path)) of
+ConvertedPath = filename:join(filename:split(Path)),
+case(code:del_path(ConvertedPath)) of
 	true -> {reply, ok, State};
-	false->{reply, { failed, dir_not_found }, State};
+	false->{reply, { failed, ConvertedPath, code:get_path() }, State};
 	{error, What} -> {reply, { failed, What }, State}
 end;
 

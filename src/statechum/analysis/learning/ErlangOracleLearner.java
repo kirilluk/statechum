@@ -51,7 +51,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
         ErlangRunner.getRunner().configurationToErlang(evalCnf.config);
     	ErlangRunner.getRunner().call(new OtpErlangObject[]{
     			new OtpErlangAtom("addPath"),
-        		new OtpErlangString(mod.sourceFolder.getAbsolutePath()) }, "addPath");
+        		new OtpErlangString(module.sourceFolder.getAbsolutePath()) }, "addPath");
    
     }
 

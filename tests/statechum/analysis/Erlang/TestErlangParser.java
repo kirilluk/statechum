@@ -583,9 +583,7 @@ public class TestErlangParser {
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot be represented");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getRunner().evaluateString(text);
-		}},RuntimeException.class,"badmatch");
+		Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
 	}
 	
 	@Test

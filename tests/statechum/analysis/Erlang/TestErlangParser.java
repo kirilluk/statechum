@@ -242,6 +242,26 @@ public class TestErlangParser {
 		checkResponse("\'this\\'i s\" fh an \"atom\'",text);
 	}
 	
+	/** Spaces. */
+	@Test
+	public void testParse1g()
+	{
+		String text = " \'  \'   ";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals("  ",atom.atomValue());
+		checkResponse("\'  \'",text);
+	}	
+	
+	/** Spaces. */
+	@Test
+	public void testParse1h()
+	{
+		String text = " \' a \'   ";
+		OtpErlangAtom atom = (OtpErlangAtom)ErlangLabel.parseText(text);
+		Assert.assertEquals(" a ",atom.atomValue());
+		checkResponse("\' a \'",text);
+	}	
+
 	/** Invalid characters after backslash. */
 	public static void testParseChokesOnInvalidChars(final char startStop)
 	{
@@ -369,6 +389,25 @@ public class TestErlangParser {
 		checkResponse("\"this\\\"i s' fh an \'atom\"",text);
 	}
 	
+	/** Spaces. */
+	@Test
+	public void testParse2g()
+	{
+		String text = " \"  \"   ";
+		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
+		Assert.assertEquals("  ",string.stringValue());
+		checkResponse("\"  \"",text);
+	}	
+	
+	/** Spaces. */
+	@Test
+	public void testParse2h()
+	{
+		String text = " \" a \"   ";
+		OtpErlangString string = (OtpErlangString)ErlangLabel.parseText(text);
+		Assert.assertEquals(" a ",string.stringValue());
+		checkResponse("\" a \"",text);
+	}	
 
 	/** Invalid characters after backslash. */
 	@Test

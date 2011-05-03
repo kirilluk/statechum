@@ -24,6 +24,7 @@ import java.util.List;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
 
 /** This represents a set of alternative signatures.
  *
@@ -36,7 +37,7 @@ public class AltSignature extends Signature {
 
     public List<Signature> elems;
 
-    /** Used by the old parser. */
+    /** Used by the old parser and by Signature.extractElement(). */
     public AltSignature(List<Signature> e) {
     	elems = e;
     	
@@ -50,6 +51,7 @@ public class AltSignature extends Signature {
 			resultHolder.append(sig.toErlangTerm());
 		}
 		resultHolder.append("]}");
+		erlangTermForThisType = resultHolder.toString();
     }
     
     /** A tuple with elements of known types. */
@@ -61,16 +63,7 @@ public class AltSignature extends Signature {
         for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
 		erlangTermForThisType = erlangTypeToString(attributes,values);
     }
-
-    // Pick the first one...
-    @Override
-	public OtpErlangObject instantiate() {
-        if (elems.isEmpty()) return null;
-
-        return elems.get(0).instantiate();
-    }
-
-    @Override
+   @Override
     public List<OtpErlangObject> instantiateAllAlts() {
     	LinkedList<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
         for(Signature s : elems) {
@@ -78,4 +71,17 @@ public class AltSignature extends Signature {
         }
         return result;
     }
+
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+		for(Signature sig:elems)
+		{
+			if (sig.typeCompatible(term))
+				return true;
+			if (term instanceof OtpErlangString && sig.typeCompatible(Signature.stringToList(term)))
+				return true;
+		}
+		return false;
+	}
 }

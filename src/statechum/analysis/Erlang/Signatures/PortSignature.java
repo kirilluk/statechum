@@ -18,6 +18,9 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangPort;
@@ -35,9 +38,14 @@ public class PortSignature extends Signature {
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 
-   @Override
-	public OtpErlangObject instantiate() {
-        return new OtpErlangPort("PORT", 0,0);
-    }
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) {
+		return term instanceof OtpErlangPort;
+	}
+
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList((OtpErlangObject)new OtpErlangPort("PORT", 0,0));
+	}
 
 }

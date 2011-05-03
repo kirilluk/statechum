@@ -18,6 +18,12 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
+import statechum.analysis.Erlang.ErlangLabel;
+
+import com.ericsson.otp.erlang.OtpErlangBitstr;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -30,15 +36,20 @@ public class BitStringSignature extends Signature {
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("BitStringSignature does not accept attributes");
 
-		if (values.arity() != 3) throw new IllegalArgumentException("invalid values "+values+" passed to BitStringSignature"); 
+		if (values.arity() != 2) throw new IllegalArgumentException("invalid values "+values+" passed to BitStringSignature"); 
 		Base = ((OtpErlangLong) values.elementAt(0)).intValue();Unit =  ((OtpErlangLong) values.elementAt(1)).intValue();
-		if (!IntSignature.AntiStringAtom.equals(values.elementAt(2))) throw new IllegalArgumentException("The third element of list "+values+" should be an atom to stop it from becoming a string");
 		erlangTermForThisType = erlangTypeToString(attributes,values);
 	}
-	
+
+    /** We do not currently accept this as an argument, hence return false. */
 	@Override
-	public OtpErlangObject instantiate() {
-		return null;
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+		return term instanceof OtpErlangBitstr;
 	}
 
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList(ErlangLabel.parseText("<< 34,56 >>"));
+	}
 }

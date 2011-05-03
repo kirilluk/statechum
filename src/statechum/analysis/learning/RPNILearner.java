@@ -204,7 +204,7 @@ public abstract class RPNILearner extends Observable implements Learner {
     }
      
     
-    /* This one is a specialised version of computeShortPathsToAllStates()
+    /* This one is actually a specialised version of computeShortPathsToAllStates()
      */
     protected Collection<Trace> getPaths(Trace prefix, CmpVertex v, LearnerGraph hardFacts) {
         Collection<Trace> result = new LinkedList<Trace>();

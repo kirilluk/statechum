@@ -47,7 +47,6 @@ public class AllTests {
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
         statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
         statechum.analysis.learning.TestLoadAnswers.class,
-        statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.model.testset.TestPTA_computePrecisionRecall.class
     }) // commas after the last entry compile from within Eclipse but not from ant
     public static class LearnerTests {// all tests are included in the annotation.
@@ -141,6 +140,7 @@ public class AllTests {
         statechum.analysis.Erlang.TestErlangParser.TestParseDoubleFail.class,
         statechum.analysis.Erlang.TestErlangParser.TestParseInvalidCharsInAtomFail.class,
         //statechum.analysis.learning.TestErlangOracleLearner.class,
+        statechum.analysis.Erlang.Signatures.TestTypes.class,
         statechum.analysis.Erlang.TestErlangGraphs.class
     })
     public static class ErlangTests {// all tests are included in the annotation.
@@ -149,6 +149,7 @@ public class AllTests {
     @RunWith(Suite.class)
     @SuiteClasses({
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
+        statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
     	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,

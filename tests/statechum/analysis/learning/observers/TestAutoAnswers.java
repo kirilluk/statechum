@@ -100,12 +100,12 @@ public class TestAutoAnswers {
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
-		final String LBL1 = "{call, wibble}", LBL2 = "{call, smth}";
+		final String LBL1 = "{call, read}", LBL2 = "{call, lock}";
 		final LearnerGraph gr = buildLearnerGraph("A- "+LBL1+" ->B-"+LBL2+"->B", "testConvertToModuleFailure1", config);
 		Iterator<Label> lblIter = gr.pathroutines.computeAlphabet().iterator();
 		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
 		List<Label> trace = Arrays.asList(new Label[]{lbl1,lbl2,lbl2});
-		Assert.assertEquals("[{?F(),'call','wibble'},{?F(),'call','smth'},{?F(),'call','smth'}]",RPNILearner.questionToString(trace));
+		Assert.assertEquals("[{?F(),'call','read'},{?F(),'call','lock'},{?F(),'call','lock'}]",RPNILearner.questionToString(trace));
 	}
 	
 

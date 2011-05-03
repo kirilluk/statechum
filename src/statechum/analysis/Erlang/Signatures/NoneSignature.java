@@ -18,6 +18,10 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
+import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
 /** Empty type, corresponding to the "noreturn" - type functions.
@@ -27,15 +31,23 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class NoneSignature extends Signature {
 
-	public NoneSignature()
+	public NoneSignature(OtpErlangList attributes)
 	{
 		super();
-		erlangTermForThisType = erlangTypeToString(null,null);
+		if (attributes.arity() != 0) throw new IllegalArgumentException("NoneSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
-	
+
+	/** No value is compliant with this type. */
 	@Override
-	public OtpErlangObject instantiate() {
-		return null;
+	public boolean typeCompatible(@SuppressWarnings("unused") OtpErlangObject term) {
+		return false;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.EMPTY_LIST;
 	}
 
 }

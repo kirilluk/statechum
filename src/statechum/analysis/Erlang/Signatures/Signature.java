@@ -19,37 +19,17 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.lang.reflect.Constructor;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
-import statechum.analysis.Erlang.ErlangLabel.ErlangBitString;
-import statechum.analysis.Erlang.ErlangLabel.ErlangBoolean;
-import statechum.analysis.Erlang.ErlangLabel.ErlangDouble;
-import statechum.analysis.Erlang.ErlangLabel.ErlangInt;
-import statechum.analysis.Erlang.ErlangLabel.ErlangList;
-import statechum.analysis.Erlang.ErlangLabel.ErlangLong;
-import statechum.analysis.Erlang.ErlangLabel.ErlangParserComponent;
-import statechum.analysis.Erlang.ErlangLabel.ErlangQuotedAtom;
-import statechum.analysis.Erlang.ErlangLabel.ErlangString;
-import statechum.analysis.Erlang.ErlangLabel.ErlangTuple;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangBitstr;
-import com.ericsson.otp.erlang.OtpErlangBoolean;
-import com.ericsson.otp.erlang.OtpErlangDouble;
-import com.ericsson.otp.erlang.OtpErlangFloat;
-import com.ericsson.otp.erlang.OtpErlangFun;
-import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangPid;
-import com.ericsson.otp.erlang.OtpErlangPort;
 import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -61,13 +41,6 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
  */
 public abstract class Signature implements Label
 {
-    /** This method should provide a valid (if pointless) instance of the type signature it represents.
-     *
-     * Currently it will always use 1 for integers and wibble for atoms, and corresponding useful values like [1] and [wibble] for lists.
-     *
-     */
-    public abstract OtpErlangObject instantiate();
-
     /** This method should provide a collection with one possible instantiation for each
      *  available alternate signature in the parse.
      *
@@ -76,16 +49,17 @@ public abstract class Signature implements Label
      *
      * This should be overridden as necessary by subclasses.
      */
-    public List<OtpErlangObject> instantiateAllAlts() {
-        List<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
-        if (this.instantiate() != null)
-        	result.add(this.instantiate());
-        return result;
-    }
+    abstract public List<OtpErlangObject> instantiateAllAlts();
 
-
+	/** Verifies that the supplied term is type-compatible to the type represented by this signature, 
+	 * returns false if not.
+	 * 
+	 * @param term which is supposed to be type-compatible to this signature. 
+	 */
+   abstract public boolean typeCompatible(OtpErlangObject term);
+    
     /** Used to instantiate a list of "any" elements. */
-    protected static final AtomSignature wibbleSignature = new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("wibble")}));
+    protected static final AtomSignature wibbleSignature = new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("Awibble")}));
 
     /** Given an Erlang type encoded as an object, constructs an instance of a corresponding type. */
 	public static Signature buildFromType(OtpErlangObject elementAt) 
@@ -98,6 +72,7 @@ public abstract class Signature implements Label
 			{// multi-arg constructor, turn elements of the tuple into arguments for the constructor. 
 				OtpErlangTuple argTuple = (OtpErlangTuple)elementAt;
 				if (argTuple.arity() < 2) throw new IllegalArgumentException("invalid type argument: a list with arity of less than two");
+				if (argTuple.arity() > 3) throw new IllegalArgumentException("invalid type argument: a list with arity of over three");
 				final int argumentNumber = argTuple.arity()-1;
 				Class<OtpErlangList> []argTypes = new Class[argumentNumber];
 				for(int i=0;i<argumentNumber;++i) argTypes[i]=OtpErlangList.class;
@@ -105,11 +80,17 @@ public abstract class Signature implements Label
 				Class<Signature> sigClass = (Class<Signature>)Class.forName("statechum.analysis.Erlang.Signatures."+((OtpErlangAtom)argTuple.elementAt(0)).atomValue()+"Signature");
 				Constructor<Signature> constructor = sigClass.getConstructor(argTypes);
 				Object []values = new OtpErlangList[argumentNumber];
-				System.arraycopy(argTuple.elements(), 1, values, 0, argumentNumber);
+				for(int i=0;i<argumentNumber;++i)
+				{
+					OtpErlangObject obj = argTuple.elementAt(i+1);
+					if (obj instanceof OtpErlangString)	obj = stringToList(obj);
+					else if (!(obj instanceof OtpErlangList)) throw new IllegalArgumentException("got "+obj+" where expected a list");
+					values[i]=obj;
+				}
 				result = constructor.newInstance(values);
 			}
 			else
-				throw new IllegalArgumentException("invalid type argument "+elementAt+" : it has to be either an atom or a list"); 
+				throw new IllegalArgumentException("invalid type argument "+elementAt+" : it has to be a tuple"); 
 		}
 		catch(IllegalArgumentException ex)
 		{// if one of the constructors or some of the consistency checks failed, re-throw the exception.
@@ -122,6 +103,77 @@ public abstract class Signature implements Label
 		return result;
 	}
 
+	/** OTPErlang has an uncanny habit to turn lists into strings if possible, since this has apparently 
+	  * happened here, convert the string back to list.
+	  */
+	public static OtpErlangObject stringToList(OtpErlangObject obj)
+	{
+		String str = ((OtpErlangString)obj).stringValue();
+		OtpErlangObject [] listOfNumbers = new OtpErlangObject[str.length()];
+		for(int num=0;num<str.length();++num)
+			listOfNumbers[num]=new OtpErlangLong(str.charAt(num));
+		return new OtpErlangList(listOfNumbers);
+	}
+	
+	/** Otp servers return tuples but we do not get to see them - only middle elements.
+	 * This method converts a type for such a response into a collection of possible 
+	 * values for the middle argument.
+	 */
+	public static Signature extractElement(Signature someSig, int elemNumber)
+	{
+		Signature outcome = null;
+		if (someSig instanceof AnySignature || someSig instanceof NoneSignature) 
+			outcome = someSig;
+		else
+		if (someSig instanceof AltSignature)
+		{
+			AltSignature altSig = (AltSignature)someSig;
+			List<Signature> sigs = new LinkedList<Signature>();
+			for(Signature s:altSig.elems)
+			{
+				Signature extracted = extractElement(s,elemNumber);
+				if (extracted instanceof AltSignature)
+					sigs.addAll( ((AltSignature)extracted).elems );
+				else
+					sigs.add(extracted);
+			}
+			outcome = new AltSignature(sigs);
+		}
+		else
+			if (someSig instanceof TupleSignature)
+			{
+				TupleSignature tupleSig = (TupleSignature)someSig;
+				if (tupleSig.elems.size() < elemNumber+1)
+					throw new IllegalArgumentException("tuple too short, expected to extract element "+elemNumber+" from "+tupleSig);
+				outcome = extractElementFromAlt(tupleSig.elems.get(elemNumber));
+			}
+			else throw new IllegalArgumentException("invalid type "+someSig+" expected a tuple or an alt");
+		
+		return outcome;
+	}
+	
+	/** A tuple may contain Alts which are arbitrarily deeply nested, extract them all. */
+	private static Signature extractElementFromAlt(Signature someSig)
+	{
+		Signature outcome = someSig;
+		if (someSig instanceof AltSignature)
+		{
+			AltSignature altSig = (AltSignature)someSig;
+			List<Signature> sigs = new LinkedList<Signature>();
+			for(Signature s:altSig.elems)
+			{
+				Signature extracted = extractElementFromAlt(s);
+				if (extracted instanceof AltSignature)
+					sigs.addAll( ((AltSignature)extracted).elems );
+				else
+					sigs.add(extracted);
+			}
+			outcome = new AltSignature(sigs);
+		}
+		
+		return outcome;
+	}
+	
 	/** Returns a shortened class name which is the first atom in a type signature returned by the
 	 * modified typer.
 	 * @return reduced class name.
@@ -152,33 +204,38 @@ public abstract class Signature implements Label
    
    public static List<List<OtpErlangObject>> computeCrossProduct(List<Signature> listOfArgs) 
    {
-    	assert !listOfArgs.isEmpty();
-        LinkedList<List<OtpErlangObject>> res = new LinkedList<List<OtpErlangObject>>();
-    	List<Signature> tail = new LinkedList<Signature>(listOfArgs);
-        Signature head = tail.remove(0);
-        List<OtpErlangObject> headVals = head.instantiateAllAlts();
-
-        if (!tail.isEmpty()) 
-        {
-            List<List<OtpErlangObject>> tailVals = computeCrossProduct(tail);
-            assert !tailVals.isEmpty();
-            for (OtpErlangObject h : headVals) {
-                for (List<OtpErlangObject> t : tailVals)
-                {
-                	List<OtpErlangObject> product = new LinkedList<OtpErlangObject>();product.add(h);
-                	product.addAll(t);
-                	res.add(product);
-                }
-            }
-        }
-        else
-        	// tail is empty
-            for (OtpErlangObject h : headVals)
-            {
-            	List<OtpErlangObject> product = new LinkedList<OtpErlangObject>();product.add(h);
-            	res.add(product);
-            }
-        
+	   	LinkedList<List<OtpErlangObject>> res = new LinkedList<List<OtpErlangObject>>();
+		if (listOfArgs.isEmpty())
+		{
+			res.add(new LinkedList<OtpErlangObject>());
+		}
+		else
+		{// a non-empty list of arguments.
+	    	List<Signature> tail = new LinkedList<Signature>(listOfArgs);
+	        Signature head = tail.remove(0);
+	        List<OtpErlangObject> headVals = head.instantiateAllAlts();
+	
+	        if (!tail.isEmpty()) 
+	        {
+	            List<List<OtpErlangObject>> tailVals = computeCrossProduct(tail);
+	            assert !tailVals.isEmpty();
+	            for (OtpErlangObject h : headVals) {
+	                for (List<OtpErlangObject> t : tailVals)
+	                {
+	                	List<OtpErlangObject> product = new LinkedList<OtpErlangObject>();product.add(h);
+	                	product.addAll(t);
+	                	res.add(product);
+	                }
+	            }
+	        }
+	        else
+	        	// tail is empty - a sequence with a single element
+	            for (OtpErlangObject h : headVals)
+	            {
+	            	List<OtpErlangObject> product = new LinkedList<OtpErlangObject>();product.add(h);
+	            	res.add(product);
+	            }
+		}        
         return res;
     }
 

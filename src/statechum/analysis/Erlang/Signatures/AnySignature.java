@@ -18,6 +18,9 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -34,8 +37,14 @@ public class AnySignature extends Signature {
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
-    @Override
-	public OtpErlangObject instantiate() {
-        return new OtpErlangAtom("wibble");
-    }
+	@Override
+	public boolean typeCompatible(@SuppressWarnings("unused") OtpErlangObject term) 
+	{
+		return true;
+	}
+
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList((OtpErlangObject)new OtpErlangAtom("AnyWibble"));
+	}
 }

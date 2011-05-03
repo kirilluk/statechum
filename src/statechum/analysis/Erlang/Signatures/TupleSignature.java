@@ -19,11 +19,13 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
@@ -54,20 +56,7 @@ public class TupleSignature extends Signature {
     public TupleSignature(OtpErlangList attributes,OtpErlangList values) {
         super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("TupleSignature does not accept attributes");
-/*		
-       int arity = 0;
-        for(OtpErlangObject obj:attributes.elements())
-        	if (obj instanceof OtpErlangInt) 
-        	{
-        		try {
-					arity = ((OtpErlangInt)obj).intValue();
-				} catch (OtpErlangRangeException e) {
-					Helper.throwUnchecked("Failed to convert the supplied value to integer", e);
-				}
-        	}
-        	else
-  				throw new IllegalArgumentException("Unknown attribute "+obj+" in the list of attributes for TupleSignature");
-*/      
+     
        	int arity = values.arity();
         elems = new ArrayList<Signature>(arity);
         for(int i=0;i<arity;++i) elems.add(Signature.buildFromType(values.elementAt(i)));
@@ -75,40 +64,32 @@ public class TupleSignature extends Signature {
    }
 
     @Override
-	public OtpErlangObject instantiate() {
-    	OtpErlangObject elements[] = new OtpErlangObject[elems.size()];
-    	int i=0;
-        for (Signature e : elems) {
-        	elements[i++] = e.instantiate();
-        }
-        return new OtpErlangTuple(elements);
-   }
-
-    @Override
     public List<OtpErlangObject> instantiateAllAlts() {
         List<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
         for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(elems))
         	result.add(new OtpErlangTuple(listOfValues.toArray(new OtpErlangObject[0])));
-        
-/* this was originally written to generate tuples, but I have since generalised it into computeCrossProduct
-    	List<Signature> tailElems = new LinkedList<Signature>(elems);
-        Signature head = tailElems.remove(0);
-        ListSignature tail = new ListSignature(tailElems);
-        List<OtpErlangObject> headVals = head.instantiateAllAlts();
-        List<OtpErlangObject> tailVals = tail.instantiateAllAlts();
-        assert !tailVals.isEmpty();
-        for (OtpErlangObject h : headVals) {
-            for (OtpErlangObject t : tailVals)
-            {
-            	OtpErlangObject tails[] = ((OtpErlangTuple)t).elements();
-            	OtpErlangObject product [] = new OtpErlangObject[1+tails.length];
-            	product[0]=h;System.arraycopy(tails, 0, product, 1, tails.length);
-            	result.add(new OtpErlangTuple(product));
-            }
-        }
-
-*/
         return result;
-
     }
+
+    @Override
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+		if (!(term instanceof OtpErlangTuple)) return false;
+		OtpErlangTuple tuple = (OtpErlangTuple)term;
+		
+		if (tuple.arity() != elems.size()) return false;
+		
+		Iterator<Signature> sigIterator = elems.iterator();
+		for(int i=0;i<elems.size();++i)
+		{
+			OtpErlangObject listTerm = tuple.elementAt(i);
+			Signature sig = sigIterator.next();
+			if (!sig.typeCompatible(tuple.elementAt(i)))
+			{
+				if (!(listTerm instanceof OtpErlangString) || !sig.typeCompatible(Signature.stringToList(listTerm)))
+					return false;
+			}
+		}
+		return true;
+	}
 }

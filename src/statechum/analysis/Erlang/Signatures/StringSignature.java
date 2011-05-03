@@ -19,7 +19,7 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -37,10 +37,12 @@ public class StringSignature extends Signature {
 		
 	public StringSignature(OtpErlangList attributes)
 	{
-		nonEmpty = attributes.elementAt(0).equals(ListSignature.NonEmptyAtom);
-		values = new LinkedList<OtpErlangObject>();values.add(new OtpErlangString("wibble"));
-		if (!nonEmpty)
-			values.add(new OtpErlangString(""));
+		if (attributes.arity() > 0) 
+			nonEmpty = attributes.elementAt(0).equals(ListSignature.NonEmptyAtom);
+		else 
+			nonEmpty = false;
+		
+		values = null;
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
@@ -51,26 +53,52 @@ public class StringSignature extends Signature {
 		boolean nonEmptyValue = true;
 		for(int i=0;i<valuesArg.arity();++i)
 		{
-			if (!(valuesArg.elementAt(i) instanceof OtpErlangString))
-				throw new IllegalArgumentException("Cannot build a string from a list "+ valuesArg + " with non-string values");
-			if  (((OtpErlangString)valuesArg.elementAt(i)).stringValue().isEmpty())
+			if (valuesArg.elementAt(i) instanceof OtpErlangList)
+			{
+				if ( ((OtpErlangList)valuesArg.elementAt(i)).arity() > 0)
+					throw new IllegalArgumentException("Cannot build a string from a non-string list "+ valuesArg);
+				values.add(new OtpErlangString(""));// empty string
 				nonEmptyValue = false;
-			// I'm not simply doing System.arraycopy because if I encounter values like "any", I'll need to add wibbles here.
-			values.add(valuesArg.elementAt(i));
+			}
+			else
+			{
+				if (!(valuesArg.elementAt(i) instanceof OtpErlangString))
+					throw new IllegalArgumentException("Cannot build a string from a list "+ valuesArg + " with non-string values");
+				if  (((OtpErlangString)valuesArg.elementAt(i)).stringValue().isEmpty())
+					nonEmptyValue = false;
+
+				values.add(valuesArg.elementAt(i));
+			}
 		}
 		nonEmpty = nonEmptyValue;
 		erlangTermForThisType = erlangTypeToString(attributes,valuesArg);
 	}
-	
-    @Override
-	public OtpErlangObject instantiate() {
-    	if (values.isEmpty())
-    		return null;
-    	return values.get(0);
-    }
-    
+
     @Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-    	return values;
+    	List<OtpErlangObject> outcome = null;
+    	if (values == null)
+    	{// values are not constrained
+    		if (nonEmpty) outcome = Collections.singletonList((OtpErlangObject)new OtpErlangString("wibble"));
+    		else outcome = Collections.singletonList((OtpErlangObject)new OtpErlangString(""));
+    	}
+    	else
+    		outcome = values;
+    	
+    	return outcome;
     }
+
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) {
+		if (term instanceof OtpErlangList)
+		{
+			return !nonEmpty && ( ((OtpErlangList)term).arity() == 0);
+		}
+		if (!(term instanceof OtpErlangString)) return false;
+		String str = ((OtpErlangString) term).stringValue();
+		if (str.isEmpty() && nonEmpty) return false;
+		
+		if (values != null && !values.contains(term)) return false;
+		return true;
+	}
 }

@@ -18,6 +18,9 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.ericsson.otp.erlang.OtpErlangChar;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -36,8 +39,13 @@ public class CharSignature extends Signature {
 	}
 
 	@Override
-	public OtpErlangObject instantiate() {
-        return new OtpErlangChar('w');
-    }
+	public boolean typeCompatible(OtpErlangObject term) {
+		return term instanceof OtpErlangChar;
+	}
+
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList((OtpErlangObject)new OtpErlangChar('w'));
+	}
 
 }

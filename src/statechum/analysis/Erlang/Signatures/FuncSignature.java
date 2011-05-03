@@ -28,8 +28,11 @@ import java.util.List;
 import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.Erlang.ErlangRunner;
+import statechum.analysis.Erlang.OTPBehaviour;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
+import statechum.analysis.Erlang.OTPBehaviour.OtpCallInterface;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -55,6 +58,9 @@ public class FuncSignature implements Label {
     protected final Signature result;
     protected final int arity,lineNumber;
     
+    /** Only used in toString to display whether this is an artificially-generated function. */
+    protected final String extraInfo;
+    
     /** Type constructor for a function which takes anything and returns anything - 
      * not supported since arity is not known.
     public FuncSignature() {}
@@ -74,7 +80,7 @@ public class FuncSignature implements Label {
     @Override
     public String toString()
     {
-    	return getQualifiedName();
+    	return getQualifiedName()+" "+extraInfo;
     }
     
     public String getQualifiedName()
@@ -97,6 +103,7 @@ public class FuncSignature implements Label {
     	arity = arguments.get(0).size();
     	
     	erlangTermForThisType = buildFunctionSignatureAsString();
+    	extraInfo = "";
     }
     
     protected String buildFunctionSignatureAsString()
@@ -145,21 +152,23 @@ public class FuncSignature implements Label {
     }
 
     /** Intended for functions passed as arguments to other functions.
-     * Typer only returns one type signature which generalises possible values. */
-    public FuncSignature(OtpErlangList attributes,OtpErlangList ArgList, OtpErlangList Range) {
+     * Typer only returns one type signature which generalises possible values. 
+    public FuncSignature(OtpErlangList attributes,OtpErlangList ArgList, OtpErlangList Range, boolean buildAsOtp) {
         super();
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FuncSignature does not accept attributes");
 		arity = ArgList.arity();
-        args = LoadArgs(ArgList);result = Signature.buildFromType(Range);
+        args = LoadArgs(ArgList, buildAsOtp);result = Signature.buildFromType(Range);
         moduleName="UNKNOWN";fullFileName=moduleName+".erl";funcName="ANONYMOUS";lineNumber=-1;
 
         erlangTermForThisType = buildFunctionSignatureAsString();
-    }
-
+    	extraInfo = "";
+   }
+     */
+    
     public static final OtpErlangAtom funcAtom = new OtpErlangAtom("Func"); 
     
     /** Used to take a response from a call to typer and turn it into a function-signature. */
-    public FuncSignature(OtpErlangObject func) 
+    public FuncSignature(OtpErlangObject func, OtpCallInterface otpConverter) 
     {
     	super();
     	String extractedModuleName = null,extractedFuncName=null, extractedFileName = null;
@@ -184,27 +193,28 @@ public class FuncSignature implements Label {
     		Helper.throwUnchecked("Failed to parse the structure returned from statechum-typer", ex);
     	}
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FuncSignature does not accept attributes");
-		arity = ArgList.arity();lineNumber=extractedLineNumber;moduleName=extractedModuleName;funcName=extractedFuncName;
-		assert arity == knownArity;
-		
-        args = LoadArgs(ArgList);
-        result = Signature.buildFromType(Range);
+		lineNumber=extractedLineNumber;moduleName=extractedModuleName;funcName=extractedFuncName;
+
+		if (otpConverter == null)
+		{
+			arity = ArgList.arity();assert arity == knownArity;
+			args = LoadArgs(ArgList);
+			result = Signature.buildFromType(Range);
+			extraInfo = "";
+		}
+		else
+        {// OTP-compatible one.
+			args = otpConverter.convertArguments(LoadArgs(ArgList));
+			arity = otpConverter.getArity();
+        	Signature sig = Signature.buildFromType(Range);
+        	result = otpConverter.extractVisibleReturnType(sig);
+        	extraInfo = "[OTP]";
+        }
+        
         fullFileName = extractedFileName;
         erlangTermForThisType = buildFunctionSignatureAsString();
     }
     
-	public List<OtpErlangObject> instantiate() {
-        // Just pick the first pattern for now...
-        // This needs to be cleverererer
-        assert !args.isEmpty() : "function "+funcName+" should have at least one type defined";
-        List<Signature> sigToUse = args.get(0);
-        List<OtpErlangObject> argInstance = new LinkedList<OtpErlangObject>();
-        for (Signature s : sigToUse) {
-        	argInstance.add(s.instantiate());
-        }
-        return argInstance;
-    }
-
     public List<OtpErlangObject> instantiateAllResults() {
         return result.instantiateAllAlts();
     }
@@ -245,24 +255,51 @@ public class FuncSignature implements Label {
 	}
 
 	/** Verifies that the supplied label is type-compatible to the type represented by this signature, 
-	 * throws an exception if not.
+	 * returns false if not.
 	 * 
-	 * @param label
-	 * @return
+	 * @param label which is supposed to be type-compatible to this function. 
 	 */
-	public void typeCompatible(ErlangLabel label) {
+	public void typeCompatible(ErlangLabel label) 
+	{
 		assert label.function == this;
 		
 		Iterator<List<Signature>> sigListIterator = args.iterator();
 		boolean typeCompatible = false;
+		List<OtpErlangObject> arguments = ErlangModule.findModule(moduleName).behaviour.functionArgumentsToListOfArgs(label.input);
 		while(sigListIterator.hasNext() && !typeCompatible)
 		{
-//			Signature.
-			Iterator<Signature> sigIterator = sigListIterator.next().iterator();
-			
-			//Iterator<OtpErlangObject> label.
+			List<Signature> argTypes = sigListIterator.next();
+			if (arguments.size() == argTypes.size())
+			{
+				Iterator<Signature> sigIterator = argTypes.iterator();
+				Iterator<OtpErlangObject> argsIterator = arguments.iterator();
+				boolean localCompatible = true;
+				while(sigIterator.hasNext())
+				{
+					OtpErlangObject listTerm = argsIterator.next();
+					Signature sig = sigIterator.next();
+					if (!sig.typeCompatible(listTerm))
+					{
+						if (!(listTerm instanceof OtpErlangString) || !sig.typeCompatible(Signature.stringToList(listTerm)))
+						{
+							localCompatible = false;
+							break;
+						}
+					}
+				}
+				if (localCompatible) typeCompatible = true;
+			}
 		}
 		
+		if (typeCompatible && result != null && label.expectedOutput != null)
+			typeCompatible = result.typeCompatible(label.expectedOutput);
 		
+		if (!typeCompatible)
+		{
+			//System.out.println("Function : "+getName()+", \n"+toErlangTerm());
+			//typeCompatible(label);
+			throw new IllegalArgumentException("Label "+OTPBehaviour.convertModToErl(label).toErlangTerm()+
+					" is not type-compatible with its function\n"+label.function.toErlangTerm());
+		}
 	}
 }

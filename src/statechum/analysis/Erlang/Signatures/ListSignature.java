@@ -22,9 +22,13 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import statechum.Helper;
+
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangException;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
 
 /**
  *
@@ -51,11 +55,11 @@ public class ListSignature extends Signature {
         super();
         boolean nonemptyValue = false, maybeimproperValue = false,improperValue = false, anyValue = false;
         for(OtpErlangObject obj:attributes.elements())
-        	if (obj.equals(NonEmptyAtom)) nonemptyValue = false;
+        	if (obj.equals(NonEmptyAtom)) nonemptyValue = true;
         	else
-        		if (obj.equals(ImproperAtom)) improperValue = false;
+        		if (obj.equals(ImproperAtom)) improperValue = true;
         		else
-            		if (obj.equals(MaybeImproperAtom)) maybeimproperValue = false;
+            		if (obj.equals(MaybeImproperAtom)) maybeimproperValue = true;
             		else
         			if (obj.equals(AnyAtom)) anyValue = true;
         			else
@@ -83,18 +87,7 @@ public class ListSignature extends Signature {
     		   else
     		   throw new IllegalArgumentException("More than a two types of elements of a list - a collection of types should be encoded as a ?union");
         
-        if (improper)
-        	throw new IllegalArgumentException("improper lists are not currently supported");
-
         erlangTermForThisType = erlangTypeToString(attributes,values);
-    }
-
-    @Override
-	public OtpErlangObject instantiate() {
-    	if (!nonempty) return new OtpErlangList();
-    	
-    	Signature elemSig = elems==null?wibbleSignature:elems;
-    	return elemSig.instantiate();
     }
     
     @Override
@@ -106,28 +99,82 @@ public class ListSignature extends Signature {
     	int length = 2;// arbitrary length of a list
     	List<Signature> s = new ArrayList<Signature>(length);
     	for(int i=0;i<length;++i) s.add(elemSig);
-    	for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(s))
-    		result.add(new OtpErlangList(listOfValues.toArray(new OtpErlangObject[0])));
-/*    		
-    	{// This one computes a cross-product using ListSignatures - not currently used. 
-        	List<Signature> tailElems = new LinkedList<Signature>(elems);
-            Signature head = tailElems.remove(0);
-            ListSignature tail = new ListSignature(tailElems);
-            List<OtpErlangObject> headVals = head.instantiateAllAlts();
-            List<OtpErlangObject> tailVals = tail.instantiateAllAlts();
-            assert !tailVals.isEmpty();
-            for (OtpErlangObject h : headVals) {
-                for (OtpErlangObject t : tailVals)
-                {
-                	OtpErlangObject tails[] = ((OtpErlangList)t).elements();
-                	OtpErlangObject product [] = new OtpErlangObject[1+tails.length];
-                	product[0]=h;System.arraycopy(tails, 0, product, 1, tails.length);
-                	result.add(new OtpErlangList(product));
-                }
-            }
-        }
-*/
+    	if (!improper)
+	    	for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(s))
+	    		result.add(new OtpErlangList(listOfValues.toArray(new OtpErlangObject[0])));
+    	if (maybeimproper)
+    	{
+    		Signature termSig = terminator==null?wibbleSignature:terminator;
+	    	for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(s))
+	    		
+	    		for(OtpErlangObject term:termSig.instantiateAllAlts())
+	    			if (!checkEmptyList(term))
+			    	{
+			    		try {
+							result.add(new OtpErlangList(listOfValues.toArray(new OtpErlangObject[0]),term));
+						} catch (OtpErlangException e) {
+							Helper.throwUnchecked("failed to create an improper list", e);
+						}
+			    	}
+    	
+    	}
         return result;
     }
+    
+    
+    public static boolean checkEmptyList(OtpErlangObject term)
+    {
+    	boolean outcome = false;
+    	if ( term instanceof OtpErlangList)
+    	{
+    		if (((OtpErlangList)term).arity() > 0)
+    			throw new IllegalArgumentException("the last tail of an improper list cannot be a list");
+    		outcome = true;
+    	} 
+    	else
+    	if ( term instanceof OtpErlangString)
+    	{
+    		if (!((OtpErlangString)term).stringValue().isEmpty())
+    			throw new IllegalArgumentException("the last tail of an improper list cannot be a string");
+    		outcome = true;
+    	}
+    	
+    	return outcome;
+    }
+    
+    @Override
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+		if (!(term instanceof OtpErlangList)) return false;
+		OtpErlangList list = (OtpErlangList)term;
+		
+		if (any) return true;
+		if (list.isProper() && improper) return false;
+		if (!list.isProper() && !maybeimproper && !improper) return false;
+		if (list.arity() == 0 && nonempty) return false;
+		
+		if (elems != null)
+			for(int i=0;i<list.arity();++i)
+			{
+				OtpErlangObject listTerm = list.elementAt(i);
+				if (!elems.typeCompatible(listTerm))
+				{
+					// as a special case, we could have a string which might be interpreted as a list.
+					if (!(listTerm instanceof OtpErlangString) || !elems.typeCompatible(Signature.stringToList(listTerm)))
+						return false;
+				}
+			}
+
+		if (list.arity() == 0) return true;
+		OtpErlangObject lastElement =  list.getLastTail();
+		if (lastElement == null && improper) 
+			return false;
+		// where lastElement == null but we are not certain to be improper, cannot really do anything.
+		// where lastElement != null, term is improper; if we are not allowed to be improper, we would'be returned failure already.
+		if (terminator != null && lastElement != null) 
+			return terminator.typeCompatible(lastElement);
+		
+		return true;
+	}
 }
 

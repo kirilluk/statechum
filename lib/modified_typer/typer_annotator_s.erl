@@ -32,7 +32,7 @@
 
 -module(typer_annotator_s).
 
--export([annotate/2]).
+-export([annotate/2,t_to_Statechum/2]).
 
 -include("erltypes.hrl").
 
@@ -329,7 +329,7 @@ get_type_info(Func, TypeMap) ->
 %% Statechum instantiates the supplied class and passes it the args provided.
 %% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
 
-unsupportedType(Descr) -> typer:error("Unsupported type "+Descr).
+unsupportedType(Descr) -> typer:error("Unsupported type "++Descr).
 
 %% This one is used in two cases, to dump sets of atoms and sets of numbers
 %% Returns a list of values
@@ -371,9 +371,9 @@ t_to_Statechum(?atom(Set), _RecDict) ->
     _ ->
       { 'Atom',[],set_to_Statechum(Set) }
   end;
-t_to_Statechum(?bitstr(8, 0), _RecDict) -> {'Binary',[]};
+%%t_to_Statechum(?bitstr(8, 0), _RecDict) -> {'Binary',[]};%% best to handle this via BitString
 %%  "binary()";
-t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B, atom ]};
+t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B ]};
 
 t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as arguments are not yet supported");
 
@@ -398,7 +398,7 @@ t_to_Statechum(?identifier(Set), _RecDict) ->
 t_to_Statechum(?matchstate(_Pres, _Slots), _RecDict) -> unsupportedType("matchstates are not supported");
 %%  io_lib:format("ms(~s,~s)", [t_to_string(Pres, RecDict),
 %%			      t_to_string(Slots,RecDict)]);
-t_to_Statechum(?nil, _RecDict) -> {'String',[],[""]};
+t_to_Statechum(?nil, _RecDict) -> {'String',[],[[]]};
 %%  "[]";
 t_to_Statechum(?nonempty_list(Contents, Termination), RecDict) ->
   StringContents = t_to_Statechum(Contents, RecDict),
@@ -460,7 +460,7 @@ t_to_Statechum(?char, _RecDict) -> {'Char',[]}; %% "char()";
 t_to_Statechum(?integer_pos, _RecDict) -> {'Int',['positive']}; %% "pos_integer()";
 t_to_Statechum(?integer_non_neg, _RecDict) -> {'Int',['nonnegative']}; %% "non_neg_integer()";
 t_to_Statechum(?integer_neg, _RecDict) -> {'Int',['negative']}; %% "neg_integer()";
-t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',['boundaries'],[From, To, atom]}; %% atom is to stop OtpErlang from turning list into string
+t_to_Statechum(?int_range(From, To), _RecDict) -> {'Int',['boundaries'],[From, To]}; %% OtpErlang will turn list into string but we'll turn it back afterwards
 %% but at the same time, it is not proper to turn the last argument from a list into a tuple because we'd like to generate them using 
 %% list comprehensions in the union case and others; the trouble with lists integers being autoconverted to strings is relatively minor.
 

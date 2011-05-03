@@ -18,12 +18,15 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 import statechum.Helper;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
@@ -46,8 +49,7 @@ public class IntSignature extends Signature {
 	ValuesAtom = new OtpErlangAtom("values"),
 	BoundariesAtom = new OtpErlangAtom("boundaries"),
 	NegativeAtom = new OtpErlangAtom("negative"),
-	NonNegativeAtom = new OtpErlangAtom("nonnegative"),
-	AntiStringAtom = new OtpErlangAtom("atom");
+	NonNegativeAtom = new OtpErlangAtom("nonnegative");
 
     public IntSignature(OtpErlangList attributes,OtpErlangList boundariesOrValues) 
     {
@@ -59,7 +61,6 @@ public class IntSignature extends Signature {
 	        	{
 	    			lowerValue = ((OtpErlangLong)boundariesOrValues.elementAt(0)).intValue();
 	    			upperValue = ((OtpErlangLong)boundariesOrValues.elementAt(1)).intValue();
-	    			if (!AntiStringAtom.equals(boundariesOrValues.elementAt(2))) throw new IllegalArgumentException("The third element of list "+boundariesOrValues+" should be an atom to stop it from becoming a string");
 	        	}
 	        	else
 	        		if (obj.equals(ValuesAtom))
@@ -77,14 +78,15 @@ public class IntSignature extends Signature {
 		}
 		finally
 		{
-			lower = lowerValue;upper = upperValue;values = valuesValue;
+			lower = lowerValue;upper = upperValue;
+			values = valuesValue==null?null:Collections.unmodifiableSet(valuesValue);
 		}
 		erlangTermForThisType = erlangTypeToString(attributes,boundariesOrValues);
 	}
     
     public IntSignature(OtpErlangList attributes)
     {
-    	long lowerValue = 0, upperValue = 0;values = null;
+    	long lowerValue = Long.MIN_VALUE, upperValue = Long.MAX_VALUE;values = null;
         for(OtpErlangObject obj:attributes.elements())
         	if (obj.equals(PositiveAtom))
         	{
@@ -98,24 +100,38 @@ public class IntSignature extends Signature {
         		else
             		if (obj.equals(NonNegativeAtom))
             		{
-            			lowerValue=1;upperValue = Long.MAX_VALUE;
+            			lowerValue=0;upperValue = Long.MAX_VALUE;
             		}
         			else
         				throw new IllegalArgumentException("Unknown attribute "+obj+" in the list of attributes for IntSignature");
 
-        if (lowerValue == 0 || upperValue == 0)
-        	// unassigned
-        	lowerValue = upperValue = 42;
-        
         lower=lowerValue;upper=upperValue;
 		erlangTermForThisType = erlangTypeToString(attributes, null);
    }
     
-    @Override
-	public OtpErlangObject instantiate() {
-    	if (values.isEmpty())
-    		return new OtpErlangLong((upper-lower)/2);
-    	return new OtpErlangLong(values.iterator().next());
-    }
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) {
+		long value = 0;
+		if (term instanceof OtpErlangInt) value = ((OtpErlangInt)term).longValue();
+		else
+		if (term instanceof OtpErlangLong) value =  ((OtpErlangLong)term).longValue();
+		else
+			return false;// wrong type
+		if (value < lower || value > upper) return false;
+		if (values != null && !values.contains(value)) return false;
+		
+		return true;
+	}
+
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		OtpErlangObject value = null;
+	   	if (values == null || values.isEmpty())
+	   		value = new OtpErlangLong((upper-lower)/2);
+	   	else
+	   		value = new OtpErlangLong(values.iterator().next());
+	   	
+	   	return Collections.singletonList(value);
+ 	}
 
 }

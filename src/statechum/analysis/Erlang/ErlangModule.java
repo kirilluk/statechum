@@ -52,7 +52,7 @@ public class ErlangModule {
     public final OTPBehaviour behaviour;
     public final Map<String, FuncSignature> sigs;
 
-    protected ErlangModule(final File f) throws IOException 
+    private ErlangModule(final File f) throws IOException 
     {
     	name = ErlangRunner.getName(f,ERL.MOD);
     	sourceFolder = f.getParentFile();
@@ -97,7 +97,7 @@ public class ErlangModule {
         OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
         for(int i=0;i<typeInformation.arity();++i)
         {
-        	FuncSignature s = new FuncSignature(typeInformation.elementAt(i));
+        	FuncSignature s = new FuncSignature(typeInformation.elementAt(i),null);
         	sigs.put(s.getQualifiedName(), s);
         }
         
@@ -170,7 +170,8 @@ public class ErlangModule {
     	ErlangModule mod = new ErlangModule(module);
     	if (modulesRegistry.containsKey(mod.getName()))
     		throw new IllegalArgumentException("module "+mod.getName()+" is already loaded");
-    	modulesRegistry.put(mod.getName(), mod);
+    	modulesRegistry.put(mod.getName(), mod);mod.behaviour.generateAlphabet();
+
     	return mod;
     }
     
@@ -182,4 +183,11 @@ public class ErlangModule {
 		return result;
 	}
 
+	/** This method is intended for testing - it throws away any loaded modules, hence permitting me
+	 * to regenerate a module and load the new one.
+	 */
+	public static void flushRegistry()
+	{
+		modulesRegistry.clear();
+	}
 }

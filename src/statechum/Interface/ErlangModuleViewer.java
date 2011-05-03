@@ -61,7 +61,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
         module = mod;
         moduleName.setText(mod.name);
         JLabel ta = new JLabel("<html>");
-        for(List<OtpErlangObject> argList: mod.behaviour.initArgs) {
+        for(List<OtpErlangObject> argList: mod.behaviour.getInitArgs()) {
             if(!ta.getText().equals("<html>")) {
                 ta.setText(ta.getText() + "<br />");
             }

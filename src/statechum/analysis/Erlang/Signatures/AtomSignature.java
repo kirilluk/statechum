@@ -19,7 +19,10 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -31,13 +34,18 @@ import com.ericsson.otp.erlang.OtpErlangObject;
  */
 public class AtomSignature extends Signature {
 
-	protected final ArrayList<OtpErlangObject> values;
+	/** Possible values, null means any, but it is also possible to create this with a second 
+	 * constructor in which case one may pass an empty set of values, which would make little
+	 * sense as this type will become equivalent to ?none. 
+	 */
+	protected final Set<OtpErlangObject> valuesAsSet;
+	protected final List<OtpErlangObject> valuesAsList;
 	
 	/** Arbitrary values. */
 	public AtomSignature(OtpErlangList attributes)
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AtomSignature does not accept attributes");
-		values = new ArrayList<OtpErlangObject>(1);values.add(new OtpErlangAtom("wibble"));
+		valuesAsSet = null;valuesAsList = null;
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
@@ -46,22 +54,26 @@ public class AtomSignature extends Signature {
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("AtomSignature does not accept attributes");
 
-		values = new ArrayList<OtpErlangObject>(argValues.arity());
+		valuesAsList = new ArrayList<OtpErlangObject>(argValues.arity());
+		valuesAsSet  = new HashSet<OtpErlangObject>(argValues.arity());
 		for(int i=0;i<argValues.arity();++i)
 		{
 			if (!(argValues.elementAt(i) instanceof OtpErlangAtom)) throw new IllegalArgumentException("Cannot build an atom from values "+argValues+" some of which are not atoms"); 
-			values.add(argValues.elementAt(i));
+			valuesAsList.add(argValues.elementAt(i));valuesAsSet.add(argValues.elementAt(i));
 		}
 		erlangTermForThisType = erlangTypeToString(attributes,argValues);
 	}
 	
     @Override
-	public OtpErlangObject instantiate() {
-        return values.isEmpty()? null:values.get(0);
-    }
-    
-    @Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-    	return values;
+    	if (valuesAsList == null) return Collections.singletonList((OtpErlangObject)new OtpErlangAtom("wibble"));
+    	return valuesAsList;
     }
+
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) {
+		if (!(term instanceof OtpErlangAtom)) return false;
+		if (valuesAsSet != null) return valuesAsSet.contains(term);
+		return true;// if values are not constrained, any will do.
+	}
 }

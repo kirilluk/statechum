@@ -19,6 +19,7 @@
 package statechum.analysis.Erlang.Signatures;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,9 @@ public class RecordSignature extends Signature {
     	if (attributes.arity() != 1) throw new IllegalArgumentException("RecordSignature expects a single attribute containing its name tag");
     	orderedSignatures = new ArrayList<Signature>(fieldDetails.arity());
     	nameTag = (OtpErlangAtom)attributes.elementAt(0);
+    	orderedSignatures.add(new AtomSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{
+    			nameTag
+    	})));
     	name = nameTag.atomValue();
         fields = new TreeMap<String, Signature>();
         for(OtpErlangObject obj:fieldDetails)
@@ -54,29 +58,34 @@ public class RecordSignature extends Signature {
         	orderedSignatures.add(sig);
         	fields.put(((OtpErlangAtom)nameValue.elementAt(0)).atomValue(),sig);
         }
-    }
-
-    @Override
-	public OtpErlangObject instantiate() {
-    	OtpErlangObject elements[] = new OtpErlangObject[fields.size()+1];
-    	int i=0;
-    	elements[i++]=nameTag;
-        for (Signature e : orderedSignatures) {
-        	elements[i++] = e.instantiate();
-        }
-        return new OtpErlangTuple(elements);
+        erlangTermForThisType = erlangTypeToString(attributes,fieldDetails);
     }
 
     @Override
     public List<OtpErlangObject> instantiateAllAlts() {
         List<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
         for(List<OtpErlangObject> listOfValues:Signature.computeCrossProduct(orderedSignatures))
-        {
-        	List<OtpErlangObject> tuple = new ArrayList<OtpErlangObject>(orderedSignatures.size()+1);
-        	tuple.add(nameTag);tuple.addAll(listOfValues);
-        	result.add(new OtpErlangTuple(tuple.toArray(new OtpErlangObject[0])));
-        }
+        	result.add(new OtpErlangTuple(listOfValues.toArray(new OtpErlangObject[0])));
         return result;
     }
+    
+    /** Given that orderedSignatures starts with an atom reflecting the tag of this record, 
+     * checking is identical to that for the tuple.
+     */
+    @Override
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
+		if (!(term instanceof OtpErlangTuple)) return false;
+		OtpErlangTuple tuple = (OtpErlangTuple)term;
+		
+		if (tuple.arity() != orderedSignatures.size()) return false;
+		
+		Iterator<Signature> sigIterator = orderedSignatures.iterator();
+		for(int i=0;i<orderedSignatures.size();++i)
+			if (!sigIterator.next().typeCompatible(tuple.elementAt(i)))
+				return false;
+		
+		return true;
+	}
 
 }

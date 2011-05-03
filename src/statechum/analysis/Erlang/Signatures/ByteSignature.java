@@ -18,8 +18,12 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.ericsson.otp.erlang.OtpErlangByte;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
 
 /**
  *
@@ -30,12 +34,19 @@ public class ByteSignature extends Signature {
 	public ByteSignature(OtpErlangList attributes)
 	{
 		super();
+ 
 		if (attributes.arity() != 0) throw new IllegalArgumentException("ByteSignature does not accept attributes");
 		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
-    @Override
-	public OtpErlangByte instantiate() {
-        return new OtpErlangByte((byte)42);
-    }
+    /** Values are not constrained, but the type has to be byte. */
+	@Override
+	public boolean typeCompatible(OtpErlangObject term) {
+		return term instanceof OtpErlangByte;
+	}
+
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList((OtpErlangObject)new OtpErlangByte((byte)42));
+	}
 }

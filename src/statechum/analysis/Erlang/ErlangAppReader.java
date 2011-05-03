@@ -26,7 +26,7 @@ public class ErlangAppReader {
 	        result.name = folder.getName();
 	        for(File f: folder.listFiles()) {
 	        	if (ErlangRunner.getErlName(f.getName()) != null)
-	                result.modules.add(new ErlangModule(f));
+	                result.modules.add(ErlangModule.loadModule(f));
 	        }
 	        return result;
     }
@@ -64,7 +64,7 @@ public class ErlangAppReader {
                     if(m.indexOf("'") < 0) {
                         try {
                             File f = new File(folder, m + ".erl");
-                            result.modules.add(new ErlangModule(f));
+                            result.modules.add(ErlangModule.loadModule(f));
                         } catch (FileNotFoundException e) {
                             throw new RuntimeException("File " + m + ".erl not found...");
                         }

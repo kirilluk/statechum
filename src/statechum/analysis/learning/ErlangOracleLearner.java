@@ -162,6 +162,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
     	}
     }
     
+    public static ErlangLabel stripOutput(ErlangLabel label)
+    {
+    	return new ErlangLabel(label.function,label.callName,label.input,null);
+    }
+    
     public TraceOutcome askErlang(List<Label> question) 
     {
     	ErlangLabel []questionDetails = new ErlangLabel[question.size()];

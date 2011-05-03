@@ -20,6 +20,7 @@ import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
 import statechum.Helper.whatToRun;
 import statechum.Label;
+import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -36,6 +37,7 @@ public class TestErlangGraphs {
 	public void beforeTest()
 	{
 		config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		ErlangModule.flushRegistry();
 	}
 	
 	protected final String prefixFun = "{"+ErlangLabel.missingFunction+",";
@@ -186,10 +188,10 @@ public class TestErlangGraphs {
 	@Test
 	public void testTraceParsing2() throws IOException
 	{
-		String fnA = "{"+ErlangLabel.missingFunction+",'call','wibble'}", fnB = "{"+ErlangLabel.missingFunction+",'info','txt'}",comma=", ";
+		String fnA = "{"+ErlangLabel.missingFunction+",'call','lock'}", fnB = "{"+ErlangLabel.missingFunction+",'info','txt'}",comma=", ";
 		String text = "["+fnA+comma+fnB+comma+fnB+"]";
 		List<Label> list = AbstractLearnerGraph.parseTrace(text,config);
-		ErlangModule mod = new ErlangModule(new File("ErlangExamples/locker/locker.erl"));
+		ErlangModule mod = ErlangModule.loadModule(new File("ErlangExamples/locker/locker.erl"));
 		List<String> newList = new LinkedList<String>();
 		for(Label l:mod.behaviour.convertTrace(mod.behaviour.convertTrace(list, mod.behaviour.new ConverterErlToMod()), mod.behaviour.new ConverterModToErl()))
 				newList.add(l.toErlangTerm());
@@ -250,18 +252,20 @@ public class TestErlangGraphs {
 	@Test
 	public void testConvertToModule1() throws IOException
 	{
-		LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B<-{call, wibble}-C-{call, tt,aa}->A", "testConstructErlGraph1", config);
+		LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B<-{call, read}-C-{call, {write,aa}}->A", "testConstructErlGraph1", config);
 		{
 			Set<Label> alphabet = gr.pathroutines.computeAlphabet();
 			Set<String> labels = new TreeSet<String>();Iterator<Label> iter = alphabet.iterator();labels.add(iter.next().toErlangTerm());labels.add(iter.next().toErlangTerm());
-			Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'call','tt','aa'}, {"+ErlangLabel.missingFunction+",'call','wibble'}]",labels.toString());
+			Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'call','read'}, {"+ErlangLabel.missingFunction+",'call',{'write','aa'}}]",labels.toString());
 		}
 		File file = new File("ErlangExamples/locker/locker.erl");
-		ErlangModule mod = new ErlangModule(file);
-		final String expected = "[{{LOCKERPATH,25,handle_call,3,{'Func',[],[{'Alt',[],[{'Atom',[],['lock','read','unlock']},{'Tuple',[],[{'Atom',[],['write']},{'Any',[]}]}]},{'Any',[]},{'Tuple',[],[{'Any',[]},{'Any',[]}]}],{'Tuple',[],[{'Atom',[],['reply']},{'Any',[]},{'Tuple',[],[{'Any',[]},{'Any',[]}]}]}}},"+
-			"2,'call','wibble'}, "+
-			"{{LOCKERPATH,25,handle_call,3,{'Func',[],[{'Alt',[],[{'Atom',[],['lock','read','unlock']},{'Tuple',[],[{'Atom',[],['write']},{'Any',[]}]}]},{'Any',[]},{'Tuple',[],[{'Any',[]},{'Any',[]}]}],{'Tuple',[],[{'Atom',[],['reply']},{'Any',[]},{'Tuple',[],[{'Any',[]},{'Any',[]}]}]}}},"+
-			"3,'call','tt','aa'}]";
+		ErlangModule mod = ErlangModule.loadModule(file);
+		final String expected = "[{{LOCKERPATH,25,handle_call,1,{'Func',[],[{'Alt',[],["+
+			"{'Atom',[],['lock','read','unlock']},"+
+			"{'Tuple',[],[{'Atom',[],['write']},{'Any',[]}]}]}],{'Any',[]}}},2,'call','read'}, "+
+			"{{LOCKERPATH,25,handle_call,1,{'Func',[],[{'Alt',[],["+
+			"{'Atom',[],['lock','read','unlock']},"+
+			"{'Tuple',[],[{'Atom',[],['write']},{'Any',[]}]}]}],{'Any',[]}}},2,'call',{'write','aa'}}]";
 		
 		{
 			LearnerGraph transformed = gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
@@ -286,10 +290,10 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
-		}},IllegalArgumentException.class,"unknown call name");
+		}},IllegalArgumentException.class,"unknown function");
 	}
 	
 	/** Unknown function in module. */
@@ -300,15 +304,15 @@ public class TestErlangGraphs {
 		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			buildLearnerGraph("A- {Acall, wibble} ->B", "testConvertToModuleFailure1", config);
-		}},IllegalArgumentException.class,"unknown call name");
+		}},IllegalArgumentException.class,"unknown function \"Acall");
 		
 	}
 	@Test
 	public void testConvertToModuleForAnAlreadyAssignedLabel() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
+		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		final LearnerGraph converted = gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		LearnerGraph anotherGraph = converted.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		Assert.assertEquals(converted.pathroutines.computeAlphabet(),anotherGraph.pathroutines.computeAlphabet());
@@ -319,7 +323,7 @@ public class TestErlangGraphs {
 	{
 		File file = new File("ErlangExamples/locker/locker.erl");
 		final ErlangModule mod = ErlangModule.loadModule(file);config.setErlangModuleName(mod.getName());
-		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B - {cast,yyy}->C", "testConvertToModuleFailure1", config);
+		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B - {cast,yyy}->C", "testConvertToModuleFailure1", config);
 		for(Label lbl:gr.pathroutines.computeAlphabet())
 			Assert.assertNotNull("undefined function for label "+lbl,((ErlangLabel)lbl).function);
 		
@@ -327,8 +331,8 @@ public class TestErlangGraphs {
 		ErlangLabel lbl1 = (ErlangLabel)lblIter.next(),lbl2 = (ErlangLabel)lblIter.next();
 		
 		// now mess up the name of the function,
-		String fun2 = mod.behaviour.invPatterns.get(lbl2.callName);
-		mod.behaviour.invPatterns.put(lbl1.callName,fun2);// mess up behaviour
+		FuncSignature fun2 = mod.sigs.get(lbl2.callName);
+		mod.sigs.put(lbl1.callName,fun2);// mess up behaviour
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		}},IllegalArgumentException.class,"label already has a function assigned");
@@ -339,7 +343,7 @@ public class TestErlangGraphs {
 	{
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		
 		Assert.assertEquals(gr.pathroutines.computeAlphabet(),
 				gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterModToErl()).pathroutines.computeAlphabet());
@@ -348,9 +352,9 @@ public class TestErlangGraphs {
 	@Test
 	public void testConvertToModuleFailure2c() throws IOException
 	{
-		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
+		final LearnerGraph gr = buildLearnerGraph("A- {call, read} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		final LearnerGraph converted = gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		final LearnerGraph convertedBack = converted.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterModToErl());
 		final LearnerGraph converted2 = gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
@@ -367,7 +371,7 @@ public class TestErlangGraphs {
 		config.setLabelKind(LABELKIND.LABEL_STRING);
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
@@ -381,7 +385,7 @@ public class TestErlangGraphs {
 		config.setLabelKind(LABELKIND.LABEL_STRING);
 		final LearnerGraph gr = buildLearnerGraph("A- {call, wibble} ->B", "testConvertToModuleFailure1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		final ErlangModule mod = new ErlangModule(file);
+		final ErlangModule mod = ErlangModule.loadModule(file);
 		
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			gr.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterModToErl());
@@ -392,9 +396,9 @@ public class TestErlangGraphs {
 	@Test
 	public void testSerialiseErlang() throws IOException
 	{
-		LearnerGraph grOrig = buildLearnerGraph("A- {call, wibble} ->B<-{call, wibble}-C-{call, tt,aa}->A", "testConstructErlGraph1", config);
+		LearnerGraph grOrig = buildLearnerGraph("A- {call, read} ->B<-{call, read}-C-{call, {write,aa}}->A", "testConstructErlGraph1", config);
 		File file = new File("ErlangExamples/locker/locker.erl");
-		ErlangModule mod = new ErlangModule(file);
+		ErlangModule mod = ErlangModule.loadModule(file);
 		LearnerGraph erlangGraph = grOrig.transform.interpretLabelsOnGraph(mod.behaviour.new ConverterErlToMod());
 		StringWriter writer = new StringWriter();
 		// remove function delarations and serialise

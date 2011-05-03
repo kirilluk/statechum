@@ -18,7 +18,11 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.ericsson.otp.erlang.OtpErlangDouble;
+import com.ericsson.otp.erlang.OtpErlangFloat;
 import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 
@@ -27,11 +31,19 @@ public class FloatSignature extends Signature {
 	public FloatSignature(OtpErlangList attributes)
 	{
 		if (attributes.arity() != 0) throw new IllegalArgumentException("FloatSignature does not accept attributes");
+		erlangTermForThisType = erlangTypeToString(attributes,null);
 	}
 	
 	@Override
-	public OtpErlangObject instantiate() {
-		return new OtpErlangDouble(96.);
+	public boolean typeCompatible(OtpErlangObject term) {
+		return term instanceof OtpErlangFloat || term instanceof OtpErlangDouble;
 	}
 
+	@Override
+	public List<OtpErlangObject> instantiateAllAlts() {
+		return Collections.singletonList((OtpErlangObject)new OtpErlangDouble(96.));
+
+	}
+
+	
 }

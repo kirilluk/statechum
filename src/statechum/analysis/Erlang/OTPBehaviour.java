@@ -24,13 +24,13 @@ import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
 import statechum.Label;
-import statechum.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
 import statechum.analysis.Erlang.Signatures.FuncSignature;
+import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 
 /**
@@ -41,11 +41,69 @@ public abstract class OTPBehaviour {
 
     public String name;
     final protected ErlangModule parent;
-    protected final Map<String, Pair<String, Boolean>> patterns;
-    protected final Map<String,String> invPatterns;
+    
+    public static interface OtpCallInterface
+    {
+    	/** Otp returns the middle-arg of methods which expect to return a value. */
+    	public Signature extractVisibleReturnType(Signature fullReturnType);
+   	
+    	/** In OTP, only the first argument is supplied by as, the rest are by framework.
+    	 * 
+    	 * @param args types of args to extract the first element from
+    	 * @return outcome of conversion
+    	 */
+    	public List<List<Signature>> convertArguments(List<List<Signature>> args);
+    	
+    	/** Arity of the operation. */
+    	public int getArity();
+    	
+    	/** Returns the corresponding Otp name. */
+    	public String getOtpName();
+  }
+    
+    /** Determines the conversion to get from a normal function to OTP one. */
+    public static class OTPCall implements OtpCallInterface
+    {
+    	/** Otp returns the middle-arg of methods which expect to return a value. */
+    	@Override
+		public Signature extractVisibleReturnType(Signature fullReturnType)
+    	{
+    		return Signature.extractElement(fullReturnType, 1);
+    	}
+ 
+    	/** In OTP, only the first argument is supplied by as, the rest are by framework.
+    	 * 
+    	 * @param args types of args to extract the first element from
+    	 * @return outcome of conversion
+    	 */
+    	@Override
+		public List<List<Signature>> convertArguments(List<List<Signature>> args)
+    	{
+    		List<List<Signature>> outcome = new LinkedList<List<Signature>>();
+    		for(List<Signature> list:args)
+    		{
+    			List<Signature> convertedList = new LinkedList<Signature>();
+    			convertedList.add(list.get(0));
+    			outcome.add(convertedList);
+    		}
+    		return Collections.unmodifiableList(outcome);
+    		
+    	}
+    	
+    	@Override
+		public int getArity() { return 1; }
+
+		@Override
+		public String getOtpName() {
+			return "call";
+		}
+     }
+    
+    
+    
+    protected final Map<String, OtpCallInterface> patterns;
     protected Set<ErlangLabel> alphabet;
     protected Collection<String> dependencies;
-    public Collection<List<OtpErlangObject>> initArgs;
     protected static final String[] stdmodsarray = {"erlang",
         "gen_server",
         "gen_fsm",
@@ -60,20 +118,41 @@ public abstract class OTPBehaviour {
         "math"};
     protected static final ArrayList<String> stdModsList = new ArrayList<String>(Arrays.asList(stdmodsarray));
 
-    protected OTPBehaviour(ErlangModule mod) {
+    protected OTPBehaviour(ErlangModule mod) 
+    {
     	name = null;parent = mod;
-    	alphabet = null;
-        patterns = new TreeMap<String, Pair<String, Boolean>>();invPatterns = new TreeMap<String, String>();
+    	alphabet = new LinkedHashSet<ErlangLabel>();
+        patterns = new TreeMap<String, OtpCallInterface>();
         dependencies = new LinkedList<String>();
     }
 
-    protected void buildInvPatterns()
+    /** We have normal Otp functions but all communications is via the server interface, hence
+     * we create functions reflecting what we actually see during learning.
+     */
+    protected void generateAlphabet()
     {
-    	for(Entry<String,Pair<String,Boolean>> pattern:patterns.entrySet())
+    	for(Entry<String,OtpCallInterface> pattern:patterns.entrySet())
     	{
     		if (!parent.sigs.containsKey(pattern.getKey()))
     			throw new IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
-    		invPatterns.put(pattern.getValue().firstElem, pattern.getKey());
+    		String otpName = pattern.getValue().getOtpName();
+    		if (parent.sigs.containsKey(otpName))
+    			throw new IllegalArgumentException("there is already a function defined with name "+otpName+" in module "+parent.getName());
+    		FuncSignature origFunction = parent.sigs.get(pattern.getKey()),
+    			otpFunction = new FuncSignature(ErlangLabel.parseText(origFunction.toErlangTerm()),pattern.getValue());
+    		
+    		parent.sigs.put(otpName,otpFunction);
+ 
+			List<List<OtpErlangObject>> args = otpFunction.instantiateAllArgs();
+			List<OtpErlangObject> output = otpFunction.instantiateAllResults();
+			
+    		for(List<OtpErlangObject> funcArgs:args)
+    		{
+    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+origFunction+" should take at least one argument");
+    			OtpErlangObject firstArg = funcArgs.get(0);
+    			for(OtpErlangObject result:output)
+    				alphabet.add(new ErlangLabel(parent.sigs.get(otpName),otpName,firstArg,result));
+    		}
     	}
     }
     
@@ -153,42 +232,8 @@ public abstract class OTPBehaviour {
     		}
    		}
 
-        behaviour.loadInitArgs();
-        behaviour.loadAlphabet();
-        behaviour.loadDependencies(file);
+    	behaviour.loadDependencies(file);
     	return behaviour;
-    }
-
-    public void loadInitArgs() {
-        initArgs = new LinkedList<List<OtpErlangObject>>();
-        FuncSignature initSig = parent.sigs.get(parent.getName()+":init/1");
-        if (initSig != null) // stopgap solution
-        	initArgs.addAll(initSig.instantiateAllArgs());
-        /*
-        if (initSig != null) {
-            for (String a : initSig.instantiateAllArgs()) {
-                // Skip values with variables since we cant instantiate them...
-                if ((!(a.matches("^[_A-Z].*") || a.matches(".* [_A-Z].*")))&&(a.length() > 0)) {
-                    System.out.println("Init: " + a);
-                    initArgs.add("{init, " + a + "}");
-                } else {
-                    System.out.println("Excluding Init: " + a);
-                }
-            }
-        }*/
-    }
-
-    public void loadAlphabet() 
-    {
-    	alphabet = new TreeSet<ErlangLabel>();
-    	for(FuncSignature sig:parent.sigs.values())
-    		if (patterns.containsKey(sig.getQualifiedName())) 
-	    		for(List<OtpErlangObject> funcArgs:sig.instantiateAllArgs())
-	    		{
-	    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+sig+" should take at least one argument");
-	    			OtpErlangObject firstArg = funcArgs.get(0);
-	    			alphabet.add(new ErlangLabel(sig,patterns.get(sig.getQualifiedName()).firstElem,firstArg,null));
-	    		}
     }
 
     public Set<ErlangLabel> getAlphabet() {
@@ -269,15 +314,9 @@ public abstract class OTPBehaviour {
 	{
 		if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
 		ErlangLabel label = (ErlangLabel)lbl;
-
-		String callName = label.callName;
-		if (invPatterns != null)
-		{
-			callName = invPatterns.get(label.callName);
-			if (callName == null) throw new IllegalArgumentException("unknown call name \""+label.callName+"\" in module "+parent.getName());
-		}
-		FuncSignature origFunc = parent.sigs.get(callName);
-		if (origFunc == null) throw new IllegalArgumentException("unknown function \""+callName+"\" in module "+parent.getName());
+		
+		FuncSignature origFunc = parent.sigs.get(label.callName);
+		if (origFunc == null) throw new IllegalArgumentException("unknown function \""+label.callName+"\" in module "+parent.getName());
 		
 		// At this point, we know which function should correspond to this label,
 		// it is worth checking whether the function already associated with the label
@@ -289,5 +328,23 @@ public abstract class OTPBehaviour {
 						"was : "+label.function+", now: "+origFunc);
 		}
 		return new ErlangLabel(origFunc,label.callName,label.input,label.expectedOutput);
+	}
+	
+	/** In an ordinary function called via <em>apply</em> or so, arguments are supplied in the form
+	 * of a list. For Otp functions this is not the case - functions take a single argument.
+	 * In order to moderate between the two, a conversion function is introduced which takes
+	 * an Otp argument and turns it into pure Erlang one.
+	 * 
+	 * For an Unknown behaviour this should assert that an arg is a list and convert it into Java list,
+	 * for Otp behaviours, we make singleton lists because all function take single arguments.
+	 */
+	public List<OtpErlangObject> functionArgumentsToListOfArgs(OtpErlangObject arg)
+	{
+		return Collections.singletonList(arg);
+	}
+
+	public List<List<OtpErlangObject>> getInitArgs() 
+	{
+		return parent.sigs.get(parent.getName()+":init/1").instantiateAllArgs();
 	}
 }

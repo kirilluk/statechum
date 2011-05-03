@@ -1190,8 +1190,8 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				"(\\s*]\\s*)|" + // erlListEnd
 				"(\\s*<<\\s*)|" + // erlBitStrBegin
 				"(\\s*>>\\s*)|" + // erlBitStrEnd
-				"(\\s*\'\\s*)|" + // erlAtomQuote
-				"(\\s*\"\\s*)|" + // erlString
+				"(\')|" + // erlAtomQuote
+				"(\")|" + // erlString
 				"(\\s*\\+?\\d+\\s*)|" +// erlPositiveNumber
 				"(\\s*-\\d+\\s*)|" +// erlNegativeNumber
 				"(\\\\)|" + // erlBackslash

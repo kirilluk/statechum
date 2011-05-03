@@ -11,20 +11,24 @@
 first_failure(_Module, _Wrapper, [], _ModulesList, State) ->
     {ok, [],State};
 first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
-    State2=compileModulesForAnalyser(ModulesList,State),
-    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
-    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
-    erlang:demonitor(Ref,[flush]),
-    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
-    %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
-    State3=analyse_all(ModulesList,State2),
-    case ProcStatus of 
+    {reply, CompileOutcome, State2}=compileModulesForAnalyser(ModulesList,State),
+    case CompileOutcome of
 	ok ->
-	    {ok, OPTrace, State3};
-	failed_but ->
-	    {failed_but, OPTrace, State3};
-	failed ->
-	    {failed, OPTrace, State3}
+	    {Pid, Ref} = spawn_monitor(Wrapper, exec_call_trace, [Module, Trace, self()]),
+	    {ProcStatus, PartialOPTrace} = await_end(Pid, Ref),
+	    erlang:demonitor(Ref,[flush]),
+	    OPTrace = flushOPTrace(PartialOPTrace, Pid, getConfig(?erlFlushDelay,State2)),
+	    %%io:format("~p >>>> ~p~n", [ProcStatus, OPTrace]),
+	    State3=analyse_all(ModulesList,State2),
+	    case ProcStatus of 
+		ok ->
+		    {ok, OPTrace, State3};
+		failed_but ->
+		    {failed_but, OPTrace, State3};
+		failed ->
+		    {failed, OPTrace, State3}
+	    end;
+	_ -> {reply, CompileOutcome, State2}
     end.
     
 %%
@@ -87,7 +91,7 @@ getConfig(Var,#statechum{config=Conf}=_State) ->
 compileModulesForAnalyser(ModulesList,State) ->
 	CovValue = getConfig(?erlCoverage,State),
 	if 
-		CovValue =:= 'ERLCOV_NONE' -> State;
+		CovValue =:= 'ERLCOV_NONE' -> {reply, ok, State};
 		true	-> compileModulesA(ModulesList,State)
 	end.
 

@@ -236,7 +236,7 @@ public class ErlangRunner
     	{
             if (erlangProcess == null) {
             	String tracerunnerProgram = "tracerunner.erl";
-            	String uniqueID = "_"+System.nanoTime()+"_"+ManagementFactory.getRuntimeMXBean().getName().replace('@', '_')+"@localhost";
+            	String uniqueID = "_"+System.nanoTime()+"_"+ManagementFactory.getRuntimeMXBean().getName().replace('@', '_').replace('.','_')+"@localhost";
             	traceRunnerNode="tracerunner"+uniqueID;ourNode = "java"+uniqueID;
             	// now we simply evaluate "halt()." which starts epmd if necessary and we can check along the way that we can run Erlang at all.
             	Process p=Runtime.getRuntime().exec(new String[]{ErlangRunner.getErlangBin() + "erl","-eval","halt().","-sname",traceRunnerNode,"-noshell","-setcookie",uniqueID}, null, new File(ErlangQSMOracle.ErlangFolder));

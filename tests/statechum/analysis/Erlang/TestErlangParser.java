@@ -2,6 +2,8 @@ package statechum.analysis.Erlang;
 
 import static statechum.Helper.checkForCorrectException;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collection;
 
 import org.junit.Assert;
@@ -583,7 +585,19 @@ public class TestErlangParser {
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ErlangLabel.parseText(text);
 		}},IllegalArgumentException.class,"cannot be represented");
-		Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
+		try
+		{
+			Assert.assertEquals(0,((OtpErlangDouble)ErlangRunner.getRunner().evaluateString(text)).doubleValue(),Configuration.fpAccuracy);
+			// if the exception is not thrown but the assertion is satisfied, this is fine (this is what happens on WinXP).
+		}
+		catch(Exception ex)
+		{// On Linux, an exception is thrown.
+			Class<RuntimeException> exceptionClass = RuntimeException.class;
+			String exceptionString = "badmatch";
+			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
+			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
+			Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
+		}
 	}
 	
 	@Test

@@ -190,7 +190,7 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
-		error:Error -> {reply, {failed,[Error,erlang:get_stacktrace()]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
 	end;
 
 

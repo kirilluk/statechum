@@ -21,8 +21,15 @@
  * apt-get install r-base
  * 
  * (note: an alternative way to install javagd is from http://blog.binfalse.de/2011/02/talking-r-through-java/
- *  which boils down to apt-get install r-cran-rjava )
- * 
+ *  which boils down to apt-get install r-cran-rjava 
+ * Asking R to install packages itself will fail on a PAX-enabled system because binaries it generates does not have
+ * mprotect disabled, to make this work you have to change every line in the two configure files of rJava which 
+ * says 
+ * ac_try='./conftest$ac_exeext' 
+ * to read
+ * ac_try='paxctl -Cm ./conftest$ac_exeext;./conftest$ac_exeext'
+ * After that, configure will be successful. The outcome can be turned back into rJava.tar.gz and R will install it via
+ * install.packages("/tmp/RtmpxtSS7S/downloaded_packages/rJava-modified.tar.gz")
  * As root:
  * 
  * R CMD javareconf

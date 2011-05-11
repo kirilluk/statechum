@@ -25,16 +25,20 @@
 %%--------------------------------------------------------------------
 
 %%
-%%	MODIFIED BY KIRR for integration into the Statechum project.
+%%	MODIFIED for integration into the Statechum project.
+%%  The two files which were modified for Statechum are typer.erl and typer_annotator.erl,
+%%  the rest were renamed to ensure no clashes with the installed typer.
 %%
 
--module(typer). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
+-module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
 
 -export([start/3]).
--export([error/1, compile_error/1]).	% for error reporting
+-export([reportError/1, compile_error/1]).	% for error reporting
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
--include_lib("typer/src/typer.hrl").
+%% -include_lib("typer/src/typer.hrl").
+-include_lib("typer_s.hrl").
+
 %% In order to find out where the .beam has come from, I can use code:get_object_code(typer_annotator).
 
 %%--------------------------------------------------------------------
@@ -61,7 +65,7 @@ start(FilesToAnalyse,Plt,Outputmode) ->
 %%  dbg:start(),dbg:tracer(),dbg:tpl(typer_preprocess, '_', []),dbg:p(all, c),
   All_Files = typer_preprocess:get_all_files(Args, analysis),
   Analysis3 = Analysis2#typer_analysis{ana_files = All_Files},
-  Analysis4 = typer_info:collect(Analysis3),
+  Analysis4 = typer_info_s:collect(Analysis3),
   TypeInfo = get_type_info(Analysis4),
 %%%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
  typer_annotator_s:annotate(TypeInfo,Outputmode)
@@ -178,9 +182,9 @@ get_external(Exts, Plt) ->
 
 %%--------------------------------------------------------------------
 
--spec error(string()) -> no_return().
+-spec reportError(string()) -> no_return().
 
-error(Slogan) ->
+reportError(Slogan) ->
   msg(io_lib:format("typer failure: ~s~n~n", [Slogan])),
   erlang:error(Slogan).
 
@@ -191,7 +195,7 @@ error(Slogan) ->
 compile_error(Reason) ->
   JoinedString = lists:flatten([X ++ "\n" || X <- Reason]),
   Msg = "Analysis failed with error report:\n" ++ JoinedString,
-  error(Msg).
+  reportError(Msg).
 
 %%--------------------------------------------------------------------
 %% Outputs a message on 'stderr', if possible.

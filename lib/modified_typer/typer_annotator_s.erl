@@ -26,9 +26,10 @@
 %%    should be exactly what TypEr has added, namely type info.
 %%============================================================================
 %%
-%%	MODIFIED BY KIRR for integration into the Statechum project.
-%%	quite a lot of the code was lifted from the erl_types.erl file of the Erlang distribution.
-%% 
+%%	MODIFIED for integration into the Statechum project.
+%%  The two files which were modified for Statechum are typer.erl and typer_annotator.erl,
+%%  the rest were renamed to ensure no clashes with the installed typer.
+%%
 
 -module(typer_annotator_s).
 
@@ -39,8 +40,10 @@
 %%----------------------------------------------------------------------------
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
--include_lib("typer/src/typer.hrl").
+%-include_lib("typer/src/typer.hrl").
 %% In order to find out where the .beam has come from, I can use code:get_object_code(typer_annotator).
+
+-include("typer_s.hrl").
 
 %%----------------------------------------------------------------------------
 
@@ -48,11 +51,11 @@
 
 -type func_info() :: {non_neg_integer(), atom(), arity()}.
 
--record(info, {recMap = typer_map:new() :: dict(),
+-record(info, {recMap = typer_map_s:new() :: dict(),
 	       funcs = []               :: [func_info()],
 	       typeMap                  :: dict(),
 	       contracts                :: boolean()}).
--record(inc, {map    = typer_map:new() :: dict(),
+-record(inc, {map    = typer_map_s:new() :: dict(),
 	      filter = []              :: [string()]}).
 
 %%----------------------------------------------------------------------------
@@ -66,13 +69,13 @@ annotate(#typer_analysis{mode = ?SHOW} = Analysis,OutputMode) ->
 write_inc_files(Inc) ->
   Fun =
     fun (File) ->
-	Val = typer_map:lookup(File,Inc#inc.map),
+	Val = typer_map_s:lookup(File,Inc#inc.map),
 	%% Val is function with its type info
 	%% in form [{{Line,F,A},Type}]
 	Functions = [Key || {Key,_} <- Val],
 	Val1 = [{{F,A},Type} || {{_Line,F,A},Type} <- Val],
-	Info = #info{typeMap = typer_map:from_list(Val1),
-		     recMap = typer_map:new(),
+	Info = #info{typeMap = typer_map_s:from_list(Val1),
+		     recMap = typer_map_s:new(),
 		     %% Note we need to sort functions here!
 		     funcs = lists:keysort(1, Functions)}
 	%% io:format("TypeMap ~p\n", [Info#info.typeMap]),
@@ -144,17 +147,17 @@ check_imported_funcs({File, {Line, F, A}}, Inc, TypeMap) ->
   IncMap = Inc#inc.map,
   FA = {F, A},
   Type = get_type_info(FA, TypeMap),
-  case typer_map:lookup(File, IncMap) of
+  case typer_map_s:lookup(File, IncMap) of
     none -> %% File is not added. Add it
       Obj = {File,[{FA, {Line, Type}}]},
-      NewMap = typer_map:insert(Obj, IncMap),
+      NewMap = typer_map_s:insert(Obj, IncMap),
       Inc#inc{map = NewMap};
     Val -> %% File is already in. Check.
       case lists:keyfind(FA, 1, Val) of
 	false ->
 	  %% Function is not in; add it
 	  Obj = {File, Val ++ [{FA, {Line, Type}}]},
-	  NewMap = typer_map:insert(Obj, IncMap),
+	  NewMap = typer_map_s:insert(Obj, IncMap),
 	  Inc#inc{map = NewMap};
 	Type ->
 	  %% Function is in and with same type
@@ -165,9 +168,9 @@ check_imported_funcs({File, {Line, F, A}}, Inc, TypeMap) ->
 	  Elem = lists:keydelete(FA, 1, Val),
 	  NewMap = case Elem of
 		     [] ->
-		       typer_map:remove(File, IncMap);
+		       typer_map_s:remove(File, IncMap);
 		     _  ->
-		       typer_map:insert({File, Elem}, IncMap)
+		       typer_map_s:insert({File, Elem}, IncMap)
 		   end,
 	  Inc#inc{map = NewMap}
       end
@@ -183,7 +186,7 @@ clean_inc(Inc) ->
 
 remove_yecc_generated_file(TmpInc) ->
   Fun = fun(Key, Inc) ->
-	    NewMap = typer_map:remove(Key, Inc#inc.map),
+	    NewMap = typer_map_s:remove(Key, Inc#inc.map),
 	    Inc#inc{map = NewMap}
 	end,
   lists:foldl(Fun, TmpInc, TmpInc#inc.filter).
@@ -191,13 +194,13 @@ remove_yecc_generated_file(TmpInc) ->
 normalize_obj(TmpInc) ->
   Fun = fun(Key, Val, Inc) ->
 	    NewVal = [{{Line,F,A},Type} || {{F,A},{Line,Type}} <- Val],
-	    typer_map:insert({Key,NewVal}, Inc)
+	    typer_map_s:insert({Key,NewVal}, Inc)
 	end,
-  NewMap = typer_map:fold(Fun, typer_map:new(), TmpInc#inc.map),
+  NewMap = typer_map_s:fold(Fun, typer_map_s:new(), TmpInc#inc.map),
   TmpInc#inc{map = NewMap}.
 
 get_recMap(File, Analysis) ->
-  typer_map:lookup(File, Analysis#typer_analysis.record).
+  typer_map_s:lookup(File, Analysis#typer_analysis.record).
 
 get_typeMap(Module, Analysis, RecMap) ->
   TypeInfoPlt = Analysis#typer_analysis.trust_plt,
@@ -208,7 +211,7 @@ get_typeMap(Module, Analysis, RecMap) ->
     end,
   CodeServer = Analysis#typer_analysis.code_server,
   TypeInfoList = [get_type(I, CodeServer, RecMap) || I <- TypeInfo],
-  typer_map:from_list(TypeInfoList).
+  typer_map_s:from_list(TypeInfoList).
 
 get_type({{M, F, A} = MFA, Range, Arg}, CodeServer, RecMap) ->
   case dialyzer_codeserver:lookup_mfa_contract(MFA, CodeServer) of
@@ -238,17 +241,17 @@ get_type({{M, F, A} = MFA, Range, Arg}, CodeServer, RecMap) ->
 get_functions(File, Analysis) ->
   case Analysis#typer_analysis.mode of
     ?SHOW ->
-      Funcs = typer_map:lookup(File, Analysis#typer_analysis.func),
-      Inc_Funcs = typer_map:lookup(File, Analysis#typer_analysis.inc_func),
+      Funcs = typer_map_s:lookup(File, Analysis#typer_analysis.func),
+      Inc_Funcs = typer_map_s:lookup(File, Analysis#typer_analysis.inc_func),
       remove_module_info(Funcs) ++ normalize_incFuncs(Inc_Funcs);
     ?SHOW_EXPORTED ->
-      Ex_Funcs = typer_map:lookup(File, Analysis#typer_analysis.ex_func),
+      Ex_Funcs = typer_map_s:lookup(File, Analysis#typer_analysis.ex_func),
       remove_module_info(Ex_Funcs);
     ?ANNOTATE ->
-      Funcs = typer_map:lookup(File, Analysis#typer_analysis.func),
+      Funcs = typer_map_s:lookup(File, Analysis#typer_analysis.func),
       remove_module_info(Funcs);
     ?ANNOTATE_INC_FILES ->
-      typer_map:lookup(File, Analysis#typer_analysis.inc_func)
+      typer_map_s:lookup(File, Analysis#typer_analysis.inc_func)
   end.
 
 normalize_incFuncs(Funcs) ->
@@ -303,7 +306,7 @@ extract_type_info(File, Info) ->
   lists:foldl(Fun, [], Info#info.funcs).
 
 get_type_info(Func, TypeMap) ->
-  case typer_map:lookup(Func, TypeMap) of
+  case typer_map_s:lookup(Func, TypeMap) of
     none ->
       %% Note: Typeinfo of any function should exist in
       %% the result offered by dialyzer, otherwise there 

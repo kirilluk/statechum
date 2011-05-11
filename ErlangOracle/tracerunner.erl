@@ -164,7 +164,7 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 %% Plt is the name of the Plt file.
 handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 	try	
-		Outcome = typer:start(FilesErl,Plt,Outputmode),
+		Outcome = typer_s:start(FilesErl,Plt,Outputmode),
 		{reply,{ok,Outcome}, State}
 	catch
 		error:Error -> {reply, {failed,Error}, State}

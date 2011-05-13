@@ -87,10 +87,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
     }
     
     @Override
-    public String toString() {
-        String result = (function == null?missingFunction:function.toString()) + "(" + input + ")";
+    public String toString() 
+    {
+        String result = callName+", "+input; 
+        	//(function == null?missingFunction:function.toString())+"," + input;
         if (expectedOutput != null) {
-            result = result + " == " + expectedOutput;
+            result = result+" ,"+expectedOutput;
         }
         return result;
     }

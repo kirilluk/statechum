@@ -41,6 +41,7 @@ import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.rpnicore.*;
 
 import java.awt.Color;
@@ -720,20 +721,30 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             public String getLabel(ArchetypeEdge e) {
                 String result = "";
 
-                if (e.containsUserDatumKey(JUConstants.LABEL)) {
-                    Set<Label> labels = (Set<Label>) e.getUserDatum(JUConstants.LABEL);
-                    Iterator<Label> labelIt = labels.iterator();
-                    String label = "[ ";
-                    while (labelIt.hasNext()) {
-                    	Label currentLabel = labelIt.next();
-                        label = label.concat(currentLabel.toString());
-                        /*
-                        if (paintChooser.getEdgeColour(e, currentLabel) != null)
-                        label=label.concat(" @");
-                         */
-                        label = label.concat(" ");
+                if (e.containsUserDatumKey(JUConstants.LABEL)) 
+                {
+                    StringBuffer text = new StringBuffer();text.append("<html>");
+                    boolean first=true;
+                    for(Label lbl:(Set<Label>) e.getUserDatum(JUConstants.LABEL))
+                    {
+                    	if (!first) text.append("<br>");else first=false;
+                    	if (!(lbl instanceof ErlangLabel))
+                    	{
+                    		text.append(lbl.toString());
+                    	}
+                    	else
+                    	{
+                    		ErlangLabel l = (ErlangLabel)lbl;
+                    		text.append("<font color=blue>");text.append(l.callName);text.append("</font>,&nbsp;");
+                    		text.append("<font color=black>");text.append(l.input);text.append("</font>");
+                    		if (l.expectedOutput != null)
+                    		{
+                    			text.append(",&nbsp;<font color=green>");text.append(l.expectedOutput);text.append("</font>");
+                    		}
+                    	}
                     }
-                    result = label + " ]";
+                    text.append("</html>");
+                    result=text.toString();
                 }
 
                 return result;

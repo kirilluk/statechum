@@ -147,10 +147,10 @@ get_type_info(#typer_analysis{callgraph = CallGraph,
     Analysis#typer_analysis{callgraph = StrippedCallGraph, trust_plt = NewPlt}
   catch
     error:What ->
-      error(io_lib:format("Analysis failed with message: ~p", 
+      reportError(io_lib:format("Analysis failed with message: ~p", 
 			  [{What, erlang:get_stacktrace()}]));
     throw:{dialyzer_succ_typing_error, Msg} ->
-      error(io_lib:format("Analysis failed with message: ~s", [Msg]))
+      reportError(io_lib:format("Analysis failed with message: ~s", [Msg]))
   end.
 
 -spec remove_external(dialyzer_callgraph:callgraph(), dialyzer_plt:plt()) -> dialyzer_callgraph:callgraph().

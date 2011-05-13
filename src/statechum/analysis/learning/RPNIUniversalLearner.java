@@ -24,6 +24,7 @@ import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -214,7 +215,6 @@ public class RPNIUniversalLearner extends RPNILearner
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA
 											// and restart learning.
 
-			//updateGraph(temp.paths.getGraph(learntGraphName+"_"+counterRestarted+"_"+iterations));
 			if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 
 				Collection<List<Label>> counterExamples = spin.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
@@ -340,8 +340,20 @@ public class RPNIUniversalLearner extends RPNILearner
 						restartLearning = null;
 						try
 						{
-							for(List<Label> positive:plus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,positive, true,colour);
-							for(List<Label> negative:minus) topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,negative, false,colour);
+							// The map could be null if no merger completed yet
+				            Map<VertexID, Collection<VertexID>> mergedToHard = tentativeAutomaton.getCache().getMergedToHardFacts();
+				            for(List<Label> positive:plus) 
+							{
+								topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,positive, true,colour);
+								CmpVertex hardFactsVertex = ptaHardFacts.getVertex(positive), tentativeVertex=tentativeAutomaton.getVertex(positive);
+								if (mergedToHard != null) mergedToHard.put(tentativeVertex.getID(), Collections.singletonList(hardFactsVertex.getID()));
+							}
+							for(List<Label> negative:minus) 
+							{
+								topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,negative, false,colour);
+								CmpVertex hardFactsVertex = ptaHardFacts.getVertex(negative), tentativeVertex=tentativeAutomaton.getVertex(negative);
+								if (mergedToHard != null) mergedToHard.put(tentativeVertex.getID(), Collections.singletonList(hardFactsVertex.getID()));
+							}
 							if (config.isAlwaysRestartOnNewTraces())
 								restartLearning = RestartLearningEnum.restartHARD;// this one works out to be _much_ slower than the one below, for a simple very imperfect learning of locker, the two produce identical numbers of states/edges/alphabet size.
 							else

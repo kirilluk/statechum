@@ -57,7 +57,6 @@ import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Rectangle2D;
 import java.beans.XMLDecoder;
@@ -933,8 +932,6 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     		}
                     	}
                     }
-                    if ( ((Set<Label>) e.getUserDatum(JUConstants.LABEL)).size() > 4)
-                    	System.out.println();
                     text.append("</html>");
                     result=text.toString();
                 }

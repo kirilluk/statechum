@@ -675,8 +675,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 }
                 
                 edgeShape = xform.createTransformedShape(edgeShape);
-                /* Debug code
-                g2d.setPaint(new Color( 200, 100, 0));g2d.fill(edgeShape.getBounds2D());
+                // Debug code
+                /*
                 if (!isLoop)
                 {
                     g2d.setPaint(new Color( 250, 250, 0));
@@ -692,8 +692,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 	rect.rotate(thetaRadians);
                 	g2d.fill(rect.createTransformedShape(
                 		new Rectangle(0,0,(int)s2.getBounds2D().getWidth(),(int)(yMax-yMin))));
-                }	
-                */
+                }*/	
+                
                 edgeHit = viewTransformer.transform(edgeShape).intersects(deviceRectangle);
 
                 if(edgeHit == true) 
@@ -746,9 +746,20 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     
                     // Now draw the label.
                     double xLabel = 0,yLabel = 0,xa=0,ya=0,rotation=thetaRadians;
+                    if (isLoop)
+                    {
+                    	double displacementY = -yMin+d.height
+                		, displacementX=d.width/2;
+	                	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
+	                	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
+	                	xLabel = xa-displacementX*Math.cos(thetaRadians);
+	                	yLabel = ya-displacementX*Math.sin(thetaRadians);
+                    }
+                    else
                     if (dx < 0)
                     {
-                       	double displacementY = -yMax-d.height, displacementX=d.width/2;
+                       	double displacementY = -yMax-d.height
+                       		, displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa+displacementX*Math.cos(thetaRadians);
@@ -757,7 +768,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     }
                     else
                     {
-                    	double displacementY = -yMin+d.height, displacementX=d.width/2;
+                    	double displacementY = -yMax// -yMin+d.height
+                    		, displacementX=d.width/2;
                     	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
                     	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
                     	xLabel = xa-displacementX*Math.cos(thetaRadians);
@@ -766,7 +778,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
                     AffineTransform old = g2d.getTransform();
                     AffineTransform labelTransform = new AffineTransform();
-                    // Debug code: g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
+                    // Debug code: 
+                    // g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
                     labelTransform.translate(xLabel, yLabel);
                     labelTransform.rotate(rotation);
                     g2d.setTransform(labelTransform);

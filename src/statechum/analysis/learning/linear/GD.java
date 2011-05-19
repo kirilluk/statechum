@@ -65,7 +65,7 @@ import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LSolver;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
-import statechum.analysis.learning.experiments.mutation.Transition;
+import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_BCR;
 import statechum.analysis.learning.linear.GDLearnerGraph.DDRH_default;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
@@ -1733,7 +1733,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		final LearnerGraphND outcome = new LearnerGraphND(a,gdConfig);
 		final LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = 
 			new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(outcome,gdConfig,null);
-		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = new TreeMap<String,Map<String,Map<String,Color>>>();
+
+		final EdgeAnnotation transitionAnnotation = new EdgeAnnotation();
 		makeSteps();
 		computeDifference(new PatchGraph() {
 			/** Annotates the supplied transition with a specific label and colour. 
@@ -1743,13 +1744,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			 * @param to target state
 			 * @param color colour to put on that transition.
 			 */ 
-			private void addTransitionAnnotation(CmpVertex from, String label, CmpVertex to,Color colour)
+			private void addTransitionAnnotation(CmpVertex from, Label label, CmpVertex to,Color colour)
 			{
 				String fromString = from.getID().toString();
-				Map<String,Map<String,Color>> lbl = transitionAnnotation.get(fromString);
+				Map<Label,Map<String,Color>> lbl = transitionAnnotation.get(fromString);
 				if (lbl == null)
 				{
-					lbl = new TreeMap<String,Map<String,Color>>();transitionAnnotation.put(fromString, lbl);
+					lbl = new TreeMap<Label,Map<String,Color>>();transitionAnnotation.put(fromString, lbl);
 				}
 				Map<String,Color> targetToColour = lbl.get(label);
 				if (targetToColour == null)
@@ -1770,17 +1771,17 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			@Override
 			public void addTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
-				String label = "ADD_"+origLabel;
-				mutator.addTransition(from, new StringLabel(label), to);
+				Label label = new StringLabel("ADD_"+origLabel);
+				mutator.addTransition(from, label, to);
 				addTransitionAnnotation(from, label, to, Color.GREEN);
 			}
 
 			@Override
 			public void removeTransition(CmpVertex from, Label origLabel, CmpVertex to)
 			{
-				String label = "REM_"+origLabel;
+				Label label = new StringLabel("REM_"+origLabel);
 				mutator.removeTransition(from, origLabel, to);// remove the original transition
-				mutator.addTransition(from, new StringLabel(label), to);// and add the renamed one
+				mutator.addTransition(from, label, to);// and add the renamed one
 				addTransitionAnnotation(from, label, to, Color.RED);
 			}
 

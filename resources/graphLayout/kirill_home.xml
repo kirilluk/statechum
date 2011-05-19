@@ -1,25 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.6.0_10-rc2" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_22" class="java.beans.XMLDecoder"> 
  <object class="java.util.Properties"> 
-  <void method="put"> 
-   <string>GRAPHICS_MONITOR</string> 
-   <string>1</string> 
-  </void> 
-  <void method="put"> 
-   <string>LINEARWARNINGS</string> 
-   <string>true</string> 
-  </void> 
-  <void method="put"> 
-   <string>BUILDGRAPH</string> 
-   <string>testNewLearner1b</string> 
-  </void> 
   <void method="put"> 
    <string>ASSERT_ENABLED</string> 
    <string>true</string> 
   </void> 
   <void method="put"> 
-   <string>SMTWARNINGS</string> 
-   <string>true</string> 
+   <string>VIZ_CONFIG</string> 
+   <string>kirill_home</string> 
+  </void> 
+  <void method="put"> 
+   <string>LTL2BA</string> 
+   <string>/usr/local/bin/ltl2ba</string> 
+  </void> 
+  <void method="put"> 
+   <string>BUILDGRAPH</string> 
+   <string>testNewLearner1b</string> 
   </void> 
   <void method="put"> 
    <string>STOP</string> 
@@ -29,8 +25,52 @@
    <string>ASSERT</string> 
    <string>true</string> 
   </void> 
+  <void method="put"> 
+   <string>GRAPHICS_MONITOR</string> 
+   <string>1</string> 
+  </void> 
+  <void method="put"> 
+   <string>LINEARWARNINGS</string> 
+   <string>true</string> 
+  </void> 
+  <void method="put"> 
+   <string>SMTWARNINGS</string> 
+   <string>true</string> 
+  </void> 
  </object> 
  <object class="java.util.HashMap"> 
+  <void method="put"> 
+   <int>0</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>800</int> 
+      <int>988</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>1</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>802</int> 
+      <int>0</int> 
+      <int>742</int> 
+      <int>902</int> 
+     </object> 
+    </void> 
+    <void property="screenDevice"> 
+     <int>1</int> 
+    </void> 
+   </object> 
+  </void> 
   <void method="put"> 
    <string>LOWER</string> 
    <object class="statechum.GlobalConfiguration$WindowPosition"> 

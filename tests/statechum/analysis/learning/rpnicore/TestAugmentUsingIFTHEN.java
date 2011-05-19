@@ -20,14 +20,12 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.Helper.checkForCorrectException;
 
-import java.awt.Color;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -50,6 +48,7 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestRpniLearner;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
+import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
@@ -982,7 +981,7 @@ final public class TestAugmentUsingIFTHEN
 				"testConversionOfAssociationsToTransitions1b",config),obtainedGraph ,VERTEX_COMPARISON_KIND.DEEP);
 		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
 		Assert.assertTrue(
-				((Map<String,Map<String,Map<String,Color>>>)graphAfterConversion.getUserDatum(JUConstants.EDGE)).isEmpty());
+				((EdgeAnnotation)graphAfterConversion.getUserDatum(JUConstants.EDGE)).isEmpty());
 	}
 	
 	@Test
@@ -1011,7 +1010,7 @@ final public class TestAugmentUsingIFTHEN
 				"P={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={A=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"Q={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={B=java.awt.Color[r=255,g=255,b=0]}, "+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={R=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"R={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}}",
-				((Map<String,Map<String,Map<String,Color>>>)graphAfterConversion.getUserDatum(JUConstants.EDGE)).toString());
+				((EdgeAnnotation)graphAfterConversion.getUserDatum(JUConstants.EDGE)).toString());
 
 	}
 

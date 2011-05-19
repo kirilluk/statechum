@@ -43,15 +43,23 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.rpnicore.*;
+import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Paint;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.Toolkit;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.GeneralPath;
+import java.awt.geom.Rectangle2D;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 
@@ -602,7 +610,176 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     }
 
     protected static PluggableRenderer constructRenderer(Graph g,final LayoutOptions options) {
-        PluggableRenderer r = new PluggableRenderer();
+        PluggableRenderer r = new PluggableRenderer()
+        {
+            /**
+             * Draws the edge <code>e</code>, whose endpoints are at <code>(x1,y1)</code>
+             * and <code>(x2,y2)</code>, on the graphics context <code>g</code>.
+             * The <code>Shape</code> provided by the <code>EdgeShapeFunction</code> instance
+             * is scaled in the x-direction so that its width is equal to the distance between
+             * <code>(x1,y1)</code> and <code>(x2,y2)</code>.
+             */
+            @Override
+			protected void drawSimpleEdge(Graphics2D g2d, Edge e, int x1, int y1, int x2, int y2)
+            {
+                final Vertex v1 = (Vertex)e.getEndpoints().getFirst();
+                final Vertex v2 = (Vertex)e.getEndpoints().getSecond();
+                boolean isLoop = v1.equals(v2);
+                final Shape s2 = vertexShapeFunction.getShape(v2);
+                Shape edgeShape = edgeShapeFunction.getShape(e);
+                final double dx = x2-x1;
+                final double dy = y2-y1;
+                
+                boolean edgeHit = true;
+                boolean arrowHit = true;
+                Rectangle deviceRectangle = null;
+                if(screenDevice != null) {
+                    Dimension d = screenDevice.getSize();
+                    if(d.width <= 0 || d.height <= 0) {
+                        d = screenDevice.getPreferredSize();
+                    }
+                    deviceRectangle = new Rectangle(0,0,d.width,d.height);
+                }
+
+                String label = edgeStringer.getLabel(e);
+                assert (label != null); 
+                Component labelComponent = prepareRenderer(graphLabelRenderer, label, isPicked(e), e);
+                Dimension d = labelComponent.getPreferredSize();
+                Rectangle2D EdgeShapeBoundaries = edgeShape.getBounds2D();
+                AffineTransform xform = AffineTransform.getTranslateInstance(x1, y1);
+                double yMin=0,yMax=0;
+                double thetaRadians = 0;
+                if(isLoop) 
+                {
+                    // this is a self-loop. scale it is larger than the vertex
+                    // it decorates and translate it so that its nadir is
+                    // at the center of the vertex.
+                    Rectangle2D s2Bounds = s2.getBounds2D();
+                    double translation = s2Bounds.getHeight()/2;
+                    xform.translate(0, -translation);
+                    xform.scale(s2Bounds.getWidth(),s2Bounds.getHeight());
+                    yMin = EdgeShapeBoundaries.getMinY()*s2Bounds.getHeight()-translation;
+                    yMax = EdgeShapeBoundaries.getMaxY()*s2Bounds.getHeight()-translation;
+                    
+                } else 
+                {
+                    // this is a normal edge. Rotate it to the angle between
+                    // vertex endpoints, then scale it to the distance between
+                    // the vertices
+                    thetaRadians = Math.atan2(dy, dx);
+                    double dist = Math.sqrt(dx*dx + dy*dy);
+                    xform.rotate(thetaRadians);
+                    xform.scale(dist, 1.0);
+                    yMin = EdgeShapeBoundaries.getMinY();
+                    yMax = EdgeShapeBoundaries.getMaxY();
+                }
+                
+                edgeShape = xform.createTransformedShape(edgeShape);
+                /* Debug code
+                g2d.setPaint(new Color( 200, 100, 0));g2d.fill(edgeShape.getBounds2D());
+                if (!isLoop)
+                {
+                    g2d.setPaint(new Color( 250, 250, 0));
+                	AffineTransform rect = AffineTransform.getTranslateInstance(x1, y1+yMin);
+                	rect.rotate(thetaRadians);
+                	g2d.fill(rect.createTransformedShape(
+                		new Rectangle(0,0,(int)Math.sqrt(dx*dx + dy*dy),(int)(yMax-yMin))));
+                }
+                else
+                {
+                    g2d.setPaint(new Color( 100, 250, 0));
+                    AffineTransform rect = AffineTransform.getTranslateInstance(x1-s2.getBounds2D().getWidth()/2, y1+yMin);
+                	rect.rotate(thetaRadians);
+                	g2d.fill(rect.createTransformedShape(
+                		new Rectangle(0,0,(int)s2.getBounds2D().getWidth(),(int)(yMax-yMin))));
+                }	
+                */
+                edgeHit = viewTransformer.transform(edgeShape).intersects(deviceRectangle);
+
+                if(edgeHit == true) 
+                {
+                    Paint oldPaint = g2d.getPaint();
+                    
+                    // get Paints for filling and drawing
+                    // (filling is done first so that drawing and label use same Paint)
+                    Paint fill_paint = edgePaintFunction.getFillPaint(e); 
+                    if (fill_paint != null)
+                    {
+                        g2d.setPaint(fill_paint);
+                        g2d.fill(edgeShape);
+                    }
+                    Paint draw_paint = edgePaintFunction.getDrawPaint(e);
+                    if (draw_paint != null)
+                    {
+                        g2d.setPaint(draw_paint);
+                        g2d.draw(edgeShape);
+                    }
+                    
+                    double scalex = g2d.getTransform().getScaleX();
+                    double scaley = g2d.getTransform().getScaleY();
+                    // see if arrows are too small to bother drawing
+                    if(scalex < .3 || scaley < .3) return;
+                    
+                    if (edgeArrowPredicate.evaluate(e)) {
+                        
+                        Shape destVertexShape = 
+                            vertexShapeFunction.getShape((Vertex)e.getEndpoints().getSecond());
+                        AffineTransform xf = AffineTransform.getTranslateInstance(x2, y2);
+                        destVertexShape = xf.createTransformedShape(destVertexShape);
+                        
+                        arrowHit = viewTransformer.transform(destVertexShape).intersects(deviceRectangle);
+                        if(arrowHit) {
+                            
+                            AffineTransform at;
+                            if (edgeShape instanceof GeneralPath)
+                                at = getArrowTransform((GeneralPath)edgeShape, destVertexShape);
+                            else
+                                at = getArrowTransform(new GeneralPath(edgeShape), destVertexShape);
+                            if(at == null) return;
+                            Shape arrow = edgeArrowFunction.getArrow(e);
+                            arrow = at.createTransformedShape(arrow);
+                            // note that arrows implicitly use the edge's draw paint
+                            g2d.fill(arrow);
+                        }
+                        assert !(e instanceof UndirectedEdge); 
+                    }
+                    
+                    // Now draw the label.
+                    double xLabel = 0,yLabel = 0,xa=0,ya=0,rotation=thetaRadians;
+                    if (dx < 0)
+                    {
+                       	double displacementY = -yMax-d.height, displacementX=d.width/2;
+                    	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
+                    	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
+                    	xLabel = xa+displacementX*Math.cos(thetaRadians);
+                    	yLabel = ya+displacementX*Math.sin(thetaRadians);
+                    	rotation = thetaRadians+Math.PI;
+                    }
+                    else
+                    {
+                    	double displacementY = -yMin+d.height, displacementX=d.width/2;
+                    	xa=x1+dx/2+displacementY*Math.sin(thetaRadians);
+                    	ya=y1+dy/2-displacementY*Math.cos(thetaRadians);
+                    	xLabel = xa-displacementX*Math.cos(thetaRadians);
+                    	yLabel = ya-displacementX*Math.sin(thetaRadians);
+                    }
+
+                    AffineTransform old = g2d.getTransform();
+                    AffineTransform labelTransform = new AffineTransform();
+                    // Debug code: g2d.drawLine((int)(x1+dx/2), (int)(y1+dy/2), (int)(xa), (int)(ya));g2d.drawLine((int)(xa), (int)(ya), (int)(xLabel), (int)(yLabel));
+                    labelTransform.translate(xLabel, yLabel);
+                    labelTransform.rotate(rotation);
+                    g2d.setTransform(labelTransform);
+                    rendererPane.paintComponent(g2d, labelComponent, screenDevice, 
+                            0, 0,
+                            d.width, d.height, true);
+                    g2d.setTransform(old);
+                    
+                    // restore old paint
+                    g2d.setPaint(oldPaint);
+                } // if edgeHit == true
+            }
+        };
         r = labelEdges(g, r);
         r = labelVertices(r, g);
         if (options != null)
@@ -645,11 +822,11 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
     public static class EdgeColour {
 
-        final Map<String, Map<String, Map<String, Color>>> transitionColours;
+        final EdgeAnnotation transitionColours;
         final Map<String, String> extraLabels;
 
         public EdgeColour(Graph graph) {
-            transitionColours = (Map<String, Map<String, Map<String, Color>>>) graph.getUserDatum(JUConstants.EDGE);
+            transitionColours = (EdgeAnnotation) graph.getUserDatum(JUConstants.EDGE);
             extraLabels = (Map<String, String>) graph.getUserDatum(JUConstants.VERTEX);
         }
 
@@ -743,6 +920,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                     		}
                     	}
                     }
+                    if ( ((Set<Label>) e.getUserDatum(JUConstants.LABEL)).size() > 4)
+                    	System.out.println();
                     text.append("</html>");
                     result=text.toString();
                 }

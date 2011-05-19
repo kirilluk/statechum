@@ -32,6 +32,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
@@ -121,6 +122,6 @@ public class TestVisualDemo {
 				"F={REM_v={F=java.awt.Color[r=255,g=0,b=0]}}, "+
 				"G={ADD_u={G=java.awt.Color[r=0,g=255,b=0]}}, "+
 				"H={ADD_t={H=java.awt.Color[r=0,g=255,b=0]}}}",
-				((Map<String,Map<String,Map<String,Color>>>)graph.getUserDatum(JUConstants.EDGE)).toString());
+				((EdgeAnnotation)graph.getUserDatum(JUConstants.EDGE)).toString());
 	}
 }

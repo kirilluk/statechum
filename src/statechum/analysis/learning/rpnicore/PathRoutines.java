@@ -892,6 +892,12 @@ public class PathRoutines {
 	 */
 	public static final String associationPrefix = "_";//PAIRASSOCIATION_"; 
 	
+	public static class EdgeAnnotation extends TreeMap<String,Map<Label,Map<String,Color>>> {
+		/**
+		 * ID for serialization.
+		 */
+		private static final long serialVersionUID = 7984820200382866000L;}
+	
 	/** Associations between states are like normal transitions (but should not be considered 
 	 * in a number of cases such as augmentation, state merging and GD). In order to check
 	 * equivalence of graphs for testing, it seems reasonable to replace all such associations with real
@@ -913,7 +919,7 @@ public class PathRoutines {
 		LearnerGraphND result = new LearnerGraphND(graph,config);
 		Set<CmpVertex> rowsProcessed = new HashSet<CmpVertex>();
 		
-		class TransitionAnnotationClass extends TreeMap<String,Map<Label,Map<String,Color>>>
+		class TransitionAnnotationClass extends EdgeAnnotation
 		{
 			/**
 			 * ID for serialisation

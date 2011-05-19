@@ -93,7 +93,7 @@ public class GDVisualDemo
 						"P1029 - logout-> P1030 /"+
 						"P1093 - disconnect-> P1094 /"+
 						"P1004 - changedirectory-> P1026",*/
-						"a-initialise->d-connect->f-login->h-storefile->m\nh-listfiles->l-retrievefile->l-changedirectory->p-listfiles->l-logout->o-disconnect->q\nh-changedirectory->n-listnames->i-delete->i-delete->j-changedirectory->n\ni-appendfile->k-logout->o" //\nb-setfiletype->e-rename->g\nc-makedir->c"
+						"a-initialise->d-connect->f-login->h-storefile->m\nh-listfiles->l-retrievefile->l-changedirectory->p-listfiles->l-logout->o-disconnect->q\nh-changedirectory->n-listnames->i-delete->i-delete->j-changedirectory->n\ni-appendfile->k-logout->o\nb-setfiletype->e-rename->g\nc-makedir->c"
 
 						),
 				new Pair<String,String>("A-a->B-a->C / A-b->D", "P-a->Q-a->R / S-c->R"),

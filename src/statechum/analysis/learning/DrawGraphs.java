@@ -78,7 +78,9 @@ import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RMainLoopCallbacks;
 import org.rosuda.JRI.Rengine;
 
+import statechum.GlobalConfiguration;
 import statechum.Helper;
+import statechum.GlobalConfiguration.G_PROPERTIES;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -482,7 +484,39 @@ public class DrawGraphs {
 			
 			return bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
 		}
-
+		
+		public boolean checkSingleDot()
+		{
+			Double xValue = null, yValue = null;
+			// if there is nothing useful to draw, do not pass the command to Bagplot - it will crash (as of May 24, 2011).
+			Iterator<Entry<Double,List<Double>>> resultIterator = collectionOfResults.entrySet().iterator();
+			boolean foundDifference = false;
+			while(resultIterator.hasNext() && !foundDifference)
+			{
+				Entry<Double,List<Double>> entry = resultIterator.next();
+				if (xValue == null) xValue = entry.getKey();
+				foundDifference |= !xValue.equals(entry.getKey());
+				
+				for(Double y:entry.getValue())
+				{
+					if (yValue == null) yValue = y;
+					
+					foundDifference |= !yValue.equals(y);
+				}
+			}
+			return !foundDifference;
+		}
+		
+		@Override
+		public void drawInteractive(DrawGraphs gr)
+		{
+			if (!checkSingleDot())
+				super.drawInteractive(gr);
+			else
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+					System.out.println("WARNING: not popping bagplot "+file+" consisting of a single dot due to R bug");
+		}
+		
 		@Override
 		protected double computeHorizSize() {
 			return ySize;

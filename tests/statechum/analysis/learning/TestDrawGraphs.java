@@ -341,4 +341,50 @@ public class TestDrawGraphs {
 		Assert.assertEquals("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
 	}
 	
+	@Test
+	public void testAttemptSingleDotBagPlot1()
+	{
+		final String X="axisX", Y="axisY";
+		RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.5,34.);
+		g.add(5.5,34.);
+		Assert.assertTrue(g.checkSingleDot());
+	}
+	
+	@Test
+	public void testAttemptSingleDotBagPlot2()
+	{
+		final String X="axisX", Y="axisY";
+		RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		Assert.assertTrue(g.checkSingleDot());
+	}
+
+	@Test
+	public void testAttemptSingleDotBagPlot3()
+	{
+		final String X="axisX", Y="axisY";
+		RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(0.,1.);
+		g.add(0.,1.);
+		Assert.assertTrue(g.checkSingleDot());
+	}
+	
+	@Test
+	public void testAttemptSingleDotBagPlot4()
+	{
+		final String X="axisX", Y="axisY";
+		RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(0.,1.);
+		g.add(0.,2.);
+		Assert.assertFalse(g.checkSingleDot());
+	}
+	@Test
+	public void testAttemptSingleDotBagPlot5()
+	{
+		final String X="axisX", Y="axisY";
+		RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(0.,1.);
+		g.add(1.,1.);
+		Assert.assertFalse(g.checkSingleDot());
+	}
 }

@@ -18,7 +18,6 @@
 package statechum.analysis.learning.experiments.mutation;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 
 import java.util.HashMap;
@@ -179,7 +178,7 @@ public class DiffExperiments {
 								gr_Diff_k.add(k, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 								
 							}
-							
+
 							for(double threshold:new double[]{0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95})
 							{
 								config.setGdKeyPairThreshold(threshold);
@@ -189,9 +188,7 @@ public class DiffExperiments {
 								
 								gr_Diff_threshold.add(threshold, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 							}
-							
-							
-							
+
 							for(double lowtohigh:new double[]{0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95})
 							{
 								config.setGdKeyPairThreshold(perfectThreshold);

@@ -62,6 +62,7 @@
 // This file is based on rtest.java
 
 package statechum.analysis.learning;
+import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -78,9 +79,9 @@ import org.rosuda.JRI.REXP;
 import org.rosuda.JRI.RMainLoopCallbacks;
 import org.rosuda.JRI.Rengine;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
-import statechum.GlobalConfiguration.G_PROPERTIES;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -168,7 +169,7 @@ public class DrawGraphs {
 		}
 	}
 	
-	/** R engine - can only be initalised once - second time packages do not load (setwd(x) cannot change directory)
+	/** R engine - can only be initalised once - second time packages do not load ("setwd(x) cannot change directory")
 	 * because F:/R/windows64/R-2.12.2/library is passed to setwd and even if the correct value is passed, package
 	 * loading fails.
 	 */
@@ -188,14 +189,15 @@ public class DrawGraphs {
 
 			Runtime.getRuntime().addShutdownHook(new Thread() {
 			    @Override
-				public void run() { end();
+				public void run() { 
+			    	end();
 			    }
 			});
 			eval("library(aplpack)","loading BagPlot");
 
 		}
 	}
-	
+
 	protected static REXP eval(String whatToEval, String errMsg)
 	{
 		callbacks.clearBuffer();
@@ -204,8 +206,7 @@ public class DrawGraphs {
 			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
 		return result;
 	}
-	
-	
+
 	protected static <ELEM> String vectorToR(List<ELEM> vector, boolean addQuotes)
 	{
 		if (vector.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
@@ -300,21 +301,21 @@ public class DrawGraphs {
 		}
 		result.append(')');yAxisData.append(')');
 		result.append(yAxisData);
-		
+
 		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
 
 	boolean javaGDLoaded = false;
-	
-	
+
+
 	/** Since I cannot pass arguments to RViewer during it construction, static values have to be set and 
 	 * then copied into the new object. For this reason, creation of graphs has to be serialised, this is done
 	 * by running it all on the Swing thread (avoids a deadlock associated with resizing of the window
 	 * and us doing something to it at the same time on different threads).
 	 */
-	public void drawInteractivePlot(final String dataToPlot,final String title)
+	public void drawInteractivePlot(final String []dataToPlot,final String title)
 	{
 		// First, load javaGD
 		if (!javaGDLoaded)
@@ -325,7 +326,7 @@ public class DrawGraphs {
 			eval("library(JavaGD)","loading JavaGD");
 			javaGDLoaded = true;
 		}
-		
+
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				@Override
@@ -335,19 +336,20 @@ public class DrawGraphs {
 					{// create new graph
 						RViewer.setNewGraphName(title);
 						eval("JavaGD(\"aa\")","JavaGD() failed");
-						REXP devNum =eval("dev.cur()","failed to do dev.cur"); 
+						REXP devNum = eval("dev.cur()","failed to do dev.cur");
 						
 						RViewer.getGraph(title).init(devNum.asInt()-1);
 					}
 					eval("dev.set("+(RViewer.getGraph(title).getDeviceNumber()+1)+")","failed to do dev.set for "+title);
-					eval(dataToPlot,"failed to run plot "+dataToPlot);		
+					for(String cmd:dataToPlot)
+						eval(cmd,"failed to run plot "+cmd);
 				}
 			});
 		} catch (Exception e) {
 			Helper.throwUnchecked("could not draw graph "+title, e);
 		}
 	}
-	
+
 
 	/** Draws a plot given the data to plot and stores it in the given file.
 	 * 
@@ -383,26 +385,53 @@ public class DrawGraphs {
 			engine=null;	
 		}		
 	}
-	
+
 	/**
 	 * Represents a graph.
 	 * 
 	 * @param <ELEM> type of elements for the X axis, veritical is always a Double
 	 */
-	public static abstract class RGraph<ELEM>
+	public static abstract class RGraph<ELEM extends Comparable<ELEM>>
 	{
 		Map<ELEM,List<Double>> collectionOfResults = new TreeMap<ELEM,List<Double>>();
 		
 		protected final String xAxis,yAxis;
 		protected final File file;
 		
+		/** Additional drawing command to append to a plot, such as abline() command. */
+		protected String extraCommand = "";
+		
+		public void setExtraCommand(String cmd)
+		{
+			extraCommand = cmd;
+		}
+		
 		public RGraph(String x,String y,File name)
 		{
 			xAxis=x;yAxis=y;file=name;
 		}
 		
+		protected ELEM xMin = null, xMax = null;
+		protected Double yMin = null, yMax = null;
+		
+		public void setXboundaries(ELEM min, ELEM max)
+		{
+			xMin = min;xMax = max;
+		}
+		
+		public void setYboundaries(double min, double max)
+		{
+			yMin = min;yMax = max;
+		}
+		
 		public void add(ELEM el,Double value)
 		{
+			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
+			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			
+			if (xMin != null && xMin.compareTo(el) > 0) return;
+			if (xMax != null && xMax.compareTo(el) < 0) return;
+			
 			List<Double> list = collectionOfResults.get(el);
 			if (list == null) { list=new LinkedList<Double>();collectionOfResults.put(el,list); }
 			list.add(value);
@@ -413,7 +442,7 @@ public class DrawGraphs {
 		
 		public void drawInteractive(DrawGraphs gr)
 		{
-			gr.drawInteractivePlot(getDrawingCommand(), file.getName());
+			gr.drawInteractivePlot(new String[]{getDrawingCommand(),extraCommand}, file.getName());
 		}
 		
 		protected double xSize = -1;
@@ -430,7 +459,7 @@ public class DrawGraphs {
 
 		public void drawPdf(DrawGraphs gr)
 		{
-			String drawingCommand = getDrawingCommand();
+			String drawingCommand = getDrawingCommand()+";"+extraCommand;
 			assert collectionOfResults.size() > 0;
 			double horizSize = xSize;
 			if (horizSize <= 0) horizSize=computeHorizSize();
@@ -441,7 +470,7 @@ public class DrawGraphs {
 		abstract protected double computeHorizSize();
 	}
 	
-	public static class RBoxPlot<ELEM> extends RGraph<ELEM>
+	public static class RBoxPlot<ELEM extends Comparable<ELEM>> extends RGraph<ELEM>
 	{
 		public RBoxPlot(String x, String y, File name) {
 			super(x, y, name);
@@ -485,26 +514,57 @@ public class DrawGraphs {
 			return bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
 		}
 		
-		public boolean checkSingleDot()
+		public boolean graphOk()
 		{
-			Double xValue = null, yValue = null;
+			Rectangle2D.Double size = getSize();
+			if (size.width < Configuration.fpAccuracy)
+				return false;
+			if (size.height < Configuration.fpAccuracy)
+				return false;
+		
+			return true;
+		}
+		
+		/** Computes the data for abline to draw a diagonal. */
+		public String computeDiagonal()
+		{
+			Rectangle2D.Double size = getSize();
+			if (size.width < Configuration.fpAccuracy)
+				throw new IllegalArgumentException("width is too small");
+			if (size.height < Configuration.fpAccuracy)
+				throw new IllegalArgumentException("height is too small");
+			
+			double k = size.height/size.width;
+			double diff = size.y-k*size.x;
+			
+			return "abline("+diff+","+k+")";
+		}
+		
+		public Rectangle2D.Double getSize()
+		{
+			Double xValueMin = null, xValueMax = null, yValueMin = null, yValueMax = null;
 			// if there is nothing useful to draw, do not pass the command to Bagplot - it will crash (as of May 24, 2011).
 			Iterator<Entry<Double,List<Double>>> resultIterator = collectionOfResults.entrySet().iterator();
-			boolean foundDifference = false;
-			while(resultIterator.hasNext() && !foundDifference)
+
+			while(resultIterator.hasNext())
 			{
 				Entry<Double,List<Double>> entry = resultIterator.next();
-				if (xValue == null) xValue = entry.getKey();
-				foundDifference |= !xValue.equals(entry.getKey());
+				if (xValueMin == null) { xValueMin = entry.getKey();xValueMax = entry.getKey(); }
+				if (xValueMin.compareTo(entry.getKey()) > 0) xValueMin = entry.getKey();
+				if (xValueMax.compareTo(entry.getKey()) < 0) xValueMax = entry.getKey();
 				
 				for(Double y:entry.getValue())
 				{
-					if (yValue == null) yValue = y;
-					
-					foundDifference |= !yValue.equals(y);
+					if (yValueMin == null) { yValueMin = y;yValueMax = y; }
+					if (yValueMin.compareTo(y) > 0) yValueMin = y;
+					if (yValueMax.compareTo(y) < 0) yValueMax = y;
 				}
 			}
-			return !foundDifference;
+			
+			if (xValueMin == null || yValueMin == null)
+				return new Rectangle2D.Double();
+			
+			return new Rectangle2D.Double(xValueMin,yValueMin,xValueMax-xValueMin,yValueMax-yValueMin);
 		}
 		
 		@Override
@@ -520,6 +580,10 @@ public class DrawGraphs {
 		@Override
 		protected double computeHorizSize() {
 			return ySize;
+		}
+
+		public boolean checkSingleDot() {
+			return getSize().width < Configuration.fpAccuracy && getSize().height < Configuration.fpAccuracy;
 		}
 	}
 }

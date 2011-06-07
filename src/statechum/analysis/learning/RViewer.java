@@ -36,38 +36,38 @@ public class RViewer extends GDInterface implements WindowListener {
 	{
 		return nameToGraph.get(name);
 	}
-	
+
 	/** Obtains a device number used to switch the output to this graph. Device numbers start from zero. */
 	@Override
 	public int getDeviceNumber()
 	{
 		return c.getDeviceNumber();
 	}
-	
+
     /** The name to give to the next graph to be created. */
     protected static String newGraphName =null;
-    
+
 	public static final int graphWindowNumber = 100;// used to serialise the coordinates.
 
 	/** Every graph has a size associated with it, this one contains the one for the next graph to be created. */
 	protected static int currentWindowNumber = graphWindowNumber;
-	
+
 	protected int thisWindowNumber = -1;
-	
+
     /** Assigns a graph name for the creation of the next graph, it is expected that the next call will go to gdOpen via JNI. */
     public static void setNewGraphName(String name)
     {
     	assert newGraphName == null;
     	newGraphName = name;
     }
-    
+
     protected String graphName = null;
-    
+
     public String getGraphName()
     {
     	return graphName;
     }
-    
+
     /** Key bindings. */
     protected Map<Integer, Action> keyToActionMap = new TreeMap<Integer, Action>();
    
@@ -149,7 +149,7 @@ public class RViewer extends GDInterface implements WindowListener {
     
     /** Post-open initialisation. 
      * 
-     * */
+     */
     public void init(int dev)
     {
 		c.setDeviceNumber(dev);

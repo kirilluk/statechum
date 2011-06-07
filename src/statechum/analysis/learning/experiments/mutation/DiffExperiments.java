@@ -123,7 +123,9 @@ public class DiffExperiments {
 			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
 			gr_Rand_W = new RBagPlot("W f-measure","Rand f-measure",new File("rand_W.pdf")),
 			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Diff/Mutations",new File("diff_pairs.pdf"));
-		
+		gr_Diff_MutationsToOriginal.setXboundaries(0.,0.5);
+		gr_Diff_MutationsToOriginal.setYboundaries(1.,1.15);
+
 		// Useful values of the threshold
 		double pairThreshold[] = new double[]{0.2,0.4,0.6,0.8,0.95},lowToHigh[] = new double[]{0.2,0.4,0.6,0.8,0.95};
 		RBoxPlot<Double> gr_Diff_threshold = new RBoxPlot<Double>("Threshold values, Low to High ratio = 0.5","ratio of patch size to mutations",new File("diff_threshold.pdf")),
@@ -266,6 +268,8 @@ public class DiffExperiments {
 				gr_Diff_MutationsToOriginal.drawInteractive(gr);
 				gr_W_States.drawInteractive(gr);
 				
+				if (gr_Diff_W.graphOk()) 
+					gr_Diff_W.setExtraCommand(gr_Diff_W.computeDiagonal());
 				gr_Diff_W.drawInteractive(gr);
 				gr_Rand_W.drawInteractive(gr);
 				

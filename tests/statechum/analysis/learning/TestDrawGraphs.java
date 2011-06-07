@@ -252,7 +252,7 @@ public class TestDrawGraphs {
 	@Test
 	public void testGenerateGraphFail1a()
 	{
-		final RGraph<String> g=new RBoxPlot<String>("axisX", "axisY", new File("someName"));
+		final RGraph<Integer> g=new RBoxPlot<Integer>("axisX", "axisY", new File("someName"));
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			g.getDrawingCommand();
 		}},IllegalArgumentException.class,"empty");
@@ -378,6 +378,7 @@ public class TestDrawGraphs {
 		g.add(0.,2.);
 		Assert.assertFalse(g.checkSingleDot());
 	}
+	
 	@Test
 	public void testAttemptSingleDotBagPlot5()
 	{
@@ -386,5 +387,95 @@ public class TestDrawGraphs {
 		g.add(0.,1.);
 		g.add(1.,1.);
 		Assert.assertFalse(g.checkSingleDot());
+	}
+	
+	@Test
+	public void testBoundaries1()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setXboundaries(5.5, 34.);
+		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
+		Assert.assertEquals("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testBoundaries2()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setXboundaries(5.6, 34.);
+		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
+		Assert.assertEquals("bagplot(c(7.5),c(2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testBoundaries3()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setYboundaries(5.5, 34.);
+		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
+		Assert.assertEquals("bagplot(c(5.5,5.5),c(34.0,34.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+	}
+	
+	@Test
+	public void testBoundaries4()
+	{
+		final String X="axisX", Y="axisY";
+		final RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setXboundaries(5.5, -34.);
+		g.setYboundaries(5.5, -34.);
+		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			g.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
+	}
+	
+	@Test
+	public void testComputeDiagonal1()
+	{
+		final String X="axisX", Y="axisY";
+		final RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setXboundaries(5.5, -34.);
+		g.setYboundaries(5.5, -34.);
+		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			g.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
+		
+	}
+	
+	@Test
+	public void testComputeDiagonal2()
+	{
+		final String X="axisX", Y="axisY";
+		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.5,34.);g.add(5.5,35.);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			g.computeDiagonal();
+		}},IllegalArgumentException.class,"width is too small");
+		
+	}	
+	
+	@Test
+	public void testComputeDiagonal3()
+	{
+		final String X="axisX", Y="axisY";
+		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.6,35.);g.add(5.5,35.);
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			g.computeDiagonal();
+		}},IllegalArgumentException.class,"height is too small");
+		
+	}
+	
+	@Test
+	public void testComputeDiagonal4()
+	{
+		final String X="axisX", Y="axisY";
+		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
+		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
+		Assert.assertEquals("abline(23.82608695652174,1.3043478260869565)",g.computeDiagonal());
 	}
 }

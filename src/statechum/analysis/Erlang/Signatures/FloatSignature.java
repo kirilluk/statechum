@@ -41,7 +41,7 @@ public class FloatSignature extends Signature {
 
 	@Override
 	public List<OtpErlangObject> instantiateAllAlts() {
-		return Collections.singletonList((OtpErlangObject)new OtpErlangDouble(96.));
+		return Collections.singletonList((OtpErlangObject)new OtpErlangDouble(96.63));
 
 	}
 

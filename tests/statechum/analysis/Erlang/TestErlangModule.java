@@ -253,7 +253,7 @@ public class TestErlangModule {
    	public void testWibbleAlphabet() throws IOException
     {
    		ErlangModule mod = ErlangModule.loadModule(new java.io.File("ErlangExamples/WibbleMonster/wibble.erl"));
-   		Assert.assertEquals("[{?F(),'call','xyz','here_kirill'},{?F(),'call','xyz','listing'},{?F(),'call','xyz','wibbling'},{?F(),'call','xyz','wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'cast','AnyWibble',[]},{?F(),'cast','AnyWibble',[127,127]},{?F(),'info','AnyWibble',{'noreply','AnyWibble'}},{?F(),'init','AnyWibble','ok'}]",
+   		Assert.assertEquals("[{?F(),'call','xyz','here_kirill'},{?F(),'call','xyz','listing'},{?F(),'call','xyz','wibbling'},{?F(),'call','xyz','wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'cast','AnyWibble',[]},{?F(),'cast','AnyWibble',[128,128]},{?F(),'info','AnyWibble',{'noreply','AnyWibble'}},{?F(),'init','AnyWibble','ok'}]",
    				TestTypes.getAlphabetAsString(mod));
     }
 

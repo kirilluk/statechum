@@ -37,7 +37,7 @@
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
 %% -include_lib("typer/src/typer.hrl").
--include_lib("typer_s.hrl").
+-include("typer_s.hrl").
 
 %% In order to find out where the .beam has come from, I can use code:get_object_code(typer_annotator).
 
@@ -50,7 +50,6 @@
 %% Args#args{analyze= []} % list of files to analyse
 
 start(FilesToAnalyse,Plt,Outputmode) ->
-
   Files = lists:map(fun(F) -> 
 	if 
 		is_atom(F) -> F;
@@ -58,12 +57,11 @@ start(FilesToAnalyse,Plt,Outputmode) ->
 	end end,FilesToAnalyse),
   Args = #args{analyze = FilesToAnalyse},
   Analysis = #typer_analysis{contracts = false,mode = ?SHOW,plt = Plt},
-
-  TrustedFiles = typer_preprocess:get_all_files(Args, trust),
+  TrustedFiles = typer_preprocess_s:get_all_files(Args, trust),
   Analysis1 = Analysis#typer_analysis{t_files = TrustedFiles},
   Analysis2 = extract(Analysis1),
 %%  dbg:start(),dbg:tracer(),dbg:tpl(typer_preprocess, '_', []),dbg:p(all, c),
-  All_Files = typer_preprocess:get_all_files(Args, analysis),
+  All_Files = typer_preprocess_s:get_all_files(Args, analysis),
   Analysis3 = Analysis2#typer_analysis{ana_files = All_Files},
   Analysis4 = typer_info_s:collect(Analysis3),
   TypeInfo = get_type_info(Analysis4),

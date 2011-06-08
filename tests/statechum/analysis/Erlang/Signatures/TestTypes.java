@@ -1,3 +1,21 @@
+/* Copyright (c) 2011 The University of Sheffield.
+ * 
+ * This file is part of StateChum
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ * 
+ */
 package statechum.analysis.Erlang.Signatures;
 
 import static statechum.Helper.checkForCorrectException;
@@ -303,7 +321,7 @@ public class TestTypes
 		checkFailureFor("funcPositive, 0, ok", config);
 		checkFailureFor("funcPositive, -20, ok", config);
 	}
-	
+
 	@Test
 	public void testNumberCompatibilityNegative() throws IOException
 	{
@@ -321,7 +339,7 @@ public class TestTypes
 		checkFailureFor("funcNegative, 0, ok", config);
 		createLabel("funcNegative, -20, ok", config);
 	}
-	
+
 	@Test
 	public void testNumberCompatibilityNonnegative() throws IOException
 	{
@@ -682,8 +700,8 @@ public class TestTypes
 	
 		checkFailureFor("strCnonEmpty, [],1",config);
 		createLabel("strCnonEmpty, \"strA\",1",config);
-
 	}
+
 	/** Tests for an arbitrary list. */
 	@Test
 	public void testTypeCompatibility8() throws IOException

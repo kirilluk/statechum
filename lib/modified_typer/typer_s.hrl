@@ -49,13 +49,13 @@
 	 %% in case filename does NOT match with moduleName
 	 final_files = []			:: [{string(), atom()}],  
 	 
-	 ex_func     = typer_map:new()		:: dict(),
-	 record      = typer_map:new()		:: dict(),
+	 ex_func     = typer_map_s:new()		:: dict(),
+	 record      = typer_map_s:new()		:: dict(),
 	 
 	 %% Functions: the line number of the function 
 	 %%            should be kept as well
-	 func        = typer_map:new()		:: dict(),
-	 inc_func    = typer_map:new()		:: dict(),
+	 func        = typer_map_s:new()		:: dict(),
+	 inc_func    = typer_map_s:new()		:: dict(),
 	 trust_plt   = dialyzer_plt:new()	:: dialyzer_plt:plt()}).
 
 -record(args,

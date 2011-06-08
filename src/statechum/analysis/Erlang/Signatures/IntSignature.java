@@ -110,7 +110,8 @@ public class IntSignature extends Signature {
    }
     
 	@Override
-	public boolean typeCompatible(OtpErlangObject term) {
+	public boolean typeCompatible(OtpErlangObject term) 
+	{
 		long value = 0;
 		if (term instanceof OtpErlangInt) value = ((OtpErlangInt)term).longValue();
 		else
@@ -124,10 +125,11 @@ public class IntSignature extends Signature {
 	}
 
 	@Override
-	public List<OtpErlangObject> instantiateAllAlts() {
+	public List<OtpErlangObject> instantiateAllAlts() 
+	{
 		OtpErlangObject value = null;
 	   	if (values == null || values.isEmpty())
-	   		value = new OtpErlangLong((upper-lower)/2);
+	   		value = new OtpErlangLong((upper+lower)/2);
 	   	else
 	   		value = new OtpErlangLong(values.iterator().next());
 	   	

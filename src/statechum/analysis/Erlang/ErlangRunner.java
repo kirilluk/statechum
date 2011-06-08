@@ -23,6 +23,15 @@
  *  
  * Running on Debian x86_64 requires something like:
  * -ea -DVIZ_CONFIG=kirill_home -Dthreadnum=2 -Djava.library.path=linear/.libs:smt/.libs -Xmx2500m -DLTL2BA=/usr/local/bin/ltl2ba
+ * 
+ * Building Erlang R14B03 on MacOS X 10.5,
+ * ./configure --enable-darwin-64bit --enable-m64-build --prefix=/usr/local/soft/Erlang_R14B03 
+ * This generates apple-gcc command-line options which are not accepted by 
+ * "normal" gcc since Apple does not contribute patches to their features. Compile
+ * may fail because am_sse2_fnegate_mask is not defined - it needs to be included
+ * in the file with atoms and defined as #define am_sse2_fnegate_mask make_atom(984) or whatever the last value is.
+ * 
+ * 
  */
 
 package statechum.analysis.Erlang;

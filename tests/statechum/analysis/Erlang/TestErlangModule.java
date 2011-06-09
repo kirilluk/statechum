@@ -431,14 +431,14 @@ public class TestErlangModule {
 		Assert.assertEquals("gen_fsm_wrapper",ErlangModule.loadModule(new File(erlangFile)).behaviour.getWrapperName());
    }
     
+    /** One of the interface functions is missing. */ 
     @Test
     public void testSpecificValueFail() throws IOException
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n"+
 				"\nhandle_call(_,_,_)->{reply,ok,5}.\nhandle_cast(_,_)->{noreply,ok,5}.\n\ninitRenamed(_)->{ok,5}.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(new File(erlangFile));
-		}},IllegalArgumentException.class,"function testFile:init/1 is missing");
+		Assert.assertEquals("[{?F(),'call','AnyWibble','ok'},{?F(),'cast','AnyWibble','ok'},{?F(),'info','AnyWibble',{'reply','ok'}}]",TestTypes.getAlphabetAsString(
+				ErlangModule.loadModule(new File(erlangFile)) ));
     }
     
     @Test

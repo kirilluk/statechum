@@ -31,6 +31,22 @@
  * may fail because am_sse2_fnegate_mask is not defined - it needs to be included
  * in the file with atoms and defined as #define am_sse2_fnegate_mask make_atom(984) or whatever the last value is.
  * 
+ * If erlang is installed somewhere not on the standard path (e.g. /usr/local/bin) then this
+ * needs to be added to the path seen by Eclipse (or NetBeans, or whatever). This is NOT the
+ * same as the path seen from the terminal. To change the path seen by apps you must create
+ * ~/.MacOSX/environment.plist - this is populated with key-value items that are added to the
+ * environment when an app loads. The simplest content is:
+ * 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PATH</key>
+	<string>/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/X11/bin</string>
+</dict>
+</plist>
+
+ * 
  * 
  */
 

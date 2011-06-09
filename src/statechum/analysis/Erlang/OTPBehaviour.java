@@ -34,240 +34,274 @@ import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
 
 /**
- *
+ * 
  * @author ramsay
  */
 public abstract class OTPBehaviour {
 
-    public String name;
-    final protected ErlangModule parent;
-    
-    public static interface OtpCallInterface
-    {
-    	/** Otp returns the middle-arg of methods which expect to return a value. */
-    	public Signature extractVisibleReturnType(Signature fullReturnType);
-   	
-    	/** In OTP, only the first argument is supplied by as, the rest are by framework.
-    	 * 
-    	 * @param args types of args to extract the first element from
-    	 * @return outcome of conversion
-    	 */
-    	public List<List<Signature>> convertArguments(List<List<Signature>> args);
-    	
-    	/** Arity of the operation. */
-    	public int getArity();
-    	
-    	/** Returns the corresponding Otp name. */
-    	public String getOtpName();
-  }
-    
-    /** Determines the conversion to get from a normal function to OTP one. */
-    public static class OTPCall implements OtpCallInterface
-    {
-    	/** Otp returns the middle-arg of methods which expect to return a value. */
-    	@Override
-		public Signature extractVisibleReturnType(Signature fullReturnType)
-    	{
-    		return Signature.extractElement(fullReturnType, 1);
-    	}
- 
-    	/** In OTP, only the first argument is supplied by as, the rest are by framework.
-    	 * 
-    	 * @param args types of args to extract the first element from
-    	 * @return outcome of conversion
-    	 */
-    	@Override
-		public List<List<Signature>> convertArguments(List<List<Signature>> args)
-    	{
-    		List<List<Signature>> outcome = new LinkedList<List<Signature>>();
-    		for(List<Signature> list:args)
-    		{
-    			List<Signature> convertedList = new LinkedList<Signature>();
-    			convertedList.add(list.get(0));
-    			outcome.add(convertedList);
-    		}
-    		return Collections.unmodifiableList(outcome);
-    		
-    	}
-    	
-    	@Override
-		public int getArity() { return 1; }
+	public String name;
+	final protected ErlangModule parent;
+
+	public static interface OtpCallInterface {
+		/**
+		 * Otp returns the middle-arg of methods which expect to return a value.
+		 */
+		public Signature extractVisibleReturnType(Signature fullReturnType);
+
+		/**
+		 * In OTP, only the first argument is supplied by as, the rest are by
+		 * framework.
+		 * 
+		 * @param args
+		 *            types of args to extract the first element from
+		 * @return outcome of conversion
+		 */
+		public List<List<Signature>> convertArguments(List<List<Signature>> args);
+
+		/** Arity of the operation. */
+		public int getArity();
+
+		/** Returns the corresponding Otp name. */
+		public String getOtpName();
+	}
+
+	/** Determines the conversion to get from a normal function to OTP one. */
+	public static class OTPCall implements OtpCallInterface {
+		/**
+		 * Otp returns the middle-arg of methods which expect to return a value.
+		 */
+		@Override
+		public Signature extractVisibleReturnType(Signature fullReturnType) {
+			return Signature.extractElement(fullReturnType, 1);
+		}
+
+		/**
+		 * In OTP, only the first argument is supplied by as, the rest are by
+		 * framework.
+		 * 
+		 * @param args
+		 *            types of args to extract the first element from
+		 * @return outcome of conversion
+		 */
+		@Override
+		public List<List<Signature>> convertArguments(List<List<Signature>> args) {
+			List<List<Signature>> outcome = new LinkedList<List<Signature>>();
+			for (List<Signature> list : args) {
+				List<Signature> convertedList = new LinkedList<Signature>();
+				convertedList.add(list.get(0));
+				outcome.add(convertedList);
+			}
+			return Collections.unmodifiableList(outcome);
+
+		}
+
+		@Override
+		public int getArity() {
+			return 1;
+		}
 
 		@Override
 		public String getOtpName() {
 			return "call";
 		}
-     }
-    
-    
-    
-    protected final Map<String, OtpCallInterface> patterns;
-    protected Set<ErlangLabel> alphabet;
-    protected Collection<String> dependencies;
-    protected static final String[] stdmodsarray = {"erlang",
-        "gen_server",
-        "gen_fsm",
-        "lists",
-        "supervisor",
-        "filename",
-        "io",
-        "io_lib",
-        "code",
-        "erl_ddll",
-        "application",
-        "math"};
-    protected static final ArrayList<String> stdModsList = new ArrayList<String>(Arrays.asList(stdmodsarray));
+	}
 
-    protected OTPBehaviour(ErlangModule mod) 
-    {
-    	name = null;parent = mod;
-    	alphabet = new LinkedHashSet<ErlangLabel>();
-        patterns = new TreeMap<String, OtpCallInterface>();
-        dependencies = new LinkedList<String>();
-    }
+	protected final Map<String, OtpCallInterface> patterns;
+	protected Set<ErlangLabel> alphabet;
+	protected Collection<String> dependencies;
+	protected static final String[] stdmodsarray = { "erlang", "gen_server",
+			"gen_fsm", "lists", "supervisor", "filename", "io", "io_lib",
+			"code", "erl_ddll", "application", "math" };
+	protected static final ArrayList<String> stdModsList = new ArrayList<String>(
+			Arrays.asList(stdmodsarray));
 
-    /** We have normal Otp functions but all communications is via the server interface, hence
-     * we create functions reflecting what we actually see during learning.
-     */
-    protected void generateAlphabet()
-    {
-    	for(Entry<String,OtpCallInterface> pattern:patterns.entrySet())
-    	{
-    		if (!parent.sigs.containsKey(pattern.getKey()))
-    			throw new IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
-    		String otpName = pattern.getValue().getOtpName();
-    		if (parent.sigs.containsKey(otpName))
-    			throw new IllegalArgumentException("there is already a function defined with name "+otpName+" in module "+parent.getName());
-    		FuncSignature origFunction = parent.sigs.get(pattern.getKey()),
-    			otpFunction = new FuncSignature(ErlangLabel.parseText(origFunction.toErlangTerm()),pattern.getValue());
-    		
-    		parent.sigs.put(otpName,otpFunction);
- 
-			List<List<OtpErlangObject>> args = otpFunction.instantiateAllArgs();
-			List<OtpErlangObject> output = otpFunction.instantiateAllResults();
-			
-    		for(List<OtpErlangObject> funcArgs:args)
-    		{
-    			if (funcArgs.isEmpty()) throw new RuntimeException("function "+origFunction+" should take at least one argument");
-    			OtpErlangObject firstArg = funcArgs.get(0);
-    			for(OtpErlangObject result:output)
-    				alphabet.add(new ErlangLabel(parent.sigs.get(otpName),otpName,firstArg,result));
-    		}
-    	}
-    }
-    
-    @Override
-    public String toString() {
-        return name;
-    }
-    
-    public String getWrapperName()
-    {
-    	return name + "_wrapper";
-    }
-    
-    public Collection<String> getDependencies() {
-        return dependencies;
-    }
+	protected OTPBehaviour(ErlangModule mod) {
+		name = null;
+		parent = mod;
+		alphabet = new LinkedHashSet<ErlangLabel>();
+		patterns = new TreeMap<String, OtpCallInterface>();
+		dependencies = new LinkedList<String>();
+	}
 
-    /** Extracts dependencies of the supplied module, assuming the module has been successfully compiled and .beam file exists.
-     * 
-     * @param file the file of the module
-     * @throws IOException if this fails.
-     */
-    public void loadDependencies(File file)
-    {
-    	OtpErlangTuple response = ErlangRunner.getRunner().call(new OtpErlangObject[]{
-    			new OtpErlangAtom("dependencies"),
-    			new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM))},
-    			"Could not load dependencies of "+file.getName());
+	/**
+	 * We have normal Otp functions but all communications is via the server
+	 * interface, hence we create functions reflecting what we actually see
+	 * during learning.
+	 */
+	protected void generateAlphabet() {
+		for (Entry<String, OtpCallInterface> pattern : patterns.entrySet()) {
+			if (!parent.sigs.containsKey(pattern.getKey())) {
+				// Really, I don't care...
+				// throw new
+				// IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
+				System.out.println("function " + pattern.getKey() + " is missing in module " + parent.getName());
+			} else {
+				String otpName = pattern.getValue().getOtpName();
+				if (parent.sigs.containsKey(otpName))
+					throw new IllegalArgumentException(
+							"there is already a function defined with name "
+									+ otpName + " in module "
+									+ parent.getName());
+				FuncSignature origFunction = parent.sigs.get(pattern.getKey()), otpFunction = new FuncSignature(
+						ErlangLabel.parseText(origFunction.toErlangTerm()),
+						pattern.getValue());
 
-    	OtpErlangList listOfDepTuples = (OtpErlangList)response.elementAt(1);// the first element is 'ok'
-    	for(OtpErlangObject tup:listOfDepTuples.elements())
-    	{
-    		String mod = ( (OtpErlangAtom) ((OtpErlangTuple)tup).elementAt(0)).atomValue();
-            if (!stdModsList.contains(mod) && !dependencies.contains(mod)) {
-               dependencies.add(mod);
-            }
-        }
-    }
+				parent.sigs.put(otpName, otpFunction);
+				List<List<OtpErlangObject>> args = otpFunction
+						.instantiateAllArgs();
+				List<OtpErlangObject> output = otpFunction
+						.instantiateAllResults();
 
-    public static OTPBehaviour obtainDeclaredBehaviour(File file, ErlangModule mod)
-    {
-    	OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless defined in a module
-    	
-    	// extract the list of attributes and determine the kind of this module
-    	OtpErlangTuple response = ErlangRunner.getRunner().call(new OtpErlangObject[]{
-    			new OtpErlangAtom("attributes"),
-    			new OtpErlangAtom(ErlangRunner.getName(file, ErlangRunner.ERL.BEAM))},
-    			"Could not load attributes of "+file.getName());
+				for (List<OtpErlangObject> funcArgs : args) {
+					if (funcArgs.isEmpty())
+						throw new RuntimeException("function " + origFunction
+								+ " should take at least one argument");
+					OtpErlangObject firstArg = funcArgs.get(0);
+					for (OtpErlangObject result : output)
+						alphabet.add(new ErlangLabel(parent.sigs.get(otpName),
+								otpName, firstArg, result));
+				}
+			}
+		}
+	}
 
-    	OtpErlangList listOfDepTuples = (OtpErlangList)response.elementAt(1);// the first element is 'ok'
-    	for(OtpErlangObject tup:listOfDepTuples.elements())
-    	{
-    		OtpErlangTuple tuple = (OtpErlangTuple)tup;
-    		OtpErlangObject name = tuple.elementAt(0);
-    		if (name instanceof OtpErlangAtom &&
-    				((OtpErlangAtom)name).atomValue().equals("behaviour"))
-    		{// found the gen_server attribute
-    			OtpErlangObject value = tuple.elementAt(1);
-    			if (value instanceof OtpErlangList &&
-    					((OtpErlangList)value).arity() == 1 &&
-    					((OtpErlangList)value).elementAt(0) instanceof OtpErlangAtom)
-    			{// behaviour attribute is of the correct kind
-	    			String bstring = ((OtpErlangAtom)((OtpErlangList)value).elementAt(0)).atomValue();
-	                if (bstring.startsWith("gen_server")) {
-	                    behaviour = new OTPGenServerBehaviour(mod);
-	                } else if (bstring.startsWith("gen_event")) {
-	                    behaviour = new OTPGenEventBehaviour(mod);
-	                } else if (bstring.startsWith("gen_fsm")) {
-	                    behaviour = new OTPGenFSMBehaviour(mod);
-	                } else
-	                	throw new IllegalArgumentException("unknown behaviour type defined "+bstring);
-	                
-	                break;
-    			}
-    			else
-    				throw new IllegalArgumentException("behaviour attribute "+value+ " is of the wrong kind");
-    		}
-   		}
+	@Override
+	public String toString() {
+		return name;
+	}
 
-    	behaviour.loadDependencies(file);
-    	return behaviour;
-    }
+	public String getWrapperName() {
+		return name + "_wrapper";
+	}
 
-    public Set<ErlangLabel> getAlphabet() {
-        return alphabet;
-    }
+	public Collection<String> getDependencies() {
+		return dependencies;
+	}
 
-    
-    public static interface ConvertALabel
-    {
-    	public Label convertLabelToLabel(Label lbl);
-    }
-    
-    /** Given an instance of a converter, converts all elements of a trace. 
-     * This is useful for converting from text-compatible traces (no function signatures) to
-     * those with signatures and back.
-     * 
-     * @param trace trace to convert
-     * @param converter how to convert, see <em>ConverterModToErl</em> and <em>ConverterErlToMod</em>.
-     * @return result of conversion.
-     */
-    public List<Label> convertTrace(List<Label> trace,ConvertALabel converter)
-    {
-    	List<Label> outcome = new LinkedList<Label>();
-    	for(Label lbl:trace) outcome.add(converter.convertLabelToLabel(lbl));
-    	return outcome;
-    }
-    
-    /** Used to turn real traces into textual traces, suitable for persistence.
-     */ 
-    class ConverterModToErl implements LabelConverter,ConvertALabel
-    {
+	/**
+	 * Extracts dependencies of the supplied module, assuming the module has
+	 * been successfully compiled and .beam file exists.
+	 * 
+	 * @param file
+	 *            the file of the module
+	 * @throws IOException
+	 *             if this fails.
+	 */
+	public void loadDependencies(File file) {
+		OtpErlangTuple response = ErlangRunner.getRunner().call(
+				new OtpErlangObject[] {
+						new OtpErlangAtom("dependencies"),
+						new OtpErlangAtom(ErlangRunner.getName(file,
+								ErlangRunner.ERL.BEAM)) },
+				"Could not load dependencies of " + file.getName());
+
+		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the
+																				// first
+																				// element
+																				// is
+																				// 'ok'
+		for (OtpErlangObject tup : listOfDepTuples.elements()) {
+			String mod = ((OtpErlangAtom) ((OtpErlangTuple) tup).elementAt(0))
+					.atomValue();
+			if (!stdModsList.contains(mod) && !dependencies.contains(mod)) {
+				dependencies.add(mod);
+			}
+		}
+	}
+
+	public static OTPBehaviour obtainDeclaredBehaviour(File file,
+			ErlangModule mod) {
+		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless
+																// defined in a
+																// module
+
+		// extract the list of attributes and determine the kind of this module
+		OtpErlangTuple response = ErlangRunner.getRunner().call(
+				new OtpErlangObject[] {
+						new OtpErlangAtom("attributes"),
+						new OtpErlangAtom(ErlangRunner.getName(file,
+								ErlangRunner.ERL.BEAM)) },
+				"Could not load attributes of " + file.getName());
+
+		OtpErlangList listOfDepTuples = (OtpErlangList) response.elementAt(1);// the
+																				// first
+																				// element
+																				// is
+																				// 'ok'
+		for (OtpErlangObject tup : listOfDepTuples.elements()) {
+			OtpErlangTuple tuple = (OtpErlangTuple) tup;
+			OtpErlangObject name = tuple.elementAt(0);
+			if (name instanceof OtpErlangAtom
+					&& ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found
+																				// the
+																				// gen_server
+																				// attribute
+				OtpErlangObject value = tuple.elementAt(1);
+				if (value instanceof OtpErlangList
+						&& ((OtpErlangList) value).arity() == 1
+						&& ((OtpErlangList) value).elementAt(0) instanceof OtpErlangAtom) {// behaviour
+																							// attribute
+																							// is
+																							// of
+																							// the
+																							// correct
+																							// kind
+					String bstring = ((OtpErlangAtom) ((OtpErlangList) value)
+							.elementAt(0)).atomValue();
+					if (bstring.startsWith("gen_server")) {
+						behaviour = new OTPGenServerBehaviour(mod);
+					} else if (bstring.startsWith("gen_event")) {
+						behaviour = new OTPGenEventBehaviour(mod);
+					} else if (bstring.startsWith("gen_fsm")) {
+						behaviour = new OTPGenFSMBehaviour(mod);
+					} else
+						throw new IllegalArgumentException(
+								"unknown behaviour type defined " + bstring);
+
+					break;
+				} else
+					throw new IllegalArgumentException("behaviour attribute "
+							+ value + " is of the wrong kind");
+			}
+		}
+
+		behaviour.loadDependencies(file);
+		return behaviour;
+	}
+
+	public Set<ErlangLabel> getAlphabet() {
+		return alphabet;
+	}
+
+	public static interface ConvertALabel {
+		public Label convertLabelToLabel(Label lbl);
+	}
+
+	/**
+	 * Given an instance of a converter, converts all elements of a trace. This
+	 * is useful for converting from text-compatible traces (no function
+	 * signatures) to those with signatures and back.
+	 * 
+	 * @param trace
+	 *            trace to convert
+	 * @param converter
+	 *            how to convert, see <em>ConverterModToErl</em> and
+	 *            <em>ConverterErlToMod</em>.
+	 * @return result of conversion.
+	 */
+	public List<Label> convertTrace(List<Label> trace, ConvertALabel converter) {
+		List<Label> outcome = new LinkedList<Label>();
+		for (Label lbl : trace)
+			outcome.add(converter.convertLabelToLabel(lbl));
+		return outcome;
+	}
+
+	/**
+	 * Used to turn real traces into textual traces, suitable for persistence.
+	 */
+	class ConverterModToErl implements LabelConverter, ConvertALabel {
 		@Override
-		public Set<Label> convertLabel(Label lbl) 
-		{
+		public Set<Label> convertLabel(Label lbl) {
 			return Collections.singleton(convertLabelToLabel(lbl));
 		}
 
@@ -275,76 +309,89 @@ public abstract class OTPBehaviour {
 		public Label convertLabelToLabel(Label lbl) {
 			return convertModToErl(lbl);
 		}
-   }
-    
-	/** Used to turn textual traces loaded from somewhere into proper Erlang traces which can be executed.
-     */ 
-    class ConverterErlToMod implements LabelConverter,ConvertALabel
-    {
+	}
+
+	/**
+	 * Used to turn textual traces loaded from somewhere into proper Erlang
+	 * traces which can be executed.
+	 */
+	class ConverterErlToMod implements LabelConverter, ConvertALabel {
 		@Override
-		public Set<Label> convertLabel(Label lbl) 
-		{
+		public Set<Label> convertLabel(Label lbl) {
 			return Collections.singleton(convertLabelToLabel(lbl));
 		}
 
 		@Override
-		public Label convertLabelToLabel(Label lbl) 
-		{
+		public Label convertLabelToLabel(Label lbl) {
 			return convertErlToMod(lbl);
 		}
-    	
-    }
-    
-    /** Strips the description of the function from the supplied label. */
-	public static Label convertModToErl(Label lbl) 
-	{
-		if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
-		ErlangLabel label = (ErlangLabel)lbl;
-		
-		return new ErlangLabel(null,label.callName,label.input,label.expectedOutput);
+
 	}
 
-	/** Using the behaviour, identify the function corresponding to the name of label and 
-	 * creates a new label with that function.
-	 *  
-	 * @param lbl label to convert
+	/** Strips the description of the function from the supplied label. */
+	public static Label convertModToErl(Label lbl) {
+		if (!(lbl instanceof ErlangLabel))
+			throw new IllegalArgumentException(
+					"cannot convert non-erlang labels");
+		ErlangLabel label = (ErlangLabel) lbl;
+
+		return new ErlangLabel(null, label.callName, label.input,
+				label.expectedOutput);
+	}
+
+	/**
+	 * Using the behaviour, identify the function corresponding to the name of
+	 * label and creates a new label with that function.
+	 * 
+	 * @param lbl
+	 *            label to convert
 	 * @return result of conversion.
 	 */
-	public ErlangLabel convertErlToMod(Label lbl) 
-	{
-		if (!(lbl instanceof ErlangLabel)) throw new IllegalArgumentException("cannot convert non-erlang labels");
-		ErlangLabel label = (ErlangLabel)lbl;
-		
+	public ErlangLabel convertErlToMod(Label lbl) {
+		if (!(lbl instanceof ErlangLabel))
+			throw new IllegalArgumentException(
+					"cannot convert non-erlang labels");
+		ErlangLabel label = (ErlangLabel) lbl;
+
 		FuncSignature origFunc = parent.sigs.get(label.callName);
-		if (origFunc == null) throw new IllegalArgumentException("unknown function \""+label.callName+"\" in module "+parent.getName());
-		
-		// At this point, we know which function should correspond to this label,
-		// it is worth checking whether the function already associated with the label
+		if (origFunc == null)
+			throw new IllegalArgumentException("unknown function \""
+					+ label.callName + "\" in module " + parent.getName());
+
+		// At this point, we know which function should correspond to this
+		// label,
+		// it is worth checking whether the function already associated with the
+		// label
 		// is the correct function,
-		if (label.function != null)
-		{
+		if (label.function != null) {
 			if (!label.function.toErlangTerm().equals(origFunc.toErlangTerm()))
-				throw new IllegalArgumentException("label already has a function assigned and it is a different function, "+
-						"was : "+label.function+", now: "+origFunc);
+				throw new IllegalArgumentException(
+						"label already has a function assigned and it is a different function, "
+								+ "was : " + label.function + ", now: "
+								+ origFunc);
 		}
-		return new ErlangLabel(origFunc,label.callName,label.input,label.expectedOutput);
+		return new ErlangLabel(origFunc, label.callName, label.input,
+				label.expectedOutput);
 	}
-	
-	/** In an ordinary function called via <em>apply</em> or so, arguments are supplied in the form
-	 * of a list. For Otp functions this is not the case - functions take a single argument.
-	 * In order to moderate between the two, a conversion function is introduced which takes
-	 * an Otp argument and turns it into pure Erlang one.
+
+	/**
+	 * In an ordinary function called via <em>apply</em> or so, arguments are
+	 * supplied in the form of a list. For Otp functions this is not the case -
+	 * functions take a single argument. In order to moderate between the two, a
+	 * conversion function is introduced which takes an Otp argument and turns
+	 * it into pure Erlang one.
 	 * 
-	 * For an Unknown behaviour this should assert that an arg is a list and convert it into Java list,
-	 * for Otp behaviours, we make singleton lists because all function take single arguments.
+	 * For an Unknown behaviour this should assert that an arg is a list and
+	 * convert it into Java list, for Otp behaviours, we make singleton lists
+	 * because all function take single arguments.
 	 */
-	public List<OtpErlangObject> functionArgumentsToListOfArgs(OtpErlangObject arg)
-	{
+	public List<OtpErlangObject> functionArgumentsToListOfArgs(
+			OtpErlangObject arg) {
 		return Collections.singletonList(arg);
 	}
 
-	public List<List<OtpErlangObject>> getInitArgs() 
-	{
-		return parent.sigs.get(parent.getName()+":init/1").instantiateAllArgs();
+	public List<List<OtpErlangObject>> getInitArgs() {
+		return parent.sigs.get(parent.getName() + ":init/1")
+				.instantiateAllArgs();
 	}
 }

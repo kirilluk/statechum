@@ -24,17 +24,17 @@
  */
 package statechum.Interface;
 
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.awt.BorderLayout;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
 import javax.swing.JLabel;
 import javax.swing.WindowConstants;
 
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+
+import com.ericsson.otp.erlang.OtpErlangObject;
 
 /**
  * 
@@ -86,11 +86,11 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 		initVals.getViewport().add(ta, BorderLayout.CENTER);
 		behaviour.setText(mod.behaviour.toString());
 		ta = new JLabel("<html>");
-		for (OtpErlangTuple a : mod.behaviour.getAlphabet()) {
+		for (ErlangLabel a : mod.behaviour.getAlphabet()) {
 			if (!ta.getText().equals("<html>")) {
 				ta.setText(ta.getText() + "<br />");
 			}
-			ta.setText(ta.getText() + "{" + a.toString().replaceAll("\\{", "&#123;").replaceAll("\\}", "&#125;") + "}");
+			ta.setText(ta.getText() + a.toString());
 		}
 		ta.setText(ta.getText() + "</html>");
 		alphabet.getViewport().removeAll();

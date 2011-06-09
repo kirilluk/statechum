@@ -94,7 +94,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
         if (expectedOutput != null) {
             result = result+" ,"+expectedOutput;
         }
-        return result;
+        return "{" + result + "}";
     }
     
     private final String alphaNum; 

@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import statechum.GlobalConfiguration.G_PROPERTIES;
+
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 /**
@@ -215,7 +217,8 @@ public class GlobalConfiguration {
 	public void saveFrame(Frame frame,int windowID)
 	{
 		WindowPosition windowPos = windowCoords.get(windowID);if (windowPos == null) windowPos = new WindowPosition();
-		Rectangle newRect = new Rectangle(frame.getSize());newRect.setLocation(frame.getX(), frame.getY());
+		Rectangle newRect = new Rectangle(frame.getSize());
+		newRect.setLocation(frame.getX(), frame.getY());
 		windowPos.setRect(newRect);
 		windowCoords.put(windowID, windowPos);
 	}
@@ -268,7 +271,8 @@ public class GlobalConfiguration {
 			if (configFileName != null)
 			{
 				XMLEncoder encoder = new XMLEncoder(new FileOutputStream(configFileName));
-				encoder.writeObject(properties);encoder.writeObject(windowCoords);encoder.close();
+				encoder.writeObject(properties);
+				encoder.writeObject(windowCoords);encoder.close();
 			}
 		} catch (Exception e) 
 		{// failed loading
@@ -287,5 +291,12 @@ public class GlobalConfiguration {
 		String name = graph == null? null:(String)graph.getUserDatum(JUConstants.TITLE);
 		return name != null && name.length()>0 && 
 			getProperty(G_PROPERTIES.STOP).equals(name);
+	}
+
+	public void setProperty(G_PROPERTIES key, String string) {
+		if(properties == null) {
+			properties = new Properties();
+		}
+		properties.setProperty(key.name(), string);
 	}
 }

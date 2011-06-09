@@ -173,12 +173,13 @@ public class RPNIUniversalLearner extends RPNILearner
 	}
 
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
+	public LearnerGraph ptaHardFacts = null;
 	
 	@Override 
 	public LearnerGraph learnMachine()
 	{
 		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
-		LearnerGraph ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
+		ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		SpinUtil spin = null;
 		LearnerGraph.copyGraphs(tentativeAutomaton, ptaHardFacts);
 		LearnerGraph ptaSoftFacts = tentativeAutomaton;

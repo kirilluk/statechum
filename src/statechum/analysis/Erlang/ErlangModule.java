@@ -165,6 +165,10 @@ public class ErlangModule {
 
     protected final static Map<String,ErlangModule> modulesRegistry = new TreeMap<String,ErlangModule>();
 
+    public static ErlangModule loadModule(String module) throws IOException {
+    	return loadModule(new File(module));
+    }
+    
     public static ErlangModule loadModule(File module) throws IOException
     {
     	ErlangModule mod = new ErlangModule(module);

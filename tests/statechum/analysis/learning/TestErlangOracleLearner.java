@@ -32,8 +32,27 @@ public class TestErlangOracleLearner {
 	public void testLockerLearning() throws IOException
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
-		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);learnerConfig.config.setErlangModuleName("locker");
-		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig,ErlangModule.loadModule(new File("ErlangExamples/locker/locker.erl")));
+		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		learnerConfig.config.setErlangModuleName("locker");
+		learnerConfig.config.setErlangSourceFile("ErlangExamples/locker/locker.erl");
+		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
+		
+		learner.GenerateInitialTraces();
+		LearnerGraph locker = learner.learnMachine();
+		Assert.assertEquals(6,locker.getStateNumber());
+		Assert.assertEquals(12,locker.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(56,locker.pathroutines.countEdges());
+	}
+	
+	@Test
+	public void testLockerLearningWithoutOutputMatching() throws IOException
+	{
+		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
+		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
+		learnerConfig.config.setErlangModuleName("locker");
+		learnerConfig.config.setErlangSourceFile("ErlangExamples/locker/locker.erl");
+		learnerConfig.config.setUseErlangOutputs(false);
+		ErlangOracleLearner learner = new ErlangOracleLearner(null,learnerConfig);
 		
 		learner.GenerateInitialTraces();
 		LearnerGraph locker = learner.learnMachine();

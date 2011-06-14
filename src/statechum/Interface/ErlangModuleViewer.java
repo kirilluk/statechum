@@ -31,6 +31,7 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.WindowConstants;
 
+import statechum.Configuration;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 
@@ -333,7 +334,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 
 	private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton2ActionPerformed
 		ErlangTraceGenerator gen = new ErlangTraceGenerator();
-		gen.setAlphabet(module.behaviour.getAlphabet());
+		gen.setModule(module);
 		gen.setVisible(true);
 		this.setVisible(false);
 		this.dispose();
@@ -347,7 +348,7 @@ public class ErlangModuleViewer extends javax.swing.JFrame {
 		ErlangModuleViewer emv = new ErlangModuleViewer();
 		if (args.length > 0) {
 			try {
-				emv.displayModule(ErlangModule.loadModule(args[0]));
+				emv.displayModule(ErlangModule.loadModule(args[0], Configuration.getDefaultConfiguration()));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

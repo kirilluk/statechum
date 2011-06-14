@@ -23,6 +23,9 @@ first_failure(Module, Wrapper, Trace, ModulesList, #statechum{}=State) ->
 	    case ProcStatus of 
 		ok ->
 		    {ok, OPTrace, State3};
+		died ->
+		    FullTrace = OPTrace ++ [lists:nth(length(OPTrace)+1, Trace)],
+		    {failed, FullTrace, State3};
 		failed_but ->
 		    {failed_but, OPTrace, State3};
 		failed ->
@@ -43,9 +46,9 @@ await_end(Pid, Ref, OpTrace) ->
 	{'DOWN', Ref, _X, _Y, normal} ->
 	    {ok, OpTrace};
 	{'EXIT', Ref, _X, _Y, _Status} ->
-	    {failed, OpTrace};
+	    {died, OpTrace};
 	{'DOWN', Ref, _X, _Y, _Status} ->
-	    {failed, OpTrace};
+	    {died, OpTrace};
 	{Pid, output, OP} ->
 	    await_end(Pid, Ref, OpTrace ++ [OP]);
 	{Pid, output_mismatch, OP} ->

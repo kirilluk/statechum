@@ -10,7 +10,6 @@
  */
 package statechum.Interface;
 
-import com.ericsson.otp.erlang.OtpErlangTuple;
 import java.awt.BorderLayout;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -24,12 +23,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+
+import statechum.Configuration;
 import statechum.Helper;
 import statechum.analysis.Erlang.ErlangLabel;
+import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.ErlangOracleLearner;
+import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
+import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+
+import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  *
@@ -42,7 +49,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 	 */
 	private static final long serialVersionUID = -5038890683208421642L;
 	protected Set<ErlangLabel> alphabet;
-    protected String module;
+    protected ErlangModule module;
     protected String wrapper;
 
     public void setAlphabet(Set<ErlangLabel> al) {
@@ -60,6 +67,12 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
 
     }
 
+    public void setModule(ErlangModule mod) {
+    	module = mod;
+    	setAlphabet(module.behaviour.getAlphabet());
+    	this.setTitle(module.name);
+    }
+    
     /** Creates new form ErlangTraceGenerator */
     public ErlangTraceGenerator() {
         initComponents();
@@ -82,7 +95,13 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         fileNameLabel = new javax.swing.JLabel();
         jButton2 = new javax.swing.JButton();
-
+        useOutputMatchingCheckBox = new javax.swing.JCheckBox();
+        useOutputMatchingCheckBox.setSelected(true);
+        useOutputMatchingCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+            	useOutputMatchingCheckBoxActionPerformed(evt);
+            }
+        });
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jLabel1.setText("Alphabet:");
@@ -107,6 +126,8 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
             }
         });
 
+        useOutputMatchingCheckBox.setText("Use output matching");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -114,25 +135,32 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jSeparator1, javax.swing.GroupLayout.DEFAULT_SIZE, 787, Short.MAX_VALUE)
+                    .addComponent(jSeparator1, javax.swing.GroupLayout.DEFAULT_SIZE, 827, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(alphabetPane, javax.swing.GroupLayout.DEFAULT_SIZE, 775, Short.MAX_VALUE)
-                            .addComponent(jLabel1)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel2)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(genStyle, 0, 658, Short.MAX_VALUE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLabel3)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(fileNameLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 637, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton2)))
+                            .addComponent(alphabetPane, javax.swing.GroupLayout.DEFAULT_SIZE, 807, Short.MAX_VALUE)
+                            .addComponent(jLabel1))
                         .addContainerGap())
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(jButton1)
-                        .addContainerGap())))
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(jLabel2)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(genStyle, 0, 713, Short.MAX_VALUE))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(jLabel3)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addComponent(fileNameLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 654, Short.MAX_VALUE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(jButton2)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 3, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jButton1, javax.swing.GroupLayout.Alignment.TRAILING))
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(useOutputMatchingCheckBox)
+                        .addContainerGap(663, Short.MAX_VALUE))))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -143,7 +171,9 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
                 .addComponent(alphabetPane, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(useOutputMatchingCheckBox)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 9, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3)
                     .addComponent(fileNameLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -154,7 +184,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
                     .addComponent(jLabel2))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButton1)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         pack();
@@ -195,15 +225,29 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
     private void genRandom(File file, int length, int count) {
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter(file));
+            out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name + ".erl\n");
+            out.write("config labelKind LABEL_ERLANG\n");
+            out.write("config erlangModuleName " + module.name + "\n");
+        	Configuration config = Configuration.getDefaultConfiguration();
+        	if(!useOutputMatchingCheckBox.isSelected()) {
+        		config.setUseErlangOutputs(false);
+        		out.write("config useErlangOutputs false\n");
+        	}
+        	config.setErlangModuleName(module.name);
+        	config.setErlangSourceFile(module.sourceFolder + File.separator + module.name + ".erl");
+        	ErlangOracleLearner learner = new ErlangOracleLearner(this, new LearnerEvaluationConfiguration(config));
             for (int i = 0; i < count; i++) {
                 List<ErlangLabel> line = randLine(alphabet, length);
                 System.out.println("trying " + line + "...");
-                //ErlangOracleLearner.askErlang
+                TraceOutcome response = learner.askErlang(line);
+                System.out.println("Got: " + response);
+                out.write(response.toString() + "\n");
             }
             out.close();
         } catch (IOException e) {
             Helper.throwUnchecked("Error writing traces file", e);
         }
+        Traces.main(new String[] {file.getAbsolutePath()});
     }
 
     /** This needs to use RandomPathGenerator */ 
@@ -215,54 +259,6 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
             result.add(list.get(rand));
         }
         return result;
-    }
-
-
-    private String checkTrace(Collection<String> question) throws IOException {
-        // You'll love this, Kirill :)
-        Iterator<String> it = question.iterator();
-        //System.out.println("Question for " + erlangModule + ":" + erlangWrapperModule + " is:");
-        String erlList = "[";
-        while (it.hasNext()) {
-            if (!erlList.equals("[")) {
-                erlList += ",";
-            }
-            erlList += it.next();
-        }
-        erlList += "]";
-
-
-        // now wait for a response.
-        int response = erlangProcess.getInputStream().read();
-        boolean finished = false;
-        while (response != -1 && !finished) {
-            //System.out.print((char) response);
-            response = erlangProcess.getInputStream().read();
-            if (response == '>') {
-                // If we get a promt lets see if it just sits there for a while...
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    ;
-                }
-                // We often get a space afterwards?
-                if (erlangProcess.getInputStream().available() >= 1) {
-                    response = erlangProcess.getInputStream().read();
-                }
-                //System.out.println("Got prompt and '" + ((char) response) + "'");
-                if ((response == ' ') && (erlangProcess.getInputStream().available() <= 0)) {
-                    finished = true;
-                }
-            }
-        }
-
-        if (response == -1) {
-            throw new IllegalArgumentException("end of input reached when reading Erlang output");
-        }
-
-        // FIXME temp
-        return null;
-
     }
 
     /**
@@ -288,5 +284,23 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JSeparator jSeparator1;
+    private javax.swing.JCheckBox useOutputMatchingCheckBox;
     // End of variables declaration//GEN-END:variables
+    
+    protected void useOutputMatchingCheckBoxActionPerformed(java.awt.event.ActionEvent ev) {
+    	Configuration config = Configuration.getDefaultConfiguration();
+    	if(!useOutputMatchingCheckBox.isSelected()) {
+    		config.setUseErlangOutputs(false);
+    	} else {
+    		config.setUseErlangOutputs(true);
+    	}
+    	try {
+			module = ErlangModule.loadModule(module.sourceFolder + File.separator + module.name + ".erl", config, true);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		this.setVisible(false);
+    	setAlphabet(module.behaviour.getAlphabet());
+		this.setVisible(true);
+    }
 }

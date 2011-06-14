@@ -202,7 +202,7 @@ handle_call({compile,[],erlc,_Dir}, _From, State) ->
 handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
 	case(compile:file(M,[verbose,debug_info,{outdir,Dir}])) of
 		{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
-		_ -> {reply, failedToCompile, State}
+		Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
 	end;
 
 %% Extracts dependencies from the supplied module

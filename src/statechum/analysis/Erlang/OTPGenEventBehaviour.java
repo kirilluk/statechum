@@ -4,21 +4,29 @@
  */
 package statechum.analysis.Erlang;
 
+import statechum.Configuration;
+
 /**
- *
+ * 
  * @author ramsay
  */
 public class OTPGenEventBehaviour extends OTPBehaviour {
 
-    public OTPGenEventBehaviour(ErlangModule mod) {
-        super(mod);
-        name = "gen_event";
-        /*
-        patterns.put("handle_event", new Pair<String,Boolean>("event", Boolean.FALSE));
-        patterns.put("handle_call", new Pair<String,Boolean>("call", Boolean.FALSE));
-        patterns.put("handle_info", new Pair<String,Boolean>("info", Boolean.FALSE));
-        patterns.put("init", 		new Pair<String,Boolean>("init", Boolean.FALSE));
-        */
-        generateAlphabet();
-    }
+	public OTPGenEventBehaviour(ErlangModule mod) {
+		this(mod, Configuration.getDefaultConfiguration());
+	}
+
+	public OTPGenEventBehaviour(ErlangModule mod, Configuration config) {
+		super(mod);
+		name = "gen_event";
+		/*
+		 * patterns.put("handle_event", new Pair<String,Boolean>("event",
+		 * Boolean.FALSE)); patterns.put("handle_call", new
+		 * Pair<String,Boolean>("call", Boolean.FALSE));
+		 * patterns.put("handle_info", new Pair<String,Boolean>("info",
+		 * Boolean.FALSE)); patterns.put("init", new
+		 * Pair<String,Boolean>("init", Boolean.FALSE));
+		 */
+		generateAlphabet(config);
+	}
 }

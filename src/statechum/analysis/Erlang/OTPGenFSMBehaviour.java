@@ -4,13 +4,19 @@
  */
 package statechum.analysis.Erlang;
 
+import statechum.Configuration;
+
 /**
  *
  * @author ramsay
  */
 public class OTPGenFSMBehaviour extends OTPBehaviour {
 
-    public OTPGenFSMBehaviour(ErlangModule mod) {
+	public OTPGenFSMBehaviour(ErlangModule mod) {
+		this(mod, Configuration.getDefaultConfiguration());
+	}
+
+    public OTPGenFSMBehaviour(ErlangModule mod, Configuration config) {
         super(mod);
         name = "gen_fsm";
         /*
@@ -19,6 +25,6 @@ public class OTPGenFSMBehaviour extends OTPBehaviour {
         patterns.put(parent.getName()+":handle_info/2", new Pair<String,Boolean>("info", Boolean.FALSE));
         patterns.put(parent.getName()+":init/1", 		new Pair<String,Boolean>("init", Boolean.FALSE));
         */
-        generateAlphabet();
+        generateAlphabet(config);
     }
 }

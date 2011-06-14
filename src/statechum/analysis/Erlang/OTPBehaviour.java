@@ -23,6 +23,7 @@ import com.ericsson.otp.erlang.OtpErlangList;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.Configuration;
 import statechum.Label;
 import java.io.File;
 import java.io.IOException;
@@ -128,13 +129,14 @@ public abstract class OTPBehaviour {
 	 * interface, hence we create functions reflecting what we actually see
 	 * during learning.
 	 */
-	protected void generateAlphabet() {
+	protected void generateAlphabet(Configuration config) {
 		for (Entry<String, OtpCallInterface> pattern : patterns.entrySet()) {
 			if (!parent.sigs.containsKey(pattern.getKey())) {
 				// Really, I don't care...
 				// throw new
 				// IllegalArgumentException("function "+pattern.getKey()+" is missing in module "+parent.getName());
-				System.out.println("function " + pattern.getKey() + " is missing in module " + parent.getName());
+				System.out.println("function " + pattern.getKey()
+						+ " is missing in module " + parent.getName());
 			} else {
 				String otpName = pattern.getValue().getOtpName();
 				if (parent.sigs.containsKey(otpName))
@@ -157,9 +159,16 @@ public abstract class OTPBehaviour {
 						throw new RuntimeException("function " + origFunction
 								+ " should take at least one argument");
 					OtpErlangObject firstArg = funcArgs.get(0);
-					for (OtpErlangObject result : output)
+
+					if (config.getUseErlangOutputs()) {
+						for (OtpErlangObject result : output) {
+							alphabet.add(new ErlangLabel(parent.sigs
+									.get(otpName), otpName, firstArg, result));
+						}
+					} else {
 						alphabet.add(new ErlangLabel(parent.sigs.get(otpName),
-								otpName, firstArg, result));
+								otpName, firstArg));
+					}
 				}
 			}
 		}
@@ -214,7 +223,6 @@ public abstract class OTPBehaviour {
 		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless
 																// defined in a
 																// module
-
 		// extract the list of attributes and determine the kind of this module
 		OtpErlangTuple response = ErlangRunner.getRunner().call(
 				new OtpErlangObject[] {
@@ -234,7 +242,8 @@ public abstract class OTPBehaviour {
 			if (name instanceof OtpErlangAtom
 					&& ((OtpErlangAtom) name).atomValue().equals("behaviour")) {// found
 																				// the
-																				// gen_server
+																				// OTP
+																				// behaviour
 																				// attribute
 				OtpErlangObject value = tuple.elementAt(1);
 				if (value instanceof OtpErlangList

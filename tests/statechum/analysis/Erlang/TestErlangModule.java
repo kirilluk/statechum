@@ -281,10 +281,12 @@ public class TestErlangModule {
     	ErlangModule mod = ErlangModule.loadModule(file);
     	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
     	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
-    	
+    	/* changed by Ramsay to include module data in configuration */    	
     	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
     	evalConf.config = Configuration.getDefaultConfiguration().copy();
-    	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf, mod);
+    	evalConf.config.setErlangModuleName(mod.name);
+    	evalConf.config.setErlangSourceFile(mod.sourceFolder + File.separator + mod.name + ".erl");
+    	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
     	ErlangLabel initLabel = findLabelByFunction("init",null,mod), 
     		labelLock = findLabelByFunction("call","lock",mod),

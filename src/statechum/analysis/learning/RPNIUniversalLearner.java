@@ -279,8 +279,9 @@ public class RPNIUniversalLearner extends RPNILearner
 				else
 				{
 					if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ASSERT)))
-						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED)
+						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED) {
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
+						}
 					List<Boolean> acceptedElements = null;
 					acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
 					

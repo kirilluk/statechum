@@ -86,7 +86,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.TEMP, "tmp");
 		defaultValues.put(G_PROPERTIES.TIMEBETWEENHEARTBEATS, "3000");
 		defaultValues.put(G_PROPERTIES.ASSERT_ENABLED, "false");
-		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "true");
+		defaultValues.put(G_PROPERTIES.ERLANGOUTPUT_ENABLED, "false");
 		assert assertionsEnabled = true;// from http://java.sun.com/j2se/1.5.0/docs/guide/language/assert.html
 	}
 	

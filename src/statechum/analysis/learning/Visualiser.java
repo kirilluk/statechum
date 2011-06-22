@@ -130,12 +130,12 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
      */
     protected List<DirectedSparseGraph> graphs = new LinkedList<DirectedSparseGraph>();
     
-    protected static class LayoutOptions
+    public static class LayoutOptions
     {
     	public boolean showNegatives = true;
     }
     
-    protected List<LayoutOptions> layoutOptions = new LinkedList<LayoutOptions>();
+    protected Map<Integer,LayoutOptions> layoutOptions = new TreeMap<Integer,LayoutOptions>();
     
     /** Current position in the above list. */
     protected int currentGraph;
@@ -222,7 +222,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                         trL.setFromAffineTransform(viewer.getLayoutTransformer().getTransform());
                         encoder.writeObject(trL);
                         ((XMLModalGraphMouse) viewer.getGraphMouse()).store(encoder);
-                        encoder.writeObject(layoutOptions);
+                        encoder.writeObject(layoutOptions.get(currentGraph));
                         encoder.close();
                     }
                 } catch (Exception e1) {
@@ -533,7 +533,7 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
                 viewer.getLayoutTransformer().concatenate(
                         ((XMLAffineTransformSerialised) decoder.readObject()).getAffineTransform());
                 ((XMLModalGraphMouse) viewer.getGraphMouse()).restore(decoder);
-                layoutOptions = (List<LayoutOptions>)decoder.readObject();
+                layoutOptions.put(propName,(LayoutOptions)decoder.readObject());
                 decoder.close();
 
                 viewer.invalidate();
@@ -819,16 +819,17 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
 
     @Override
     public void update(@SuppressWarnings("unused") final Observable s, Object arg) {
+    	int graphNumber = graphs.size();// should match the position of the graph in the list of graphs
         if (arg instanceof AbstractLearnerGraph) {
-            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());layoutOptions.add(new LayoutOptions());
+            graphs.add(((AbstractLearnerGraph) arg).pathroutines.getGraph());layoutOptions.put(graphNumber,new LayoutOptions());
         } else if (arg instanceof DirectedSparseGraph) {
         	DirectedSparseGraph gr = (DirectedSparseGraph) arg;
-            graphs.add(gr);layoutOptions.add((LayoutOptions)gr.getUserDatum(JUConstants.LAYOUTOPTIONS));
+            graphs.add(gr);layoutOptions.put(graphNumber,(LayoutOptions)gr.getUserDatum(JUConstants.LAYOUTOPTIONS));
         } else {
             System.err.println("Visualiser notified with unknown object " + arg);
         }
         
-        currentGraph = graphs.size() - 1;
+        currentGraph = graphNumber;
         SwingUtilities.invokeLater(this);
     }
 

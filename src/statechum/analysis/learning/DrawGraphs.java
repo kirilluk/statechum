@@ -66,6 +66,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -315,7 +316,7 @@ public class DrawGraphs {
 	 * by running it all on the Swing thread (avoids a deadlock associated with resizing of the window
 	 * and us doing something to it at the same time on different threads).
 	 */
-	public void drawInteractivePlot(final String []dataToPlot,final String title)
+	public void drawInteractivePlot(final List<String> dataToPlot,final String title)
 	{
 		// First, load javaGD
 		if (!javaGDLoaded)
@@ -358,7 +359,7 @@ public class DrawGraphs {
 	 * @param yDim vertical size in inches, R default is 7.
 	 * @param fileName where to store result.
 	 */
-	public void drawPlot(String drawingCommand,double xDim,double yDim,File file)
+	public void drawPlot(List<String> drawingCommand,double xDim,double yDim,File file)
 	{
 		if (xDim < 1) 
 			throw new IllegalArgumentException("horizontal size ("+xDim+") too small");
@@ -369,7 +370,8 @@ public class DrawGraphs {
 		// Slashes have to be the Unix-way - R simply terminates the DLL on WinXP otherwise.
 		String fullName = file.getAbsolutePath().replace(File.separatorChar, '/');
 		eval("pdf(\""+fullName+"\","+xDim+","+yDim+")","redirection to pdf("+file.getAbsolutePath()+") failed");
-		eval(drawingCommand,"failed to run boxplot");
+		for(String cmd:drawingCommand)
+			eval(cmd,"failed to run "+cmd);
 		eval("dev.off()","failed to write to "+file.getAbsolutePath());
 	}
 
@@ -399,11 +401,11 @@ public class DrawGraphs {
 		protected final File file;
 		
 		/** Additional drawing command to append to a plot, such as abline() command. */
-		protected String extraCommand = "";
+		protected List<String> extraCommands = new LinkedList<String>();
 		
-		public void setExtraCommand(String cmd)
+		public void addExtraCommand(String cmd)
 		{
-			extraCommand = cmd;
+			extraCommands.add(cmd);
 		}
 		
 		public RGraph(String x,String y,File name)
@@ -438,11 +440,13 @@ public class DrawGraphs {
 		}
 		
 		/** Returns a command to draw a graph in R. */
-		abstract String getDrawingCommand();
+		abstract List<String> getDrawingCommand();
 		
 		public void drawInteractive(DrawGraphs gr)
 		{
-			gr.drawInteractivePlot(new String[]{getDrawingCommand(),extraCommand}, file.getName());
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			gr.drawInteractivePlot(drawingCommands, file.getName());
 		}
 		
 		protected double xSize = -1;
@@ -459,11 +463,12 @@ public class DrawGraphs {
 
 		public void drawPdf(DrawGraphs gr)
 		{
-			String drawingCommand = getDrawingCommand()+";"+extraCommand;
 			assert collectionOfResults.size() > 0;
 			double horizSize = xSize;
 			if (horizSize <= 0) horizSize=computeHorizSize();
-			gr.drawPlot(drawingCommand, horizSize,ySize,file);
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			gr.drawPlot(drawingCommands, horizSize,ySize,file);
 		}
 		
 		/* Computes the horizontal size of the drawing. */
@@ -477,7 +482,7 @@ public class DrawGraphs {
 		}
 		
 		@Override
-		public String getDrawingCommand()
+		public List<String> getDrawingCommand()
 		{
 			List<List<Double>> data = new LinkedList<List<Double>>();
 			List<String> names = new LinkedList<String>();
@@ -485,7 +490,7 @@ public class DrawGraphs {
 			{
 				data.add(entry.getValue());names.add(entry.getKey().toString());
 			}
-			return boxPlotToString(data, names.size()==1?null:names,"green","xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,"green","xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""));
 		}
 
 		@Override
@@ -500,18 +505,39 @@ public class DrawGraphs {
 		public RBagPlot(String x, String y, File name) {
 			super(x, y, name);
 		}
+		List<List<Double>> data = null;
+		List<Double> names = null;
 		
-		@Override
-		public String getDrawingCommand()
+		public void computeDataSet()
 		{
-			List<List<Double>> data = new LinkedList<List<Double>>();
-			List<Double> names = new LinkedList<Double>();
+			data = new LinkedList<List<Double>>();
+			names = new LinkedList<Double>();
 			for(Entry<Double,List<Double>> entry:collectionOfResults.entrySet())
 			{
 				data.add(entry.getValue());names.add(entry.getKey());
 			}
-			
-			return bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"");
+		}
+		
+		protected Integer limit = null;
+		
+		/** By default, R's bagplot limits the number of points for analysis to 300, this one makes it possible to change that value. */
+		public void setLimit(int value)
+		{
+			limit = value;
+		}
+		
+		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
+		protected String formatApproxLimit()
+		{
+			return (limit == null?"":", approx.limit="+limit.intValue());
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			computeDataSet();
+			return Collections.singletonList(bagPlotToString(data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+
+					formatApproxLimit()));
 		}
 		
 		public boolean graphOk()
@@ -584,6 +610,37 @@ public class DrawGraphs {
 
 		public boolean checkSingleDot() {
 			return getSize().width < Configuration.fpAccuracy && getSize().height < Configuration.fpAccuracy;
+		}
+	}
+	
+	/** Draws a square bag plot. */
+	public static class SquareBagPlot extends RBagPlot
+	{
+		protected final boolean diag;
+		protected final double minValue, maxValue;
+		/**
+		 * 
+		 * @param x name of the X axis
+		 * @param y name of the Y axis
+		 * @param name file where to store .pdf (should include the extension).
+		 * @param from the minimal value of x or y.
+		 * @param to the maximal value of x or y.
+		 * @param diagonal whether to draw a diagonal line
+		 */
+		public SquareBagPlot(String x, String y, File name, double from, double to, boolean diagonal) {
+			super(x, y, name);diag = diagonal;minValue = from;maxValue = to;
+		}
+		
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			computeDataSet();
+			List<String> result = new LinkedList<String>();
+			result.add("plot("+minValue+":"+maxValue+", "+minValue+":"+maxValue+", type = \"n\", bty=\"n\",xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
+			result.add(bagPlotToString(data, names,"add=TRUE"+
+					formatApproxLimit()));
+			if (diag) result.add("abline(0,1)");
+			return result;
 		}
 	}
 }

@@ -697,7 +697,10 @@ public class Configuration implements Cloneable {
 			return false;
 		if (useErlangOutputs != other.useErlangOutputs)
 			return false;
-		if (!erlangSourceFile.equals(other.erlangSourceFile))
+		if ((erlangSourceFile == null && other.erlangSourceFile != null) ||
+				(erlangSourceFile != null && other.erlangSourceFile == null) ||
+				(erlangSourceFile != null && !erlangSourceFile.
+						equals(other.erlangSourceFile)))
 			return false;
 		if (legacyXML != other.legacyXML)
 			return false;

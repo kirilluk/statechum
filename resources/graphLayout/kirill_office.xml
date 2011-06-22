@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?> 
-<java version="1.6.0_16" class="java.beans.XMLDecoder"> 
+<java version="1.6.0_22" class="java.beans.XMLDecoder"> 
  <object class="java.util.Properties"> 
   <void method="put"> 
    <string>LINEARWARNINGS</string> 
    <string>true</string> 
+  </void> 
+  <void method="put"> 
+   <string>ERLANGHOME</string> 
+   <string>D:\Progra~1\erl5.8.2\erts-5.8.2</string> 
+  </void> 
+  <void method="put"> 
+   <string>VIZ_CONFIG</string> 
+   <string>kirill_office</string> 
+  </void> 
+  <void method="put"> 
+   <string>ERLANGOUTPUT_ENABLED</string> 
+   <string>false</string> 
   </void> 
   <void method="put"> 
    <string>SMTWARNINGS</string> 
@@ -16,6 +28,188 @@
  </object> 
  <object class="java.util.HashMap"> 
   <void method="put"> 
+   <int>0</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1927</int> 
+      <int>1</int> 
+      <int>1086</int> 
+      <int>809</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>102</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1445</int> 
+      <int>11</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>103</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1459</int> 
+      <int>912</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>100</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1036</int> 
+      <int>7</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>101</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1452</int> 
+      <int>313</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>110</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1056</int> 
+      <int>307</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>111</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1047</int> 
+      <int>606</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>108</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>655</int> 
+      <int>903</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>109</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>641</int> 
+      <int>613</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>106</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1060</int> 
+      <int>904</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>107</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>642</int> 
+      <int>311</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>104</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>111</int> 
+      <int>210</int> 
+      <int>531</int> 
+      <int>376</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>105</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>629</int> 
+      <int>9</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>113</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>1452</int> 
+      <int>613</int> 
+      <int>400</int> 
+      <int>300</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
    <string>LOWER</string> 
    <object class="statechum.GlobalConfiguration$WindowPosition"> 
     <void property="rect"> 
@@ -24,6 +218,19 @@
       <int>341</int> 
       <int>774</int> 
       <int>622</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void method="put"> 
+   <int>112</int> 
+   <object class="statechum.GlobalConfiguration$WindowPosition"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>113</int> 
+      <int>587</int> 
+      <int>530</int> 
+      <int>400</int> 
      </object> 
     </void> 
    </object> 

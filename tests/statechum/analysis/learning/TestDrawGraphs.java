@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import statechum.Helper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
 public class TestDrawGraphs {
@@ -211,7 +213,7 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
 		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
 		File output = new File(testDir,"out.pdf");
-		gr.drawPlot(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),"green",null),7,7,output);
+		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),"green",null)),7,7,output);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", "aphA","aphB"});
@@ -235,7 +237,7 @@ public class TestDrawGraphs {
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawPlot("",0,1,output);
+			gr.drawPlot(Collections.singletonList(""),0,1,output);
 		}},IllegalArgumentException.class,"horizontal");
 	}
 	
@@ -245,7 +247,7 @@ public class TestDrawGraphs {
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
 		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawPlot("",1,0,output);
+			gr.drawPlot(Collections.singletonList(""),1,0,output);
 		}},IllegalArgumentException.class,"vertical");
 	}
 	
@@ -283,7 +285,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
 		g.add("one",34.);
-		Assert.assertEquals("boxplot(c(34.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -292,7 +294,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
 		g.add(4.5,34.);
-		Assert.assertEquals("bagplot(c(4.5),c(34.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(4.5),c(34.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -303,7 +305,7 @@ public class TestDrawGraphs {
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
-		Assert.assertEquals("boxplot(c(34.0,34.0,2.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),col=c(\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -314,7 +316,7 @@ public class TestDrawGraphs {
 		g.add(5.5,34.);
 		g.add(5.5,34.);
 		g.add(5.5,2.);
-		Assert.assertEquals("bagplot(c(5.5,5.5,5.5),c(34.0,34.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(5.5,5.5,5.5),c(34.0,34.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -326,7 +328,7 @@ public class TestDrawGraphs {
 		g.add("one",34.);
 		g.add("one",2.);
 		g.add("two",2.);
-		Assert.assertEquals("boxplot(c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -338,7 +340,7 @@ public class TestDrawGraphs {
 		g.add(5.5,34.);
 		g.add(5.5,2.);
 		g.add(7.5,2.);
-		Assert.assertEquals("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -396,7 +398,7 @@ public class TestDrawGraphs {
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
 		g.setXboundaries(5.5, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
-		Assert.assertEquals("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -406,7 +408,7 @@ public class TestDrawGraphs {
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
 		g.setXboundaries(5.6, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
-		Assert.assertEquals("bagplot(c(7.5),c(2.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(7.5),c(2.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -416,7 +418,7 @@ public class TestDrawGraphs {
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
 		g.setYboundaries(5.5, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
-		Assert.assertEquals("bagplot(c(5.5,5.5),c(34.0,34.0),xlab=\""+X+"\",ylab=\""+Y+"\")",g.getDrawingCommand());
+		Assert.assertEquals(Collections.singletonList("bagplot(c(5.5,5.5),c(34.0,34.0),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
 	
 	@Test
@@ -477,5 +479,34 @@ public class TestDrawGraphs {
 		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
 		Assert.assertEquals("abline(23.82608695652174,1.3043478260869565)",g.computeDiagonal());
+	}
+	
+	@Test
+	public void testDrawBagPlotWithDiagonal1()
+	{
+		final String X="axisX", Y="axisY";
+		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
+		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
+		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)", "abline(0,1)"}),
+				g.getDrawingCommand());
+	}
+	@Test
+	public void testDrawBagPlotWithDiagonal2()
+	{
+		final String X="axisX", Y="axisY";
+		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
+		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
+		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE)"}),
+				g.getDrawingCommand());
+	}
+	@Test
+	public void testDrawBagPlotWithDiagonal3()
+	{
+		final String X="axisX", Y="axisY";
+		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
+		g.setLimit(30000);
+		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
+		Assert.assertEquals(Arrays.asList(new String[]{"plot(2.0:40.0, 2.0:40.0, type = \"n\", bty=\"n\",xlab=\"axisX\",ylab=\"axisY\")", "bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),add=TRUE, approx.limit=30000)", "abline(0,1)"}),
+				g.getDrawingCommand());
 	}
 }

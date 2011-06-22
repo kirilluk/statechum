@@ -18,7 +18,6 @@
 
 package statechum.apps;
 
-import java.awt.Color;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class TestVisualDemo {
 	{
 		DirectedSparseGraph graph = GDVisualDemo.obtainDifferenceGraph(graphA,graphB, 0,false);
 		Map<String,String> labelling = (Map<String,String>)graph.getUserDatum(JUConstants.VERTEX);
-		final Map<String,Map<String,Map<String,Color>>> transitionAnnotation = (Map<String,Map<String,Map<String,Color>>>)graph.getUserDatum(JUConstants.EDGE);
+		final EdgeAnnotation transitionAnnotation = (EdgeAnnotation)graph.getUserDatum(JUConstants.EDGE);
 		return new Pair<String,String>(labelling.toString(),transitionAnnotation.toString());
 	}
 	

@@ -45,6 +45,7 @@ import statechum.ProgressIndicator;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
+import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -123,6 +124,14 @@ public class DiffExperiments {
 			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
 			gr_Rand_W = new RBagPlot("W f-measure","Rand f-measure",new File("rand_W.pdf")),
 			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Diff/Mutations",new File("diff_pairs.pdf"));
+		SquareBagPlot gr_F_measures = new SquareBagPlot("W f-measure", "Linear f-measure", new File("f_measure_w_linear.pdf"),0,1,true);
+		int approxLimit = 3000;
+		gr_Diff_MutationsToOriginal.setLimit(approxLimit);
+		gr_Diff_W.setLimit(approxLimit);
+		gr_Rand_W.setLimit(approxLimit);
+		gr_Diff_MismatchedPairs.setLimit(approxLimit);
+		gr_F_measures.setLimit(approxLimit);
+		
 		gr_Diff_MutationsToOriginal.setXboundaries(0.,0.5);
 		gr_Diff_MutationsToOriginal.setYboundaries(1.,1.15);
 
@@ -257,6 +266,7 @@ public class DiffExperiments {
 						gr_Diff_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_Rand_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.ACCURACY_RAND));
 						gr_Diff_MismatchedPairs.add(outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+						gr_F_measures.add(outcome.getValue(DOUBLE_V.ACCURACY_W), outcome.getValue(DOUBLE_V.ACCURACY_LINEAR));
 					}
 
 				}
@@ -267,16 +277,14 @@ public class DiffExperiments {
 				gr_DiffGD_StatesLevel.drawInteractive(gr);gr_DiffW_StatesLevel.drawInteractive(gr);gr_DiffRand_StatesLevel.drawInteractive(gr);
 				gr_Diff_MutationsToOriginal.drawInteractive(gr);
 				gr_W_States.drawInteractive(gr);
-				
-				if (gr_Diff_W.graphOk()) 
-					gr_Diff_W.setExtraCommand(gr_Diff_W.computeDiagonal());
 				gr_Diff_W.drawInteractive(gr);
 				gr_Rand_W.drawInteractive(gr);
 				
 				//gr_TimeDiff_StatesLevel.drawInteractive(gr);gr_TimeW_StatesLevel.drawInteractive(gr);gr_TimeRand_StatesLevel.drawInteractive(gr);
 				//gr_MismatchedPairs.drawInteractive(gr);
 				gr_Pairs_States.drawInteractive(gr);gr_TimeDiff_States.drawInteractive(gr);gr_TimeRand_States.drawInteractive(gr);gr_TimeW_States.drawInteractive(gr);
-				gr_Diff_MismatchedPairs.drawInteractive(gr);
+				gr_F_measures.drawInteractive(gr);
+				//if (mutationStage>0) gr_Diff_MismatchedPairs.drawInteractive(gr);
 				
 				//ExperimentResult average = getAverage(accuracyStruct,graphComplexity,mutationStage);
 				//arrayWithDiffResults.add(diffValues);arrayWithKeyPairsResults.add(keyPairsValues);
@@ -297,6 +305,7 @@ public class DiffExperiments {
 		
 		gr_TimeDiff_StatesLevel.drawPdf(gr);gr_TimeW_StatesLevel.drawPdf(gr);gr_TimeRand_StatesLevel.drawPdf(gr);
 		gr_Pairs_States.drawPdf(gr);gr_TimeDiff_States.drawPdf(gr);gr_TimeRand_States.drawPdf(gr);gr_TimeW_States.drawPdf(gr);
+		gr_F_measures.drawPdf(gr);
 	}
 	
 
@@ -456,8 +465,10 @@ public class DiffExperiments {
 			//Visualiser.waitForKey();
 		}
 */
-/*
+
 		double f = computeFMeasure(expectedMutations, detectedDiff);
+		outcome.setValue(DOUBLE_V.ACCURACY_LINEAR, f);
+		/*
 		performanceStruct[col][row][x] = duration;
 		scoreStruct[col][row][x] = f;
 		int tp = from.pathroutines.countEdges()-rec3.getRemoved();
@@ -494,22 +505,22 @@ public class DiffExperiments {
 	}
 
 
-	protected static double computeFMeasure(Set<Transition> from, Set<Transition> to){
+	protected static double computeFMeasure(Set<Transition> expected, Set<Transition> detected){
 		int tp,tn,fp,fn;
 		Set<Transition> set = new HashSet<Transition>();
 
 		set.clear();
-		set.addAll(from);
-		set.retainAll(to);
+		set.addAll(expected);
+		set.retainAll(detected);
 		tp = set.size();
 		tn = 0;
 		set.clear();
-		set.addAll(to);
-		set.removeAll(from);
+		set.addAll(detected);
+		set.removeAll(expected);
 		fp = set.size();
 		set.clear();
-		set.addAll(from);
-		set.removeAll(to);
+		set.addAll(expected);
+		set.removeAll(detected);
 		fn = set.size();
 		
 		ConfusionMatrix conf = new ConfusionMatrix(tp, tn, fp, fn);

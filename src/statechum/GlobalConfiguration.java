@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-import statechum.GlobalConfiguration.G_PROPERTIES;
-
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 /**

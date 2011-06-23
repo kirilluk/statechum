@@ -110,7 +110,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
 			@SuppressWarnings("unused") final Object[] moreOptions) {
 		
-		System.out.println("I'm asking Erlang about " + question);
 		
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
@@ -157,13 +156,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 			response.append(" ]");
 		}
-		//System.out.println("Response: " + response);
+		
+		Pair<Integer, String> result = null;
+		
 		if (response != null) {
-			return new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE,
+			result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE,
 					response.toString());
 		} else {
-			return new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED, null);
+			result = new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED, null);
 		}
+		
+		//System.out.println("I'm asking Erlang about " + question+", the response is "+result);
+		return result;
 	}
 
 	/**
@@ -285,13 +289,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				ErlangLabel nextLabel = outcome.answerDetails[traceLength - 1];
 				state.rejects.add(input);// record the reject.
 
-				// nextState = ErlangState.newErlangState(state, nextLabel,
-				// true);
 				if (!module.behaviour.getAlphabet().contains(nextLabel)) {
-					module.behaviour.getAlphabet().add(nextLabel);// extend the
-																	// alphabet
-					// (if the input is already in the alphabet, fine, it would
-					// be attempted soon anyway).
+					module.behaviour.getAlphabet().add(nextLabel);// extend the alphabet
+					// (if the input is already in the alphabet, fine, it would be attempted soon anyway).
 					// System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());
 				}
 				nextState = null;
@@ -414,6 +414,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			outcome = out;
 		}
 
+		@Override
 		public String toString() {
 			String result = "";
 
@@ -462,8 +463,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				new OtpErlangObject[] { new OtpErlangAtom("runTrace"),
 						new OtpErlangAtom(module.getName()),
 						new OtpErlangAtom(module.behaviour.getWrapperName()),
-						new OtpErlangList(questionDetails), new OtpErlangList() // other
-																				// modules
+						new OtpErlangList(questionDetails), new OtpErlangList() // other modules
 				}, "running trace");
 
 		OtpErlangAtom outcome = (OtpErlangAtom) result.elementAt(1);

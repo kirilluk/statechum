@@ -302,7 +302,7 @@ public class TestErlangModule {
     	tr = learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock, labelLock}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_FAIL,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
+    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call','lock'}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	tr =learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelRead}));
     	
@@ -311,7 +311,7 @@ public class TestErlangModule {
     			RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	// Now attempt a "different output" input
-    	ErlangLabel lbl = (ErlangLabel)tr.answerDetails[3];
+    	ErlangLabel lbl = tr.answerDetails[3];
     	tr.answerDetails[3] = new ErlangLabel(lbl.function,lbl.callName,
     			lbl.input, new OtpErlangAtom("aa"));
     	tr =learner.askErlang(Arrays.asList(tr.answerDetails));
@@ -368,10 +368,18 @@ public class TestErlangModule {
     {
     	final File fileLocker = new File("ErlangExamples/locker/locker.erl");
     	Assert.assertNull(ErlangModule.findModule("locker"));
-    	ErlangModule.loadModule(fileLocker);
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(fileLocker);
-		}},IllegalArgumentException.class,"already loaded");// error message returned by Erlang code
+    	ErlangModule mod = ErlangModule.loadModule(fileLocker);
+		Assert.assertSame(mod,ErlangModule.loadModule(fileLocker));
+   }
+    
+    /** Forces the reload and checks that outcome is different every time. */
+    @Test
+    public void testLoadModule3() throws IOException
+    {
+    	final File fileLocker = new File("ErlangExamples/locker/locker.erl");
+    	Assert.assertNull(ErlangModule.findModule("locker"));
+    	ErlangModule mod = ErlangModule.loadModule(fileLocker,Configuration.getDefaultConfiguration(),true);
+		Assert.assertNotSame(mod,ErlangModule.loadModule(fileLocker,Configuration.getDefaultConfiguration(),true));
    }
     
     protected static final String stdFunctions = "\nhandle_call(_,_,_)->{reply,ok,5}.\nhandle_cast(_,_)->{noreply,ok,5}.\nhandle_info(_,_)->{reply,ok}.\ninit(_)->{ok,5}.\n";

@@ -40,9 +40,7 @@ import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.RPNILearner;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.PairScore;
 
 /** Tests that AutoAnswers works.
@@ -322,7 +320,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testAuto4()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();testConfig.setAlwaysRestartOnNewTraces(true);
+		Configuration testConfig = Configuration.getDefaultConfiguration().copy();testConfig.setScoreForAutomergeUponRestart(0);
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 

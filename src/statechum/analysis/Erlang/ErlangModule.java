@@ -117,12 +117,12 @@ public class ErlangModule {
 		OtpErlangList typeInformation = (OtpErlangList) fileDetails
 				.elementAt(3);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
-			System.out.print("\n" + typeInformation.elementAt(i).toString());
+			//System.out.print("\n" + typeInformation.elementAt(i).toString());
 			FuncSignature s = new FuncSignature(typeInformation.elementAt(i),
 					null);
 			sigs.put(s.getQualifiedName(), s);
 		}
-		System.out.println("\n");
+		//System.out.println("\n");
 		behaviour = OTPBehaviour.obtainDeclaredBehaviour(f, this);
 		progress.next();// 5
 	}
@@ -210,12 +210,6 @@ public class ErlangModule {
 	}
 
 	public static ErlangModule loadModule(File module, Configuration config, boolean forceReload) throws IOException {
-		/*
-		 * Way to be helpful! if (modulesRegistry.containsKey(mod.getName()))
-		 * throw new
-		 * IllegalArgumentException("module "+mod.getName()+" is already loaded"
-		 * );
-		 */
 		ErlangModule mod = new ErlangModule(module);
 		if ((!modulesRegistry.containsKey(mod.getName()))||forceReload) {
 			modulesRegistry.put(mod.getName(), mod);

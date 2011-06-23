@@ -551,8 +551,10 @@ public class Transform
 		
 	}
 	
-	/** Similar to AugmentPTA on a non-existing matrix but expects the path corresponding to the question to 
-	 * already exist. Whenever a user confirms a question, this method is used to add this question to a 
+	/** Similar to AugmentPTA on a non-existing matrix but generally expects the path corresponding to the question to 
+	 * already exist. Where it does not, null is returned instead of a true/false. 
+	 * 
+	 * Whenever a user confirms a question, this method is used to add this question to a 
 	 * tentative automaton, thus making sure that
 	 * <ul>
 	 * <li>when we re-generate a collection of questions from a PTA of questions, 
@@ -573,7 +575,7 @@ public class Transform
 	 * after unlabelled vertices receive their accept/reject labelling, but this is handled by recording
 	 * IF states associated with each state of a tentative automaton during exploration, so if a particular
 	 * state is receiving a label (in a similar way to that state having an outgoing transition added), we need
-	 * to add all IF-that_state pairs to the exploration stack. 
+	 * to add all IF-that_state pairs back to the exploration stack. 
 	 * <br/>
 	 * The only potential source of contradictions is THEN parts (potentially recursively built). 
 	 * If a THEN part contradicts a tentative automaton, it will also do so when all questions are answered.
@@ -586,7 +588,7 @@ public class Transform
 	 * of unrolling the THEN parts in the <em>augmentFromIfThenAutomaton</em> method below and when marking paths
 	 * as answered by a user below.
 	 */
-	public boolean AugmentNonExistingMatrixWith(List<Label> question, boolean accept)
+	public Boolean AugmentNonExistingMatrixWith(List<Label> question, boolean accept)
 	{
 		PTASequenceEngine engine = coregraph.learnerCache.getQuestionsPTA();
 		if (engine == null)
@@ -602,7 +604,8 @@ public class Transform
 			if (graphTargets == null) // the current state is normal rather than partially or completely non-existent.
 				graphTargets = coregraph.transitionMatrix.get(currentState);
 			currentState = graphTargets.get(label);
-			assert currentState != null;
+			if (currentState == null) 
+				return null;
 			nonExisting.getNonExistingVertices().remove(currentState);
 		}
 		return currentState.isAccept() == accept;

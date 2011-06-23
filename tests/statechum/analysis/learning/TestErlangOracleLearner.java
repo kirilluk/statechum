@@ -4,9 +4,6 @@
  */
 package statechum.analysis.learning;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -18,7 +15,6 @@ import org.junit.Test;
 
 import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
-import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 
@@ -29,9 +25,10 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 public class TestErlangOracleLearner {
 
 	@Test
-	public void testLockerLearning() throws IOException
+	public void testLockerLearning()
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
+		//learnerConfig.config.setScoreForAutomergeUponRestart(1);
 		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
 		learnerConfig.config.setErlangModuleName("locker");
 		learnerConfig.config.setErlangSourceFile("ErlangExamples/locker/locker.erl");
@@ -45,7 +42,7 @@ public class TestErlangOracleLearner {
 	}
 	
 	@Test
-	public void testLockerLearningWithoutOutputMatching() throws IOException
+	public void testLockerLearningWithoutOutputMatching()
 	{
 		LearnerEvaluationConfiguration learnerConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		learnerConfig.config.setLabelKind(LABELKIND.LABEL_ERLANG);
@@ -56,9 +53,9 @@ public class TestErlangOracleLearner {
 		
 		learner.GenerateInitialTraces();
 		LearnerGraph locker = learner.learnMachine();
-		Assert.assertEquals(6,locker.getStateNumber());
-		Assert.assertEquals(12,locker.pathroutines.computeAlphabet().size());
-		Assert.assertEquals(56,locker.pathroutines.countEdges());
+		Assert.assertEquals(4,locker.getStateNumber());
+		Assert.assertEquals(7,locker.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(21,locker.pathroutines.countEdges());
 	}
 	
     /*

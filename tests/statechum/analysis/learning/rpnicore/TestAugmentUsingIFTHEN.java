@@ -1207,7 +1207,7 @@ final public class TestAugmentUsingIFTHEN
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			graph.learnerCache.questionsPTA=questions;
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), false);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), false));
 			Assert.assertEquals(2,questions.getData().size());
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
@@ -1228,7 +1228,7 @@ final public class TestAugmentUsingIFTHEN
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			graph.learnerCache.questionsPTA=questions;
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
 			Assert.assertEquals(3,questions.getData().size());
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
@@ -1248,7 +1248,7 @@ final public class TestAugmentUsingIFTHEN
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			graph.learnerCache.questionsPTA=questions;
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
 			Assert.assertEquals(3,questions.getData().size());
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
@@ -1705,9 +1705,9 @@ final public class TestAugmentUsingIFTHEN
 		public final void testQuestionMarking1()
 		{
 			graph.learnerCache.questionsPTA = questions;
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
 			Assert.assertEquals(3,questions.getData().size());
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), false);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), false));
 			Assert.assertEquals(2,questions.getData().size());
 		}
 		
@@ -1716,9 +1716,9 @@ final public class TestAugmentUsingIFTHEN
 		public final void testQuestionMarking_unmatched()
 		{
 			graph.learnerCache.questionsPTA = questions;
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), false));
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","c"}), false));
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), true));
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), false).booleanValue());
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","c"}), false).booleanValue());
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), true).booleanValue());
 		}
 		
 		/** The integration of test of questions, similar to <em>testQuestionAnswering4</em> but 
@@ -1766,7 +1766,7 @@ final public class TestAugmentUsingIFTHEN
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			Assert.assertEquals(3,qs.size());
 			
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
 			qs = ComputeQuestions.RecomputeQS(pair, graph, merged, properties);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			Assert.assertEquals(1,qs.size());
@@ -1786,7 +1786,7 @@ final public class TestAugmentUsingIFTHEN
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton
 			Assert.assertEquals(3,qs.size());
 
-			graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true);
+			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
 			// the above call should not affect computeQS
 			qs = ComputeQuestions.computeQS(pair, graph, merged, properties);
 			compareGraphs(new LearnerGraph(origGraph,config),graph);// check that augment did not modify the automaton

@@ -163,21 +163,6 @@ public class Configuration implements Cloneable {
 	}
 
 	/**
-	 * When new traces are offered instead of an answer to a question, one may
-	 * try to add them both to hard facts and to tentative automaton. If the
-	 * latter has been successful, it is then possible to attempt to continue.
-	 */
-	protected boolean alwaysRestartOnNewTraces = false;
-
-	public boolean isAlwaysRestartOnNewTraces() {
-		return alwaysRestartOnNewTraces;
-	}
-
-	public void setAlwaysRestartOnNewTraces(boolean newValue) {
-		alwaysRestartOnNewTraces = newValue;
-	}
-
-	/**
 	 * There could be different ways to query the current strategy for asking
 	 * questions. The enumeration below includes those implemented:
 	 * <ul>
@@ -320,6 +305,23 @@ public class Configuration implements Cloneable {
 		this.bumpPositives = bumpPositivesArg;
 	}
 
+	/** When learning is restarted, we go through the same process with new information. This is fine 
+	 * but we end up asking questions for states we merged earlier. Most of those mergers are fine and
+	 * should be done anyway unless new information prohibits mergers. The rest will have little evidence hence
+	 * we should definitely attempt to ask questions again. 
+	 */
+	protected int scoreForAutomergeUponRestart = Integer.MAX_VALUE;
+	
+	public void setScoreForAutomergeUponRestart(int newValue)
+	{
+		scoreForAutomergeUponRestart = newValue;
+	}
+	
+	public int getScoreForAutomergeUponRestart()
+	{
+		return scoreForAutomergeUponRestart;
+	}
+	
 	/**
 	 * Much of the current learning techniques expect prefix-closed automata,
 	 * but many of them can be adapted for non-prefix-closed ones. The choice
@@ -554,7 +556,7 @@ public class Configuration implements Cloneable {
 		result = prime * result + (legacyXML ? 1231 : 1237);
 		result = prime * result
 				+ (erlangModuleName == null ? 0 : erlangModuleName.hashCode());
-		result = prime * result + (alwaysRestartOnNewTraces ? 1231 : 1237);
+		result = prime * result + scoreForAutomergeUponRestart;
 		result = prime * result
 				+ (erlangSourceFile == null ? 0 : erlangSourceFile.hashCode());
 		result = prime * result + (useErlangOutputs ? 1231 : 1237);
@@ -709,7 +711,7 @@ public class Configuration implements Cloneable {
 				|| (erlangModuleName != null && !erlangModuleName
 						.equals(other.erlangModuleName)))
 			return false;
-		if (alwaysRestartOnNewTraces != other.alwaysRestartOnNewTraces)
+		if (scoreForAutomergeUponRestart != other.scoreForAutomergeUponRestart)
 			return false;
 
 		return true;
@@ -1255,7 +1257,7 @@ public class Configuration implements Cloneable {
 	 * counterexamples and update a tentative automaton with negative
 	 * information).
 	 */
-	protected boolean useSpin = true;
+	protected boolean useSpin = false;
 
 	public boolean getUseSpin() {
 		return useSpin;
@@ -1414,11 +1416,7 @@ public class Configuration implements Cloneable {
 	public Element writeXML(Document doc) {
 		Element config = doc.createElement(configXMLTag);
 		for (Field var : getClass().getDeclaredFields()) {
-			if (var.getType() != Configuration.class && var.getName() != "$VRc"// added
-																				// by
-																				// eclemma
-																				// (coverage
-																				// analysis)
+			if (var.getType() != Configuration.class && var.getName() != "$VRc"// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
 				Method getter = AttributeMutator.getMethod(Configuration.class,
 						GETMETHOD_KIND.FIELD_GET, var);

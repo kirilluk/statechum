@@ -320,7 +320,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testAuto4()
 	{
-		Configuration testConfig = Configuration.getDefaultConfiguration().copy();testConfig.setScoreForAutomergeUponRestart(0);
+		Configuration testConfig = Configuration.getDefaultConfiguration().copy();
 		testConfig.setGdFailOnDuplicateNames(false);
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 

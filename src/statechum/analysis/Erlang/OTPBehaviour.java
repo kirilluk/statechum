@@ -298,7 +298,7 @@ public abstract class OTPBehaviour {
 	 *            <em>ConverterErlToMod</em>.
 	 * @return result of conversion.
 	 */
-	public List<Label> convertTrace(List<Label> trace, ConvertALabel converter) {
+	public static List<Label> convertTrace(List<Label> trace, ConvertALabel converter) {
 		List<Label> outcome = new LinkedList<Label>();
 		for (Label lbl : trace)
 			outcome.add(converter.convertLabelToLabel(lbl));
@@ -324,7 +324,7 @@ public abstract class OTPBehaviour {
 	 * Used to turn textual traces loaded from somewhere into proper Erlang
 	 * traces which can be executed.
 	 */
-	class ConverterErlToMod implements LabelConverter, ConvertALabel {
+	public class ConverterErlToMod implements LabelConverter, ConvertALabel {
 		@Override
 		public Set<Label> convertLabel(Label lbl) {
 			return Collections.singleton(convertLabelToLabel(lbl));

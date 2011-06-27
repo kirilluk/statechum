@@ -169,22 +169,27 @@ public abstract class RPNILearner extends Observable implements Learner {
                         DeterministicVertex v = (DeterministicVertex) vert;
                         LinkedList<CodeCoverageMap> coverage = new LinkedList<CodeCoverageMap>();
                         Collection<Trace> allPrefixTraces = new LinkedList<Trace>();
-                        for (VertexID hard : mergedToHard.get(v.getID())) {
-                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
-                            allPrefixTraces.add(path);
-
-                            // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
-                            CmpVertex hardv = hardFacts.findVertex(hard);
-                            Collection<Trace> paths = getPaths(path, hardv, hardFacts);
-                            for (Trace p : paths) {
-                                //System.out.println("Generating coverage for " + path + "-" + p);
-                                Collection<Trace> onlyPath = new LinkedList<Trace>();
-                                onlyPath.add(p);
-                                Pair<Trace, Trace> prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
-                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix.firstElem, prefixSuffix.secondElem);
-                                //System.out.println("Generated coverage " + prefixSuffix[0] + "-" + prefixSuffix[1] + ": " + map.toString());
-                                coverage.add(map);
-                            }
+                        Collection<VertexID> verticesInHardFacts=mergedToHard.get(v.getID());
+                        if (verticesInHardFacts != null)
+                        {
+                        	// this one will be null if 
+	                        for (VertexID hard : verticesInHardFacts) {
+	                            Trace path = new Trace(vertToPath.get(hardFacts.findVertex(hard)));
+	                            allPrefixTraces.add(path);
+	
+	                            // Walk the hardFacts from here to determine all possible paths from this state, then determine their code coverage
+	                            CmpVertex hardv = hardFacts.findVertex(hard);
+	                            Collection<Trace> paths = getPaths(path, hardv, hardFacts);
+	                            for (Trace p : paths) {
+	                                //System.out.println("Generating coverage for " + path + "-" + p);
+	                                Collection<Trace> onlyPath = new LinkedList<Trace>();
+	                                onlyPath.add(p);
+	                                Pair<Trace, Trace> prefixSuffix = ErlangOracleVisualiser.getPrefixSuffixPair(allPrefixTraces, onlyPath);
+	                                CodeCoverageMap map = ErlangOracleVisualiser.getCoverageMap(prefixSuffix.firstElem, prefixSuffix.secondElem);
+	                                //System.out.println("Generated coverage " + prefixSuffix[0] + "-" + prefixSuffix[1] + ": " + map.toString());
+	                                coverage.add(map);
+	                            }
+	                        }
                         }
                         v.addUserDatum(JUConstants.PATH, allPrefixTraces, UserData.SHARED);
                         v.addUserDatum(JUConstants.COVERAGE, coverage, UserData.SHARED);

@@ -154,7 +154,8 @@ public class QSMTool {
                 config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
             }
         } else {
-            config.setKlimit(-1);
+        	if (config.getLearnerScoreMode() != Configuration.ScoreMode.KTAILS)
+        		config.setKlimit(-1);
         }
         config.setDebugMode(true);
     }

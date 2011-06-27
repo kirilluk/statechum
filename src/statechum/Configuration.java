@@ -17,7 +17,6 @@
 
 package statechum;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -30,7 +29,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import statechum.AttributeMutator.GETMETHOD_KIND;
-import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 
 /**
@@ -1215,12 +1213,6 @@ public class Configuration implements Cloneable {
 	}
 
 	public void setErlangSourceFile(String newValue) {
-		try {
-			ErlangModule.loadModule(newValue);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(65);
-		}
 		erlangSourceFile = newValue;
 	}
 

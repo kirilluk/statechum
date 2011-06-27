@@ -144,6 +144,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			boolean first = true;
 			ErlangLabel noop = stripOutput((ErlangLabel) failedLabel);
 
+			assert noop.function != null : "questions do not contain function details";
 			for (Label lbl : inputToPossibleOutputs.get(noop)) {
 				if (!first)
 					response.append(',');
@@ -297,8 +298,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				nextState = null;
 				break;
 			case TRACE_FAIL:
-				// put a wildcard - this will come handy when we extend
-				// alphabet.
+				// put a wildcard - this will come handy when we extend alphabet.
 				state.rejects.add(inputPortionOfLabel);
 				nextState = null;
 				break;
@@ -476,8 +476,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		else if (outcome.atomValue().equals("failed"))
 			outcomeEnum = TRACEOUTCOME.TRACE_FAIL;
 		else
-			throw new IllegalArgumentException("unknown Erlang response "
-					+ outcome);
+			throw new IllegalArgumentException("unknown Erlang response " + outcome);
 		OtpErlangList trace = (OtpErlangList) result.elementAt(2);
 		ErlangLabel[] answerDetails = new ErlangLabel[trace.arity()];
 		for (int i = 0; i < trace.arity(); ++i) {

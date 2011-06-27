@@ -42,6 +42,7 @@ import statechum.model.testset.PTASequenceEngine;
 
 import java.awt.Frame;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JOptionPane;
 
@@ -164,15 +165,19 @@ public class RPNIUniversalLearner extends RPNILearner
 			List<Label> sequence, boolean accepted, JUConstants newColour)
 	{
 		topLevelListener.AugmentPTA(pta, ptaKind, sequence, accepted, newColour);
-		if (!config.getUseSpin()) // This check has to be performed because if constraints are used, 
+		if (!config.getUseSpin())
+		{	// This check has to be performed because if constraints are used, 
 			// LTL will be converted to a maximal automata which is not appropriate if the traditional way (with Spin) is used.
-			tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
-		// Note that since we've attempted to augment our new tentative automaton (right after 
-		// merging and reached no contradiction, we can add new paths one-by one here 
-		// and expect no contradiction.
-		
-		// The above AugmentNonExistingMatrixWith may possibly return null where we are adding paths returned
-		// by Erlang and these paths do not necessarily correspond to any specific question.
+			Boolean augmentResult = tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
+			// Note that since we've attempted to augment our new tentative automaton right after 
+			// merging and reached no contradiction, we can add new paths one-by one here 
+			// and expect no contradiction.
+			
+			// The above AugmentNonExistingMatrixWith may possibly return null where we are adding paths returned
+			// by Erlang and these paths do not necessarily correspond to any specific question.
+			
+			//assert augmentResult == null || augmentResult.booleanValue() : "trace "+sequence+"/"+accepted+" did not honour the sequence returned by mapPathToConfirmedElements";
+		}
 	}
 
 	protected String learntGraphName = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+"/beinglearnt";
@@ -215,7 +220,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		{
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
+			final LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			int score = pair.getScore();
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA and restart learning.
@@ -295,9 +300,8 @@ public class RPNIUniversalLearner extends RPNILearner
 						if (ptaHardFacts.paths.tracePathPrefixClosed(question) == AbstractOracle.USER_ACCEPTED) {
 							throw new IllegalArgumentException("question "+ question+ " has already been answered");
 						}
-					List<Boolean> acceptedElements = null;
-					acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
-					
+					List<Boolean> acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
+
 					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, 
 							tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,
 									acceptedElements, pair,
@@ -335,12 +339,15 @@ public class RPNIUniversalLearner extends RPNILearner
 					if(traceDescr != null && traceDescr.length() != 0)
 					{
 						final JUConstants colour = colourToAugmentWith;
-
+						final AtomicBoolean whetherToRestart = new AtomicBoolean(false);
 						QSMTool.parseSequenceOfTraces(traceDescr, config, new TraceAdder() {
 
 							@Override
 							public void addTrace(List<Label> trace,	boolean positive) {
 								if (positive) extraTracesPlus.add(trace);else extraTracesMinus.add(trace);
+								CmpVertex tailVertex = temp.getVertex(trace);
+								if (tailVertex != null && tailVertex.isAccept() != positive)
+									whetherToRestart.set(true);
 							}
 							
 						});
@@ -353,7 +360,11 @@ public class RPNIUniversalLearner extends RPNILearner
 			            	AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,positive, true,colour);
 						for(List<Label> negative:extraTracesMinus) 
 							AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,negative, false,colour);
-						restartLearning = RestartLearningEnum.restartRECOMPUTEQUESTIONS;// the set of questions will be rebuilt because we possibly modified the "nonexistent" PTA containing questions.
+						
+						if (whetherToRestart.get())
+							restartLearning = RestartLearningEnum.restartHARD;// we've seen at least one trace which contradicts the new tentative PTA.
+						else
+							restartLearning = RestartLearningEnum.restartRECOMPUTEQUESTIONS;// the set of questions will be rebuilt because we possibly modified the "nonexistent" PTA containing questions.
 					}
 				}
 				else

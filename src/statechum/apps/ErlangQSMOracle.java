@@ -21,13 +21,14 @@ package statechum.apps;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
 import statechum.PrefixTraceTree;
@@ -35,6 +36,8 @@ import statechum.Trace;
 import statechum.analysis.CodeCoverage.CodeCoverageMap;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
+import statechum.analysis.Erlang.OTPBehaviour;
+import statechum.analysis.Erlang.OTPBehaviour.ConvertALabel;
 
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -97,14 +100,27 @@ public class ErlangQSMOracle {
 		// File(erlangModule)).getParentFile().getAbsolutePath();
 		// System.out.println("Traces file: " + tracesFile + "\nErlang Folder: "
 		// + ErlangFolder + "\nErlangModule: " + erlangModule);
-		try {
-			startInference();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+
+		startInference();
 	}
 
-	public static LearnerGraph startInference() throws IOException {
+	/** Given a bunch of traces with potentially missing function information, this one converts
+	 * all traces to those containing that information.
+	 * 
+	 * @param traces traces to convert
+	 * @return outcome of conversion
+	 */
+	public static Set<List<Label>> convertTracesToErl(Set<List<Label>> traces, Configuration config)
+	{
+		ErlangModule mod = ErlangModule.findModule(config.getErlangModuleName());
+		Set<List<Label>> convertedTraces = null;
+		ConvertALabel converter = mod.behaviour.new ConverterErlToMod();
+		convertedTraces = new HashSet<List<Label>>();
+		for(List<Label> list:traces) convertedTraces.add(OTPBehaviour.convertTrace(list, converter));
+		return convertedTraces;
+	}
+	
+	public static LearnerGraph startInference() {
 		// Clear the files...
 		// (new File(ErlangFolder, tracesFile)).delete();
 		// (new File(ErlangFolder, covermapFile)).delete();
@@ -127,8 +143,7 @@ public class ErlangQSMOracle {
 		// This is the one line thats actually changed...
 		// outcome = module.behaviour.convertErlToMod(outcome);
 
-		ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz,
-				tool.learnerInitConfiguration);
+		ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz,	tool.learnerInitConfiguration);
 		innerLearner.addObserver(viz);
 		/*
 		System.out.println("sPlus:");
@@ -146,9 +161,9 @@ public class ErlangQSMOracle {
 			System.out.println("------------------------------");
 		}
 		*/
-		LearnerGraph graph = innerLearner.learnMachine(tool.sPlus, tool.sMinus);
-		boolean complete = false;
-		int repeats = 0;
+		LearnerGraph graph = innerLearner.learnMachine(
+				convertTracesToErl(tool.sPlus,tool.learnerInitConfiguration.config), 
+				convertTracesToErl(tool.sMinus,tool.learnerInitConfiguration.config));
 		/*
 		 * 
 		 * while ((graph != null) && (!complete) && (repeats < exhaustTries)) {

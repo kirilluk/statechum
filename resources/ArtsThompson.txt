@@ -1,0 +1,14 @@
+passive
+
++ [[start, stop, start, stop]]
+- [[stop]]
+- [[start, start]]
++ [[start, allocate, allocate, deallocate, allocate, deallocate, deallocate, stop]]
+- [[start, allocate, allocate, allocate]]
+- [[allocate]]
+- [[deallocate]]
++ [[start, allocate, stop, start]]
++ [[start, allocate, allocate, stop, start]]
+- [[start, allocate, deallocate, deallocate]]
+- [[start, allocate, start]]
+- [[start, allocate, allocate, start]]

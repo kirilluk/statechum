@@ -18,6 +18,7 @@ import org.junit.Test;
 import statechum.Helper;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.learning.experiments.mutation.ExperimentResult.DOUBLE_V;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.LONG_V;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
@@ -81,6 +82,10 @@ public class TestDiffExperimentWithLogs {
 		public void process(ExperimentResult result) {
 			ExperimentResult recorded = new ExperimentResult();
 			recorded.load(decoder);
+			// The log was recorded some time ago and the new argument is not featuring in it, hence
+			// we add it since the purpose of the test is to verify the overall performance and we
+			// aim to be insensitive to future changes.
+			recorded.setValue(DOUBLE_V.ACCURACY_LINEAR, result.getValue(DOUBLE_V.ACCURACY_LINEAR));
 			recorded.experimentValid = true;
 			Assert.assertEquals(result,recorded);
 		}

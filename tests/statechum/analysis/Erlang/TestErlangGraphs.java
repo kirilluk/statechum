@@ -193,7 +193,7 @@ public class TestErlangGraphs {
 		List<Label> list = AbstractLearnerGraph.parseTrace(text,config);
 		ErlangModule mod = ErlangModule.loadModule(new File("ErlangExamples/locker/locker.erl"));
 		List<String> newList = new LinkedList<String>();
-		for(Label l:mod.behaviour.convertTrace(mod.behaviour.convertTrace(list, mod.behaviour.new ConverterErlToMod()), mod.behaviour.new ConverterModToErl()))
+		for(Label l:OTPBehaviour.convertTrace(OTPBehaviour.convertTrace(list, mod.behaviour.new ConverterErlToMod()), mod.behaviour.new ConverterModToErl()))
 				newList.add(l.toErlangTerm());
 		Assert.assertEquals(text,newList.toString());
 	}

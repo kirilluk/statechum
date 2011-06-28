@@ -122,9 +122,9 @@ public class DiffExperiments {
 			gr_TimeRand_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by Random",new File("TimeRand_statesmutations.pdf"));
 		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf")),
 			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
-			gr_Rand_W = new RBagPlot("W f-measure","Rand f-measure",new File("rand_W.pdf")),
 			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Diff/Mutations",new File("diff_pairs.pdf"));
-		SquareBagPlot gr_F_measures = new SquareBagPlot("W f-measure", "Linear f-measure", new File("f_measure_w_linear.pdf"),0,1,true);
+		SquareBagPlot gr_F_measures = new SquareBagPlot("W f-measure", "Linear f-measure", new File("f_measure_w_linear.pdf"),0,1,true),
+			gr_Rand_W = new SquareBagPlot("W f-measure","Rand f-measure",new File("f_measure_rand_W.pdf"),0,1,true);
 		int approxLimit = 3000;
 		gr_Diff_MutationsToOriginal.setLimit(approxLimit);
 		gr_Diff_W.setLimit(approxLimit);

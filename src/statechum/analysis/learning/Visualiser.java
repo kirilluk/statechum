@@ -1073,27 +1073,33 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
     /** Removes the two windows displaying Jung graphs.
      */
     public static void disposeFrame() {
-	    try {
-	        SwingUtilities.invokeAndWait(new Runnable() {
-	
-	            @Override
-	            public void run() {
-	            	for(int i=0;i<graphWindow.length;++i)
-	            		if (graphWindow[i] != null)
-	                	{
-	                    	graphWindow[i].setVisible(false);
-	                    	graphWindow[i].dispose();
-	                    	graphWindow[i] = null;
-	                	}
-	            }
-	        });
-	    } catch (InterruptedException e) {
-	        // cannot do much about this
-	        e.printStackTrace();
-	    } catch (InvocationTargetException e) {
-	        // cannot do much about this
-	        e.printStackTrace();
-	    }
+    	boolean anythingNeedsDisposing = false;
+    	for(int i=0;i<graphWindow.length && !anythingNeedsDisposing;++i)
+    		if (graphWindow[i] != null) anythingNeedsDisposing = true;
+    	if (anythingNeedsDisposing)
+    	{
+		    try {
+		        SwingUtilities.invokeAndWait(new Runnable() {
+		
+		            @Override
+		            public void run() {
+		            	for(int i=0;i<graphWindow.length;++i)
+		            		if (graphWindow[i] != null)
+		                	{
+		                    	graphWindow[i].setVisible(false);
+		                    	graphWindow[i].dispose();
+		                    	graphWindow[i] = null;
+		                	}
+		            }
+		        });
+		    } catch (InterruptedException e) {
+		        // cannot do much about this
+		        e.printStackTrace();
+		    } catch (InvocationTargetException e) {
+		        // cannot do much about this
+		        e.printStackTrace();
+		    }
+    	}
     }
 
     /** Displays twos graphs passed as arguments in the Jung window.

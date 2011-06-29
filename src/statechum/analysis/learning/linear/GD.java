@@ -129,10 +129,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	
 	/** The inverse of newBToOrig. */
 	Map<CmpVertex,CmpVertex> origToNewB = null;
-	
-	public Map<CmpVertex, CmpVertex> getOrigToNewB() {
-		return origToNewB;
-	}
 
 	/** Forward matrix for exploration of <em>grCombined</em>. */
 	GDLearnerGraph forward = null;
@@ -350,7 +346,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		// without name clashes.
 		// The problem is that newBtoOrig maps states of the B part of grCombined
 		// to the whole set of original states in A and B. The old version of GD was simply
-		// using all new states if there was any intersection between states of A and B.
+		// using all newly-created states if there was any intersection detected between names of states in A and B.
 		// It is not hard to find out which states of the B part of grCombined clash with 
 		// states of A which remain after removing transitions. We could then use grCombine's 
 		// vertices. The next problem is that these vertices may clash with vertices of B,
@@ -448,18 +444,6 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	 */
 	protected abstract class DCollector implements PatchGraph
 	{
-		/** This one contains all states from B which 
-		 * have been matched but do not feature in any added or removed transition (states from B which were
-		 * not matched are trivial to add, this is done after we are through with the matched pairs).
-		 * This means they will not feature in the patch we shall construct, but may have to be included because
-		 * <ul>
-		 * <li>attributes on these states may have changed or</li> 
-		 * <li>these states feature no outgoing/incoming transitions
-		 * and hence will be dropped from the original graph when we clean up the old states after patch
-		 * application.</li>
-		 * </ul>
-		 */
-		private final Set<CmpVertex> disconnectedStatesInKeyPairs = new TreeSet<CmpVertex>();
 		
 		/** Called when we need to map a vertex in the B-part of grCombined to 
 		 * an original vertex of B.
@@ -470,7 +454,20 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		
 		public void computeGD()
 		{
-			disconnectedStatesInKeyPairs.clear();disconnectedStatesInKeyPairs.addAll(aTOb.keySet());
+			/** This one contains all states from B which 
+			 * have been matched but do not feature in any added or removed transition (states from B which were
+			 * not matched are trivial to add, this is done after we are through with the matched pairs).
+			 * This means they will not feature in the patch we shall construct, but may have to be included because
+			 * <ul>
+			 * <li>attributes on these states may have changed or</li> 
+			 * <li>these states feature no outgoing/incoming transitions
+			 * and hence will be dropped from the original graph when we clean up the old states after patch
+			 * application.</li>
+			 * </ul>
+			 */
+			final Set<CmpVertex> disconnectedStatesInKeyPairs = new TreeSet<CmpVertex>();
+			disconnectedStatesInKeyPairs.addAll(aTOb.keySet());
+			
 			final Set<CmpVertex> attributesDiffer = new TreeSet<CmpVertex>();
 			
 			// The initial state should be either combined_initB (which is the initial state of graph B)
@@ -654,33 +651,33 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		/**
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 		 */
+		@SuppressWarnings("unused")
 		@Override
-		public void addTransition(CmpVertex from, @SuppressWarnings("unused") Label label, CmpVertex to) {
-			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
+		public void addTransition(CmpVertex from, Label label, CmpVertex to) {
 		}
 
 		/**
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeTransition(statechum.DeterministicDirectedSparseGraph.CmpVertex, java.lang.String, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 		 */
+		@SuppressWarnings("unused")
 		@Override
-		public void removeTransition(CmpVertex from, @SuppressWarnings("unused") Label label, CmpVertex to) {
-			disconnectedStatesInKeyPairs.remove(from);disconnectedStatesInKeyPairs.remove(to);
+		public void removeTransition(CmpVertex from, Label label, CmpVertex to) {
 		}
 
 		/**
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#addToCompatibility(statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.JUConstants)
 		 */
+		@SuppressWarnings("unused")
 		@Override
-		public void addToCompatibility(CmpVertex a, CmpVertex b, @SuppressWarnings("unused") JUConstants.PAIRCOMPATIBILITY value) {
-			disconnectedStatesInKeyPairs.remove(a);disconnectedStatesInKeyPairs.remove(b);
+		public void addToCompatibility(CmpVertex a, CmpVertex b, JUConstants.PAIRCOMPATIBILITY value) {
 		}
 
 		/**
 		 * @see statechum.analysis.learning.rpnicore.GD.PatchGraph#removeFromCompatibility(statechum.DeterministicDirectedSparseGraph.CmpVertex, statechum.DeterministicDirectedSparseGraph.CmpVertex)
 		 */
+		@SuppressWarnings("unused")
 		@Override
 		public void removeFromCompatibility(CmpVertex a, CmpVertex b) {
-			disconnectedStatesInKeyPairs.remove(a);disconnectedStatesInKeyPairs.remove(b);
 		}
 		
 		

@@ -49,7 +49,6 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.linear.GD.ChangesRecorder;
 import statechum.analysis.learning.linear.GD.LearnerGraphMutator;
@@ -1035,7 +1034,42 @@ public class TestGD {
 	{
 		Assert.assertEquals(Arrays.asList(new Integer[]{73,47,64,70,14}), chooseRandomly(new Random(10),80,5));
 	}
-/*
+
+	@Test
+	public final void testKeyPairLeadingToNoOutgoingTransitions_with_attribute_change()
+	{
+		Configuration config=Configuration.getDefaultConfiguration().copy();
+		LearnerGraph grA = buildLearnerGraph("A-a->A / C-b->D / C-a->E","testKeyPairLeadingToNoOutgoingTransitions_with_attribute_change_a",config);
+		grA.findVertex(VertexID.parseID("C")).setColour(JUConstants.AMBER);
+		LearnerGraph graph = buildLearnerGraph("A-a->A / C-b->D / C-a->E","testKeyPairLeadingToNoOutgoingTransitions_with_attribute_change_a",config);
+		graph.findVertex(VertexID.parseID("C")).setColour(JUConstants.AMBER);
+		LearnerGraph grB = buildLearnerGraph("B-a->B","testKeyPairLeadingToNoOutgoingTransitions_with_attribute_change_b",config);
+		CmpVertex F=AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("F"), config);
+		grB.transitionMatrix.put(F,grB.createNewRow());
+		GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+		LearnerGraph outcome = new LearnerGraph(config);
+		ChangesRecorder patcher = new ChangesRecorder(null);
+		//gd.computeGD(grA, grB, threadNumber, patcher,config);
+		
+		gd.init(grA, grB, 1,config);
+		gd.identifyKeyPairs();
+		Assert.assertFalse(gd.fallbackToInitialPair);
+		CmpVertex newF = gd.origToNewB.get(F);
+		CmpVertex C = gd.grCombined.findVertex(VertexID.parseID("C"));
+
+		gd.frontWave.add(new PairScore(C,newF,1,0));
+		gd.statesInKeyPairs.add(C);gd.statesInKeyPairs.add(newF);
+
+		gd.makeSteps();
+		gd.computeDifference(patcher);
+		
+		ChangesRecorder.applyGD_WithRelabelling(graph, patcher.writeGD(TestGD.createDoc()),outcome);
+		Assert.assertNull(WMethod.checkM(grB,graph));
+		Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());
+		Assert.assertEquals(JUConstants.AMBER,grA.findVertex(VertexID.parseID("C")).getColour());
+	}
+	
+	/*
 	@Test
 	public final void testComputeGD_big5()
 	{

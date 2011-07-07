@@ -110,7 +110,8 @@ public class DiffExperiments {
 			gr_Pairs_States = new RBoxPlot<Integer>("States","Key pairs: mismatched/total",new File("pairs_states.pdf")),
 			gr_TimeDiff_States = new RBoxPlot<Integer>("States","Time taken by PLTSDiff",new File("TimeDiff_states.pdf")),
 			gr_TimeW_States = new RBoxPlot<Integer>("States","Time taken by W",new File("TimeW_states.pdf")),
-			gr_TimeRand_States = new RBoxPlot<Integer>("States","Time taken by Rand",new File("TimeRand_states.pdf"));
+			gr_TimeRand_States = new RBoxPlot<Integer>("States","Time taken by Rand",new File("TimeRand_states.pdf")),
+			gr_FMeasure_Level = new RBoxPlot<Integer>("Mutation level","Linear f-measure", new File("f_measure_linear_mutations.pdf"));
 		RBoxPlot<Pair<Integer,Integer>> 
 			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Mutations/Original Edges",new File("mutations_states.pdf")),
 			gr_DiffGD_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","patch size",new File("diff_statesmutations.pdf")),
@@ -267,6 +268,7 @@ public class DiffExperiments {
 						gr_Rand_W.add(outcome.getValue(DOUBLE_V.ACCURACY_W),outcome.getValue(DOUBLE_V.ACCURACY_RAND));
 						gr_Diff_MismatchedPairs.add(outcome.getValue(DOUBLE_V.MISMATCHED_KEYPAIRS),outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_F_measures.add(outcome.getValue(DOUBLE_V.ACCURACY_W), outcome.getValue(DOUBLE_V.ACCURACY_LINEAR));
+						gr_FMeasure_Level.add(mutationStage, outcome.getValue(DOUBLE_V.ACCURACY_LINEAR));
 					}
 
 				}
@@ -279,7 +281,7 @@ public class DiffExperiments {
 				gr_W_States.drawInteractive(gr);
 				gr_Diff_W.drawInteractive(gr);
 				gr_Rand_W.drawInteractive(gr);
-				
+				gr_FMeasure_Level.drawInteractive(gr);
 				//gr_TimeDiff_StatesLevel.drawInteractive(gr);gr_TimeW_StatesLevel.drawInteractive(gr);gr_TimeRand_StatesLevel.drawInteractive(gr);
 				//gr_MismatchedPairs.drawInteractive(gr);
 				gr_Pairs_States.drawInteractive(gr);gr_TimeDiff_States.drawInteractive(gr);gr_TimeRand_States.drawInteractive(gr);gr_TimeW_States.drawInteractive(gr);
@@ -306,6 +308,7 @@ public class DiffExperiments {
 		gr_TimeDiff_StatesLevel.drawPdf(gr);gr_TimeW_StatesLevel.drawPdf(gr);gr_TimeRand_StatesLevel.drawPdf(gr);
 		gr_Pairs_States.drawPdf(gr);gr_TimeDiff_States.drawPdf(gr);gr_TimeRand_States.drawPdf(gr);gr_TimeW_States.drawPdf(gr);
 		gr_F_measures.drawPdf(gr);
+		gr_FMeasure_Level.drawPdf(gr);
 	}
 	
 

@@ -499,6 +499,8 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
             wasInitialised = true;
         } else {
             viewer.getModel().setGraphLayout(new XMLPersistingLayout(propName >= 0 ? new FRLayout(graph) : new KKLayout(graph)));
+            viewer.getModel().getGraphLayout().initialize(getSize());
+
             setTitle(title);
             restoreLayout(ignoreErrors, currentGraph);
             viewer.setRenderer(constructRenderer(graph,layoutOptions.get(currentGraph)));

@@ -228,7 +228,7 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
             out.write("config erlangSourceFile " + module.sourceFolder + File.separator + module.name + ".erl\n");
             out.write("config labelKind LABEL_ERLANG\n");
             out.write("config erlangModuleName " + module.name + "\n");
-        	Configuration config = Configuration.getDefaultConfiguration();
+        	Configuration config = Configuration.getDefaultConfiguration().copy();
         	if(!useOutputMatchingCheckBox.isSelected()) {
         		config.setUseErlangOutputs(false);
         		out.write("config useErlangOutputs false\n");

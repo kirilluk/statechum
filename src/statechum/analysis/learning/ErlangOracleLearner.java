@@ -406,11 +406,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			TRACE_OK, TRACE_FAIL, TRACE_DIFFERENTOUTPUT
 		};
 
+		public final ErlangLabel[] questionDetails;
 		public final ErlangLabel[] answerDetails;
 		public final TRACEOUTCOME outcome;
 
-		public TraceOutcome(ErlangLabel[] trace, TRACEOUTCOME out) {
-			answerDetails = trace;
+		public TraceOutcome(ErlangLabel[] trace, ErlangLabel[] answer, TRACEOUTCOME out) {
+			questionDetails = trace;
+			answerDetails = answer;
 			outcome = out;
 		}
 
@@ -419,7 +421,20 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			String result = "";
 
 			if (outcome == TRACEOUTCOME.TRACE_DIFFERENTOUTPUT) {
-				result = "ERRRR " + answerDetails.toString();
+				result = "- [[";
+				for (ErlangLabel elem : questionDetails) {
+					if (result.length() > 4) {
+						result += ",";
+					}
+					result += elem;
+				}
+				result += "]]\n+ [[";
+				for (ErlangLabel elem : answerDetails) {
+					result += elem;
+					result += ",";
+				}				
+				// Strip that extra comma...
+				result = result.substring(0, result.length()-1);
 			} else {
 				if (outcome == TRACEOUTCOME.TRACE_OK) {
 					result = "+ [[";
@@ -431,10 +446,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						result += ",";
 					}
 					result += elem;
-				}
-				result += "]]";
+				}				
 			}
-
+			result += "]]";
 			return result;
 		}
 	}
@@ -502,7 +516,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				answerDetails[i] = questionDetails[i];
 			}
 		}
-		return new TraceOutcome(answerDetails, outcomeEnum);
+		return new TraceOutcome(questionDetails, answerDetails, outcomeEnum);
 	}
 
 	/** Determines the default options with which a graph should be displayed. */

@@ -46,8 +46,7 @@ import statechum.model.testset.PTASequenceEngine;
 public class ErlangOracleLearner extends RPNIUniversalLearner {
 	protected ErlangModule module;
 
-	public ErlangOracleLearner(Frame parent,
-			LearnerEvaluationConfiguration evalCnf) {
+	public ErlangOracleLearner(Frame parent, LearnerEvaluationConfiguration evalCnf) {
 		super(parent, evalCnf);
 		if (config.getErlangSourceFile() != null) {
 			try {
@@ -59,21 +58,15 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		// this one configures the runner.
 		ErlangRunner.getRunner().configurationToErlang(evalCnf.config);
 		ErlangRunner.getRunner().call(
-				new OtpErlangObject[] {
-						new OtpErlangAtom("addPath"),
-						new OtpErlangString(
-								module.sourceFolder.getAbsolutePath()) },
-				"addPath");
+				new OtpErlangObject[] { new OtpErlangAtom("addPath"),
+						new OtpErlangString(module.sourceFolder.getAbsolutePath()) }, "addPath");
 
 	}
 
 	public void finished() {
 		ErlangRunner.getRunner().call(
-				new OtpErlangObject[] {
-						new OtpErlangAtom("delPath"),
-						new OtpErlangString(
-								module.sourceFolder.getAbsolutePath()) },
-				"delPath");
+				new OtpErlangObject[] { new OtpErlangAtom("delPath"),
+						new OtpErlangString(module.sourceFolder.getAbsolutePath()) }, "delPath");
 	}
 
 	@Override
@@ -102,15 +95,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 	}
 
 	@Override
-	public Pair<Integer, String> CheckWithEndUser(
-			@SuppressWarnings("unused") LearnerGraph model,
-			final List<Label> question,
-			@SuppressWarnings("unused") final int expectedForNoRestart,
+	public Pair<Integer, String> CheckWithEndUser(@SuppressWarnings("unused") LearnerGraph model,
+			final List<Label> question, @SuppressWarnings("unused") final int expectedForNoRestart,
 			@SuppressWarnings("unused") final List<Boolean> consistentFacts,
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
 			@SuppressWarnings("unused") final Object[] moreOptions) {
-		
-		
+
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
 		switch (outcome.outcome) {
@@ -123,8 +113,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			response.append(RPNILearner.questionToString(question));
 			response.append("] ");
 			response.append("+ [");
-			response.append(RPNILearner.questionToString(Arrays
-					.asList(outcome.answerDetails)));
+			response.append(RPNILearner.questionToString(Arrays.asList(outcome.answerDetails)));
 			response.append("] ");
 			// since we implicitly extend the alphabet here, add a new trace to
 			// our collection.
@@ -157,17 +146,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 			response.append(" ]");
 		}
-		
+
+		System.out.println("Response: " + response);
 		Pair<Integer, String> result = null;
-		
+
 		if (response != null) {
-			result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE,
-					response.toString());
+			result = new Pair<Integer, String>(AbstractOracle.USER_NEWTRACE, response.toString());
 		} else {
 			result = new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED, null);
 		}
-		
-		//System.out.println("I'm asking Erlang about " + question+", the response is "+result);
+
+		// System.out.println("I'm asking Erlang about " +
+		// question+", the response is "+result);
 		return result;
 	}
 
@@ -190,8 +180,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		/** ErlangState id. */
 		private static int ErlangStateId = 0;
 
-		public static synchronized ErlangState newErlangState(ErlangState prev,
-				Label label, boolean a) {
+		public static synchronized ErlangState newErlangState(ErlangState prev, Label label, boolean a) {
 			return new ErlangState(ErlangStateId++, prev, label, a);
 		}
 
@@ -291,14 +280,17 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				state.rejects.add(input);// record the reject.
 
 				if (!module.behaviour.getAlphabet().contains(nextLabel)) {
-					module.behaviour.getAlphabet().add(nextLabel);// extend the alphabet
-					// (if the input is already in the alphabet, fine, it would be attempted soon anyway).
+					module.behaviour.getAlphabet().add(nextLabel);// extend the
+																	// alphabet
+					// (if the input is already in the alphabet, fine, it would
+					// be attempted soon anyway).
 					// System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());
 				}
 				nextState = null;
 				break;
 			case TRACE_FAIL:
-				// put a wildcard - this will come handy when we extend alphabet.
+				// put a wildcard - this will come handy when we extend
+				// alphabet.
 				state.rejects.add(inputPortionOfLabel);
 				nextState = null;
 				break;
@@ -332,8 +324,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		@Override
 		public void setAccept(@SuppressWarnings("unused") Object currentState,
 				@SuppressWarnings("unused") boolean value) {
-			throw new UnsupportedOperationException(
-					"this method should not be called");
+			throw new UnsupportedOperationException("this method should not be called");
 		}
 
 		@Override
@@ -362,15 +353,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		for (int waveNo = 0; waveNo < 5; ++waveNo) {
 			// have to make a copy to avoid concurrentModification exception
 			// when updating our alphabet.
-			LinkedHashSet<Label> currentAlphabet = new LinkedHashSet<Label>(
-					module.behaviour.getAlphabet());
+			LinkedHashSet<Label> currentAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
 			seqNext = seq.crossWithSet(currentAlphabet);
 			if (currentAlphabet.size() < module.behaviour.getAlphabet().size()) {
-				LinkedHashSet<Label> newAlphabet = new LinkedHashSet<Label>(
-						module.behaviour.getAlphabet());
+				LinkedHashSet<Label> newAlphabet = new LinkedHashSet<Label>(module.behaviour.getAlphabet());
 				seqNext = seq.crossWithSet(newAlphabet);
-				assert newAlphabet.size() == module.behaviour.getAlphabet()
-						.size() : "alphabet was extended for the second time";
+				assert newAlphabet.size() == module.behaviour.getAlphabet().size() : "alphabet was extended for the second time";
 			}
 			seq = seqNext;
 		}
@@ -387,15 +375,13 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 	}
 
 	@Override
-	public LearnerGraph init(Collection<List<Label>> plus,
-			Collection<List<Label>> minus) {
+	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus) {
 		initInputToPossibleOutputsMap();
 		return super.init(plus, minus);
 	}
 
 	@Override
-	public LearnerGraph init(PTASequenceEngine engine, int plusSize,
-			int minusSize) {
+	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize) {
 		initInputToPossibleOutputsMap();
 		return super.init(engine, plusSize, minusSize);
 	}
@@ -416,13 +402,18 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			outcome = out;
 		}
 
+		
 		@Override
 		public String toString() {
 			String result = "";
 
 			if (outcome == TRACEOUTCOME.TRACE_DIFFERENTOUTPUT) {
 				result = "- [[";
-				for (ErlangLabel elem : questionDetails) {
+				ErlangLabel[] shortQuestion = new ErlangLabel[answerDetails.length];
+				for (int i = 0; i < answerDetails.length; i++) {
+					shortQuestion[i] = questionDetails[i];
+				}
+				for (ErlangLabel elem : shortQuestion) {
 					if (result.length() > 4) {
 						result += ",";
 					}
@@ -432,9 +423,9 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				for (ErlangLabel elem : answerDetails) {
 					result += elem;
 					result += ",";
-				}				
+				}
 				// Strip that extra comma...
-				result = result.substring(0, result.length()-1);
+				result = result.substring(0, result.length() - 1);
 			} else {
 				if (outcome == TRACEOUTCOME.TRACE_OK) {
 					result = "+ [[";
@@ -446,16 +437,16 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 						result += ",";
 					}
 					result += elem;
-				}				
+				}
 			}
 			result += "]]";
 			return result;
 		}
+		
 	}
 
 	public static ErlangLabel stripOutput(ErlangLabel label) {
-		return new ErlangLabel(label.function, label.callName, label.input,
-				null);
+		return new ErlangLabel(label.function, label.callName, label.input, null);
 	}
 
 	/** Determines the outcome of running a trace past Erlang. */
@@ -464,8 +455,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		int i = 0;
 		for (Label lbl : question) {
 			if (!(lbl instanceof ErlangLabel))
-				throw new IllegalArgumentException("question element " + lbl
-						+ " is not of Erlang type");
+				throw new IllegalArgumentException("question element " + lbl + " is not of Erlang type");
 			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);
@@ -473,11 +463,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	/** Determines the outcome of running a trace past Erlang. */
 	public TraceOutcome askErlang(ErlangLabel[] questionDetails) {
+		System.out.println("Asking Erlang about " +  Arrays.asList(questionDetails).toString());
 		OtpErlangTuple result = ErlangRunner.getRunner().call(
-				new OtpErlangObject[] { new OtpErlangAtom("runTrace"),
-						new OtpErlangAtom(module.getName()),
+				new OtpErlangObject[] { new OtpErlangAtom("runTrace"), new OtpErlangAtom(module.getName()),
 						new OtpErlangAtom(module.behaviour.getWrapperName()),
-						new OtpErlangList(questionDetails), new OtpErlangList() // other modules
+						new OtpErlangList(questionDetails), new OtpErlangList() // other
+																				// modules
 				}, "running trace");
 
 		OtpErlangAtom outcome = (OtpErlangAtom) result.elementAt(1);
@@ -496,20 +487,14 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		for (int i = 0; i < trace.arity(); ++i) {
 			OtpErlangTuple elemAti = (OtpErlangTuple) trace.elementAt(i);
 			if (elemAti.arity() < 2 || elemAti.arity() > 3)
-				throw new IllegalArgumentException("received tuple " + elemAti
-						+ " of invalid arity");
+				throw new IllegalArgumentException("received tuple " + elemAti + " of invalid arity");
 			if (elemAti.arity() == 3) {
 				if (config.getUseErlangOutputs()) {
-					answerDetails[i] = new ErlangLabel(
-							questionDetails[i].function,
-							questionDetails[i].callName,
-							questionDetails[i].input, 
-							elemAti.elementAt(2));
+					answerDetails[i] = new ErlangLabel(questionDetails[i].function,
+							questionDetails[i].callName, questionDetails[i].input, elemAti.elementAt(2));
 				} else {
-					answerDetails[i] = new ErlangLabel(
-							questionDetails[i].function,
-							questionDetails[i].callName,
-							questionDetails[i].input);
+					answerDetails[i] = new ErlangLabel(questionDetails[i].function,
+							questionDetails[i].callName, questionDetails[i].input);
 				}
 
 			} else {

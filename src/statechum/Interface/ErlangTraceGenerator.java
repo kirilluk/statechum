@@ -16,8 +16,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +33,7 @@ import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.Erlang.ErlangModule;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
+import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 
 import com.ericsson.otp.erlang.OtpErlangTuple;
@@ -236,12 +236,32 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
         	config.setErlangModuleName(module.name);
         	config.setErlangSourceFile(module.sourceFolder + File.separator + module.name + ".erl");
         	ErlangOracleLearner learner = new ErlangOracleLearner(this, new LearnerEvaluationConfiguration(config));
+        	LinkedList<List<ErlangLabel>> pos = new LinkedList<List<ErlangLabel>>();
+        	LinkedList<List<ErlangLabel>> neg = new LinkedList<List<ErlangLabel>>();
             for (int i = 0; i < count; i++) {
                 List<ErlangLabel> line = randLine(alphabet, length);
+                while(alreadySeen(line, neg, pos)) {
+                	line = randLine(alphabet, length);
+                }
+                System.out.println("Made " + i + " lines");
                 System.out.println("trying " + line + "...");
                 TraceOutcome response = learner.askErlang(line);
                 System.out.println("Got: " + response);
                 out.write(response.toString() + "\n");
+                switch(response.outcome) {
+                case TRACE_FAIL:
+                	neg.add(Arrays.asList(response.answerDetails));
+                	break;
+                case TRACE_DIFFERENTOUTPUT:
+                	List<ErlangLabel> n = new LinkedList<ErlangLabel>();
+                	for(int j = 0; j < response.answerDetails.length; j++) {
+                		n.add(response.questionDetails[j]);
+                	}
+                	neg.add(n);
+                case TRACE_OK:
+                	pos.add(Arrays.asList(response.answerDetails));                	
+                	break;
+                }
             }
             out.close();
         } catch (IOException e) {
@@ -250,7 +270,22 @@ public class ErlangTraceGenerator extends javax.swing.JFrame {
         Traces.main(new String[] {file.getAbsolutePath()});
     }
 
-    /** This needs to use RandomPathGenerator */ 
+    private boolean alreadySeen(List<ErlangLabel> line, LinkedList<List<ErlangLabel>> neg, LinkedList<List<ErlangLabel>> pos) {
+		for(List<ErlangLabel> l : pos) {
+			if(l.toString().equals(line.toString())) {
+				return true;
+			}
+		}
+		// Check for negative prefixes...
+		for(List<ErlangLabel> l : neg) {
+			if(line.toString().startsWith(l.toString().substring(0,l.toString().length()-1))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** This needs to use RandomPathGenerator */ 
     private List<ErlangLabel> randLine(Set<ErlangLabel> alphabet, int lenght) {
     	List<ErlangLabel> list = new ArrayList<ErlangLabel>(alphabet.size());list.addAll(alphabet);
         LinkedList<ErlangLabel> result = new LinkedList<ErlangLabel>();

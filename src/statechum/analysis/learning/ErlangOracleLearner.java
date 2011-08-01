@@ -33,6 +33,7 @@ import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -86,12 +87,12 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 
 	protected void updateInputToPossibleOutputs(Label label) {
 		Label inputPortionOfLabel = stripOutput((ErlangLabel) label);
-		Set<Label> rejects = inputToPossibleOutputs.get(inputPortionOfLabel);
-		if (rejects == null) {
-			rejects = new TreeSet<Label>();
-			inputToPossibleOutputs.put(inputPortionOfLabel, rejects);
+		Set<Label> outputsSeenForThisInput = inputToPossibleOutputs.get(inputPortionOfLabel);
+		if (outputsSeenForThisInput == null) {
+			outputsSeenForThisInput = new TreeSet<Label>();
+			inputToPossibleOutputs.put(inputPortionOfLabel, outputsSeenForThisInput);
 		}
-		rejects.add(label);
+		outputsSeenForThisInput.add(label);
 	}
 
 	@Override
@@ -101,6 +102,11 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
 			@SuppressWarnings("unused") final Object[] moreOptions) {
 
+		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+			for(Label lbl:question)
+				if (!module.behaviour.getAlphabet().contains(lbl))
+					throw new IllegalArgumentException("label "+lbl+" does not belong to the alphabet \n"+module.behaviour.getAlphabet());
+		
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
 		switch (outcome.outcome) {
@@ -280,8 +286,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 				state.rejects.add(input);// record the reject.
 
 				if (!module.behaviour.getAlphabet().contains(nextLabel)) {
-					module.behaviour.getAlphabet().add(nextLabel);// extend the
-																	// alphabet
+					module.behaviour.getAlphabet().add(nextLabel);// extend the alphabet
 					// (if the input is already in the alphabet, fine, it would
 					// be attempted soon anyway).
 					// System.out.println("A  :"+RPNILearner.questionToString(newTrace)+" extended alphabet with "+OTPBehaviour.convertModToErl(nextLabel).toErlangTerm());

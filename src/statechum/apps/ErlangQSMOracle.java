@@ -18,6 +18,7 @@
  */
 package statechum.apps;
 
+import java.awt.Frame;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,9 +57,6 @@ public class ErlangQSMOracle {
 	// public static String erlangModule;
 	public static Collection<String> erlangModules;
 	// public static String erlangWrapperModule;
-	// public static String erlangAlphabet;
-	public static Collection<ErlangLabel> moduleAlphabet;
-	public static String tracesFile;
 	public static String covermapFile;
 	public static String ErlangFolder = "ErlangOracle";
 	public static String ErlangTyper = "lib/modified_typer";
@@ -82,26 +80,9 @@ public class ErlangQSMOracle {
 	public static Map<Pair<Trace, Trace>, CodeCoverageMap> coverageMaps = new TreeMap<Pair<Trace, Trace>, CodeCoverageMap>();
 	public static boolean coverageMapLock = false;
 
-	public static void main(String[] args) {
-		/*
-		 * // Generate some basic traces to get QSM started erlangModule =
-		 * args[1]; erlangWrapperModule = args[2]; tracesFile = args[0];
-		 * covermapFile = tracesFile + ".covermap"; erlangAlphabet = args[3];
-		 * 
-		 * erlangModules = new LinkedList<String>();
-		 * //erlangModules.add(erlangModule); for (int i = 4; i < args.length;
-		 * i++) { erlangModules.add(args[i]); } try { startInference(); } catch
-		 * (IOException e) {
-		 * Helper.throwUnchecked("failed to generate random traces", e); }
-		 */
-		tracesFile = args[0];
-		// erlangModule = args[1];
-		// ErlangFolder = (new
-		// File(erlangModule)).getParentFile().getAbsolutePath();
-		// System.out.println("Traces file: " + tracesFile + "\nErlang Folder: "
-		// + ErlangFolder + "\nErlangModule: " + erlangModule);
-
-		startInference();
+	public static void main(String[] args) 
+	{
+		startInference(args[0]);
 	}
 
 	/** Given a bunch of traces with potentially missing function information, this one converts
@@ -120,110 +101,43 @@ public class ErlangQSMOracle {
 		return convertedTraces;
 	}
 	
-	public static LearnerGraph startInference() {
-		// Clear the files...
-		// (new File(ErlangFolder, tracesFile)).delete();
-		// (new File(ErlangFolder, covermapFile)).delete();
-		// createInitTraces();
-		// loadCoverageMaps();
-
-		// ErlangTraces = new PrefixTraceTree(ErlangFolder + File.separator
-		// + tracesFile);
-		// System.out.println("Traces Tree:\n" + ErlangTraces.toString());
-
-		// Strip wildcard traces from the file...
-		// wildCardStrip(ErlangFolder + File.separator + tracesFile);
-
+	/** Creates and initialises a learner. 
+	 * @param parentFrame the frame relative to which questions are to be displayed. Can be null.
+	 * @param tracesFile the name of the file containing traces and learner configuration.
+	 * @return Learner ready to learn upon call to <em>learnMachine()</em>.
+	 */
+	public static ErlangOracleLearner createLearner(Frame parentFrame, String tracesFile)
+	{
 		QSMTool tool = new QSMTool();
 		tool.loadConfig(tracesFile);
 
-		QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config,
-				true, 0);
+		QSMTool.setSimpleConfiguration(tool.learnerInitConfiguration.config,true, 0);
+
+		// This one actually loads a module.
+		ErlangOracleLearner innerLearner = new ErlangOracleLearner(parentFrame,	tool.learnerInitConfiguration);
+		
+		Set<List<Label>> 
+			positives = convertTracesToErl(tool.sPlus,tool.learnerInitConfiguration.config),
+			negatives = convertTracesToErl(tool.sMinus,tool.learnerInitConfiguration.config);
+		Set<ErlangLabel> alphabet = ErlangModule.findModule(tool.learnerInitConfiguration.config.getErlangModuleName()).behaviour.getAlphabet();
+		for(List<Label> list:positives) for(Label lbl:list) alphabet.add((ErlangLabel)lbl);
+		for(List<Label> list:negatives) for(Label lbl:list) alphabet.add((ErlangLabel)lbl);
+
+		innerLearner.initInputToPossibleOutputsMap();
+		innerLearner.init(positives, negatives);
+		return innerLearner;
+	}
+
+	/** Infers an automaton from the supplied input file.
+	 * @param tracesFile the name of the file containing traces and learner configuration.
+	 */
+	public static LearnerGraph startInference(String tracesFile) 
+	{
+
 		ErlangOracleVisualiser viz = new ErlangOracleVisualiser();
-		// This is the one line thats actually changed...
-		// outcome = module.behaviour.convertErlToMod(outcome);
-
-		ErlangOracleLearner innerLearner = new ErlangOracleLearner(viz,	tool.learnerInitConfiguration);
+		ErlangOracleLearner innerLearner = createLearner(viz,tracesFile);
 		innerLearner.addObserver(viz);
-		/*
-		System.out.println("sPlus:");
-		for (List<Label> qs : tool.sPlus) {
-			for (Label q : qs) {
-				System.out.println("\t" + q.toErlangTerm());
-			}
-			System.out.println("------------------------------");
-		}
-		System.out.println("sMinus:");
-		for (List<Label> qs : tool.sMinus) {
-			for (Label q : qs) {
-				System.out.println("\t" + q.toErlangTerm());
-			}
-			System.out.println("------------------------------");
-		}
-		*/
-		LearnerGraph graph = innerLearner.learnMachine(
-				convertTracesToErl(tool.sPlus,tool.learnerInitConfiguration.config), 
-				convertTracesToErl(tool.sMinus,tool.learnerInitConfiguration.config));
-		/*
-		 * 
-		 * while ((graph != null) && (!complete) && (repeats < exhaustTries)) {
-		 * repeats++; Map<CmpVertex, Map<Label, CmpVertex>> transitionMatrix =
-		 * graph .getTransitionMatrix(); // Find (one of) the deepest node(s)
-		 * CmpVertex deepest = null; CmpVertex root = null; int maxDepth = 0;
-		 * for (CmpVertex v : transitionMatrix.keySet()) {
-		 * System.out.println(v); System.out.println("\t" + v.getDepth()); if
-		 * (v.getDepth() > maxDepth) { deepest = v; maxDepth = v.getDepth(); }
-		 * else if (v.getDepth() == 0) { root = v; } }
-		 * System.out.println("Deepest (" + maxDepth + ") == " + deepest); //
-		 * Get the path to this node Collection<Label> path = getPathTo(deepest,
-		 * root, transitionMatrix, new ArrayList<CmpVertex>());
-		 * System.out.println("Path: " + path); // Get the alphabet
-		 * Collection<ErlangLabel> alpha = new ArrayList<ErlangLabel>(
-		 * moduleAlphabet); // Remove the elements that are examined for this
-		 * node for (Label s : transitionMatrix.get(deepest).keySet()) {
-		 * System.out.println("\tTried: " + s); alpha.remove(s); }
-		 * System.out.println("Untried: " + alpha); if (alpha.size() > 0) { //
-		 * Try all the others... for (ErlangLabel s : alpha) { ArrayList<Label>
-		 * trypath = new ArrayList<Label>(path); trypath.add(s);
-		 * System.out.println("Trying " + trypath); // Run this trace in Erlang
-		 * and add the result to the traces // file Iterator<Label> it =
-		 * trypath.iterator(); // System.out.println("Question for " +
-		 * erlangModule + ":" + // erlangWrapperModule + " is:"); String erlList
-		 * = "["; while (it.hasNext()) { if (!erlList.equals("[")) { erlList +=
-		 * ","; } erlList += it.next(); } erlList += "]"; String erlArgs =
-		 * "tracer2:first_failure(" + ErlangQSMOracle.erlangWrapperModule + ","
-		 * + ErlangQSMOracle.erlangModule + "," + erlList + ",\"" +
-		 * ErlangQSMOracle.tracesFile + "\"," + ErlangOracleVisualiser
-		 * .toErlangList(ErlangQSMOracle.erlangModules) + ")";
-		 * System.out.println("Evaluating " + erlArgs + " in folder " +
-		 * ErlangQSMOracle.ErlangFolder);
-		 * 
-		 * } System.out .println(
-		 * "##############################################################################"
-		 * ); // FIXME stupid file sync issue... try { Thread.sleep(3000); }
-		 * catch (InterruptedException e) { ; }
-		 * 
-		 * ErlangQSMOracle.loadCoverageMaps(); ErlangQSMOracle.ErlangTraces =
-		 * new PrefixTraceTree( ErlangQSMOracle.ErlangFolder + "/" +
-		 * ErlangQSMOracle.tracesFile); // Strip wildcard traces from the
-		 * file... wildCardStrip(ErlangFolder + File.separator + tracesFile); //
-		 * For some reason this breaks if I re-use it... // I'm sure kirill will
-		 * have a nice way to cary on from where we // left off... tool = new
-		 * QSMTool(); tool.loadConfig(ErlangFolder + File.separator +
-		 * tracesFile); QSMTool.setSimpleConfiguration(
-		 * tool.learnerInitConfiguration.config, true, 0); innerLearner = new
-		 * ErlangOracleLearner(viz, tool.learnerInitConfiguration, null);
-		 * innerLearner.addObserver(viz); graph =
-		 * innerLearner.learnMachine(tool.sPlus, tool.sMinus); } else { complete
-		 * = true; } }
-		 */
-
-		// new PickNegativesVisualiser(new
-		// SootCallGraphOracle()).construct(sPlus, sMinus,null, active);
-		// config.setMinCertaintyThreshold(1);
-		// config.setQuestionPathUnionLimit(1);
-
-		return graph;
+		return innerLearner.learnMachine();
 	}
 
 	protected static Collection<Label> getPathTo(CmpVertex tgt, CmpVertex root,

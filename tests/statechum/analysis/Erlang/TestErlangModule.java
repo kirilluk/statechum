@@ -273,6 +273,33 @@ public class TestErlangModule {
     	throw new IllegalArgumentException("cannot find function "+functionName+" with input of "+input);
     }
     
+    
+    @Test
+    public void testAttemptTracesNotInAlphabet() throws IOException
+    {
+    	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
+    	File file = new File("ErlangExamples/locker/locker.erl");
+    	ErlangModule mod = ErlangModule.loadModule(file);
+    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
+    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
+    	/* changed by Ramsay to include module data in configuration */    	
+    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+    	evalConf.config = Configuration.getDefaultConfiguration().copy();
+    	evalConf.config.setErlangModuleName(mod.name);
+    	evalConf.config.setErlangSourceFile(mod.sourceFolder + File.separator + mod.name + ".erl");
+    	final ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
+    	
+    	final ErlangLabel initLabel = findLabelByFunction("init",null,mod), 
+    		labelLock = findLabelByFunction("call","lock",mod),
+    		labelRead = findLabelByFunction("call","read",mod), 
+    		labelWrite = findLabelByFunction("call","write",mod);
+    	final ErlangLabel labelInvalidRead = new ErlangLabel(labelRead.function,labelRead.callName,labelRead.input,new OtpErlangInt(88));
+		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
+			public @Override void run() throws IOException {
+				learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelInvalidRead}));
+			}},IllegalArgumentException.class,"does not belong");
+    }
+    
     @Test
     public void testAttemptTraces() throws IOException
     {

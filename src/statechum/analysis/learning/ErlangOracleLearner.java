@@ -33,7 +33,6 @@ import statechum.analysis.Erlang.ErlangRunner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Label;
 import statechum.Pair;
@@ -101,11 +100,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			@SuppressWarnings("unused") final List<Boolean> consistentFacts,
 			@SuppressWarnings("unused") final PairScore pairBeingMerged,
 			@SuppressWarnings("unused") final Object[] moreOptions) {
-
-		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
-			for(Label lbl:question)
-				if (!module.behaviour.getAlphabet().contains(lbl))
-					throw new IllegalArgumentException("label "+lbl+" does not belong to the alphabet \n"+module.behaviour.getAlphabet());
 		
 		TraceOutcome outcome = askErlang(question);
 		StringBuffer response = null;
@@ -162,8 +156,6 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 			result = new Pair<Integer, String>(AbstractOracle.USER_ACCEPTED, null);
 		}
 
-		// System.out.println("I'm asking Erlang about " +
-		// question+", the response is "+result);
 		return result;
 	}
 
@@ -374,7 +366,7 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 	/**
 	 * Creates map associating input to all possible outputs
 	 */
-	protected void initInputToPossibleOutputsMap() {
+	public void initInputToPossibleOutputsMap() {
 		for (Label label : module.behaviour.getAlphabet())
 			updateInputToPossibleOutputs(label);
 	}
@@ -461,6 +453,8 @@ public class ErlangOracleLearner extends RPNIUniversalLearner {
 		for (Label lbl : question) {
 			if (!(lbl instanceof ErlangLabel))
 				throw new IllegalArgumentException("question element " + lbl + " is not of Erlang type");
+			if (!module.behaviour.getAlphabet().contains(lbl))
+				throw new IllegalArgumentException("label "+lbl+" does not belong to the alphabet \n"+module.behaviour.getAlphabet());
 			questionDetails[i++] = (ErlangLabel) lbl;
 		}
 		return askErlang(questionDetails);

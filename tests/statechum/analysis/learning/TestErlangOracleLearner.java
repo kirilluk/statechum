@@ -8,8 +8,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
@@ -31,7 +33,12 @@ import statechum.apps.QSMTool;
  * @author ramsay
  */
 public class TestErlangOracleLearner {
-
+	@Before
+	public void beforeTest()
+	{
+		ErlangModule.flushRegistry();
+	}
+	
 	@Test
 	public void testLockerLearning()
 	{
@@ -45,8 +52,8 @@ public class TestErlangOracleLearner {
 		learner.GenerateInitialTraces();
 		LearnerGraph locker = learner.learnMachine();
 		Assert.assertEquals(6,locker.getStateNumber());
-		Assert.assertEquals(12,locker.pathroutines.computeAlphabet().size());
-		Assert.assertEquals(56,locker.pathroutines.countEdges());
+		Assert.assertEquals(11,locker.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(51,locker.pathroutines.countEdges());
 	}
 	
 	@Test
@@ -62,8 +69,8 @@ public class TestErlangOracleLearner {
 		learner.GenerateInitialTraces();
 		LearnerGraph locker = learner.learnMachine();
 		Assert.assertEquals(4,locker.getStateNumber());
-		Assert.assertEquals(7,locker.pathroutines.computeAlphabet().size());
-		Assert.assertEquals(21,locker.pathroutines.countEdges());
+		Assert.assertEquals(6,locker.pathroutines.computeAlphabet().size());
+		Assert.assertEquals(18,locker.pathroutines.countEdges());
 	}
 	
 	@Test
@@ -118,5 +125,32 @@ public class TestErlangOracleLearner {
         tool.process("config debugMode false");
         tool.runExperiment();
         
+	}
+	
+	public static final String lockerFile = "ErlangExamples/locker/locker.erl";
+	
+	@Test
+	public void testLearningFromErlangTraceFile2() throws IOException
+	{
+		ErlangModule mod = ErlangModule.loadModule(lockerFile);
+		Set<ErlangLabel> alphabetA = new TreeSet<ErlangLabel>();alphabetA.addAll(mod.behaviour.getAlphabet());
+		ErlangModule.flushRegistry();
+		ErlangModule modSame = ErlangModule.loadModule(lockerFile);
+		System.out.println("============================");
+		System.out.println(alphabetA);
+		System.out.println("============================");
+		System.out.println(modSame.behaviour.getAlphabet());
+		Assert.assertTrue(alphabetA.equals(modSame.behaviour.getAlphabet()));// check that the same alphabet will be loaded second time.
+		ErlangModule.flushRegistry();
+		System.out.println("============================");
+		
+		
+		ErlangOracleLearner learner = ErlangQSMOracle.createLearner(null,"resources/earlier_failure2.txt");
+		Set<ErlangLabel> alphabetFull = new TreeSet<ErlangLabel>();alphabetFull.addAll(ErlangModule.findModule("locker").behaviour.getAlphabet());
+		alphabetFull.removeAll(alphabetA);
+		Assert.assertEquals(3,alphabetFull.size());
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, lock ,{ok,locked}}", learner.config)));
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, read ,-1}", learner.config)));
+		Assert.assertTrue(alphabetFull.contains(AbstractLearnerGraph.generateNewLabel("{call, unlock ,{ok,unlocked}}", learner.config)));
 	}
 }

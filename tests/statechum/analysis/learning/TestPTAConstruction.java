@@ -161,7 +161,7 @@ public class TestPTAConstruction
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.tentativeAutomaton.pathroutines.getGraph();
+			actualC = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -177,7 +177,7 @@ public class TestPTAConstruction
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
 			l.init(engine,0,0);
-			actualD = l.tentativeAutomaton.pathroutines.getGraph();
+			actualD = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -194,9 +194,9 @@ public class TestPTAConstruction
 			for(List<Label> seq:minusStrings)
 			{
 				Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
+				l.getTentativeAutomaton().paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
 			}
-			actualE = l.tentativeAutomaton.pathroutines.getGraph();
+			actualE = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -209,10 +209,10 @@ public class TestPTAConstruction
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-			l.tentativeAutomaton.initPTA();
-			l.tentativeAutomaton.paths.augmentPTA(minusStrings, false,true);
-			l.tentativeAutomaton.paths.augmentPTA(plusStrings, true,true);
-			actualF = l.tentativeAutomaton.pathroutines.getGraph();
+			l.getTentativeAutomaton().initPTA();
+			l.getTentativeAutomaton().paths.augmentPTA(minusStrings, false,true);
+			l.getTentativeAutomaton().paths.augmentPTA(plusStrings, true,true);
+			actualF = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -286,15 +286,15 @@ public class TestPTAConstruction
 		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		// set the initial state to be reject
-		l.tentativeAutomaton.initPTA();l.tentativeAutomaton.getVertex(new LinkedList<Label>()).setAccept(false);
+		l.getTentativeAutomaton().initPTA();l.getTentativeAutomaton().getVertex(new LinkedList<Label>()).setAccept(false);
 		// and check how augmentPTA works with such a PTA
 		for(boolean maxAutomaton:new boolean[]{true,false})
 		{
 			for(List<Label> sequence:buildSet(new String[][] { new String[]{} },config))
-				l.tentativeAutomaton.paths.augmentPTA(sequence, false,maxAutomaton,null);
+				l.getTentativeAutomaton().paths.augmentPTA(sequence, false,maxAutomaton,null);
 			for(List<Label> sequence:buildSet(new String[][] { },config))
-				l.tentativeAutomaton.paths.augmentPTA(sequence, true,maxAutomaton,null);
-			DirectedSparseGraph actualC = l.tentativeAutomaton.pathroutines.getGraph();
+				l.getTentativeAutomaton().paths.augmentPTA(sequence, true,maxAutomaton,null);
+			DirectedSparseGraph actualC = l.getTentativeAutomaton().pathroutines.getGraph();
 			Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 			Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 			Assert.assertEquals(0, actualC.getEdges().size());
@@ -308,12 +308,12 @@ public class TestPTAConstruction
 		Configuration config = Configuration.getDefaultConfiguration().copy();
 		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-		l.tentativeAutomaton.initPTA();
+		l.getTentativeAutomaton().initPTA();
 		for(List<Label> sequence:buildSet(new String[][] { new String[]{} },config))
-			l.tentativeAutomaton.paths.augmentPTA(sequence, false,true,null);
+			l.getTentativeAutomaton().paths.augmentPTA(sequence, false,true,null);
 		for(List<Label> sequence:buildSet(new String[][] { },config))
-			l.tentativeAutomaton.paths.augmentPTA(sequence, true,true,null);
-		DirectedSparseGraph actualC = l.tentativeAutomaton.pathroutines.getGraph();
+			l.getTentativeAutomaton().paths.augmentPTA(sequence, true,true,null);
+		DirectedSparseGraph actualC = l.getTentativeAutomaton().pathroutines.getGraph();
 		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
 		Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualC.getEdges().size());
@@ -358,7 +358,7 @@ public class TestPTAConstruction
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(plusStrings, minusStrings);
-			actualC = l.tentativeAutomaton.pathroutines.getGraph();
+			actualC = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -374,7 +374,7 @@ public class TestPTAConstruction
 			PTASequenceEngine engine = buildPTA(plusStrings, minusStrings);
 			checkPTAConsistency(engine, plusStrings, true);if (engine.numberOfLeafNodes()>0) checkPTAConsistency(engine, minusStrings, false);
 			l.init(engine,0,0);
-			actualD = l.tentativeAutomaton.pathroutines.getGraph();
+			actualD = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -390,9 +390,9 @@ public class TestPTAConstruction
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config)),0,0);
 			for(List<Label> seq:minusStrings)
 			{	Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
-				l.tentativeAutomaton.paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
+				l.getTentativeAutomaton().paths.augmentPTA(buildPTA(buildSet(new String[][] {},config),negativeSeq));
 			}
-			actualE = l.tentativeAutomaton.pathroutines.getGraph();
+			actualE = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -405,10 +405,10 @@ public class TestPTAConstruction
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-			l.tentativeAutomaton.initPTA();
-			l.tentativeAutomaton.paths.augmentPTA(minusStrings, false,true);
-			l.tentativeAutomaton.paths.augmentPTA(plusStrings, true,true);
-			actualF = l.tentativeAutomaton.pathroutines.getGraph();
+			l.getTentativeAutomaton().initPTA();
+			l.getTentativeAutomaton().paths.augmentPTA(minusStrings, false,true);
+			l.getTentativeAutomaton().paths.augmentPTA(plusStrings, true,true);
+			actualF = l.getTentativeAutomaton().pathroutines.getGraph();
 		}
 		catch(IllegalArgumentException e)
 		{
@@ -565,12 +565,12 @@ public class TestPTAConstruction
 			Configuration config = Configuration.getDefaultConfiguration().copy();
 			final RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
-			l.tentativeAutomaton.initPTA();
-			l.tentativeAutomaton.paths.augmentPTA(minusStrings, false,maxAutomaton);
-			l.tentativeAutomaton.paths.augmentPTA(plusStrings, true,maxAutomaton);
+			l.getTentativeAutomaton().initPTA();
+			l.getTentativeAutomaton().paths.augmentPTA(minusStrings, false,maxAutomaton);
+			l.getTentativeAutomaton().paths.augmentPTA(plusStrings, true,maxAutomaton);
 			
 			checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-				l.tentativeAutomaton.paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}},conf),true,maxAutomaton);
+				l.getTentativeAutomaton().paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}},conf),true,maxAutomaton);
 			}},IllegalArgumentException.class,"incompatible ");
 		}
 	}

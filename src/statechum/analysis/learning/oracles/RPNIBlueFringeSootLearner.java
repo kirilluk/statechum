@@ -45,27 +45,27 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			restartScoreDistribution = new HashMap<Integer,AtomicInteger>();
 		Map<PairScore, Integer> scoresToIterations = new HashMap<PairScore, Integer>();
 		Map<PairScore, Integer> restartsToIterations = new HashMap<PairScore, Integer>();
-		LearnerGraph newPTA = tentativeAutomaton;// no need to clone - this is the job of mergeAndDeterminize anyway
+		LearnerGraph newPTA = getTentativeAutomaton();// no need to clone - this is the job of mergeAndDeterminize anyway
 		setChanged();
-		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(getTentativeAutomaton());
 		int iterations = 0;
 		while(!possibleMerges.isEmpty()){
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
+			LearnerGraph temp = topLevelListener.MergeAndDeterminize(getTentativeAutomaton(), pair);
 			setChanged();
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			int score = pair.getScore();
 			if(shouldAskQuestions(score))
 			{
-				questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);
+				questions = topLevelListener.ComputeQuestions(pair, getTentativeAutomaton(), temp);
 			} 
 			boolean restartLearning = false;
 			Iterator<List<Label>> questionIt = questions.iterator();
 			while(questionIt.hasNext()){
 				List<Label> question = questionIt.next();
 				CmpVertex tempVertex = temp.getVertex(question);
-				Pair<Integer,String> answer = CheckWithEndUser(tentativeAutomaton,question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,
+				Pair<Integer,String> answer = CheckWithEndUser(getTentativeAutomaton(),question, temp.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size()-1,
 							null, null,new Object [] {"Test"});
 				if(answer.firstElem>=0){
 					Label from = oracle.getFrom();
@@ -86,9 +86,9 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 			
 			if (restartLearning)
 			{
-				tentativeAutomaton = newPTA;// no need to clone - this is the job of mergeAndDeterminize anyway
+				setTentativeAutomaton(newPTA);// no need to clone - this is the job of mergeAndDeterminize anyway
 				
-				tentativeAutomaton.clearColours();
+				getTentativeAutomaton().clearColours();
 				setChanged();
 				AtomicInteger count = restartScoreDistribution.get(pair.getScore());
 				if (count == null)
@@ -108,7 +108,7 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				// This is hence computed inside the obtainPair method.
 				
 				// keep going with the existing model
-				tentativeAutomaton = temp;
+				setTentativeAutomaton(temp);
 				// now update the statistics
 				AtomicInteger count = whichScoresWereUsedForMerging.get(pair.getScore());
 				if (count == null)
@@ -120,10 +120,10 @@ public class RPNIBlueFringeSootLearner extends	RPNIUniversalLearner {
 				topLevelListener.Restart(RestartLearningEnum.restartNONE);
 			}
 			
-			possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
+			possibleMerges = topLevelListener.ChooseStatePairs(getTentativeAutomaton());
 		}
 		//DirectedSparseGraph result = tentativeAutomaton.paths.getGraph();result.addUserDatum(JUConstants.STATS, report.toString(), UserData.SHARED);
-		updateGraph(tentativeAutomaton, null);
-		return tentativeAutomaton;
+		updateGraph(getTentativeAutomaton(), null);
+		return getTentativeAutomaton();
 	}
 }

@@ -374,7 +374,8 @@ public class PTASequenceEngine
 			else
 			{
 				PTASequenceEngine.Node nextNode = new Node(newState);
-				row.put(input, nextNode);pta.put(nextNode, new HashMap<Label,PTASequenceEngine.Node>());
+				row.put(input, nextNode);
+				pta.put(nextNode, new HashMap<Label,PTASequenceEngine.Node>());
 				nextCurrentNode = nextNode;
 			}
 		}

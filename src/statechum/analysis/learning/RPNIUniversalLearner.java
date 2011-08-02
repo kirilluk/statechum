@@ -57,29 +57,29 @@ public class RPNIUniversalLearner extends RPNILearner
 		ifthenAutomataAsText = evalCnf.ifthenSequences;
 		if(ifthenAutomataAsText == null)
 			ifthenAutomataAsText = new HashSet<String>();
-		tentativeAutomaton = new LearnerGraph(evalCnf.config);
+		setTentativeAutomaton(new LearnerGraph(evalCnf.config));
 	}
 
-	protected LearnerGraph tentativeAutomaton = null;
+	private LearnerGraph tentativeAutomaton = null;
 
 	@Override
 	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus)
 	{// Given that we may have a graph with a single reject-state, we'd like to start by adding
 	 // reject-sequences first.
-		tentativeAutomaton.initPTA();		
-		tentativeAutomaton.paths.augmentPTA(minus, false,false);
-		tentativeAutomaton.paths.augmentPTA(plus, true,false);
-		return tentativeAutomaton;
+		getTentativeAutomaton().initPTA();		
+		getTentativeAutomaton().paths.augmentPTA(minus, false,false);
+		getTentativeAutomaton().paths.augmentPTA(plus, true,false);
+		return getTentativeAutomaton();
 	}
 
 	@Override
 	public LearnerGraph init(PTASequenceEngine en, 
 			@SuppressWarnings("unused") int plusSize, @SuppressWarnings("unused") int minusSize)
 	{
-		tentativeAutomaton.initPTA();
-		tentativeAutomaton.paths.augmentPTA(en);
+		getTentativeAutomaton().initPTA();
+		getTentativeAutomaton().paths.augmentPTA(en);
 
-		return tentativeAutomaton;
+		return getTentativeAutomaton();
 	}
 	
 	/** Returns statistics reflecting the learning. 
@@ -137,7 +137,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph tempNew)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
-		return ComputeQuestions.computeQS(pair, tentativeAutomaton,tempNew, ifthenAutomata);
+		return ComputeQuestions.computeQS(pair, getTentativeAutomaton(),tempNew, ifthenAutomata);
 	}
 
 	/** Given a pair of graphs, rebuilds a set of questions to validate the merge which 
@@ -152,7 +152,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp)
 	{
 		if (ifthenAutomata == null && config.isUseConstraints()) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, original, config).toArray(new LearnerGraph[0]);
-		return ComputeQuestions.RecomputeQS(pair, tentativeAutomaton,temp, ifthenAutomata);
+		return ComputeQuestions.RecomputeQS(pair, getTentativeAutomaton(),temp, ifthenAutomata);
 	}
 	
 	@Override 
@@ -168,7 +168,7 @@ public class RPNIUniversalLearner extends RPNILearner
 		if (!config.getUseSpin())
 		{	// This check has to be performed because if constraints are used, 
 			// LTL will be converted to a maximal automata which is not appropriate if the traditional way (with Spin) is used.
-			Boolean augmentResult = tentativeAutomaton.transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
+			Boolean augmentResult = getTentativeAutomaton().transform.AugmentNonExistingMatrixWith(sequence, accepted);// rule out a question.
 			// Note that since we've attempted to augment our new tentative automaton right after 
 			// merging and reached no contradiction, we can add new paths one-by one here 
 			// and expect no contradiction.
@@ -186,12 +186,12 @@ public class RPNIUniversalLearner extends RPNILearner
 	@Override 
 	public LearnerGraph learnMachine()
 	{
-		final Configuration shallowCopy = tentativeAutomaton.config.copy();shallowCopy.setLearnerCloneGraph(false);
+		final Configuration shallowCopy = getTentativeAutomaton().config.copy();shallowCopy.setLearnerCloneGraph(false);
 		ptaHardFacts = new LearnerGraph(shallowCopy);// this is now cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 		SpinUtil spin = null;
-		LearnerGraph.copyGraphs(tentativeAutomaton, ptaHardFacts);
-		LearnerGraph ptaSoftFacts = tentativeAutomaton;
-		setChanged();tentativeAutomaton.setName(learntGraphName+"_init");
+		LearnerGraph.copyGraphs(getTentativeAutomaton(), ptaHardFacts);
+		LearnerGraph ptaSoftFacts = getTentativeAutomaton();
+		setChanged();getTentativeAutomaton().setName(learntGraphName+"_init");
 		
 		final List<List<Label>> extraTracesPlus = new LinkedList<List<Label>>(), extraTracesMinus = new LinkedList<List<Label>>();
 		
@@ -201,33 +201,33 @@ public class RPNIUniversalLearner extends RPNILearner
 			StringBuffer counterExampleHolder = new StringBuffer();
 			if (ifthenAutomata == null) ifthenAutomata = Transform.buildIfThenAutomata(ifthenAutomataAsText, ptaHardFacts, config).toArray(new LearnerGraph[0]);
 
-			if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
+			if (!topLevelListener.AddConstraints(getTentativeAutomaton(),updatedTentativeAutomaton,counterExampleHolder))
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
-			tentativeAutomaton = updatedTentativeAutomaton;
+			setTentativeAutomaton(updatedTentativeAutomaton);
 		}
-		if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
+		if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 			spin = new SpinUtil(config);
 			SpinResult sr = spin.check(ptaHardFacts, ifthenAutomataAsText);
 			if(!sr.isPass())
 				throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, sr.getCounters()));
 		}
 
-		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
+		Stack<PairScore> possibleMerges = topLevelListener.ChooseStatePairs(getTentativeAutomaton());
 		int iterations = 0, currentNonAmber = ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
-		JUConstants colourToAugmentWith = tentativeAutomaton.config.getUseAmber()? JUConstants.AMBER:null;
-		updateGraph(tentativeAutomaton,ptaHardFacts);
+		JUConstants colourToAugmentWith = getTentativeAutomaton().config.getUseAmber()? JUConstants.AMBER:null;
+		updateGraph(getTentativeAutomaton(),ptaHardFacts);
 		while (!possibleMerges.isEmpty()) 
 		{
 			iterations++;
 			PairScore pair = possibleMerges.pop();
-			final LearnerGraph temp = topLevelListener.MergeAndDeterminize(tentativeAutomaton, pair);
+			final LearnerGraph temp = topLevelListener.MergeAndDeterminize(getTentativeAutomaton(), pair);
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			int score = pair.getScore();
 			RestartLearningEnum restartLearning = RestartLearningEnum.restartNONE;// whether we need to rebuild a PTA and restart learning.
 
-			if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
+			if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin() && !ifthenAutomataAsText.isEmpty()){
 
-				Collection<List<Label>> counterExamples = spin.check(temp, tentativeAutomaton, ifthenAutomataAsText).getCounters();
+				Collection<List<Label>> counterExamples = spin.check(temp, getTentativeAutomaton(), ifthenAutomataAsText).getCounters();
 				Iterator<List<Label>> counterExampleIt = counterExamples.iterator();
 				while(counterExampleIt.hasNext())
 				{
@@ -246,7 +246,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				StringBuffer counterExampleHolder = new StringBuffer();
 				if (!topLevelListener.AddConstraints(temp,updatedTentativeAutomaton,counterExampleHolder))
 				{
-					tentativeAutomaton.addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
+					getTentativeAutomaton().addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
 					restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
 					System.out.println("<info> pair "+pair+" contradicts constraints, hence recorded as incompatible");
 				}
@@ -271,12 +271,12 @@ public class RPNIUniversalLearner extends RPNILearner
 						//LearnerGraph updatedGraphActual = ComputeQuestions.constructGraphWithQuestions(pair, tentativeAutomaton, temp);
 						//updatedGraphActual.setName("questions "+iterations);setChanged();updateGraph(updatedGraphActual,ptaHardFacts);
 		
-						questions = topLevelListener.ComputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+						questions = topLevelListener.ComputeQuestions(pair, getTentativeAutomaton(), temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 						questionIt = questions.iterator();
 						if (questionIt.hasNext())
 						{
 							pair.firstElem.setHighlight(true);pair.secondElem.setHighlight(true);
-							updateGraph(tentativeAutomaton,ptaHardFacts);pair.firstElem.setHighlight(false);pair.secondElem.setHighlight(false);
+							updateGraph(getTentativeAutomaton(),ptaHardFacts);pair.firstElem.setHighlight(false);pair.secondElem.setHighlight(false);
 						}
 					}
 				}
@@ -287,7 +287,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				boolean accepted = pair.getQ().isAccept();
 				Pair<Integer,String> answer = null;
-				if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin() && !ifthenAutomataAsText.isEmpty())
+				if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin() && !ifthenAutomataAsText.isEmpty())
 					answer = new Pair<Integer,String>(spin.check(question, ifthenAutomataAsText),null);
 				
 				CmpVertex tempVertex = temp.getVertex(question);
@@ -302,7 +302,7 @@ public class RPNIUniversalLearner extends RPNILearner
 						}
 					List<Boolean> acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
 
-					answer = topLevelListener.CheckWithEndUser(tentativeAutomaton, question, 
+					answer = topLevelListener.CheckWithEndUser(getTentativeAutomaton(), question, 
 							tempVertex.isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,
 									acceptedElements, pair,
 							new Object[] { "LTL","IFTHEN","IGNORE QUESTION","MARK AS INCOMPATIBLE","Add trace"});
@@ -327,7 +327,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					 * the current pair to be merged is the same as the one recorded as incompatible when an answer was recorded.
 					 */
 
-					tentativeAutomaton.addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
+					getTentativeAutomaton().addToCompatibility(pair.firstElem, pair.secondElem, PAIRCOMPATIBILITY.INCOMPATIBLE);
 					restartLearning = RestartLearningEnum.restartRECOMPUTEPAIRS;
 				}
 				else
@@ -373,7 +373,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						AugumentPTA_and_QuestionPTA(ptaHardFacts,RestartLearningEnum.restartHARD,question, true,colourToAugmentWith);
 					
-					if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
+					if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,question, true,colourToAugmentWith);
 
 					if (!tempVertex.isAccept()) 
 					{// contradiction with the result of merging
@@ -393,7 +393,7 @@ public class RPNIUniversalLearner extends RPNILearner
 					if(!answerFromSpin) // only add to hard facts when obtained directly from a user or from autofile
 						AugumentPTA_and_QuestionPTA(ptaHardFacts, RestartLearningEnum.restartHARD,subAnswer, false,colourToAugmentWith);
 
-					if (tentativeAutomaton.config.getUseLTL() && tentativeAutomaton.config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,colourToAugmentWith);
+					if (getTentativeAutomaton().config.getUseLTL() && getTentativeAutomaton().config.getUseSpin()) topLevelListener.AugmentPTA(ptaSoftFacts,RestartLearningEnum.restartSOFT,subAnswer, false,colourToAugmentWith);
 					// important: since vertex IDs is
 					// only unique for each instance of ComputeStateScores, only
 					// one instance should ever receive calls to augmentPTA
@@ -443,10 +443,10 @@ public class RPNIUniversalLearner extends RPNILearner
 							}
 							else
 							{
-								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, tentativeAutomaton, config).toArray(new LearnerGraph[0]);
+								LearnerGraph tmpIfthenAutomata[] = Transform.buildIfThenAutomata(tmpLtl, getTentativeAutomaton(), config).toArray(new LearnerGraph[0]);
 								LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 
-								LearnerGraph.copyGraphs(tentativeAutomaton, updatedTentativeAutomaton);
+								LearnerGraph.copyGraphs(getTentativeAutomaton(), updatedTentativeAutomaton);
 								try {
 									Transform.augmentFromIfThenAutomaton(updatedTentativeAutomaton, null, tmpIfthenAutomata, config.getHowManyStatesToAddFromIFTHEN());
 								} catch (AugmentFromIfThenAutomatonException e) {
@@ -478,7 +478,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				
 				if ( (config.isUseConstraints() && restartLearning == RestartLearningEnum.restartNONE) || restartLearning == RestartLearningEnum.restartRECOMPUTEQUESTIONS)
 				{
-					questions = topLevelListener.RecomputeQuestions(pair, tentativeAutomaton, temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
+					questions = topLevelListener.RecomputeQuestions(pair, getTentativeAutomaton(), temp);// all answers are considered "hard", hence we have to ask questions based on hard facts in order to avoid prefixes which are not valid in hard facts
 					questionIt = questions.iterator();restartLearning = RestartLearningEnum.restartNONE;
 				}
 			} // loop of questions
@@ -493,8 +493,8 @@ public class RPNIUniversalLearner extends RPNILearner
 							return null;// this is the case when a user cancels the learning process when presented by "speculative" questions.
 					LearnerGraph.copyGraphs(ptaHardFacts,ptaSoftFacts);// this is cloned to eliminate counter-examples added to ptaSoftFacts by Spin
 				}
-				tentativeAutomaton = ptaSoftFacts;// no need to clone - this is the job of mergeAndDeterminize anyway
-				tentativeAutomaton.clearColoursButAmber();// this one will clear all colours if amber mode is not set.
+				setTentativeAutomaton(ptaSoftFacts);// no need to clone - this is the job of mergeAndDeterminize anyway
+				getTentativeAutomaton().clearColoursButAmber();// this one will clear all colours if amber mode is not set.
 
 				setChanged();
 			} 
@@ -510,7 +510,7 @@ public class RPNIUniversalLearner extends RPNILearner
 				// This is hence computed inside the obtainPair method.
 
 				// keep going with the existing model
-				tentativeAutomaton = temp;
+				setTentativeAutomaton(temp);
 				
 				// if we record the fact that the pair was merged so that we do not ask questions upon restart, do it here.
 				if (config.getScoreForAutomergeUponRestart() != Integer.MAX_VALUE)
@@ -528,26 +528,26 @@ public class RPNIUniversalLearner extends RPNILearner
 					// Augmentation from IF-THEN does not use incompatibility constraints in a tentative automaton hence no point in re-augmenting (especially given that I do not have an automaton from before augmentation preserved).
 					LearnerGraph updatedTentativeAutomaton = new LearnerGraph(shallowCopy);
 					StringBuffer counterExampleHolder = new StringBuffer();
-					if (!topLevelListener.AddConstraints(tentativeAutomaton,updatedTentativeAutomaton,counterExampleHolder))
+					if (!topLevelListener.AddConstraints(getTentativeAutomaton(),updatedTentativeAutomaton,counterExampleHolder))
 						throw new IllegalArgumentException(getHardFactsContradictionErrorMessage(ifthenAutomataAsText, counterExampleHolder.toString()));
-					tentativeAutomaton = updatedTentativeAutomaton;
+					setTentativeAutomaton(updatedTentativeAutomaton);
 				}
 				// Where Erlang learner adds additional traces, these have to be recorded in extraTracesPlus/extraTracesMinus 
 				// and applied later. If these are applied immediately, AugmentPTA resets cache and the PTA of questions is lost.
 				// The map could be null if no merger completed yet
 				try
 				{
-		            Map<VertexID, Collection<VertexID>> mergedToHard = tentativeAutomaton.getCache().getMergedToHardFacts();
+		            Map<VertexID, Collection<VertexID>> mergedToHard = getTentativeAutomaton().getCache().getMergedToHardFacts();
 		            for(List<Label> positive:extraTracesPlus)
 		            {
-		            	topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,positive, true,colourToAugmentWith);
-						CmpVertex hardFactsVertex = ptaHardFacts.getVertex(positive), tentativeVertex=tentativeAutomaton.getVertex(positive);
+		            	topLevelListener.AugmentPTA(getTentativeAutomaton(),RestartLearningEnum.restartHARD,positive, true,colourToAugmentWith);
+						CmpVertex hardFactsVertex = ptaHardFacts.getVertex(positive), tentativeVertex=getTentativeAutomaton().getVertex(positive);
 						if (mergedToHard != null) mergedToHard.put(tentativeVertex.getID(), Collections.singletonList(hardFactsVertex.getID()));
 		            }
 					for(List<Label> negative:extraTracesMinus) 
 					{
-						topLevelListener.AugmentPTA(tentativeAutomaton,RestartLearningEnum.restartHARD,negative, false,colourToAugmentWith);
-						CmpVertex hardFactsVertex = ptaHardFacts.getVertex(negative), tentativeVertex=tentativeAutomaton.getVertex(negative);
+						topLevelListener.AugmentPTA(getTentativeAutomaton(),RestartLearningEnum.restartHARD,negative, false,colourToAugmentWith);
+						CmpVertex hardFactsVertex = ptaHardFacts.getVertex(negative), tentativeVertex=getTentativeAutomaton().getVertex(negative);
 						if (mergedToHard != null) mergedToHard.put(tentativeVertex.getID(), Collections.singletonList(hardFactsVertex.getID()));
 					}
 				}
@@ -566,12 +566,12 @@ public class RPNIUniversalLearner extends RPNILearner
 			
 			//System.out.println("<info> restart: "+restartLearning);
 
-			possibleMerges = topLevelListener.ChooseStatePairs(tentativeAutomaton);
+			possibleMerges = topLevelListener.ChooseStatePairs(getTentativeAutomaton());
 		}
 		
 		assert !config.getUseAmber() || currentNonAmber == ptaHardFacts.getStateNumber()-ptaHardFacts.getAmberStateNumber();
-		updateGraph(tentativeAutomaton,ptaHardFacts);
-		return tentativeAutomaton;
+		updateGraph(getTentativeAutomaton(),ptaHardFacts);
+		return getTentativeAutomaton();
 	}
 
 	protected String getHardFactsContradictionErrorMessage(Collection<String> tmpLtl, Collection<List<Label>> counters)
@@ -598,7 +598,7 @@ public class RPNIUniversalLearner extends RPNILearner
 	 */
 	boolean speculativeGraphUpdate(Stack<PairScore> possibleMerges, LearnerGraph ptaHardFacts)
 	{
-		JUConstants colourToAugmentWith = tentativeAutomaton.config.getUseAmber()? JUConstants.AMBER:null;
+		JUConstants colourToAugmentWith = getTentativeAutomaton().config.getUseAmber()? JUConstants.AMBER:null;
 
 		while(!possibleMerges.isEmpty())
 		{
@@ -621,9 +621,9 @@ public class RPNIUniversalLearner extends RPNILearner
 					for(List<Label> question:topLevelListener.ComputeQuestions(pair, ptaHardFacts, tempNew))
 					{
 						List<Boolean> acceptedElements = null;
-						if (tentativeAutomaton.config.isUseConstraints())
+						if (getTentativeAutomaton().config.isUseConstraints())
 							acceptedElements = PathRoutines.mapPathToConfirmedElements(ptaHardFacts,question,ifthenAutomata);
-						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(tentativeAutomaton,question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,pair,new Object [] {"Test"});
+						Pair<Integer,String> answer = topLevelListener.CheckWithEndUser(getTentativeAutomaton(),question, tempNew.getVertex(question).isAccept()?AbstractOracle.USER_ACCEPTED:question.size() - 1,acceptedElements,pair,new Object [] {"Test"});
 						if (answer.firstElem == AbstractOracle.USER_CANCELLED)
 						{
 							System.out.println("CANCELLED");
@@ -647,5 +647,13 @@ public class RPNIUniversalLearner extends RPNILearner
 		}
 		
 		return false;
+	}
+
+	public void setTentativeAutomaton(LearnerGraph tentativeAutomaton) {
+		this.tentativeAutomaton = tentativeAutomaton;
+	}
+
+	public LearnerGraph getTentativeAutomaton() {
+		return tentativeAutomaton;
 	}
 }

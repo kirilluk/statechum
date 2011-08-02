@@ -224,10 +224,10 @@ public class Test_CheckLearnerAgainstLog
 				@Override
 				public LearnerGraph init(Collection<List<Label>> plus,	Collection<List<Label>> minus) 
 				{
-					tentativeAutomaton.initPTA_1();		
-					tentativeAutomaton.paths.augmentPTA(minus, false,false);
-					tentativeAutomaton.paths.augmentPTA(plus, true,false);
-					return tentativeAutomaton;
+					getTentativeAutomaton().initPTA_1();		
+					getTentativeAutomaton().paths.augmentPTA(minus, false,false);
+					getTentativeAutomaton().paths.augmentPTA(plus, true,false);
+					return getTentativeAutomaton();
 				}
 
 				@Override

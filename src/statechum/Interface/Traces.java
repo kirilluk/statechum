@@ -39,11 +39,11 @@ public class Traces extends javax.swing.JFrame {
 	protected static int negcount;
 
 	protected static String module;
-	
+
 	public static void setModule(String mod) {
 		module = mod;
 	}
-	
+
 	/** Creates new form Traces */
 	public Traces() {
 		initComponents();
@@ -74,120 +74,167 @@ public class Traces extends javax.swing.JFrame {
 	 */
 	@SuppressWarnings("unchecked")
 	// <editor-fold defaultstate="collapsed"
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
+	// <editor-fold defaultstate="collapsed"
+	// desc="Generated Code">//GEN-BEGIN:initComponents
+	private void initComponents() {
 
-        jLabel1 = new javax.swing.JLabel();
-        filenameLabel = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        tracecountLabel = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        alphabetPane = new javax.swing.JScrollPane();
-        jSeparator1 = new javax.swing.JSeparator();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jSeparator2 = new javax.swing.JSeparator();
-        jLabel4 = new javax.swing.JLabel();
-        moduleLabel = new javax.swing.JLabel();
+		jLabel1 = new javax.swing.JLabel();
+		filenameLabel = new javax.swing.JLabel();
+		jLabel2 = new javax.swing.JLabel();
+		tracecountLabel = new javax.swing.JLabel();
+		jLabel3 = new javax.swing.JLabel();
+		alphabetPane = new javax.swing.JScrollPane();
+		jSeparator1 = new javax.swing.JSeparator();
+		jButton1 = new javax.swing.JButton();
+		jButton2 = new javax.swing.JButton();
+		jSeparator2 = new javax.swing.JSeparator();
+		jLabel4 = new javax.swing.JLabel();
+		moduleLabel = new javax.swing.JLabel();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jLabel1.setText("Trace file name:");
+		jLabel1.setText("Trace file name:");
 
-        filenameLabel.setText("filename");
+		filenameLabel.setText("filename");
 
-        jLabel2.setText("Traces found:");
+		jLabel2.setText("Traces found:");
 
-        tracecountLabel.setText("traces");
+		tracecountLabel.setText("traces");
 
-        jLabel3.setText("Alphabet:");
+		jLabel3.setText("Alphabet:");
 
-        jButton1.setText("Run QSM in manual mode");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
+		jButton1.setText("Run QSM in manual mode");
+		jButton1.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				jButton1ActionPerformed(evt);
+			}
+		});
 
-        jButton2.setText("Run QSM with the Erlang Auto-Answer wrapper");
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
-            }
-        });
+		jButton2.setText("Run QSM with the Erlang Auto-Answer wrapper");
+		jButton2.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				jButton2ActionPerformed(evt);
+			}
+		});
 
-        jLabel4.setText("Module file:");
+		jLabel4.setText("Module file:");
 
-        moduleLabel.setText(module);
+		moduleLabel.setText(module);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(alphabetPane, javax.swing.GroupLayout.DEFAULT_SIZE, 572, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(moduleLabel))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(filenameLabel))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel2)
-                        .addGap(28, 28, 28)
-                        .addComponent(tracecountLabel)))
-                .addContainerGap())
-            .addComponent(jSeparator1, javax.swing.GroupLayout.DEFAULT_SIZE, 612, Short.MAX_VALUE)
-            .addComponent(jSeparator2, javax.swing.GroupLayout.DEFAULT_SIZE, 612, Short.MAX_VALUE)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jButton1)
-                .addContainerGap(390, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jButton2)
-                .addContainerGap(255, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel3)
-                .addContainerGap(532, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(9, 9, 9)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1)
-                    .addComponent(filenameLabel))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel4)
-                    .addComponent(moduleLabel))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(tracecountLabel))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel3)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(alphabetPane, javax.swing.GroupLayout.PREFERRED_SIZE, 186, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1)
-                .addGap(18, 18, 18)
-                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton2)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
+		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(
+				getContentPane());
+		getContentPane().setLayout(layout);
+		layout.setHorizontalGroup(layout
+				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+				.addGroup(
+						layout.createSequentialGroup()
+								.addContainerGap()
+								.addGroup(
+										layout.createParallelGroup(
+												javax.swing.GroupLayout.Alignment.LEADING)
+												.addComponent(
+														alphabetPane,
+														javax.swing.GroupLayout.DEFAULT_SIZE,
+														572, Short.MAX_VALUE)
+												.addGroup(
+														layout.createSequentialGroup()
+																.addComponent(
+																		jLabel4)
+																.addPreferredGap(
+																		javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+																.addComponent(
+																		moduleLabel))
+												.addGroup(
+														layout.createSequentialGroup()
+																.addComponent(
+																		jLabel1)
+																.addPreferredGap(
+																		javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+																.addComponent(
+																		filenameLabel))
+												.addGroup(
+														layout.createSequentialGroup()
+																.addComponent(
+																		jLabel2)
+																.addGap(28, 28,
+																		28)
+																.addComponent(
+																		tracecountLabel)))
+								.addContainerGap())
+				.addComponent(jSeparator1,
+						javax.swing.GroupLayout.DEFAULT_SIZE, 612,
+						Short.MAX_VALUE)
+				.addComponent(jSeparator2,
+						javax.swing.GroupLayout.DEFAULT_SIZE, 612,
+						Short.MAX_VALUE)
+				.addGroup(
+						layout.createSequentialGroup().addContainerGap()
+								.addComponent(jButton1)
+								.addContainerGap(390, Short.MAX_VALUE))
+				.addGroup(
+						layout.createSequentialGroup().addContainerGap()
+								.addComponent(jButton2)
+								.addContainerGap(255, Short.MAX_VALUE))
+				.addGroup(
+						layout.createSequentialGroup().addContainerGap()
+								.addComponent(jLabel3)
+								.addContainerGap(532, Short.MAX_VALUE)));
+		layout.setVerticalGroup(layout
+				.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+				.addGroup(
+						layout.createSequentialGroup()
+								.addGap(9, 9, 9)
+								.addGroup(
+										layout.createParallelGroup(
+												javax.swing.GroupLayout.Alignment.BASELINE)
+												.addComponent(jLabel1)
+												.addComponent(filenameLabel))
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addGroup(
+										layout.createParallelGroup(
+												javax.swing.GroupLayout.Alignment.BASELINE)
+												.addComponent(jLabel4)
+												.addComponent(moduleLabel))
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addGroup(
+										layout.createParallelGroup(
+												javax.swing.GroupLayout.Alignment.BASELINE)
+												.addComponent(jLabel2)
+												.addComponent(tracecountLabel))
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(jLabel3)
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(alphabetPane,
+										javax.swing.GroupLayout.PREFERRED_SIZE,
+										186,
+										javax.swing.GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(jSeparator1,
+										javax.swing.GroupLayout.PREFERRED_SIZE,
+										10,
+										javax.swing.GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(jButton1)
+								.addGap(18, 18, 18)
+								.addComponent(jSeparator2,
+										javax.swing.GroupLayout.PREFERRED_SIZE,
+										10,
+										javax.swing.GroupLayout.PREFERRED_SIZE)
+								.addPreferredGap(
+										javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+								.addComponent(jButton2)
+								.addContainerGap(
+										javax.swing.GroupLayout.DEFAULT_SIZE,
+										Short.MAX_VALUE)));
 
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
+		pack();
+	}// </editor-fold>//GEN-END:initComponents
 
 	protected void jButton2ActionPerformed(ActionEvent evt) {
 		ErlangQSMOracle.main(new String[] { filename, module });
@@ -229,31 +276,40 @@ public class Traces extends javax.swing.JFrame {
 				line = line.trim();
 				if (line.startsWith("+")) {
 					poscount++;
+					line = line.substring(1);
 				} else if (line.startsWith("-")) {
 					negcount++;
+					line = line.substring(1);
 				} else {
-					if(line.startsWith("#ErlangModule ")) {
-						System.out.println("GOT AN ERLANG MODULE: " + line.substring("#ErlangModule ".length()));
+					if (line.startsWith("#ErlangModule ")) {
+						System.out.println("GOT AN ERLANG MODULE: "
+								+ line.substring("#ErlangModule ".length()));
 						setModule(line.substring("#ErlangModule ".length()));
 					}
 					skip = true;
 				}
 				if (!skip) {
 					// line = line.substring(1);
-					System.out.println("Parsing " + line);
-					Lexer lexer = ErlangLabel.buildLexer(line);
-					int match = lexer.getMatchType();
+					// Match lists of traces
+					line = line.trim();
+					if (line.startsWith("[")) {
+						// strip the start and end brackets
+						line = line.substring(1, line.length() - 1).trim();
+						Lexer lexer = ErlangLabel.buildLexer(line);
+						int match = lexer.getMatchType();
 
-					while (match > 0) {
-						String s = ErlangLabel.parseFirstTermInText(lexer)
-								.toString();
-						System.out.println(match + ": " + s + " ("
-								+ lexer.remaining() + ")");
-						addAlphabetElements(s);
-						match = lexer.getLastMatchType();
+						try {
+							while (match > 0) {
+								String s = ErlangLabel.parseFirstTermInText(
+										lexer).toString();
+								addAlphabetElements(s);
+								match = lexer.getLastMatchType();
+							}
+						} catch (IllegalArgumentException e) {
+							// we are done...
+						}
 					}
 				}
-
 			}
 			input.close();
 		} catch (IOException e) {
@@ -267,18 +323,18 @@ public class Traces extends javax.swing.JFrame {
 		});
 	}
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JScrollPane alphabetPane;
-    private javax.swing.JLabel filenameLabel;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JSeparator jSeparator2;
-    private javax.swing.JLabel moduleLabel;
-    private javax.swing.JLabel tracecountLabel;
-    // End of variables declaration//GEN-END:variables
+	// Variables declaration - do not modify//GEN-BEGIN:variables
+	private javax.swing.JScrollPane alphabetPane;
+	private javax.swing.JLabel filenameLabel;
+	private javax.swing.JButton jButton1;
+	private javax.swing.JButton jButton2;
+	private javax.swing.JLabel jLabel1;
+	private javax.swing.JLabel jLabel2;
+	private javax.swing.JLabel jLabel3;
+	private javax.swing.JLabel jLabel4;
+	private javax.swing.JSeparator jSeparator1;
+	private javax.swing.JSeparator jSeparator2;
+	private javax.swing.JLabel moduleLabel;
+	private javax.swing.JLabel tracecountLabel;
+	// End of variables declaration//GEN-END:variables
 }

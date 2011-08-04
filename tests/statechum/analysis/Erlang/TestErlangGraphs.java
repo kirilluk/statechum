@@ -188,7 +188,7 @@ public class TestErlangGraphs {
 	@Test
 	public void testTraceParsing2() throws IOException
 	{
-		String fnA = "{"+ErlangLabel.missingFunction+",'call','lock'}", fnB = "{"+ErlangLabel.missingFunction+",'info','txt'}",comma=", ";
+		String fnA = "{"+ErlangLabel.missingFunction+",'call','lock'}", fnB = "{"+ErlangLabel.missingFunction+",'call','unlock'}",comma=", ";
 		String text = "["+fnA+comma+fnB+comma+fnB+"]";
 		List<Label> list = AbstractLearnerGraph.parseTrace(text,config);
 		ErlangModule mod = ErlangModule.loadModule(new File("ErlangExamples/locker/locker.erl"));

@@ -219,6 +219,14 @@ handle_call({attributes,M}, _From, State) ->
 		_ -> {reply, failed, State}
 	end;
 
+
+%% Extracts exports from the supplied module
+handle_call({exports,M}, _From, State) ->
+	case(beam_lib:chunks(M,[exports])) of
+		{ok,{_,[{exports,ExportList}]}} -> {reply, {ok,ExportList}, State};
+		_ -> {reply, failed, State}
+	end;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Test routines.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

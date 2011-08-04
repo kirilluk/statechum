@@ -20,6 +20,7 @@ package statechum.analysis.Erlang;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangLong;
 import com.ericsson.otp.erlang.OtpErlangObject;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
+import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
@@ -127,9 +129,21 @@ public abstract class OTPBehaviour {
 	/**
 	 * We have normal Otp functions but all communications is via the server
 	 * interface, hence we create functions reflecting what we actually see
-	 * during learning.
+	 * during learning.<br/>
+	 * The other case is when we do not actually talk to the server, in which case the contents of sigs (except for module_info)
+	 * should be added to the alphabet. 
 	 */
 	protected void generateAlphabet(Configuration config) {
+		if (patterns.isEmpty())
+		{
+			Set<String> exports = loadExports();
+			for(Entry<String,FuncSignature> sigEntry:parent.sigs.entrySet())
+			{
+				if (!sigEntry.getValue().getName().equals("module_info") && exports.contains(sigEntry.getKey()))
+					addFunctionToAlphabet(sigEntry.getKey(), sigEntry.getValue(), sigEntry.getValue(), config);
+			}
+		}
+		else
 		for (Entry<String, OtpCallInterface> pattern : patterns.entrySet()) {
 			if (!parent.sigs.containsKey(pattern.getKey())) {
 				// Really, I don't care...
@@ -149,31 +163,38 @@ public abstract class OTPBehaviour {
 						pattern.getValue());
 
 				parent.sigs.put(otpName, otpFunction);
-				List<List<OtpErlangObject>> args = otpFunction
-						.instantiateAllArgs();
-				List<OtpErlangObject> output = otpFunction
-						.instantiateAllResults();
-
-				for (List<OtpErlangObject> funcArgs : args) {
-					if (funcArgs.isEmpty())
-						throw new RuntimeException("function " + origFunction
-								+ " should take at least one argument");
-					OtpErlangObject firstArg = funcArgs.get(0);
-
-					if (config.getUseErlangOutputs()) {
-						for (OtpErlangObject result : output) {
-							alphabet.add(new ErlangLabel(parent.sigs
-									.get(otpName), otpName, firstArg, result));
-						}
-					} else {
-						alphabet.add(new ErlangLabel(parent.sigs.get(otpName),
-								otpName, firstArg));
-					}
-				}
+				addFunctionToAlphabet(otpName, otpFunction, origFunction, config);
 			}
 		}
 	}
 
+	/** 
+	 * Used to take an existing function and generate an i/o pair for inclusion in an alphabet.
+	 * 
+	 * @param callName how the function should be called in traces. Important for OTP functions but should be the same as function name for ordinary exported functions. 
+	 * @param function function to be associated with this i/o pair.
+	 * @param origFunction the function from which this was generated. Important for OTP functions which are chosen as a subset of existing ones based on patterns.  
+	 * @param config determines whether outputs are to be ignored.
+	 */
+	private void addFunctionToAlphabet(String callName, FuncSignature function, FuncSignature origFunction, Configuration config)
+	{
+		List<List<OtpErlangObject>> args = function.instantiateAllArgs();
+		List<OtpErlangObject> output = function.instantiateAllResults();
+
+		for (List<OtpErlangObject> funcArgs : args) {
+			if (funcArgs.isEmpty())	throw new RuntimeException("function " + origFunction + " should take at least one argument");
+			OtpErlangObject firstArg = funcArgs.get(0);
+
+			if (config.getUseErlangOutputs()) {
+				for (OtpErlangObject result : output) {
+					alphabet.add(new ErlangLabel(parent.sigs.get(callName), callName, firstArg, result));
+				}
+			} else {
+				alphabet.add(new ErlangLabel(parent.sigs.get(callName),callName, firstArg));
+			}
+		}
+	}
+	
 	@Override
 	public String toString() {
 		return name;
@@ -218,6 +239,27 @@ public abstract class OTPBehaviour {
 		}
 	}
 
+	/** Returns a list of fully-qualified names of functions which have been exported from this module. */
+	public Set<String> loadExports()
+	{
+		Set<String> result = new TreeSet<String>();
+		OtpErlangTuple response = ErlangRunner.getRunner().call(new OtpErlangObject[] {
+						new OtpErlangAtom("exports"),new OtpErlangAtom(ErlangRunner.getName(new File(parent.sourceFolder,parent.getName()+ERL.ERL),
+								ErlangRunner.ERL.BEAM)) },"Could not load exports of " + parent.getName());
+
+		OtpErlangList listOfExportTuples = (OtpErlangList) response.elementAt(1);// the first element is 'ok'
+		for (OtpErlangObject tup : listOfExportTuples.elements()) 
+		{
+			String funName = ((OtpErlangAtom) ((OtpErlangTuple) tup).elementAt(0)).atomValue();
+			long funArity = ((OtpErlangLong) ((OtpErlangTuple) tup).elementAt(1)).longValue();
+			String qualifiedName = FuncSignature.qualifiedNameFromFunction(parent.getName(),funName,funArity);
+			assert parent.sigs.containsKey(qualifiedName);
+			result.add(qualifiedName);
+		}
+		
+		return result;
+	}
+	
 	public static OTPBehaviour obtainDeclaredBehaviour(File file,
 			ErlangModule mod) {
 		OTPBehaviour behaviour = new OTPUnknownBehaviour(mod);// unknown unless

@@ -25,15 +25,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -54,23 +51,8 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
 import statechum.Label;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
-import statechum.analysis.Erlang.Signatures.AltSignature;
-import statechum.analysis.Erlang.Signatures.AnySignature;
-import statechum.analysis.Erlang.Signatures.AtomSignature;
-import statechum.analysis.Erlang.Signatures.BooleanSignature;
-import statechum.analysis.Erlang.Signatures.ByteSignature;
-import statechum.analysis.Erlang.Signatures.CharSignature;
-import statechum.analysis.Erlang.Signatures.FailedToParseException;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
-import statechum.analysis.Erlang.Signatures.IntSignature;
-import statechum.analysis.Erlang.Signatures.ListSignature;
-import statechum.analysis.Erlang.Signatures.PidSignature;
-import statechum.analysis.Erlang.Signatures.PortSignature;
-import statechum.analysis.Erlang.Signatures.RecordSignature;
-import statechum.analysis.Erlang.Signatures.Signature;
-import statechum.analysis.Erlang.Signatures.StringSignature;
 import statechum.analysis.Erlang.Signatures.TestTypes;
-import statechum.analysis.Erlang.Signatures.TupleSignature;
 import statechum.analysis.learning.ErlangOracleLearner;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome;
 import statechum.analysis.learning.ErlangOracleLearner.TraceOutcome.TRACEOUTCOME;
@@ -210,9 +192,11 @@ public class TestErlangModule {
     public void testConsistencyBetweenOriginalAndOurTyper2() throws IOException
     {
     	File file = new File("ErlangExamples/locker/locker.erl");
-		new File(ErlangRunner.getName(file, ERL.PLT)).delete();
+    	new File(ErlangRunner.getName(file, ERL.BEAM)).delete();
+    	new File(ErlangRunner.getName(file, ERL.PLT)).delete();
 		String typerInRunner = runTyperAsAProcessInsideErlang(file).replace("\\\\", "\\");
 		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.PLT)).delete());
+		Assert.assertTrue(new File(ErlangRunner.getName(file, ERL.BEAM)).delete());
 		String typerAsProcess = runTyperAsAProcess(file).replace("\\\\", "\\");
 		Assert.assertEquals(typerAsProcess,typerInRunner);
     }
@@ -253,97 +237,101 @@ public class TestErlangModule {
    	public void testWibbleAlphabet() throws IOException
     {
    		ErlangModule mod = ErlangModule.loadModule(new java.io.File("ErlangExamples/WibbleMonster/wibble.erl"));
-   		Assert.assertEquals("[{?F(),'call','xyz','here_kirill'},{?F(),'call','xyz','listing'},{?F(),'call','xyz','wibbling'},{?F(),'call','xyz','wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'call',['Awibble','Awibble'],'here_kirill'},{?F(),'call',['Awibble','Awibble'],'listing'},{?F(),'call',['Awibble','Awibble'],'wibbling'},{?F(),'call',['Awibble','Awibble'],'wobbling'},{?F(),'cast','AnyWibble',[]},{?F(),'cast','AnyWibble',[128,128]},{?F(),'info','AnyWibble',{'noreply','AnyWibble'}},{?F(),'init','AnyWibble','ok'}]",
+   		Assert.assertEquals("[" +
+   				"{"+ErlangLabel.missingFunction+",'call','xyz','here_kirill'}," +
+   				"{"+ErlangLabel.missingFunction+",'call','xyz','listing'}," +
+   				"{"+ErlangLabel.missingFunction+",'call','xyz','wibbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'call','xyz','wobbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'here_kirill'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'listing'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'wibbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'wobbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'here_kirill'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'listing'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'wibbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'call',['Awibble','Awibble'],'wobbling'}," +
+   				"{"+ErlangLabel.missingFunction+",'cast','AnyWibble',[]}," +
+   				"{"+ErlangLabel.missingFunction+",'cast','AnyWibble',[128,128]}," +
+   				"{"+ErlangLabel.missingFunction+",'info','AnyWibble',{'noreply','AnyWibble'}}," +
+   				"{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}" +
+   				"]",
    				TestTypes.getAlphabetAsString(mod));
-    }
-
-    /** Given a fully-qualified name of a function and a collection of labels,
-     * this method returns a first label from that collection with function with that name.
-     * The returned value is stripped function, that is, without output.
-     * input (if non-null) is matched to any of the arguments.
-     */
-    protected ErlangLabel findLabelByFunction(String functionName, String input, ErlangModule mod)
-    {
-    	FuncSignature func = mod.sigs.get(functionName);
-    	for(ErlangLabel lbl:mod.behaviour.getAlphabet()) 
-    		if (lbl.function == func &&
-    				(input == null || lbl.input.toString().contains(input)))
-    			return ErlangOracleLearner.stripOutput(lbl);
-
-    	throw new IllegalArgumentException("cannot find function "+functionName+" with input of "+input);
-    }
-    
+    }    
     
     @Test
     public void testAttemptTracesNotInAlphabet() throws IOException
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
-    	File file = new File("ErlangExamples/locker/locker.erl");
-    	ErlangModule mod = ErlangModule.loadModule(file);
-    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
-    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
-    	/* changed by Ramsay to include module data in configuration */    	
-    	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
+       	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
     	evalConf.config = Configuration.getDefaultConfiguration().copy();
-    	evalConf.config.setErlangModuleName(mod.name);
-    	evalConf.config.setErlangSourceFile(mod.sourceFolder + File.separator + mod.name + ".erl");
+    	final String moduleName = "locker";
+    	evalConf.config.setErlangModuleName(moduleName);
+    	evalConf.config.setErlangSourceFile("ErlangExamples/locker" + File.separator + moduleName + ".erl");
+    	evalConf.config.setLabelKind(LABELKIND.LABEL_ERLANG);
     	final ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
-    	final ErlangLabel initLabel = findLabelByFunction("init",null,mod), 
-    		labelLock = findLabelByFunction("call","lock",mod),
-    		labelRead = findLabelByFunction("call","read",mod), 
-    		labelWrite = findLabelByFunction("call","write",mod);
-    	final ErlangLabel labelInvalidRead = new ErlangLabel(labelRead.function,labelRead.callName,labelRead.input,new OtpErlangInt(88));
+    	// The above loads a module, this one gets that module and subsequently updates its alphabet.
+    	ErlangModule mod = ErlangModule.findModule(evalConf.config.getErlangModuleName());
+    	
+    	final ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config)), 
+			labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config));
+		final ErlangLabel labelInvalidRead = new ErlangLabel(labelLock.function,labelLock.callName,labelLock.input,new OtpErlangInt(88));
 		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() {
 			public @Override void run() throws IOException {
-				learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelInvalidRead}));
+				learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelInvalidRead}));
 			}},IllegalArgumentException.class,"does not belong");
     }
     
     @Test
-    public void testAttemptTraces() throws IOException
+    public void testAttemptTraces()
     {
     	GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP);
-    	File file = new File("ErlangExamples/locker/locker.erl");
-    	ErlangModule mod = ErlangModule.loadModule(file);
-    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
-    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
-    	/* changed by Ramsay to include module data in configuration */    	
     	LearnerEvaluationConfiguration evalConf = new LearnerEvaluationConfiguration(null);
     	evalConf.config = Configuration.getDefaultConfiguration().copy();
-    	evalConf.config.setErlangModuleName(mod.name);
-    	evalConf.config.setErlangSourceFile(mod.sourceFolder + File.separator + mod.name + ".erl");
+    	final String moduleName = "locker";
+    	evalConf.config.setErlangModuleName(moduleName);
+    	evalConf.config.setErlangSourceFile("ErlangExamples/locker" + File.separator + moduleName + ".erl");
+    	evalConf.config.setLabelKind(LABELKIND.LABEL_ERLANG);
     	ErlangOracleLearner learner = new ErlangOracleLearner(null, evalConf);
     	
-    	ErlangLabel initLabel = findLabelByFunction("init",null,mod), 
-    		labelLock = findLabelByFunction("call","lock",mod),
-    		labelRead = findLabelByFunction("call","read",mod), 
-    		labelWrite = findLabelByFunction("call","write",mod);
+    	// The above loads a module, this one gets that module and subsequently updates its alphabet.
+    	ErlangModule mod = ErlangModule.findModule(evalConf.config.getErlangModuleName());
+    	Assert.assertTrue(mod.behaviour instanceof OTPGenServerBehaviour);
+    	Assert.assertTrue(mod.behaviour.dependencies.isEmpty());
     	
+    	ErlangLabel initLabel = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'}", evalConf.config)), 
+    		labelLock = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}", evalConf.config)),
+    		labelRead = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call','read','AnyWibble'}", evalConf.config)), 
+    		labelWrite = mod.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+",'call',{'write','AnyWibble'},{'ok','AnyWibble'}}", evalConf.config));
+    	mod.behaviour.getAlphabet().add(initLabel);
+    	mod.behaviour.getAlphabet().add(labelLock);
+    	mod.behaviour.getAlphabet().add(labelRead);
+    	mod.behaviour.getAlphabet().add(labelWrite);
     	// Attempting first trace
     	List<Label> trace = Arrays.asList(new Label[]{initLabel,labelLock});
     	TraceOutcome tr = learner.askErlang(trace);
     	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'},{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	tr = learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock, labelLock}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_FAIL,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call','lock'}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'},{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}},{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}}]",RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	tr =learner.askErlang(Arrays.asList(new Label[]{initLabel,labelLock,labelWrite, labelRead}));
     	
        	Assert.assertEquals(TRACEOUTCOME.TRACE_OK,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'},{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}},{"+ErlangLabel.missingFunction+",'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{"+ErlangLabel.missingFunction+",'call','read','AnyWibble'}]",
     			RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     	
     	// Now attempt a "different output" input
     	ErlangLabel lbl = tr.answerDetails[3];
     	tr.answerDetails[3] = new ErlangLabel(lbl.function,lbl.callName,
     			lbl.input, new OtpErlangAtom("aa"));
+    	mod.behaviour.getAlphabet().add(tr.answerDetails[3]);
     	tr =learner.askErlang(Arrays.asList(tr.answerDetails));
        	Assert.assertEquals(TRACEOUTCOME.TRACE_DIFFERENTOUTPUT,tr.outcome);
-    	Assert.assertEquals("[{?F(),'init','AnyWibble','ok'},{?F(),'call','lock',{'ok','locked'}},{?F(),'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{?F(),'call','read','AnyWibble'}]",
+    	Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'init','AnyWibble','ok'},{"+ErlangLabel.missingFunction+",'call','lock',{'ok','locked'}},{"+ErlangLabel.missingFunction+",'call',{'write','AnyWibble'},{'ok','AnyWibble'}},{"+ErlangLabel.missingFunction+",'call','read','AnyWibble'}]",
     			RPNILearner.questionToString(Arrays.asList(tr.answerDetails)));
     }
     
@@ -474,7 +462,9 @@ public class TestErlangModule {
     {
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n"+
 				"\nhandle_call(_,_,_)->{reply,ok,5}.\nhandle_cast(_,_)->{noreply,ok,5}.\n\ninitRenamed(_)->{ok,5}.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
-		Assert.assertEquals("[{?F(),'call','AnyWibble','ok'},{?F(),'cast','AnyWibble','ok'},{?F(),'info','AnyWibble',{'reply','ok'}}]",TestTypes.getAlphabetAsString(
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'call','AnyWibble','ok'},"+
+				"{"+ErlangLabel.missingFunction+",'cast','AnyWibble','ok'}," +
+				"{"+ErlangLabel.missingFunction+",'info','AnyWibble',{'reply','ok'}}]",TestTypes.getAlphabetAsString(
 				ErlangModule.loadModule(new File(erlangFile)) ));
     }
     
@@ -489,383 +479,58 @@ public class TestErlangModule {
     public void testDependencies2() throws IOException
     {
     	final String erlangFile2 = TestErlangRunner.testDir.getAbsolutePath()+File.separator+"testFile2.erl";
-		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-export[funct/0].\nfunct() -> ok.");wr.close();
-		wr = new FileWriter(erlangFile2);wr.write("-module(testFile2).\n-export[f/0].\nf() -> testFile:funct().");wr.close();
+		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-export[funct/1].\nfunct(5) -> ok.");wr.close();
+		wr = new FileWriter(erlangFile2);wr.write("-module(testFile2).\n-export[f/1].\nf(2) -> testFile:funct(5).");wr.close();
 		Assert.assertTrue(ErlangModule.loadModule(new File(erlangFile)).behaviour.dependencies.isEmpty());
 		Collection<String> deps = ErlangModule.loadModule(new File(erlangFile2)).behaviour.dependencies;
 		Assert.assertEquals(1,deps.size());
 		Assert.assertEquals("testFile",deps.toArray()[0]);
    }
     
-    protected static ListSignature parseList(StringBuffer specbuf, boolean definitelyNotEmpty,char terminal) {
-        ListSignature lsig = null;
-        List<Signature> elems = new LinkedList<Signature>();
-        boolean empty = !definitelyNotEmpty;
-        
-        while (specbuf.charAt(0) != terminal) {
-            elems.add(parseSignature(specbuf));
-            bufTrimmer(specbuf);
-            if (specbuf.charAt(0) == ',') {
-                // More items...
-                specbuf.delete(0, 1);
-                bufTrimmer(specbuf);
-            }
-            if (specbuf.length() >= 3) {
-                if (specbuf.substring(0, 3).equals("...")) {
-                    // Undefined list continuation
-                    specbuf.delete(0, 3);
-                    bufTrimmer(specbuf);
-                    empty = false;
-                    // Almost certainly now ends...
-                }
-            }
-        }
-        specbuf.delete(0, 1);
-        if (elems.isEmpty()) 
-        	lsig = new ListSignature(new OtpErlangList(
-        			empty?new OtpErlangObject[0]:new OtpErlangObject[]{ListSignature.NonEmptyAtom}),
-        			new OtpErlangList());
-        else 
-        	lsig = new ListSignature(new OtpErlangList(),new OtpErlangList(elems.toArray(new OtpErlangObject[0]))); 
-        return lsig;
-    }
-
-    protected static Signature parseSignature(StringBuffer specbuf) {
-        //System.out.println(">>>> " + specbuf.toString());
-        //System.out.flush();
-        Signature sig;
-        String spec = specbuf.toString();
-        if (spec.startsWith("_")) {
-            specbuf.delete(0, 1);
-            sig = new AnySignature(new OtpErlangList());
-        } else if (spec.matches("^[0-9].*")) {
-            // Integer literal
-            // Floats are not supported atm...
-            String val = "";
-            while ((specbuf.length() > 0) && (specbuf.substring(0, 1).matches("[0-9]"))) {
-                val += "" + specbuf.substring(0, 1);
-                specbuf.delete(0, 1);
-            }
-            // handle ranges...
-            if (specbuf.toString().startsWith("..")) {
-                int lowerValue = Integer.parseInt(val);
-                specbuf.delete(0, 2);
-                val = "";
-                while ((specbuf.length() > 0) && (specbuf.substring(0, 1).matches("[0-9]"))) {
-                    val += "" + specbuf.substring(0, 1);
-                    specbuf.delete(0, 1);
-                }
-                int upperValue = Integer.parseInt(val);
-                sig = new IntSignature(new OtpErlangList(),new OtpErlangList(new OtpErlangObject[]{
-                		new OtpErlangInt(lowerValue),new OtpErlangInt(upperValue)
-                }));
-
-            } else {
-            	throw new RuntimeException();
-                //sig = new LiteralSignature(val);
-            }
-        } else if (spec.startsWith("any()")) {
-            specbuf.delete(0, 5);
-            sig = new AnySignature(new OtpErlangList());
-        } else if (spec.startsWith("integer()")) {
-            specbuf.delete(0, 9);
-            sig = new IntSignature(new OtpErlangList());
-        } else if (spec.startsWith("non_neg_integer()")) {
-            specbuf.delete(0, 17);
-            sig = new IntSignature(new OtpErlangList(new OtpErlangObject[]{IntSignature.NonNegativeAtom}));
-        } else if (spec.startsWith("number()")) {
-            specbuf.delete(0, 8);
-            sig = new IntSignature(new OtpErlangList());
-        } else if (spec.startsWith("pos_integer()")) {
-            specbuf.delete(0, 13);
-            sig = new IntSignature(new OtpErlangList(new OtpErlangObject[]{IntSignature.PositiveAtom}));
-        } else if (spec.startsWith("binary()")) {
-            specbuf.delete(0, 8);
-            throw new RuntimeException();
-           // sig = new BinarySignature(new OtpErlangList());
-        } else if (spec.startsWith("boolean()")) {
-            specbuf.delete(0, 9);
-            sig = new BooleanSignature(new OtpErlangList());
-        } else if (spec.startsWith("atom()")) {
-            specbuf.delete(0, 6);
-            sig = new AtomSignature(new OtpErlangList());
-        } else if (spec.startsWith("string()")) {
-            specbuf.delete(0, 8);
-            sig = new StringSignature(new OtpErlangList());
-        } else if (spec.startsWith("tuple()")) {
-            specbuf.delete(0, 7);
-            sig = new TupleSignature(new OtpErlangList());
-        } else if (spec.startsWith("char()")) {
-            specbuf.delete(0, 6);
-            sig = new CharSignature(new OtpErlangList());
-        } else if (spec.startsWith("byte()")) {
-            specbuf.delete(0, 6);
-            sig = new ByteSignature(new OtpErlangList());
-        } else if (spec.startsWith("pid()")) {
-            specbuf.delete(0, 5);
-            sig = new PidSignature(new OtpErlangList());
-        } else if (spec.startsWith("port()")) {
-            specbuf.delete(0, 6);
-            sig = new PortSignature(new OtpErlangList());
-        } else if (spec.startsWith("'")) {
-            String lit = "";
-            specbuf.delete(0, 1);
-            while (specbuf.charAt(0) != '\'') {
-                lit += specbuf.charAt(0);
-                specbuf.delete(0, 1);
-            }
-            specbuf.delete(0, 1);
-            throw new RuntimeException();
-            //sig = new LiteralSignature(lit);
-        } else if (spec.startsWith("{")) {
-            // Tuple...
-            specbuf.delete(0, 1);
-            bufTrimmer(specbuf);
-            List<Signature> tupElems = new LinkedList<Signature>();
-            while (specbuf.charAt(0) != '}') {
-            	tupElems.add(parseSignature(specbuf));
-                bufTrimmer(specbuf);
-                if (specbuf.charAt(0) == ',') {
-                    // More vals...
-                    specbuf.delete(0, 1);
-                    bufTrimmer(specbuf);
-                }
-            }
-            // Swallow the closing }
-            specbuf.delete(0, 1);
-            sig = new TupleSignature(tupElems);
-        } else if (spec.startsWith("maybe_improper_list(")) {
-            specbuf.delete(0, 20);
-            bufTrimmer(specbuf);
-            sig = parseList(specbuf, false, ')');
-        } else if (spec.startsWith("nonempty_maybe_improper_list(")) {
-            specbuf.delete(0, 29);
-            bufTrimmer(specbuf);
-            sig = parseList(specbuf, true, ')');
-        } else if (spec.startsWith("improper_list(")) {
-            specbuf.delete(0, 14);
-            bufTrimmer(specbuf);
-            sig = parseList(specbuf, false, ')');
-        } else if (spec.startsWith("list(")) {
-            specbuf.delete(0, 5);
-            bufTrimmer(specbuf);
-            sig = parseList(specbuf, false, ')');
-        } else if (spec.startsWith("[")) {
-            // List spec
-            specbuf.delete(0, 1);
-            bufTrimmer(specbuf);
-            sig = parseList(specbuf, false, ']');
-        } else if (spec.startsWith("#")) {
-            // Record spec...
-            // FIXME temp
-            // Swallow the name if any
-            String name = "";
-            while (specbuf.charAt(0) != '{') {
-                name += specbuf.substring(0, 1);
-                specbuf.delete(0, 1);
-            }
-            RecordSignature rsig = new RecordSignature(new OtpErlangList(),new OtpErlangList());// this will throw since we provide no name for this record
-            int depth = 1;
-            while (depth > 0) {
-                specbuf.delete(0, 1);
-                bufTrimmer(specbuf);
-                if (specbuf.charAt(0) == '{') {
-                    depth += 1;
-                } else if (specbuf.charAt(0) == '}') {
-                    depth -= 1;
-                }
-            }
-            specbuf.delete(0, 1);
-            bufTrimmer(specbuf);
-            sig = rsig;
-        } else {
-            // Something else...
-            //System.out.println(specbuf.toString());
-            // FIXME
-            int end = specbuf.length();
-            if (specbuf.indexOf(" ") > 0) {
-                end = specbuf.indexOf(" ");
-            }
-            if ((specbuf.indexOf("]") < end) && (specbuf.indexOf("]") >= 0)) {
-                end = specbuf.indexOf("]");
-            }
-            if ((specbuf.indexOf("|") < end) && (specbuf.indexOf("|") >= 0)) {
-                end = specbuf.indexOf("|");
-            }
-            if ((specbuf.indexOf("}") < end) && (specbuf.indexOf("}") >= 0)) {
-                end = specbuf.indexOf("}");
-            }
-            if ((specbuf.indexOf(")") < end) && (specbuf.indexOf(")") >= 0)) {
-                end = specbuf.indexOf(")");
-            }
-            if ((specbuf.indexOf("(") < end) && (specbuf.indexOf("(") >= 0)) {
-                end = specbuf.indexOf("(");
-                int d = 1;
-                while ((d > 0) && (end < specbuf.length())) {
-                    end++;
-                    if (specbuf.substring(end).startsWith(")")) {
-                        d--;
-                    } else if (specbuf.substring(end).startsWith("(")) {
-                        d++;
-                    }
-                    //System.out.println(specbuf.substring(end) + " (depth: " + d + ")");
-                }
-            }
-
-
-            String uk = specbuf.substring(0, end);
-            specbuf.delete(0, end);
-            if (specbuf.toString().startsWith(")")) {
-                uk = uk + ")";
-                specbuf.delete(0, 1);
-            }
-            throw new RuntimeException();//sig = new UnknownSignature(uk);
-        }
-        bufTrimmer(specbuf);
-        // Handle Alternates at this level...
-        if (specbuf.length() > 0) {
-            if (specbuf.charAt(0) == '|') {
-                specbuf.delete(0, 1);
-                bufTrimmer(specbuf);
-                List<Signature> asigElems = new LinkedList<Signature>();
-                asigElems.add(sig);
-                Signature s = parseSignature(specbuf);
-                if (s instanceof AltSignature) {
-                	asigElems.addAll(((AltSignature) s).elems);
-                } else {
-                	asigElems.add(s);
-                }
-                sig = new AltSignature(asigElems);
-            }
-        }
-        return sig;
-    }
-
-    private static void bufTrimmer(StringBuffer buf) {
-        if ((buf.length() > 0)) {
-            while ((buf.charAt(0) == ' ') || (buf.charAt(0) == '\t') || (buf.charAt(0) == '\n')) {
-                buf.delete(0, 1);
-                if (buf.length() <= 0) {
-                    break;
-                }
-            }
-        }
-    }
-    public static FuncSignature parseSignatureSpec(String specArg) throws FailedToParseException {
-        String spec = specArg.trim();
-        if (!spec.startsWith("-spec")) {
-            throw new RuntimeException("Trying to parse a spec that isn't a spec...");
-        }
-        System.out.println(spec);
-        String name = spec.substring(("-spec ").length(), spec.indexOf("("));
-        int argsEnd = spec.substring(0, spec.lastIndexOf("->")).lastIndexOf(")");
-        String args = spec.substring(("-spec ").length() + name.length() + 1, argsEnd).trim();
-        String res = spec.substring(spec.lastIndexOf("->") + 2).trim();
-        
-        System.out.println("Function: " + name);
-        List<List<Signature>> argList = new LinkedList<List<Signature>>();
-        StringBuffer argbuf = new StringBuffer(args);
-        List<Signature> argset = new LinkedList<Signature>();
-        while (argbuf.length() > 0) {
-            Signature a = parseSignature(argbuf);
-            argset.add(a);
-            bufTrimmer(argbuf);
-            if (argbuf.length() > 0) {
-                if (argbuf.charAt(0) == '|') {
-                    // Another pattern...
-                	argList.add(argset);
-                    argset = new ArrayList<Signature>();
-                    argbuf.delete(0, 1);
-                    bufTrimmer(argbuf);
-                } else if (argbuf.charAt(0) == ',') {
-                    // Another arg...
-                    argbuf.delete(0, 1);
-                    bufTrimmer(argbuf);
-                } else if (argbuf.charAt(0) == ')') {
-                    // Finished...??
-                    argbuf.delete(0, 1);
-                    bufTrimmer(argbuf);
-                } else {
-                    // Er, what?
-                    throw new FailedToParseException("Unparsable char '" + argbuf.charAt(0) + "' on the front of " + argbuf.toString());
-
-                }
-            }
-        }
-        argList.add(argset);
-
-        List<Signature> resultValue = new LinkedList<Signature>();
-        StringBuffer resbuf = new StringBuffer(res);
-        while (resbuf.length() > 0) {
-            Signature a = parseSignature(resbuf);
-            bufTrimmer(resbuf);
-            if (resbuf.length() > 0) 
-            {
-                if (resbuf.charAt(0) == '|') {
-                    // More possible result types
-                    resbuf.delete(0, 1);
-                    bufTrimmer(resbuf);
-                    resultValue.add(a);
-                } else if (resbuf.charAt(0) == '.') {
-                    // Finished...
-                    resbuf.delete(0, 1);
-                    bufTrimmer(resbuf);
-                    resultValue.add(a);
-                } else {
-                    // Er, what?
-                    throw new RuntimeException("Unparsable char '" + resbuf.charAt(0) + "'");
-                }
-            } else {
-            	resultValue.add(a);
-            }
-
-        }
-        assert !resultValue.isEmpty();
-        FuncSignature result = new FuncSignature("UNKNOWN",name,argList,
-        		resultValue.size()>1?new AltSignature(resultValue):resultValue.get(0));
-        System.out.println("Args: " + result.instantiateAllArgs().size() + " possibilities");
-        
-        boolean firstline = true;
-        for (List<OtpErlangObject> a : result.instantiateAllArgs()) {
-	        if (!firstline) {
-	        System.out.println("|");
-	        } else {
-	        firstline = false;
-	        }
-	        System.out.println(a);
-        }
-        System.out.println();
-        System.out.println("Result: " + result.instantiateAllResults().size() + " possibilities");
-
-        return result;
-    }
-    
-    protected String getFirstSpec(String buf) {
-        int specstart = buf.indexOf("-spec");
-        if (specstart < 0) {
-            return null;
-        }
-        return buf.substring(specstart, buf.indexOf('\n', specstart));
-
-    }
-    
-    public Map<String,FuncSignature> parseErlang(String bufArg)
+    @Test
+    public void testLoadExportsEmptySetBecauseFunctionDoesNotReturnAValue() throws IOException
     {
-    	String buf = bufArg;
-    	Map<String,FuncSignature> sigs=  new TreeMap<String,FuncSignature>();
-        String spec = getFirstSpec(buf);
-        while (spec != null) {
-            FuncSignature sig;
-            try {
-                sig = parseSignatureSpec(spec);
-                //sig.argInstances.addAll(seekUsages(sig.funcName, f));
-                sigs.put(sig.getName(), sig);
-            } catch (FailedToParseException e) {
-                sig = null;
-            }
-            buf = buf.substring(spec.length());
-            spec = getFirstSpec(buf);
-        }
-        return sigs;
+    	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->io:format(\"42~n\"),halt().\n";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
+    }
+    
+    @Test
+    public void testLoadExportsEmptySet1() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n\n";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
+    }
+    
+    @Test
+    public void testLoadExportsEmptySet2() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\ntestFun([Arg])->io:format(\"42~n\"),halt().\n";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertTrue(mod.behaviour.getAlphabet().isEmpty());
+    }
+
+    @Test
+    public void testLoadExports1() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\n";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['AnyWibble','AnyWibble'],42}]",TestTypes.getAlphabetAsString(
+				mod ));
+    }
+    
+    @Test
+    public void testLoadExports2() throws IOException
+    {
+    	final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun([Arg])->42.\naFun(34)->33.";
+   		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+   		ErlangModule mod = ErlangModule.loadModule(new File(erlangFile));
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[],42},{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['AnyWibble','AnyWibble'],42}]",TestTypes.getAlphabetAsString(
+				mod ));
     }
 }

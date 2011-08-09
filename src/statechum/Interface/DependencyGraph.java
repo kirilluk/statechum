@@ -54,12 +54,16 @@ public class DependencyGraph extends statechum.analysis.learning.Visualiser {
 				} catch (IOException e) {
 					System.out.println("\tFailed to open " + f.getName());
 				} catch (Exception e) {
-					System.out.println("\tFailed to process " + f.getName());
+					e.printStackTrace();
+					System.out.println("\tFailed to process " + f.getName()+ ", because of "+e.getMessage());
 				}
 
 			}
 		}
 		this.construct(graph, null);
+		this.setLocation(10, 10);
+		this.setSize(800, 600);
+
 	}
 
 	public static void main(String[] args) {
